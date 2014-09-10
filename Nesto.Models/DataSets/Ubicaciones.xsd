@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="Ubicaciones" targetNamespace="http://tempuri.org/Ubicaciones.xsd" xmlns:mstns="http://tempuri.org/Ubicaciones.xsd" xmlns="http://tempuri.org/Ubicaciones.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" xmlns:msprop="urn:schemas-microsoft-com:xml-msprop" attributeFormDefault="qualified" elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:appinfo source="urn:schemas-microsoft-com:xml-msdatasource">
+      <DataSource DefaultConnectionIndex="0" FunctionsComponentName="QueriesTableAdapter" Modifier="AutoLayout, AnsiClass, Class, Public" SchemaSerializationMode="IncludeSchema" xmlns="urn:schemas-microsoft-com:xml-msdatasource">
+        <Connections />
+        <Tables />
+        <Sources />
+      </DataSource>
+    </xs:appinfo>
+  </xs:annotation>
+  <xs:element name="Ubicaciones" msdata:IsDataSet="true" msdata:UseCurrentLocale="true" msprop:EnableTableAdapterManager="true" msprop:Generator_DataSetName="Ubicaciones" msprop:Generator_UserDSName="Ubicaciones">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="Ubicaciones" msprop:Generator_TableClassName="UbicacionesDataTable" msprop:Generator_TableVarName="tableUbicaciones" msprop:Generator_TablePropName="_Ubicaciones" msprop:Generator_RowDeletingName="UbicacionesRowDeleting" msprop:Generator_UserTableName="Ubicaciones" msprop:Generator_RowChangingName="UbicacionesRowChanging" msprop:Generator_RowEvHandlerName="UbicacionesRowChangeEventHandler" msprop:Generator_RowDeletedName="UbicacionesRowDeleted" msprop:Generator_RowEvArgName="UbicacionesRowChangeEvent" msprop:Generator_RowChangedName="UbicacionesRowChanged" msprop:Generator_RowClassName="UbicacionesRow">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Pasillo" msprop:Generator_ColumnVarNameInTable="columnPasillo" msprop:Generator_ColumnPropNameInRow="Pasillo" msprop:Generator_ColumnPropNameInTable="PasilloColumn" msprop:Generator_UserColumnName="Pasillo" type="xs:string" minOccurs="0" />
+              <xs:element name="Fila" msprop:Generator_ColumnVarNameInTable="columnFila" msprop:Generator_ColumnPropNameInRow="Fila" msprop:Generator_ColumnPropNameInTable="FilaColumn" msprop:Generator_UserColumnName="Fila" type="xs:string" minOccurs="0" />
+              <xs:element name="Columna" msprop:Generator_ColumnVarNameInTable="columnColumna" msprop:Generator_ColumnPropNameInRow="Columna" msprop:Generator_ColumnPropNameInTable="ColumnaColumn" msprop:Generator_UserColumnName="Columna" type="xs:string" minOccurs="0" />
+              <xs:element name="DiasUltInventario" msprop:Generator_ColumnVarNameInTable="columnDiasUltInventario" msprop:Generator_ColumnPropNameInRow="DiasUltInventario" msprop:Generator_ColumnPropNameInTable="DiasUltInventarioColumn" msprop:Generator_UserColumnName="DiasUltInventario" type="xs:string" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

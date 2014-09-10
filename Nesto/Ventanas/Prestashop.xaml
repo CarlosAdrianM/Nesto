@@ -1,0 +1,110 @@
+﻿<Window x:Class="Prestashop"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels"
+    WindowState="Maximized"
+    Title="Prestashop" Height="300" Width="300">
+
+    <Window.DataContext>
+        <vm:PrestashopViewModel/>
+    </Window.DataContext>
+
+    <Grid>
+
+        <TabControl SelectedItem="{Binding PestañaSeleccionada}">
+            <TabItem Name="tabProductos" Header="Productos">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition Height="4*"/>
+                        <RowDefinition Height="7*"/>
+                        <RowDefinition />
+                        <RowDefinition Height="3*"/>
+                        <RowDefinition Height="15*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="8*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Row="0" Grid.Column="0" Content="Producto:"/>
+                    <Label Grid.Row="1" Grid.Column="0" Content="Nombre:"/>
+                    <Label Grid.Row="2" Grid.Column="0" Content="Descripción Breve:"/>
+                    <Label Grid.Row="3" Grid.Column="0" Content="Descripción:"/>
+                    <Label Grid.Row="4" Grid.Column="0" Content="PVP (IVA Incluido):"/>
+
+                    <TextBox Grid.Column="1" Grid.Row="0" Margin="3" Text="{Binding Path=SelectedItem.Número, Mode=OneWay, ElementName=dgrProductos}" VerticalAlignment="Top" />
+                    <TextBox Grid.Column="1" Grid.Row="1" Margin="3" Text="{Binding Path=SelectedItem.Nombre, Mode=TwoWay, ElementName=dgrProductos, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top"/>
+                    <TextBox Grid.Column="1" Grid.Row="2" Margin="3" Text="{Binding Path=SelectedItem.DescripciónBreve, Mode=TwoWay, ElementName=dgrProductos, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Stretch" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                    <TextBox Grid.Column="1" Grid.Row="3" Margin="3" Text="{Binding Path=SelectedItem.Descripción, Mode=TwoWay, ElementName=dgrProductos, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Stretch" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                    <TextBox Grid.Column="1" Grid.Row="4" Margin="3" Text="{Binding Path=SelectedItem.PVP_IVA_Incluido, Mode=TwoWay, ElementName=dgrProductos, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top"/>
+                    
+                    <Grid Grid.Column="1" Grid.Row="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0" Name="txtBuscar" Text="{Binding productoBuscar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                            <TextBox.InputBindings>
+                                <KeyBinding Command="{Binding Path=cmdBuscar}" Key="Enter" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                        <Button Grid.Column="1" Name="btnCrear" Command="{Binding cmdAñadir}">Añadir</Button>
+                        <Button Grid.Column="2" Name="btnGuardarCambios" Command="{Binding cmdGuardarCambios}">Guardar Cambios</Button>
+                        
+                    </Grid>
+                    <DataGrid Name="dgrProductos" Grid.Column="1" Grid.Row="6" ItemsSource="{Binding Path=Producto, Mode=OneWay}" AutoGenerateColumns="False" IsTextSearchEnabled="True" CanUserSortColumns="True" SelectedItem ="{Binding LineaSeleccionada}" SelectionMode="Single" SelectionUnit="FullRow">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                            <DataGridTextColumn Header="Precio Público"  Binding="{Binding PVP_IVA_Incluido, StringFormat=c}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style>
+                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Descripción Breve" Binding="{Binding DescripciónBreve}" />
+                            <DataGridTextColumn Header="Descripción" Binding="{Binding Descripción}" />
+                        </DataGrid.Columns>
+
+                    </DataGrid>
+                    
+                </Grid>
+            </TabItem>
+            <TabItem Name="tabRevisar" Header="Revisar">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4*"/>
+                        <RowDefinition Height="4*"/>
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <DataGrid Name="dgrRevisar" Grid.Row="0" ItemsSource="{Binding Path=Producto, Mode=OneWay}" AutoGenerateColumns="False" IsTextSearchEnabled="True" CanUserSortColumns="True" SelectedItem ="{Binding LineaSeleccionada}" SelectionMode="Single" SelectionUnit="FullRow">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                            <DataGridTextColumn Header="Precio Público"  Binding="{Binding PVP_IVA_Incluido, StringFormat=c}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style>
+                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Descripción Breve" Binding="{Binding DescripciónBreve}" />
+                            <DataGridTextColumn Header="Descripción" Binding="{Binding Descripción}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBox Grid.Row="1" Text="{Binding Path=SelectedItem.Descripción, Mode=TwoWay, ElementName=dgrRevisar}" TextWrapping="Wrap"/>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal">
+                        <Button Command="{Binding cmdVistoBueno}">Visto Bueno</Button>
+                        <Button Command="{Binding cmdGuardarCambios}">Guardar Cambios</Button>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+
+    </Grid>
+</Window>

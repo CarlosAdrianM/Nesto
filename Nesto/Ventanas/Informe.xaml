@@ -1,0 +1,8 @@
+﻿<Window x:Class="frmInforme"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Informe" Height="466" Width="946" Name="frmInforme" xmlns:my="clr-namespace:SAPBusinessObjects.WPF.Viewer;assembly=SAPBusinessObjects.WPF.Viewer" Icon="/Nesto;component/Icono2_NV_256x256.ico" WindowState="Maximized">
+    <Grid>
+        <my:CrystalReportsViewer Name="crvInforme" Margin="0,0,12,12" ShowLogo="False" ToggleSidePanel="None" />
+    </Grid>
+</Window>

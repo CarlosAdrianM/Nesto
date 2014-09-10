@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="RatioVentas" targetNamespace="http://tempuri.org/RatioVentas.xsd" xmlns:mstns="http://tempuri.org/RatioVentas.xsd" xmlns="http://tempuri.org/RatioVentas.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" xmlns:msprop="urn:schemas-microsoft-com:xml-msprop" attributeFormDefault="qualified" elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:appinfo source="urn:schemas-microsoft-com:xml-msdatasource">
+      <DataSource DefaultConnectionIndex="0" FunctionsComponentName="QueriesTableAdapter" Modifier="AutoLayout, AnsiClass, Class, Public" SchemaSerializationMode="IncludeSchema" xmlns="urn:schemas-microsoft-com:xml-msdatasource">
+        <Connections />
+        <Tables />
+        <Sources />
+      </DataSource>
+    </xs:appinfo>
+  </xs:annotation>
+  <xs:element name="RatioVentas" msdata:IsDataSet="true" msdata:UseCurrentLocale="true" msprop:EnableTableAdapterManager="true" msprop:Generator_DataSetName="RatioVentas" msprop:Generator_UserDSName="RatioVentas">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="RatioVenta" msprop:Generator_TableClassName="RatioVentaDataTable" msprop:Generator_TableVarName="tableRatioVenta" msprop:Generator_TablePropName="RatioVenta" msprop:Generator_RowDeletingName="RatioVentaRowDeleting" msprop:Generator_UserTableName="RatioVenta" msprop:Generator_RowChangingName="RatioVentaRowChanging" msprop:Generator_RowEvHandlerName="RatioVentaRowChangeEventHandler" msprop:Generator_RowDeletedName="RatioVentaRowDeleted" msprop:Generator_RowEvArgName="RatioVentaRowChangeEvent" msprop:Generator_RowChangedName="RatioVentaRowChanged" msprop:Generator_RowClassName="RatioVentaRow">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Vendedor" msprop:Generator_ColumnVarNameInTable="columnVendedor" msprop:Generator_ColumnPropNameInRow="Vendedor" msprop:Generator_ColumnPropNameInTable="VendedorColumn" msprop:Generator_UserColumnName="Vendedor" type="xs:string" minOccurs="0" />
+              <xs:element name="Ratio" msprop:Generator_ColumnVarNameInTable="columnRatio" msprop:Generator_ColumnPropNameInRow="Ratio" msprop:Generator_ColumnPropNameInTable="RatioColumn" msprop:Generator_UserColumnName="Ratio" type="xs:decimal" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
