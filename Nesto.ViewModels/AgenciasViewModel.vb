@@ -6,6 +6,8 @@ Imports System.Windows
 Imports System.Net
 Imports System.IO
 Imports System.Windows.Controls
+Imports System.Text.RegularExpressions
+Imports System.Data.Objects
 
 Public Class AgenciasViewModel
     Inherits ViewModelBase
@@ -18,18 +20,18 @@ Public Class AgenciasViewModel
     Dim mainModel As New Nesto.Models.MainModel
     Dim empresaDefecto As String = String.Format("{0,-3}", mainModel.leerParametro("1", "EmpresaPorDefecto"))
 
+
     Public Structure tipoIdDescripcion
         Public Sub New( _
-       ByVal _id As Integer,
+       ByVal _id As Byte,
        ByVal _descripcion As String
        )
             id = _id
             descripcion = _descripcion
         End Sub
-        Property id As Integer
+        Property id As Byte
         Property descripcion As String
     End Structure
-
 
     Public Sub New()
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
@@ -39,6 +41,7 @@ Public Class AgenciasViewModel
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         empresaSeleccionada = (From e In DbContext.Empresas Where e.Número = empresaDefecto).FirstOrDefault
         listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
+        agenciaSeleccionada = listaAgencias.FirstOrDefault
         listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
         retornoActual = New tipoIdDescripcion(0, "Sin Retorno")
         listaTiposRetorno.Add(retornoActual)
@@ -50,7 +53,14 @@ Public Class AgenciasViewModel
         listaServicios.Add(servicioActual)
         listaServicios.Add(New tipoIdDescripcion(37, "Economy"))
         listaServicios.Add(New tipoIdDescripcion(54, "EuroEstándar"))
-        listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
+        listaHorarios = New ObservableCollection(Of tipoIdDescripcion)
+        horarioActual = New tipoIdDescripcion(3, "ASM24")
+        listaHorarios.Add(horarioActual)
+        listaHorarios.Add(New tipoIdDescripcion(2, "ASM14"))
+        listaHorarios.Add(New tipoIdDescripcion(18, "Economy"))
+        listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+        envioActual = listaEnvios.LastOrDefault
+        numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
     End Sub
 
 #Region "Propiedades"
@@ -90,6 +100,7 @@ Public Class AgenciasViewModel
         Set(value As AgenciasTransporte)
             _agenciaSeleccionada = value
             OnPropertyChanged("agenciaSeleccionada")
+            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
         End Set
     End Property
 
@@ -121,6 +132,9 @@ Public Class AgenciasViewModel
         Set(value As Empresas)
             _empresaSeleccionada = value
             OnPropertyChanged("empresaSeleccionada")
+            listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
+            agenciaSeleccionada = listaAgencias.FirstOrDefault
+            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
             'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
             'una vez actualizadas, seleccionar el pedido o el envío actual también
         End Set
@@ -151,6 +165,7 @@ Public Class AgenciasViewModel
             Else
                 fechaEnvio = empresaSeleccionada.FechaPicking
             End If
+            listaEnviosPedido = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Pedido = pedidoSeleccionado.Número)
         End Set
     End Property
 
@@ -183,6 +198,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Decimal)
             _reembolso = value
+            OnPropertyChanged("reembolso")
         End Set
     End Property
 
@@ -203,7 +219,6 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             _mensajeError = value
-            Debug.Print("Nuevo mensaje de error: " + value)
             OnPropertyChanged("mensajeError")
         End Set
     End Property
@@ -225,6 +240,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As tipoIdDescripcion)
             _servicioActual = value
+            OnPropertyChanged("servicioActual")
         End Set
     End Property
 
@@ -245,6 +261,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As tipoIdDescripcion)
             _horarioActual = value
+            OnPropertyChanged("horarioActual")
         End Set
     End Property
 
@@ -376,6 +393,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As EnviosAgencia)
             _envioActual = value
+            OnPropertyChanged("envioActual")
         End Set
     End Property
 
@@ -467,23 +485,55 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    Private Property _listaEnviosPedido As ObservableCollection(Of EnviosAgencia)
+    Public Property listaEnviosPedido As ObservableCollection(Of EnviosAgencia)
+        Get
+            Return _listaEnviosPedido
+        End Get
+        Set(value As ObservableCollection(Of EnviosAgencia))
+            _listaEnviosPedido = value
+            OnPropertyChanged("listaEnviosPedido")
+        End Set
+    End Property
+
+
+
 #End Region
 
 #Region "Commandos"
-    Private _cmdInsertar As ICommand
-    Public ReadOnly Property cmdInsertar() As ICommand
+    Private _cmdTramitar As ICommand
+    Public ReadOnly Property cmdTramitar() As ICommand
         Get
-            If _cmdInsertar Is Nothing Then
-                _cmdInsertar = New RelayCommand(AddressOf Insertar, AddressOf CanInsertar)
+            If _cmdTramitar Is Nothing Then
+                _cmdTramitar = New RelayCommand(AddressOf Tramitar, AddressOf CanTramitar)
             End If
-            Return _cmdInsertar
+            Return _cmdTramitar
         End Get
     End Property
-    Private Function CanInsertar(ByVal param As Object) As Boolean
-        Return True
+    Private Function CanTramitar(ByVal param As Object) As Boolean
+        Return Not IsNothing(envioActual)
     End Function
-    Private Sub Insertar(ByVal param As Object)
+    Private Sub Tramitar(ByVal param As Object)
         llamadaWebService()
+    End Sub
+
+    Private _cmdTramitarTodos As ICommand
+    Public ReadOnly Property cmdTramitarTodos() As ICommand
+        Get
+            If _cmdTramitarTodos Is Nothing Then
+                _cmdTramitarTodos = New RelayCommand(AddressOf TramitarTodos, AddressOf CanTramitarTodos)
+            End If
+            Return _cmdTramitarTodos
+        End Get
+    End Property
+    Private Function CanTramitarTodos(ByVal param As Object) As Boolean
+        Return Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0
+    End Function
+    Private Sub TramitarTodos(ByVal param As Object)
+        For Each envio In listaEnvios
+            envioActual = envio
+            cmdTramitar.Execute(Nothing)
+        Next
     End Sub
 
     Private _cmdImprimirEtiquetaPedido As ICommand
@@ -496,7 +546,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function canImprimirEtiquetaPedido(ByVal param As Object) As Boolean
-        Return True
+        Return Not IsNothing(envioActual)
     End Function
     Private Sub ImprimirEtiquetaPedido(ByVal param As Object)
 
@@ -521,7 +571,9 @@ Public Class AgenciasViewModel
                 objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString _
                                     + ". Cliente: " + envioActual.Cliente + """")
                 objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + envioActual.CodigoBarras + i.ToString("D3") + """")
-                objStream.Writeline("A40,450,0,4,1,1,N,""" + envioActual.Nemonico + " " + envioActual.NombrePlaza + """")
+                objStream.Writeline("A40,450,0,4,1,2,N,""" + envioActual.Nemonico + " " + envioActual.NombrePlaza + """")
+                objStream.Writeline("A40,510,0,4,1,2,N,""" + listaHorarios.Where(Function(x) x.id = envioActual.Horario).FirstOrDefault.descripcion + """")
+                objStream.Writeline("A590,265,0,5,2,2,N,""" + envioActual.Nemonico + """")
                 objStream.Writeline("P1")
                 objStream.Writeline("")
             Next
@@ -549,20 +601,93 @@ Public Class AgenciasViewModel
 
     End Sub
 
+    Private _cmdGuardar As ICommand
+    Public ReadOnly Property cmdGuardar() As ICommand
+        Get
+            If _cmdGuardar Is Nothing Then
+                _cmdGuardar = New RelayCommand(AddressOf Guardar, AddressOf CanGuardar)
+            End If
+            Return _cmdGuardar
+        End Get
+    End Property
+    Private Function CanGuardar(ByVal param As Object) As Boolean
+        Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified Or System.Data.EntityState.Deleted)
+        Return changes.Any
+    End Function
+    Private Sub Guardar(ByVal param As Object)
+        Try
+            DbContext.SaveChanges()
+            mensajeError = ""
+        Catch ex As Exception
+            mensajeError = ex.InnerException.Message
+        End Try
+    End Sub
+
+    Private _cmdBorrar As ICommand
+    Public ReadOnly Property cmdBorrar() As ICommand
+        Get
+            If _cmdBorrar Is Nothing Then
+                _cmdBorrar = New RelayCommand(AddressOf Borrar, AddressOf canBorrar)
+            End If
+            Return _cmdBorrar
+        End Get
+    End Property
+    Private Function canBorrar(ByVal param As Object) As Boolean
+        Return envioActual IsNot Nothing
+    End Function
+    Private Sub Borrar(ByVal param As Object)
+        DbContext.EnviosAgencia.DeleteObject(envioActual)
+        listaEnvios.Remove(envioActual)
+        envioActual = listaEnvios.LastOrDefault
+    End Sub
+
+    Private _cmdInsertar As ICommand
+    Public ReadOnly Property cmdInsertar() As ICommand
+        Get
+            If _cmdInsertar Is Nothing Then
+                _cmdInsertar = New RelayCommand(AddressOf Insertar, AddressOf CanInsertar)
+            End If
+            Return _cmdInsertar
+        End Get
+    End Property
+    Private Function CanInsertar(ByVal param As Object) As Boolean
+        Return Not IsNothing(pedidoSeleccionado)
+    End Function
+    Private Sub Insertar(ByVal param As Object)
+        insertarRegistro()
+    End Sub
+
+    Private _cmdImprimirEInsertar As ICommand
+    Public ReadOnly Property cmdImprimirEInsertar() As ICommand
+        Get
+            If _cmdImprimirEInsertar Is Nothing Then
+                _cmdImprimirEInsertar = New RelayCommand(AddressOf ImprimirEInsertar, AddressOf CanImprimirEInsertar)
+            End If
+            Return _cmdImprimirEInsertar
+        End Get
+    End Property
+    Private Function CanImprimirEInsertar(ByVal param As Object) As Boolean
+        Return CanInsertar(Nothing)
+    End Function
+    Private Sub ImprimirEInsertar(ByVal param As Object)
+        cmdInsertar.Execute(Nothing)
+        cmdImprimirEtiquetaPedido.Execute(Nothing)
+    End Sub
+
 #End Region
 
 #Region "Funciones de Ayuda"
     Public Sub llamadaWebService()
         XMLdeSalida = construirXMLdeSalida()
-        If IsNothing(envioActual.Agencia) Then
-            resultadoWebservice = "No se pudo llamar al webservice (no hay ninguna agencia seleccionada)."
-        Else
-            resultadoWebservice = "0"
-        End If
+        'If IsNothing(envioActual.Agencia) Then
+        '    resultadoWebservice = "No se pudo llamar al webservice (no hay ninguna agencia seleccionada)."
+        'Else
+        '    resultadoWebservice = "0"
+        'End If
 
-        If resultadoWebservice <> "0" Then
-            Return
-        End If
+        'If resultadoWebservice <> "0" Then
+        '    Return
+        'End If
 
         'Comenzamos la llamada
         Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
@@ -601,11 +726,19 @@ Public Class AgenciasViewModel
         XMLdeEntrada.AddFirst(elementoXML)
 
         If elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value <> "0" Then
-            mensajeError = elementoXML.Element("Envio").Element("Errores").Element("Error").Value
+            If elementoXML.Element("Envio").Element("Errores").HasElements Then
+                mensajeError = elementoXML.Element("Envio").Element("Errores").Element("Error").Value
+            Else
+                mensajeError = calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
+            End If
+
         Else
             'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
             envioActual.Estado = 1 'Enviado
             DbContext.SaveChanges()
+            mensajeError = "Envío del pedido " + envioActual.Pedido.ToString + " tramitado correctamente."
+            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+            envioActual = listaEnvios.LastOrDefault
         End If
 
 
@@ -618,15 +751,15 @@ Public Class AgenciasViewModel
         'xml = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Desktop\ASM\webservice\XML-IN-B.xml")
         'xml.Descendants("Servicios").FirstOrDefault().Add(New XElement("Servicios", New XAttribute("uidcliente", ""), New XAttribute("xmlns", "http://www.asmred.com/")))
 
-        ' Si no hay agencia seleccionada devolvemos el xml vacío
-        If IsNothing(envioActual.Agencia) Then
+        ' Si no hay envioActual devolvemos el xml vacío
+        If IsNothing(envioActual) Then
             Return xml
         End If
 
         'Añadimos el nodo raíz (Servicios)
         xml.AddFirst(
             <Servicios uidcliente=<%= envioActual.AgenciasTransporte.Identificador %> xmlns="http://www.asmred.com/">
-                <Envio codbarras="">
+                <Envio codbarras=<%= envioActual.CodigoBarras %>>
                     <Fecha><%= envioActual.Fecha.ToShortDateString %></Fecha>
                     <Portes>P</Portes>
                     <Servicio><%= envioActual.Servicio %></Servicio>
@@ -664,7 +797,7 @@ Public Class AgenciasViewModel
                         <ATT><%= envioActual.Atencion %></ATT>
                     </Destinatario>
                     <Referencias><!-- cualquier numero, siempre distinto a cada prueba-->
-                        <Referencia tipo="C"><%= envioActual.Cliente %>/<%= envioActual.Pedido %></Referencia>
+                        <Referencia tipo="C"><%= envioActual.Cliente.Trim %>/<%= envioActual.Pedido %></Referencia>
                     </Referencias>
                     <Importes>
                         <Debidos>0</Debidos>
@@ -750,14 +883,27 @@ Public Class AgenciasViewModel
     End Function
 
     Public Function importeReembolso() As Decimal
+        If IsNothing(pedidoSeleccionado) Then
+            Return 0
+        End If
         If pedidoSeleccionado.CCC IsNot Nothing Then
             Return 0
         End If
+        Dim lineas As ObjectQuery(Of LinPedidoVta)
+        lineas = (From l In DbContext.LinPedidoVta Where l.Número = pedidoSeleccionado.Número And l.Picking <> 0)
+        If Not lineas.Any Then
+            Return 0
+        End If
+
         Return Math.Round(
-            (Aggregate l In DbContext.LinPedidoVta _
-            Where l.Número = pedidoSeleccionado.Número _
+            (Aggregate l In lineas _
             Select l.Total Into Sum()) _
             , 2)
+        'Return Math.Round(
+        '    (Aggregate l In DbContext.LinPedidoVta _
+        '    Where l.Número = pedidoSeleccionado.Número And l.Picking <> 0 _
+        '    Select l.Total Into Sum()) _
+        '    , 2)
     End Function
 
     Public Function calcularDigitoControl(ByVal number As String) As Integer
@@ -803,7 +949,7 @@ Public Class AgenciasViewModel
     End Function
 
     Public Function calcularCodigoBarras() As String
-        Return agenciaSeleccionada.PrefijoCodigoBarras + pedidoSeleccionado.Número.ToString("D7")
+        Return agenciaSeleccionada.PrefijoCodigoBarras.ToString + pedidoSeleccionado.Número.ToString("D7")
     End Function
 
     Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
@@ -848,7 +994,9 @@ Public Class AgenciasViewModel
         'Debug.Print(respuestaXML.ToString)
         nemonico = elementoXML.Element("Nemonico").Value
         nombrePlaza = elementoXML.Element("Nombre").Value
-        telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
+        telefonoPlaza = elementoXML.Element("Telefono").Value
+        telefonoPlaza = Regex.Replace(telefonoPlaza, "([^0-9])", "")
+        'telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
         emailPlaza = elementoXML.Element("Mail").Value
     End Sub
 
@@ -868,10 +1016,12 @@ Public Class AgenciasViewModel
             .Nombre = nombreEnvio
             .Direccion = direccionEnvio
             .CodPostal = codPostalEnvio
+            .Poblacion = poblacionEnvio
+            .Provincia = provinciaEnvio
             .Telefono = telefonoEnvio
             .Movil = movilEnvio
             .Email = correoEnvio
-            .Observaciones = observacionesEnvio
+            .Observaciones = Left(observacionesEnvio, 80)
             .Atencion = attEnvio
             .Reembolso = reembolso
             .CodigoBarras = calcularCodigoBarras()
@@ -880,8 +1030,43 @@ Public Class AgenciasViewModel
         End With
 
         DbContext.AddToEnviosAgencia(envioActual)
+        listaEnvios.Add(envioActual)
+        listaEnviosPedido.Add(envioActual)
         DbContext.SaveChanges()
     End Sub
+
+    Public Function calcularMensajeError(numeroError As Integer) As String
+        Select Case numeroError
+            Case -33
+                Return "Ya existe el código de barras de la expedición"
+            Case -69
+                Return "No se pudo canalizar el envío"
+            Case -70
+                Return "Ya existe se ha enviado este pedido para esta fecha y cliente"
+            Case -108
+                Return "El nombre del remitente debe tener al menos tres caracteres"
+            Case -109
+                Return "La dirección del remitente debe tener al menos tres caracteres"
+            Case -110
+                Return "La población del remitente debe tener al menos tres caracteres"
+            Case -111
+                Return "El código postal del remitente debe tener al menos cuatro caracteres"
+            Case -111
+                Return "La referencia del cliente está duplicada"
+            Case -119
+                Return "Error no controlado por el webservice de la agencia"
+            Case -128
+                Return "El nombre del destinatario debe tener al menos tres caracteres"
+            Case -129
+                Return "La dirección del destinatario debe tener al menos tres caracteres"
+            Case -130
+                Return "La población del destinatario debe tener al menos tres caracteres"
+            Case -131
+                Return "El código postal del destinatario debe tener al menos cuatro caracteres"
+            Case Else
+                Return "El código de error " + numeroError + " no está controlado por Nesto"
+        End Select
+    End Function
 
 #End Region
 

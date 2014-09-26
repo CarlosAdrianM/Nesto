@@ -357,6 +357,8 @@ Public Class PlanesVentajasViewModel
     Private Sub Añadir(ByVal param As Object)
         Dim nuevo As New PlanesVentajas
         nuevo.Empresa = empresaActual
+        nuevo.FechaInicio = Today
+        nuevo.FechaFin = Today
         DbContext.AddToPlanesVentajas(nuevo)
         listaPlanes.Add(nuevo)
         planActual = listaPlanes.LastOrDefault

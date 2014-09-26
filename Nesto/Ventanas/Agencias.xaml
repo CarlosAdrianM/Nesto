@@ -20,18 +20,204 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <ComboBox Grid.Column="0" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Número" SelectedItem="{Binding empresaSeleccionada}" VerticalAlignment="Center"/>
-            <TextBlock Grid.Column="1" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
+            <ComboBox Grid.Column="1" Margin="3" ItemsSource="{Binding listaAgencias}" DisplayMemberPath="Nombre" SelectedValuePath="Numero" SelectedItem="{Binding agenciaSeleccionada}" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="2" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
         </Grid>
         <TabControl Grid.Row="2" TabStripPlacement="Top" SelectedItem="{Binding PestañaSeleccionada}">
+            <TabItem Name="tabPedidos" Header="Pedidos">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="2*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Grid.Row="0" Text="Pedido:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="1" Text="Cliente:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="2" Text="Contacto:"  Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="3" Text="Fecha:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="4" Text="Servicio:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="5" Text="Horario:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="6" Text="Bultos:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="7" Text="Retorno:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="Nombre:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="1" Text="Dirección:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="2" Text="Código Postal:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="3" Text="Población:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="4" Text="Provincia:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="5" Text="Teléfono Fijo:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="6" Text="Teléfono Móvil:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="7" Text="Atención:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="4" Grid.Row="0" Text="Email:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="4" Grid.Row="1" Text="Reembolso:" Style="{StaticResource etiquetaTexto}"/>
+
+                        <TextBox Grid.Column="1" Grid.Row="0" Text="{Binding numeroPedido}" Style="{StaticResource campoTexto}" />
+                        <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding pedidoSeleccionado.Nº_Cliente}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
+                        <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding pedidoSeleccionado.Contacto}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
+                        <DatePicker Grid.Column="1" Grid.Row="3" Text="{Binding fechaEnvio}" Margin="3"/>
+                        <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding listaServicios}" SelectedValue="{Binding servicioActual.id}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"/>
+                        <ComboBox Grid.Column="1" Grid.Row="5" ItemsSource="{Binding listaHorarios}" SelectedValue="{Binding horarioActual.id}" DisplayMemberPath="descripcion" SelectedValuePath="id"  Style="{StaticResource listaCombo}"/>
+                        <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding bultos}" Style="{StaticResource campoTexto}"  />
+                        <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding listaTiposRetorno}" SelectedValue="{Binding retornoActual.id}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
+                        <TextBox Grid.Column="3" Grid.Row="0" Text="{Binding nombreEnvio}" Style="{StaticResource campoTexto}"  />
+                        <TextBox Grid.Column="3" Grid.Row="1" Text="{Binding direccionEnvio}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="3" Grid.Row="2" Text="{Binding codPostalEnvio}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="3" Grid.Row="3" Text="{Binding poblacionEnvio}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="3" Grid.Row="4" Text="{Binding provinciaEnvio}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="3" Grid.Row="5" Text="{Binding telefonoEnvio}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="3" Grid.Row="6" Text="{Binding movilEnvio}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="3" Grid.Row="7" Text="{Binding attEnvio}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="5" Grid.Row="0" Text="{Binding correoEnvio}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="5" Grid.Row="1" Text="{Binding reembolso, StringFormat=c}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
+
+                        <Button Grid.Column="5" Grid.Row="7" MinWidth="80" Margin="3" Content="Insertar e Imprimir" Command = "{Binding cmdImprimirEInsertar}"/>
+                        <!--Button Grid.Column="4" Grid.Row="6" MinWidth="80" Margin="3" Content="Imprimir Etiqueta" Command = "{Binding cmdImprimirEtiquetaPedido}"/>
+                        <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Insertar Envío" Command = "{Binding cmdInsertar}"/-->
+
+                        <TextBox Grid.Column="6" Grid.RowSpan="8" Text="{Binding Path=observacionesEnvio}" Style="{StaticResource campoComentarios}" />
+                    </Grid>
+                    <DockPanel Grid.Row="1">
+                        <DataGrid ItemsSource="{Binding listaEnviosPedido}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
+                                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
+                                <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" />
+                                <DataGridTextColumn Header="Gasto" Binding="{Binding ImporteGasto, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Grid>
+            </TabItem>
             <TabItem Name="tabEnvios" Header="Envíos">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="2*"/>
                     </Grid.RowDefinitions>
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding listaEnvios}"/>
+                    <Grid Grid.Row="0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Grid.Row="0" Text="Cliente:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="1" Text="Contacto:"  Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="2" Text="Pedido:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="3" Text="Fecha:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="4" Text="Servicio:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="5" Text="Horario:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="6" Text="Bultos:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="0" Grid.Row="7" Text="Retorno:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="0" Text="Nombre:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="1" Text="Dirección:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="2" Text="Código Postal:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="3" Text="Población:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="4" Text="Provincia:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="5" Text="Teléfono Fijo:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="6" Text="Teléfono Móvil:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="2" Grid.Row="7" Text="Atención:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="4" Grid.Row="0" Text="Email:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="4" Grid.Row="1" Text="Reembolso:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="4" Grid.Row="2" Text="Nombre Plaza:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="4" Grid.Row="3" Text="Teléfono Plaza:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="4" Grid.Row="4" Text="Email Plaza:" Style="{StaticResource etiquetaTexto}"/>
+
+                        <TextBox Grid.Column="1" Grid.Row="0" Text="{Binding envioActual.Cliente}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
+                        <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding envioActual.Contacto}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
+                        <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding envioActual.Pedido}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
+                        <DatePicker Grid.Column="1" Grid.Row="3" Text="{Binding envioActual.Fecha}" Margin="3"/>
+                        <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding listaServicios}" SelectedValue="{Binding envioActual.Servicio}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"/>
+                        <ComboBox Grid.Column="1" Grid.Row="5" ItemsSource="{Binding listaHorarios}" SelectedValue="{Binding envioActual.Horario}" DisplayMemberPath="descripcion" SelectedValuePath="id"  Style="{StaticResource listaCombo}" IsReadOnly="True"/>
+                        <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding envioActual.Bultos}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+                        <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding listaTiposRetorno}" SelectedValue="{Binding envioActual.Retorno}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
+                        <TextBox Grid.Column="3" Grid.Row="0" Text="{Binding envioActual.Nombre}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+                        <TextBox Grid.Column="3" Grid.Row="1" Text="{Binding envioActual.Direccion}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+                        <TextBox Grid.Column="3" Grid.Row="2" Text="{Binding envioActual.CodPostal}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+                        <TextBox Grid.Column="3" Grid.Row="3" Text="{Binding envioActual.Poblacion}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+                        <TextBox Grid.Column="3" Grid.Row="4" Text="{Binding envioActual.Provincia}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+                        <TextBox Grid.Column="3" Grid.Row="5" Text="{Binding envioActual.Telefono}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="3" Grid.Row="6" Text="{Binding envioActual.Movil}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="3" Grid.Row="7" Text="{Binding envioActual.Atencion}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="5" Grid.Row="0" Text="{Binding envioActual.Email}" Style="{StaticResource campoTexto}"/>
+                        <TextBox Grid.Column="5" Grid.Row="1" Text="{Binding envioActual.Reembolso, StringFormat=c}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
+                        <TextBox Grid.Column="5" Grid.Row="2" Text="{Binding envioActual.NombrePlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+                        <TextBox Grid.Column="5" Grid.Row="3" Text="{Binding envioActual.TelefonoPlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+                        <TextBox Grid.Column="5" Grid.Row="4" Text="{Binding envioActual.EmailPlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
+
+                        <Button Grid.Column="4" Grid.Row="6" MinWidth="80" Margin="3" Content="Borrar Envío" Command = "{Binding cmdBorrar}"/>
+                        <Button Grid.Column="4" Grid.Row="7" MinWidth="80" Margin="3" Content="Guardar Cambios" Command = "{Binding cmdGuardar}"/>
+                        <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Tramitar Envío" Command = "{Binding cmdTramitar}"/>
+                        <Button Grid.Column="5" Grid.Row="7" MinWidth="80" Margin="3" Content="Tramitar Todos" Command = "{Binding cmdTramitarTodos}"/>
+                        
+                        <TextBox Grid.Column="6" Grid.RowSpan="8" Text="{Binding Path=envioActual.Observaciones}" Style="{StaticResource campoComentarios}" />
+                    </Grid>
+                    <DockPanel Grid.Row="1">
+                    <DataGrid ItemsSource="{Binding listaEnvios}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Número" Binding="{Binding Numero}"/>
+                            <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
+                            <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
+                            <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}"/>
+                            <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}"  Width="3*" />
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
+                            <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style>
+                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </DockPanel>
                 </Grid>
             </TabItem>
         </TabControl>

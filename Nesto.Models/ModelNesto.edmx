@@ -287,12 +287,12 @@
           <Property Name="Cliente" Type="char" MaxLength="10" />
           <Property Name="Contacto" Type="char" MaxLength="3" />
           <Property Name="Pedido" Type="int" />
-          <Property Name="Estado" Type="tinyint" Nullable="false" />
+          <Property Name="Estado" Type="smallint" Nullable="false" />
           <Property Name="Fecha" Type="date" Nullable="false" />
-          <Property Name="Servicio" Type="tinyint" Nullable="false" />
-          <Property Name="Horario" Type="tinyint" Nullable="false" />
-          <Property Name="Bultos" Type="tinyint" Nullable="false" />
-          <Property Name="Retorno" Type="tinyint" Nullable="false" />
+          <Property Name="Servicio" Type="smallint" Nullable="false" />
+          <Property Name="Horario" Type="smallint" Nullable="false" />
+          <Property Name="Bultos" Type="smallint" Nullable="false" />
+          <Property Name="Retorno" Type="smallint" Nullable="false" />
           <Property Name="Nombre" Type="varchar" MaxLength="80" />
           <Property Name="Direccion" Type="varchar" MaxLength="80" />
           <Property Name="CodPostal" Type="varchar" MaxLength="5" />
@@ -305,9 +305,9 @@
           <Property Name="Atencion" Type="varchar" MaxLength="80" />
           <Property Name="Reembolso" Type="money" Nullable="false" />
           <Property Name="CodigoBarras" Type="nvarchar" MaxLength="14" />
-          <Property Name="NombrePlaza" Type="varchar" MaxLength="20" />
+          <Property Name="NombrePlaza" Type="varchar" MaxLength="80" />
           <Property Name="Nemonico" Type="varchar" MaxLength="3" />
-          <Property Name="TelefonoPlaza" Type="varchar" MaxLength="9" />
+          <Property Name="TelefonoPlaza" Type="varchar" MaxLength="27" />
           <Property Name="EmailPlaza" Type="varchar" MaxLength="200" />
           <Property Name="Vendedor" Type="char" MaxLength="3" />
           <Property Name="FechaFactura" Type="date" />
@@ -434,6 +434,20 @@
           <Property Name="TipoRuta" Type="char" MaxLength="3" Nullable="false" />
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" />
           <Property Name="Fecha Modificación" Type="datetime" Nullable="false" />
+        </EntityType>
+        <EntityType Name="FamiliasVendedor">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
+          <Property Name="CodigoPostal" Type="char" MaxLength="5" Nullable="false" />
+          <Property Name="Vendedor" Type="char" MaxLength="3" Nullable="false" />
+          <Property Name="Familia" Type="char" MaxLength="10" Nullable="false" />
+          <Property Name="FechaDesde" Type="datetime" Nullable="false" />
+          <Property Name="FechaHasta" Type="datetime" Nullable="false" />
+          <Property Name="FechaModificacion" Type="datetime" Nullable="false" />
+          <Property Name="Usuario" Type="varchar" MaxLength="50" Nullable="false" />
         </EntityType>
         <EntityType Name="Inmovilizados">
           <Key>
@@ -1336,6 +1350,20 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_FamiliasVendedor_Vendedores">
+          <End Role="Vendedores" Type="Self.Vendedores" Multiplicity="1" />
+          <End Role="FamiliasVendedor" Type="Self.FamiliasVendedor" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Vendedores">
+              <PropertyRef Name="Empresa" />
+              <PropertyRef Name="Número" />
+            </Principal>
+            <Dependent Role="FamiliasVendedor">
+              <PropertyRef Name="Empresa" />
+              <PropertyRef Name="Vendedor" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_Inmovilizados_Empresas">
           <End Role="Empresas" Type="Self.Empresas" Multiplicity="1" />
           <End Role="Inmovilizados" Type="Self.Inmovilizados" Multiplicity="*" />
@@ -1716,6 +1744,7 @@
           <EntitySet Name="ExtractoCliente" EntityType="Self.ExtractoCliente" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="ExtractoInmovilizado" EntityType="Self.ExtractoInmovilizado" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="ExtractoRuta" EntityType="Self.ExtractoRuta" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="FamiliasVendedor" EntityType="Self.FamiliasVendedor" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Inmovilizados" EntityType="Self.Inmovilizados" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="LinPedidoCmp" EntityType="Self.LinPedidoCmp" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="LinPedidoVta" EntityType="Self.LinPedidoVta" Schema="dbo" store:Type="Tables" />
@@ -1889,6 +1918,10 @@
           <AssociationSet Name="FK_ExtractoRuta_Vendedores" Association="Self.FK_ExtractoRuta_Vendedores">
             <End Role="Vendedores" EntitySet="Vendedores" />
             <End Role="ExtractoRuta" EntitySet="ExtractoRuta" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FamiliasVendedor_Vendedores" Association="Self.FK_FamiliasVendedor_Vendedores">
+            <End Role="Vendedores" EntitySet="Vendedores" />
+            <End Role="FamiliasVendedor" EntitySet="FamiliasVendedor" />
           </AssociationSet>
           <AssociationSet Name="FK_Inmovilizados_Empresas" Association="Self.FK_Inmovilizados_Empresas">
             <End Role="Empresas" EntitySet="Empresas" />
@@ -2312,6 +2345,11 @@
           <AssociationSet Name="FK_EtiquetasPicking_MultiUsuarios" Association="Nesto.Models.EF.FK_EtiquetasPicking_MultiUsuarios">
             <End Role="MultiUsuarios" EntitySet="MultiUsuarios" />
             <End Role="EtiquetasPicking" EntitySet="EtiquetasPicking" />
+          </AssociationSet>
+          <EntitySet Name="FamiliasVendedor" EntityType="Nesto.Models.EF.FamiliasVendedor" />
+          <AssociationSet Name="FK_FamiliasVendedor_Vendedores" Association="Nesto.Models.EF.FK_FamiliasVendedor_Vendedores">
+            <End Role="Vendedores" EntitySet="Vendedores" />
+            <End Role="FamiliasVendedor" EntitySet="FamiliasVendedor" />
           </AssociationSet>
           </EntityContainer>
         <EntityType Name="Productos">
@@ -2795,6 +2833,7 @@
           <NavigationProperty Name="SeguimientoCliente" Relationship="Nesto.Models.EF.FK_SeguimientoCliente_Vendedores" FromRole="Vendedores" ToRole="SeguimientoCliente" />
           <NavigationProperty Name="ExtractoRuta" Relationship="Nesto.Models.EF.FK_ExtractoRuta_Vendedores" FromRole="Vendedores" ToRole="ExtractoRuta" />
           <NavigationProperty Name="EnviosAgencia" Relationship="Nesto.Models.EF.FK_EnviosAgencia_Vendedores" FromRole="Vendedores" ToRole="EnviosAgencia" />
+          <NavigationProperty Name="FamiliasVendedor" Relationship="Nesto.Models.EF.FK_FamiliasVendedor_Vendedores" FromRole="Vendedores" ToRole="FamiliasVendedor" />
         </EntityType>
         <Association Name="FK_CabFacturaVta_Vendedores">
           <End Type="Nesto.Models.EF.Vendedores" Role="Vendedores" Multiplicity="1" />
@@ -3966,9 +4005,9 @@
           <Property Name="Atencion" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Reembolso" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
           <Property Name="CodigoBarras" Type="String" MaxLength="14" FixedLength="false" Unicode="true" />
-          <Property Name="NombrePlaza" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
+          <Property Name="NombrePlaza" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Nemonico" Type="String" MaxLength="3" FixedLength="false" Unicode="false" />
-          <Property Name="TelefonoPlaza" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
+          <Property Name="TelefonoPlaza" Type="String" MaxLength="27" FixedLength="false" Unicode="false" />
           <Property Name="EmailPlaza" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
           <Property Name="Vendedor" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="FechaFactura" Type="DateTime" Precision="0" />
@@ -4189,6 +4228,35 @@
             <Dependent Role="EtiquetasPicking">
               <PropertyRef Name="Empresa" />
               <PropertyRef Name="UsuarioQuePrepara" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="FamiliasVendedor">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Empresa" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="CodigoPostal" Type="String" Nullable="false" MaxLength="5" FixedLength="true" Unicode="false" />
+          <Property Name="Vendedor" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Familia" Type="String" Nullable="false" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="FechaDesde" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="FechaHasta" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="FechaModificacion" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="Usuario" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <NavigationProperty Name="Vendedores" Relationship="Nesto.Models.EF.FK_FamiliasVendedor_Vendedores" FromRole="FamiliasVendedor" ToRole="Vendedores" />
+        </EntityType>
+        <Association Name="FK_FamiliasVendedor_Vendedores">
+          <End Type="Nesto.Models.EF.Vendedores" Role="Vendedores" Multiplicity="1" />
+          <End Type="Nesto.Models.EF.FamiliasVendedor" Role="FamiliasVendedor" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Vendedores">
+              <PropertyRef Name="Empresa" />
+              <PropertyRef Name="Número" />
+            </Principal>
+            <Dependent Role="FamiliasVendedor">
+              <PropertyRef Name="Empresa" />
+              <PropertyRef Name="Vendedor" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -5024,6 +5092,21 @@
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
+          <EntitySetMapping Name="FamiliasVendedor">
+            <EntityTypeMapping TypeName="Nesto.Models.EF.FamiliasVendedor">
+              <MappingFragment StoreEntitySet="FamiliasVendedor">
+                <ScalarProperty Name="Usuario" ColumnName="Usuario" />
+                <ScalarProperty Name="FechaModificacion" ColumnName="FechaModificacion" />
+                <ScalarProperty Name="FechaHasta" ColumnName="FechaHasta" />
+                <ScalarProperty Name="FechaDesde" ColumnName="FechaDesde" />
+                <ScalarProperty Name="Familia" ColumnName="Familia" />
+                <ScalarProperty Name="Vendedor" ColumnName="Vendedor" />
+                <ScalarProperty Name="CodigoPostal" ColumnName="CodigoPostal" />
+                <ScalarProperty Name="Empresa" ColumnName="Empresa" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
@@ -5372,6 +5455,8 @@
         <EntityTypeShape EntityType="Nesto.Models.EF.EtiquetasPicking" Width="1.5" PointX="18.875" PointY="12.625" />
         <AssociationConnector Association="Nesto.Models.EF.FK_EtiquetasPicking_Empresas" />
         <AssociationConnector Association="Nesto.Models.EF.FK_EtiquetasPicking_MultiUsuarios" />
+        <EntityTypeShape EntityType="Nesto.Models.EF.FamiliasVendedor" Width="1.5" PointX="16.75" PointY="5.25" />
+        <AssociationConnector Association="Nesto.Models.EF.FK_FamiliasVendedor_Vendedores" />
         </Diagram>
     </Diagrams>
   </Designer>

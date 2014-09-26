@@ -25,6 +25,7 @@ Public Class ClientesViewModel
 
     Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String = mainModel.leerParametro(empresaActual, "RutaMandatos")
+    Private esVendedorDeFamilias As Boolean = False
 
     Public Structure tipoIdDescripcion
         Public Sub New( _
@@ -48,9 +49,10 @@ Public Class ClientesViewModel
         Dim mainModel As New Nesto.Models.MainModel
         Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
         Dim clienteDefecto As String = mainModel.leerParametro(empresaDefecto, "UltNumCliente")
+        empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
         vendedor = mainModel.leerParametro(empresaDefecto, "Vendedor")
 
-        empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
+
         clienteActual = clienteDefecto
         contactoActual = "0" 'esto hay que cambiarlo por el ClientePrincipal
 
@@ -73,6 +75,7 @@ Public Class ClientesViewModel
         listaTipos.Add(New tipoIdDescripcion(2, "Profesional"))
     End Sub
 
+#Region "Propiedades"
     Private Property _empresaActual As String
     Public Property empresaActual As String
         Get
@@ -241,6 +244,14 @@ Public Class ClientesViewModel
         Set(value As String)
             _vendedor = value
             OnPropertyChanged("vendedor")
+            If vendedor <> "" Then
+                esVendedorDeFamilias = Not IsNothing((From c In DbContext.FamiliasVendedor Where c.Empresa = empresaActual And c.Vendedor = vendedor Take 1).FirstOrDefault)
+            End If
+
+            If esVendedorDeFamilias Then
+                listaCodigosPostalesVendedor = (From c In DbContext.FamiliasVendedor Where c.Empresa = empresaActual And c.Vendedor = vendedor Group By codPostal = c.CodigoPostal Into susClientes = Group Select codPostal).ToList
+            End If
+
         End Set
     End Property
 
@@ -357,14 +368,17 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Function inicializarListaClientesVendedor() As ObservableCollection(Of Clientes)
-        If vendedor <> "" Then
-            Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Vendedor = vendedor And c.Estado >= 0 Order By c.CodPostal, c.Dirección)
-        Else
-            Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0)
-        End If
+    Private Property _listaCodigosPostalesVendedor As List(Of String)
+    Public Property listaCodigosPostalesVendedor As List(Of String)
+        Get
+            Return _listaCodigosPostalesVendedor
+        End Get
+        Set(value As List(Of String))
+            _listaCodigosPostalesVendedor = value
+        End Set
+    End Property
 
-    End Function
+#End Region
 #Region "Comandos"
     Private _cmdGuardar As ICommand
     Public ReadOnly Property cmdGuardar() As ICommand
@@ -542,11 +556,23 @@ Public Class ClientesViewModel
 
 #End Region
 
+#Region "Funciones"
     Private Function rutaMandato() As String
         Return ruta + empresaActual.Trim + "_" + clienteActual.Trim + "_" + contactoActual.Trim + "_" + cuentaActiva.Número.Trim + ".pdf"
     End Function
+    Private Function inicializarListaClientesVendedor() As ObservableCollection(Of Clientes)
+        If vendedor <> "" Then
+            If esVendedorDeFamilias Then
+                Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0 And listaCodigosPostalesVendedor.Contains(c.CodPostal) Order By c.CodPostal, c.Dirección)
+            Else
+                Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Vendedor = vendedor And c.Estado >= 0 Order By c.CodPostal, c.Dirección)
+            End If
+        Else
+            Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0)
+        End If
 
-
+    End Function
+#End Region
 End Class
 
 Public Class StringTrimmingConverter

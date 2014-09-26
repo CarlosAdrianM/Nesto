@@ -258,6 +258,7 @@ Public Class cuandoConstruimosElXMLdeSalida
         bultos = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Bultos").Value
         servicio = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Servicio").Value
         horario = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Horario").Value
+        'Debug.Print(agenciaVM.XMLdeSalida.ToString)
         'assert
         Assert.IsTrue(identificador = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11") 'el de pruebas de ASM
         Assert.IsTrue(retorno = 2)
@@ -580,6 +581,24 @@ Public Class cuandoImprimimosLaEtiqueta
         Assert.IsTrue(agenciaVM.envioActual.NombrePlaza = "RETIRO 797")
         Assert.IsTrue(agenciaVM.envioActual.TelefonoPlaza = "915744174")
         Assert.IsTrue(agenciaVM.envioActual.EmailPlaza = "asm.retiro@asmred.com")
+    End Sub
+
+    <TestMethod()>
+    Public Sub debeGuardarElRegistroEnLaBBDD2()
+        'arrange
+        agenciaVM.empresaSeleccionada = New Empresas With {.Número = "1", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com"}
+        agenciaVM.pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = 563148).FirstOrDefault
+        agenciaVM.agenciaSeleccionada = New AgenciasTransporte With {.Empresa = "1", .Numero = "1", .Identificador = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11", .Nombre = "ASM", .PrefijoCodigoBarras = "6112979"}
+        agenciaVM.bultos = 2
+        'act
+        'agenciaVM.cmdImprimirEtiquetaPedido.Execute(Nothing)
+        agenciaVM.insertarRegistro()
+        'assert
+        Assert.IsTrue(agenciaVM.envioActual.CodigoBarras = "61129790563148")
+        'Assert.IsTrue(agenciaVM.envioActual.Nemonico = "A42")
+        'Assert.IsTrue(agenciaVM.envioActual.NombrePlaza = "ASM NAVALCARNERO")
+        'Assert.IsTrue(agenciaVM.envioActual.TelefonoPlaza = "918134517")
+        'Assert.IsTrue(agenciaVM.envioActual.EmailPlaza = "asm.703@asmred.es")
     End Sub
 
     <TestMethod()>

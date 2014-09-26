@@ -344,19 +344,25 @@ Public Class RemesasViewModel
         Dim objOL As Outlook.Application
         objOL = New Outlook.Application
         Dim newTask As Outlook.TaskItem
+        Dim ruta As New Rutas
         Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
 
         Try
             For Each impagado In impagados
                 newTask = objOL.CreateItem(Outlook.OlItemType.olTaskItem)
                 If Not IsNothing(newTask) Then
-                    newTask.Subject = "Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
+                    ruta = (From r In DbContext.Rutas Where r.Empresa = impagado.c.Empresa And r.Número = impagado.c.Ruta).FirstOrDefault
+                    newTask.Subject = ruta.Descripción.Trim + " - Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
                         ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim
                     newTask.Body = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
                         "Motivo: " + impagado.e.Concepto + vbCrLf +
                         "Ruta: " + impagado.c.Ruta
-
                     newTask.Assign()
+                    If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
+                        usuarioTareas = "laura@nuevavision.es"
+                    Else
+                        usuarioTareas = "aidarubio@nuevavision.es"
+                    End If
                     newTask.Recipients.Add(usuarioTareas)
                     newTask.Recipients.ResolveAll()
                     newTask.Send()
