@@ -15,6 +15,7 @@
           <Property Name="Ruta" Type="char" MaxLength="3" />
           <Property Name="Identificador" Type="nvarchar" MaxLength="50" />
           <Property Name="PrefijoCodigoBarras" Type="varchar" MaxLength="7" />
+          <Property Name="CuentaReembolsos" Type="varchar" MaxLength="10" />
           <Property Name="Usuario" Type="varchar" MaxLength="50" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
         </EntityType>
@@ -42,8 +43,8 @@
           <Property Name="CabPedidoVta" Type="int" />
           <Property Name="RutaContrato" Type="varchar" MaxLength="50" />
           <Property Name="Comentarios" Type="text" />
-          <Property Name="Usuario" Type="varchar" MaxLength="30" StoreGeneratedPattern="Computed" />
-          <Property Name="FechaModificación" Type="datetime" StoreGeneratedPattern="Computed" />
+          <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" StoreGeneratedPattern="Computed" />
+          <Property Name="FechaModificación" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
         </EntityType>
         <EntityType Name="CabFacturaVta">
           <Key>
@@ -646,6 +647,50 @@
           <Property Name="Cliente" Type="char" MaxLength="10" Nullable="false" />
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
+        </EntityType>
+        <EntityType Name="PreContabilidad">
+          <Key>
+            <PropertyRef Name="Empresa" />
+            <PropertyRef Name="Nº Orden" />
+          </Key>
+          <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
+          <Property Name="Nº Orden" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TipoApunte" Type="char" MaxLength="3" Nullable="false" />
+          <Property Name="TipoCuenta" Type="char" MaxLength="3" Nullable="false" />
+          <Property Name="Nº Cuenta" Type="char" MaxLength="10" Nullable="false" />
+          <Property Name="Nº Remesa" Type="char" MaxLength="10" />
+          <Property Name="Contacto" Type="char" MaxLength="3" />
+          <Property Name="Concepto" Type="char" MaxLength="50" />
+          <Property Name="Debe" Type="money" Nullable="false" />
+          <Property Name="Haber" Type="money" Nullable="false" />
+          <Property Name="Fecha" Type="datetime" Nullable="false" />
+          <Property Name="Nº Documento" Type="char" MaxLength="10" />
+          <Property Name="Efecto" Type="char" MaxLength="3" />
+          <Property Name="Asiento" Type="int" />
+          <Property Name="Diario" Type="char" MaxLength="10" />
+          <Property Name="Asiento Automático" Type="bit" Nullable="false" />
+          <Property Name="IVA Cliente/Prov" Type="char" MaxLength="3" />
+          <Property Name="IVA Producto" Type="char" MaxLength="3" />
+          <Property Name="ImporteIVA" Type="money" />
+          <Property Name="Delegación" Type="char" MaxLength="3" />
+          <Property Name="FormaVenta" Type="char" MaxLength="3" />
+          <Property Name="FechaVto" Type="datetime" />
+          <Property Name="FormaPago" Type="char" MaxLength="3" />
+          <Property Name="ImporteApunte" Type="money" />
+          <Property Name="Vendedor" Type="char" MaxLength="3" />
+          <Property Name="CCC" Type="char" MaxLength="3" />
+          <Property Name="Contrapartida" Type="char" MaxLength="10" />
+          <Property Name="Liquidado" Type="int" />
+          <Property Name="Ruta" Type="char" MaxLength="3" />
+          <Property Name="CajaLiquidada" Type="bit" Nullable="false" />
+          <Property Name="NºDocumentoProv" Type="char" MaxLength="20" />
+          <Property Name="CentroCoste" Type="char" MaxLength="3" />
+          <Property Name="Origen" Type="char" MaxLength="3" />
+          <Property Name="Departamento" Type="char" MaxLength="3" />
+          <Property Name="TipoRuta" Type="char" MaxLength="3" />
+          <Property Name="FechaProveedor" Type="datetime" />
+          <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" StoreGeneratedPattern="Computed" />
+          <Property Name="Fecha Modificación" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
         </EntityType>
         <EntityType Name="PrestashopProductos">
           <Key>
@@ -1719,6 +1764,10 @@
           <Parameter Name="Vendedor" Type="char" Mode="In" />
           <Parameter Name="RellenarTabla" Type="bit" Mode="In" />
         </Function>
+        <Function Name="prdContabilizar" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="Empresa" Type="char" Mode="In" />
+          <Parameter Name="Diario" Type="char" Mode="In" />
+        </Function>
         <Function Name="prdContabilizarImpagadosSepa" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
           <Parameter Name="fichero" Type="xml" Mode="In" />
         </Function>
@@ -1752,6 +1801,7 @@
           <EntitySet Name="PersonasContactoCliente" EntityType="Self.PersonasContactoCliente" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="PlanesVentajas" EntityType="Self.PlanesVentajas" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="PlanVentajasCliente" EntityType="Self.PlanVentajasCliente" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PreContabilidad" EntityType="Self.PreContabilidad" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="PrestashopProductos" EntityType="Self.PrestashopProductos" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Productos" EntityType="Self.Productos" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Remesas" EntityType="Self.Remesas" Schema="dbo" store:Type="Tables" />
@@ -2351,6 +2401,11 @@
             <End Role="Vendedores" EntitySet="Vendedores" />
             <End Role="FamiliasVendedor" EntitySet="FamiliasVendedor" />
           </AssociationSet>
+          <EntitySet Name="PreContabilidad" EntityType="Nesto.Models.EF.PreContabilidad" />
+          <FunctionImport Name="prdContabilizar">
+            <Parameter Name="Empresa" Mode="In" Type="String" />
+            <Parameter Name="Diario" Mode="In" Type="String" />
+          </FunctionImport>
           </EntityContainer>
         <EntityType Name="Productos">
           <Key>
@@ -2436,8 +2491,8 @@
           <Property Type="Decimal" Name="Importe" Precision="19" Scale="4" />
           <Property Type="Int32" Name="CabPedidoVta" />
           <Property Type="String" Name="RutaContrato" MaxLength="50" FixedLength="false" Unicode="false" />
-          <Property Type="String" Name="Usuario" MaxLength="30" FixedLength="false" Unicode="false" annotation:StoreGeneratedPattern="Computed" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" />
-          <Property Type="DateTime" Name="FechaModificación" Precision="3" annotation:StoreGeneratedPattern="Computed" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" />
+          <Property Type="String" Name="Usuario" MaxLength="30" FixedLength="false" Unicode="false" annotation:StoreGeneratedPattern="Computed" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" Nullable="false" />
+          <Property Type="DateTime" Name="FechaModificación" Precision="3" annotation:StoreGeneratedPattern="Computed" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" Nullable="false" />
           <NavigationProperty Name="Productos" Relationship="Nesto.Models.EF.FK_CabAlquileres_Productos" FromRole="CabAlquileres" ToRole="Productos" />
           <NavigationProperty Name="Inmovilizados" Relationship="Nesto.Models.EF.FK_CabAlquileres_Inmovilizados" FromRole="CabAlquileres" ToRole="Inmovilizados" />
           <NavigationProperty Name="CabPedidoVta1" Relationship="Nesto.Models.EF.FK_CabAlquileres_CabPedidoVta" FromRole="CabAlquileres" ToRole="CabPedidoVta" />
@@ -3976,6 +4031,7 @@
           <NavigationProperty Name="Empresas" Relationship="Nesto.Models.EF.FK_AgenciasTransporte_Empresas" FromRole="AgenciasTransporte" ToRole="Empresas" />
           <NavigationProperty Name="EnviosAgencia" Relationship="Nesto.Models.EF.FK_EnviosAgencia_AgenciasTransporte" FromRole="AgenciasTransporte" ToRole="EnviosAgencia" />
           <NavigationProperty Name="Rutas" Relationship="Nesto.Models.EF.FK_AgenciasTransporte_Rutas" FromRole="AgenciasTransporte" ToRole="Rutas" />
+          <Property Name="CuentaReembolsos" Type="String" MaxLength="10" FixedLength="false" Unicode="false" />
         </EntityType>
         <EntityType Name="EnviosAgencia">
           <Key>
@@ -4260,6 +4316,50 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="PreContabilidad">
+          <Key>
+            <PropertyRef Name="Empresa" />
+            <PropertyRef Name="Nº_Orden" />
+          </Key>
+          <Property Name="Empresa" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Nº_Orden" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="TipoApunte" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="TipoCuenta" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Nº_Cuenta" Type="String" Nullable="false" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Nº_Remesa" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Contacto" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Concepto" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="Debe" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+          <Property Name="Haber" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+          <Property Name="Fecha" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="Nº_Documento" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Efecto" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Asiento" Type="Int32" />
+          <Property Name="Diario" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Asiento_Automático" Type="Boolean" Nullable="false" />
+          <Property Name="IVA_Cliente_Prov" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="IVA_Producto" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="ImporteIVA" Type="Decimal" Precision="19" Scale="4" />
+          <Property Name="Delegación" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="FormaVenta" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="FechaVto" Type="DateTime" Precision="3" />
+          <Property Name="FormaPago" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="ImporteApunte" Type="Decimal" Precision="19" Scale="4" />
+          <Property Name="Vendedor" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="CCC" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Contrapartida" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Liquidado" Type="Int32" />
+          <Property Name="Ruta" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="CajaLiquidada" Type="Boolean" Nullable="false" />
+          <Property Name="NºDocumentoProv" Type="String" MaxLength="20" FixedLength="true" Unicode="false" />
+          <Property Name="CentroCoste" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Origen" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Departamento" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="TipoRuta" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="FechaProveedor" Type="DateTime" Precision="3" />
+          <Property Name="Usuario" Type="String" Nullable="false" MaxLength="30" FixedLength="false" Unicode="false" annotation:StoreGeneratedPattern="Computed" />
+          <Property Name="Fecha_Modificación" Type="DateTime" Nullable="false" Precision="3" annotation:StoreGeneratedPattern="Computed" />
+        </EntityType>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -4997,6 +5097,7 @@
           <EntitySetMapping Name="AgenciasTransporte">
             <EntityTypeMapping TypeName="Nesto.Models.EF.AgenciasTransporte">
               <MappingFragment StoreEntitySet="AgenciasTransporte">
+                <ScalarProperty Name="CuentaReembolsos" ColumnName="CuentaReembolsos" />
                 <ScalarProperty Name="FechaModificacion" ColumnName="FechaModificacion" />
                 <ScalarProperty Name="Usuario" ColumnName="Usuario" />
                 <ScalarProperty Name="PrefijoCodigoBarras" ColumnName="PrefijoCodigoBarras" />
@@ -5107,6 +5208,51 @@
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
+          <EntitySetMapping Name="PreContabilidad">
+            <EntityTypeMapping TypeName="Nesto.Models.EF.PreContabilidad">
+              <MappingFragment StoreEntitySet="PreContabilidad">
+                <ScalarProperty Name="Fecha_Modificación" ColumnName="Fecha Modificación" />
+                <ScalarProperty Name="Usuario" ColumnName="Usuario" />
+                <ScalarProperty Name="FechaProveedor" ColumnName="FechaProveedor" />
+                <ScalarProperty Name="TipoRuta" ColumnName="TipoRuta" />
+                <ScalarProperty Name="Departamento" ColumnName="Departamento" />
+                <ScalarProperty Name="Origen" ColumnName="Origen" />
+                <ScalarProperty Name="CentroCoste" ColumnName="CentroCoste" />
+                <ScalarProperty Name="NºDocumentoProv" ColumnName="NºDocumentoProv" />
+                <ScalarProperty Name="CajaLiquidada" ColumnName="CajaLiquidada" />
+                <ScalarProperty Name="Ruta" ColumnName="Ruta" />
+                <ScalarProperty Name="Liquidado" ColumnName="Liquidado" />
+                <ScalarProperty Name="Contrapartida" ColumnName="Contrapartida" />
+                <ScalarProperty Name="CCC" ColumnName="CCC" />
+                <ScalarProperty Name="Vendedor" ColumnName="Vendedor" />
+                <ScalarProperty Name="ImporteApunte" ColumnName="ImporteApunte" />
+                <ScalarProperty Name="FormaPago" ColumnName="FormaPago" />
+                <ScalarProperty Name="FechaVto" ColumnName="FechaVto" />
+                <ScalarProperty Name="FormaVenta" ColumnName="FormaVenta" />
+                <ScalarProperty Name="Delegación" ColumnName="Delegación" />
+                <ScalarProperty Name="ImporteIVA" ColumnName="ImporteIVA" />
+                <ScalarProperty Name="IVA_Producto" ColumnName="IVA Producto" />
+                <ScalarProperty Name="IVA_Cliente_Prov" ColumnName="IVA Cliente/Prov" />
+                <ScalarProperty Name="Asiento_Automático" ColumnName="Asiento Automático" />
+                <ScalarProperty Name="Diario" ColumnName="Diario" />
+                <ScalarProperty Name="Asiento" ColumnName="Asiento" />
+                <ScalarProperty Name="Efecto" ColumnName="Efecto" />
+                <ScalarProperty Name="Nº_Documento" ColumnName="Nº Documento" />
+                <ScalarProperty Name="Fecha" ColumnName="Fecha" />
+                <ScalarProperty Name="Haber" ColumnName="Haber" />
+                <ScalarProperty Name="Debe" ColumnName="Debe" />
+                <ScalarProperty Name="Concepto" ColumnName="Concepto" />
+                <ScalarProperty Name="Contacto" ColumnName="Contacto" />
+                <ScalarProperty Name="Nº_Remesa" ColumnName="Nº Remesa" />
+                <ScalarProperty Name="Nº_Cuenta" ColumnName="Nº Cuenta" />
+                <ScalarProperty Name="TipoCuenta" ColumnName="TipoCuenta" />
+                <ScalarProperty Name="TipoApunte" ColumnName="TipoApunte" />
+                <ScalarProperty Name="Nº_Orden" ColumnName="Nº Orden" />
+                <ScalarProperty Name="Empresa" ColumnName="Empresa" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <FunctionImportMapping FunctionImportName="prdContabilizar" FunctionName="Nesto.Models.EF.Store.prdContabilizar" />
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
@@ -5457,6 +5603,7 @@
         <AssociationConnector Association="Nesto.Models.EF.FK_EtiquetasPicking_MultiUsuarios" />
         <EntityTypeShape EntityType="Nesto.Models.EF.FamiliasVendedor" Width="1.5" PointX="16.75" PointY="5.25" />
         <AssociationConnector Association="Nesto.Models.EF.FK_FamiliasVendedor_Vendedores" />
+        <EntityTypeShape EntityType="Nesto.Models.EF.PreContabilidad" Width="1.5" PointX="19.375" PointY="0.75" />
         </Diagram>
     </Diagrams>
   </Designer>

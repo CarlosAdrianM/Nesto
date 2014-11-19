@@ -9,12 +9,15 @@ Imports System.Windows.Controls
 Imports System.Text.RegularExpressions
 Imports System.Data.Objects
 
+
+
 Public Class AgenciasViewModel
     Inherits ViewModelBase
 
     Const CARGO_AGENCIA = 26
     Const COD_PAIS As String = "34"
     Const ESTADO_INICIAL_ENVIO = 0
+    Const ESTADO_TRAMITADO_ENVIO = 1
 
     Private Shared DbContext As NestoEntities
     Dim mainModel As New Nesto.Models.MainModel
@@ -61,6 +64,8 @@ Public Class AgenciasViewModel
         listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
         envioActual = listaEnvios.LastOrDefault
         numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
+        fechaFiltro = Today
+        listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
     End Sub
 
 #Region "Propiedades"
@@ -135,6 +140,7 @@ Public Class AgenciasViewModel
             listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
             agenciaSeleccionada = listaAgencias.FirstOrDefault
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
             'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
             'una vez actualizadas, seleccionar el pedido o el envío actual también
         End Set
@@ -417,6 +423,7 @@ Public Class AgenciasViewModel
             _fechaFiltro = value
             OnPropertyChanged("fechaFiltro")
             'actualizamos listaPedidos
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = 1)
         End Set
     End Property
 
@@ -496,7 +503,16 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-
+    Private Property _listaEnviosTramitados As ObservableCollection(Of EnviosAgencia)
+    Public Property listaEnviosTramitados As ObservableCollection(Of EnviosAgencia)
+        Get
+            Return _listaEnviosTramitados
+        End Get
+        Set(value As ObservableCollection(Of EnviosAgencia))
+            _listaEnviosTramitados = value
+            OnPropertyChanged("listaEnviosTramitados")
+        End Set
+    End Property
 
 #End Region
 
@@ -515,6 +531,9 @@ Public Class AgenciasViewModel
     End Function
     Private Sub Tramitar(ByVal param As Object)
         llamadaWebService()
+        If envioActual.Reembolso > 0 Then
+            contabilizarReembolso(envioActual)
+        End If
     End Sub
 
     Private _cmdTramitarTodos As ICommand
@@ -569,7 +588,7 @@ Public Class AgenciasViewModel
                 objStream.Writeline("A40,90,0,4,1,1,N,""" + envioActual.CodPostal + " " + envioActual.Poblacion + """")
                 objStream.Writeline("A40,130,0,4,1,1,N,""" + envioActual.Provincia + """")
                 objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString _
-                                    + ". Cliente: " + envioActual.Cliente + """")
+                                    + ". Cliente: " + envioActual.Cliente.Trim + ". Fecha: " + envioActual.Fecha + """")
                 objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + envioActual.CodigoBarras + i.ToString("D3") + """")
                 objStream.Writeline("A40,450,0,4,1,2,N,""" + envioActual.Nemonico + " " + envioActual.NombrePlaza + """")
                 objStream.Writeline("A40,510,0,4,1,2,N,""" + listaHorarios.Where(Function(x) x.id = envioActual.Horario).FirstOrDefault.descripcion + """")
@@ -673,6 +692,25 @@ Public Class AgenciasViewModel
         cmdInsertar.Execute(Nothing)
         cmdImprimirEtiquetaPedido.Execute(Nothing)
     End Sub
+
+
+    'Private _cmdImprimirManifiesto As ICommand
+    'Public ReadOnly Property cmdImprimirManifiesto() As ICommand
+    '    Get
+    '        If _cmdImprimirManifiesto Is Nothing Then
+    '            _cmdImprimirManifiesto = New RelayCommand(AddressOf ImprimirManifiesto, AddressOf CanImprimirManifiesto)
+    '        End If
+    '        Return _cmdImprimirManifiesto
+    '    End Get
+    'End Property
+    'Private Function CanImprimirManifiesto(ByVal param As Object) As Boolean
+    '    Return True
+    'End Function
+    'Private Sub ImprimirManifiesto(ByVal param As Object)
+    '
+    'End Sub
+
+
 
 #End Region
 
@@ -949,7 +987,7 @@ Public Class AgenciasViewModel
     End Function
 
     Public Function calcularCodigoBarras() As String
-        Return agenciaSeleccionada.PrefijoCodigoBarras.ToString + pedidoSeleccionado.Número.ToString("D7")
+        Return agenciaSeleccionada.PrefijoCodigoBarras.ToString + envioActual.Numero.ToString("D7")
     End Function
 
     Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
@@ -1024,7 +1062,7 @@ Public Class AgenciasViewModel
             .Observaciones = Left(observacionesEnvio, 80)
             .Atencion = attEnvio
             .Reembolso = reembolso
-            .CodigoBarras = calcularCodigoBarras()
+            '.CodigoBarras = calcularCodigoBarras()
             .Vendedor = pedidoSeleccionado.Vendedor
             calcularPlaza(codPostalEnvio, .Nemonico, .NombrePlaza, .TelefonoPlaza, .EmailPlaza)
         End With
@@ -1033,6 +1071,7 @@ Public Class AgenciasViewModel
         listaEnvios.Add(envioActual)
         listaEnviosPedido.Add(envioActual)
         DbContext.SaveChanges()
+        envioActual.CodigoBarras = calcularCodigoBarras()
     End Sub
 
     Public Function calcularMensajeError(numeroError As Integer) As String
@@ -1066,6 +1105,50 @@ Public Class AgenciasViewModel
             Case Else
                 Return "El código de error " + numeroError + " no está controlado por Nesto"
         End Select
+    End Function
+
+    Public Function contabilizarReembolso(envio As EnviosAgencia)
+
+        Const diarioReembolsos As String = "_Reembolso"
+
+        If IsNothing(envio.AgenciasTransporte.CuentaReembolsos) Then
+            mensajeError = "Esta agencia no tiene establecida una cuenta de reembolsos. No se puede contabilizar."
+            Return -1
+        End If
+
+        Dim lineaInsertar As New PreContabilidad
+        Dim asiento As Integer
+
+        With lineaInsertar
+            .Empresa = envio.Empresa.Trim
+            .Diario = diarioReembolsos.Trim
+            .TipoApunte = "3" 'Pago
+            .TipoCuenta = "2" 'Cliente
+            .Nº_Cuenta = envio.Cliente.Trim
+            .Contacto = envio.Contacto.Trim
+            .Fecha = envio.Fecha
+            .FechaVto = envio.Fecha
+            .Haber = envio.Reembolso
+            .Concepto = Left("S/Pago pedido " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
+            .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
+            .Nº_Documento = envio.Pedido
+            .Asiento_Automático = False
+            .Delegación = envio.Empresas.DelegaciónVarios
+            .FormaVenta = envio.Empresas.FormaVentaVarios
+            .FormaPago = envio.Empresas.FormaPagoEfectivo
+        End With
+        Try
+            DbContext.AddToPreContabilidad(lineaInsertar)
+            DbContext.SaveChanges()
+            asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos)
+        Catch e As Exception
+            DbContext.DeleteObject(lineaInsertar) 'Lo suyo sería hacer una transacción con todo
+            DbContext.SaveChanges()
+            Return -1
+        End Try
+
+        Return asiento
+
     End Function
 
 #End Region

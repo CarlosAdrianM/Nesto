@@ -358,11 +358,11 @@ Public Class RemesasViewModel
                         "Motivo: " + impagado.e.Concepto + vbCrLf +
                         "Ruta: " + impagado.c.Ruta
                     newTask.Assign()
-                    If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
-                        usuarioTareas = "laura@nuevavision.es"
-                    Else
-                        usuarioTareas = "aidarubio@nuevavision.es"
-                    End If
+                    'If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
+                    '    usuarioTareas = "laura@nuevavision.es"
+                    'Else
+                    '    usuarioTareas = "aidarubio@nuevavision.es"
+                    'End If
                     newTask.Recipients.Add(usuarioTareas)
                     newTask.Recipients.ResolveAll()
                     newTask.Send()
