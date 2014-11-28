@@ -183,6 +183,7 @@ Public Class AlquileresViewModel
         Try
             DbContext.SaveChanges()
             colProductosAlquilerLista = New ObservableCollection(Of prdProductosAlquiler)(From c In DbContext.prdProductosAlquilerLista)
+            ProductoSeleccionado = colProductosAlquilerLista.LastOrDefault
             mensajeError = ""
         Catch ex As Exception
             mensajeError = ex.InnerException.Message

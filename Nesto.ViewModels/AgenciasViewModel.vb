@@ -8,11 +8,15 @@ Imports System.IO
 Imports System.Windows.Controls
 Imports System.Text.RegularExpressions
 Imports System.Data.Objects
+Imports Microsoft.Practices.Prism.Mvvm
+Imports Microsoft.Practices.Prism.Commands
+Imports Microsoft.Practices.Prism.Interactivity
+Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 
 
 
 Public Class AgenciasViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
     Const CARGO_AGENCIA = 26
     Const COD_PAIS As String = "34"
@@ -66,6 +70,11 @@ Public Class AgenciasViewModel
         numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
         fechaFiltro = Today
         listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+
+        SubmitCommand = New DelegateCommand(Of Object)(AddressOf OnSubmit, AddressOf CanSubmit)
+        NotificationRequest = New InteractionRequest(Of INotification)
+        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
+
     End Sub
 
 #Region "Propiedades"
@@ -76,6 +85,40 @@ Public Class AgenciasViewModel
     ' EnviosAgencia coge el valor que tenga esta propiedad. Así permitimos hacer excepciones y no hay que 
     ' mandarlo siempre con el valor que tiene el campo en la tabla.
 
+    '*** Propiedades de Prism 
+    Private _NotificationRequest As InteractionRequest(Of INotification)
+    Public Property NotificationRequest As InteractionRequest(Of INotification)
+        Get
+            Return _NotificationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of INotification))
+            _NotificationRequest = value
+        End Set
+    End Property
+
+    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
+    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
+        Get
+            Return _ConfirmationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of IConfirmation))
+            _ConfirmationRequest = value
+        End Set
+    End Property
+
+    Private resultMessage As String
+    Public Property InteractionResultMessage As String
+        Get
+            Return Me.resultMessage
+        End Get
+        Set(value As String)
+            Me.resultMessage = value
+            Me.OnPropertyChanged("InteractionResultMessage")
+        End Set
+    End Property
+
+
+    '*** Propiedades de Nesto
     Private Property _resultadoWebservice As String
     Public Property resultadoWebservice As String
         Get
@@ -400,6 +443,7 @@ Public Class AgenciasViewModel
         Set(value As EnviosAgencia)
             _envioActual = value
             OnPropertyChanged("envioActual")
+            mensajeError = ""
         End Set
     End Property
 
@@ -531,9 +575,6 @@ Public Class AgenciasViewModel
     End Function
     Private Sub Tramitar(ByVal param As Object)
         llamadaWebService()
-        If envioActual.Reembolso > 0 Then
-            contabilizarReembolso(envioActual)
-        End If
     End Sub
 
     Private _cmdTramitarTodos As ICommand
@@ -689,8 +730,20 @@ Public Class AgenciasViewModel
         Return CanInsertar(Nothing)
     End Function
     Private Sub ImprimirEInsertar(ByVal param As Object)
-        cmdInsertar.Execute(Nothing)
-        cmdImprimirEtiquetaPedido.Execute(Nothing)
+        Try
+            cmdInsertar.Execute(Nothing)
+            cmdImprimirEtiquetaPedido.Execute(Nothing)
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With { _
+             .Title = "Error", _
+            .Content = ex.Message _
+            })
+            Return
+        End Try
+        NotificationRequest.Raise(New Notification() With { _
+             .Title = "Envío", _
+            .Content = "Envío insertado correctamente e impresa la etiqueta" _
+        })
     End Sub
 
 
@@ -710,6 +763,22 @@ Public Class AgenciasViewModel
     '
     'End Sub
 
+
+    Private _SubmitCommand As ICommand
+    Public Property SubmitCommand() As ICommand
+        Get
+            Return _SubmitCommand
+        End Get
+        Private Set(value As ICommand)
+            _SubmitCommand = value
+        End Set
+    End Property
+    Private Function CanSubmit(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnSubmit(arg As Object)
+
+    End Sub
 
 
 #End Region
@@ -751,10 +820,15 @@ Public Class AgenciasViewModel
             End Using
         End Using
 
-        Dim response As WebResponse = req.GetResponse()
-        Dim responseStream As New StreamReader(response.GetResponseStream())
-        soap = responseStream.ReadToEnd
-        XMLdeEntrada = XDocument.Parse(soap)
+        Try
+            Dim response As WebResponse = req.GetResponse()
+            Dim responseStream As New StreamReader(response.GetResponseStream())
+            soap = responseStream.ReadToEnd
+            XMLdeEntrada = XDocument.Parse(soap)
+        Catch ex As Exception
+            mensajeError = "El servidor de la agencia no está respondiendo"
+            Return
+        End Try
 
 
         Dim elementoXML As XElement
@@ -774,9 +848,12 @@ Public Class AgenciasViewModel
             'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
             envioActual.Estado = 1 'Enviado
             DbContext.SaveChanges()
+            If envioActual.Reembolso > 0 Then
+                contabilizarReembolso(envioActual)
+            End If
             mensajeError = "Envío del pedido " + envioActual.Pedido.ToString + " tramitado correctamente."
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
-            envioActual = listaEnvios.LastOrDefault
+            envioActual = listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
         End If
 
 
@@ -822,7 +899,7 @@ Public Class AgenciasViewModel
                     <Destinatario>
                         <Codigo></Codigo>
                         <Plaza></Plaza>
-                        <Nombre><%= envioActual.Nombre %></Nombre>
+                        <Nombre><%= envioActual.Nombre.Normalize %></Nombre>
                         <Direccion><%= envioActual.Direccion %></Direccion>
                         <Poblacion><%= envioActual.Poblacion %></Poblacion>
                         <Provincia><%= envioActual.Provincia %></Provincia>
@@ -1030,12 +1107,14 @@ Public Class AgenciasViewModel
         respuestaXML.AddFirst(elementoXML)
 
         'Debug.Print(respuestaXML.ToString)
-        nemonico = elementoXML.Element("Nemonico").Value
-        nombrePlaza = elementoXML.Element("Nombre").Value
-        telefonoPlaza = elementoXML.Element("Telefono").Value
-        telefonoPlaza = Regex.Replace(telefonoPlaza, "([^0-9])", "")
-        'telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
-        emailPlaza = elementoXML.Element("Mail").Value
+        If Not IsNothing(elementoXML.Element("Nemonico")) Then
+            nemonico = elementoXML.Element("Nemonico").Value
+            nombrePlaza = elementoXML.Element("Nombre").Value
+            telefonoPlaza = elementoXML.Element("Telefono").Value
+            telefonoPlaza = Regex.Replace(telefonoPlaza, "([^0-9])", "")
+            'telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
+            emailPlaza = elementoXML.Element("Mail").Value
+        End If
     End Sub
 
     Public Sub insertarRegistro()
@@ -1118,6 +1197,9 @@ Public Class AgenciasViewModel
 
         Dim lineaInsertar As New PreContabilidad
         Dim asiento As Integer
+        Dim movimientoLiq As ExtractoCliente
+        movimientoLiq = calcularMovimientoLiq(envio)
+
 
         With lineaInsertar
             .Empresa = envio.Empresa.Trim
@@ -1131,11 +1213,17 @@ Public Class AgenciasViewModel
             .Haber = envio.Reembolso
             .Concepto = Left("S/Pago pedido " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
             .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
-            .Nº_Documento = envio.Pedido
             .Asiento_Automático = False
             .Delegación = envio.Empresas.DelegaciónVarios
             .FormaVenta = envio.Empresas.FormaVentaVarios
             .FormaPago = envio.Empresas.FormaPagoEfectivo
+            .Vendedor = envio.Vendedor
+            If IsNothing(movimientoLiq) Then
+                .Nº_Documento = envio.Pedido
+            Else
+                .Nº_Documento = movimientoLiq.Nº_Documento
+                .Liquidado = movimientoLiq.Nº_Orden
+            End If
         End With
         Try
             DbContext.AddToPreContabilidad(lineaInsertar)
@@ -1150,6 +1238,35 @@ Public Class AgenciasViewModel
         Return asiento
 
     End Function
+
+    Private Function calcularMovimientoLiq(env As EnviosAgencia)
+        Dim movimientos As ObservableCollection(Of ExtractoCliente)
+        Dim movimientosConImporte As ObservableCollection(Of ExtractoCliente)
+
+        movimientos = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = env.Empresa And e.Número = env.Cliente And e.ImportePdte > 0)
+        If movimientos.Count = 0 Then
+            Return Nothing
+        ElseIf movimientos.Count = 1 Then
+            Return movimientos.LastOrDefault
+        Else
+            movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = -env.Reembolso And m.Fecha = env.Fecha)
+            If movimientosConImporte.Count = 0 Then
+                Return movimientos.FirstOrDefault
+            Else
+                Return movimientosConImporte.FirstOrDefault
+            End If
+        End If
+    End Function
+
+    'Private Sub RaiseNotification()
+    '    Me.NotificationRequest.Raise(New Notification() With { _
+    '        .Content = "Notification Message", _
+    '        .Title = "Notification" _
+    '    }, Function(n)
+    '           InteractionResultMessage = "The user was notified."
+    '       End Function)
+    'End Sub
+
 
 #End Region
 
