@@ -71,7 +71,8 @@ Public Class AgenciasViewModel
         fechaFiltro = Today
         listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
 
-        SubmitCommand = New DelegateCommand(Of Object)(AddressOf OnSubmit, AddressOf CanSubmit)
+        ' Prism
+        cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
@@ -575,6 +576,7 @@ Public Class AgenciasViewModel
     End Function
     Private Sub Tramitar(ByVal param As Object)
         llamadaWebService()
+        'mensajeError = "Pedido " + envioActual.Pedido.ToString.Trim + " tramitado correctamente"
     End Sub
 
     Private _cmdTramitarTodos As ICommand
@@ -764,19 +766,19 @@ Public Class AgenciasViewModel
     'End Sub
 
 
-    Private _SubmitCommand As ICommand
-    Public Property SubmitCommand() As ICommand
+    Private _cmdCargarEstado As ICommand
+    Public Property cmdCargarEstado As ICommand
         Get
-            Return _SubmitCommand
+            Return _cmdCargarEstado
         End Get
         Private Set(value As ICommand)
-            _SubmitCommand = value
+            _cmdCargarEstado = value
         End Set
     End Property
-    Private Function CanSubmit(arg As Object) As Boolean
-        Return True
+    Private Function CanCargarEstado(arg As Object) As Boolean
+        Return Not IsNothing(pedidoSeleccionado)
     End Function
-    Private Sub OnSubmit(arg As Object)
+    Private Sub OnCargarEstado(arg As Object)
 
     End Sub
 
@@ -1214,15 +1216,17 @@ Public Class AgenciasViewModel
             .Concepto = Left("S/Pago pedido " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
             .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
             .Asiento_Automático = False
-            .Delegación = envio.Empresas.DelegaciónVarios
-            .FormaVenta = envio.Empresas.FormaVentaVarios
             .FormaPago = envio.Empresas.FormaPagoEfectivo
             .Vendedor = envio.Vendedor
             If IsNothing(movimientoLiq) Then
                 .Nº_Documento = envio.Pedido
+                .Delegación = envio.Empresas.DelegaciónVarios
+                .FormaVenta = envio.Empresas.FormaVentaVarios
             Else
                 .Nº_Documento = movimientoLiq.Nº_Documento
                 .Liquidado = movimientoLiq.Nº_Orden
+                .Delegación = movimientoLiq.Delegación
+                .FormaVenta = movimientoLiq.FormaVenta
             End If
         End With
         Try
@@ -1249,7 +1253,7 @@ Public Class AgenciasViewModel
         ElseIf movimientos.Count = 1 Then
             Return movimientos.LastOrDefault
         Else
-            movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = -env.Reembolso And m.Fecha = env.Fecha)
+            movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = env.Reembolso And m.Fecha = env.Fecha)
             If movimientosConImporte.Count = 0 Then
                 Return movimientos.FirstOrDefault
             Else

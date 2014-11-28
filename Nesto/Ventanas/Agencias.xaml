@@ -102,6 +102,7 @@
                         <TextBox Grid.Column="5" Grid.Row="1" Text="{Binding reembolso, StringFormat=c}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
 
                         <Button Grid.Column="5" Grid.Row="7" MinWidth="80" Margin="3" Content="Insertar e Imprimir" Command = "{Binding cmdImprimirEInsertar}"/>
+                        <Button Grid.Column="4" Grid.Row="7" MinWidth="80" Margin="3" Content="Cargar Estado" Command = "{Binding cmdCargarEstado}"/>
                         <!--Button Grid.Column="4" Grid.Row="6" MinWidth="80" Margin="3" Content="Imprimir Etiqueta" Command = "{Binding cmdImprimirEtiquetaPedido}"/>
                         <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Insertar Envío" Command = "{Binding cmdInsertar}"/-->
 

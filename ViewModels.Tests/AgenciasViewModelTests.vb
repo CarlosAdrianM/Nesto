@@ -678,7 +678,7 @@ Public Class cuandoContabilizamosElReembolso
         'agenciaVM.empresaSeleccionada = New Empresas With {.Número = "4", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
         'agenciaVM.pedidoSeleccionado = (From c In dbContext.CabPedidoVta Where c.Número = 545861).FirstOrDefault
         Dim asiento As Integer
-        agenciaVM.envioActual = (From c In dbContext.EnviosAgencia Where c.Empresa = "5" And c.Pedido = 570793).FirstOrDefault
+        agenciaVM.envioActual = (From c In dbContext.EnviosAgencia Where c.Empresa = "1" And c.Pedido = 570775).FirstOrDefault
         'act
         asiento = agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
         'assert
