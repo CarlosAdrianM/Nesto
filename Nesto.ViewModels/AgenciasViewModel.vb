@@ -12,7 +12,7 @@ Imports Microsoft.Practices.Prism.Mvvm
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-
+Imports Microsoft.Practices.Prism.PubSubEvents
 
 
 Public Class AgenciasViewModel
@@ -65,7 +65,9 @@ Public Class AgenciasViewModel
         listaHorarios.Add(horarioActual)
         listaHorarios.Add(New tipoIdDescripcion(2, "ASM14"))
         listaHorarios.Add(New tipoIdDescripcion(18, "Economy"))
-        listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+        If Not IsNothing(agenciaSeleccionada) Then
+            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+        End If
         envioActual = listaEnvios.LastOrDefault
         numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
         fechaFiltro = Today
@@ -76,6 +78,9 @@ Public Class AgenciasViewModel
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
+
+        'XMLdeEstado = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Documents\xmlestado.xml")
+        'estadoEnvioCargado = transformarXMLdeEstado(XMLdeEstado)
     End Sub
 
 #Region "Propiedades"
@@ -126,7 +131,8 @@ Public Class AgenciasViewModel
             Return _resultadoWebservice
         End Get
         Set(value As String)
-            _resultadoWebservice = value
+            SetProperty(_resultadoWebservice, value)
+            OnPropertyChanged("resultadoWebservice")
         End Set
     End Property
 
@@ -136,7 +142,7 @@ Public Class AgenciasViewModel
             Return _listaAgencias
         End Get
         Set(value As ObservableCollection(Of AgenciasTransporte))
-            _listaAgencias = value
+            SetProperty(_listaAgencias, value)
             OnPropertyChanged("listaAgencias")
         End Set
     End Property
@@ -147,7 +153,7 @@ Public Class AgenciasViewModel
             Return _agenciaSeleccionada
         End Get
         Set(value As AgenciasTransporte)
-            _agenciaSeleccionada = value
+            SetProperty(_agenciaSeleccionada, value)
             OnPropertyChanged("agenciaSeleccionada")
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
         End Set
@@ -159,7 +165,8 @@ Public Class AgenciasViewModel
             Return _XMLdeSalida
         End Get
         Set(value As XDocument)
-            _XMLdeSalida = value
+            SetProperty(_XMLdeSalida, value)
+            OnPropertyChanged("XMLdeSalida")
         End Set
     End Property
 
@@ -169,7 +176,8 @@ Public Class AgenciasViewModel
             Return _XMLdeEntrada
         End Get
         Set(value As XDocument)
-            _XMLdeEntrada = value
+            SetProperty(_XMLdeEntrada, value)
+            OnPropertyChanged("XMLdeEntrada")
         End Set
     End Property
 
@@ -179,7 +187,7 @@ Public Class AgenciasViewModel
             Return _empresaSeleccionada
         End Get
         Set(value As Empresas)
-            _empresaSeleccionada = value
+            SetProperty(_empresaSeleccionada, value)
             OnPropertyChanged("empresaSeleccionada")
             listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
             agenciaSeleccionada = listaAgencias.FirstOrDefault
@@ -196,26 +204,34 @@ Public Class AgenciasViewModel
             Return _pedidoSeleccionado
         End Get
         Set(value As CabPedidoVta)
-            _pedidoSeleccionado = value
+            SetProperty(_pedidoSeleccionado, value)
             OnPropertyChanged("pedidoSeleccionado")
-            reembolso = importeReembolso()
-            bultos = 1
-            nombreEnvio = pedidoSeleccionado.Clientes.Nombre.Trim
-            direccionEnvio = pedidoSeleccionado.Clientes.Dirección.Trim
-            poblacionEnvio = pedidoSeleccionado.Clientes.Población.Trim
-            provinciaEnvio = pedidoSeleccionado.Clientes.Provincia.Trim
-            codPostalEnvio = pedidoSeleccionado.Clientes.CodPostal.Trim
-            telefonoEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "F")
-            movilEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "M")
-            correoEnvio = correoUnico()
-            observacionesEnvio = pedidoSeleccionado.Comentarios
-            attEnvio = nombreEnvio
-            If IsNothing(empresaSeleccionada.FechaPicking) Then
-                fechaEnvio = Today
+            If Not IsNothing(pedidoSeleccionado) Then
+                reembolso = importeReembolso()
+                bultos = 1
+                nombreEnvio = pedidoSeleccionado.Clientes.Nombre.Trim
+                direccionEnvio = pedidoSeleccionado.Clientes.Dirección.Trim
+                poblacionEnvio = pedidoSeleccionado.Clientes.Población.Trim
+                provinciaEnvio = pedidoSeleccionado.Clientes.Provincia.Trim
+                codPostalEnvio = pedidoSeleccionado.Clientes.CodPostal.Trim
+                telefonoEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "F")
+                movilEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "M")
+                correoEnvio = correoUnico()
+                observacionesEnvio = pedidoSeleccionado.Comentarios
+                attEnvio = nombreEnvio
+                If IsNothing(empresaSeleccionada.FechaPicking) Then
+                    fechaEnvio = Today
+                Else
+                    fechaEnvio = empresaSeleccionada.FechaPicking
+                End If
+                listaEnviosPedido = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Pedido = pedidoSeleccionado.Número)
             Else
-                fechaEnvio = empresaSeleccionada.FechaPicking
+                NotificationRequest.Raise(New Notification() With { _
+                 .Title = "Error", _
+                .Content = "El pedido seleccionado no existe" _
+                })
             End If
-            listaEnviosPedido = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Pedido = pedidoSeleccionado.Número)
+
         End Set
     End Property
 
@@ -225,8 +241,8 @@ Public Class AgenciasViewModel
             Return _listaTiposRetorno
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
-            _listaTiposRetorno = value
-            'OnPropertyChanged("listaTiposRemesa")
+            SetProperty(_listaTiposRetorno, value)
+            'OnPropertyChanged("listaTiposRetorno")
         End Set
     End Property
 
@@ -236,7 +252,7 @@ Public Class AgenciasViewModel
             Return _retornoActual
         End Get
         Set(value As tipoIdDescripcion)
-            _retornoActual = value
+            SetProperty(_retornoActual, value)
             OnPropertyChanged("retornoActual")
         End Set
     End Property
@@ -247,7 +263,7 @@ Public Class AgenciasViewModel
             Return _reembolso
         End Get
         Set(value As Decimal)
-            _reembolso = value
+            SetProperty(_reembolso, value)
             OnPropertyChanged("reembolso")
         End Set
     End Property
@@ -258,7 +274,8 @@ Public Class AgenciasViewModel
             Return _bultos
         End Get
         Set(value As Integer)
-            _bultos = value
+            SetProperty(_bultos, value)
+            OnPropertyChanged("bultos")
         End Set
     End Property
 
@@ -268,7 +285,7 @@ Public Class AgenciasViewModel
             Return _mensajeError
         End Get
         Set(value As String)
-            _mensajeError = value
+            SetProperty(_mensajeError, value)
             OnPropertyChanged("mensajeError")
         End Set
     End Property
@@ -279,7 +296,7 @@ Public Class AgenciasViewModel
             Return _listaServicios
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
-            _listaServicios = value
+            SetProperty(_listaServicios, value)
         End Set
     End Property
 
@@ -289,7 +306,7 @@ Public Class AgenciasViewModel
             Return _servicioActual
         End Get
         Set(value As tipoIdDescripcion)
-            _servicioActual = value
+            SetProperty(_servicioActual, value)
             OnPropertyChanged("servicioActual")
         End Set
     End Property
@@ -300,7 +317,7 @@ Public Class AgenciasViewModel
             Return _listaHorarios
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
-            _listaHorarios = value
+            SetProperty(_listaHorarios, value)
         End Set
     End Property
 
@@ -310,7 +327,7 @@ Public Class AgenciasViewModel
             Return _horarioActual
         End Get
         Set(value As tipoIdDescripcion)
-            _horarioActual = value
+            SetProperty(_horarioActual, value)
             OnPropertyChanged("horarioActual")
         End Set
     End Property
@@ -321,7 +338,7 @@ Public Class AgenciasViewModel
             Return _nombreEnvio
         End Get
         Set(value As String)
-            _nombreEnvio = value
+            SetProperty(_nombreEnvio, value)
             OnPropertyChanged("nombreEnvio")
         End Set
     End Property
@@ -332,7 +349,7 @@ Public Class AgenciasViewModel
             Return _direccionEnvio
         End Get
         Set(value As String)
-            _direccionEnvio = value
+            SetProperty(_direccionEnvio, value)
             OnPropertyChanged("direccionEnvio")
         End Set
     End Property
@@ -343,7 +360,7 @@ Public Class AgenciasViewModel
             Return _poblacionEnvio
         End Get
         Set(value As String)
-            _poblacionEnvio = value
+            SetProperty(_poblacionEnvio, value)
             OnPropertyChanged("poblacionEnvio")
         End Set
     End Property
@@ -354,7 +371,7 @@ Public Class AgenciasViewModel
             Return _provinciaEnvio
         End Get
         Set(value As String)
-            _provinciaEnvio = value
+            SetProperty(_provinciaEnvio, value)
             OnPropertyChanged("provinciaEnvio")
         End Set
     End Property
@@ -365,7 +382,7 @@ Public Class AgenciasViewModel
             Return _codPostalEnvio
         End Get
         Set(value As String)
-            _codPostalEnvio = value
+            SetProperty(_codPostalEnvio, value)
             OnPropertyChanged("codPostalEnvio")
         End Set
     End Property
@@ -376,7 +393,7 @@ Public Class AgenciasViewModel
             Return _telefonoEnvio
         End Get
         Set(value As String)
-            _telefonoEnvio = value
+            SetProperty(_telefonoEnvio, value)
             OnPropertyChanged("telefonoEnvio")
         End Set
     End Property
@@ -387,7 +404,7 @@ Public Class AgenciasViewModel
             Return _movilEnvio
         End Get
         Set(value As String)
-            _movilEnvio = value
+            SetProperty(_movilEnvio, value)
             OnPropertyChanged("movilEnvio")
         End Set
     End Property
@@ -398,7 +415,7 @@ Public Class AgenciasViewModel
             Return _correoEnvio
         End Get
         Set(value As String)
-            _correoEnvio = value
+            SetProperty(_correoEnvio, value)
             OnPropertyChanged("correoEnvio")
         End Set
     End Property
@@ -409,7 +426,7 @@ Public Class AgenciasViewModel
             Return _observacionesEnvio
         End Get
         Set(value As String)
-            _observacionesEnvio = value
+            SetProperty(_observacionesEnvio, value)
             OnPropertyChanged("observacionesEnvio")
         End Set
     End Property
@@ -420,7 +437,7 @@ Public Class AgenciasViewModel
             Return _attEnvio
         End Get
         Set(value As String)
-            _attEnvio = value
+            SetProperty(_attEnvio, value)
             OnPropertyChanged("attEnvio")
         End Set
     End Property
@@ -431,7 +448,7 @@ Public Class AgenciasViewModel
             Return _fechaEnvio
         End Get
         Set(value As Date)
-            _fechaEnvio = value
+            SetProperty(_fechaEnvio, value)
             OnPropertyChanged("fechaEnvio")
         End Set
     End Property
@@ -442,7 +459,7 @@ Public Class AgenciasViewModel
             Return _envioActual
         End Get
         Set(value As EnviosAgencia)
-            _envioActual = value
+            SetProperty(_envioActual, value)
             OnPropertyChanged("envioActual")
             mensajeError = ""
         End Set
@@ -454,7 +471,7 @@ Public Class AgenciasViewModel
             Return _listaEnvios
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            _listaEnvios = value
+            SetProperty(_listaEnvios, value)
             OnPropertyChanged("listaEnvios")
         End Set
     End Property
@@ -465,7 +482,7 @@ Public Class AgenciasViewModel
             Return _fechaFiltro
         End Get
         Set(value As Date)
-            _fechaFiltro = value
+            SetProperty(_fechaFiltro, value)
             OnPropertyChanged("fechaFiltro")
             'actualizamos listaPedidos
             listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = 1)
@@ -489,7 +506,7 @@ Public Class AgenciasViewModel
             Return _numeroPedido
         End Get
         Set(value As Integer)
-            _numeroPedido = value
+            SetProperty(_numeroPedido, value)
             pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Empresa = empresaSeleccionada.Número And c.Número = numeroPedido).FirstOrDefault
         End Set
     End Property
@@ -500,7 +517,7 @@ Public Class AgenciasViewModel
             Return _numeroMultiusuario
         End Get
         Set(value As Integer)
-            _numeroMultiusuario = value
+            SetProperty(_numeroMultiusuario, value)
             multiusuario = (From m In DbContext.MultiUsuarios Where m.Empresa = empresaSeleccionada.Número And m.Número = numeroMultiusuario).FirstOrDefault
         End Set
     End Property
@@ -511,7 +528,7 @@ Public Class AgenciasViewModel
             Return _multiusuario
         End Get
         Set(value As MultiUsuarios)
-            _multiusuario = value
+            SetProperty(_multiusuario, value)
         End Set
     End Property
 
@@ -521,7 +538,7 @@ Public Class AgenciasViewModel
             Return _PestañaSeleccionada
         End Get
         Set(value As TabItem)
-            _PestañaSeleccionada = value
+            SetProperty(_PestañaSeleccionada, value)
             OnPropertyChanged("PestañaSeleccionada")
         End Set
     End Property
@@ -532,7 +549,7 @@ Public Class AgenciasViewModel
             Return _listaEmpresas
         End Get
         Set(value As ObservableCollection(Of Empresas))
-            _listaEmpresas = value
+            SetProperty(_listaEmpresas, value)
             OnPropertyChanged("listaEmpresas")
         End Set
     End Property
@@ -543,7 +560,7 @@ Public Class AgenciasViewModel
             Return _listaEnviosPedido
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            _listaEnviosPedido = value
+            SetProperty(_listaEnviosPedido, value)
             OnPropertyChanged("listaEnviosPedido")
         End Set
     End Property
@@ -554,8 +571,60 @@ Public Class AgenciasViewModel
             Return _listaEnviosTramitados
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            _listaEnviosTramitados = value
+            SetProperty(_listaEnviosTramitados, value)
             OnPropertyChanged("listaEnviosTramitados")
+        End Set
+    End Property
+
+    'Private Property _XMLdeEstado As XDocument
+    'Public Property XMLdeEstado As XDocument
+    '    Get
+    '        Return _XMLdeEstado
+    '    End Get
+    '    Set(value As XDocument)
+    '        SetProperty(_XMLdeEstado, value)
+    '    End Set
+    'End Property
+
+    Private Property _XMLdeEstado As XDocument
+    Public Property XMLdeEstado As XDocument
+        Get
+            Return _XMLdeEstado
+        End Get
+        Set(value As XDocument)
+            SetProperty(_XMLdeEstado, value)
+            OnPropertyChanged("XMLdeEstado")
+        End Set
+    End Property
+
+    Private Property _barraProgresoFinal As Integer
+    Public Property barraProgresoFinal As Integer
+        Get
+            Return _barraProgresoFinal
+        End Get
+        Set(value As Integer)
+            SetProperty(_barraProgresoFinal, value)
+        End Set
+    End Property
+
+    Private Property _barraProgresoActual As Integer
+    Public Property barraProgresoActual As Integer
+        Get
+            Return _barraProgresoActual
+        End Get
+        Set(value As Integer)
+            SetProperty(_barraProgresoActual, value)
+        End Set
+    End Property
+
+    Private Property _estadoEnvioCargado As estadoEnvio
+    Public Property estadoEnvioCargado As estadoEnvio
+        Get
+            Return _estadoEnvioCargado
+        End Get
+        Set(value As estadoEnvio)
+            SetProperty(_estadoEnvioCargado, value)
+            OnPropertyChanged("estadoEnvioCargado")
         End Set
     End Property
 
@@ -592,8 +661,13 @@ Public Class AgenciasViewModel
         Return Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0
     End Function
     Private Sub TramitarTodos(ByVal param As Object)
+        barraProgresoActual = 0
+        barraProgresoFinal = listaEnvios.Count
         For Each envio In listaEnvios
+            barraProgresoActual = barraProgresoActual + 1
             envioActual = envio
+            mensajeError = "Tramitando pedido " + envio.Pedido.ToString
+            Debug.Print("Tramitando pedido " + envio.Pedido.ToString)
             cmdTramitar.Execute(Nothing)
         Next
     End Sub
@@ -776,16 +850,58 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanCargarEstado(arg As Object) As Boolean
-        Return Not IsNothing(pedidoSeleccionado)
+        'Return envioActual IsNot Nothing
+        Return True
     End Function
     Private Sub OnCargarEstado(arg As Object)
-
+        If IsNothing(envioActual) Then
+            mensajeError = "No se puede cargar el estado porque no hay ningún envío seleccionado"
+            Return
+        End If
+        XMLdeEstado = cargarEstado(envioActual)
+        estadoEnvioCargado = transformarXMLdeEstado(XMLdeEstado)
+        mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
     End Sub
+
+
+    'Public Event Saved As EventHandler(Of DataEventArgs(Of AgenciasViewModel))
+    'Public Property SaveOrderCommand() As DelegateCommand(Of Object)
+    '    Get
+    '        Return m_SaveOrderCommand
+    '    End Get
+    '    Private Set(value As DelegateCommand(Of Object))
+    '        m_SaveOrderCommand = Value
+    '    End Set
+    'End Property
+    'Private m_SaveOrderCommand As DelegateCommand(Of Object)
+
+    'Private Function CanSave(arg As Object) As Boolean
+    '    'TODO: 02 - The Order Save command is enabled only when all order data is valid. 
+    '    ' Can only save when there are no errors and 
+    '    ' when the order quantity is greater than zero. 
+    '    Return True
+    'End Function
+
+    'Private Sub Save(obj As Object)
+    '    ' Save the order here. 
+    '    Console.WriteLine([String].Format("{0} saved.", Me.numeroPedido))
+
+    '    ' Notify that the order was saved. 
+    '    Me.OnSaved(New DataEventArgs(Of AgenciasViewModel)(Me))
+    'End Sub
+
+    'Private Sub OnSaved(e As DataEventArgs(Of AgenciasViewModel))
+    '    Dim savedHandler As EventHandler(Of DataEventArgs(Of AgenciasViewModel))
+    '    AddHandler Me.Saved, savedHandler
+    '    RaiseEvent savedHandler(Me, e)
+    'End Sub
+
 
 
 #End Region
 
 #Region "Funciones de Ayuda"
+
     Public Sub llamadaWebService()
         XMLdeSalida = construirXMLdeSalida()
         'If IsNothing(envioActual.Agencia) Then
@@ -816,13 +932,13 @@ Public Class AgenciasViewModel
         req.Accept = "text/xml"
         req.Method = "POST"
 
-        Using stm As Stream = req.GetRequestStream()
-            Using stmw As StreamWriter = New StreamWriter(stm)
-                stmw.Write(soap)
-            End Using
-        End Using
-
         Try
+            Using stm As Stream = req.GetRequestStream()
+                Using stmw As StreamWriter = New StreamWriter(stm)
+                    stmw.Write(soap)
+                End Using
+            End Using
+
             Dim response As WebResponse = req.GetResponse()
             Dim responseStream As New StreamReader(response.GetResponseStream())
             soap = responseStream.ReadToEnd
@@ -1271,10 +1387,179 @@ Public Class AgenciasViewModel
     '       End Function)
     'End Sub
 
+    Public Function cargarEstado(envio As EnviosAgencia) As XDocument
+        If IsNothing(envio) Then
+            NotificationRequest.Raise(New Notification() With { _
+                 .Title = "Error", _
+                .Content = "No hay ningún envío seleccionado, no se puede cargar el estado" _
+            })
+            Return Nothing
+        End If
+        Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + agenciaSeleccionada.Identificador)
+        If myUri.Scheme = Uri.UriSchemeHttp Then
+            Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
+            myRequest.Method = WebRequestMethods.Http.Get
+
+            Dim myResponse As HttpWebResponse = myRequest.GetResponse()
+            If myResponse.StatusCode = HttpStatusCode.OK Then
+
+                Dim reader As New StreamReader(myResponse.GetResponseStream())
+                Dim responseData As String = reader.ReadToEnd()
+                myResponse.Close()
+                Return XDocument.Parse(responseData)
+            End If
+        End If
+        Return Nothing
+    End Function
+
+
+    Public Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio
+        Dim estado As New estadoEnvio
+        Dim expedicion As New expedicion
+        Dim trackinglistxml As XElement
+        Dim tracking As tracking
+
+        If IsNothing(envio) Then
+            Return Nothing
+        End If
+
+        For Each nodo In envio.Root.Descendants("exp")
+            expedicion.numeroExpedicion = nodo.Descendants("expedicion").FirstOrDefault.Value
+            expedicion.fecha = nodo.Descendants("fecha").FirstOrDefault.Value
+            expedicion.fechaEstimada = nodo.Descendants("FPEntrega").FirstOrDefault.Value
+
+            trackinglistxml = nodo.Descendants("tracking_list").FirstOrDefault
+            For Each track In trackinglistxml.Descendants("tracking")
+                tracking = New tracking
+                tracking.estadoTracking = track.Descendants("evento").FirstOrDefault.Value
+                tracking.fechaTracking = track.Descendants("fecha").FirstOrDefault.Value
+                expedicion.listaTracking.Add(tracking)
+                tracking = Nothing
+            Next
+        Next
+        estado.listaExpediciones.Add(expedicion)
+        Return estado
+    End Function
 
 #End Region
 
 
+#Region "ClasesAuxiliares"
+
+    Public Class estadoEnvio
+        Inherits BindableBase
+
+        Private Property _listaExpediciones As New ObservableCollection(Of expedicion)
+        Public Property listaExpediciones As ObservableCollection(Of expedicion)
+            Get
+                Return _listaExpediciones
+            End Get
+            Set(value As ObservableCollection(Of expedicion))
+                SetProperty(_listaExpediciones, value)
+                OnPropertyChanged("listaExpediciones")
+            End Set
+        End Property
+    End Class
+
+    Public Class tracking
+        Inherits BindableBase
+        Private Property _estadoTracking As String
+        Public Property estadoTracking As String
+            Get
+                Return _estadoTracking
+            End Get
+            Set(value As String)
+                SetProperty(_estadoTracking, value)
+                OnPropertyChanged("estadoTracking")
+            End Set
+        End Property
+
+        Private Property _fechaTracking As DateTime
+        Public Property fechaTracking As DateTime
+            Get
+                Return _fechaTracking
+            End Get
+            Set(value As DateTime)
+                SetProperty(_fechaTracking, value)
+                OnPropertyChanged("fechaTracking")
+            End Set
+        End Property
+
+
+    End Class
+
+    Public Class digitalizacion
+        Private Property _urlDigitalizacion As Uri
+        Public Property urlDigitalizacion As Uri
+            Get
+                Return _urlDigitalizacion
+            End Get
+            Set(value As Uri)
+                _urlDigitalizacion = value
+            End Set
+        End Property
+    End Class
+
+    Public Class expedicion
+        Inherits BindableBase
+        Private Property _numeroExpedicion As String
+        Public Property numeroExpedicion As String
+            Get
+                Return _numeroExpedicion
+            End Get
+            Set(value As String)
+                SetProperty(_numeroExpedicion, value)
+                OnPropertyChanged("numeroExpedicion")
+            End Set
+        End Property
+
+        Private Property _fecha As Date
+        Public Property fecha As Date
+            Get
+                Return _fecha
+            End Get
+            Set(value As Date)
+                SetProperty(_fecha, value)
+                OnPropertyChanged("fecha")
+            End Set
+        End Property
+
+        Private Property _fechaEstimada As Date
+        Public Property fechaEstimada As Date
+            Get
+                Return _fechaEstimada
+            End Get
+            Set(value As Date)
+                SetProperty(_fechaEstimada, value)
+                OnPropertyChanged("fechaEstimada")
+            End Set
+        End Property
+
+        Private Property _listaTracking As New ObservableCollection(Of tracking)
+        Public Property listaTracking As ObservableCollection(Of tracking)
+            Get
+                Return _listaTracking
+            End Get
+            Set(value As ObservableCollection(Of tracking))
+                SetProperty(_listaTracking, value)
+                OnPropertyChanged("listaTracking")
+            End Set
+        End Property
+
+        Private Property _listaDigitalizaciones As New ObservableCollection(Of digitalizacion)
+        Public Property listaDigitalizaciones As ObservableCollection(Of digitalizacion)
+            Get
+                Return _listaDigitalizaciones
+            End Get
+            Set(value As ObservableCollection(Of digitalizacion))
+                SetProperty(_listaDigitalizaciones, value)
+                OnPropertyChanged("listaDigitalizaciones")
+            End Set
+        End Property
+
+    End Class
+
+#End Region
 
 End Class
 

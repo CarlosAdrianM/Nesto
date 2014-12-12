@@ -36,5 +36,13 @@
     <Style x:Key="campoMoneda" TargetType="TextBox" BasedOn="{StaticResource campoTexto}">
         <Setter Property="HorizontalAlignment" Value="Right"/>
     </Style>
+    
+    <Style x:Key="bordeAzul" TargetType="Border">
+        <Setter Property="BorderBrush" Value="Blue"/>
+        <Setter Property="BorderThickness" Value="2"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Margin" Value="3"/>
+        <Setter Property="Padding" Value="3"/>
+    </Style>
 
 </ResourceDictionary>

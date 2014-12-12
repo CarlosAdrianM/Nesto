@@ -674,14 +674,67 @@ Public Class cuandoContabilizamosElReembolso
     <TestMethod()>
     Public Sub debeContabilizarElReembolso()
         'arrange
-        'agenciaVM.agenciaSeleccionada = New AgenciasTransporte With {.Empresa = "4", .Numero = "1", .Identificador = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11", .Nombre = "ASM Pruebas", .CuentaReembolsos = "55500042"}
-        'agenciaVM.empresaSeleccionada = New Empresas With {.Número = "4", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
-        'agenciaVM.pedidoSeleccionado = (From c In dbContext.CabPedidoVta Where c.Número = 545861).FirstOrDefault
         Dim asiento As Integer
-        agenciaVM.envioActual = (From c In dbContext.EnviosAgencia Where c.Empresa = "1" And c.Pedido = 570775).FirstOrDefault
-        'act
+        agenciaVM.envioActual = (From c In dbContext.EnviosAgencia Where c.Empresa = "1" And c.Numero = 195).FirstOrDefault
+        'act Lo comento porque podría contabilizar
         asiento = agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
         'assert
         Assert.IsFalse(asiento <= 0)
+    End Sub
+End Class
+
+<TestClass()>
+Public Class cuandoCargamosElEstado
+
+    Dim agenciaVM As New AgenciasViewModel
+    Private Shared DbContext As New NestoEntities
+
+    Private testContextInstance As TestContext
+
+    '''<summary>
+    '''Obtiene o establece el contexto de las pruebas que proporciona
+    '''información y funcionalidad para la serie de pruebas actual.
+    '''</summary>
+    Public Property TestContext() As TestContext
+        Get
+            Return testContextInstance
+        End Get
+        Set(ByVal value As TestContext)
+            testContextInstance = value
+        End Set
+    End Property
+
+#Region "Atributos de prueba adicionales"
+    '
+    ' Puede usar los siguientes atributos adicionales conforme escribe las pruebas:
+    '
+    ' Use ClassInitialize para ejecutar el código antes de ejecutar la primera prueba en la clase
+    ' <ClassInitialize()> Public Shared Sub MyClassInitialize(ByVal testContext As TestContext)
+    ' End Sub
+    '
+    ' Use ClassCleanup para ejecutar el código después de haberse ejecutado todas las pruebas en una clase
+    ' <ClassCleanup()> Public Shared Sub MyClassCleanup()
+    ' End Sub
+    '
+    ' Usar TestInitialize para ejecutar el código antes de ejecutar cada prueba
+    ' <TestInitialize()> Public Sub MyTestInitialize()
+    ' End Sub
+    '
+    ' Use TestCleanup para ejecutar el código una vez ejecutadas todas las pruebas
+    ' <TestCleanup()> Public Sub MyTestCleanup()
+    ' End Sub
+    '
+#End Region
+
+    <TestMethod()>
+    Public Sub debeDevolverUnValorAlXMLdeEstado()
+        'arrange
+        agenciaVM.envioActual = (From c In DbContext.EnviosAgencia Where c.Numero = 173).FirstOrDefault
+        'agenciaVM.empresaSeleccionada = New Empresas With {.Número = "95", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
+        'act
+        agenciaVM.XMLdeEstado = agenciaVM.cargarEstado(agenciaVM.envioActual)
+        'assert
+        Debug.Print(agenciaVM.XMLdeEstado.ToString)
+        Assert.IsFalse(IsNothing(agenciaVM.XMLdeEntrada))
     End Sub
 End Class

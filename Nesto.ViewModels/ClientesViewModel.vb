@@ -159,19 +159,21 @@ Public Class ClientesViewModel
     Private Sub actualizarCliente(empresa As String, numCliente As String, contacto As String)
         If Not (IsNothing(empresa) Or IsNothing(numCliente) Or IsNothing(contacto)) Then
             Dim cliente = (From c In DbContext.Clientes Where c.Empresa = empresa And c.Nº_Cliente = numCliente And c.Contacto = contacto).FirstOrDefault
-            If IsNothing(cliente) Then 'Si no existe el cliente que tiene en el parámetro
-                cliente = (From c In DbContext.Clientes Where c.Empresa = empresa).FirstOrDefault
-                numCliente = cliente.Nº_Cliente
-                contacto = cliente.Contacto
-                clienteActual = numCliente
-                contactoActual = contacto
+            'If IsNothing(cliente) Then 'Si no existe el cliente que tiene en el parámetro
+            '    cliente = (From c In DbContext.Clientes Where c.Empresa = empresa).FirstOrDefault
+            '    numCliente = cliente.Nº_Cliente
+            '    contacto = cliente.Contacto
+            '    clienteActual = numCliente
+            '    contactoActual = contacto
+            'End If
+            If Not IsNothing(cliente) Then
+                nombre = cliente.Nombre
+                cuentasBanco = New ObservableCollection(Of CCC)(From c In DbContext.CCC Where c.Empresa = empresa And c.Cliente = numCliente And c.Contacto = contacto)
+                If Not IsNothing(cliente.CCC2) Then
+                    cuentaActiva = cuentasBanco.Where(Function(x) x.Número = cliente.CCC2.Número).FirstOrDefault
+                End If
+                clienteActivo = cliente
             End If
-            nombre = cliente.Nombre
-            cuentasBanco = New ObservableCollection(Of CCC)(From c In DbContext.CCC Where c.Empresa = empresa And c.Cliente = numCliente And c.Contacto = contacto)
-            If Not IsNothing(cliente.CCC2) Then
-                cuentaActiva = cuentasBanco.Where(Function(x) x.Número = cliente.CCC2.Número).FirstOrDefault
-            End If
-            clienteActivo = cliente
         End If
     End Sub
 

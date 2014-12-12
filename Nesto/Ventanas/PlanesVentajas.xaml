@@ -51,13 +51,11 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <StackPanel Grid.Row="0">
+            <Grid Grid.Row="0">
             <TabControl TabStripPlacement="Top" SelectedItem="{Binding PestañaSeleccionada}">
                 <TabItem Name="tabListado" Header="Listado de Planes">
                     <DockPanel>
-                        
-
-                    <ListView DockPanel.Dock="Top" Name="listaIzda" ItemsSource="{Binding Path=listaClientes}" >
+                        <ListView DockPanel.Dock="Top" Name="listaIzda" ItemsSource="{Binding Path=listaClientes}" >
                             <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <StackPanel Orientation="Horizontal"></StackPanel>
@@ -78,6 +76,7 @@
                                                 <TextBlock Text="{Binding Path=Nº_Cliente}" TextTrimming="CharacterEllipsis"/>
                                                 <TextBlock Text="Contacto "/>
                                                 <TextBlock Text="{Binding Path=Contacto}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Path=Vendedor}" TextTrimming="CharacterEllipsis"/>
                                             </WrapPanel>
                                         </StackPanel>
                                     </Border>
@@ -85,12 +84,12 @@
                             </ListView.ItemTemplate>
                         </ListView>
                         <TextBox DockPanel.Dock="Top" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" VerticalAlignment="Stretch" Text="{Binding planActual.Comentarios}" Background="LightYellow"/>
-                            <DockPanel DockPanel.Dock="Top">
-                                <Button DockPanel.Dock="Right" Content="Crear Cita en Outlook" Command="{Binding cmdCrearCitasOutlook}" Margin="3"/>
-                                <Button DockPanel.Dock="Left" Content="Ver Plan de Ventajas" Command="{Binding cmdVerPlan}" Margin="3" Name="btnVerPlan" />
-                            </DockPanel>
-                            <TextBlock DockPanel.Dock="Top" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
-                            <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaPlanes}" SelectedItem="{Binding planActual}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" >
+                        <DockPanel DockPanel.Dock="Top">
+                            <Button DockPanel.Dock="Right" Content="Crear Cita en Outlook" Command="{Binding cmdCrearCitasOutlook}" Margin="3"/>
+                            <Button DockPanel.Dock="Left" Content="Ver Plan de Ventajas" Command="{Binding cmdVerPlan}" Margin="3" Name="btnVerPlan" />
+                        </DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
+                        <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaPlanes}" SelectedItem="{Binding planActual}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" VerticalScrollBarVisibility="Visible">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
                                 <DataGridTextColumn Header="Empresa" Binding="{Binding Empresas.Nombre}" />
@@ -107,9 +106,10 @@
                                 <DataGridTextColumn Header="Estado" Binding="{Binding EstadosPlanVentajas.Descripcion}" />
                             </DataGrid.Columns>
                         </DataGrid>
-                        </DockPanel>
+                    </DockPanel>
                 </TabItem>
                 <TabItem Name="tabEditar" Header="Editar">
+                <StackPanel>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -150,9 +150,10 @@
                         </DataGrid>
                         <TextBox Grid.RowSpan="5" Grid.Column="5" Margin="3" Text="{Binding Path=planActual.Comentarios,Mode=TwoWay}" Background="LightYellow" />
                     </Grid>
+                    </StackPanel>
                 </TabItem>
             </TabControl>
-            </StackPanel>
+            </Grid>
 
             <DataGrid Grid.Row="1" ItemsSource="{Binding lineasVenta}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                 <DataGrid.Columns>

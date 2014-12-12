@@ -19,8 +19,35 @@
             <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
         </prism:InteractionRequestTrigger>
     </i:Interaction.Triggers>
-    
-    
+
+    <Window.Resources>
+        <HierarchicalDataTemplate x:Key="templateTracking">
+            <Border Style="{StaticResource bordeAzul}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Path=estadoTracking}" />
+                    <TextBlock Text="{Binding Path=fechaTracking}" />
+                </StackPanel>
+            </Border>
+        </HierarchicalDataTemplate>
+        <HierarchicalDataTemplate x:Key="templateExp" ItemsSource="{Binding Path=listaTracking}" ItemTemplate="{StaticResource templateTracking}">
+            <Border Style="{StaticResource bordeAzul}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Path=numeroExpedicion}" FontWeight="Bold"/>
+                    <StackPanel  Orientation="Horizontal">
+                        <TextBlock Text="Fecha: "/>
+                        <TextBlock Text="{Binding Path=fecha, StringFormat=d}"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Fecha Estimada: "/>
+                        <TextBlock Text="{Binding Path=fechaEstimada, StringFormat=d}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </HierarchicalDataTemplate>
+        
+    </Window.Resources>
+
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -40,8 +67,9 @@
             <TabItem Name="tabPedidos" Header="Pedidos">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="3*"/>
                         <RowDefinition Height="2*"/>
+                        <RowDefinition Height="4*"/>
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0">
                         <Grid.RowDefinitions>
@@ -105,7 +133,6 @@
                         <Button Grid.Column="4" Grid.Row="7" MinWidth="80" Margin="3" Content="Cargar Estado" Command = "{Binding cmdCargarEstado}"/>
                         <!--Button Grid.Column="4" Grid.Row="6" MinWidth="80" Margin="3" Content="Imprimir Etiqueta" Command = "{Binding cmdImprimirEtiquetaPedido}"/>
                         <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Insertar Envío" Command = "{Binding cmdInsertar}"/-->
-
                         <TextBox Grid.Column="6" Grid.RowSpan="8" Text="{Binding Path=observacionesEnvio}" Style="{StaticResource campoComentarios}" />
                     </Grid>
                     <DockPanel Grid.Row="1">
@@ -130,6 +157,11 @@
                                 </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
+                    </DockPanel>
+                    <DockPanel Grid.Row="2">
+                        <TreeView Name="treeView" ItemsSource="{Binding estadoEnvioCargado.listaExpediciones,  Mode=TwoWay}" ItemTemplate="{StaticResource templateExp}">
+                            
+                        </TreeView>
                     </DockPanel>
                 </Grid>
             </TabItem>
