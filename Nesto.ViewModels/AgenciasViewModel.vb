@@ -72,12 +72,23 @@ Public Class AgenciasViewModel
         numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
         fechaFiltro = Today
         listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+        'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
+        listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
 
         ' Prism
         cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
+        cmdDobleClic = New DelegateCommand(Of Object)(AddressOf OnDobleClic, AddressOf CanDobleClic)
+        cmdContabilizarReembolso = New DelegateCommand(Of Object)(AddressOf OnContabilizarReembolso, AddressOf CanContabilizarReembolso)
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
+
+        'AddHandler Me.PropertyChanged, Function(s, e)
+        '                                   Dim name = e.PropertyName
+        '                                   Return Nothing
+        '                               End Function
+
+        
 
         'XMLdeEstado = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Documents\xmlestado.xml")
         'estadoEnvioCargado = transformarXMLdeEstado(XMLdeEstado)
@@ -193,6 +204,8 @@ Public Class AgenciasViewModel
             agenciaSeleccionada = listaAgencias.FirstOrDefault
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
             listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+            listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+            listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
             'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
             'una vez actualizadas, seleccionar el pedido o el envío actual también
         End Set
@@ -540,6 +553,9 @@ Public Class AgenciasViewModel
         Set(value As TabItem)
             SetProperty(_PestañaSeleccionada, value)
             OnPropertyChanged("PestañaSeleccionada")
+            If PestañaSeleccionada.Name = "tabReembolsos" And IsNothing(listaReembolsos) Then
+                listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+            End If
         End Set
     End Property
 
@@ -626,6 +642,73 @@ Public Class AgenciasViewModel
             SetProperty(_estadoEnvioCargado, value)
             OnPropertyChanged("estadoEnvioCargado")
         End Set
+    End Property
+
+    Private Property _listaReembolsos As ObservableCollection(Of EnviosAgencia)
+    Public Property listaReembolsos As ObservableCollection(Of EnviosAgencia)
+        Get
+            Return _listaReembolsos
+        End Get
+        Set(value As ObservableCollection(Of EnviosAgencia))
+            SetProperty(_listaReembolsos, value)
+            OnPropertyChanged("listaReembolsos")
+            OnPropertyChanged("sumaReembolsos")
+        End Set
+    End Property
+
+    Private Property _listaReembolsosSeleccionados As ObservableCollection(Of EnviosAgencia)
+    Public Property listaReembolsosSeleccionados As ObservableCollection(Of EnviosAgencia)
+        Get
+            Return _listaReembolsosSeleccionados
+        End Get
+        Set(value As ObservableCollection(Of EnviosAgencia))
+            SetProperty(_listaReembolsosSeleccionados, value)
+            OnPropertyChanged("listaReembolsosSeleccionados")
+            OnPropertyChanged("sumaSeleccionadas")
+        End Set
+    End Property
+
+    Private Property _lineaReembolsoSeleccionado As EnviosAgencia
+    Public Property lineaReembolsoSeleccionado As EnviosAgencia
+        Get
+            Return _lineaReembolsoSeleccionado
+        End Get
+        Set(value As EnviosAgencia)
+            SetProperty(_lineaReembolsoSeleccionado, value)
+            OnPropertyChanged("lineaReembolsoSeleccionado")
+        End Set
+    End Property
+
+    Private Property _numClienteContabilizar As String
+    Public Property numClienteContabilizar As String
+        Get
+            Return _numClienteContabilizar
+        End Get
+        Set(value As String)
+            SetProperty(_numClienteContabilizar, value)
+            OnPropertyChanged("numClienteContabilizar")
+        End Set
+    End Property
+
+
+    Public ReadOnly Property sumaSeleccionadas As Double
+        Get
+            If Not IsNothing(listaReembolsosSeleccionados) Then
+                Return Aggregate r In listaReembolsosSeleccionados Into Sum(r.Reembolso)
+            Else
+                Return 0
+            End If
+        End Get
+    End Property
+
+    Public ReadOnly Property sumaReembolsos As Double
+        Get
+            If Not IsNothing(listaReembolsos) Then
+                Return Aggregate r In listaReembolsos Into Sum(r.Reembolso)
+            Else
+                Return 0
+            End If
+        End Get
     End Property
 
 #End Region
@@ -862,6 +945,96 @@ Public Class AgenciasViewModel
         estadoEnvioCargado = transformarXMLdeEstado(XMLdeEstado)
         mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
     End Sub
+
+    Private _cmdDobleClic As ICommand
+    Public Property cmdDobleClic As ICommand
+        Get
+            Return _cmdDobleClic
+        End Get
+        Private Set(value As ICommand)
+            _cmdDobleClic = value
+        End Set
+    End Property
+    Private Function CanDobleClic(arg As Object) As Boolean
+        Return Not IsNothing(lineaReembolsoSeleccionado)
+    End Function
+    Private Sub OnDobleClic(arg As Object)
+        If Not IsNothing(lineaReembolsoSeleccionado) Then
+            listaReembolsosSeleccionados.Add(lineaReembolsoSeleccionado)
+            listaReembolsos.Remove(lineaReembolsoSeleccionado)
+            OnPropertyChanged("sumaSeleccionadas")
+            OnPropertyChanged("sumaReembolsos")
+        Else
+            mensajeError = "No hay ninguna línea seleccionada"
+        End If
+    End Sub
+
+    Private _cmdContabilizarReembolso As ICommand
+    Public Property cmdContabilizarReembolso As ICommand
+        Get
+            Return _cmdContabilizarReembolso
+        End Get
+        Private Set(value As ICommand)
+            _cmdContabilizarReembolso = value
+        End Set
+    End Property
+    Private Function CanContabilizarReembolso(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnContabilizarReembolso(arg As Object)
+        For Each linea In listaReembolsosSeleccionados
+            DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
+                .Empresa = empresaSeleccionada.Número,
+                .Diario = "_Reembolso",
+                .Asiento = 1,
+                .Fecha = Today,
+                .TipoApunte = "3",
+                .TipoCuenta = "1",
+                .Nº_Cuenta = linea.AgenciasTransporte.CuentaReembolsos,
+                .Concepto = "Pago reembolso " + linea.Cliente,
+                .Haber = linea.Reembolso,
+                .Nº_Documento = linea.AgenciasTransporte.Nombre,
+                .Delegación = "ALG",
+                .FormaVenta = "VAR" _
+            })
+        Next
+        DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
+                .Empresa = empresaSeleccionada.Número,
+                .Diario = "_Reembolso",
+                .Asiento = 1,
+                .Fecha = Today,
+                .TipoApunte = "3",
+                .TipoCuenta = "2",
+                .Nº_Cuenta = numClienteContabilizar,
+                .Contacto = "0",
+                .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
+                .Debe = sumaSeleccionadas,
+                .Nº_Documento = agenciaSeleccionada.Nombre,
+                .Delegación = "ALG",
+                .FormaVenta = "VAR",
+                .FormaPago = "CHQ" _
+            })
+        DbContext.SaveChanges()
+
+        Dim asiento As Double
+        asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_Reembolso")
+        If asiento > 0 Then
+            For Each linea In listaReembolsosSeleccionados
+                linea.FechaPagoReembolso = Today
+            Next
+            DbContext.SaveChanges()
+            NotificationRequest.Raise(New Notification() With { _
+                 .Title = "Contabilizado Correctamente", _
+                .Content = "Asiento: " + asiento.ToString _
+            })
+        Else
+            NotificationRequest.Raise(New Notification() With { _
+                .Title = "Error al contabilizar", _
+                .Content = "Debe borrar las líneas del diario _Reembolso" _
+            })
+        End If
+    End Sub
+
 
 
     'Public Event Saved As EventHandler(Of DataEventArgs(Of AgenciasViewModel))

@@ -118,7 +118,7 @@
                         <ComboBox Grid.Column="1" Grid.Row="5" ItemsSource="{Binding listaHorarios}" SelectedItem="{Binding horarioActual}" DisplayMemberPath="descripcion" SelectedValuePath="id"  Style="{StaticResource listaCombo}"/>
                         <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding bultos}" Style="{StaticResource campoTexto}"  />
                         <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding listaTiposRetorno}" SelectedItem="{Binding retornoActual}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
-                        <TextBox Grid.Column="3" Grid.Row="0" Text="{Binding nombreEnvio}" Style="{StaticResource campoTexto}"  />
+                        <TextBox Grid.Column="3" Grid.Row="0" Text="{Binding nombreEnvio}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.Row="1" Text="{Binding direccionEnvio}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.Row="2" Text="{Binding codPostalEnvio}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.Row="3" Text="{Binding poblacionEnvio}" Style="{StaticResource campoTexto}"/>
@@ -297,6 +297,80 @@
                         </DataGrid>
 
                     </StackPanel>
+                </Grid>
+            </TabItem>
+            <TabItem Name="tabReembolsos" Header="Reembolsos">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4*"/>
+                        <RowDefinition Height="2*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding listaReembolsos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" Name="grdListaReembolsos" SelectedItem="{Binding lineaReembolsoSeleccionado}">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="MouseDoubleClick">
+                                <i:InvokeCommandAction Command="{Binding cmdDobleClic}" />
+                                <!--CommandParameter="{Binding ElementName=grdListaReembolsos, Path=SelectedItem}" -->
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                            <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" />
+                            <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" />
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                            <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}" >
+                                <DataGridTextColumn.CellStyle>
+                                    <Style>
+                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding listaReembolsosSeleccionados}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                            <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" />
+                            <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" />
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                            <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}" >
+                                <DataGridTextColumn.CellStyle>
+                                    <Style>
+                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <Grid Grid.Row="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock>Total Seleccionados: </TextBlock>
+                            <TextBlock Text="{Binding sumaSeleccionadas, StringFormat=c}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock>Total Reembolsos: </TextBlock>
+                            <TextBlock Text="{Binding sumaReembolsos, StringFormat=c}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock>Nº Cliente:</TextBlock>
+                            <TextBox MinWidth="50" Text="{Binding numClienteContabilizar}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Command="{Binding cmdContabilizarReembolso}">Contabilizar</Button>
+                        </StackPanel>
+                    </Grid>
+                    
                 </Grid>
             </TabItem>
         </TabControl>
