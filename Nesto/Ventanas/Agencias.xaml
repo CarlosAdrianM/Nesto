@@ -18,6 +18,9 @@
         <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
             <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
         </prism:InteractionRequestTrigger>
+        <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
+            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
+        </prism:InteractionRequestTrigger>
     </i:Interaction.Triggers>
 
     <Window.Resources>
@@ -363,14 +366,21 @@
                             <TextBlock Text="{Binding sumaReembolsos, StringFormat=c}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock>Total Contabilidad:</TextBlock>
+                            <TextBlock Text="{Binding sumaContabilidad, StringFormat=c}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock>Total Descuadre:</TextBlock>
+                            <TextBlock Text="{Binding descuadreContabilidad, StringFormat=c}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock>Nº Cliente:</TextBlock>
                             <TextBox MinWidth="50" Text="{Binding numClienteContabilizar}"/>
                         </StackPanel>
-                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button Command="{Binding cmdContabilizarReembolso}">Contabilizar</Button>
                         </StackPanel>
-                    </Grid>
-                    
+                    </Grid>                    
                 </Grid>
             </TabItem>
         </TabControl>

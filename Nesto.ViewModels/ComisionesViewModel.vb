@@ -60,6 +60,10 @@ Public Class ComisionesViewModel
             _vendedorActual = value
             OnPropertyChanged("vendedorActual")
             comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
+            listaPedidos = New ObservableCollection(Of LinPedidoVta)(From l In DbContext.LinPedidoVta Join c In DbContext.CabPedidoVta _
+                           On c.Empresa Equals l.Empresa And c.Número Equals l.Número _
+                           Where (c.Empresa = "1" Or c.Empresa = "3") And l.Estado >= -1 And l.Estado <= 1 And c.Vendedor = vendedorActual.Número _
+                           Select l)
         End Set
     End Property
 
@@ -120,6 +124,17 @@ Public Class ComisionesViewModel
         End Get
         Set(value As Date)
             _fechaHasta = value
+        End Set
+    End Property
+
+    Private Property _listaPedidos As ObservableCollection(Of LinPedidoVta)
+    Public Property listaPedidos As ObservableCollection(Of LinPedidoVta)
+        Get
+            Return _listaPedidos
+        End Get
+        Set(value As ObservableCollection(Of LinPedidoVta))
+            _listaPedidos = value
+            OnPropertyChanged("listaPedidos")
         End Set
     End Property
 

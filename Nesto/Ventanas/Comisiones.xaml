@@ -12,7 +12,8 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="15*"/>
             <RowDefinition Height="15*"/>
         </Grid.RowDefinitions>
         <Grid Grid.Row="0">
@@ -195,6 +196,32 @@
 
 
         </Grid>
+        <DataGrid Grid.Row="2" ItemsSource="{Binding listaPedidos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
+                <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Nº_Cliente}" />
+                <DataGridTextColumn Header="Dirección" Binding="{Binding Clientes.Dirección}" Width="3*"/>
+                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
+                <DataGridTextColumn Header="Texto" Binding="{Binding Texto}" Width="3*"/>
+                <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
+                <DataGridTextColumn Header="Fecha Entrega" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style>
+                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Base Imponible" Binding="{Binding Base_Imponible, StringFormat=c}" >
+                    <DataGridTextColumn.CellStyle>
+                        <Style>
+                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Picking" Binding="{Binding Picking}" />
+            </DataGrid.Columns>
+        </DataGrid>
     </Grid>
     
     

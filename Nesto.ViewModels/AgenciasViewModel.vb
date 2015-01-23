@@ -206,6 +206,8 @@ Public Class AgenciasViewModel
             listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
             listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
             listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+            OnPropertyChanged("sumaContabilidad")
+            OnPropertyChanged("descuadreContabilidad")
             'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
             'una vez actualizadas, seleccionar el pedido o el envío actual también
         End Set
@@ -498,7 +500,7 @@ Public Class AgenciasViewModel
             SetProperty(_fechaFiltro, value)
             OnPropertyChanged("fechaFiltro")
             'actualizamos listaPedidos
-            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = 1)
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
         End Set
     End Property
 
@@ -708,6 +710,18 @@ Public Class AgenciasViewModel
             Else
                 Return 0
             End If
+        End Get
+    End Property
+
+    Public ReadOnly Property sumaContabilidad As Double
+        Get
+            Return Aggregate c In DbContext.Contabilidad Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cuenta = agenciaSeleccionada.CuentaReembolsos Into Sum(c.Debe - c.Haber)
+        End Get
+    End Property
+
+    Public ReadOnly Property descuadreContabilidad As Double
+        Get
+            Return sumaContabilidad - sumaReembolsos
         End Get
     End Property
 
@@ -979,9 +993,22 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanContabilizarReembolso(arg As Object) As Boolean
-        Return True
+        Return Not IsNothing(listaReembolsosSeleccionados) 'AndAlso listaReembolsosSeleccionados.Count > 0
     End Function
     Private Sub OnContabilizarReembolso(arg As Object)
+        Me.ConfirmationRequest.Raise(
+            New Confirmation() With {
+                .Content = "¿Desea contabilizar?", .Title = "Contabilizar"
+            },
+            Sub(c)
+                InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+            End Sub
+        )
+
+        If InteractionResultMessage = "KO" Or IsNothing(lineaReembolsoSeleccionado) Then
+            Return
+        End If
+
         For Each linea In listaReembolsosSeleccionados
             DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
                 .Empresa = empresaSeleccionada.Número,
@@ -1030,7 +1057,7 @@ Public Class AgenciasViewModel
         Else
             NotificationRequest.Raise(New Notification() With { _
                 .Title = "Error al contabilizar", _
-                .Content = "Debe borrar las líneas del diario _Reembolso" _
+                .Content = "¡Atención! Debe borrar las líneas del diario _Reembolso" _
             })
         End If
     End Sub
@@ -1137,7 +1164,7 @@ Public Class AgenciasViewModel
 
         Else
             'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
-            envioActual.Estado = 1 'Enviado
+            envioActual.Estado = ESTADO_TRAMITADO_ENVIO 'Enviado
             DbContext.SaveChanges()
             If envioActual.Reembolso > 0 Then
                 contabilizarReembolso(envioActual)
@@ -1585,7 +1612,6 @@ Public Class AgenciasViewModel
         Return Nothing
     End Function
 
-
     Public Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio
         Dim estado As New estadoEnvio
         Dim expedicion As New expedicion
@@ -1615,7 +1641,6 @@ Public Class AgenciasViewModel
     End Function
 
 #End Region
-
 
 #Region "ClasesAuxiliares"
 
