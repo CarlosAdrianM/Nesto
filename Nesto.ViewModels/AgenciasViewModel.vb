@@ -504,6 +504,18 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    Private Property _clienteFiltro As String
+    Public Property clienteFiltro As String
+        Get
+            Return _clienteFiltro
+        End Get
+        Set(value As String)
+            SetProperty(_clienteFiltro, value)
+            OnPropertyChanged("clienteFiltro")
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Cliente = clienteFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+        End Set
+    End Property
+
     'Private Property _listaPedidos As ObservableCollection(Of CabPedidoVta)
     'Public Property listaPedidos As ObservableCollection(Of CabPedidoVta)
     '    Get
