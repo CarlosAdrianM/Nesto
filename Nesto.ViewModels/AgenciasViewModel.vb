@@ -136,70 +136,64 @@ Public Class AgenciasViewModel
 
 
     '*** Propiedades de Nesto
-    Private Property _resultadoWebservice As String
+    Private _resultadoWebservice As String
     Public Property resultadoWebservice As String
         Get
             Return _resultadoWebservice
         End Get
         Set(value As String)
             SetProperty(_resultadoWebservice, value)
-            OnPropertyChanged("resultadoWebservice")
         End Set
     End Property
 
-    Private Property _listaAgencias As ObservableCollection(Of AgenciasTransporte)
+    Private _listaAgencias As ObservableCollection(Of AgenciasTransporte)
     Public Property listaAgencias As ObservableCollection(Of AgenciasTransporte)
         Get
             Return _listaAgencias
         End Get
         Set(value As ObservableCollection(Of AgenciasTransporte))
             SetProperty(_listaAgencias, value)
-            OnPropertyChanged("listaAgencias")
         End Set
     End Property
 
-    Private Property _agenciaSeleccionada As AgenciasTransporte
+    Private _agenciaSeleccionada As AgenciasTransporte
     Public Property agenciaSeleccionada As AgenciasTransporte
         Get
             Return _agenciaSeleccionada
         End Get
         Set(value As AgenciasTransporte)
             SetProperty(_agenciaSeleccionada, value)
-            OnPropertyChanged("agenciaSeleccionada")
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
         End Set
     End Property
 
-    Private Property _XMLdeSalida As XDocument
+    Private _XMLdeSalida As XDocument
     Public Property XMLdeSalida As XDocument
         Get
             Return _XMLdeSalida
         End Get
         Set(value As XDocument)
             SetProperty(_XMLdeSalida, value)
-            OnPropertyChanged("XMLdeSalida")
         End Set
     End Property
 
-    Private Property _XMLdeEntrada As XDocument
+    Private _XMLdeEntrada As XDocument
     Public Property XMLdeEntrada As XDocument
         Get
             Return _XMLdeEntrada
         End Get
         Set(value As XDocument)
             SetProperty(_XMLdeEntrada, value)
-            OnPropertyChanged("XMLdeEntrada")
         End Set
     End Property
 
-    Private Property _empresaSeleccionada As Empresas
+    Private _empresaSeleccionada As Empresas
     Public Property empresaSeleccionada As Empresas
         Get
             Return _empresaSeleccionada
         End Get
         Set(value As Empresas)
             SetProperty(_empresaSeleccionada, value)
-            OnPropertyChanged("empresaSeleccionada")
             listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
             agenciaSeleccionada = listaAgencias.FirstOrDefault
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
@@ -213,14 +207,13 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Property _pedidoSeleccionado As CabPedidoVta
+    Private _pedidoSeleccionado As CabPedidoVta
     Public Property pedidoSeleccionado As CabPedidoVta
         Get
             Return _pedidoSeleccionado
         End Get
         Set(value As CabPedidoVta)
             SetProperty(_pedidoSeleccionado, value)
-            OnPropertyChanged("pedidoSeleccionado")
             If Not IsNothing(pedidoSeleccionado) Then
                 reembolso = importeReembolso()
                 bultos = 1
@@ -250,62 +243,57 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Property _listaTiposRetorno As ObservableCollection(Of tipoIdDescripcion)
+    Private _listaTiposRetorno As ObservableCollection(Of tipoIdDescripcion)
     Public Property listaTiposRetorno As ObservableCollection(Of tipoIdDescripcion)
         Get
             Return _listaTiposRetorno
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
             SetProperty(_listaTiposRetorno, value)
-            'OnPropertyChanged("listaTiposRetorno")
         End Set
     End Property
 
-    Private Property _retornoActual As tipoIdDescripcion
+    Private _retornoActual As tipoIdDescripcion
     Public Property retornoActual As tipoIdDescripcion
         Get
             Return _retornoActual
         End Get
         Set(value As tipoIdDescripcion)
             SetProperty(_retornoActual, value)
-            OnPropertyChanged("retornoActual")
         End Set
     End Property
 
-    Private Property _reembolso As Decimal
+    Private _reembolso As Decimal
     Public Property reembolso As Decimal
         Get
             Return _reembolso
         End Get
         Set(value As Decimal)
             SetProperty(_reembolso, value)
-            OnPropertyChanged("reembolso")
         End Set
     End Property
 
-    Private Property _bultos As Integer
+    Private _bultos As Integer
     Public Property bultos As Integer
         Get
             Return _bultos
         End Get
         Set(value As Integer)
             SetProperty(_bultos, value)
-            OnPropertyChanged("bultos")
         End Set
     End Property
 
-    Private Property _mensajeError As String
+    Private _mensajeError As String
     Public Property mensajeError As String
         Get
             Return _mensajeError
         End Get
         Set(value As String)
             SetProperty(_mensajeError, value)
-            OnPropertyChanged("mensajeError")
         End Set
     End Property
 
-    Private Property _listaServicios As ObservableCollection(Of tipoIdDescripcion)
+    Private _listaServicios As ObservableCollection(Of tipoIdDescripcion)
     Public Property listaServicios As ObservableCollection(Of tipoIdDescripcion)
         Get
             Return _listaServicios
@@ -315,18 +303,17 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Property _servicioActual As tipoIdDescripcion
+    Private _servicioActual As tipoIdDescripcion
     Public Property servicioActual As tipoIdDescripcion
         Get
             Return _servicioActual
         End Get
         Set(value As tipoIdDescripcion)
             SetProperty(_servicioActual, value)
-            OnPropertyChanged("servicioActual")
         End Set
     End Property
 
-    Private Property _listaHorarios As ObservableCollection(Of tipoIdDescripcion)
+    Private _listaHorarios As ObservableCollection(Of tipoIdDescripcion)
     Public Property listaHorarios As ObservableCollection(Of tipoIdDescripcion)
         Get
             Return _listaHorarios
@@ -336,182 +323,166 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Property _horarioActual As tipoIdDescripcion
+    Private _horarioActual As tipoIdDescripcion
     Public Property horarioActual As tipoIdDescripcion
         Get
             Return _horarioActual
         End Get
         Set(value As tipoIdDescripcion)
             SetProperty(_horarioActual, value)
-            OnPropertyChanged("horarioActual")
         End Set
     End Property
 
-    Private Property _nombreEnvio As String
+    Private _nombreEnvio As String
     Public Property nombreEnvio As String
         Get
             Return _nombreEnvio
         End Get
         Set(value As String)
             SetProperty(_nombreEnvio, value)
-            OnPropertyChanged("nombreEnvio")
         End Set
     End Property
 
-    Private Property _direccionEnvio As String
+    Private _direccionEnvio As String
     Public Property direccionEnvio As String
         Get
             Return _direccionEnvio
         End Get
         Set(value As String)
             SetProperty(_direccionEnvio, value)
-            OnPropertyChanged("direccionEnvio")
         End Set
     End Property
 
-    Private Property _poblacionEnvio As String
+    Private _poblacionEnvio As String
     Public Property poblacionEnvio As String
         Get
             Return _poblacionEnvio
         End Get
         Set(value As String)
             SetProperty(_poblacionEnvio, value)
-            OnPropertyChanged("poblacionEnvio")
         End Set
     End Property
 
-    Private Property _provinciaEnvio As String
+    Private _provinciaEnvio As String
     Public Property provinciaEnvio As String
         Get
             Return _provinciaEnvio
         End Get
         Set(value As String)
             SetProperty(_provinciaEnvio, value)
-            OnPropertyChanged("provinciaEnvio")
         End Set
     End Property
 
-    Private Property _codPostalEnvio As String
+    Private _codPostalEnvio As String
     Public Property codPostalEnvio As String
         Get
             Return _codPostalEnvio
         End Get
         Set(value As String)
             SetProperty(_codPostalEnvio, value)
-            OnPropertyChanged("codPostalEnvio")
         End Set
     End Property
 
-    Private Property _telefonoEnvio As String
+    Private _telefonoEnvio As String
     Public Property telefonoEnvio As String
         Get
             Return _telefonoEnvio
         End Get
         Set(value As String)
             SetProperty(_telefonoEnvio, value)
-            OnPropertyChanged("telefonoEnvio")
         End Set
     End Property
 
-    Private Property _movilEnvio As String
+    Private _movilEnvio As String
     Public Property movilEnvio As String
         Get
             Return _movilEnvio
         End Get
         Set(value As String)
             SetProperty(_movilEnvio, value)
-            OnPropertyChanged("movilEnvio")
         End Set
     End Property
 
-    Private Property _correoEnvio As String
+    Private _correoEnvio As String
     Public Property correoEnvio As String
         Get
             Return _correoEnvio
         End Get
         Set(value As String)
             SetProperty(_correoEnvio, value)
-            OnPropertyChanged("correoEnvio")
         End Set
     End Property
 
-    Private Property _observacionesEnvio As String
+    Private _observacionesEnvio As String
     Public Property observacionesEnvio As String
         Get
             Return _observacionesEnvio
         End Get
         Set(value As String)
             SetProperty(_observacionesEnvio, value)
-            OnPropertyChanged("observacionesEnvio")
         End Set
     End Property
 
-    Private Property _attEnvio As String
+    Private _attEnvio As String
     Public Property attEnvio As String
         Get
             Return _attEnvio
         End Get
         Set(value As String)
             SetProperty(_attEnvio, value)
-            OnPropertyChanged("attEnvio")
         End Set
     End Property
 
-    Private Property _fechaEnvio As Date
+    Private _fechaEnvio As Date
     Public Property fechaEnvio As Date
         Get
             Return _fechaEnvio
         End Get
         Set(value As Date)
             SetProperty(_fechaEnvio, value)
-            OnPropertyChanged("fechaEnvio")
         End Set
     End Property
 
-    Private Property _envioActual As EnviosAgencia
+    Private _envioActual As EnviosAgencia
     Public Property envioActual As EnviosAgencia
         Get
             Return _envioActual
         End Get
         Set(value As EnviosAgencia)
             SetProperty(_envioActual, value)
-            OnPropertyChanged("envioActual")
             mensajeError = ""
         End Set
     End Property
 
-    Private Property _listaEnvios As ObservableCollection(Of EnviosAgencia)
+    Private _listaEnvios As ObservableCollection(Of EnviosAgencia)
     Public Property listaEnvios As ObservableCollection(Of EnviosAgencia)
         Get
             Return _listaEnvios
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaEnvios, value)
-            OnPropertyChanged("listaEnvios")
         End Set
     End Property
 
-    Private Property _fechaFiltro As Date
+    Private _fechaFiltro As Date
     Public Property fechaFiltro As Date
         Get
             Return _fechaFiltro
         End Get
         Set(value As Date)
             SetProperty(_fechaFiltro, value)
-            OnPropertyChanged("fechaFiltro")
             'actualizamos listaPedidos
             listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
         End Set
     End Property
 
-    Private Property _clienteFiltro As String
+    Private _clienteFiltro As String
     Public Property clienteFiltro As String
         Get
             Return _clienteFiltro
         End Get
         Set(value As String)
             SetProperty(_clienteFiltro, value)
-            OnPropertyChanged("clienteFiltro")
             listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Cliente = clienteFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
         End Set
     End Property
@@ -527,7 +498,7 @@ Public Class AgenciasViewModel
     '    End Set
     'End Property
 
-    Private Property _numeroPedido As Integer
+    Private _numeroPedido As Integer
     Public Property numeroPedido As Integer
         Get
             Return _numeroPedido
@@ -538,7 +509,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Property _numeroMultiusuario As Integer
+    Private _numeroMultiusuario As Integer
     Public Property numeroMultiusuario As Integer
         Get
             Return _numeroMultiusuario
@@ -549,7 +520,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Property _multiusuario As MultiUsuarios
+    Private _multiusuario As MultiUsuarios
     Public Property multiusuario As MultiUsuarios
         Get
             Return _multiusuario
@@ -559,71 +530,56 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Property _PestañaSeleccionada As TabItem
+    Private _PestañaSeleccionada As TabItem
     Public Property PestañaSeleccionada As TabItem
         Get
             Return _PestañaSeleccionada
         End Get
         Set(value As TabItem)
             SetProperty(_PestañaSeleccionada, value)
-            OnPropertyChanged("PestañaSeleccionada")
             If PestañaSeleccionada.Name = "tabReembolsos" And IsNothing(listaReembolsos) Then
                 listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
             End If
         End Set
     End Property
 
-    Private Property _listaEmpresas As ObservableCollection(Of Empresas)
+    Private _listaEmpresas As ObservableCollection(Of Empresas)
     Public Property listaEmpresas As ObservableCollection(Of Empresas)
         Get
             Return _listaEmpresas
         End Get
         Set(value As ObservableCollection(Of Empresas))
             SetProperty(_listaEmpresas, value)
-            OnPropertyChanged("listaEmpresas")
         End Set
     End Property
 
-    Private Property _listaEnviosPedido As ObservableCollection(Of EnviosAgencia)
+    Private _listaEnviosPedido As ObservableCollection(Of EnviosAgencia)
     Public Property listaEnviosPedido As ObservableCollection(Of EnviosAgencia)
         Get
             Return _listaEnviosPedido
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaEnviosPedido, value)
-            OnPropertyChanged("listaEnviosPedido")
         End Set
     End Property
 
-    Private Property _listaEnviosTramitados As ObservableCollection(Of EnviosAgencia)
+    Private _listaEnviosTramitados As ObservableCollection(Of EnviosAgencia)
     Public Property listaEnviosTramitados As ObservableCollection(Of EnviosAgencia)
         Get
             Return _listaEnviosTramitados
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaEnviosTramitados, value)
-            OnPropertyChanged("listaEnviosTramitados")
         End Set
     End Property
 
-    'Private Property _XMLdeEstado As XDocument
-    'Public Property XMLdeEstado As XDocument
-    '    Get
-    '        Return _XMLdeEstado
-    '    End Get
-    '    Set(value As XDocument)
-    '        SetProperty(_XMLdeEstado, value)
-    '    End Set
-    'End Property
-
-    Private Property _XMLdeEstado As XDocument
+    Private _XMLdeEstado As XDocument
     Public Property XMLdeEstado As XDocument
         Get
             Return _XMLdeEstado
         End Get
         Set(value As XDocument)
             SetProperty(_XMLdeEstado, value)
-            OnPropertyChanged("XMLdeEstado")
         End Set
     End Property
 
@@ -647,60 +603,55 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Property _estadoEnvioCargado As estadoEnvio
+    Private _estadoEnvioCargado As estadoEnvio
     Public Property estadoEnvioCargado As estadoEnvio
         Get
             Return _estadoEnvioCargado
         End Get
         Set(value As estadoEnvio)
             SetProperty(_estadoEnvioCargado, value)
-            OnPropertyChanged("estadoEnvioCargado")
         End Set
     End Property
 
-    Private Property _listaReembolsos As ObservableCollection(Of EnviosAgencia)
+    Private _listaReembolsos As ObservableCollection(Of EnviosAgencia)
     Public Property listaReembolsos As ObservableCollection(Of EnviosAgencia)
         Get
             Return _listaReembolsos
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaReembolsos, value)
-            OnPropertyChanged("listaReembolsos")
             OnPropertyChanged("sumaReembolsos")
         End Set
     End Property
 
-    Private Property _listaReembolsosSeleccionados As ObservableCollection(Of EnviosAgencia)
+    Private _listaReembolsosSeleccionados As ObservableCollection(Of EnviosAgencia)
     Public Property listaReembolsosSeleccionados As ObservableCollection(Of EnviosAgencia)
         Get
             Return _listaReembolsosSeleccionados
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaReembolsosSeleccionados, value)
-            OnPropertyChanged("listaReembolsosSeleccionados")
             OnPropertyChanged("sumaSeleccionadas")
         End Set
     End Property
 
-    Private Property _lineaReembolsoSeleccionado As EnviosAgencia
+    Private _lineaReembolsoSeleccionado As EnviosAgencia
     Public Property lineaReembolsoSeleccionado As EnviosAgencia
         Get
             Return _lineaReembolsoSeleccionado
         End Get
         Set(value As EnviosAgencia)
             SetProperty(_lineaReembolsoSeleccionado, value)
-            OnPropertyChanged("lineaReembolsoSeleccionado")
         End Set
     End Property
 
-    Private Property _numClienteContabilizar As String
+    Private _numClienteContabilizar As String
     Public Property numClienteContabilizar As String
         Get
             Return _numClienteContabilizar
         End Get
         Set(value As String)
             SetProperty(_numClienteContabilizar, value)
-            OnPropertyChanged("numClienteContabilizar")
         End Set
     End Property
 
@@ -727,7 +678,11 @@ Public Class AgenciasViewModel
 
     Public ReadOnly Property sumaContabilidad As Double
         Get
-            Return Aggregate c In DbContext.Contabilidad Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cuenta = agenciaSeleccionada.CuentaReembolsos Into Sum(c.Debe - c.Haber)
+            If Not IsNothing(agenciaSeleccionada) Then
+                Return Aggregate c In DbContext.Contabilidad Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cuenta = agenciaSeleccionada.CuentaReembolsos Into Sum(c.Debe - c.Haber)
+            Else
+                Return 0
+            End If
         End Get
     End Property
 

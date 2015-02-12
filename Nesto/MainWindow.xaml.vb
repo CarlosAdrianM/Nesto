@@ -9,7 +9,7 @@ Imports Nesto.ViewModels
 
 Class MainWindow
 
-    Private Property _fechaInformeInicial As Date
+    Private _fechaInformeInicial As Date = Today
     Public Property fechaInformeInicial As Date
         Get
             Return _fechaInformeInicial
@@ -19,7 +19,7 @@ Class MainWindow
         End Set
     End Property
 
-    Private Property _fechaInformeFinal As Date
+    Private _fechaInformeFinal As Date = Today
     Public Property fechaInformeFinal As Date
         Get
             Return _fechaInformeFinal
@@ -28,6 +28,8 @@ Class MainWindow
             _fechaInformeFinal = value
         End Set
     End Property
+
+
 
 
 
@@ -231,7 +233,8 @@ Class MainWindow
             Case "Anterior"
                 GenerarInformeVentasGrupo(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0), True)
             Case Else
-                MsgBox("Parte del programa no implementada aún")
+                'MsgBox("Parte del programa no implementada aún")
+                GenerarInformeVentasGrupo(fechaInformeInicial, fechaInformeFinal, True)
         End Select
     End Sub
     Private Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SóloFacturas As Boolean)

@@ -95,10 +95,32 @@ Public Class MainViewModel
         End Set
     End Property
 
+    Public ReadOnly Property mostrarFechas As Windows.Visibility
+        Get
+            If opcionesFechas = "Personalizar" Then
+                Return Windows.Visibility.Visible
+            Else
+                Return Windows.Visibility.Hidden
+            End If
+        End Get
+    End Property
+
+    Private _opcionesFechas As String = "Actual"
+    Public Property opcionesFechas As String
+        Get
+            Return _opcionesFechas
+        End Get
+        Set(value As String)
+            _opcionesFechas = value
+            OnPropertyChanged("mostrarFechas")
+        End Set
+    End Property
+
     Public Sub New()
         'Me._RatiosDeuda = RatioDeuda.CargarRatiosDeuda
         Me._RatiosVenta = RatioVenta.CargarRatiosVenta
         Me._Vendedor = MainModel.Vendedor.CargarVendedor
+        'opcionesFechas = "Microsoft.Windows.Controls.Ribbon.RibbonGalleryItem: Personalizar"
     End Sub
 
     Private _Vendedor As String

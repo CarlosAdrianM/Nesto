@@ -138,13 +138,13 @@
 
                 </ribbon:RibbonGroup>
                 
-                <ribbon:RibbonGroup x:Name="grpFechas">
-                    <ribbon:RibbonComboBox Name="cmbOpciones" VerticalAlignment="Center" HorizontalAlignment="Center">
-                        <ribbon:RibbonGallery SelectedValue="Actual"
-                              SelectedValuePath="Content"
+                <ribbon:RibbonGroup x:Name="grpFechas" Header="Fechas">
+                    <StackPanel>
+                    <ribbon:RibbonComboBox Name="cmbOpciones" VerticalAlignment="Top" HorizontalAlignment="Stretch">
+                        <ribbon:RibbonGallery SelectedValue="{Binding opcionesFechas}" SelectedValuePath="Content"
                               MaxColumnCount="1">
                             <ribbon:RibbonGalleryCategory>
-                                <ribbon:RibbonGalleryItem Content="Actual" />
+                                <ribbon:RibbonGalleryItem Content="Actual"/>
                                 <ribbon:RibbonGalleryItem Content="Anterior" />
                                 <ribbon:RibbonGalleryItem Content="Personalizar"/>
                             </ribbon:RibbonGalleryCategory>
@@ -152,6 +152,11 @@
                     </ribbon:RibbonComboBox>
                     <!--ribbon:RibbonTextBox></>
                     <ribbon:RibbonTextBox></ribbon:RibbonTextBox-->
+                    <StackPanel Visibility="{Binding mostrarFechas}">
+                        <DatePicker Text="{Binding ElementName=RibbonWindow, Path=fechaInformeInicial, Mode=TwoWay}"></DatePicker>
+                        <DatePicker Text="{Binding ElementName=RibbonWindow, Path=fechaInformeFinal, Mode=TwoWay}"></DatePicker>
+                    </StackPanel>
+                    </StackPanel>
                 </ribbon:RibbonGroup>
 
             </ribbon:RibbonTab>
