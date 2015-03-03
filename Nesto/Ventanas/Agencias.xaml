@@ -46,7 +46,7 @@
                     </StackPanel>
                 </StackPanel>
             </Border>
-        </HierarchicalDataTemplate>        
+        </HierarchicalDataTemplate>
     </Window.Resources>
 
 
@@ -137,7 +137,7 @@
                         <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Insertar Envío" Command = "{Binding cmdInsertar}"/-->
                         <TextBox Grid.Column="6" Grid.RowSpan="8" Text="{Binding Path=observacionesEnvio}" Style="{StaticResource campoComentarios}" />
                     </Grid>
-                    <DockPanel Grid.Row="1">
+                    <Grid Grid.Row="1">
                         <DataGrid ItemsSource="{Binding listaEnviosPedido}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
@@ -159,12 +159,24 @@
                                 </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
-                    </DockPanel>
-                    <DockPanel Grid.Row="2">
-                        <TreeView Name="treeView" ItemsSource="{Binding estadoEnvioCargado.listaExpediciones,  Mode=TwoWay}" ItemTemplate="{StaticResource templateExp}">
-                            
-                        </TreeView>
-                    </DockPanel>
+                    </Grid>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="9*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="10*"/>
+                        </Grid.ColumnDefinitions>
+                        <TreeView Grid.Column="0" Name="treeView" ItemsSource="{Binding estadoEnvioCargado.listaExpediciones, Mode=TwoWay}" ItemTemplate="{StaticResource templateExp}"/>
+                        <DockPanel Grid.Column="1">
+                        <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding estadoEnvioCargado.listaDigitalizaciones}" SelectedItem="{Binding digitalizacionActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Tipo" Binding="{Binding tipo}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <Button DockPanel.Dock="Bottom" Content="Descargar" Command="{Binding cmdDescargarImagen}"/>
+                        </DockPanel>
+                        <Image Grid.Column="2" Source="{Binding digitalizacionActual.urlDigitalizacion}" />
+                    </Grid>
                 </Grid>
             </TabItem>
             <TabItem Name="tabCurso" Header="En Curso">

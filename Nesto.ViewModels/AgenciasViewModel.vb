@@ -13,6 +13,8 @@ Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.PubSubEvents
+Imports System.Text
+Imports Microsoft.Win32
 
 
 Public Class AgenciasViewModel
@@ -45,6 +47,16 @@ Public Class AgenciasViewModel
             Return
         End If
         DbContext = New NestoEntities
+
+        ' Prism
+        cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
+        cmdDobleClic = New DelegateCommand(Of Object)(AddressOf OnDobleClic, AddressOf CanDobleClic)
+        cmdContabilizarReembolso = New DelegateCommand(Of Object)(AddressOf OnContabilizarReembolso, AddressOf CanContabilizarReembolso)
+        cmdDescargarImagen = New DelegateCommand(Of Object)(AddressOf OnDescargarImagen, AddressOf CanDescargarImagen)
+        NotificationRequest = New InteractionRequest(Of INotification)
+        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
+
+
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         empresaSeleccionada = (From e In DbContext.Empresas Where e.Número = empresaDefecto).FirstOrDefault
         listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
@@ -75,20 +87,9 @@ Public Class AgenciasViewModel
         'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
         listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
 
-        ' Prism
-        cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
-        cmdDobleClic = New DelegateCommand(Of Object)(AddressOf OnDobleClic, AddressOf CanDobleClic)
-        cmdContabilizarReembolso = New DelegateCommand(Of Object)(AddressOf OnContabilizarReembolso, AddressOf CanContabilizarReembolso)
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
+        'AddHandler Me.PropertyChanged, AddressOf Me.OnPropertyChanged
 
-        'AddHandler Me.PropertyChanged, Function(s, e)
-        '                                   Dim name = e.PropertyName
-        '                                   Return Nothing
-        '                               End Function
-
-        
 
         'XMLdeEstado = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Documents\xmlestado.xml")
         'estadoEnvioCargado = transformarXMLdeEstado(XMLdeEstado)
@@ -156,6 +157,8 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    Private agenciaEspecifica As AgenciaASM
+
     Private _agenciaSeleccionada As AgenciasTransporte
     Public Property agenciaSeleccionada As AgenciasTransporte
         Get
@@ -163,6 +166,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As AgenciasTransporte)
             SetProperty(_agenciaSeleccionada, value)
+            agenciaEspecifica = New AgenciaASM(agenciaSeleccionada)
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
         End Set
     End Property
@@ -450,7 +454,14 @@ Public Class AgenciasViewModel
         End Get
         Set(value As EnviosAgencia)
             SetProperty(_envioActual, value)
+            estadoEnvioCargado = Nothing
             mensajeError = ""
+            If Not IsNothing(cmdCargarEstado) Then
+                cmdCargarEstado.RaiseCanExecuteChanged()
+            End If
+            'Carlos 26/02/15, para que actualice la agencia si cambiamos de pedido
+            'y por lo tanto cambie la función a la que llama cada botón
+            agenciaSeleccionada = envioActual.AgenciasTransporte
         End Set
     End Property
 
@@ -560,6 +571,9 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaEnviosPedido, value)
+            If Not IsNothing(cmdCargarEstado) Then
+                cmdCargarEstado.RaiseCanExecuteChanged()
+            End If
         End Set
     End Property
 
@@ -690,6 +704,20 @@ Public Class AgenciasViewModel
         Get
             Return sumaContabilidad - sumaReembolsos
         End Get
+    End Property
+
+    Private _digitalizacionActual As digitalizacion
+    Public Property digitalizacionActual As digitalizacion
+        Get
+            Return _digitalizacionActual
+        End Get
+        Set(value As digitalizacion)
+            SetProperty(_digitalizacionActual, value)
+            OnPropertyChanged("cmdDescargarImagen")
+            If Not IsNothing(cmdDescargarImagen) Then
+                cmdDescargarImagen.RaiseCanExecuteChanged()
+            End If
+        End Set
     End Property
 
 #End Region
@@ -904,25 +932,26 @@ Public Class AgenciasViewModel
     'End Sub
 
 
-    Private _cmdCargarEstado As ICommand
-    Public Property cmdCargarEstado As ICommand
+    Private _cmdCargarEstado As DelegateCommand(Of Object)
+    Public Property cmdCargarEstado As DelegateCommand(Of Object)
         Get
             Return _cmdCargarEstado
         End Get
-        Private Set(value As ICommand)
+        Private Set(value As DelegateCommand(Of Object))
             _cmdCargarEstado = value
         End Set
     End Property
     Private Function CanCargarEstado(arg As Object) As Boolean
-        'Return envioActual IsNot Nothing
-        Return True
+        Return Not IsNothing(envioActual) AndAlso Not IsNothing(listaEnviosPedido) AndAlso listaEnviosPedido.Count > 0
+        'Return True
     End Function
     Private Sub OnCargarEstado(arg As Object)
         If IsNothing(envioActual) Then
             mensajeError = "No se puede cargar el estado porque no hay ningún envío seleccionado"
             Return
         End If
-        XMLdeEstado = cargarEstado(envioActual)
+        'XMLdeEstado = cargarEstado(envioActual)
+        XMLdeEstado = agenciaEspecifica.cargarEstado(envioActual)
         estadoEnvioCargado = transformarXMLdeEstado(XMLdeEstado)
         mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
     End Sub
@@ -972,7 +1001,7 @@ Public Class AgenciasViewModel
             End Sub
         )
 
-        If InteractionResultMessage = "KO" Or IsNothing(lineaReembolsoSeleccionado) Then
+        If InteractionResultMessage = "KO" Or IsNothing(listaReembolsosSeleccionados) Then
             Return
         End If
 
@@ -1021,12 +1050,43 @@ Public Class AgenciasViewModel
                  .Title = "Contabilizado Correctamente", _
                 .Content = "Asiento: " + asiento.ToString _
             })
+            listaReembolsosSeleccionados = Nothing
         Else
             NotificationRequest.Raise(New Notification() With { _
                 .Title = "Error al contabilizar", _
                 .Content = "¡Atención! Debe borrar las líneas del diario _Reembolso" _
             })
         End If
+    End Sub
+
+    Private _cmdDescargarImagen As DelegateCommand(Of Object)
+    Public Property cmdDescargarImagen As DelegateCommand(Of Object)
+        Get
+            Return _cmdDescargarImagen
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdDescargarImagen = value
+        End Set
+    End Property
+    Private Function CanDescargarImagen(arg As Object) As Boolean
+        Return Not IsNothing(digitalizacionActual)
+    End Function
+    Private Sub OnDescargarImagen(arg As Object)
+        Dim saveDialog As New SaveFileDialog
+
+        saveDialog.Title = "Guardar justificante de entrega"
+        saveDialog.Filter = "Imagen (*.jpg)|*.jpg"
+        saveDialog.ShowDialog()
+
+        'exit if no file selected
+        If saveDialog.FileName = "" Then
+            Exit Sub
+        End If
+
+        Dim cln As System.Net.WebClient = New System.Net.WebClient
+        cln.DownloadFile(digitalizacionActual.urlDigitalizacion, saveDialog.FileName)
+
+        mensajeError = "Guardada en " + saveDialog.FileName
     End Sub
 
 
@@ -1564,7 +1624,8 @@ Public Class AgenciasViewModel
         End If
         Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + agenciaSeleccionada.Identificador)
         If myUri.Scheme = Uri.UriSchemeHttp Then
-            Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
+            'Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
+            Dim myRequest As HttpWebRequest = CType(WebRequest.Create(myUri), HttpWebRequest)
             myRequest.Method = WebRequestMethods.Http.Get
 
             Dim myResponse As HttpWebResponse = myRequest.GetResponse()
@@ -1584,6 +1645,8 @@ Public Class AgenciasViewModel
         Dim expedicion As New expedicion
         Dim trackinglistxml As XElement
         Dim tracking As tracking
+        Dim digitalizacionesxml As XElement
+        Dim digitalizacion As digitalizacion
 
         If IsNothing(envio) Then
             Return Nothing
@@ -1602,51 +1665,81 @@ Public Class AgenciasViewModel
                 expedicion.listaTracking.Add(tracking)
                 tracking = Nothing
             Next
+
+            digitalizacionesxml = nodo.Descendants("digitalizaciones").FirstOrDefault
+            For Each dig In digitalizacionesxml.Descendants("digitalizacion")
+                digitalizacion = New digitalizacion
+                digitalizacion.tipo = dig.Descendants("tipo").FirstOrDefault.Value
+                digitalizacion.urlDigitalizacion = New Uri(dig.Descendants("imagen").FirstOrDefault.Value)
+                estado.listaDigitalizaciones.Add(digitalizacion)
+                digitalizacion = Nothing
+            Next
         Next
+        digitalizacionActual = estado.listaDigitalizaciones.LastOrDefault
         estado.listaExpediciones.Add(expedicion)
+        cmdDescargarImagen.RaiseCanExecuteChanged()
         Return estado
     End Function
 
 #End Region
+
+#Region "Interfaces"
+    Public Interface IAgencia
+        Function cargarEstado(envio As EnviosAgencia) As XDocument
+    End Interface
+#End Region
+
 
 #Region "ClasesAuxiliares"
 
     Public Class estadoEnvio
         Inherits BindableBase
 
-        Private Property _listaExpediciones As New ObservableCollection(Of expedicion)
+        Private _listaExpediciones As New ObservableCollection(Of expedicion)
         Public Property listaExpediciones As ObservableCollection(Of expedicion)
             Get
                 Return _listaExpediciones
             End Get
             Set(value As ObservableCollection(Of expedicion))
                 SetProperty(_listaExpediciones, value)
-                OnPropertyChanged("listaExpediciones")
+                'OnPropertyChanged("listaExpediciones")
             End Set
         End Property
+
+        Private _listaDigitalizaciones As New ObservableCollection(Of digitalizacion)
+        Public Property listaDigitalizaciones As ObservableCollection(Of digitalizacion)
+            Get
+                Return _listaDigitalizaciones
+            End Get
+            Set(value As ObservableCollection(Of digitalizacion))
+                SetProperty(_listaDigitalizaciones, value)
+                'OnPropertyChanged("listaDigitalizaciones")
+            End Set
+        End Property
+
     End Class
 
     Public Class tracking
         Inherits BindableBase
-        Private Property _estadoTracking As String
+        Private _estadoTracking As String
         Public Property estadoTracking As String
             Get
                 Return _estadoTracking
             End Get
             Set(value As String)
                 SetProperty(_estadoTracking, value)
-                OnPropertyChanged("estadoTracking")
+                'OnPropertyChanged("estadoTracking")
             End Set
         End Property
 
-        Private Property _fechaTracking As DateTime
+        Private _fechaTracking As DateTime
         Public Property fechaTracking As DateTime
             Get
                 Return _fechaTracking
             End Get
             Set(value As DateTime)
                 SetProperty(_fechaTracking, value)
-                OnPropertyChanged("fechaTracking")
+                'OnPropertyChanged("fechaTracking")
             End Set
         End Property
 
@@ -1654,77 +1747,145 @@ Public Class AgenciasViewModel
     End Class
 
     Public Class digitalizacion
-        Private Property _urlDigitalizacion As Uri
+        Inherits BindableBase
+
+        Private _tipo As String
+        Public Property tipo As String
+            Get
+                Return _tipo
+            End Get
+            Set(value As String)
+                SetProperty(_tipo, value)
+            End Set
+        End Property
+
+        Private _urlDigitalizacion As Uri
         Public Property urlDigitalizacion As Uri
             Get
                 Return _urlDigitalizacion
             End Get
             Set(value As Uri)
-                _urlDigitalizacion = value
+                SetProperty(_urlDigitalizacion, value)
             End Set
         End Property
     End Class
 
     Public Class expedicion
         Inherits BindableBase
-        Private Property _numeroExpedicion As String
+        Private _numeroExpedicion As String
         Public Property numeroExpedicion As String
             Get
                 Return _numeroExpedicion
             End Get
             Set(value As String)
                 SetProperty(_numeroExpedicion, value)
-                OnPropertyChanged("numeroExpedicion")
+                'OnPropertyChanged("numeroExpedicion")
             End Set
         End Property
 
-        Private Property _fecha As Date
+        Private _fecha As Date
         Public Property fecha As Date
             Get
                 Return _fecha
             End Get
             Set(value As Date)
                 SetProperty(_fecha, value)
-                OnPropertyChanged("fecha")
+                'OnPropertyChanged("fecha")
             End Set
         End Property
 
-        Private Property _fechaEstimada As Date
+        Private _fechaEstimada As Date
         Public Property fechaEstimada As Date
             Get
                 Return _fechaEstimada
             End Get
             Set(value As Date)
                 SetProperty(_fechaEstimada, value)
-                OnPropertyChanged("fechaEstimada")
+                'OnPropertyChanged("fechaEstimada")
             End Set
         End Property
 
-        Private Property _listaTracking As New ObservableCollection(Of tracking)
+        Private _listaTracking As New ObservableCollection(Of tracking)
         Public Property listaTracking As ObservableCollection(Of tracking)
             Get
                 Return _listaTracking
             End Get
             Set(value As ObservableCollection(Of tracking))
                 SetProperty(_listaTracking, value)
-                OnPropertyChanged("listaTracking")
-            End Set
-        End Property
-
-        Private Property _listaDigitalizaciones As New ObservableCollection(Of digitalizacion)
-        Public Property listaDigitalizaciones As ObservableCollection(Of digitalizacion)
-            Get
-                Return _listaDigitalizaciones
-            End Get
-            Set(value As ObservableCollection(Of digitalizacion))
-                SetProperty(_listaDigitalizaciones, value)
-                OnPropertyChanged("listaDigitalizaciones")
+                'OnPropertyChanged("listaTracking")
             End Set
         End Property
 
     End Class
 
+    ' The RequestState class passes data across async calls.
+    'Public Class RequestState
+
+    '    Public RequestData As New StringBuilder("")
+    '    Public BufferRead(1024) As Byte
+    '    Public Request As HttpWebRequest
+    '    Public ResponseStream As Stream
+    '    ' Create Decoder for appropriate encoding type.
+    '    Public StreamDecode As Decoder = Encoding.UTF8.GetDecoder()
+
+    '    Public Sub New()
+    '        Request = Nothing
+    '        ResponseStream = Nothing
+    '    End Sub
+    'End Class
+
+
+    Private Class AgenciaASM
+        Implements IAgencia
+
+        ' Propiedades de Prism
+        Private _NotificationRequest As InteractionRequest(Of INotification)
+        Public Property NotificationRequest As InteractionRequest(Of INotification)
+            Get
+                Return _NotificationRequest
+            End Get
+            Private Set(value As InteractionRequest(Of INotification))
+                _NotificationRequest = value
+            End Set
+        End Property
+
+        Private agenciaSeleccionada As AgenciasTransporte
+
+        Public Sub New(agencia As AgenciasTransporte)
+            agenciaSeleccionada = agencia
+        End Sub
+
+        ' Funciones
+        Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
+            If IsNothing(envio) Then
+                NotificationRequest.Raise(New Notification() With { _
+                     .Title = "Error", _
+                    .Content = "No hay ningún envío seleccionado, no se puede cargar el estado" _
+                })
+                Return Nothing
+            End If
+            Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + agenciaSeleccionada.Identificador)
+            If myUri.Scheme = Uri.UriSchemeHttp Then
+                'Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
+                Dim myRequest As HttpWebRequest = CType(WebRequest.Create(myUri), HttpWebRequest)
+                myRequest.Method = WebRequestMethods.Http.Get
+
+                Dim myResponse As HttpWebResponse = myRequest.GetResponse()
+                If myResponse.StatusCode = HttpStatusCode.OK Then
+
+                    Dim reader As New StreamReader(myResponse.GetResponseStream())
+                    Dim responseData As String = reader.ReadToEnd()
+                    myResponse.Close()
+                    Return XDocument.Parse(responseData)
+                End If
+            End If
+            Return Nothing
+        End Function
+
+    End Class
+
 #End Region
+
 
 End Class
 

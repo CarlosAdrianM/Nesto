@@ -43,7 +43,7 @@ Public Class RemesasViewModel
         listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
         impagadoActual = listaImpagados.First
         'usuarioTareas = mainModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto")
-        usuarioTareas = "aidarubio@nuevavision.es"
+        usuarioTareas = mainModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto")
         listaTiposRemesa = New ObservableCollection(Of tipoRemesa)
         tipoRemesaActual = New tipoRemesa("B2B", "Profesionales (B2B)")
         listaTiposRemesa.Add(tipoRemesaActual)
@@ -289,6 +289,7 @@ Public Class RemesasViewModel
         elegirFichero.Filter = "xml files (*.xml)|*.xml|All files (*.*)|*.*"
         elegirFichero.FilterIndex = 1
         elegirFichero.RestoreDirectory = True
+        elegirFichero.InitialDirectory = mainModel.leerParametro(empresaActual, "PathDefectoImpagados")
 
         If elegirFichero.ShowDialog() Then
             Try
