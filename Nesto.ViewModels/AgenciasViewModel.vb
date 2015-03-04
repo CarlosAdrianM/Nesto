@@ -21,7 +21,7 @@ Public Class AgenciasViewModel
     Inherits BindableBase
 
     Const CARGO_AGENCIA = 26
-    Const COD_PAIS As String = "34"
+    Public Const COD_PAIS As String = "34"
     Const ESTADO_INICIAL_ENVIO = 0
     Const ESTADO_TRAMITADO_ENVIO = 1
 
@@ -30,17 +30,7 @@ Public Class AgenciasViewModel
     Dim empresaDefecto As String = String.Format("{0,-3}", mainModel.leerParametro("1", "EmpresaPorDefecto"))
 
 
-    Public Structure tipoIdDescripcion
-        Public Sub New( _
-       ByVal _id As Byte,
-       ByVal _descripcion As String
-       )
-            id = _id
-            descripcion = _descripcion
-        End Sub
-        Property id As Byte
-        Property descripcion As String
-    End Structure
+
 
     Public Sub New()
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
@@ -61,22 +51,22 @@ Public Class AgenciasViewModel
         empresaSeleccionada = (From e In DbContext.Empresas Where e.Número = empresaDefecto).FirstOrDefault
         listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
         agenciaSeleccionada = listaAgencias.FirstOrDefault
-        listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
-        retornoActual = New tipoIdDescripcion(0, "Sin Retorno")
-        listaTiposRetorno.Add(retornoActual)
-        listaTiposRetorno.Add(New tipoIdDescripcion(1, "Con Retorno"))
-        listaTiposRetorno.Add(New tipoIdDescripcion(2, "Retorno Opcional"))
+        'listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
+        'retornoActual = New tipoIdDescripcion(0, "Sin Retorno")
+        'listaTiposRetorno.Add(retornoActual)
+        'listaTiposRetorno.Add(New tipoIdDescripcion(1, "Con Retorno"))
+        'listaTiposRetorno.Add(New tipoIdDescripcion(2, "Retorno Opcional"))
         bultos = 1
-        listaServicios = New ObservableCollection(Of tipoIdDescripcion)
-        servicioActual = New tipoIdDescripcion(1, "Courier")
-        listaServicios.Add(servicioActual)
-        listaServicios.Add(New tipoIdDescripcion(37, "Economy"))
-        listaServicios.Add(New tipoIdDescripcion(54, "EuroEstándar"))
-        listaHorarios = New ObservableCollection(Of tipoIdDescripcion)
-        horarioActual = New tipoIdDescripcion(3, "ASM24")
-        listaHorarios.Add(horarioActual)
-        listaHorarios.Add(New tipoIdDescripcion(2, "ASM14"))
-        listaHorarios.Add(New tipoIdDescripcion(18, "Economy"))
+        'listaServicios = New ObservableCollection(Of tipoIdDescripcion)
+        'servicioActual = New tipoIdDescripcion(1, "Courier")
+        'listaServicios.Add(servicioActual)
+        'listaServicios.Add(New tipoIdDescripcion(37, "Economy"))
+        'listaServicios.Add(New tipoIdDescripcion(54, "EuroEstándar"))
+        'listaHorarios = New ObservableCollection(Of tipoIdDescripcion)
+        'horarioActual = New tipoIdDescripcion(3, "ASM24")
+        'listaHorarios.Add(horarioActual)
+        'listaHorarios.Add(New tipoIdDescripcion(2, "ASM14"))
+        'listaHorarios.Add(New tipoIdDescripcion(18, "Economy"))
         If Not IsNothing(agenciaSeleccionada) Then
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
         End If
@@ -157,7 +147,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private agenciaEspecifica As AgenciaASM
+    Private agenciaEspecifica As AgenciaASM = New AgenciaASM(Me)
 
     Private _agenciaSeleccionada As AgenciasTransporte
     Public Property agenciaSeleccionada As AgenciasTransporte
@@ -166,7 +156,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As AgenciasTransporte)
             SetProperty(_agenciaSeleccionada, value)
-            agenciaEspecifica = New AgenciaASM(agenciaSeleccionada)
+            'agenciaEspecifica = New AgenciaASM(Me)
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
         End Set
     End Property
@@ -459,9 +449,6 @@ Public Class AgenciasViewModel
             If Not IsNothing(cmdCargarEstado) Then
                 cmdCargarEstado.RaiseCanExecuteChanged()
             End If
-            'Carlos 26/02/15, para que actualice la agencia si cambiamos de pedido
-            'y por lo tanto cambie la función a la que llama cada botón
-            agenciaSeleccionada = envioActual.AgenciasTransporte
         End Set
     End Property
 
@@ -646,6 +633,7 @@ Public Class AgenciasViewModel
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaReembolsosSeleccionados, value)
             OnPropertyChanged("sumaSeleccionadas")
+            cmdContabilizarReembolso.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -666,6 +654,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             SetProperty(_numClienteContabilizar, value)
+            cmdContabilizarReembolso.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -952,7 +941,7 @@ Public Class AgenciasViewModel
         End If
         'XMLdeEstado = cargarEstado(envioActual)
         XMLdeEstado = agenciaEspecifica.cargarEstado(envioActual)
-        estadoEnvioCargado = transformarXMLdeEstado(XMLdeEstado)
+        estadoEnvioCargado = agenciaEspecifica.transformarXMLdeEstado(XMLdeEstado)
         mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
     End Sub
 
@@ -974,22 +963,23 @@ Public Class AgenciasViewModel
             listaReembolsos.Remove(lineaReembolsoSeleccionado)
             OnPropertyChanged("sumaSeleccionadas")
             OnPropertyChanged("sumaReembolsos")
+            cmdContabilizarReembolso.RaiseCanExecuteChanged()
         Else
             mensajeError = "No hay ninguna línea seleccionada"
         End If
     End Sub
 
-    Private _cmdContabilizarReembolso As ICommand
-    Public Property cmdContabilizarReembolso As ICommand
+    Private _cmdContabilizarReembolso As DelegateCommand(Of Object)
+    Public Property cmdContabilizarReembolso As DelegateCommand(Of Object)
         Get
             Return _cmdContabilizarReembolso
         End Get
-        Private Set(value As ICommand)
+        Private Set(value As DelegateCommand(Of Object))
             _cmdContabilizarReembolso = value
         End Set
     End Property
     Private Function CanContabilizarReembolso(arg As Object) As Boolean
-        Return Not IsNothing(listaReembolsosSeleccionados) 'AndAlso listaReembolsosSeleccionados.Count > 0
+        Return Not IsNothing(numClienteContabilizar) AndAlso numClienteContabilizar.Length > 0 AndAlso Not IsNothing(listaReembolsosSeleccionados) AndAlso listaReembolsosSeleccionados.Count > 0
     End Function
     Private Sub OnContabilizarReembolso(arg As Object)
         Me.ConfirmationRequest.Raise(
@@ -1035,11 +1025,12 @@ Public Class AgenciasViewModel
                 .Nº_Documento = agenciaSeleccionada.Nombre,
                 .Delegación = "ALG",
                 .FormaVenta = "VAR",
-                .FormaPago = "CHQ" _
+                .FormaPago = "CHQ",
+                .Vendedor = "NV" _
             })
         DbContext.SaveChanges()
 
-        Dim asiento As Double
+        Dim asiento As Integer
         asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_Reembolso")
         If asiento > 0 Then
             For Each linea In listaReembolsosSeleccionados
@@ -1130,7 +1121,7 @@ Public Class AgenciasViewModel
 #Region "Funciones de Ayuda"
 
     Public Sub llamadaWebService()
-        XMLdeSalida = construirXMLdeSalida()
+        XMLdeSalida = agenciaEspecifica.construirXMLdeSalida()
         'If IsNothing(envioActual.Agencia) Then
         '    resultadoWebservice = "No se pudo llamar al webservice (no hay ninguna agencia seleccionada)."
         'Else
@@ -1186,7 +1177,7 @@ Public Class AgenciasViewModel
             If elementoXML.Element("Envio").Element("Errores").HasElements Then
                 mensajeError = elementoXML.Element("Envio").Element("Errores").Element("Error").Value
             Else
-                mensajeError = calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
+                mensajeError = agenciaEspecifica.calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
             End If
 
         Else
@@ -1206,78 +1197,6 @@ Public Class AgenciasViewModel
 
     End Sub
 
-    Public Function construirXMLdeSalida() As XDocument
-        Dim xml As New XDocument
-        'xml = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Desktop\ASM\webservice\XML-IN-B.xml")
-        'xml.Descendants("Servicios").FirstOrDefault().Add(New XElement("Servicios", New XAttribute("uidcliente", ""), New XAttribute("xmlns", "http://www.asmred.com/")))
-
-        ' Si no hay envioActual devolvemos el xml vacío
-        If IsNothing(envioActual) Then
-            Return xml
-        End If
-
-        'Añadimos el nodo raíz (Servicios)
-        xml.AddFirst(
-            <Servicios uidcliente=<%= envioActual.AgenciasTransporte.Identificador %> xmlns="http://www.asmred.com/">
-                <Envio codbarras=<%= envioActual.CodigoBarras %>>
-                    <Fecha><%= envioActual.Fecha.ToShortDateString %></Fecha>
-                    <Portes>P</Portes>
-                    <Servicio><%= envioActual.Servicio %></Servicio>
-                    <Horario><%= envioActual.Horario %></Horario>
-                    <Bultos><%= envioActual.Bultos %></Bultos>
-                    <Peso>1</Peso>
-                    <Retorno><%= envioActual.Retorno %></Retorno>
-                    <Pod>N</Pod>
-                    <Remite>
-                        <Plaza></Plaza>
-                        <Nombre><%= envioActual.Empresas.Nombre.Trim %></Nombre>
-                        <Direccion><%= envioActual.Empresas.Dirección.Trim %></Direccion>
-                        <Poblacion><%= envioActual.Empresas.Población.Trim %></Poblacion>
-                        <Provincia><%= envioActual.Empresas.Provincia.Trim %></Provincia>
-                        <Pais>34</Pais>
-                        <CP><%= envioActual.Empresas.CodPostal.Trim %></CP>
-                        <Telefono><%= envioActual.Empresas.Teléfono.Trim %></Telefono>
-                        <Movil></Movil>
-                        <Email><%= envioActual.Empresas.Email.Trim %></Email>
-                        <Observaciones></Observaciones>
-                    </Remite>
-                    <Destinatario>
-                        <Codigo></Codigo>
-                        <Plaza></Plaza>
-                        <Nombre><%= envioActual.Nombre.Normalize %></Nombre>
-                        <Direccion><%= envioActual.Direccion %></Direccion>
-                        <Poblacion><%= envioActual.Poblacion %></Poblacion>
-                        <Provincia><%= envioActual.Provincia %></Provincia>
-                        <Pais><%= COD_PAIS %></Pais>
-                        <CP><%= envioActual.CodPostal %></CP>
-                        <Telefono><%= envioActual.Telefono %></Telefono>
-                        <Movil><%= envioActual.Movil %></Movil>
-                        <Email><%= envioActual.Email %></Email>
-                        <Observaciones><%= envioActual.Observaciones %></Observaciones>
-                        <ATT><%= envioActual.Atencion %></ATT>
-                    </Destinatario>
-                    <Referencias><!-- cualquier numero, siempre distinto a cada prueba-->
-                        <Referencia tipo="C"><%= envioActual.Cliente.Trim %>/<%= envioActual.Pedido %></Referencia>
-                    </Referencias>
-                    <Importes>
-                        <Debidos>0</Debidos>
-                        <Reembolso><%= envioActual.Reembolso %></Reembolso>
-                    </Importes>
-                    <Seguro tipo="">
-                        <Descripcion></Descripcion>
-                        <Importe></Importe>
-                    </Seguro>
-                    <DevuelveAdicionales>
-                        <PlazaDestino/>
-                    </DevuelveAdicionales>
-                </Envio>
-            </Servicios>
-        )
-
-        'xml.Root.Attribute("xmlns").Value = "http://www.asmred.com/"
-        'Debug.Print(xml.ToString)
-        Return xml
-    End Function
 
     Public Function telefonoUnico(listaTelefonos As String, Optional tipo As String = "F") As String
         ' tipo = F -> teléfono fijo
@@ -1359,11 +1278,7 @@ Public Class AgenciasViewModel
             (Aggregate l In lineas _
             Select l.Total Into Sum()) _
             , 2)
-        'Return Math.Round(
-        '    (Aggregate l In DbContext.LinPedidoVta _
-        '    Where l.Número = pedidoSeleccionado.Número And l.Picking <> 0 _
-        '    Select l.Total Into Sum()) _
-        '    , 2)
+
     End Function
 
     Public Function calcularDigitoControl(ByVal number As String) As Integer
@@ -1408,60 +1323,6 @@ Public Class AgenciasViewModel
 
     End Function
 
-    Public Function calcularCodigoBarras() As String
-        Return agenciaSeleccionada.PrefijoCodigoBarras.ToString + envioActual.Numero.ToString("D7")
-    End Function
-
-    Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
-        'Comenzamos la llamada
-        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
-             "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " & _
-              "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " & _
-              "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" & _
-              "<soap:Body>" & _
-                    "<GetPlazaXCP xmlns=""http://www.asmred.com/"">" & _
-                        "<codPais>" + COD_PAIS + "</codPais>" & _
-                        "<cp>" + codPostal + "</cp>" & _
-                    "</GetPlazaXCP>" & _
-                "</soap:Body>" & _
-             "</soap:Envelope>"
-
-        Dim req As HttpWebRequest = WebRequest.Create("http://www.asmred.com/WebSrvs/b2b.asmx?op=GetPlazaXCP")
-        req.Headers.Add("SOAPAction", """http://www.asmred.com/GetPlazaXCP""")
-        req.ContentType = "text/xml; charset=""utf-8"""
-        req.Accept = "text/xml"
-        req.Method = "POST"
-
-        Using stm As Stream = req.GetRequestStream()
-            Using stmw As StreamWriter = New StreamWriter(stm)
-                stmw.Write(soap)
-            End Using
-        End Using
-
-        Dim response As WebResponse = req.GetResponse()
-        Dim responseStream As New StreamReader(response.GetResponseStream())
-        soap = responseStream.ReadToEnd
-
-        Dim respuestaXML As XDocument
-        respuestaXML = XDocument.Parse(soap)
-
-        Dim elementoXML As XElement
-        Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
-        elementoXML = respuestaXML.Descendants(Xns + "GetPlazaXCPResult").First().FirstNode
-        respuestaXML = New XDocument
-        respuestaXML.AddFirst(elementoXML)
-
-        'Debug.Print(respuestaXML.ToString)
-        If Not IsNothing(elementoXML.Element("Nemonico")) Then
-            nemonico = elementoXML.Element("Nemonico").Value
-            nombrePlaza = elementoXML.Element("Nombre").Value
-            telefonoPlaza = elementoXML.Element("Telefono").Value
-            telefonoPlaza = Regex.Replace(telefonoPlaza, "([^0-9])", "")
-            'telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
-            emailPlaza = elementoXML.Element("Mail").Value
-        End If
-    End Sub
-
     Public Sub insertarRegistro()
         envioActual = New EnviosAgencia
         With envioActual
@@ -1488,48 +1349,15 @@ Public Class AgenciasViewModel
             .Reembolso = reembolso
             '.CodigoBarras = calcularCodigoBarras()
             .Vendedor = pedidoSeleccionado.Vendedor
-            calcularPlaza(codPostalEnvio, .Nemonico, .NombrePlaza, .TelefonoPlaza, .EmailPlaza)
+            agenciaEspecifica.calcularPlaza(codPostalEnvio, .Nemonico, .NombrePlaza, .TelefonoPlaza, .EmailPlaza)
         End With
 
         DbContext.AddToEnviosAgencia(envioActual)
         listaEnvios.Add(envioActual)
         listaEnviosPedido.Add(envioActual)
         DbContext.SaveChanges()
-        envioActual.CodigoBarras = calcularCodigoBarras()
+        envioActual.CodigoBarras = agenciaEspecifica.calcularCodigoBarras()
     End Sub
-
-    Public Function calcularMensajeError(numeroError As Integer) As String
-        Select Case numeroError
-            Case -33
-                Return "Ya existe el código de barras de la expedición"
-            Case -69
-                Return "No se pudo canalizar el envío"
-            Case -70
-                Return "Ya existe se ha enviado este pedido para esta fecha y cliente"
-            Case -108
-                Return "El nombre del remitente debe tener al menos tres caracteres"
-            Case -109
-                Return "La dirección del remitente debe tener al menos tres caracteres"
-            Case -110
-                Return "La población del remitente debe tener al menos tres caracteres"
-            Case -111
-                Return "El código postal del remitente debe tener al menos cuatro caracteres"
-            Case -111
-                Return "La referencia del cliente está duplicada"
-            Case -119
-                Return "Error no controlado por el webservice de la agencia"
-            Case -128
-                Return "El nombre del destinatario debe tener al menos tres caracteres"
-            Case -129
-                Return "La dirección del destinatario debe tener al menos tres caracteres"
-            Case -130
-                Return "La población del destinatario debe tener al menos tres caracteres"
-            Case -131
-                Return "El código postal del destinatario debe tener al menos cuatro caracteres"
-            Case Else
-                Return "El código de error " + numeroError + " no está controlado por Nesto"
-        End Select
-    End Function
 
     Public Function contabilizarReembolso(envio As EnviosAgencia)
 
@@ -1605,16 +1433,232 @@ Public Class AgenciasViewModel
         End If
     End Function
 
-    'Private Sub RaiseNotification()
-    '    Me.NotificationRequest.Raise(New Notification() With { _
-    '        .Content = "Notification Message", _
-    '        .Title = "Notification" _
-    '    }, Function(n)
-    '           InteractionResultMessage = "The user was notified."
-    '       End Function)
-    'End Sub
 
-    Public Function cargarEstado(envio As EnviosAgencia) As XDocument
+#End Region
+
+
+
+
+End Class
+
+Public Structure tipoIdDescripcion
+    Public Sub New( _
+   ByVal _id As Byte,
+   ByVal _descripcion As String
+   )
+        id = _id
+        descripcion = _descripcion
+    End Sub
+    Property id As Byte
+    Property descripcion As String
+End Structure
+
+
+#Region "ClasesAuxiliares"
+
+Public Class estadoEnvio
+    Inherits BindableBase
+
+    Private _listaExpediciones As New ObservableCollection(Of expedicion)
+    Public Property listaExpediciones As ObservableCollection(Of expedicion)
+        Get
+            Return _listaExpediciones
+        End Get
+        Set(value As ObservableCollection(Of expedicion))
+            SetProperty(_listaExpediciones, value)
+            'OnPropertyChanged("listaExpediciones")
+        End Set
+    End Property
+
+    Private _listaDigitalizaciones As New ObservableCollection(Of digitalizacion)
+    Public Property listaDigitalizaciones As ObservableCollection(Of digitalizacion)
+        Get
+            Return _listaDigitalizaciones
+        End Get
+        Set(value As ObservableCollection(Of digitalizacion))
+            SetProperty(_listaDigitalizaciones, value)
+            'OnPropertyChanged("listaDigitalizaciones")
+        End Set
+    End Property
+
+End Class
+
+Public Class tracking
+    Inherits BindableBase
+    Private _estadoTracking As String
+    Public Property estadoTracking As String
+        Get
+            Return _estadoTracking
+        End Get
+        Set(value As String)
+            SetProperty(_estadoTracking, value)
+            'OnPropertyChanged("estadoTracking")
+        End Set
+    End Property
+
+    Private _fechaTracking As DateTime
+    Public Property fechaTracking As DateTime
+        Get
+            Return _fechaTracking
+        End Get
+        Set(value As DateTime)
+            SetProperty(_fechaTracking, value)
+            'OnPropertyChanged("fechaTracking")
+        End Set
+    End Property
+
+
+End Class
+
+Public Class digitalizacion
+    Inherits BindableBase
+
+    Private _tipo As String
+    Public Property tipo As String
+        Get
+            Return _tipo
+        End Get
+        Set(value As String)
+            SetProperty(_tipo, value)
+        End Set
+    End Property
+
+    Private _urlDigitalizacion As Uri
+    Public Property urlDigitalizacion As Uri
+        Get
+            Return _urlDigitalizacion
+        End Get
+        Set(value As Uri)
+            SetProperty(_urlDigitalizacion, value)
+        End Set
+    End Property
+End Class
+
+Public Class expedicion
+    Inherits BindableBase
+    Private _numeroExpedicion As String
+    Public Property numeroExpedicion As String
+        Get
+            Return _numeroExpedicion
+        End Get
+        Set(value As String)
+            SetProperty(_numeroExpedicion, value)
+            'OnPropertyChanged("numeroExpedicion")
+        End Set
+    End Property
+
+    Private _fecha As Date
+    Public Property fecha As Date
+        Get
+            Return _fecha
+        End Get
+        Set(value As Date)
+            SetProperty(_fecha, value)
+            'OnPropertyChanged("fecha")
+        End Set
+    End Property
+
+    Private _fechaEstimada As Date
+    Public Property fechaEstimada As Date
+        Get
+            Return _fechaEstimada
+        End Get
+        Set(value As Date)
+            SetProperty(_fechaEstimada, value)
+            'OnPropertyChanged("fechaEstimada")
+        End Set
+    End Property
+
+    Private _listaTracking As New ObservableCollection(Of tracking)
+    Public Property listaTracking As ObservableCollection(Of tracking)
+        Get
+            Return _listaTracking
+        End Get
+        Set(value As ObservableCollection(Of tracking))
+            SetProperty(_listaTracking, value)
+            'OnPropertyChanged("listaTracking")
+        End Set
+    End Property
+
+End Class
+
+' The RequestState class passes data across async calls.
+'Public Class RequestState
+
+'    Public RequestData As New StringBuilder("")
+'    Public BufferRead(1024) As Byte
+'    Public Request As HttpWebRequest
+'    Public ResponseStream As Stream
+'    ' Create Decoder for appropriate encoding type.
+'    Public StreamDecode As Decoder = Encoding.UTF8.GetDecoder()
+
+'    Public Sub New()
+'        Request = Nothing
+'        ResponseStream = Nothing
+'    End Sub
+'End Class
+
+
+
+
+#End Region
+
+
+
+Public Interface IAgencia
+    Function cargarEstado(envio As EnviosAgencia) As XDocument
+    Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio
+    Function calcularMensajeError(numeroError As Integer) As String
+    Function calcularCodigoBarras() As String
+    Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
+    Function construirXMLdeSalida() As XDocument
+End Interface
+
+Public Class AgenciaASM
+    Implements IAgencia
+
+    ' Propiedades de Prism
+    Private _NotificationRequest As InteractionRequest(Of INotification)
+    Public Property NotificationRequest As InteractionRequest(Of INotification)
+        Get
+            Return _NotificationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of INotification))
+            _NotificationRequest = value
+        End Set
+    End Property
+
+    'Private agenciaSeleccionada As AgenciasTransporte
+    Private agenciaVM As AgenciasViewModel
+
+    Public Sub New(agencia As AgenciasViewModel)
+        If Not IsNothing(agencia) Then
+            agencia.listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.retornoActual = New tipoIdDescripcion(0, "Sin Retorno")
+            agencia.listaTiposRetorno.Add(agencia.retornoActual)
+            agencia.listaTiposRetorno.Add(New tipoIdDescripcion(1, "Con Retorno"))
+            agencia.listaTiposRetorno.Add(New tipoIdDescripcion(2, "Retorno Opcional"))
+            agencia.listaServicios = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.servicioActual = New tipoIdDescripcion(1, "Courier")
+            agencia.listaServicios.Add(agencia.servicioActual)
+            agencia.listaServicios.Add(New tipoIdDescripcion(37, "Economy"))
+            agencia.listaServicios.Add(New tipoIdDescripcion(54, "EuroEstándar"))
+            agencia.listaHorarios = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.horarioActual = New tipoIdDescripcion(3, "ASM24")
+            agencia.listaHorarios.Add(agencia.horarioActual)
+            agencia.listaHorarios.Add(New tipoIdDescripcion(2, "ASM14"))
+            agencia.listaHorarios.Add(New tipoIdDescripcion(18, "Economy"))
+
+            'agenciaSeleccionada = agencia.agenciaSeleccionada
+            agenciaVM = agencia
+        End If
+        
+
+
+    End Sub
+
+    ' Funciones
+    Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
         If IsNothing(envio) Then
             NotificationRequest.Raise(New Notification() With { _
                  .Title = "Error", _
@@ -1622,7 +1666,7 @@ Public Class AgenciasViewModel
             })
             Return Nothing
         End If
-        Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + agenciaSeleccionada.Identificador)
+        Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + agenciaVM.agenciaSeleccionada.Identificador)
         If myUri.Scheme = Uri.UriSchemeHttp Then
             'Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
             Dim myRequest As HttpWebRequest = CType(WebRequest.Create(myUri), HttpWebRequest)
@@ -1639,8 +1683,7 @@ Public Class AgenciasViewModel
         End If
         Return Nothing
     End Function
-
-    Public Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio
+    Public Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio Implements IAgencia.transformarXMLdeEstado
         Dim estado As New estadoEnvio
         Dim expedicion As New expedicion
         Dim trackinglistxml As XElement
@@ -1675,218 +1718,166 @@ Public Class AgenciasViewModel
                 digitalizacion = Nothing
             Next
         Next
-        digitalizacionActual = estado.listaDigitalizaciones.LastOrDefault
+        agenciaVM.digitalizacionActual = estado.listaDigitalizaciones.LastOrDefault
         estado.listaExpediciones.Add(expedicion)
-        cmdDescargarImagen.RaiseCanExecuteChanged()
+        agenciaVM.cmdDescargarImagen.RaiseCanExecuteChanged()
         Return estado
     End Function
+    Public Function calcularMensajeError(numeroError As Integer) As String Implements IAgencia.calcularMensajeError
+        Select Case numeroError
+            Case -33
+                Return "Ya existe el código de barras de la expedición"
+            Case -69
+                Return "No se pudo canalizar el envío"
+            Case -70
+                Return "Ya existe se ha enviado este pedido para esta fecha y cliente"
+            Case -108
+                Return "El nombre del remitente debe tener al menos tres caracteres"
+            Case -109
+                Return "La dirección del remitente debe tener al menos tres caracteres"
+            Case -110
+                Return "La población del remitente debe tener al menos tres caracteres"
+            Case -111
+                Return "El código postal del remitente debe tener al menos cuatro caracteres"
+            Case -111
+                Return "La referencia del cliente está duplicada"
+            Case -119
+                Return "Error no controlado por el webservice de la agencia"
+            Case -128
+                Return "El nombre del destinatario debe tener al menos tres caracteres"
+            Case -129
+                Return "La dirección del destinatario debe tener al menos tres caracteres"
+            Case -130
+                Return "La población del destinatario debe tener al menos tres caracteres"
+            Case -131
+                Return "El código postal del destinatario debe tener al menos cuatro caracteres"
+            Case Else
+                Return "El código de error " + numeroError + " no está controlado por Nesto"
+        End Select
+    End Function
+    Public Function calcularCodigoBarras() As String Implements IAgencia.calcularCodigoBarras
+        Return agenciaVM.agenciaSeleccionada.PrefijoCodigoBarras.ToString + agenciaVM.envioActual.Numero.ToString("D7")
+    End Function
+    Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+        'Comenzamos la llamada
+        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
+             "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " & _
+              "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " & _
+              "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" & _
+              "<soap:Body>" & _
+                    "<GetPlazaXCP xmlns=""http://www.asmred.com/"">" & _
+                        "<codPais>" + AgenciasViewModel.COD_PAIS + "</codPais>" & _
+                        "<cp>" + codPostal + "</cp>" & _
+                    "</GetPlazaXCP>" & _
+                "</soap:Body>" & _
+             "</soap:Envelope>"
 
-#End Region
+        Dim req As HttpWebRequest = WebRequest.Create("http://www.asmred.com/WebSrvs/b2b.asmx?op=GetPlazaXCP")
+        req.Headers.Add("SOAPAction", """http://www.asmred.com/GetPlazaXCP""")
+        req.ContentType = "text/xml; charset=""utf-8"""
+        req.Accept = "text/xml"
+        req.Method = "POST"
 
-#Region "Interfaces"
-    Public Interface IAgencia
-        Function cargarEstado(envio As EnviosAgencia) As XDocument
-    End Interface
-#End Region
+        Using stm As Stream = req.GetRequestStream()
+            Using stmw As StreamWriter = New StreamWriter(stm)
+                stmw.Write(soap)
+            End Using
+        End Using
 
+        Dim response As WebResponse = req.GetResponse()
+        Dim responseStream As New StreamReader(response.GetResponseStream())
+        soap = responseStream.ReadToEnd
 
-#Region "ClasesAuxiliares"
+        Dim respuestaXML As XDocument
+        respuestaXML = XDocument.Parse(soap)
 
-    Public Class estadoEnvio
-        Inherits BindableBase
+        Dim elementoXML As XElement
+        Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
+        elementoXML = respuestaXML.Descendants(Xns + "GetPlazaXCPResult").First().FirstNode
+        respuestaXML = New XDocument
+        respuestaXML.AddFirst(elementoXML)
 
-        Private _listaExpediciones As New ObservableCollection(Of expedicion)
-        Public Property listaExpediciones As ObservableCollection(Of expedicion)
-            Get
-                Return _listaExpediciones
-            End Get
-            Set(value As ObservableCollection(Of expedicion))
-                SetProperty(_listaExpediciones, value)
-                'OnPropertyChanged("listaExpediciones")
-            End Set
-        End Property
+        'Debug.Print(respuestaXML.ToString)
+        If Not IsNothing(elementoXML.Element("Nemonico")) Then
+            nemonico = elementoXML.Element("Nemonico").Value
+            nombrePlaza = elementoXML.Element("Nombre").Value
+            telefonoPlaza = elementoXML.Element("Telefono").Value
+            telefonoPlaza = Regex.Replace(telefonoPlaza, "([^0-9])", "")
+            'telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
+            emailPlaza = elementoXML.Element("Mail").Value
+        End If
+    End Sub
+    Public Function construirXMLdeSalida() As XDocument Implements IAgencia.construirXMLdeSalida
+        Dim xml As New XDocument
+        'xml = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Desktop\ASM\webservice\XML-IN-B.xml")
+        'xml.Descendants("Servicios").FirstOrDefault().Add(New XElement("Servicios", New XAttribute("uidcliente", ""), New XAttribute("xmlns", "http://www.asmred.com/")))
 
-        Private _listaDigitalizaciones As New ObservableCollection(Of digitalizacion)
-        Public Property listaDigitalizaciones As ObservableCollection(Of digitalizacion)
-            Get
-                Return _listaDigitalizaciones
-            End Get
-            Set(value As ObservableCollection(Of digitalizacion))
-                SetProperty(_listaDigitalizaciones, value)
-                'OnPropertyChanged("listaDigitalizaciones")
-            End Set
-        End Property
+        ' Si no hay envioActual devolvemos el xml vacío
+        If IsNothing(agenciaVM.envioActual) Then
+            Return xml
+        End If
 
-    End Class
+        'Añadimos el nodo raíz (Servicios)
+        xml.AddFirst(
+            <Servicios uidcliente=<%= agenciaVM.envioActual.AgenciasTransporte.Identificador %> xmlns="http://www.asmred.com/">
+                <Envio codbarras=<%= agenciaVM.envioActual.CodigoBarras %>>
+                    <Fecha><%= agenciaVM.envioActual.Fecha.ToShortDateString %></Fecha>
+                    <Portes>P</Portes>
+                    <Servicio><%= agenciaVM.envioActual.Servicio %></Servicio>
+                    <Horario><%= agenciaVM.envioActual.Horario %></Horario>
+                    <Bultos><%= agenciaVM.envioActual.Bultos %></Bultos>
+                    <Peso>1</Peso>
+                    <Retorno><%= agenciaVM.envioActual.Retorno %></Retorno>
+                    <Pod>N</Pod>
+                    <Remite>
+                        <Plaza></Plaza>
+                        <Nombre><%= agenciaVM.envioActual.Empresas.Nombre.Trim %></Nombre>
+                        <Direccion><%= agenciaVM.envioActual.Empresas.Dirección.Trim %></Direccion>
+                        <Poblacion><%= agenciaVM.envioActual.Empresas.Población.Trim %></Poblacion>
+                        <Provincia><%= agenciaVM.envioActual.Empresas.Provincia.Trim %></Provincia>
+                        <Pais>34</Pais>
+                        <CP><%= agenciaVM.envioActual.Empresas.CodPostal.Trim %></CP>
+                        <Telefono><%= agenciaVM.envioActual.Empresas.Teléfono.Trim %></Telefono>
+                        <Movil></Movil>
+                        <Email><%= agenciaVM.envioActual.Empresas.Email.Trim %></Email>
+                        <Observaciones></Observaciones>
+                    </Remite>
+                    <Destinatario>
+                        <Codigo></Codigo>
+                        <Plaza></Plaza>
+                        <Nombre><%= agenciaVM.envioActual.Nombre.Normalize %></Nombre>
+                        <Direccion><%= agenciaVM.envioActual.Direccion %></Direccion>
+                        <Poblacion><%= agenciaVM.envioActual.Poblacion %></Poblacion>
+                        <Provincia><%= agenciaVM.envioActual.Provincia %></Provincia>
+                        <Pais><%= AgenciasViewModel.COD_PAIS %></Pais>
+                        <CP><%= agenciaVM.envioActual.CodPostal %></CP>
+                        <Telefono><%= agenciaVM.envioActual.Telefono %></Telefono>
+                        <Movil><%= agenciaVM.envioActual.Movil %></Movil>
+                        <Email><%= agenciaVM.envioActual.Email %></Email>
+                        <Observaciones><%= agenciaVM.envioActual.Observaciones %></Observaciones>
+                        <ATT><%= agenciaVM.envioActual.Atencion %></ATT>
+                    </Destinatario>
+                    <Referencias><!-- cualquier numero, siempre distinto a cada prueba-->
+                        <Referencia tipo="C"><%= agenciaVM.envioActual.Cliente.Trim %>/<%= agenciaVM.envioActual.Pedido %></Referencia>
+                    </Referencias>
+                    <Importes>
+                        <Debidos>0</Debidos>
+                        <Reembolso><%= agenciaVM.envioActual.Reembolso %></Reembolso>
+                    </Importes>
+                    <Seguro tipo="">
+                        <Descripcion></Descripcion>
+                        <Importe></Importe>
+                    </Seguro>
+                    <DevuelveAdicionales>
+                        <PlazaDestino/>
+                    </DevuelveAdicionales>
+                </Envio>
+            </Servicios>
+        )
 
-    Public Class tracking
-        Inherits BindableBase
-        Private _estadoTracking As String
-        Public Property estadoTracking As String
-            Get
-                Return _estadoTracking
-            End Get
-            Set(value As String)
-                SetProperty(_estadoTracking, value)
-                'OnPropertyChanged("estadoTracking")
-            End Set
-        End Property
-
-        Private _fechaTracking As DateTime
-        Public Property fechaTracking As DateTime
-            Get
-                Return _fechaTracking
-            End Get
-            Set(value As DateTime)
-                SetProperty(_fechaTracking, value)
-                'OnPropertyChanged("fechaTracking")
-            End Set
-        End Property
-
-
-    End Class
-
-    Public Class digitalizacion
-        Inherits BindableBase
-
-        Private _tipo As String
-        Public Property tipo As String
-            Get
-                Return _tipo
-            End Get
-            Set(value As String)
-                SetProperty(_tipo, value)
-            End Set
-        End Property
-
-        Private _urlDigitalizacion As Uri
-        Public Property urlDigitalizacion As Uri
-            Get
-                Return _urlDigitalizacion
-            End Get
-            Set(value As Uri)
-                SetProperty(_urlDigitalizacion, value)
-            End Set
-        End Property
-    End Class
-
-    Public Class expedicion
-        Inherits BindableBase
-        Private _numeroExpedicion As String
-        Public Property numeroExpedicion As String
-            Get
-                Return _numeroExpedicion
-            End Get
-            Set(value As String)
-                SetProperty(_numeroExpedicion, value)
-                'OnPropertyChanged("numeroExpedicion")
-            End Set
-        End Property
-
-        Private _fecha As Date
-        Public Property fecha As Date
-            Get
-                Return _fecha
-            End Get
-            Set(value As Date)
-                SetProperty(_fecha, value)
-                'OnPropertyChanged("fecha")
-            End Set
-        End Property
-
-        Private _fechaEstimada As Date
-        Public Property fechaEstimada As Date
-            Get
-                Return _fechaEstimada
-            End Get
-            Set(value As Date)
-                SetProperty(_fechaEstimada, value)
-                'OnPropertyChanged("fechaEstimada")
-            End Set
-        End Property
-
-        Private _listaTracking As New ObservableCollection(Of tracking)
-        Public Property listaTracking As ObservableCollection(Of tracking)
-            Get
-                Return _listaTracking
-            End Get
-            Set(value As ObservableCollection(Of tracking))
-                SetProperty(_listaTracking, value)
-                'OnPropertyChanged("listaTracking")
-            End Set
-        End Property
-
-    End Class
-
-    ' The RequestState class passes data across async calls.
-    'Public Class RequestState
-
-    '    Public RequestData As New StringBuilder("")
-    '    Public BufferRead(1024) As Byte
-    '    Public Request As HttpWebRequest
-    '    Public ResponseStream As Stream
-    '    ' Create Decoder for appropriate encoding type.
-    '    Public StreamDecode As Decoder = Encoding.UTF8.GetDecoder()
-
-    '    Public Sub New()
-    '        Request = Nothing
-    '        ResponseStream = Nothing
-    '    End Sub
-    'End Class
-
-
-    Private Class AgenciaASM
-        Implements IAgencia
-
-        ' Propiedades de Prism
-        Private _NotificationRequest As InteractionRequest(Of INotification)
-        Public Property NotificationRequest As InteractionRequest(Of INotification)
-            Get
-                Return _NotificationRequest
-            End Get
-            Private Set(value As InteractionRequest(Of INotification))
-                _NotificationRequest = value
-            End Set
-        End Property
-
-        Private agenciaSeleccionada As AgenciasTransporte
-
-        Public Sub New(agencia As AgenciasTransporte)
-            agenciaSeleccionada = agencia
-        End Sub
-
-        ' Funciones
-        Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
-            If IsNothing(envio) Then
-                NotificationRequest.Raise(New Notification() With { _
-                     .Title = "Error", _
-                    .Content = "No hay ningún envío seleccionado, no se puede cargar el estado" _
-                })
-                Return Nothing
-            End If
-            Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + agenciaSeleccionada.Identificador)
-            If myUri.Scheme = Uri.UriSchemeHttp Then
-                'Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
-                Dim myRequest As HttpWebRequest = CType(WebRequest.Create(myUri), HttpWebRequest)
-                myRequest.Method = WebRequestMethods.Http.Get
-
-                Dim myResponse As HttpWebResponse = myRequest.GetResponse()
-                If myResponse.StatusCode = HttpStatusCode.OK Then
-
-                    Dim reader As New StreamReader(myResponse.GetResponseStream())
-                    Dim responseData As String = reader.ReadToEnd()
-                    myResponse.Close()
-                    Return XDocument.Parse(responseData)
-                End If
-            End If
-            Return Nothing
-        End Function
-
-    End Class
-
-#End Region
-
+        'xml.Root.Attribute("xmlns").Value = "http://www.asmred.com/"
+        'Debug.Print(xml.ToString)
+        Return xml
+    End Function
 
 End Class
-
-

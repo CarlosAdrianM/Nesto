@@ -158,6 +158,7 @@ End Class
 <TestClass()>
 Public Class cuandoConstruimosElXMLdeSalida
     Dim agenciaVM As New AgenciasViewModel
+    Dim agenciaEspecifica As AgenciaASM = New AgenciaASM(agenciaVM)
     Private Shared DbContext As New NestoEntities
 
     Private testContextInstance As TestContext
@@ -247,7 +248,7 @@ Public Class cuandoConstruimosElXMLdeSalida
 
         Dim ns As XNamespace = "http://www.asmred.com/"
         'act
-        agenciaVM.XMLdeSalida = agenciaVM.construirXMLdeSalida()
+        agenciaVM.XMLdeSalida = agenciaEspecifica.construirXMLdeSalida()
         identificador = agenciaVM.XMLdeSalida.Root.Attribute("uidcliente").Value
         retorno = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Retorno").Value
         refC = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Referencias").Elements(ns + "Referencia").Where(Function(p)
@@ -314,7 +315,7 @@ Public Class cuandoConstruimosElXMLdeSalida
         }
         Dim ns As XNamespace = "http://www.asmred.com/"
         'act
-        agenciaVM.XMLdeSalida = agenciaVM.construirXMLdeSalida()
+        agenciaVM.XMLdeSalida = agenciaEspecifica.construirXMLdeSalida()
         nombre = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Remite").Element(ns + "Nombre").Value
         direccion = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Remite").Element(ns + "Direccion").Value
         poblacion = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Remite").Element(ns + "Poblacion").Value
@@ -385,7 +386,7 @@ Public Class cuandoConstruimosElXMLdeSalida
         }
         Dim ns As XNamespace = "http://www.asmred.com/"
         'act
-        agenciaVM.XMLdeSalida = agenciaVM.construirXMLdeSalida()
+        agenciaVM.XMLdeSalida = agenciaEspecifica.construirXMLdeSalida()
         nombre = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Destinatario").Element(ns + "Nombre").Value
         direccion = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Destinatario").Element(ns + "Direccion").Value
         poblacion = agenciaVM.XMLdeSalida.Element(ns + "Servicios").Element(ns + "Envio").Element(ns + "Destinatario").Element(ns + "Poblacion").Value
@@ -687,6 +688,7 @@ End Class
 Public Class cuandoCargamosElEstado
 
     Dim agenciaVM As New AgenciasViewModel
+    Dim agenciaEspecifica As AgenciaASM = New AgenciaASM(agenciaVM)
     Private Shared DbContext As New NestoEntities
 
     Private testContextInstance As TestContext
@@ -732,7 +734,7 @@ Public Class cuandoCargamosElEstado
         agenciaVM.envioActual = (From c In DbContext.EnviosAgencia Where c.Numero = 173).FirstOrDefault
         'agenciaVM.empresaSeleccionada = New Empresas With {.Número = "95", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
         'act
-        agenciaVM.XMLdeEstado = agenciaVM.cargarEstado(agenciaVM.envioActual)
+        agenciaVM.XMLdeEstado = agenciaEspecifica.cargarEstado(agenciaVM.envioActual)
         'assert
         Debug.Print(agenciaVM.XMLdeEstado.ToString)
         Assert.IsFalse(IsNothing(agenciaVM.XMLdeEntrada))
