@@ -22,13 +22,14 @@ Public Class AgenciasViewModel
 
     Const CARGO_AGENCIA = 26
     Public Const COD_PAIS As String = "34"
-    Const ESTADO_INICIAL_ENVIO = 0
-    Const ESTADO_TRAMITADO_ENVIO = 1
+    Public Const ESTADO_INICIAL_ENVIO = 0
+    Public Const ESTADO_TRAMITADO_ENVIO = 1
 
     Private Shared DbContext As NestoEntities
     Dim mainModel As New Nesto.Models.MainModel
     Dim empresaDefecto As String = String.Format("{0,-3}", mainModel.leerParametro("1", "EmpresaPorDefecto"))
 
+    Dim factory As New Dictionary(Of String, Func(Of IAgencia))
 
 
 
@@ -46,27 +47,15 @@ Public Class AgenciasViewModel
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
+        factory.Add("ASM", Function() New AgenciaASM(Me))
+        factory.Add("OnTime", Function() New AgenciaOnTime(Me))
 
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         empresaSeleccionada = (From e In DbContext.Empresas Where e.Número = empresaDefecto).FirstOrDefault
         listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
         agenciaSeleccionada = listaAgencias.FirstOrDefault
-        'listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
-        'retornoActual = New tipoIdDescripcion(0, "Sin Retorno")
-        'listaTiposRetorno.Add(retornoActual)
-        'listaTiposRetorno.Add(New tipoIdDescripcion(1, "Con Retorno"))
-        'listaTiposRetorno.Add(New tipoIdDescripcion(2, "Retorno Opcional"))
+
         bultos = 1
-        'listaServicios = New ObservableCollection(Of tipoIdDescripcion)
-        'servicioActual = New tipoIdDescripcion(1, "Courier")
-        'listaServicios.Add(servicioActual)
-        'listaServicios.Add(New tipoIdDescripcion(37, "Economy"))
-        'listaServicios.Add(New tipoIdDescripcion(54, "EuroEstándar"))
-        'listaHorarios = New ObservableCollection(Of tipoIdDescripcion)
-        'horarioActual = New tipoIdDescripcion(3, "ASM24")
-        'listaHorarios.Add(horarioActual)
-        'listaHorarios.Add(New tipoIdDescripcion(2, "ASM14"))
-        'listaHorarios.Add(New tipoIdDescripcion(18, "Economy"))
         If Not IsNothing(agenciaSeleccionada) Then
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
         End If
@@ -147,7 +136,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private agenciaEspecifica As AgenciaASM = New AgenciaASM(Me)
+    Private agenciaEspecifica As IAgencia
 
     Private _agenciaSeleccionada As AgenciasTransporte
     Public Property agenciaSeleccionada As AgenciasTransporte
@@ -156,8 +145,23 @@ Public Class AgenciasViewModel
         End Get
         Set(value As AgenciasTransporte)
             SetProperty(_agenciaSeleccionada, value)
-            'agenciaEspecifica = New AgenciaASM(Me)
-            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
+            Try
+                agenciaEspecifica = factory(agenciaSeleccionada.Nombre).Invoke
+            Catch
+                'mensajeError = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre
+                NotificationRequest.Raise(New Notification() With { _
+                    .Title = "Error", _
+                    .Content = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre _
+                })
+            End Try
+            OnPropertyChanged("servicioActual")
+            OnPropertyChanged("horarioActual")
+            OnPropertyChanged("retornoActual")
+            'listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
+            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+            listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+            OnPropertyChanged("sumaContabilidad")
+            OnPropertyChanged("descuadreContabilidad")
         End Set
     End Property
 
@@ -190,9 +194,9 @@ Public Class AgenciasViewModel
             SetProperty(_empresaSeleccionada, value)
             listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
             agenciaSeleccionada = listaAgencias.FirstOrDefault
-            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
-            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
-            listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+            listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
             listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
             OnPropertyChanged("sumaContabilidad")
             OnPropertyChanged("descuadreContabilidad")
@@ -227,6 +231,7 @@ Public Class AgenciasViewModel
                     fechaEnvio = empresaSeleccionada.FechaPicking
                 End If
                 listaEnviosPedido = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Pedido = pedidoSeleccionado.Número)
+                envioActual = listaEnviosPedido.LastOrDefault
             Else
                 NotificationRequest.Raise(New Notification() With { _
                  .Title = "Error", _
@@ -446,6 +451,11 @@ Public Class AgenciasViewModel
             SetProperty(_envioActual, value)
             estadoEnvioCargado = Nothing
             mensajeError = ""
+            If Not IsNothing(envioActual) AndAlso Not IsNothing(envioActual.AgenciasTransporte) AndAlso agenciaSeleccionada.Numero <> envioActual.AgenciasTransporte.Numero Then
+                agenciaSeleccionada = envioActual.AgenciasTransporte
+            End If
+
+            OnPropertyChanged("agenciaSeleccionada") 'Una vez haya datos (un pedido con dos envios de agencias diferentes), comprobar si se puede quitar esta línea
             If Not IsNothing(cmdCargarEstado) Then
                 cmdCargarEstado.RaiseCanExecuteChanged()
             End If
@@ -711,7 +721,7 @@ Public Class AgenciasViewModel
 
 #End Region
 
-#Region "Commandos"
+#Region "Comandos"
     Private _cmdTramitar As ICommand
     Public ReadOnly Property cmdTramitar() As ICommand
         Get
@@ -725,7 +735,7 @@ Public Class AgenciasViewModel
         Return Not IsNothing(envioActual)
     End Function
     Private Sub Tramitar(ByVal param As Object)
-        llamadaWebService()
+        agenciaEspecifica.llamadaWebService(DbContext)
         'mensajeError = "Pedido " + envioActual.Pedido.ToString.Trim + " tramitado correctamente"
     End Sub
 
@@ -766,56 +776,7 @@ Public Class AgenciasViewModel
         Return Not IsNothing(envioActual)
     End Function
     Private Sub ImprimirEtiquetaPedido(ByVal param As Object)
-
-        Dim puerto As String = mainModel.leerParametro(envioActual.Empresa, "ImpresoraBolsas")
-
-        Dim objFSO
-        Dim objStream
-        objFSO = CreateObject("Scripting.FileSystemObject")
-        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
-        Dim i As Integer
-
-
-
-        Try
-            For i = 1 To bultos
-                objStream.Writeline("I8,A,034")
-                objStream.Writeline("N")
-                objStream.Writeline("A40,10,0,4,1,1,N,""" + envioActual.Nombre + """")
-                objStream.Writeline("A40,50,0,4,1,1,N,""" + envioActual.Direccion + """")
-                objStream.Writeline("A40,90,0,4,1,1,N,""" + envioActual.CodPostal + " " + envioActual.Poblacion + """")
-                objStream.Writeline("A40,130,0,4,1,1,N,""" + envioActual.Provincia + """")
-                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString _
-                                    + ". Cliente: " + envioActual.Cliente.Trim + ". Fecha: " + envioActual.Fecha + """")
-                objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + envioActual.CodigoBarras + i.ToString("D3") + """")
-                objStream.Writeline("A40,450,0,4,1,2,N,""" + envioActual.Nemonico + " " + envioActual.NombrePlaza + """")
-                objStream.Writeline("A40,510,0,4,1,2,N,""" + listaHorarios.Where(Function(x) x.id = envioActual.Horario).FirstOrDefault.descripcion + """")
-                objStream.Writeline("A590,265,0,5,2,2,N,""" + envioActual.Nemonico + """")
-                objStream.Writeline("P1")
-                objStream.Writeline("")
-            Next
-
-            '' Insertamos la etiqueta en la tabla
-            'Dim etiqueta As New EtiquetasPicking With { _
-            '.Empresa = envioActual.Empresa,
-            '.Número = envioActual.Pedido,
-            '.Picking = envioActual.Empresas.MaxPickingListado, 'esto está mal
-            '.NºBultos = envioActual.Bultos,
-            '.UsuarioQuePrepara = multiusuario.Número,
-            '.NºCliente = envioActual.Cliente,
-            '.Contacto = envioActual.Contacto}
-            'DbContext.AddToEtiquetasPicking(etiqueta)
-            'DbContext.SaveChanges()
-
-
-        Catch ex As Exception
-            mensajeError = ex.InnerException.Message
-        Finally
-            objStream.Close()
-            objFSO = Nothing
-            objStream = Nothing
-        End Try
-
+        agenciaEspecifica.imprimirEtiqueta()
     End Sub
 
     Private _cmdGuardar As ICommand
@@ -1120,82 +1081,6 @@ Public Class AgenciasViewModel
 
 #Region "Funciones de Ayuda"
 
-    Public Sub llamadaWebService()
-        XMLdeSalida = agenciaEspecifica.construirXMLdeSalida()
-        'If IsNothing(envioActual.Agencia) Then
-        '    resultadoWebservice = "No se pudo llamar al webservice (no hay ninguna agencia seleccionada)."
-        'Else
-        '    resultadoWebservice = "0"
-        'End If
-
-        'If resultadoWebservice <> "0" Then
-        '    Return
-        'End If
-
-        'Comenzamos la llamada
-        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
-             "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " & _
-              "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " & _
-              "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" & _
-              "<soap:Body>" & _
-                    "<GrabaServicios xmlns=""http://www.asmred.com/"">" & _
-                        "<docIn>" & XMLdeSalida.ToString & "</docIn>" & _
-                    "</GrabaServicios>" & _
-                "</soap:Body>" & _
-             "</soap:Envelope>"
-
-        Dim req As HttpWebRequest = WebRequest.Create("http://www.asmred.com/WebSrvs/b2b.asmx?op=GrabaServicios")
-        req.Headers.Add("SOAPAction", """http://www.asmred.com/GrabaServicios""")
-        req.ContentType = "text/xml; charset=""utf-8"""
-        req.Accept = "text/xml"
-        req.Method = "POST"
-
-        Try
-            Using stm As Stream = req.GetRequestStream()
-                Using stmw As StreamWriter = New StreamWriter(stm)
-                    stmw.Write(soap)
-                End Using
-            End Using
-
-            Dim response As WebResponse = req.GetResponse()
-            Dim responseStream As New StreamReader(response.GetResponseStream())
-            soap = responseStream.ReadToEnd
-            XMLdeEntrada = XDocument.Parse(soap)
-        Catch ex As Exception
-            mensajeError = "El servidor de la agencia no está respondiendo"
-            Return
-        End Try
-
-
-        Dim elementoXML As XElement
-        Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
-        elementoXML = XMLdeEntrada.Descendants(Xns + "GrabaServiciosResult").First().FirstNode
-        XMLdeEntrada = New XDocument
-        XMLdeEntrada.AddFirst(elementoXML)
-
-        If elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value <> "0" Then
-            If elementoXML.Element("Envio").Element("Errores").HasElements Then
-                mensajeError = elementoXML.Element("Envio").Element("Errores").Element("Error").Value
-            Else
-                mensajeError = agenciaEspecifica.calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
-            End If
-
-        Else
-            'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
-            envioActual.Estado = ESTADO_TRAMITADO_ENVIO 'Enviado
-            DbContext.SaveChanges()
-            If envioActual.Reembolso > 0 Then
-                contabilizarReembolso(envioActual)
-            End If
-            mensajeError = "Envío del pedido " + envioActual.Pedido.ToString + " tramitado correctamente."
-            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
-            envioActual = listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
-        End If
-
-
-        'Debug.Print(XMLdeEntrada.ToString)
-
-    End Sub
 
 
     Public Function telefonoUnico(listaTelefonos As String, Optional tipo As String = "F") As String
@@ -1453,7 +1338,6 @@ Public Structure tipoIdDescripcion
     Property descripcion As String
 End Structure
 
-
 #Region "ClasesAuxiliares"
 
 Public Class estadoEnvio
@@ -1603,15 +1487,15 @@ End Class
 
 #End Region
 
-
-
 Public Interface IAgencia
     Function cargarEstado(envio As EnviosAgencia) As XDocument
     Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio
-    Function calcularMensajeError(numeroError As Integer) As String
+    'Function calcularMensajeError(numeroError As Integer) As String
     Function calcularCodigoBarras() As String
     Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
-    Function construirXMLdeSalida() As XDocument
+    'Function construirXMLdeSalida() As XDocument
+    Sub llamadaWebService(DBContext As NestoEntities)
+    Sub imprimirEtiqueta()
 End Interface
 
 Public Class AgenciaASM
@@ -1723,7 +1607,7 @@ Public Class AgenciaASM
         agenciaVM.cmdDescargarImagen.RaiseCanExecuteChanged()
         Return estado
     End Function
-    Public Function calcularMensajeError(numeroError As Integer) As String Implements IAgencia.calcularMensajeError
+    Private Function calcularMensajeError(numeroError As Integer) As String 'Implements IAgencia.calcularMensajeError
         Select Case numeroError
             Case -33
                 Return "Ya existe el código de barras de la expedición"
@@ -1807,7 +1691,7 @@ Public Class AgenciaASM
             emailPlaza = elementoXML.Element("Mail").Value
         End If
     End Sub
-    Public Function construirXMLdeSalida() As XDocument Implements IAgencia.construirXMLdeSalida
+    Private Function construirXMLdeSalida() As XDocument 'Implements IAgencia.construirXMLdeSalida
         Dim xml As New XDocument
         'xml = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Desktop\ASM\webservice\XML-IN-B.xml")
         'xml.Descendants("Servicios").FirstOrDefault().Add(New XElement("Servicios", New XAttribute("uidcliente", ""), New XAttribute("xmlns", "http://www.asmred.com/")))
@@ -1879,5 +1763,262 @@ Public Class AgenciaASM
         'Debug.Print(xml.ToString)
         Return xml
     End Function
+    Public Sub llamadaWebService(DbContext As NestoEntities) Implements IAgencia.llamadaWebService
+        agenciaVM.XMLdeSalida = construirXMLdeSalida()
+        'If IsNothing(envioActual.Agencia) Then
+        '    resultadoWebservice = "No se pudo llamar al webservice (no hay ninguna agencia seleccionada)."
+        'Else
+        '    resultadoWebservice = "0"
+        'End If
 
+        'If resultadoWebservice <> "0" Then
+        '    Return
+        'End If
+
+        'Comenzamos la llamada
+        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
+             "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " & _
+              "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " & _
+              "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" & _
+              "<soap:Body>" & _
+                    "<GrabaServicios xmlns=""http://www.asmred.com/"">" & _
+                        "<docIn>" & agenciaVM.XMLdeSalida.ToString & "</docIn>" & _
+                    "</GrabaServicios>" & _
+                "</soap:Body>" & _
+             "</soap:Envelope>"
+
+        Dim req As HttpWebRequest = WebRequest.Create("http://www.asmred.com/WebSrvs/b2b.asmx?op=GrabaServicios")
+        req.Headers.Add("SOAPAction", """http://www.asmred.com/GrabaServicios""")
+        req.ContentType = "text/xml; charset=""utf-8"""
+        req.Accept = "text/xml"
+        req.Method = "POST"
+
+        Try
+            Using stm As Stream = req.GetRequestStream()
+                Using stmw As StreamWriter = New StreamWriter(stm)
+                    stmw.Write(soap)
+                End Using
+            End Using
+
+            Dim response As WebResponse = req.GetResponse()
+            Dim responseStream As New StreamReader(response.GetResponseStream())
+            soap = responseStream.ReadToEnd
+            agenciaVM.XMLdeEntrada = XDocument.Parse(soap)
+        Catch ex As Exception
+            agenciaVM.mensajeError = "El servidor de la agencia no está respondiendo"
+            Return
+        End Try
+
+
+        Dim elementoXML As XElement
+        Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
+        elementoXML = agenciaVM.XMLdeEntrada.Descendants(Xns + "GrabaServiciosResult").First().FirstNode
+        agenciaVM.XMLdeEntrada = New XDocument
+        agenciaVM.XMLdeEntrada.AddFirst(elementoXML)
+
+        If elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value <> "0" Then
+            If elementoXML.Element("Envio").Element("Errores").HasElements Then
+                agenciaVM.mensajeError = elementoXML.Element("Envio").Element("Errores").Element("Error").Value
+            Else
+                agenciaVM.mensajeError = calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
+            End If
+
+        Else
+            'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
+            agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
+            DBContext.SaveChanges()
+            If agenciaVM.envioActual.Reembolso > 0 Then
+                agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
+            End If
+            agenciaVM.mensajeError = "Envío del pedido " + agenciaVM.envioActual.Pedido.ToString + " tramitado correctamente."
+            agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DBContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO)
+            agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
+        End If
+
+
+        'Debug.Print(XMLdeEntrada.ToString)
+
+    End Sub
+    Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
+        Dim mainModel As New Nesto.Models.MainModel
+        Dim puerto As String = mainModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
+
+        Dim objFSO
+        Dim objStream
+        objFSO = CreateObject("Scripting.FileSystemObject")
+        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+        Dim i As Integer
+
+
+
+        Try
+            For i = 1 To agenciaVM.bultos
+                objStream.Writeline("I8,A,034")
+                objStream.Writeline("N")
+                objStream.Writeline("A40,10,0,4,1,1,N,""" + agenciaVM.envioActual.Nombre + """")
+                objStream.Writeline("A40,50,0,4,1,1,N,""" + agenciaVM.envioActual.Direccion + """")
+                objStream.Writeline("A40,90,0,4,1,1,N,""" + agenciaVM.envioActual.CodPostal + " " + agenciaVM.envioActual.Poblacion + """")
+                objStream.Writeline("A40,130,0,4,1,1,N,""" + agenciaVM.envioActual.Provincia + """")
+                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + agenciaVM.bultos.ToString _
+                                    + ". Cliente: " + agenciaVM.envioActual.Cliente.Trim + ". Fecha: " + agenciaVM.envioActual.Fecha + """")
+                objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + agenciaVM.envioActual.CodigoBarras + i.ToString("D3") + """")
+                objStream.Writeline("A40,450,0,4,1,2,N,""" + agenciaVM.envioActual.Nemonico + " " + agenciaVM.envioActual.NombrePlaza + """")
+                objStream.Writeline("A40,510,0,4,1,2,N,""" + agenciaVM.listaHorarios.Where(Function(x) x.id = agenciaVM.envioActual.Horario).FirstOrDefault.descripcion + """")
+                objStream.Writeline("A590,265,0,5,2,2,N,""" + agenciaVM.envioActual.Nemonico + """")
+                objStream.Writeline("P1")
+                objStream.Writeline("")
+            Next
+
+            '' Insertamos la etiqueta en la tabla
+            'Dim etiqueta As New EtiquetasPicking With { _
+            '.Empresa = envioActual.Empresa,
+            '.Número = envioActual.Pedido,
+            '.Picking = envioActual.Empresas.MaxPickingListado, 'esto está mal
+            '.NºBultos = envioActual.Bultos,
+            '.UsuarioQuePrepara = multiusuario.Número,
+            '.NºCliente = envioActual.Cliente,
+            '.Contacto = envioActual.Contacto}
+            'DbContext.AddToEtiquetasPicking(etiqueta)
+            'DbContext.SaveChanges()
+
+
+        Catch ex As Exception
+            agenciaVM.mensajeError = ex.InnerException.Message
+        Finally
+            objStream.Close()
+            objFSO = Nothing
+            objStream = Nothing
+        End Try
+    End Sub
+End Class
+
+Public Class AgenciaOnTime
+    Implements IAgencia
+
+    ' Propiedades de Prism
+    Private _NotificationRequest As InteractionRequest(Of INotification)
+    Public Property NotificationRequest As InteractionRequest(Of INotification)
+        Get
+            Return _NotificationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of INotification))
+            _NotificationRequest = value
+        End Set
+    End Property
+
+    'Private agenciaSeleccionada As AgenciasTransporte
+    Private agenciaVM As AgenciasViewModel
+
+    Public Sub New(agencia As AgenciasViewModel)
+        If Not IsNothing(agencia) Then
+            agencia.listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.retornoActual = New tipoIdDescripcion(0, "NO")
+            agencia.listaTiposRetorno.Add(agencia.retornoActual)
+            agencia.listaTiposRetorno.Add(New tipoIdDescripcion(1, "SI"))
+            'agencia.listaTiposRetorno.Add(New tipoIdDescripcion(2, "Retorno Opcional"))
+            agencia.listaServicios = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.servicioActual = New tipoIdDescripcion(1, "Normal")
+            agencia.listaServicios.Add(agencia.servicioActual)
+            'agencia.listaServicios.Add(New tipoIdDescripcion(37, "Economy"))
+            'agencia.listaServicios.Add(New tipoIdDescripcion(54, "EuroEstándar"))
+            agencia.listaHorarios = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.horarioActual = New tipoIdDescripcion(0, "")
+            agencia.listaHorarios.Add(agencia.horarioActual)
+            agencia.listaHorarios.Add(New tipoIdDescripcion(1, "Doble ciclo"))
+            'agencia.listaHorarios.Add(New tipoIdDescripcion(18, "Economy"))
+
+            'agenciaSeleccionada = agencia.agenciaSeleccionada
+            agenciaVM = agencia
+        End If
+
+
+
+    End Sub
+
+    ' Funciones
+    Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
+
+        NotificationRequest.Raise(New Notification() With { _
+             .Title = "Error", _
+            .Content = "OnTime no permite integración. Consulte el estado en la página web de OnTime." _
+        })
+        Return Nothing
+        
+    End Function
+    Public Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio Implements IAgencia.transformarXMLdeEstado
+        Dim estado As New estadoEnvio
+        Dim expedicion As New expedicion
+        'Dim trackinglistxml As XElement
+        'Dim tracking As tracking
+        'Dim digitalizacionesxml As XElement
+        'Dim digitalizacion As digitalizacion
+
+        If IsNothing(envio) Then
+            Return Nothing
+        End If
+
+        Return estado
+    End Function
+
+    Public Function calcularCodigoBarras() As String Implements IAgencia.calcularCodigoBarras
+        Return agenciaVM.envioActual.Numero.ToString("D7")
+    End Function
+    Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+        nemonico = "OT"
+        nombrePlaza = "OnTime"
+        telefonoPlaza = "902112820"
+        emailPlaza = "traficodistribucion@ontimelogistica.com"
+    End Sub
+    
+    Public Sub llamadaWebService(DbContext As NestoEntities) Implements IAgencia.llamadaWebService
+        'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
+        agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
+        DbContext.SaveChanges()
+        If agenciaVM.envioActual.Reembolso > 0 Then
+            agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
+        End If
+        agenciaVM.mensajeError = "Envío del pedido " + agenciaVM.envioActual.Pedido.ToString + " tramitado correctamente."
+        agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO)
+        agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
+    End Sub
+    Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
+        Dim mainModel As New Nesto.Models.MainModel
+        Dim puerto As String = mainModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
+
+        Dim objFSO
+        Dim objStream
+        objFSO = CreateObject("Scripting.FileSystemObject")
+        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+        Dim i As Integer
+
+
+
+        Try
+            For i = 1 To agenciaVM.bultos
+                objStream.Writeline("I8,A,034")
+                objStream.Writeline("N")
+                objStream.Writeline("A40,10,0,4,1,1,N,""" + agenciaVM.envioActual.Nombre + """")
+                objStream.Writeline("A40,50,0,4,1,1,N,""" + agenciaVM.envioActual.Direccion + """")
+                objStream.Writeline("A40,90,0,4,1,1,N,""" + agenciaVM.envioActual.CodPostal + " " + agenciaVM.envioActual.Poblacion + """")
+                objStream.Writeline("A40,130,0,4,1,1,N,""" + agenciaVM.envioActual.Provincia + """")
+                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + agenciaVM.bultos.ToString _
+                                    + ". Cliente: " + agenciaVM.envioActual.Cliente.Trim + ". Fecha: " + agenciaVM.envioActual.Fecha + """")
+                'objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + agenciaVM.envioActual.CodigoBarras + i.ToString("D3") + """")
+                objStream.Writeline("A40,450,0,4,1,2,N,""" + agenciaVM.envioActual.Nemonico + " " + agenciaVM.envioActual.NombrePlaza + """")
+                objStream.Writeline("A40,510,0,4,1,2,N,""" + agenciaVM.listaHorarios.Where(Function(x) x.id = agenciaVM.envioActual.Horario).FirstOrDefault.descripcion + """")
+                objStream.Writeline("A590,265,0,5,2,2,N,""" + agenciaVM.envioActual.Nemonico + """")
+                objStream.Writeline("P1")
+                objStream.Writeline("")
+            Next
+
+            
+
+        Catch ex As Exception
+            agenciaVM.mensajeError = ex.InnerException.Message
+        Finally
+            objStream.Close()
+            objFSO = Nothing
+            objStream = Nothing
+        End Try
+    End Sub
 End Class
