@@ -114,6 +114,15 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    Private _tabHeader As String
+    Public Property tabHeader As String
+        Get
+            Return "Hola"
+        End Get
+        Set(value As String)
+            _tabHeader = value
+        End Set
+    End Property
 
     '*** Propiedades de Nesto
     Private _resultadoWebservice As String
@@ -146,7 +155,17 @@ Public Class AgenciasViewModel
         Set(value As AgenciasTransporte)
             SetProperty(_agenciaSeleccionada, value)
             Try
-                agenciaEspecifica = factory(agenciaSeleccionada.Nombre).Invoke
+                If Not IsNothing(agenciaSeleccionada) Then
+                    agenciaEspecifica = factory(agenciaSeleccionada.Nombre).Invoke
+                    OnPropertyChanged("servicioActual")
+                    OnPropertyChanged("horarioActual")
+                    OnPropertyChanged("retornoActual")
+                    'listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
+                    listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+                    listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+                    OnPropertyChanged("sumaContabilidad")
+                    OnPropertyChanged("descuadreContabilidad")
+                End If
             Catch
                 'mensajeError = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre
                 NotificationRequest.Raise(New Notification() With { _
@@ -154,14 +173,7 @@ Public Class AgenciasViewModel
                     .Content = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre _
                 })
             End Try
-            OnPropertyChanged("servicioActual")
-            OnPropertyChanged("horarioActual")
-            OnPropertyChanged("retornoActual")
-            'listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
-            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
-            listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
-            OnPropertyChanged("sumaContabilidad")
-            OnPropertyChanged("descuadreContabilidad")
+
         End Set
     End Property
 
@@ -194,9 +206,15 @@ Public Class AgenciasViewModel
             SetProperty(_empresaSeleccionada, value)
             listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
             agenciaSeleccionada = listaAgencias.FirstOrDefault
-            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
-            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
-            listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+            If Not IsNothing(agenciaSeleccionada) Then
+                listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+                listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+            Else
+                listaEnvios = Nothing
+                listaEnviosTramitados = Nothing
+                listaReembolsos = Nothing
+            End If
             listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
             OnPropertyChanged("sumaContabilidad")
             OnPropertyChanged("descuadreContabilidad")
@@ -1000,7 +1018,7 @@ Public Class AgenciasViewModel
             DbContext.SaveChanges()
             NotificationRequest.Raise(New Notification() With { _
                  .Title = "Contabilizado Correctamente", _
-                .Content = "Asiento: " + asiento.ToString _
+                .Content = "Líneas contabilizadas: " + asiento.ToString _
             })
             listaReembolsosSeleccionados = Nothing
         Else

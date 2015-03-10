@@ -7,6 +7,8 @@ Class Application
     Protected Overrides Sub OnStartup(e As StartupEventArgs)
         FrameworkElement.LanguageProperty.OverrideMetadata(GetType(FrameworkElement), New FrameworkPropertyMetadata(XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)))
         MyBase.OnStartup(e)
+        Dim bootstrapper As Bootstrapper = New Bootstrapper
+        bootstrapper.Run()
     End Sub
 
 End Class

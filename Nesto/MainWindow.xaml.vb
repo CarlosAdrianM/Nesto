@@ -2,12 +2,29 @@
 Imports CrystalDecisions.Shared
 Imports System.Data.SqlClient
 Imports System.Data
-Imports Nesto.ViewModels.MainViewModel
+'Imports Nesto.ViewModels.MainViewModel
 Imports Nesto.ViewModels
+Imports Microsoft.Practices.Unity
+Imports Microsoft.Practices.Prism.Regions
+
 
 
 
 Class MainWindow
+
+
+    Private ReadOnly container As IUnityContainer
+    Private ReadOnly regionManager As IRegionManager
+
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
+
+        ' Llamada necesaria para el diseñador.
+        InitializeComponent()
+
+        ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
+        Me.container = container
+        Me.regionManager = regionManager
+    End Sub
 
     Private _fechaInformeInicial As Date = Today
     Public Property fechaInformeInicial As Date
@@ -28,10 +45,6 @@ Class MainWindow
             _fechaInformeFinal = value
         End Set
     End Property
-
-
-
-
 
 
     Private Sub Button1_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnInforme.Click
@@ -74,7 +87,6 @@ Class MainWindow
         w2.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
         w2.Show()
     End Sub
-
     Private Sub btnComisionesTelefono_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnComisionesTelefono.Click
         Select Case cmbOpciones.Text
             Case "Actual"
@@ -86,7 +98,6 @@ Class MainWindow
         End Select
 
     End Sub
-
     Private Sub GenerarInformeComisiones9(FechaDesde As Date, FechaHasta As Date, Resumen As Boolean, SoloFacturas As Boolean)
 
 
@@ -214,7 +225,6 @@ Class MainWindow
         Ventana.Show()
 
     End Sub
-
     Private Sub btnResumen_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnResumen.Click
         Select Case cmbOpciones.Text
             Case "Actual"
@@ -225,7 +235,6 @@ Class MainWindow
                 MsgBox("Parte del programa no implementada aún")
         End Select
     End Sub
-
     Private Sub btnVentasEmpresas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVentasEmpresas.Click
         Select Case cmbOpciones.Text
             Case "Actual"
@@ -513,14 +522,6 @@ Class MainWindow
         w2.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
         w2.Show()
     End Sub
-    Public Sub New()
-
-        ' Llamada necesaria para el diseñador.
-        InitializeComponent()
-
-        ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-
-    End Sub
     Private Sub btnInventario_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnInventario.Click
         Dim Ventana As New frmInforme
         Ventana.Owner = Me
@@ -566,16 +567,26 @@ Class MainWindow
     End Sub
     Private Sub btnClientesRemesas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesRemesas.Click
         'Este código hay que cambiarlo para que quede integrado en el MVVM
-        Dim frmRemesas As New Remesas
-        frmRemesas.Owner = Me
-        frmRemesas.Show()
+        'Dim frmRemesas As New Remesas
+        'frmRemesas.Owner = Me
+        'frmRemesas.Show()
+        Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Remesas)())
     End Sub
-
     Private Sub btnClientesAgencias_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesAgencias.Click
         'Este código hay que cambiarlo para que quede integrado en el MVVM
-        Dim frmCargar As New Agencias
-        frmCargar.Owner = Me
-        frmCargar.Show()
+        'Dim frmCargar As New Agencias
+        'frmCargar.Owner = Me
+        'frmCargar.Show()
+
+        Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Agencias)())
+
+    End Sub
+
+    Private Sub btnCerrarVista_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnCerrarVista.Click
+        Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.LastOrDefault
+        If Not IsNothing(view) Then
+            Me.regionManager.Regions("MainRegion").Remove(view)
+        End If
     End Sub
 
     Private Sub btnRatioDeuda_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnRatioDeuda.Click
@@ -583,33 +594,28 @@ Class MainWindow
         frmDeuda.Owner = Me
         frmDeuda.Show()
     End Sub
-
     Private Sub btnPrestashop_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnPrestashop.Click
         Dim frmPrestashop As New Prestashop
         frmPrestashop.Owner = Me
         frmPrestashop.Show()
     End Sub
-
     Private Sub btnVendedoresComisiones_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresComisiones.Click
         'Este código hay que cambiarlo para que quede integrado en el MVVM
         Dim frmComisiones As New Comisiones
         frmComisiones.Owner = Me
         frmComisiones.Show()
     End Sub
-
     Private Sub btnVendedoresClientes_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresClientes.Click
         'Este código hay que cambiarlo para que quede integrado en el MVVM
         Dim frmFichas As New ClienteComercial
         frmFichas.Owner = Me
         frmFichas.Show()
     End Sub
-
     Private Sub btnVendedoresPlanVentajas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresPlanVentajas.Click
         'Este código hay que cambiarlo para que quede integrado en el MVVM
         Dim frmAbrir As New PlanesVentajas
         frmAbrir.Owner = Me
         frmAbrir.Show()
     End Sub
-
 End Class
 
