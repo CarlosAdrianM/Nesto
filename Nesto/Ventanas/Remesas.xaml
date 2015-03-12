@@ -25,7 +25,7 @@
             <TabItem Name="tabRemesas" Header="Remesas">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="14*"/>
+                        <RowDefinition Height="11*"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
@@ -95,7 +95,7 @@
             <TabItem Name="tabImpagados" Header="Impagados">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="14*"/>
+                        <RowDefinition Height="11*"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>

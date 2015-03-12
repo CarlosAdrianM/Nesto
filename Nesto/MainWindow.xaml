@@ -8,10 +8,6 @@
         Title="Nesto" 
         x:Name="RibbonWindow"
 		Icon="/Nesto;component/Icono2_NV_256x256.ico" WindowState="Maximized" xmlns:my="clr-namespace:SAPBusinessObjects.WPF.Viewer;assembly=SAPBusinessObjects.WPF.Viewer" VerticalContentAlignment="Center" VerticalAlignment="Center">
-
-    <ribbon:RibbonWindow.DataContext>
-        <vm:MainViewModel/>
-    </ribbon:RibbonWindow.DataContext>
     
     <ribbon:RibbonWindow.Resources>
         
@@ -167,7 +163,6 @@
                     <ribbon:RibbonButton Label="Alquileres" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesAlquileres" />
                     <ribbon:RibbonButton Label="Remesas" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesRemesas" />
                     <ribbon:RibbonButton Label="Agencias" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesAgencias" />
-                    <ribbon:RibbonButton Label="Cerrar Vista" LargeImageSource="/Nesto;component/Images/Cerrar.png" Name="btnCerrarVista" />
                 </ribbon:RibbonGroup>
             </ribbon:RibbonTab>
 
@@ -196,9 +191,6 @@
         <Border DockPanel.Dock="Bottom" Margin="2,2,8,8" 
                 Grid.Column="2" 
                 Grid.Row="1" 
-                BorderThickness="2,2,2,2" 
-                CornerRadius="4,4,4,4" 
-                BorderBrush="#FF4355C1" 
                 Grid.RowSpan="2">
             <TabControl x:Name="MainRegion"
                             regions:RegionManager.RegionName="MainRegion" 
@@ -207,9 +199,27 @@
                 <TabControl.ItemContainerStyle>
                     <Style TargetType="{x:Type TabItem}">
                         <Setter Property="Header" Value="{Binding Name}" />
+                        <Setter Property="HeaderTemplate">
+                            <Setter.Value>
+                                <DataTemplate>
+                                    <StackPanel Margin="2" Orientation="Horizontal" Background="Transparent">
+                                        <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Header}" Margin="0 0 10 0"/>
+                                        <Button Command="{Binding RelativeSource=
+                                                {RelativeSource FindAncestor,
+                                                AncestorType={x:Type TabControl}},
+                                                Path=DataContext.cmdCerrarVentana}"
+                                                Content="X" Width="18" Height="18" FontFamily="Verdana" FontWeight="UltraBold" Background="Transparent" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
                 </TabControl.ItemContainerStyle>
             </TabControl>
         </Border>
+        
+                
     </DockPanel>
+       
+    
 </ribbon:RibbonWindow>

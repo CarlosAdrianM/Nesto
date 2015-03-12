@@ -24,6 +24,7 @@ Public Class AgenciasViewModel
     Public Const COD_PAIS As String = "34"
     Public Const ESTADO_INICIAL_ENVIO = 0
     Public Const ESTADO_TRAMITADO_ENVIO = 1
+    Private Const ESTADO_SIN_FACTURAR = 1
 
     Private Shared DbContext As NestoEntities
     Dim mainModel As New Nesto.Models.MainModel
@@ -1171,8 +1172,12 @@ Public Class AgenciasViewModel
         If pedidoSeleccionado.CCC IsNot Nothing Then
             Return 0
         End If
+        If pedidoSeleccionado.Periodo_Facturacion = "FDM" Then
+            Return 0
+        End If
+
         Dim lineas As ObjectQuery(Of LinPedidoVta)
-        lineas = (From l In DbContext.LinPedidoVta Where l.Número = pedidoSeleccionado.Número And l.Picking <> 0)
+        lineas = (From l In DbContext.LinPedidoVta Where l.Número = pedidoSeleccionado.Número And l.Picking <> 0 And l.Estado = ESTADO_SIN_FACTURAR)
         If Not lineas.Any Then
             Return 0
         End If
@@ -1909,7 +1914,6 @@ Public Class AgenciaASM
         End Try
     End Sub
 End Class
-
 Public Class AgenciaOnTime
     Implements IAgencia
 
@@ -1961,7 +1965,7 @@ Public Class AgenciaOnTime
             .Content = "OnTime no permite integración. Consulte el estado en la página web de OnTime." _
         })
         Return Nothing
-        
+
     End Function
     Public Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio Implements IAgencia.transformarXMLdeEstado
         Dim estado As New estadoEnvio
@@ -1987,7 +1991,7 @@ Public Class AgenciaOnTime
         telefonoPlaza = "902112820"
         emailPlaza = "traficodistribucion@ontimelogistica.com"
     End Sub
-    
+
     Public Sub llamadaWebService(DbContext As NestoEntities) Implements IAgencia.llamadaWebService
         'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
         agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
@@ -2029,7 +2033,7 @@ Public Class AgenciaOnTime
                 objStream.Writeline("")
             Next
 
-            
+
 
         Catch ex As Exception
             agenciaVM.mensajeError = ex.InnerException.Message

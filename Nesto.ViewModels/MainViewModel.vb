@@ -8,6 +8,10 @@ Imports System.Windows
 Imports System.Windows.Data
 Imports System.Globalization
 Imports System.Windows.Media.Imaging
+Imports Microsoft.Practices.Unity
+Imports Microsoft.Practices.Prism.Mvvm
+Imports Microsoft.Practices.Prism.Commands
+Imports Microsoft.Practices.Prism.Regions
 
 
 Public Class ViewModelBase
@@ -61,10 +65,7 @@ Public Class RelayCommand
 
 End Class
 Public Class MainViewModel
-    Inherits ViewModelBase
-
-
-
+    Inherits BindableBase
 
     Private _RatiosVenta As RatioVenta
     Public Property RatiosVenta As RatioVenta
@@ -116,11 +117,16 @@ Public Class MainViewModel
         End Set
     End Property
 
-    Public Sub New()
-        'Me._RatiosDeuda = RatioDeuda.CargarRatiosDeuda
+    Private ReadOnly container As IUnityContainer
+    Private ReadOnly regionManager As IRegionManager
+
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
         Me._RatiosVenta = RatioVenta.CargarRatiosVenta
         Me._Vendedor = MainModel.Vendedor.CargarVendedor
-        'opcionesFechas = "Microsoft.Windows.Controls.Ribbon.RibbonGalleryItem: Personalizar"
+        Me.container = container
+        Me.regionManager = regionManager
+
+        cmdCerrarVentana = New DelegateCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
     End Sub
 
     Private _Vendedor As String
@@ -135,7 +141,26 @@ Public Class MainViewModel
         End Set
     End Property
 
-
+#Region "Comandos"
+    Private _cmdCerrarVentana As DelegateCommand(Of Object)
+    Public Property cmdCerrarVentana As DelegateCommand(Of Object)
+        Get
+            Return _cmdCerrarVentana
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdCerrarVentana = value
+        End Set
+    End Property
+    Private Function CanCerrarVentana(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnCerrarVentana(arg As Object)
+        Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.LastOrDefault
+        If Not IsNothing(view) Then
+            Me.regionManager.Regions("MainRegion").Remove(view)
+        End If
+    End Sub
+#End Region
 
 End Class
 Public Class RatioDataTemplateSelector

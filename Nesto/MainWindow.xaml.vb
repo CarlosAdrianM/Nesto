@@ -6,6 +6,7 @@ Imports System.Data
 Imports Nesto.ViewModels
 Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.Regions
+Imports Microsoft.Practices.Prism.Commands
 
 
 
@@ -20,6 +21,7 @@ Class MainWindow
 
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
+        Me.DataContext = New MainViewModel(container, regionManager)
 
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.container = container
@@ -101,7 +103,7 @@ Class MainWindow
     Private Sub GenerarInformeComisiones9(FechaDesde As Date, FechaHasta As Date, Resumen As Boolean, SoloFacturas As Boolean)
 
 
-        Dim vm = New MainViewModel
+        Dim vm = New MainViewModel(container, regionManager)
         Dim strVendedor As String = vm.Vendedor
 
         Dim Ventana As New frmInforme
@@ -500,9 +502,12 @@ Class MainWindow
 
     End Sub
     Private Sub btnClientesFicha_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnClientesFicha.Click
-        Dim frmClientes As New Clientes
-        frmClientes.Owner = Me
-        frmClientes.Show()
+        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Clientes)())
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of Clientes)()
+        region.Add(vista, "Clientes")
+        region.Activate(vista)
+
     End Sub
     Private Sub btnControlPedidos_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnControlPedidos.Click
         Dim w2 As New frmInforme
@@ -560,39 +565,40 @@ Class MainWindow
         w2.Show()
     End Sub
     Private Sub btnClientesAlquileres_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesAlquileres.Click
-        'Este código hay que cambiarlo para que quede integrado en el MVVM
-        Dim frmAlquileres As New Alquileres
-        frmAlquileres.Owner = Me
-        frmAlquileres.Show()
+        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Alquileres)())
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of Alquileres)()
+        region.Add(vista, "Alquileres")
+        region.Activate(vista)
+
     End Sub
     Private Sub btnClientesRemesas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesRemesas.Click
         'Este código hay que cambiarlo para que quede integrado en el MVVM
         'Dim frmRemesas As New Remesas
         'frmRemesas.Owner = Me
         'frmRemesas.Show()
-        Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Remesas)())
+        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Remesas)())
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of Remesas)()
+        region.Add(vista, "Remesas")
+        region.Activate(vista)
+
     End Sub
     Private Sub btnClientesAgencias_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesAgencias.Click
-        'Este código hay que cambiarlo para que quede integrado en el MVVM
-        'Dim frmCargar As New Agencias
-        'frmCargar.Owner = Me
-        'frmCargar.Show()
-
-        Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Agencias)())
+        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Agencias)())
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of Agencias)()
+        region.Add(vista, "Agencias")
+        region.Activate(vista)
 
     End Sub
-
-    Private Sub btnCerrarVista_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnCerrarVista.Click
-        Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.LastOrDefault
-        If Not IsNothing(view) Then
-            Me.regionManager.Regions("MainRegion").Remove(view)
-        End If
-    End Sub
-
     Private Sub btnRatioDeuda_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnRatioDeuda.Click
-        Dim frmDeuda As New Deuda
-        frmDeuda.Owner = Me
-        frmDeuda.Show()
+        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Deuda)())
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of Deuda)()
+        region.Add(vista, "Deuda")
+        region.Activate(vista)
+
     End Sub
     Private Sub btnPrestashop_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnPrestashop.Click
         Dim frmPrestashop As New Prestashop
@@ -600,22 +606,29 @@ Class MainWindow
         frmPrestashop.Show()
     End Sub
     Private Sub btnVendedoresComisiones_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresComisiones.Click
-        'Este código hay que cambiarlo para que quede integrado en el MVVM
-        Dim frmComisiones As New Comisiones
-        frmComisiones.Owner = Me
-        frmComisiones.Show()
+        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Comisiones)())
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of Comisiones)()
+        region.Add(vista, "Comisiones")
+        region.Activate(vista)
     End Sub
     Private Sub btnVendedoresClientes_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresClientes.Click
-        'Este código hay que cambiarlo para que quede integrado en el MVVM
-        Dim frmFichas As New ClienteComercial
-        frmFichas.Owner = Me
-        frmFichas.Show()
+        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of ClienteComercial)())
+
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of ClienteComercial)()
+        region.Add(vista, "ClienteComercial")
+        region.Activate(vista)
     End Sub
     Private Sub btnVendedoresPlanVentajas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresPlanVentajas.Click
-        'Este código hay que cambiarlo para que quede integrado en el MVVM
-        Dim frmAbrir As New PlanesVentajas
-        frmAbrir.Owner = Me
-        frmAbrir.Show()
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of PlanesVentajas)()
+        region.Add(vista, "PlanesVentajas")
+        region.Activate(vista)
+
+        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of PlanesVentajas)())
     End Sub
+
+
 End Class
 

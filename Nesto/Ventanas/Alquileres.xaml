@@ -1,15 +1,12 @@
-﻿<Window x:Class="Alquileres"
+﻿<UserControl x:Class="Alquileres" x:Name="Alquileres"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:Nesto.Views"
-    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels"
-    Icon="/Nesto;component/Icono2_NV_256x256.ico" 
-    WindowState="Maximized"
-    Title="Alquileres" Height="466" Width="946">
+    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
     
-    <Window.DataContext>
+    <UserControl.DataContext>
         <vm:AlquileresViewModel/>
-    </Window.DataContext>
+    </UserControl.DataContext>
 
 
 
@@ -156,4 +153,4 @@
 
         </DockPanel>
     </Grid>
-</Window>
+</UserControl>
