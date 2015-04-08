@@ -26,6 +26,7 @@
         <Setter Property="Background" Value="Yellow"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="AcceptsReturn" Value="True"/>
     </Style>
 
     <Style x:Key="etiquetaTexto" TargetType="TextBlock">

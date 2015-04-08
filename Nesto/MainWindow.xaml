@@ -203,12 +203,14 @@
                             <Setter.Value>
                                 <DataTemplate>
                                     <StackPanel Margin="2" Orientation="Horizontal" Background="Transparent">
+                                        
                                         <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType={x:Type TabItem}}, Path=Header}" Margin="0 0 10 0"/>
                                         <Button Command="{Binding RelativeSource=
                                                 {RelativeSource FindAncestor,
                                                 AncestorType={x:Type TabControl}},
                                                 Path=DataContext.cmdCerrarVentana}"
                                                 Content="X" Width="18" Height="18" FontFamily="Verdana" FontWeight="UltraBold" Background="Transparent" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
                                     </StackPanel>
                                 </DataTemplate>
                             </Setter.Value>

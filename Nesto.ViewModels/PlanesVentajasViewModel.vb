@@ -27,7 +27,7 @@ Public Class PlanesVentajasViewModel
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
         barrasGrafico = New ObservableCollection(Of datosGrafico)
         gaugeGrafico = New ObservableCollection(Of datosGrafico)
-        listaPlanes = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas)
+        listaPlanes = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Order By p.FechaFin)
         planActual = listaPlanes.LastOrDefault
     End Sub
 
@@ -157,7 +157,11 @@ Public Class PlanesVentajasViewModel
     Public ReadOnly Property importeProyeccion As Double
         Get
             If Not IsNothing(planActual) Then
-                Return importeVentas / diasTranscurridos * diasPlan
+                If importeVentas > 0 Then
+                    Return importeVentas / diasTranscurridos * diasPlan
+                Else
+                    Return 0
+                End If
             Else
                 Return 0
             End If

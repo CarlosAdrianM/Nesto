@@ -344,6 +344,18 @@
           <Property Name="Usuario" Type="varchar" MaxLength="50" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
         </EntityType>
+        <EntityType Name="EnviosHistoria">
+          <Key>
+            <PropertyRef Name="Numero" />
+          </Key>
+          <Property Name="Numero" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="NumeroEnvio" Type="int" Nullable="false" />
+          <Property Name="Campo" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="ValorAnterior" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Observaciones" Type="text" />
+          <Property Name="Usuario" Type="varchar" MaxLength="50" Nullable="false" StoreGeneratedPattern="Computed" />
+          <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
+        </EntityType>
         <EntityType Name="EstadosCCC">
           <Key>
             <PropertyRef Name="Empresa" />
@@ -1231,6 +1243,18 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_EnviosHistoria_EnviosAgencia">
+          <End Role="EnviosAgencia" Type="Self.EnviosAgencia" Multiplicity="1" />
+          <End Role="EnviosHistoria" Type="Self.EnviosHistoria" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="EnviosAgencia">
+              <PropertyRef Name="Numero" />
+            </Principal>
+            <Dependent Role="EnviosHistoria">
+              <PropertyRef Name="NumeroEnvio" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_EtiquetasPicking_Empresas">
           <End Role="Empresas" Type="Self.Empresas" Multiplicity="1" />
           <End Role="EtiquetasPicking" Type="Self.EtiquetasPicking" Multiplicity="*" />
@@ -1816,6 +1840,7 @@
           <EntitySet Name="Contabilidad" EntityType="Self.Contabilidad" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Empresas" EntityType="Self.Empresas" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="EnviosAgencia" EntityType="Self.EnviosAgencia" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="EnviosHistoria" EntityType="Self.EnviosHistoria" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="EstadosCCC" EntityType="Self.EstadosCCC" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="EstadosPlanVentajas" EntityType="Self.EstadosPlanVentajas" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="EtiquetasPicking" EntityType="Self.EtiquetasPicking" Schema="dbo" store:Type="Tables" />
@@ -1941,6 +1966,10 @@
           <AssociationSet Name="FK_EnviosAgencia_Vendedores" Association="Self.FK_EnviosAgencia_Vendedores">
             <End Role="Vendedores" EntitySet="Vendedores" />
             <End Role="EnviosAgencia" EntitySet="EnviosAgencia" />
+          </AssociationSet>
+          <AssociationSet Name="FK_EnviosHistoria_EnviosAgencia" Association="Self.FK_EnviosHistoria_EnviosAgencia">
+            <End Role="EnviosAgencia" EntitySet="EnviosAgencia" />
+            <End Role="EnviosHistoria" EntitySet="EnviosHistoria" />
           </AssociationSet>
           <AssociationSet Name="FK_EtiquetasPicking_Empresas" Association="Self.FK_EtiquetasPicking_Empresas">
             <End Role="Empresas" EntitySet="Empresas" />
@@ -2436,6 +2465,11 @@
             <Parameter Name="Diario" Mode="In" Type="String" />
           </FunctionImport>
           <EntitySet Name="Contabilidad" EntityType="Nesto.Models.EF.Contabilidad" />
+          <EntitySet Name="EnviosHistoria" EntityType="Nesto.Models.EF.EnviosHistoria" />
+          <AssociationSet Name="FK_EnviosHistoria_EnviosAgencia" Association="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia">
+            <End Role="EnviosAgencia" EntitySet="EnviosAgencia" />
+            <End Role="EnviosHistoria" EntitySet="EnviosHistoria" />
+          </AssociationSet>
           </EntityContainer>
         <EntityType Name="Productos">
           <Key>
@@ -4105,6 +4139,7 @@
           <NavigationProperty Name="Vendedores" Relationship="Nesto.Models.EF.FK_EnviosAgencia_Vendedores" FromRole="EnviosAgencia" ToRole="Vendedores" />
           <NavigationProperty Name="AgenciasTransporte" Relationship="Nesto.Models.EF.FK_EnviosAgencia_AgenciasTransporte" FromRole="EnviosAgencia" ToRole="AgenciasTransporte" />
           <Property Name="FechaPagoReembolso" Type="DateTime" Precision="0" />
+          <NavigationProperty Name="EnviosHistoria" Relationship="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" FromRole="EnviosAgencia" ToRole="EnviosHistoria" />
         </EntityType>
         <Association Name="FK_AgenciasTransporte_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
@@ -4418,6 +4453,31 @@
           <Property Name="Usuario" Type="String" Nullable="false" MaxLength="30" FixedLength="false" Unicode="false" />
           <Property Name="Fecha_Modificación" Type="DateTime" Nullable="false" Precision="3" />
         </EntityType>
+        <EntityType Name="EnviosHistoria">
+          <Key>
+            <PropertyRef Name="Numero" />
+          </Key>
+          <Property Name="Numero" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="NumeroEnvio" Type="Int32" Nullable="false" />
+          <Property Name="Campo" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="ValorAnterior" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Observaciones" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Usuario" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" annotation:StoreGeneratedPattern="Computed" />
+          <Property Name="FechaModificacion" Type="DateTime" Nullable="false" Precision="3" annotation:StoreGeneratedPattern="Computed" />
+          <NavigationProperty Name="EnviosAgencia" Relationship="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" FromRole="EnviosHistoria" ToRole="EnviosAgencia" />
+        </EntityType>
+        <Association Name="FK_EnviosHistoria_EnviosAgencia">
+          <End Type="Nesto.Models.EF.EnviosAgencia" Role="EnviosAgencia" Multiplicity="1" />
+          <End Type="Nesto.Models.EF.EnviosHistoria" Role="EnviosHistoria" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="EnviosAgencia">
+              <PropertyRef Name="Numero" />
+            </Principal>
+            <Dependent Role="EnviosHistoria">
+              <PropertyRef Name="NumeroEnvio" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -5339,6 +5399,19 @@
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
+          <EntitySetMapping Name="EnviosHistoria">
+            <EntityTypeMapping TypeName="Nesto.Models.EF.EnviosHistoria">
+              <MappingFragment StoreEntitySet="EnviosHistoria">
+                <ScalarProperty Name="FechaModificacion" ColumnName="FechaModificacion" />
+                <ScalarProperty Name="Usuario" ColumnName="Usuario" />
+                <ScalarProperty Name="Observaciones" ColumnName="Observaciones" />
+                <ScalarProperty Name="ValorAnterior" ColumnName="ValorAnterior" />
+                <ScalarProperty Name="Campo" ColumnName="Campo" />
+                <ScalarProperty Name="NumeroEnvio" ColumnName="NumeroEnvio" />
+                <ScalarProperty Name="Numero" ColumnName="Numero" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
@@ -5691,6 +5764,8 @@
         <AssociationConnector Association="Nesto.Models.EF.FK_FamiliasVendedor_Vendedores" />
         <EntityTypeShape EntityType="Nesto.Models.EF.PreContabilidad" Width="1.5" PointX="19.375" PointY="0.75" />
         <EntityTypeShape EntityType="Nesto.Models.EF.Contabilidad" Width="1.5" PointX="18.75" PointY="20.25" />
+        <EntityTypeShape EntityType="Nesto.Models.EF.EnviosHistoria" Width="1.5" PointX="16.875" PointY="26.125" />
+        <AssociationConnector Association="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" />
         </Diagram>
     </Diagrams>
   </Designer>

@@ -25,6 +25,7 @@ Public Class AgenciasViewModel
     Public Const ESTADO_INICIAL_ENVIO = 0
     Public Const ESTADO_TRAMITADO_ENVIO = 1
     Private Const ESTADO_SIN_FACTURAR = 1
+    Private Const ESTADO_LINEA_PENDIENTE = -1
 
     Private Shared DbContext As NestoEntities
     Dim mainModel As New Nesto.Models.MainModel
@@ -45,6 +46,8 @@ Public Class AgenciasViewModel
         cmdDobleClic = New DelegateCommand(Of Object)(AddressOf OnDobleClic, AddressOf CanDobleClic)
         cmdContabilizarReembolso = New DelegateCommand(Of Object)(AddressOf OnContabilizarReembolso, AddressOf CanContabilizarReembolso)
         cmdDescargarImagen = New DelegateCommand(Of Object)(AddressOf OnDescargarImagen, AddressOf CanDescargarImagen)
+        cmdModificarEnvio = New DelegateCommand(Of Object)(AddressOf OnModificarEnvio, AddressOf CanModificarEnvio)
+
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
@@ -67,12 +70,8 @@ Public Class AgenciasViewModel
         'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
         listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
 
+        
 
-        'AddHandler Me.PropertyChanged, AddressOf Me.OnPropertyChanged
-
-
-        'XMLdeEstado = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Documents\xmlestado.xml")
-        'estadoEnvioCargado = transformarXMLdeEstado(XMLdeEstado)
     End Sub
 
 #Region "Propiedades"
@@ -115,16 +114,6 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private _tabHeader As String
-    Public Property tabHeader As String
-        Get
-            Return "Hola"
-        End Get
-        Set(value As String)
-            _tabHeader = value
-        End Set
-    End Property
-
     '*** Propiedades de Nesto
     Private _resultadoWebservice As String
     Public Property resultadoWebservice As String
@@ -163,7 +152,7 @@ Public Class AgenciasViewModel
                     OnPropertyChanged("retornoActual")
                     'listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
                     listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
-                    listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+                    listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
                     OnPropertyChanged("sumaContabilidad")
                     OnPropertyChanged("descuadreContabilidad")
                 End If
@@ -206,7 +195,9 @@ Public Class AgenciasViewModel
         Set(value As Empresas)
             SetProperty(_empresaSeleccionada, value)
             listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
-            agenciaSeleccionada = listaAgencias.FirstOrDefault
+            If numeroPedido = 0 Then
+                agenciaSeleccionada = listaAgencias.FirstOrDefault
+            End If
             If Not IsNothing(agenciaSeleccionada) Then
                 listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
                 listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
@@ -231,7 +222,8 @@ Public Class AgenciasViewModel
         End Get
         Set(value As CabPedidoVta)
             SetProperty(_pedidoSeleccionado, value)
-            If Not IsNothing(pedidoSeleccionado) Then
+            configurarAgenciaPedido(agenciaSeleccionada)
+            If Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(pedidoSeleccionado.Clientes) Then
                 reembolso = importeReembolso()
                 bultos = 1
                 nombreEnvio = pedidoSeleccionado.Clientes.Nombre.Trim
@@ -257,7 +249,6 @@ Public Class AgenciasViewModel
                 .Content = "El pedido seleccionado no existe" _
                 })
             End If
-
         End Set
     End Property
 
@@ -268,6 +259,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
             SetProperty(_listaTiposRetorno, value)
+            OnPropertyChanged("retornoModificar")
         End Set
     End Property
 
@@ -470,7 +462,7 @@ Public Class AgenciasViewModel
             SetProperty(_envioActual, value)
             estadoEnvioCargado = Nothing
             mensajeError = ""
-            If Not IsNothing(envioActual) AndAlso Not IsNothing(envioActual.AgenciasTransporte) AndAlso agenciaSeleccionada.Numero <> envioActual.AgenciasTransporte.Numero Then
+            If Not IsNothing(envioActual) AndAlso Not IsNothing(envioActual.AgenciasTransporte) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Numero <> envioActual.AgenciasTransporte.Numero Then
                 agenciaSeleccionada = envioActual.AgenciasTransporte
             End If
 
@@ -478,6 +470,21 @@ Public Class AgenciasViewModel
             If Not IsNothing(cmdCargarEstado) Then
                 cmdCargarEstado.RaiseCanExecuteChanged()
             End If
+
+            If Not IsNothing(envioActual) Then
+                reembolsoModificar = envioActual.Reembolso
+                retornoModificar = (From l In listaTiposRetorno Where l.id = envioActual.Retorno).FirstOrDefault
+                estadoModificar = envioActual.Estado
+                listaHistoriaEnvio = New ObservableCollection(Of EnviosHistoria)(From h In DbContext.EnviosHistoria Where h.NumeroEnvio = envioActual.Numero)
+            Else
+                listaHistoriaEnvio = Nothing
+            End If
+
+            If Not IsNothing(cmdModificarEnvio) Then
+                cmdModificarEnvio.RaiseCanExecuteChanged()
+            End If
+
+            OnPropertyChanged("sePuedeModificarReembolso")
         End Set
     End Property
 
@@ -500,6 +507,7 @@ Public Class AgenciasViewModel
             SetProperty(_fechaFiltro, value)
             'actualizamos listaPedidos
             listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+            envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
     End Property
 
@@ -511,8 +519,23 @@ Public Class AgenciasViewModel
         Set(value As String)
             SetProperty(_clienteFiltro, value)
             listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Cliente = clienteFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+            envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
     End Property
+
+    Private _nombreFiltro As String
+    Public Property nombreFiltro As String
+        Get
+            Return _nombreFiltro
+        End Get
+        Set(value As String)
+            SetProperty(_nombreFiltro, value)
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Clientes.Nombre.Contains(nombreFiltro) And e.Estado = ESTADO_TRAMITADO_ENVIO)
+            envioActual = listaEnviosTramitados.FirstOrDefault
+        End Set
+    End Property
+
+
 
     'Private Property _listaPedidos As ObservableCollection(Of CabPedidoVta)
     'Public Property listaPedidos As ObservableCollection(Of CabPedidoVta)
@@ -532,7 +555,16 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Integer)
             SetProperty(_numeroPedido, value)
-            pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Empresa = empresaSeleccionada.Número And c.Número = numeroPedido).FirstOrDefault
+            Dim pedidoAnterior As CabPedidoVta
+            pedidoAnterior = pedidoSeleccionado
+            pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = numeroPedido).FirstOrDefault
+            If IsNothing(pedidoSeleccionado) Or IsNothing(pedidoSeleccionado.Clientes) Then
+                pedidoSeleccionado = pedidoAnterior
+                SetProperty(_numeroPedido, pedidoAnterior.Número)
+            End If
+            'Dim agenciaNueva As AgenciasTransporte = (From a In DbContext.AgenciasTransporte Where a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
+            OnPropertyChanged("empresaSeleccionada")
+            OnPropertyChanged("agenciaSeleccionada")
         End Set
     End Property
 
@@ -600,6 +632,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaEnviosTramitados, value)
+            OnPropertyChanged("sePuedeModificarReembolso")
         End Set
     End Property
 
@@ -710,7 +743,7 @@ Public Class AgenciasViewModel
 
     Public ReadOnly Property sumaContabilidad As Double
         Get
-            If Not IsNothing(agenciaSeleccionada) Then
+            If Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Empresa = empresaSeleccionada.Número Then
                 Return Aggregate c In DbContext.Contabilidad Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cuenta = agenciaSeleccionada.CuentaReembolsos Into Sum(c.Debe - c.Haber)
             Else
                 Return 0
@@ -737,6 +770,78 @@ Public Class AgenciasViewModel
             End If
         End Set
     End Property
+
+    Private _reembolsoModificar As Double
+    Public Property reembolsoModificar As Double
+        Get
+            Return _reembolsoModificar
+        End Get
+        Set(value As Double)
+            SetProperty(_reembolsoModificar, value)
+            OnPropertyChanged("envioActual")
+        End Set
+    End Property
+
+    Private _retornoModificar As tipoIdDescripcion
+    Public Property retornoModificar As tipoIdDescripcion
+        Get
+            Return _retornoModificar
+        End Get
+        Set(value As tipoIdDescripcion)
+            SetProperty(_retornoModificar, value)
+            OnPropertyChanged("envioActual")
+        End Set
+    End Property
+
+    Private _estadoModificar As Integer
+    Public Property estadoModificar As Integer
+        Get
+            Return _estadoModificar
+        End Get
+        Set(value As Integer)
+            SetProperty(_estadoModificar, value)
+            OnPropertyChanged("envioActual")
+        End Set
+    End Property
+
+    Private _observacionesModificacion As String
+    Public Property observacionesModificacion As String
+        Get
+            Return _observacionesModificacion
+        End Get
+        Set(value As String)
+            SetProperty(_observacionesModificacion, value)
+        End Set
+    End Property
+
+    Public ReadOnly Property sePuedeModificarReembolso As Boolean
+        Get
+            Return Not IsNothing(envioActual) AndAlso Not IsNothing(listaEnviosTramitados) AndAlso listaEnviosTramitados.Count > 0
+        End Get
+    End Property
+
+    Private _listaHistoriaEnvio As ObservableCollection(Of EnviosHistoria)
+    Public Property listaHistoriaEnvio As ObservableCollection(Of EnviosHistoria)
+        Get
+            Return _listaHistoriaEnvio
+        End Get
+        Set(value As ObservableCollection(Of EnviosHistoria))
+            SetProperty(_listaHistoriaEnvio, value)
+            OnPropertyChanged("mostrarHistoria")
+        End Set
+    End Property
+
+    Private _mostrarHistoria As Visibility
+    Public ReadOnly Property mostrarHistoria As Visibility
+        Get
+            If (Not IsNothing(listaHistoriaEnvio)) AndAlso listaHistoriaEnvio.Count > 0 Then
+                Return Visibility.Visible
+            Else
+                Return Visibility.Collapsed
+            End If
+        End Get
+    End Property
+
 
 #End Region
 
@@ -848,7 +953,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function CanInsertar(ByVal param As Object) As Boolean
-        Return Not IsNothing(pedidoSeleccionado)
+        Return Not IsNothing(pedidoSeleccionado) And Not IsNothing(agenciaSeleccionada)
     End Function
     Private Sub Insertar(ByVal param As Object)
         insertarRegistro()
@@ -911,7 +1016,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanCargarEstado(arg As Object) As Boolean
-        Return Not IsNothing(envioActual) AndAlso Not IsNothing(listaEnviosPedido) AndAlso listaEnviosPedido.Count > 0
+        Return Not IsNothing(envioActual) AndAlso Not IsNothing(listaEnviosPedido) AndAlso listaEnviosPedido.Count > 0 'AndAlso Not IsNothing(agenciaEspecifica)
         'Return True
     End Function
     Private Sub OnCargarEstado(arg As Object)
@@ -1019,7 +1124,7 @@ Public Class AgenciasViewModel
             DbContext.SaveChanges()
             NotificationRequest.Raise(New Notification() With { _
                  .Title = "Contabilizado Correctamente", _
-                .Content = "Líneas contabilizadas: " + asiento.ToString _
+                .Content = "Nº Asiento: " + asiento.ToString _
             })
             listaReembolsosSeleccionados = Nothing
         Else
@@ -1058,6 +1163,22 @@ Public Class AgenciasViewModel
         cln.DownloadFile(digitalizacionActual.urlDigitalizacion, saveDialog.FileName)
 
         mensajeError = "Guardada en " + saveDialog.FileName
+    End Sub
+
+    Private _cmdModificarEnvio As DelegateCommand(Of Object)
+    Public Property cmdModificarEnvio As DelegateCommand(Of Object)
+        Get
+            Return _cmdModificarEnvio
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdModificarEnvio = value
+        End Set
+    End Property
+    Private Function CanModificarEnvio(arg As Object) As Boolean
+        Return sePuedeModificarReembolso
+    End Function
+    Private Sub OnModificarEnvio(arg As Object)
+        modificarEnvio(envioActual, reembolsoModificar, retornoModificar, estadoModificar)
     End Sub
 
 
@@ -1166,6 +1287,7 @@ Public Class AgenciasViewModel
     End Function
 
     Public Function importeReembolso() As Decimal
+        ' Miramos los casos en los que no hay contra reembolso
         If IsNothing(pedidoSeleccionado) Then
             Return 0
         End If
@@ -1175,7 +1297,22 @@ Public Class AgenciasViewModel
         If pedidoSeleccionado.Periodo_Facturacion = "FDM" Then
             Return 0
         End If
+        If (pedidoSeleccionado.Forma_Pago = "CNF" Or pedidoSeleccionado.Forma_Pago = "TRN") Then
+            Return 0
+        End If
+        If pedidoSeleccionado.NotaEntrega Then
+            Return 0
+        End If
 
+        If pedidoSeleccionado.MantenerJunto Then
+            Dim lineasSinFacturar As ObjectQuery(Of LinPedidoVta)
+            lineasSinFacturar = (From l In DbContext.LinPedidoVta Where l.Número = pedidoSeleccionado.Número And l.Estado = ESTADO_LINEA_PENDIENTE)
+            If lineasSinFacturar.Any Then
+                Return 0
+            End If
+        End If
+
+        ' Para el resto de los casos ponemos el importe correcto
         Dim lineas As ObjectQuery(Of LinPedidoVta)
         lineas = (From l In DbContext.LinPedidoVta Where l.Número = pedidoSeleccionado.Número And l.Picking <> 0 And l.Estado = ESTADO_SIN_FACTURAR)
         If Not lineas.Any Then
@@ -1267,7 +1404,7 @@ Public Class AgenciasViewModel
         envioActual.CodigoBarras = agenciaEspecifica.calcularCodigoBarras()
     End Sub
 
-    Public Function contabilizarReembolso(envio As EnviosAgencia)
+    Public Function contabilizarReembolso(envio As EnviosAgencia) As Integer
 
         Const diarioReembolsos As String = "_Reembolso"
 
@@ -1341,6 +1478,165 @@ Public Class AgenciasViewModel
         End If
     End Function
 
+    Private Sub configurarAgenciaPedido(ByRef agenciaConfigurar As AgenciasTransporte)
+        If IsNothing(pedidoSeleccionado) Then
+            Return
+        End If
+
+        Dim agenciaNueva As AgenciasTransporte = (From a In DbContext.AgenciasTransporte Where a.Empresa = pedidoSeleccionado.Empresa And a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
+
+        'Carlos 20/03/15. Hay que cambiar esto, que es una chapuza, pero lo pongo para que funcione hoy al menos
+        Dim dobleCiclo As Boolean = False
+        If IsNothing(agenciaNueva) AndAlso Not IsNothing(pedidoSeleccionado.Ruta) AndAlso pedidoSeleccionado.Ruta.Trim = "OT" Then
+            agenciaNueva = (From a In DbContext.AgenciasTransporte Where a.Empresa = pedidoSeleccionado.Empresa And a.Nombre = "OnTime").FirstOrDefault
+            dobleCiclo = True
+        End If
+
+        If Not IsNothing(agenciaNueva) AndAlso (agenciaConfigurar.Numero <> agenciaNueva.Numero Or agenciaConfigurar.Empresa <> agenciaNueva.Empresa) Then
+            'empresaSeleccionada = (From e In DbContext.Empresas Where e.Número = pedidoSeleccionado.Empresa).FirstOrDefault
+            empresaSeleccionada = agenciaNueva.Empresas
+            agenciaConfigurar = agenciaNueva
+            'OnPropertyChanged("agenciaSeleccionada")
+        End If
+
+        'Carlos 20/03/15, también hay que cambiarlo
+        'If dobleCiclo Then
+        '    horarioActual = listaHorarios(1) 'Doble ciclo
+        '    OnPropertyChanged("horarioActual")
+        'End If
+    End Sub
+
+    Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer)
+        Dim historia As New EnviosHistoria
+        Dim modificado As Boolean = False
+        Dim reembolsoAnterior As Double = 0
+        If envio.Reembolso <> reembolso Then
+            historia.NumeroEnvio = envio.Numero
+            historia.Campo = "Reembolso"
+            historia.ValorAnterior = envio.Reembolso
+            reembolsoAnterior = envio.Reembolso
+            envio.Reembolso = reembolso
+            DbContext.EnviosHistoria.AddObject(historia)
+            modificado = True
+        End If
+        If envio.Retorno <> retorno.id Then
+            historia.NumeroEnvio = envio.Numero
+            historia.Campo = "Retorno"
+            Dim tipoEnvioAnterior As Byte = envio.Retorno
+            historia.ValorAnterior = (From l In listaTiposRetorno Where l.id = tipoEnvioAnterior Select l.descripcion).FirstOrDefault
+            envio.Retorno = retorno.id
+            DbContext.EnviosHistoria.AddObject(historia)
+            modificado = True
+        End If
+        If envio.Estado <> estado Then
+            historia.NumeroEnvio = envio.Numero
+            historia.Campo = "Estado"
+            historia.ValorAnterior = envio.Estado
+            envio.Estado = estado
+            DbContext.EnviosHistoria.AddObject(historia)
+            modificado = True
+        End If
+        If modificado Then
+            historia.Observaciones = observacionesModificacion
+            DbContext.SaveChanges()
+            If reembolsoAnterior <> 0 Then
+                contabilizarModificacionReembolso(envio, reembolsoAnterior, reembolso)
+            End If
+        End If
+    End Sub
+
+    Public Function contabilizarModificacionReembolso(envio As EnviosAgencia, importeAnterior As Double, importeNuevo As Double) As Integer
+
+        Const diarioReembolsos As String = "_Reembolso"
+
+        If IsNothing(envio.AgenciasTransporte.CuentaReembolsos) Then
+            mensajeError = "Esta agencia no tiene establecida una cuenta de reembolsos. No se puede contabilizar."
+            Return -1
+        End If
+
+        Dim lineaDeshago, lineaRehago As New PreContabilidad
+        Dim asiento As Integer
+        'Dim movimientoLiq As ExtractoCliente
+        'movimientoLiq = calcularMovimientoLiq(envio)
+
+
+        With lineaDeshago
+            .Empresa = envio.Empresa.Trim
+            .Diario = diarioReembolsos.Trim
+            .Asiento = 1
+            .TipoApunte = "3" 'Pago
+            .TipoCuenta = "2" 'Cliente
+            .Nº_Cuenta = envio.Cliente.Trim
+            .Contacto = envio.Contacto.Trim
+            .Fecha = Today
+            .FechaVto = Today
+            .Debe = importeAnterior
+            .Concepto = Left("Deshago Reembolso " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
+            .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
+            .Asiento_Automático = False
+            .FormaPago = envio.Empresas.FormaPagoEfectivo
+            .Vendedor = envio.Vendedor
+            'If IsNothing(movimientoLiq) Then
+            .Nº_Documento = envio.Pedido
+            .Delegación = envio.Empresas.DelegaciónVarios
+            .FormaVenta = envio.Empresas.FormaVentaVarios
+            'Else
+            '.Nº_Documento = movimientoLiq.Nº_Documento
+            '.Liquidado = movimientoLiq.Nº_Orden
+            '.Delegación = movimientoLiq.Delegación
+            '.FormaVenta = movimientoLiq.FormaVenta
+            'End If
+        End With
+
+        If importeNuevo <> 0 Then
+            With lineaRehago
+                .Empresa = envio.Empresa.Trim
+                .Diario = diarioReembolsos.Trim
+                .Asiento = 2
+                .TipoApunte = "3" 'Pago
+                .TipoCuenta = "2" 'Cliente
+                .Nº_Cuenta = envio.Cliente.Trim
+                .Contacto = envio.Contacto.Trim
+                .Fecha = Today
+                .FechaVto = Today
+                .Haber = importeNuevo
+                .Concepto = Left("Rehago Reembolso " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
+                .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
+                .Asiento_Automático = False
+                .FormaPago = envio.Empresas.FormaPagoEfectivo
+                .Vendedor = envio.Vendedor
+                'If IsNothing(movimientoLiq) Then
+                .Nº_Documento = envio.Pedido
+                .Delegación = envio.Empresas.DelegaciónVarios
+                .FormaVenta = envio.Empresas.FormaVentaVarios
+                'Else
+                '.Nº_Documento = movimientoLiq.Nº_Documento
+                '.Liquidado = movimientoLiq.Nº_Orden
+                '.Delegación = movimientoLiq.Delegación
+                '.FormaVenta = movimientoLiq.FormaVenta
+                'End If
+            End With
+        End If
+
+
+        Try
+            DbContext.AddToPreContabilidad(lineaDeshago)
+            If importeNuevo <> 0 Then
+                DbContext.AddToPreContabilidad(lineaRehago)
+            End If
+            DbContext.SaveChanges()
+            asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos)
+        Catch e As Exception
+            DbContext.DeleteObject(lineaDeshago) 'Lo suyo sería hacer una transacción con todo
+            If importeNuevo <> 0 Then
+                DbContext.DeleteObject(lineaRehago)
+            End If
+            DbContext.SaveChanges()
+            Return -1
+        End Try
+
+        Return asiento
+    End Function
 
 #End Region
 
@@ -1540,6 +1836,10 @@ Public Class AgenciaASM
 
     Public Sub New(agencia As AgenciasViewModel)
         If Not IsNothing(agencia) Then
+
+            NotificationRequest = New InteractionRequest(Of INotification)
+            'ConfirmationRequest = New InteractionRequest(Of IConfirmation)
+
             agencia.listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
             agencia.retornoActual = New tipoIdDescripcion(0, "Sin Retorno")
             agencia.listaTiposRetorno.Add(agencia.retornoActual)
@@ -1933,6 +2233,10 @@ Public Class AgenciaOnTime
 
     Public Sub New(agencia As AgenciasViewModel)
         If Not IsNothing(agencia) Then
+
+            NotificationRequest = New InteractionRequest(Of INotification)
+            'ConfirmationRequest = New InteractionRequest(Of IConfirmation)
+
             agencia.listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
             agencia.retornoActual = New tipoIdDescripcion(0, "NO")
             agencia.listaTiposRetorno.Add(agencia.retornoActual)

@@ -17,7 +17,7 @@ Imports System.Linq
 Imports System.Runtime.Serialization
 Imports System.Xml.Serialization
 
-<Assembly: EdmSchemaAttribute("c537a9e4-c41c-4194-bfb6-814df755fe1e")>
+<Assembly: EdmSchemaAttribute("ccb39486-89b3-4830-93d7-1047bf2a3106")>
 #Region "Metadatos de relaciones en EDM"
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_Productos_Productos", "Productos", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(Productos), "Productos1", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(Productos), True)>
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_CabAlquileres_Productos", "Productos", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(Productos), "CabAlquileres", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(CabAlquileres), True)>
@@ -87,6 +87,7 @@ Imports System.Xml.Serialization
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_EtiquetasPicking_Empresas", "Empresas", System.Data.Metadata.Edm.RelationshipMultiplicity.One, GetType(Empresas), "EtiquetasPicking", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(EtiquetasPicking), True)>
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_EtiquetasPicking_MultiUsuarios", "MultiUsuarios", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(MultiUsuarios), "EtiquetasPicking", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(EtiquetasPicking), True)>
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_FamiliasVendedor_Vendedores", "Vendedores", System.Data.Metadata.Edm.RelationshipMultiplicity.One, GetType(Vendedores), "FamiliasVendedor", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(FamiliasVendedor), True)>
+<Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_EnviosHistoria_EnviosAgencia", "EnviosAgencia", System.Data.Metadata.Edm.RelationshipMultiplicity.One, GetType(EnviosAgencia), "EnviosHistoria", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(EnviosHistoria), True)>
 
 #End Region
 
@@ -586,6 +587,20 @@ Public Partial Class NestoEntities
 
     Private _Contabilidad As ObjectSet(Of Contabilidad)
 
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    Public ReadOnly Property EnviosHistoria() As ObjectSet(Of EnviosHistoria)
+        Get
+            If (_EnviosHistoria Is Nothing) Then
+                _EnviosHistoria = MyBase.CreateObjectSet(Of EnviosHistoria)("EnviosHistoria")
+            End If
+            Return _EnviosHistoria
+        End Get
+    End Property
+
+    Private _EnviosHistoria As ObjectSet(Of EnviosHistoria)
+
     #End Region
 
     #Region "Métodos AddTo"
@@ -812,6 +827,13 @@ Public Partial Class NestoEntities
     ''' </summary>
     Public Sub AddToContabilidad(ByVal contabilidad As Contabilidad)
         MyBase.AddObject("Contabilidad", contabilidad)
+    End Sub
+
+    ''' <summary>
+    ''' Método desusado para agregar un nuevo objeto al EntitySet EnviosHistoria. Considere la posibilidad de usar el método .Add de la propiedad ObjectSet(Of T) asociada.
+    ''' </summary>
+    Public Sub AddToEnviosHistoria(ByVal enviosHistoria As EnviosHistoria)
+        MyBase.AddObject("EnviosHistoria", enviosHistoria)
     End Sub
 
     #End Region
@@ -10133,6 +10155,274 @@ Public Partial Class EnviosAgencia
         Set
             If (Not value Is Nothing)
                 CType(Me, IEntityWithRelationships).RelationshipManager.InitializeRelatedReference(Of AgenciasTransporte)("Nesto.Models.EF.FK_EnviosAgencia_AgenciasTransporte", "AgenciasTransporte", value)
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <XmlIgnoreAttribute()>
+    <SoapIgnoreAttribute()>
+    <DataMemberAttribute()>
+    <EdmRelationshipNavigationPropertyAttribute("Nesto.Models.EF", "FK_EnviosHistoria_EnviosAgencia", "EnviosHistoria")>
+     Public Property EnviosHistoria() As EntityCollection(Of EnviosHistoria)
+        Get
+            Return CType(Me,IEntityWithRelationships).RelationshipManager.GetRelatedCollection(Of EnviosHistoria)("Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia", "EnviosHistoria")
+        End Get
+        Set
+            If (Not value Is Nothing)
+                CType(Me, IEntityWithRelationships).RelationshipManager.InitializeRelatedCollection(Of EnviosHistoria)("Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia", "EnviosHistoria", value)
+            End If
+        End Set
+    End Property
+
+    #End Region
+
+End Class
+
+''' <summary>
+''' No hay documentación de metadatos disponible.
+''' </summary>
+<EdmEntityTypeAttribute(NamespaceName:="Nesto.Models.EF", Name:="EnviosHistoria")>
+<Serializable()>
+<DataContractAttribute(IsReference:=True)>
+Public Partial Class EnviosHistoria
+    Inherits EntityObject
+    #Region "Método de generador"
+
+    ''' <summary>
+    ''' Crear un nuevo objeto EnviosHistoria.
+    ''' </summary>
+    ''' <param name="numero">Valor inicial de la propiedad Numero.</param>
+    ''' <param name="numeroEnvio">Valor inicial de la propiedad NumeroEnvio.</param>
+    ''' <param name="campo">Valor inicial de la propiedad Campo.</param>
+    ''' <param name="valorAnterior">Valor inicial de la propiedad ValorAnterior.</param>
+    ''' <param name="usuario">Valor inicial de la propiedad Usuario.</param>
+    ''' <param name="fechaModificacion">Valor inicial de la propiedad FechaModificacion.</param>
+    Public Shared Function CreateEnviosHistoria(numero As Global.System.Int32, numeroEnvio As Global.System.Int32, campo As Global.System.String, valorAnterior As Global.System.String, usuario As Global.System.String, fechaModificacion As Global.System.DateTime) As EnviosHistoria
+        Dim enviosHistoria as EnviosHistoria = New EnviosHistoria
+        enviosHistoria.Numero = numero
+        enviosHistoria.NumeroEnvio = numeroEnvio
+        enviosHistoria.Campo = campo
+        enviosHistoria.ValorAnterior = valorAnterior
+        enviosHistoria.Usuario = usuario
+        enviosHistoria.FechaModificacion = fechaModificacion
+        Return enviosHistoria
+    End Function
+
+    #End Region
+
+    #Region "Propiedades simples"
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <EdmScalarPropertyAttribute(EntityKeyProperty:=true, IsNullable:=false)>
+    <DataMemberAttribute()>
+    Public Property Numero() As Global.System.Int32
+        Get
+            Return _Numero
+        End Get
+        Set
+            If (_Numero <> Value) Then
+                OnNumeroChanging(value)
+                ReportPropertyChanging("Numero")
+                _Numero = StructuralObject.SetValidValue(value, "Numero")
+                ReportPropertyChanged("Numero")
+                OnNumeroChanged()
+            End If
+        End Set
+    End Property
+
+    Private _Numero As Global.System.Int32
+    Private Partial Sub OnNumeroChanging(value As Global.System.Int32)
+    End Sub
+
+    Private Partial Sub OnNumeroChanged()
+    End Sub
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <EdmScalarPropertyAttribute(EntityKeyProperty:=false, IsNullable:=false)>
+    <DataMemberAttribute()>
+    Public Property NumeroEnvio() As Global.System.Int32
+        Get
+            Return _NumeroEnvio
+        End Get
+        Set
+            OnNumeroEnvioChanging(value)
+            ReportPropertyChanging("NumeroEnvio")
+            _NumeroEnvio = StructuralObject.SetValidValue(value, "NumeroEnvio")
+            ReportPropertyChanged("NumeroEnvio")
+            OnNumeroEnvioChanged()
+        End Set
+    End Property
+
+    Private _NumeroEnvio As Global.System.Int32
+    Private Partial Sub OnNumeroEnvioChanging(value As Global.System.Int32)
+    End Sub
+
+    Private Partial Sub OnNumeroEnvioChanged()
+    End Sub
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <EdmScalarPropertyAttribute(EntityKeyProperty:=false, IsNullable:=false)>
+    <DataMemberAttribute()>
+    Public Property Campo() As Global.System.String
+        Get
+            Return _Campo
+        End Get
+        Set
+            OnCampoChanging(value)
+            ReportPropertyChanging("Campo")
+            _Campo = StructuralObject.SetValidValue(value, false, "Campo")
+            ReportPropertyChanged("Campo")
+            OnCampoChanged()
+        End Set
+    End Property
+
+    Private _Campo As Global.System.String
+    Private Partial Sub OnCampoChanging(value As Global.System.String)
+    End Sub
+
+    Private Partial Sub OnCampoChanged()
+    End Sub
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <EdmScalarPropertyAttribute(EntityKeyProperty:=false, IsNullable:=false)>
+    <DataMemberAttribute()>
+    Public Property ValorAnterior() As Global.System.String
+        Get
+            Return _ValorAnterior
+        End Get
+        Set
+            OnValorAnteriorChanging(value)
+            ReportPropertyChanging("ValorAnterior")
+            _ValorAnterior = StructuralObject.SetValidValue(value, false, "ValorAnterior")
+            ReportPropertyChanged("ValorAnterior")
+            OnValorAnteriorChanged()
+        End Set
+    End Property
+
+    Private _ValorAnterior As Global.System.String
+    Private Partial Sub OnValorAnteriorChanging(value As Global.System.String)
+    End Sub
+
+    Private Partial Sub OnValorAnteriorChanged()
+    End Sub
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <EdmScalarPropertyAttribute(EntityKeyProperty:=false, IsNullable:=true)>
+    <DataMemberAttribute()>
+    Public Property Observaciones() As Global.System.String
+        Get
+            Return _Observaciones
+        End Get
+        Set
+            OnObservacionesChanging(value)
+            ReportPropertyChanging("Observaciones")
+            _Observaciones = StructuralObject.SetValidValue(value, true, "Observaciones")
+            ReportPropertyChanged("Observaciones")
+            OnObservacionesChanged()
+        End Set
+    End Property
+
+    Private _Observaciones As Global.System.String
+    Private Partial Sub OnObservacionesChanging(value As Global.System.String)
+    End Sub
+
+    Private Partial Sub OnObservacionesChanged()
+    End Sub
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <EdmScalarPropertyAttribute(EntityKeyProperty:=false, IsNullable:=false)>
+    <DataMemberAttribute()>
+    Public Property Usuario() As Global.System.String
+        Get
+            Return _Usuario
+        End Get
+        Set
+            OnUsuarioChanging(value)
+            ReportPropertyChanging("Usuario")
+            _Usuario = StructuralObject.SetValidValue(value, true, "Usuario")
+            ReportPropertyChanged("Usuario")
+            OnUsuarioChanged()
+        End Set
+    End Property
+
+    Private _Usuario As Global.System.String
+    Private Partial Sub OnUsuarioChanging(value As Global.System.String)
+    End Sub
+
+    Private Partial Sub OnUsuarioChanged()
+    End Sub
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <EdmScalarPropertyAttribute(EntityKeyProperty:=false, IsNullable:=false)>
+    <DataMemberAttribute()>
+    Public Property FechaModificacion() As Global.System.DateTime
+        Get
+            Return _FechaModificacion
+        End Get
+        Set
+            OnFechaModificacionChanging(value)
+            ReportPropertyChanging("FechaModificacion")
+            _FechaModificacion = StructuralObject.SetValidValue(value, "FechaModificacion")
+            ReportPropertyChanged("FechaModificacion")
+            OnFechaModificacionChanged()
+        End Set
+    End Property
+
+    Private _FechaModificacion As Global.System.DateTime
+    Private Partial Sub OnFechaModificacionChanging(value As Global.System.DateTime)
+    End Sub
+
+    Private Partial Sub OnFechaModificacionChanged()
+    End Sub
+
+    #End Region
+
+    #Region "Propiedades de navegación"
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <XmlIgnoreAttribute()>
+    <SoapIgnoreAttribute()>
+    <DataMemberAttribute()>
+    <EdmRelationshipNavigationPropertyAttribute("Nesto.Models.EF", "FK_EnviosHistoria_EnviosAgencia", "EnviosAgencia")>
+    Public Property EnviosAgencia() As EnviosAgencia
+        Get
+            Return CType(Me, IEntityWithRelationships).RelationshipManager.GetRelatedReference(Of EnviosAgencia)("Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia", "EnviosAgencia").Value
+        End Get
+        Set
+            CType(Me, IEntityWithRelationships).RelationshipManager.GetRelatedReference(Of EnviosAgencia)("Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia", "EnviosAgencia").Value = value
+        End Set
+    End Property
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <BrowsableAttribute(False)>
+    <DataMemberAttribute()>
+    Public Property EnviosAgenciaReference() As EntityReference(Of EnviosAgencia)
+        Get
+            Return CType(Me, IEntityWithRelationships).RelationshipManager.GetRelatedReference(Of EnviosAgencia)("Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia", "EnviosAgencia")
+        End Get
+        Set
+            If (Not value Is Nothing)
+                CType(Me, IEntityWithRelationships).RelationshipManager.InitializeRelatedReference(Of EnviosAgencia)("Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia", "EnviosAgencia", value)
             End If
         End Set
     End Property
