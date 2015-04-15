@@ -20,6 +20,11 @@ Imports Microsoft.Win32
 Public Class AgenciasViewModel
     Inherits BindableBase
 
+    ' El modo cuadre sirve para cuadrar los saldos iniciales de cada agencia con la contabilidad
+    ' En este modo al contabilizar los reembolsos no se toca la contabilidad, pero sí se pone la 
+    ' fecha de cobro a 01/01/15
+    Const MODO_CUADRE = False
+
     Const CARGO_AGENCIA = 26
     Public Const COD_PAIS As String = "34"
     Public Const ESTADO_INICIAL_ENVIO = 0
@@ -61,12 +66,12 @@ Public Class AgenciasViewModel
 
         bultos = 1
         If Not IsNothing(agenciaSeleccionada) Then
-            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+            listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
         End If
         envioActual = listaEnvios.LastOrDefault
         numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
         fechaFiltro = Today
-        listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+        listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
         'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
         listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
 
@@ -151,10 +156,11 @@ Public Class AgenciasViewModel
                     OnPropertyChanged("horarioActual")
                     OnPropertyChanged("retornoActual")
                     'listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
-                    listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
+                    listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                     listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
                     OnPropertyChanged("sumaContabilidad")
                     OnPropertyChanged("descuadreContabilidad")
+                    OnPropertyChanged("visibilidadSoloImprimir")
                 End If
             Catch
                 'mensajeError = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre
@@ -195,17 +201,17 @@ Public Class AgenciasViewModel
         Set(value As Empresas)
             SetProperty(_empresaSeleccionada, value)
             listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
-            If numeroPedido = 0 Then
+            If numeroPedido = "" Then
                 agenciaSeleccionada = listaAgencias.FirstOrDefault
             End If
             If Not IsNothing(agenciaSeleccionada) Then
-                listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO)
-                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+                listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
+                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                 listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
             Else
-                listaEnvios = Nothing
-                listaEnviosTramitados = Nothing
-                listaReembolsos = Nothing
+                listaEnvios = New ObservableCollection(Of EnviosAgencia)
+                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)
+                listaReembolsos = New ObservableCollection(Of EnviosAgencia)
             End If
             listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
             OnPropertyChanged("sumaContabilidad")
@@ -506,7 +512,7 @@ Public Class AgenciasViewModel
         Set(value As Date)
             SetProperty(_fechaFiltro, value)
             'actualizamos listaPedidos
-            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
             envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
     End Property
@@ -518,7 +524,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             SetProperty(_clienteFiltro, value)
-            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Cliente = clienteFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO)
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Cliente = clienteFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
             envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
     End Property
@@ -530,7 +536,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             SetProperty(_nombreFiltro, value)
-            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Clientes.Nombre.Contains(nombreFiltro) And e.Estado = ESTADO_TRAMITADO_ENVIO)
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Clientes.Nombre.Contains(nombreFiltro) And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
             envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
     End Property
@@ -548,19 +554,27 @@ Public Class AgenciasViewModel
     '    End Set
     'End Property
 
-    Private _numeroPedido As Integer
-    Public Property numeroPedido As Integer
+    Private _numeroPedido As String
+    Public Property numeroPedido As String
         Get
             Return _numeroPedido
         End Get
-        Set(value As Integer)
+        Set(value As String)
             SetProperty(_numeroPedido, value)
             Dim pedidoAnterior As CabPedidoVta
             pedidoAnterior = pedidoSeleccionado
-            pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = numeroPedido).FirstOrDefault
-            If IsNothing(pedidoSeleccionado) Or IsNothing(pedidoSeleccionado.Clientes) Then
+            Dim pedidoNumerico As Integer
+            If Integer.TryParse(numeroPedido, pedidoNumerico) Then
+                pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico).FirstOrDefault
+            Else
+                pedidoSeleccionado = (From c In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
+                If Not IsNothing(pedidoSeleccionado) Then
+                    SetProperty(_numeroPedido, pedidoSeleccionado.Número.ToString)
+                End If
+            End If
+            If IsNothing(pedidoSeleccionado) OrElse IsNothing(pedidoSeleccionado.Clientes) Then
                 pedidoSeleccionado = pedidoAnterior
-                SetProperty(_numeroPedido, pedidoAnterior.Número)
+                SetProperty(_numeroPedido, pedidoAnterior.Número.ToString)
             End If
             'Dim agenciaNueva As AgenciasTransporte = (From a In DbContext.AgenciasTransporte Where a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
             OnPropertyChanged("empresaSeleccionada")
@@ -715,6 +729,9 @@ Public Class AgenciasViewModel
             Return _numClienteContabilizar
         End Get
         Set(value As String)
+            If MODO_CUADRE Then ' No permitimos poner cliente en modo cuadre
+                Return
+            End If
             SetProperty(_numClienteContabilizar, value)
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
         End Set
@@ -842,6 +859,11 @@ Public Class AgenciasViewModel
         End Get
     End Property
 
+    Public ReadOnly Property visibilidadSoloImprimir
+        Get
+            Return agenciaEspecifica.visibilidadSoloImprimir
+        End Get
+    End Property
 
 #End Region
 
@@ -1064,7 +1086,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanContabilizarReembolso(arg As Object) As Boolean
-        Return Not IsNothing(numClienteContabilizar) AndAlso numClienteContabilizar.Length > 0 AndAlso Not IsNothing(listaReembolsosSeleccionados) AndAlso listaReembolsosSeleccionados.Count > 0
+        Return (Not IsNothing(numClienteContabilizar) AndAlso numClienteContabilizar.Length > 0 AndAlso Not IsNothing(listaReembolsosSeleccionados) AndAlso listaReembolsosSeleccionados.Count > 0) Or MODO_CUADRE
     End Function
     Private Sub OnContabilizarReembolso(arg As Object)
         Me.ConfirmationRequest.Raise(
@@ -1080,53 +1102,64 @@ Public Class AgenciasViewModel
             Return
         End If
 
-        For Each linea In listaReembolsosSeleccionados
-            DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
-                .Empresa = empresaSeleccionada.Número,
-                .Diario = "_Reembolso",
-                .Asiento = 1,
-                .Fecha = Today,
-                .TipoApunte = "3",
-                .TipoCuenta = "1",
-                .Nº_Cuenta = linea.AgenciasTransporte.CuentaReembolsos,
-                .Concepto = "Pago reembolso " + linea.Cliente,
-                .Haber = linea.Reembolso,
-                .Nº_Documento = linea.AgenciasTransporte.Nombre,
-                .Delegación = "ALG",
-                .FormaVenta = "VAR" _
-            })
-        Next
-        DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
-                .Empresa = empresaSeleccionada.Número,
-                .Diario = "_Reembolso",
-                .Asiento = 1,
-                .Fecha = Today,
-                .TipoApunte = "3",
-                .TipoCuenta = "2",
-                .Nº_Cuenta = numClienteContabilizar,
-                .Contacto = "0",
-                .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
-                .Debe = sumaSeleccionadas,
-                .Nº_Documento = agenciaSeleccionada.Nombre,
-                .Delegación = "ALG",
-                .FormaVenta = "VAR",
-                .FormaPago = "CHQ",
-                .Vendedor = "NV" _
-            })
-        DbContext.SaveChanges()
+        Dim asiento As Integer = 0 'para guardar el asiento que devuelve prdContabilizar
 
-        Dim asiento As Integer
-        asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_Reembolso")
-        If asiento > 0 Then
+        If Not MODO_CUADRE Then
             For Each linea In listaReembolsosSeleccionados
-                linea.FechaPagoReembolso = Today
+                DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
+                    .Empresa = empresaSeleccionada.Número,
+                    .Diario = "_Reembolso",
+                    .Asiento = 1,
+                    .Fecha = Today,
+                    .TipoApunte = "3",
+                    .TipoCuenta = "1",
+                    .Nº_Cuenta = linea.AgenciasTransporte.CuentaReembolsos,
+                    .Concepto = "Pago reembolso " + linea.Cliente,
+                    .Haber = linea.Reembolso,
+                    .Nº_Documento = linea.AgenciasTransporte.Nombre,
+                    .Delegación = "ALG",
+                    .FormaVenta = "VAR" _
+                })
+            Next
+            DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
+                    .Empresa = empresaSeleccionada.Número,
+                    .Diario = "_Reembolso",
+                    .Asiento = 1,
+                    .Fecha = Today,
+                    .TipoApunte = "3",
+                    .TipoCuenta = "2",
+                    .Nº_Cuenta = numClienteContabilizar,
+                    .Contacto = "0",
+                    .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
+                    .Debe = sumaSeleccionadas,
+                    .Nº_Documento = agenciaSeleccionada.Nombre,
+                    .Delegación = "ALG",
+                    .FormaVenta = "VAR",
+                    .FormaPago = "CHQ",
+                    .Vendedor = "NV" _
+                })
+            DbContext.SaveChanges()
+
+
+            asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_Reembolso")
+        End If
+        If (asiento > 0 Or MODO_CUADRE) Then
+            Dim fechaAFijar As Date = Today
+            If MODO_CUADRE Then
+                fechaAFijar = "01/01/2015"
+            End If
+            For Each linea In listaReembolsosSeleccionados
+                linea.FechaPagoReembolso = fechaAFijar
             Next
             DbContext.SaveChanges()
             NotificationRequest.Raise(New Notification() With { _
                  .Title = "Contabilizado Correctamente", _
                 .Content = "Nº Asiento: " + asiento.ToString _
             })
-            listaReembolsosSeleccionados = Nothing
+            listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+            OnPropertyChanged("sumaContabilidad")
+            OnPropertyChanged("descuadreContabilidad")
+            OnPropertyChanged("sumaReembolsos")
         Else
             NotificationRequest.Raise(New Notification() With { _
                 .Title = "Error al contabilizar", _
@@ -1513,7 +1546,7 @@ Public Class AgenciasViewModel
         If envio.Reembolso <> reembolso Then
             historia.NumeroEnvio = envio.Numero
             historia.Campo = "Reembolso"
-            historia.ValorAnterior = envio.Reembolso
+            historia.ValorAnterior = envio.Reembolso.ToString("C")
             reembolsoAnterior = envio.Reembolso
             envio.Reembolso = reembolso
             DbContext.EnviosHistoria.AddObject(historia)
@@ -1815,6 +1848,7 @@ Public Interface IAgencia
     'Function construirXMLdeSalida() As XDocument
     Sub llamadaWebService(DBContext As NestoEntities)
     Sub imprimirEtiqueta()
+    ReadOnly Property visibilidadSoloImprimir As Visibility
 End Interface
 
 Public Class AgenciaASM
@@ -2154,7 +2188,7 @@ Public Class AgenciaASM
                 agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
             End If
             agenciaVM.mensajeError = "Envío del pedido " + agenciaVM.envioActual.Pedido.ToString + " tramitado correctamente."
-            agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DBContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO)
+            agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
             agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
         End If
 
@@ -2213,6 +2247,12 @@ Public Class AgenciaASM
             objStream = Nothing
         End Try
     End Sub
+    Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir
+        Get
+            Return Visibility.Hidden
+        End Get
+    End Property
+
 End Class
 Public Class AgenciaOnTime
     Implements IAgencia
@@ -2251,6 +2291,7 @@ Public Class AgenciaOnTime
             agencia.horarioActual = New tipoIdDescripcion(0, "")
             agencia.listaHorarios.Add(agencia.horarioActual)
             agencia.listaHorarios.Add(New tipoIdDescripcion(1, "Doble ciclo"))
+            agencia.listaHorarios.Add(New tipoIdDescripcion(2, "14 Horas"))
             'agencia.listaHorarios.Add(New tipoIdDescripcion(18, "Economy"))
 
             'agenciaSeleccionada = agencia.agenciaSeleccionada
@@ -2285,7 +2326,6 @@ Public Class AgenciaOnTime
 
         Return estado
     End Function
-
     Public Function calcularCodigoBarras() As String Implements IAgencia.calcularCodigoBarras
         Return agenciaVM.envioActual.Numero.ToString("D7")
     End Function
@@ -2295,7 +2335,6 @@ Public Class AgenciaOnTime
         telefonoPlaza = "902112820"
         emailPlaza = "traficodistribucion@ontimelogistica.com"
     End Sub
-
     Public Sub llamadaWebService(DbContext As NestoEntities) Implements IAgencia.llamadaWebService
         'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
         agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
@@ -2304,7 +2343,7 @@ Public Class AgenciaOnTime
             agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
         End If
         agenciaVM.mensajeError = "Envío del pedido " + agenciaVM.envioActual.Pedido.ToString + " tramitado correctamente."
-        agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO)
+        agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
         agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
     End Sub
     Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
@@ -2347,4 +2386,10 @@ Public Class AgenciaOnTime
             objStream = Nothing
         End Try
     End Sub
+    Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir
+        Get
+            Return Visibility.Visible
+        End Get
+    End Property
+
 End Class
