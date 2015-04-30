@@ -26,6 +26,7 @@ Class MainWindow
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.container = container
         Me.regionManager = regionManager
+        container.RegisterType(Of Object, frmCRInforme)("frmCRInforme")
     End Sub
 
     Private _fechaInformeInicial As Date = Today
@@ -50,8 +51,11 @@ Class MainWindow
 
 
     Private Sub Button1_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnInforme.Click
-        Dim w2 As New frmInforme
-        w2.Owner = Me
+        'Dim w2 As New frmInforme
+        'w2.Owner = Me
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of frmCRInforme)()
+
 
         'Dim fchFechaInicial As New Date
         'Dim fchFechaFinal As New Date
@@ -85,9 +89,10 @@ Class MainWindow
         rptPremio.SetParameterValue("FechaHasta", fechaInformeFinal)
 
 
-        w2.crvInforme.ViewerCore.ReportSource = rptPremio
-        w2.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
-        w2.Show()
+        vista.crvInforme.ViewerCore.ReportSource = rptPremio
+        vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
+        region.Add(vista, nombreVista(region, vista.ToString))
+        region.Activate(vista)
     End Sub
     Private Sub btnComisionesTelefono_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnComisionesTelefono.Click
         Select Case cmbOpciones.Text
@@ -106,8 +111,11 @@ Class MainWindow
         Dim vm = New MainViewModel(container, regionManager)
         Dim strVendedor As String = vm.Vendedor
 
-        Dim Ventana As New frmInforme
-        Ventana.Owner = Me
+        'Dim Ventana As New frmInforme
+        'Ventana.Owner = Me
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of frmCRInforme)()
+
 
         Dim rptPremio
         If Resumen Then
@@ -221,10 +229,12 @@ Class MainWindow
 
 
 
-        Ventana.crvInforme.ViewerCore.ReportSource = rptPremio
+        vista.crvInforme.ViewerCore.ReportSource = rptPremio
 
 
-        Ventana.Show()
+        region.Add(vista, nombreVista(region, vista.ToString))
+        region.Activate(vista)
+
 
     End Sub
     Private Sub btnResumen_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnResumen.Click
@@ -249,9 +259,11 @@ Class MainWindow
         End Select
     End Sub
     Private Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SóloFacturas As Boolean)
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of frmCRInforme)()
 
-        Dim Ventana As New frmInforme
-        Ventana.Owner = Me
+        'Dim Ventana As New frmInforme
+        'Ventana.Owner = Me
 
         Dim rptPremio As New ReporteResumenVentas
 
@@ -327,10 +339,11 @@ Class MainWindow
 
 
 
-        Ventana.crvInforme.ViewerCore.ReportSource = rptPremio
-
+        vista.crvInforme.ViewerCore.ReportSource = rptPremio
+        region.Add(vista, nombreVista(region, vista.ToString))
+        region.Activate(vista)
         'Try
-        Ventana.Show()
+        'Ventana.Show()
         'Catch ex As Exception
         '        Throw New ArgumentException("Error Carlos")
         '       End Try
@@ -351,8 +364,12 @@ Class MainWindow
         End Select
     End Sub
     Private Sub GenerarInformePeluquería(FechaDesde As Date, FechaHasta As Date)
-        Dim Ventana As New frmInforme
-        Ventana.Owner = Me
+
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of frmCRInforme)()
+
+        'Dim Ventana As New frmInforme
+        'Ventana.Owner = Me
 
         Dim rptPremio As New VentaPeluqueria
 
@@ -422,11 +439,11 @@ Class MainWindow
 
 
 
-        Ventana.crvInforme.ViewerCore.ReportSource = rptPremio
+        vista.crvInforme.ViewerCore.ReportSource = rptPremio
 
-
-        Ventana.Show()
-
+        region.Add(vista, nombreVista(region, vista.ToString))
+        region.Activate(vista)
+        
     End Sub
     Private Sub btnRapport_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnRapport.Click
         Select Case cmbOpciones.Text
@@ -505,13 +522,17 @@ Class MainWindow
         'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Clientes)())
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Clientes)()
-        region.Add(vista, "Clientes")
+        region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
-
     End Sub
     Private Sub btnControlPedidos_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnControlPedidos.Click
-        Dim w2 As New frmInforme
-        w2.Owner = Me
+
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of frmCRInforme)()
+
+
+        'Dim w2 As New frmInforme
+        'w2.Owner = Me
 
         Dim mv As New ControlPedidosMV
         Dim ds As New DataSet
@@ -523,22 +544,29 @@ Class MainWindow
         rptControl.SetDataSource(ds.Tables("ControlPedidos"))
 
 
-        w2.crvInforme.ViewerCore.ReportSource = rptControl
-        w2.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
-        w2.Show()
+        vista.crvInforme.ViewerCore.ReportSource = rptControl
+        vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
+        region.Add(vista, nombreVista(region, vista.ToString))
+        region.Activate(vista)
     End Sub
     Private Sub btnInventario_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnInventario.Click
-        Dim Ventana As New frmInforme
-        Ventana.Owner = Me
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of frmCRInforme)()
 
         Dim rptInforme As New ImpresoUbicaciones_Inventario
 
-        Ventana.crvInforme.ViewerCore.ReportSource = rptInforme
-        Ventana.Show()
+        vista.crvInforme.ViewerCore.ReportSource = rptInforme
+        region.Add(vista, nombreVista(region, vista.ToString))
+        region.Activate(vista)
     End Sub
     Private Sub btnUbicaciones_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnUbicaciones.Click
-        Dim w2 As New frmInforme
-        w2.Owner = Me
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of frmCRInforme)()
+        'region.Add(vista, nombreVista(region, vista.ToString))
+        'region.Activate(vista)
+
+        'Dim w2 As New frmInforme
+        'w2.Owner = Me
 
         Dim ds As New DataSet
         Dim intNúmero As Integer
@@ -559,36 +587,31 @@ Class MainWindow
 
 
 
-
-        w2.crvInforme.ViewerCore.ReportSource = rptInforme
-        w2.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
-        w2.Show()
+        vista.crvInforme.ViewerCore.ReportSource = rptInforme
+        vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
+        'w2.crvInforme.ViewerCore.ReportSource = rptInforme
+        'w2.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
+        'w2.Show()
+        region.Add(vista, nombreVista(region, vista.ToString))
+        region.Activate(vista)
     End Sub
     Private Sub btnClientesAlquileres_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesAlquileres.Click
-        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Alquileres)())
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Alquileres)()
-        region.Add(vista, "Alquileres")
+        region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
-
     End Sub
     Private Sub btnClientesRemesas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesRemesas.Click
-        'Este código hay que cambiarlo para que quede integrado en el MVVM
-        'Dim frmRemesas As New Remesas
-        'frmRemesas.Owner = Me
-        'frmRemesas.Show()
-        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Remesas)())
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Remesas)()
-        region.Add(vista, "Remesas")
+        region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
-
     End Sub
     Private Sub btnClientesAgencias_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesAgencias.Click
         'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Agencias)())
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Agencias)()
-        region.Add(vista, "Agencias")
+        region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
 
     End Sub
@@ -596,7 +619,7 @@ Class MainWindow
         'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Deuda)())
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Deuda)()
-        region.Add(vista, "Deuda")
+        region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
 
     End Sub
@@ -609,25 +632,41 @@ Class MainWindow
         'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Comisiones)())
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Comisiones)()
-        region.Add(vista, "Comisiones")
+        region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
     End Sub
     Private Sub btnVendedoresClientes_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresClientes.Click
-        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of ClienteComercial)())
-
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of ClienteComercial)()
-        region.Add(vista, "ClienteComercial")
+        region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
     End Sub
     Private Sub btnVendedoresPlanVentajas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresPlanVentajas.Click
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of PlanesVentajas)()
-        region.Add(vista, "PlanesVentajas")
+        region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
 
         'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of PlanesVentajas)())
     End Sub
+
+    Private Function nombreVista(region As Region, nombre As String) As String
+        Dim contador As Integer = 2
+        Dim repetir As Boolean = True
+        Dim nombreAmpliado As String = nombre
+        While repetir
+            repetir = False
+            For Each view In region.Views
+                If Not IsNothing(region.GetView(nombreAmpliado)) Then
+                    nombreAmpliado = nombre + contador.ToString
+                    contador = contador + 1
+                    repetir = True
+                    Exit For
+                End If
+            Next
+        End While
+        Return nombreAmpliado
+    End Function
 
 
 End Class

@@ -8,6 +8,8 @@ Imports Microsoft.Win32
 Imports System.Windows.Data
 Imports System.Globalization
 Imports System.Xml.Linq
+Imports Microsoft.Practices.Prism
+
 'Imports Nesto.Models.Nesto.Models.EF
 
 Public Interface IOService
@@ -19,7 +21,7 @@ End Interface
 
 Public Class ClientesViewModel
     Inherits ViewModelBase
-    'Implements IOService
+    '    Implements IActiveAware
 
     Private Shared DbContext As NestoEntities
 
@@ -379,6 +381,19 @@ Public Class ClientesViewModel
             _listaCodigosPostalesVendedor = value
         End Set
     End Property
+
+    'Private _IsActive As Boolean
+    'Public Property IsActive As Boolean Implements IActiveAware.IsActive
+    '    Get
+    '        Return _IsActive
+    '    End Get
+    '    Set(value As Boolean)
+    '        _IsActive = value
+    '        OnPropertyChanged("IsActive")
+    '    End Set
+    'End Property
+    'Public Event IsActiveChanged(sender As Object, e As System.EventArgs) Implements IActiveAware.IsActiveChanged
+
 
 #End Region
 #Region "Comandos"

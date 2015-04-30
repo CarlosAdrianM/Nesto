@@ -10,9 +10,9 @@
     WindowState="Maximized"
     Title="Agencias" Height="300" Width="300"-->
 
-    <UserControl.DataContext>
+    <!--UserControl.DataContext>
         <vm:AgenciasViewModel/>
-    </UserControl.DataContext>
+    </-->
 
     <i:Interaction.Triggers>
         <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
@@ -324,6 +324,7 @@
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Reembolso" Style="{StaticResource etiquetaTexto}"/>
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Retorno" Style="{StaticResource etiquetaTexto}"/>
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Estado" Style="{StaticResource etiquetaTexto}"/>
+                            <!-- Button Grid.Row="3" Grid.Column="0" Margin="3" Content="Imprimir" Command="{Binding cmdImprimirManifiesto}"/-->
                             <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding reembolsoModificar, StringFormat=c}" Style="{StaticResource campoTexto}"/>
                             <ComboBox Grid.Row="1" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" ItemsSource="{Binding listaTiposRetorno}" SelectedItem="{Binding retornoModificar}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
                             <TextBox Grid.Row="2" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding estadoModificar}" Style="{StaticResource campoTexto}"/>
@@ -369,7 +370,7 @@
                     <DataGrid Grid.Row="0" ItemsSource="{Binding listaReembolsos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" Name="grdListaReembolsos" SelectedItem="{Binding lineaReembolsoSeleccionado}">
                         <i:Interaction.Triggers>
                             <i:EventTrigger EventName="MouseDoubleClick">
-                                <i:InvokeCommandAction Command="{Binding cmdDobleClic}" />
+                                <i:InvokeCommandAction Command="{Binding cmdAgregarReembolsoContabilizar}" />
                                 <!--CommandParameter="{Binding ElementName=grdListaReembolsos, Path=SelectedItem}" -->
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
@@ -387,7 +388,12 @@
                             </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding listaReembolsosSeleccionados}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding listaReembolsosSeleccionados}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" SelectedItem="{Binding lineaReembolsoContabilizar}" >
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="MouseDoubleClick">
+                                <i:InvokeCommandAction Command="{Binding cmdQuitarReembolsoContabilizar}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
                             <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" />

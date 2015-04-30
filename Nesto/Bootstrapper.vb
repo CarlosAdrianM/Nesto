@@ -23,4 +23,5 @@ Public Class Bootstrapper
         'moduleCatalog.AddModule(GetType(HelloWorldModule.HelloWorldModule))
     End Sub
 
+
 End Class

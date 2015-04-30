@@ -1,0 +1,9 @@
+﻿<UserControl x:Class="frmCRInforme" Name="Informe"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:my="clr-namespace:SAPBusinessObjects.WPF.Viewer;assembly=SAPBusinessObjects.WPF.Viewer" >
+    <Grid>
+        <my:CrystalReportsViewer Name="crvInforme" Margin="0,0,12,12" ShowLogo="False" ToggleSidePanel="None" />
+    </Grid>
+</UserControl>
+

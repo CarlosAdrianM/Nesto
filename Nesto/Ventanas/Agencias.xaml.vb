@@ -1,4 +1,6 @@
-﻿Public Class Agencias
+﻿Imports Nesto.ViewModels
+
+Public Class Agencias
 
     Private Sub txtNumeroPedido_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtNumeroPedido.GotFocus
         txtNumeroPedido.SelectAll()
@@ -23,5 +25,21 @@
 
     Private Sub txtNombreFiltro_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtNombreFiltro.GotFocus
         txtNombreFiltro.SelectAll()
+    End Sub
+
+    Public Sub New()
+
+        ' Llamada necesaria para el diseñador.
+        InitializeComponent()
+
+        ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
+
+    End Sub
+
+    Public Sub New(viewModel As AgenciasViewModel)
+        ' Llamada necesaria para el diseñador.
+        InitializeComponent()
+
+        Me.DataContext = viewModel
     End Sub
 End Class

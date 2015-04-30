@@ -15,10 +15,14 @@ Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.PubSubEvents
 Imports System.Text
 Imports Microsoft.Win32
+Imports Microsoft.Practices.Prism
+Imports Microsoft.Practices.Prism.Regions
+Imports Microsoft.Practices.Unity
 
 
 Public Class AgenciasViewModel
     Inherits BindableBase
+    '    Implements IActiveAware
 
     ' El modo cuadre sirve para cuadrar los saldos iniciales de cada agencia con la contabilidad
     ' En este modo al contabilizar los reembolsos no se toca la contabilidad, pero sí se pone la 
@@ -32,6 +36,9 @@ Public Class AgenciasViewModel
     Private Const ESTADO_SIN_FACTURAR = 1
     Private Const ESTADO_LINEA_PENDIENTE = -1
 
+    Private ReadOnly container As IUnityContainer
+    Private ReadOnly regionManager As IRegionManager
+
     Private Shared DbContext As NestoEntities
     Dim mainModel As New Nesto.Models.MainModel
     Dim empresaDefecto As String = String.Format("{0,-3}", mainModel.leerParametro("1", "EmpresaPorDefecto"))
@@ -39,19 +46,28 @@ Public Class AgenciasViewModel
     Dim factory As New Dictionary(Of String, Func(Of IAgencia))
 
 
-
     Public Sub New()
+
+    End Sub
+
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
+
+        Me.container = container
+        Me.regionManager = regionManager
+
         DbContext = New NestoEntities
 
         ' Prism
         cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
-        cmdDobleClic = New DelegateCommand(Of Object)(AddressOf OnDobleClic, AddressOf CanDobleClic)
+        cmdAgregarReembolsoContabilizar = New DelegateCommand(Of Object)(AddressOf OnAgregarReembolsoContabilizar, AddressOf CanAgregarReembolsoContabilizar)
+        cmdQuitarReembolsoContabilizar = New DelegateCommand(Of Object)(AddressOf OnQuitarReembolsoContabilizar, AddressOf CanQuitarReembolsoContabilizar)
         cmdContabilizarReembolso = New DelegateCommand(Of Object)(AddressOf OnContabilizarReembolso, AddressOf CanContabilizarReembolso)
         cmdDescargarImagen = New DelegateCommand(Of Object)(AddressOf OnDescargarImagen, AddressOf CanDescargarImagen)
         cmdModificarEnvio = New DelegateCommand(Of Object)(AddressOf OnModificarEnvio, AddressOf CanModificarEnvio)
+        cmdImprimirManifiesto = New DelegateCommand(Of Object)(AddressOf OnImprimirManifiesto, AddressOf CanImprimirManifiesto)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -74,9 +90,6 @@ Public Class AgenciasViewModel
         listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
         'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
         listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
-
-        
-
     End Sub
 
 #Region "Propiedades"
@@ -564,11 +577,15 @@ Public Class AgenciasViewModel
             Dim pedidoAnterior As CabPedidoVta
             pedidoAnterior = pedidoSeleccionado
             Dim pedidoNumerico As Integer
-            If Integer.TryParse(numeroPedido, pedidoNumerico) Then
+            If Integer.TryParse(numeroPedido, pedidoNumerico) Then ' si el pedido es numérico
                 pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico).FirstOrDefault
-            Else
+            Else ' si no es numérico (es una factura, lo tratamos como un cobro)
                 pedidoSeleccionado = (From c In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
                 If Not IsNothing(pedidoSeleccionado) Then
+                    retornoActual = (From s In listaTiposRetorno Where s.id = agenciaEspecifica.retornoSoloCobros).FirstOrDefault
+                    servicioActual = (From s In listaServicios Where s.id = agenciaEspecifica.servicioSoloCobros).FirstOrDefault
+                    horarioActual = (From s In listaHorarios Where s.id = agenciaEspecifica.horarioSoloCobros).FirstOrDefault
+                    bultos = 0
                     SetProperty(_numeroPedido, pedidoSeleccionado.Número.ToString)
                 End If
             End If
@@ -723,6 +740,16 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    Private _lineaReembolsoContabilizar As EnviosAgencia
+    Public Property lineaReembolsoContabilizar As EnviosAgencia
+        Get
+            Return _lineaReembolsoContabilizar
+        End Get
+        Set(value As EnviosAgencia)
+            SetProperty(_lineaReembolsoContabilizar, value)
+        End Set
+    End Property
+
     Private _numClienteContabilizar As String
     Public Property numClienteContabilizar As String
         Get
@@ -861,9 +888,25 @@ Public Class AgenciasViewModel
 
     Public ReadOnly Property visibilidadSoloImprimir
         Get
-            Return agenciaEspecifica.visibilidadSoloImprimir
+            If Not IsNothing(agenciaEspecifica) Then
+                Return agenciaEspecifica.visibilidadSoloImprimir
+            Else
+                Return Visibility.Hidden
+            End If
         End Get
     End Property
+
+    'Private _IsActive As Boolean
+    'Public Property IsActive As Boolean Implements IActiveAware.IsActive
+    '    Get
+    '        Return _IsActive
+    '    End Get
+    '    Set(value As Boolean)
+    '        SetProperty(_IsActive, value)
+    '    End Set
+    'End Property
+    'Public Event IsActiveChanged(sender As Object, e As System.EventArgs) Implements IActiveAware.IsActiveChanged
+
 
 #End Region
 
@@ -1024,7 +1067,7 @@ Public Class AgenciasViewModel
     '    Return True
     'End Function
     'Private Sub ImprimirManifiesto(ByVal param As Object)
-    '
+
     'End Sub
 
 
@@ -1052,22 +1095,46 @@ Public Class AgenciasViewModel
         mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
     End Sub
 
-    Private _cmdDobleClic As ICommand
-    Public Property cmdDobleClic As ICommand
+    Private _cmdAgregarReembolsoContabilizar As DelegateCommand(Of Object)
+    Public Property cmdAgregarReembolsoContabilizar As DelegateCommand(Of Object)
         Get
-            Return _cmdDobleClic
+            Return _cmdAgregarReembolsoContabilizar
         End Get
-        Private Set(value As ICommand)
-            _cmdDobleClic = value
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdAgregarReembolsoContabilizar = value
         End Set
     End Property
-    Private Function CanDobleClic(arg As Object) As Boolean
+    Private Function CanAgregarReembolsoContabilizar(arg As Object) As Boolean
         Return Not IsNothing(lineaReembolsoSeleccionado)
     End Function
-    Private Sub OnDobleClic(arg As Object)
+    Private Sub OnAgregarReembolsoContabilizar(arg As Object)
         If Not IsNothing(lineaReembolsoSeleccionado) Then
             listaReembolsosSeleccionados.Add(lineaReembolsoSeleccionado)
             listaReembolsos.Remove(lineaReembolsoSeleccionado)
+            OnPropertyChanged("sumaSeleccionadas")
+            OnPropertyChanged("sumaReembolsos")
+            cmdContabilizarReembolso.RaiseCanExecuteChanged()
+        Else
+            mensajeError = "No hay ninguna línea seleccionada"
+        End If
+    End Sub
+
+    Private _cmdQuitarReembolsoContabilizar As DelegateCommand(Of Object)
+    Public Property cmdQuitarReembolsoContabilizar As DelegateCommand(Of Object)
+        Get
+            Return _cmdQuitarReembolsoContabilizar
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdQuitarReembolsoContabilizar = value
+        End Set
+    End Property
+    Private Function CanQuitarReembolsoContabilizar(arg As Object) As Boolean
+        Return Not IsNothing(lineaReembolsoContabilizar)
+    End Function
+    Private Sub OnQuitarReembolsoContabilizar(arg As Object)
+        If Not IsNothing(lineaReembolsoContabilizar) Then
+            listaReembolsos.Add(lineaReembolsoContabilizar)
+            listaReembolsosSeleccionados.Remove(lineaReembolsoContabilizar)
             OnPropertyChanged("sumaSeleccionadas")
             OnPropertyChanged("sumaReembolsos")
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
@@ -1214,39 +1281,26 @@ Public Class AgenciasViewModel
         modificarEnvio(envioActual, reembolsoModificar, retornoModificar, estadoModificar)
     End Sub
 
+    Private _cmdImprimirManifiesto As DelegateCommand(Of Object)
+    Public Property cmdImprimirManifiesto As DelegateCommand(Of Object)
+        Get
+            Return _cmdImprimirManifiesto
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdImprimirManifiesto = value
+        End Set
+    End Property
+    Private Function CanImprimirManifiesto(arg As Object) As Boolean
+        Return Not IsNothing(listaEnviosTramitados)
+    End Function
+    Private Sub OnImprimirManifiesto(arg As Object)
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of Object)("frmCRInforme")
+        region.Add(vista, "Clientes")
+        region.Activate(vista)
+        'regionManager.RequestNavigate("MainRegion", New Uri("/Clientes", UriKind.Relative))
+    End Sub
 
-
-    'Public Event Saved As EventHandler(Of DataEventArgs(Of AgenciasViewModel))
-    'Public Property SaveOrderCommand() As DelegateCommand(Of Object)
-    '    Get
-    '        Return m_SaveOrderCommand
-    '    End Get
-    '    Private Set(value As DelegateCommand(Of Object))
-    '        m_SaveOrderCommand = Value
-    '    End Set
-    'End Property
-    'Private m_SaveOrderCommand As DelegateCommand(Of Object)
-
-    'Private Function CanSave(arg As Object) As Boolean
-    '    'TODO: 02 - The Order Save command is enabled only when all order data is valid. 
-    '    ' Can only save when there are no errors and 
-    '    ' when the order quantity is greater than zero. 
-    '    Return True
-    'End Function
-
-    'Private Sub Save(obj As Object)
-    '    ' Save the order here. 
-    '    Console.WriteLine([String].Format("{0} saved.", Me.numeroPedido))
-
-    '    ' Notify that the order was saved. 
-    '    Me.OnSaved(New DataEventArgs(Of AgenciasViewModel)(Me))
-    'End Sub
-
-    'Private Sub OnSaved(e As DataEventArgs(Of AgenciasViewModel))
-    '    Dim savedHandler As EventHandler(Of DataEventArgs(Of AgenciasViewModel))
-    '    AddHandler Me.Saved, savedHandler
-    '    RaiseEvent savedHandler(Me, e)
-    'End Sub
 
 
 
@@ -1336,6 +1390,10 @@ Public Class AgenciasViewModel
         If pedidoSeleccionado.NotaEntrega Then
             Return 0
         End If
+        If pedidoSeleccionado.PlazosPago = "PRE" Then
+            Return 0
+        End If
+
 
         If pedidoSeleccionado.MantenerJunto Then
             Dim lineasSinFacturar As ObjectQuery(Of LinPedidoVta)
@@ -1512,7 +1570,7 @@ Public Class AgenciasViewModel
     End Function
 
     Private Sub configurarAgenciaPedido(ByRef agenciaConfigurar As AgenciasTransporte)
-        If IsNothing(pedidoSeleccionado) Then
+        If IsNothing(pedidoSeleccionado) Or IsNothing(agenciaConfigurar) Then
             Return
         End If
 
@@ -1849,6 +1907,9 @@ Public Interface IAgencia
     Sub llamadaWebService(DBContext As NestoEntities)
     Sub imprimirEtiqueta()
     ReadOnly Property visibilidadSoloImprimir As Visibility
+    ReadOnly Property retornoSoloCobros As Integer
+    ReadOnly Property servicioSoloCobros As Integer
+    ReadOnly Property horarioSoloCobros As Integer
 End Interface
 
 Public Class AgenciaASM
@@ -1893,7 +1954,7 @@ Public Class AgenciaASM
             'agenciaSeleccionada = agencia.agenciaSeleccionada
             agenciaVM = agencia
         End If
-        
+
 
 
     End Sub
@@ -2183,7 +2244,7 @@ Public Class AgenciaASM
         Else
             'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
             agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
-            DBContext.SaveChanges()
+            DbContext.SaveChanges()
             If agenciaVM.envioActual.Reembolso > 0 Then
                 agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
             End If
@@ -2252,10 +2313,25 @@ Public Class AgenciaASM
             Return Visibility.Hidden
         End Get
     End Property
-
+    Public ReadOnly Property retornoSoloCobros As Integer Implements IAgencia.retornoSoloCobros
+        Get
+            Return 0 ' Sin retorno
+        End Get
+    End Property
+    Public ReadOnly Property servicioSoloCobros As Integer Implements IAgencia.servicioSoloCobros
+        Get
+            Return 1 ' Courier
+        End Get
+    End Property
+    Public ReadOnly Property horarioSoloCobros As Integer Implements IAgencia.horarioSoloCobros
+        Get
+            Return 3 ' ASM24
+        End Get
+    End Property
 End Class
 Public Class AgenciaOnTime
     Implements IAgencia
+
 
     ' Propiedades de Prism
     Private _NotificationRequest As InteractionRequest(Of INotification)
@@ -2391,5 +2467,21 @@ Public Class AgenciaOnTime
             Return Visibility.Visible
         End Get
     End Property
+    Public ReadOnly Property retornoSoloCobros As Integer Implements IAgencia.retornoSoloCobros
+        Get
+            Return 0 'NO
+        End Get
+    End Property
+    Public ReadOnly Property servicioSoloCobros As Integer Implements IAgencia.servicioSoloCobros
+        Get
+            Return 1 ' Normal
+        End Get
+    End Property
+    Public ReadOnly Property horarioSoloCobros As Integer Implements IAgencia.horarioSoloCobros
+        Get
+            Return 2 ' 14 horas
+        End Get
+    End Property
+
 
 End Class

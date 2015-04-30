@@ -125,7 +125,6 @@ Public Class MainViewModel
         Me._Vendedor = MainModel.Vendedor.CargarVendedor
         Me.container = container
         Me.regionManager = regionManager
-
         cmdCerrarVentana = New DelegateCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
     End Sub
 
@@ -155,8 +154,21 @@ Public Class MainViewModel
         Return True
     End Function
     Private Sub OnCerrarVentana(arg As Object)
-        Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.LastOrDefault
+        'Dim view = Me.regionManager.Regions("MainRegion").GetView(arg.ToString)
+        Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
+        'Dim view = views.LastOrDefault
+
+        'For Each v In views
+        '    Debug.Print(v.Name)
+        '    If v.DataContext.IsActive Then
+        '        view = v
+        '        Exit For
+        '    End If
+        'Next
+
+
         If Not IsNothing(view) Then
+            Me.regionManager.Regions("MainRegion").Deactivate(view)
             Me.regionManager.Regions("MainRegion").Remove(view)
         End If
     End Sub
@@ -246,7 +258,6 @@ Public Class IconoConverter
         End If
         Return New BitmapImage(uri)
     End Function
-
     Public Function ConvertBack(value As Object, targetType As System.Type, parameter As Object, culture As System.Globalization.CultureInfo) As Object Implements System.Windows.Data.IValueConverter.ConvertBack
         Return 0
     End Function

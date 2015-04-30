@@ -13,6 +13,7 @@ Public Class PlanesVentajasViewModel
     Private Shared DbContext As NestoEntities
     Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String = mainModel.leerParametro(empresaActual, "RutaPlanVentajas")
+    Private Const ESTADO_PLAN_CANCELADO = 6
 
     Public Sub New()
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
@@ -27,7 +28,7 @@ Public Class PlanesVentajasViewModel
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
         barrasGrafico = New ObservableCollection(Of datosGrafico)
         gaugeGrafico = New ObservableCollection(Of datosGrafico)
-        listaPlanes = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Order By p.FechaFin)
+        ActualizarListaPlanes()
         planActual = listaPlanes.LastOrDefault
     End Sub
 
@@ -72,20 +73,22 @@ Public Class PlanesVentajasViewModel
         Set(value As PlanesVentajas)
             _planActual = value
             mensajeError = ""
-            listaClientes = New ObservableCollection(Of Clientes)(From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c)
-            lineasVenta = New ObservableCollection(Of LinPedidoVta)(From l In DbContext.LinPedidoVta Join c In (From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c) On l.Nº_Cliente Equals c.Nº_Cliente And l.Contacto Equals c.Contacto Where l.Familia = planActual.Familia And l.Fecha_Factura >= planActual.FechaInicio And l.Fecha_Factura <= planActual.FechaFin Select l)
-            barrasGrafico.Clear()
-            barrasGrafico.Add(New datosGrafico With {.clave = "Presupuestado", .valor = planActual.Importe})
-            barrasGrafico.Add(New datosGrafico With {.clave = "Realizado", .valor = importeVentas})
-            barrasGrafico.Add(New datosGrafico With {.clave = "Proyección", .valor = importeProyeccion})
-            gaugeGrafico.Clear()
-            gaugeGrafico.Add(New datosGrafico With {.clave = "Realizado", .valor = porcentajeRealizado})
-            OnPropertyChanged("planActual")
-            OnPropertyChanged("diasPlan")
-            OnPropertyChanged("diasTranscurridos")
-            OnPropertyChanged("importeDiaObjetivo")
-            OnPropertyChanged("barrasGrafico")
-            OnPropertyChanged("porcentajeRealizado")
+            If Not IsNothing(planActual) Then
+                listaClientes = New ObservableCollection(Of Clientes)(From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c)
+                lineasVenta = New ObservableCollection(Of LinPedidoVta)(From l In DbContext.LinPedidoVta Join c In (From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c) On l.Nº_Cliente Equals c.Nº_Cliente And l.Contacto Equals c.Contacto Where l.Familia = planActual.Familia And l.Fecha_Factura >= planActual.FechaInicio And l.Fecha_Factura <= planActual.FechaFin Select l)
+                barrasGrafico.Clear()
+                barrasGrafico.Add(New datosGrafico With {.clave = "Presupuestado", .valor = planActual.Importe})
+                barrasGrafico.Add(New datosGrafico With {.clave = "Realizado", .valor = importeVentas})
+                barrasGrafico.Add(New datosGrafico With {.clave = "Proyección", .valor = importeProyeccion})
+                gaugeGrafico.Clear()
+                gaugeGrafico.Add(New datosGrafico With {.clave = "Realizado", .valor = porcentajeRealizado})
+                OnPropertyChanged("planActual")
+                OnPropertyChanged("diasPlan")
+                OnPropertyChanged("diasTranscurridos")
+                OnPropertyChanged("importeDiaObjetivo")
+                OnPropertyChanged("barrasGrafico")
+                OnPropertyChanged("porcentajeRealizado")
+            End If
         End Set
     End Property
 
@@ -389,7 +392,7 @@ Public Class PlanesVentajasViewModel
     Private Sub Guardar(ByVal param As Object)
         Try
             DbContext.SaveChanges()
-            listaPlanes = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas)
+            ActualizarListaPlanes()
             mensajeError = ""
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
@@ -442,9 +445,37 @@ Public Class PlanesVentajasViewModel
 
 #End Region
 
+#Region "Funciones de ayuda"
     Private Function rutaPlan() As String
         Return ruta + planActual.Numero.ToString.Trim + ".pdf"
     End Function
+
+    Private Sub ActualizarListaPlanes()
+        Dim clientesString As List(Of String)
+        Dim clientes, clientesPlan, clientesTotales As List(Of Clientes)
+        Dim clienteEncontrado As Clientes
+        Dim listaInicial, listaMedia As ObservableCollection(Of PlanesVentajas)
+        If vendedor = "" Then
+            listaPlanes = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Where p.Estado <> ESTADO_PLAN_CANCELADO Order By p.FechaFin)
+        Else
+            listaInicial = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Where p.Estado <> ESTADO_PLAN_CANCELADO Order By p.FechaFin)
+            listaMedia = New ObservableCollection(Of PlanesVentajas)
+            clientesString = New List(Of String)(From p In DbContext.PlanVentajasCliente Select p.Cliente)
+            clientesTotales = New List(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = "1" And c.Estado >= 0)
+            clientes = New List(Of Clientes)(From s In clientesString Join c In clientesTotales On c.Nº_Cliente Equals s Select c)
+            For Each plan In listaInicial
+                clientesString = New List(Of String)(From p In DbContext.PlanVentajasCliente Where p.NumeroContrato = plan.Numero Select p.Cliente)
+                clientesPlan = New List(Of Clientes)(From s In clientesString Join c In clientes On c.Nº_Cliente Equals s Select c)
+                clienteEncontrado = (From c In clientesPlan Where c.Vendedor.Trim = vendedor.Trim).FirstOrDefault
+                If Not IsNothing(clienteEncontrado) Then
+                    listaMedia.Add(plan)
+                End If
+                'listaMedia.Add(plan)
+            Next
+            listaPlanes = listaMedia
+        End If
+    End Sub
+#End Region
 
 
 End Class
