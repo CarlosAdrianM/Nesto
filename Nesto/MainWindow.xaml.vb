@@ -452,7 +452,7 @@ Class MainWindow
             Case "Anterior"
                 GenerarInformeRapports(Today.AddDays(-1), Today.AddDays(-1))
             Case Else
-                MsgBox("Parte del programa no implementada aún")
+                GenerarInformeRapports(fechaInformeInicial, fechaInformeFinal)
         End Select
     End Sub
     Private Sub GenerarInformeRapports(FechaDesde As Date, FechaHasta As Date)

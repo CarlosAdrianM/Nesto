@@ -35,6 +35,7 @@ Public Class AgenciasViewModel
     Public Const ESTADO_TRAMITADO_ENVIO = 1
     Private Const ESTADO_SIN_FACTURAR = 1
     Private Const ESTADO_LINEA_PENDIENTE = -1
+    Private Const EMPRESA_ESPEJO As String = "3  "
 
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
@@ -243,25 +244,35 @@ Public Class AgenciasViewModel
             SetProperty(_pedidoSeleccionado, value)
             configurarAgenciaPedido(agenciaSeleccionada)
             If Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(pedidoSeleccionado.Clientes) Then
-                reembolso = importeReembolso()
-                bultos = 1
-                nombreEnvio = pedidoSeleccionado.Clientes.Nombre.Trim
-                direccionEnvio = pedidoSeleccionado.Clientes.Dirección.Trim
-                poblacionEnvio = pedidoSeleccionado.Clientes.Población.Trim
-                provinciaEnvio = pedidoSeleccionado.Clientes.Provincia.Trim
-                codPostalEnvio = pedidoSeleccionado.Clientes.CodPostal.Trim
-                telefonoEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "F")
-                movilEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "M")
-                correoEnvio = correoUnico()
-                observacionesEnvio = pedidoSeleccionado.Comentarios
-                attEnvio = nombreEnvio
-                If IsNothing(empresaSeleccionada.FechaPicking) Then
-                    fechaEnvio = Today
-                Else
-                    fechaEnvio = empresaSeleccionada.FechaPicking
-                End If
-                listaEnviosPedido = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Pedido = pedidoSeleccionado.Número)
-                envioActual = listaEnviosPedido.LastOrDefault
+                Try
+                    reembolso = importeReembolso()
+                    bultos = 1
+                    nombreEnvio = pedidoSeleccionado.Clientes.Nombre.Trim
+                    direccionEnvio = pedidoSeleccionado.Clientes.Dirección.Trim
+                    poblacionEnvio = pedidoSeleccionado.Clientes.Población.Trim
+                    provinciaEnvio = pedidoSeleccionado.Clientes.Provincia.Trim
+                    codPostalEnvio = pedidoSeleccionado.Clientes.CodPostal.Trim
+                    telefonoEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "F")
+                    movilEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "M")
+                    correoEnvio = correoUnico()
+                    observacionesEnvio = pedidoSeleccionado.Comentarios
+                    attEnvio = nombreEnvio
+                    If IsNothing(empresaSeleccionada.FechaPicking) Then
+                        fechaEnvio = Today
+                    Else
+                        fechaEnvio = empresaSeleccionada.FechaPicking
+                    End If
+                    listaEnviosPedido = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Pedido = pedidoSeleccionado.Número)
+                    envioActual = listaEnviosPedido.LastOrDefault
+                Catch ex As Exception
+                    If Not IsNothing(NotificationRequest) Then
+                        NotificationRequest.Raise(New Notification() With { _
+                         .Title = "Error", _
+                        .Content = ex.Message _
+                        })
+                    End If
+                End Try
+                
             Else
                 NotificationRequest.Raise(New Notification() With { _
                  .Title = "Error", _
@@ -578,7 +589,7 @@ Public Class AgenciasViewModel
             pedidoAnterior = pedidoSeleccionado
             Dim pedidoNumerico As Integer
             If Integer.TryParse(numeroPedido, pedidoNumerico) Then ' si el pedido es numérico
-                pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico).FirstOrDefault
+                pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO).FirstOrDefault
             Else ' si no es numérico (es una factura, lo tratamos como un cobro)
                 pedidoSeleccionado = (From c In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
                 If Not IsNothing(pedidoSeleccionado) Then
@@ -590,8 +601,12 @@ Public Class AgenciasViewModel
                 End If
             End If
             If IsNothing(pedidoSeleccionado) OrElse IsNothing(pedidoSeleccionado.Clientes) Then
-                pedidoSeleccionado = pedidoAnterior
-                SetProperty(_numeroPedido, pedidoAnterior.Número.ToString)
+                If IsNothing(pedidoAnterior) Then
+                    SetProperty(_numeroPedido, "36") 'ñapa a arreglar cuando esté inspirado
+                Else
+                    pedidoSeleccionado = pedidoAnterior
+                    SetProperty(_numeroPedido, pedidoAnterior.Número.ToString)
+                End If
             End If
             'Dim agenciaNueva As AgenciasTransporte = (From a In DbContext.AgenciasTransporte Where a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
             OnPropertyChanged("empresaSeleccionada")
@@ -1602,6 +1617,20 @@ Public Class AgenciasViewModel
         Dim modificado As Boolean = False
         Dim reembolsoAnterior As Double = 0
         If envio.Reembolso <> reembolso Then
+            If Math.Abs(reembolso) > Math.Abs(reembolsoAnterior * 10) Then 'es demasiado grande
+                Me.ConfirmationRequest.Raise(
+                    New Confirmation() With {
+                        .Content = "¿Es correcto el importe de " + reembolso.ToString("C") + "?", .Title = "¡Atención!"
+                    },
+                    Sub(c)
+                        InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+                    End Sub
+                )
+
+                If InteractionResultMessage = "KO" Then
+                    Return
+                End If
+            End If
             historia.NumeroEnvio = envio.Numero
             historia.Campo = "Reembolso"
             historia.ValorAnterior = envio.Reembolso.ToString("C")
@@ -1630,7 +1659,7 @@ Public Class AgenciasViewModel
         If modificado Then
             historia.Observaciones = observacionesModificacion
             DbContext.SaveChanges()
-            If reembolsoAnterior <> 0 Then
+            If reembolsoAnterior <> reembolso Then
                 contabilizarModificacionReembolso(envio, reembolsoAnterior, reembolso)
             End If
         End If
