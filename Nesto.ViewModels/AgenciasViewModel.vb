@@ -1679,34 +1679,36 @@ Public Class AgenciasViewModel
         'Dim movimientoLiq As ExtractoCliente
         'movimientoLiq = calcularMovimientoLiq(envio)
 
-
-        With lineaDeshago
-            .Empresa = envio.Empresa.Trim
-            .Diario = diarioReembolsos.Trim
-            .Asiento = 1
-            .TipoApunte = "3" 'Pago
-            .TipoCuenta = "2" 'Cliente
-            .Nº_Cuenta = envio.Cliente.Trim
-            .Contacto = envio.Contacto.Trim
-            .Fecha = Today
-            .FechaVto = Today
-            .Debe = importeAnterior
-            .Concepto = Left("Deshago Reembolso " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
-            .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
-            .Asiento_Automático = False
-            .FormaPago = envio.Empresas.FormaPagoEfectivo
-            .Vendedor = envio.Vendedor
-            'If IsNothing(movimientoLiq) Then
-            .Nº_Documento = envio.Pedido
-            .Delegación = envio.Empresas.DelegaciónVarios
-            .FormaVenta = envio.Empresas.FormaVentaVarios
-            'Else
-            '.Nº_Documento = movimientoLiq.Nº_Documento
-            '.Liquidado = movimientoLiq.Nº_Orden
-            '.Delegación = movimientoLiq.Delegación
-            '.FormaVenta = movimientoLiq.FormaVenta
-            'End If
-        End With
+        If importeAnterior <> 0 Then
+            With lineaDeshago
+                .Empresa = envio.Empresa.Trim
+                .Diario = diarioReembolsos.Trim
+                .Asiento = 1
+                .TipoApunte = "3" 'Pago
+                .TipoCuenta = "2" 'Cliente
+                .Nº_Cuenta = envio.Cliente.Trim
+                .Contacto = envio.Contacto.Trim
+                .Fecha = Today
+                .FechaVto = Today
+                .Debe = importeAnterior
+                .Concepto = Left("Deshago Reembolso " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
+                .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
+                .Asiento_Automático = False
+                .FormaPago = envio.Empresas.FormaPagoEfectivo
+                .Vendedor = envio.Vendedor
+                'If IsNothing(movimientoLiq) Then
+                .Nº_Documento = envio.Pedido
+                .Delegación = envio.Empresas.DelegaciónVarios
+                .FormaVenta = envio.Empresas.FormaVentaVarios
+                'Else
+                '.Nº_Documento = movimientoLiq.Nº_Documento
+                '.Liquidado = movimientoLiq.Nº_Orden
+                '.Delegación = movimientoLiq.Delegación
+                '.FormaVenta = movimientoLiq.FormaVenta
+                'End If
+            End With
+        End If
+        
 
         If importeNuevo <> 0 Then
             With lineaRehago
@@ -1740,14 +1742,18 @@ Public Class AgenciasViewModel
 
 
         Try
-            DbContext.AddToPreContabilidad(lineaDeshago)
+            If importeAnterior <> 0 Then
+                DbContext.AddToPreContabilidad(lineaDeshago)
+            End If
             If importeNuevo <> 0 Then
                 DbContext.AddToPreContabilidad(lineaRehago)
             End If
             DbContext.SaveChanges()
             asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos)
         Catch e As Exception
-            DbContext.DeleteObject(lineaDeshago) 'Lo suyo sería hacer una transacción con todo
+            If importeAnterior <> 0 Then
+                DbContext.DeleteObject(lineaDeshago) 'Lo suyo sería hacer una transacción con todo
+            End If
             If importeNuevo <> 0 Then
                 DbContext.DeleteObject(lineaRehago)
             End If
