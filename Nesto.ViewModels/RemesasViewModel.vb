@@ -357,7 +357,8 @@ Public Class RemesasViewModel
                         ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim
                     newTask.Body = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
                         "Motivo: " + impagado.e.Concepto + vbCrLf +
-                        "Ruta: " + impagado.c.Ruta
+                        "Ruta: " + impagado.c.Ruta + vbCrLf +
+                        "Empresa: " + impagado.c.Empresas.Nombre.Trim
                     newTask.Assign()
                     'If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
                     '    usuarioTareas = "laura@nuevavision.es"

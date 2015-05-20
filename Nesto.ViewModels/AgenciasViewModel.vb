@@ -1615,9 +1615,9 @@ Public Class AgenciasViewModel
     Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer)
         Dim historia As New EnviosHistoria
         Dim modificado As Boolean = False
-        Dim reembolsoAnterior As Double = 0
+        Dim reembolsoAnterior As Double = envio.Reembolso
         If envio.Reembolso <> reembolso Then
-            If Math.Abs(reembolso) > Math.Abs(reembolsoAnterior * 10) Then 'es demasiado grande
+            If Math.Abs(reembolso) > Math.Abs(envio.Reembolso * 10) Then 'es demasiado grande
                 Me.ConfirmationRequest.Raise(
                     New Confirmation() With {
                         .Content = "¿Es correcto el importe de " + reembolso.ToString("C") + "?", .Title = "¡Atención!"
@@ -1634,7 +1634,7 @@ Public Class AgenciasViewModel
             historia.NumeroEnvio = envio.Numero
             historia.Campo = "Reembolso"
             historia.ValorAnterior = envio.Reembolso.ToString("C")
-            reembolsoAnterior = envio.Reembolso
+            'reembolsoAnterior = envio.Reembolso
             envio.Reembolso = reembolso
             DbContext.EnviosHistoria.AddObject(historia)
             modificado = True
