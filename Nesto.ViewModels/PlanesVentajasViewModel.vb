@@ -21,7 +21,8 @@ Public Class PlanesVentajasViewModel
         End If
         DbContext = New NestoEntities
 
-        Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
+        'Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
+        Dim empresaDefecto As String = "1"
         vendedor = mainModel.leerParametro(empresaDefecto, "Vendedor")
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         listaEstados = New ObservableCollection(Of EstadosPlanVentajas)(From c In DbContext.EstadosPlanVentajas)

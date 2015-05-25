@@ -48,6 +48,7 @@ Public Class RemesasViewModel
         tipoRemesaActual = New tipoRemesa("B2B", "Profesionales (B2B)")
         listaTiposRemesa.Add(tipoRemesaActual)
         listaTiposRemesa.Add(New tipoRemesa("CORE", "Particulares (CORE)"))
+        tipoRemesaActual = listaTiposRemesa.LastOrDefault ' Por defecto es CORE -> FirstOrDefault para B2B
         fechaCobro = Today
     End Sub
 

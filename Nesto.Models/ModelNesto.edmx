@@ -341,6 +341,7 @@
           <Property Name="Vendedor" Type="char" MaxLength="3" />
           <Property Name="FechaFactura" Type="date" />
           <Property Name="ImporteGasto" Type="money" Nullable="false" />
+          <Property Name="FechaRetornoRecibido" Type="date" />
           <Property Name="Usuario" Type="varchar" MaxLength="50" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
         </EntityType>
@@ -4140,6 +4141,7 @@
           <NavigationProperty Name="AgenciasTransporte" Relationship="Nesto.Models.EF.FK_EnviosAgencia_AgenciasTransporte" FromRole="EnviosAgencia" ToRole="AgenciasTransporte" />
           <Property Name="FechaPagoReembolso" Type="DateTime" Precision="0" />
           <NavigationProperty Name="EnviosHistoria" Relationship="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" FromRole="EnviosAgencia" ToRole="EnviosHistoria" />
+          <Property Name="FechaRetornoRecibido" Type="DateTime" Precision="0" />
         </EntityType>
         <Association Name="FK_AgenciasTransporte_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
@@ -5230,6 +5232,7 @@
           <EntitySetMapping Name="EnviosAgencia">
             <EntityTypeMapping TypeName="Nesto.Models.EF.EnviosAgencia">
               <MappingFragment StoreEntitySet="EnviosAgencia">
+                <ScalarProperty Name="FechaRetornoRecibido" ColumnName="FechaRetornoRecibido" />
                 <ScalarProperty Name="FechaPagoReembolso" ColumnName="FechaPagoReembolso" />
                 <ScalarProperty Name="FechaModificacion" ColumnName="FechaModificacion" />
                 <ScalarProperty Name="Usuario" ColumnName="Usuario" />

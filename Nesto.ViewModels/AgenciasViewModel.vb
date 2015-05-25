@@ -64,6 +64,7 @@ Public Class AgenciasViewModel
         ' Prism
         cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
         cmdAgregarReembolsoContabilizar = New DelegateCommand(Of Object)(AddressOf OnAgregarReembolsoContabilizar, AddressOf CanAgregarReembolsoContabilizar)
+        cmdRecibirRetorno = New DelegateCommand(Of Object)(AddressOf OnRecibirRetorno, AddressOf CanRecibirRetorno)
         cmdQuitarReembolsoContabilizar = New DelegateCommand(Of Object)(AddressOf OnQuitarReembolsoContabilizar, AddressOf CanQuitarReembolsoContabilizar)
         cmdContabilizarReembolso = New DelegateCommand(Of Object)(AddressOf OnContabilizarReembolso, AddressOf CanContabilizarReembolso)
         cmdDescargarImagen = New DelegateCommand(Of Object)(AddressOf OnDescargarImagen, AddressOf CanDescargarImagen)
@@ -172,6 +173,7 @@ Public Class AgenciasViewModel
                     'listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
                     listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                     listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+                    listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
                     OnPropertyChanged("sumaContabilidad")
                     OnPropertyChanged("descuadreContabilidad")
                     OnPropertyChanged("visibilidadSoloImprimir")
@@ -222,12 +224,15 @@ Public Class AgenciasViewModel
                 listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                 listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                 listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+                listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
             Else
                 listaEnvios = New ObservableCollection(Of EnviosAgencia)
                 listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)
                 listaReembolsos = New ObservableCollection(Of EnviosAgencia)
+                listaRetornos = New ObservableCollection(Of EnviosAgencia)
             End If
             listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+
             OnPropertyChanged("sumaContabilidad")
             OnPropertyChanged("descuadreContabilidad")
             'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
@@ -645,6 +650,10 @@ Public Class AgenciasViewModel
             If PestañaSeleccionada.Name = "tabReembolsos" And IsNothing(listaReembolsos) Then
                 listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
             End If
+
+            If PestañaSeleccionada.Name = "tabRetornos" And IsNothing(listaRetornos) Then
+                listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
+            End If
         End Set
     End Property
 
@@ -922,6 +931,27 @@ Public Class AgenciasViewModel
     'End Property
     'Public Event IsActiveChanged(sender As Object, e As System.EventArgs) Implements IActiveAware.IsActiveChanged
 
+    Private _listaRetornos As ObservableCollection(Of EnviosAgencia)
+    Public Property listaRetornos As ObservableCollection(Of EnviosAgencia)
+        Get
+            Return _listaRetornos
+        End Get
+        Set(value As ObservableCollection(Of EnviosAgencia))
+            SetProperty(_listaRetornos, value)
+        End Set
+    End Property
+
+    Private _lineaRetornoSeleccionado As EnviosAgencia
+    Public Property lineaRetornoSeleccionado As EnviosAgencia
+        Get
+            Return _lineaRetornoSeleccionado
+        End Get
+        Set(value As EnviosAgencia)
+            SetProperty(_lineaRetornoSeleccionado, value)
+        End Set
+    End Property
+
+        
 
 #End Region
 
@@ -1316,6 +1346,47 @@ Public Class AgenciasViewModel
         'regionManager.RequestNavigate("MainRegion", New Uri("/Clientes", UriKind.Relative))
     End Sub
 
+    Private _cmdRecibirRetorno As DelegateCommand(Of Object)
+    Public Property cmdRecibirRetorno As DelegateCommand(Of Object)
+        Get
+            Return _cmdRecibirRetorno
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdRecibirRetorno = value
+        End Set
+    End Property
+    Private Function CanRecibirRetorno(arg As Object) As Boolean
+        Return Not IsNothing(lineaRetornoSeleccionado)
+    End Function
+    Private Sub OnRecibirRetorno(arg As Object)
+        If Not IsNothing(lineaRetornoSeleccionado) Then
+            Me.ConfirmationRequest.Raise(
+                New Confirmation() With {
+                    .Content = "¿Confirma que ha recibido el retorno del pedido " + lineaRetornoSeleccionado.Pedido.ToString + "?", .Title = "Retorno"
+                },
+                Sub(c)
+                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+                End Sub
+            )
+
+            If InteractionResultMessage = "KO" Or IsNothing(lineaRetornoSeleccionado) Then
+                Return
+            End If
+            lineaRetornoSeleccionado.FechaRetornoRecibido = Today
+            If DbContext.SaveChanges Then
+                mensajeError = "Fecha retorno del cliente " + lineaRetornoSeleccionado.Cliente.Trim + " actualizada correctamente"
+                listaRetornos.Remove(lineaRetornoSeleccionado)
+            Else
+                mensajeError = "Se ha producido un error al actualizar la fecha del retorno"
+                NotificationRequest.Raise(New Notification() With { _
+                    .Title = "Error", _
+                    .Content = "No se ha podido actualizar la fecha del retorno" _
+                })
+            End If
+        Else
+            mensajeError = "No hay ninguna línea seleccionada"
+        End If
+    End Sub
 
 
 
@@ -1945,6 +2016,7 @@ Public Interface IAgencia
     ReadOnly Property retornoSoloCobros As Integer
     ReadOnly Property servicioSoloCobros As Integer
     ReadOnly Property horarioSoloCobros As Integer
+    ReadOnly Property retornoSinRetorno As Integer ' Especifica la forma de retorno = NO, es decir, cuando no debe mostrarse en la lista de retornos pendientes
 End Interface
 
 Public Class AgenciaASM
@@ -2363,6 +2435,11 @@ Public Class AgenciaASM
             Return 3 ' ASM24
         End Get
     End Property
+    Public ReadOnly Property retornoSinRetorno As Integer Implements IAgencia.retornoSinRetorno
+        Get
+            Return 0 ' Sin Retorno
+        End Get
+    End Property
 End Class
 Public Class AgenciaOnTime
     Implements IAgencia
@@ -2515,6 +2592,11 @@ Public Class AgenciaOnTime
     Public ReadOnly Property horarioSoloCobros As Integer Implements IAgencia.horarioSoloCobros
         Get
             Return 2 ' 14 horas
+        End Get
+    End Property
+    Public ReadOnly Property retornoSinRetorno As Integer Implements IAgencia.retornoSinRetorno
+        Get
+            Return 0 ' NO
         End Get
     End Property
 

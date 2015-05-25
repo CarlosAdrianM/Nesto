@@ -445,6 +445,29 @@
                     </Grid>                    
                 </Grid>
             </TabItem>
+            <TabItem Name="tabRetornos" Header="Retornos">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DataGrid Grid.Row="0" ItemsSource="{Binding listaRetornos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True" Name="grdListaRetornos" SelectedItem="{Binding lineaRetornoSeleccionado}">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="MouseDoubleClick">
+                                <i:InvokeCommandAction Command="{Binding cmdRecibirRetorno}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                            <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" />
+                            <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" />
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                            <DataGridTextColumn Header="Bultos" Binding="{Binding Bultos}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    
+                </Grid>
+            </TabItem>
             <TabItem Name="tabEtiquetas" Header="Etiquetas">
                 <Grid>
                     <Grid.RowDefinitions>
