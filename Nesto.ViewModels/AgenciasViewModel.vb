@@ -18,6 +18,7 @@ Imports Microsoft.Win32
 Imports Microsoft.Practices.Prism
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
+Imports System.Transactions
 
 
 Public Class AgenciasViewModel
@@ -1214,70 +1215,100 @@ Public Class AgenciasViewModel
             Return
         End If
 
-        Dim asiento As Integer = 0 'para guardar el asiento que devuelve prdContabilizar
-
-        If Not MODO_CUADRE Then
-            For Each linea In listaReembolsosSeleccionados
-                DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
-                    .Empresa = empresaSeleccionada.Número,
-                    .Diario = "_Reembolso",
-                    .Asiento = 1,
-                    .Fecha = Today,
-                    .TipoApunte = "3",
-                    .TipoCuenta = "1",
-                    .Nº_Cuenta = linea.AgenciasTransporte.CuentaReembolsos,
-                    .Concepto = "Pago reembolso " + linea.Cliente,
-                    .Haber = linea.Reembolso,
-                    .Nº_Documento = linea.AgenciasTransporte.Nombre,
-                    .Delegación = "ALG",
-                    .FormaVenta = "VAR" _
-                })
-            Next
-            DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
-                    .Empresa = empresaSeleccionada.Número,
-                    .Diario = "_Reembolso",
-                    .Asiento = 1,
-                    .Fecha = Today,
-                    .TipoApunte = "3",
-                    .TipoCuenta = "2",
-                    .Nº_Cuenta = numClienteContabilizar,
-                    .Contacto = "0",
-                    .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
-                    .Debe = sumaSeleccionadas,
-                    .Nº_Documento = agenciaSeleccionada.Nombre,
-                    .Delegación = "ALG",
-                    .FormaVenta = "VAR",
-                    .FormaPago = "CHQ",
-                    .Vendedor = "NV" _
-                })
-            DbContext.SaveChanges()
-
-
-            asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_Reembolso")
-        End If
-        If (asiento > 0 Or MODO_CUADRE) Then
-            Dim fechaAFijar As Date = Today
-            If MODO_CUADRE Then
-                fechaAFijar = "01/01/2015"
-            End If
-            For Each linea In listaReembolsosSeleccionados
-                linea.FechaPagoReembolso = fechaAFijar
-            Next
-            DbContext.SaveChanges()
-            NotificationRequest.Raise(New Notification() With { _
-                 .Title = "Contabilizado Correctamente", _
-                .Content = "Nº Asiento: " + asiento.ToString _
-            })
-            listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
-            OnPropertyChanged("sumaContabilidad")
-            OnPropertyChanged("descuadreContabilidad")
-            OnPropertyChanged("sumaReembolsos")
-        Else
+        ' Comprobamos si existe el cliente
+        Dim cliente As Clientes = (From c In DbContext.Clientes Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cliente = numClienteContabilizar And c.ClientePrincipal = True And c.Estado >= 0).FirstOrDefault
+        If IsNothing(cliente) Then
             NotificationRequest.Raise(New Notification() With { _
                 .Title = "Error al contabilizar", _
-                .Content = "¡Atención! Debe borrar las líneas del diario _Reembolso" _
+                .Content = "El cliente " + numClienteContabilizar + " no existe en " + empresaSeleccionada.Nombre _
             })
+            Return
         End If
+
+        Dim asiento As Integer = 0 'para guardar el asiento que devuelve prdContabilizar
+
+        ' Empezamos una transacción
+        Dim success As Boolean = False
+        Using transaction As New TransactionScope()
+
+            If Not MODO_CUADRE Then
+                For Each linea In listaReembolsosSeleccionados
+                    DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
+                        .Empresa = empresaSeleccionada.Número,
+                        .Diario = "_Reembolso",
+                        .Asiento = 1,
+                        .Fecha = Today,
+                        .TipoApunte = "3",
+                        .TipoCuenta = "1",
+                        .Nº_Cuenta = linea.AgenciasTransporte.CuentaReembolsos,
+                        .Concepto = "Pago reembolso " + linea.Cliente,
+                        .Haber = linea.Reembolso,
+                        .Nº_Documento = linea.AgenciasTransporte.Nombre,
+                        .Delegación = "ALG",
+                        .FormaVenta = "VAR" _
+                    })
+                Next
+                DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
+                        .Empresa = empresaSeleccionada.Número,
+                        .Diario = "_Reembolso",
+                        .Asiento = 1,
+                        .Fecha = Today,
+                        .TipoApunte = "3",
+                        .TipoCuenta = "2",
+                        .Nº_Cuenta = numClienteContabilizar,
+                        .Contacto = "0",
+                        .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
+                        .Debe = sumaSeleccionadas,
+                        .Nº_Documento = agenciaSeleccionada.Nombre,
+                        .Delegación = "ALG",
+                        .FormaVenta = "VAR",
+                        .FormaPago = "CHQ",
+                        .Vendedor = "NV" _
+                    })
+                DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+
+
+                asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_Reembolso")
+            End If
+            If (asiento > 0 Or MODO_CUADRE) Then
+                Dim fechaAFijar As Date = Today
+                If MODO_CUADRE Then
+                    fechaAFijar = "01/01/2015"
+                End If
+                For Each linea In listaReembolsosSeleccionados
+                    linea.FechaPagoReembolso = fechaAFijar
+                Next
+                DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+
+                transaction.Complete()
+                success = True ' Marcamos correctas las transacciones
+
+                NotificationRequest.Raise(New Notification() With { _
+                     .Title = "Contabilizado Correctamente", _
+                    .Content = "Nº Asiento: " + asiento.ToString _
+                })
+                listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+            Else
+                NotificationRequest.Raise(New Notification() With { _
+                    .Title = "Error al contabilizar", _
+                    .Content = "¡Atención! Debe borrar las líneas del diario _Reembolso" _
+                })
+            End If
+
+            ' Comprobamos que las transacciones sean correctas
+            If success Then
+                ' Reset the context since the operation succeeded. 
+                DbContext.AcceptAllChanges()
+                OnPropertyChanged("sumaContabilidad")
+                OnPropertyChanged("descuadreContabilidad")
+                OnPropertyChanged("sumaReembolsos")
+            Else
+                NotificationRequest.Raise(New Notification() With { _
+                     .Title = "¡Error!", _
+                    .Content = "Se ha producido un error y no se grabado los datos" _
+                })
+            End If
+        End Using ' finaliza la transacción
     End Sub
 
     Private _cmdDescargarImagen As DelegateCommand(Of Object)
@@ -1603,8 +1634,8 @@ Public Class AgenciasViewModel
             .TipoCuenta = "2" 'Cliente
             .Nº_Cuenta = envio.Cliente.Trim
             .Contacto = envio.Contacto.Trim
-            .Fecha = envio.Fecha
-            .FechaVto = envio.Fecha
+            .Fecha = Today 'envio.Fecha
+            .FechaVto = Today ' envio.Fecha
             .Haber = envio.Reembolso
             .Concepto = Left("S/Pago pedido " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
             .Contrapartida = envio.AgenciasTransporte.CuentaReembolsos.Trim
@@ -1622,15 +1653,38 @@ Public Class AgenciasViewModel
                 .FormaVenta = movimientoLiq.FormaVenta
             End If
         End With
-        Try
-            DbContext.AddToPreContabilidad(lineaInsertar)
-            DbContext.SaveChanges()
-            asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos)
-        Catch e As Exception
-            DbContext.DeleteObject(lineaInsertar) 'Lo suyo sería hacer una transacción con todo
-            DbContext.SaveChanges()
-            Return -1
-        End Try
+
+        ' Iniciamos transacción
+        Dim success As Boolean = False
+        Using transaction As New TransactionScope()
+
+
+            Try
+                DbContext.AddToPreContabilidad(lineaInsertar)
+                DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos)
+                transaction.Complete()
+                success = True
+            Catch e As Exception
+                'DbContext.DeleteObject(lineaInsertar) 'Lo suyo sería hacer una transacción con todo
+                'DbContext.SaveChanges()
+                transaction.Dispose()
+                Return -1
+            End Try
+
+            ' Comprobamos que las transacciones sean correctas
+            If success Then
+                ' Reset the context since the operation succeeded. 
+                DbContext.AcceptAllChanges()
+            Else
+                NotificationRequest.Raise(New Notification() With { _
+                     .Title = "¡Error!", _
+                    .Content = "Se ha producido un error y no se grabado los datos" _
+                })
+            End If
+
+        End Using
+
 
         Return asiento
 

@@ -255,7 +255,9 @@ Public Class RemesasViewModel
         Try
             'mensajeError = "Generando fichero..."
             DbContext.CommandTimeout = 6000
+
             listaContenido = DbContext.CrearFicheroRemesa(remesaActual.Número, codigo, fechaCobro).ToList
+
             DbContext.CommandTimeout = 180
             strContenido = ""
             For Each linea In listaContenido
