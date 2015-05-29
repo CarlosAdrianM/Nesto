@@ -1434,7 +1434,7 @@ Public Class AgenciasViewModel
         Dim telefonos() As String
         Dim stringSeparators() As String = {"/"}
 
-        telefonos = listaTelefonos.Split(stringSeparators, StringSplitOptions.None)
+        telefonos = listaTelefonos.Split(stringSeparators, StringSplitOptions.RemoveEmptyEntries)
         For Each t As String In telefonos
             If (t.Length = 9) And (
                 (tipo = "F" And t.Substring(0, 1) = "9") Or
@@ -1700,7 +1700,7 @@ Public Class AgenciasViewModel
         ElseIf movimientos.Count = 1 Then
             Return movimientos.LastOrDefault
         Else
-            movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = env.Reembolso And m.Fecha = env.Fecha)
+            movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = env.Reembolso And m.Fecha = Today) ' con env.Fecha hay problemas cuando la etiqueta es del día anterior
             If movimientosConImporte.Count = 0 Then
                 Return movimientos.FirstOrDefault
             Else
