@@ -6,11 +6,14 @@ Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Input
 Imports System.Windows.Controls
-'Imports Nesto.Models.Nesto.Models.EF
+
+Imports Microsoft.Practices.Prism.Mvvm
+Imports Microsoft.Practices.Prism.Commands
+Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 
 
 Public Class AlquileresViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
     Private Shared DbContext As NestoEntities
     Dim mainModel As New Nesto.Models.MainModel
@@ -22,10 +25,39 @@ Public Class AlquileresViewModel
         DbContext = New NestoEntities
         colProductosAlquilerLista = New ObservableCollection(Of prdProductosAlquiler)(From c In DbContext.prdProductosAlquilerLista)
         bultos = 2
+
+        ' Comandos Prism
+        cmdIntercambiarNumeroSerie = New DelegateCommand(Of Object)(AddressOf OnIntercambiarNumeroSerie, AddressOf CanIntercambiarNumeroSerie)
+
+        ' Prism
+        NotificationRequest = New InteractionRequest(Of INotification)
+
     End Sub
 
 
 #Region "Datos Publicados"
+
+    '*** Propiedades de Prism 
+    Private _NotificationRequest As InteractionRequest(Of INotification)
+    Public Property NotificationRequest As InteractionRequest(Of INotification)
+        Get
+            Return _NotificationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of INotification))
+            _NotificationRequest = value
+        End Set
+    End Property
+
+    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
+    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
+        Get
+            Return _ConfirmationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of IConfirmation))
+            _ConfirmationRequest = value
+        End Set
+    End Property
+
 
     Private _AlquileresCollection As ObservableCollection(Of CabAlquileres)
     Public Property AlquileresCollection() As ObservableCollection(Of CabAlquileres)
@@ -33,8 +65,8 @@ Public Class AlquileresViewModel
             Return _AlquileresCollection
         End Get
         Set(value As ObservableCollection(Of CabAlquileres))
-            _AlquileresCollection = value
-            OnPropertyChanged("AlquileresCollection")
+            SetProperty(_AlquileresCollection, value)
+            'OnPropertyChanged("AlquileresCollection")
         End Set
     End Property
 
@@ -44,8 +76,8 @@ Public Class AlquileresViewModel
             Return _LineaSeleccionada
         End Get
         Set(value As CabAlquileres)
-            _LineaSeleccionada = value
-            OnPropertyChanged("LineaSeleccionada")
+            SetProperty(_LineaSeleccionada, value)
+            cmdIntercambiarNumeroSerie.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -55,8 +87,8 @@ Public Class AlquileresViewModel
             Return _colExtractoInmovilizado
         End Get
         Set(value As ObservableCollection(Of ExtractoInmovilizado))
-            _colExtractoInmovilizado = value
-            OnPropertyChanged("colExtractoInmovilizado")
+            SetProperty(_colExtractoInmovilizado, value)
+            'OnPropertyChanged("colExtractoInmovilizado")
         End Set
     End Property
 
@@ -75,8 +107,8 @@ Public Class AlquileresViewModel
                     colCompra = New ObservableCollection(Of LinPedidoCmp)(From x In DbContext.LinPedidoCmp Where x.Producto = LineaSeleccionada.Producto And x.NumSerie = LineaSeleccionada.NumeroSerie Order By x.NºOrden)
                 End If
             End If
-            _PestañaSeleccionada = value
-            OnPropertyChanged("PestañaSeleccionada")
+            SetProperty(_PestañaSeleccionada, value)
+            'OnPropertyChanged("PestañaSeleccionada")
         End Set
     End Property
 
@@ -86,36 +118,36 @@ Public Class AlquileresViewModel
             Return _colMovimientos
         End Get
         Set(value As ObservableCollection(Of LinPedidoVta))
-            _colMovimientos = value
-            OnPropertyChanged("colMovimientos")
+            SetProperty(_colMovimientos, value)
+            'OnPropertyChanged("colMovimientos")
         End Set
     End Property
 
-    Private Property _colProductosAlquilerLista As ObservableCollection(Of prdProductosAlquiler)
+    Private _colProductosAlquilerLista As ObservableCollection(Of prdProductosAlquiler)
     Public Property colProductosAlquilerLista As ObservableCollection(Of prdProductosAlquiler)
         Get
             Return _colProductosAlquilerLista
         End Get
         Set(value As ObservableCollection(Of prdProductosAlquiler))
-            _colProductosAlquilerLista = value
-            OnPropertyChanged("colProductosAlquilerLista")
+            SetProperty(_colProductosAlquilerLista, value)
+            'OnPropertyChanged("colProductosAlquilerLista")
         End Set
     End Property
 
-    Private Property _ProductoSeleccionado As prdProductosAlquiler
+    Private _ProductoSeleccionado As prdProductosAlquiler
     Public Property ProductoSeleccionado As prdProductosAlquiler
         Get
             Return _ProductoSeleccionado
         End Get
         Set(value As prdProductosAlquiler)
-            _ProductoSeleccionado = value
+            SetProperty(_ProductoSeleccionado, value)
             If Not IsNothing(ProductoSeleccionado) Then
                 AlquileresCollection = New ObservableCollection(Of CabAlquileres)(From c In DbContext.CabAlquileres Where c.Producto = ProductoSeleccionado.Número Order By c.NumeroSerie)
             End If
 
             colExtractoInmovilizado = Nothing
             colMovimientos = Nothing
-            OnPropertyChanged("ProductoSeleccionado")
+            'OnPropertyChanged("ProductoSeleccionado")
         End Set
     End Property
 
@@ -125,31 +157,43 @@ Public Class AlquileresViewModel
             Return _colCompra
         End Get
         Set(value As ObservableCollection(Of LinPedidoCmp))
-            _colCompra = value
-            OnPropertyChanged("colCompra")
+            SetProperty(_colCompra, value)
+            'OnPropertyChanged("colCompra")
         End Set
     End Property
 
-    Private Property _mensajeError As String
+    Private _mensajeError As String
     Public Property mensajeError As String
         Get
             Return _mensajeError
         End Get
         Set(value As String)
-            _mensajeError = value
-            OnPropertyChanged("mensajeError")
+            SetProperty(_mensajeError, value)
+            'OnPropertyChanged("mensajeError")
         End Set
     End Property
 
-    Private Property _bultos As Integer
+    Private _bultos As Integer
     Public Property bultos As Integer
         Get
             Return _bultos
         End Get
         Set(value As Integer)
-            _bultos = value
+            SetProperty(_bultos, value)
         End Set
     End Property
+
+    Private _numeroSerieIntercambiar As String
+    Public Property numeroSerieIntercambiar() As String
+        Get
+            Return _numeroSerieIntercambiar
+        End Get
+        Set(ByVal value As String)
+            SetProperty(_numeroSerieIntercambiar, value)
+            cmdIntercambiarNumeroSerie.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
 
 #End Region
 
@@ -338,6 +382,59 @@ Public Class AlquileresViewModel
             objStream = Nothing
         End Try
     End Sub
+
+    Private _cmdIntercambiarNumeroSerie As DelegateCommand(Of Object)
+    Public Property cmdIntercambiarNumeroSerie As DelegateCommand(Of Object)
+        Get
+            Return _cmdIntercambiarNumeroSerie
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdIntercambiarNumeroSerie = value
+        End Set
+    End Property
+    Private Function CanIntercambiarNumeroSerie(arg As Object) As Boolean
+        Return Not IsNothing(LineaSeleccionada) AndAlso Not IsNothing(numeroSerieIntercambiar) AndAlso numeroSerieIntercambiar.Trim.Length > 0
+    End Function
+    Private Sub OnIntercambiarNumeroSerie(arg As Object)
+        Dim alquiler As CabAlquileres = (From a In AlquileresCollection Where a.NumeroSerie = numeroSerieIntercambiar).SingleOrDefault
+
+        ' Comprobamos que no sea el mismo alquiler el que tenga ese nº de serie
+        If LineaSeleccionada.NumeroSerie.Trim = numeroSerieIntercambiar.Trim Then
+            NotificationRequest.Raise(New Notification() With { _
+                .Title = "Error", _
+                .Content = "El número de serie origen es el mismo que el destino"
+            })
+            Return
+        End If
+
+        ' Comprobamos que exista el alquiler
+        If IsNothing(alquiler) Then
+            NotificationRequest.Raise(New Notification() With { _
+                .Title = "Error", _
+                .Content = "No se encuentra el producto con número de serie " + numeroSerieIntercambiar _
+            })
+            Return
+        End If
+
+        ' Procedemos al cambio
+        Try
+            Dim numeroSerieIntermedio As String = LineaSeleccionada.NumeroSerie
+            LineaSeleccionada.NumeroSerie = numeroSerieIntercambiar.Trim
+            alquiler.NumeroSerie = numeroSerieIntermedio.Trim
+            DbContext.SaveChanges()
+            NotificationRequest.Raise(New Notification() With { _
+                .Title = "Información", _
+                .Content = "Números de serie actualizados correctamente"
+            })
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With { _
+                .Title = "Error", _
+                .Content = "No se pudo realizar el cambio de número de serie"
+            })
+        End Try
+
+    End Sub
+
 
 
 #End Region

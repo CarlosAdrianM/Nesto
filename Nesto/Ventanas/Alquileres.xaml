@@ -82,11 +82,9 @@
                                 MinWidth="80" Margin="3" Content="Borrar" Command = "{Binding cmdBorrar}"/>
             <Button Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="9" 
                                 MinWidth="80" Margin="3" Content="Imprimir Etiqueta de la máquina" Command = "{Binding cmdImprimirEtiquetaMaquina}"/>
-            <Button Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="9" 
-                                MinWidth="80" Margin="3" Content="Imprimir Etiqueta del pedido" Command = "{Binding cmdImprimirEtiquetaPedido}"/>
-
-                <Label Grid.Column="3" Grid.Row="10" Content="Bultos"/>
-                <TextBox Grid.Column="4" Grid.Row="10" Style="{StaticResource campoTexto}" Text="{Binding bultos}"/>
+                <Button Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="9" 
+                                MinWidth="80" Margin="3" Content="Intercambiar nº de serie" Command = "{Binding cmdIntercambiarNumeroSerie}"/>
+                <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="10" Style="{StaticResource campoTexto}" Text="{Binding numeroSerieIntercambiar}"/>
 
 
         
@@ -139,11 +137,9 @@
                 <TabItem Name="tabMovimientos" Header="Movimiento">
                     <DataGrid Name="dgrMovimientos" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding colMovimientos}" AutoGenerateColumns="True"/>
                 </TabItem>
-
                 <TabItem Name="tabCompra" Header="Compra">
                     <DataGrid Name="dgrCompra" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding colCompra}" AutoGenerateColumns="True"/>
                 </TabItem>
-
                 <TabItem Name="tabInmovilizados" Header="Inmovilizados">
                     <DataGrid Name="dgrInmovilizados" IsReadOnly="True" CanUserAddRows="False" ItemsSource="{Binding colExtractoInmovilizado}" AutoGenerateColumns="True">
 

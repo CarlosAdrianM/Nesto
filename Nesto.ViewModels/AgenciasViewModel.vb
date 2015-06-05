@@ -19,6 +19,10 @@ Imports Microsoft.Practices.Prism
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports System.Transactions
+Imports System.Net.Http
+Imports System.Net.Http.Headers
+Imports System.Net.Http.Formatting
+Imports System.Threading.Tasks
 
 
 Public Class AgenciasViewModel
@@ -278,7 +282,7 @@ Public Class AgenciasViewModel
                         })
                     End If
                 End Try
-                
+
             Else
                 NotificationRequest.Raise(New Notification() With { _
                  .Title = "Error", _
@@ -952,7 +956,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-        
+
 
 #End Region
 
@@ -1305,7 +1309,7 @@ Public Class AgenciasViewModel
             Else
                 NotificationRequest.Raise(New Notification() With { _
                      .Title = "¡Error!", _
-                    .Content = "Se ha producido un error y no se grabado los datos" _
+                    .Content = "Se ha producido un error y no se han grabado los datos" _
                 })
             End If
         End Using ' finaliza la transacción
@@ -1694,7 +1698,7 @@ Public Class AgenciasViewModel
         Dim movimientos As ObservableCollection(Of ExtractoCliente)
         Dim movimientosConImporte As ObservableCollection(Of ExtractoCliente)
 
-        movimientos = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = env.Empresa And e.Número = env.Cliente And e.ImportePdte > 0)
+        movimientos = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = env.Empresa And e.Número = env.Cliente And e.ImportePdte > 0 And e.Estado <> "RTN")
         If movimientos.Count = 0 Then
             Return Nothing
         ElseIf movimientos.Count = 1 Then
@@ -1833,7 +1837,7 @@ Public Class AgenciasViewModel
                 'End If
             End With
         End If
-        
+
 
         If importeNuevo <> 0 Then
             With lineaRehago
@@ -2578,12 +2582,18 @@ Public Class AgenciaOnTime
         emailPlaza = "traficodistribucion@ontimelogistica.com"
     End Sub
     Public Sub llamadaWebService(DbContext As NestoEntities) Implements IAgencia.llamadaWebService
-        'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
+
+        ' Código puesto como asíncrono el 01/06/15
         agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
         DbContext.SaveChanges()
+
+        'Await cambiarEstadoAsync(agenciaVM.envioActual)
+
         If agenciaVM.envioActual.Reembolso > 0 Then
             agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
         End If
+
+
         agenciaVM.mensajeError = "Envío del pedido " + agenciaVM.envioActual.Pedido.ToString + " tramitado correctamente."
         agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
         agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
@@ -2653,6 +2663,90 @@ Public Class AgenciaOnTime
             Return 0 ' NO
         End Get
     End Property
+    Private Async Function cambiarEstadoAsync(enviosAgencia As EnviosAgencia) As Task(Of HttpResponseMessage)
+        Dim response As HttpResponseMessage
+        Dim urlLlamada As String = "http://localhost:53364/api/EnviosAgencias/" + enviosAgencia.Numero.ToString
+        Dim dto As EnviosAgenciaDTO = New EnviosAgenciaDTO
 
+        Using cliente As New HttpClient
+            cliente.BaseAddress = New Uri("http://localhost:53364/")
+            cliente.DefaultRequestHeaders.Accept.Clear()
+            cliente.DefaultRequestHeaders.Accept.Add(New MediaTypeWithQualityHeaderValue("application/json"))
+            'enviosAgencia.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
+            dto.Numero = enviosAgencia.Numero
+            dto.Estado = enviosAgencia.Estado
+            response = Await cliente.PutAsJsonAsync(urlLlamada, dto)
+        End Using
+
+        Return response.EnsureSuccessStatusCode
+    End Function
+
+    Class EnviosAgenciaDTO
+        'public int Numero { get; set; }
+        Private _Numero As Integer
+        Public Property Numero() As Integer
+            Get
+                Return _Numero
+            End Get
+            Set(ByVal value As Integer)
+                _Numero = value
+            End Set
+        End Property
+
+        'public string Empresa { get; set; }
+        Private _Empresa As String
+        Public Property Empresa() As String
+            Get
+                Return _Empresa
+            End Get
+            Set(ByVal value As String)
+                _Empresa = value
+            End Set
+        End Property
+
+        'public int Agencia { get; set; }
+        'public string Cliente { get; set; }
+        'public string Contacto { get; set; }
+        'public Nullable<int> Pedido { get; set; }
+        'public short Estado { get; set; }
+        Private _Estado As Short
+        Public Property Estado() As Short
+            Get
+                Return _Estado
+            End Get
+            Set(ByVal value As Short)
+                _Estado = value
+            End Set
+        End Property
+
+        'public System.DateTime Fecha { get; set; }
+        'public short Servicio { get; set; }
+        'public short Horario { get; set; }
+        'public short Bultos { get; set; }
+        'public short Retorno { get; set; }
+        'public string Nombre { get; set; }
+        'public string Direccion { get; set; }
+        'public string CodPostal { get; set; }
+        'public string Poblacion { get; set; }
+        'public string Provincia { get; set; }
+        'public string Telefono { get; set; }
+        'public string Movil { get; set; }
+        'public string Email { get; set; }
+        'public string Observaciones { get; set; }
+        'public string Atencion { get; set; }
+        'public decimal Reembolso { get; set; }
+        'public Nullable<System.DateTime> FechaPagoReembolso { get; set; }
+        'public string CodigoBarras { get; set; }
+        'public string NombrePlaza { get; set; }
+        'public string Nemonico { get; set; }
+        'public string TelefonoPlaza { get; set; }
+        'public string EmailPlaza { get; set; }
+        'public string Vendedor { get; set; }
+        'public Nullable<System.DateTime> FechaFactura { get; set; }
+        'public decimal ImporteGasto { get; set; }
+        'public Nullable<System.DateTime> FechaRetornoRecibido { get; set; }
+        'public string Usuario { get; set; }
+        'public System.DateTime FechaModificacion { get; set; }
+    End Class
 
 End Class
