@@ -1859,8 +1859,9 @@ Public Class AgenciasViewModel
 
                 If rehusar Then
                     Dim movimientoFactura As ExtractoCliente = calcularMovimientoLiq(envio, reembolsoAnterior)
-                    'no vale así, hay que llamar a prdModificarEfectoCliente y luego meter el seguimiento del cliente desde aquí
-                    movimientoFactura.Estado = "RHS"
+                    Dim estadoRehusado As New ObjectParameter("Estado", GetType(String))
+                    estadoRehusado.Value = "RHS"
+                    DbContext.prdModificarEfectoCliente(movimientoFactura.Nº_Orden, movimientoFactura.FechaVto, movimientoFactura.CCC, movimientoFactura.Ruta, estadoRehusado, movimientoFactura.Concepto)
                 End If
 
                 transaction.Complete()

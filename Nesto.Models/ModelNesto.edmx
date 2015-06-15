@@ -1833,6 +1833,14 @@
           <Parameter Name="Empresa" Type="char" Mode="In" />
           <Parameter Name="NumOrden" Type="int" Mode="In" />
         </Function>
+        <Function Name="prdModificarEfectoCliente" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="NumOrden" Type="int" Mode="In" />
+          <Parameter Name="FechaVto" Type="datetime" Mode="In" />
+          <Parameter Name="CCC" Type="char" Mode="In" />
+          <Parameter Name="Ruta" Type="char" Mode="In" />
+          <Parameter Name="Estado" Type="char" Mode="InOut" />
+          <Parameter Name="Concepto" Type="char" Mode="In" />
+        </Function>
         <Function Name="prdProductosAlquilerLista" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" />
         <EntityContainer Name="NestoModelsEFStoreContainer">
           <EntitySet Name="AgenciasTransporte" EntityType="Self.AgenciasTransporte" Schema="dbo" store:Type="Tables" />
@@ -2478,6 +2486,14 @@
           <FunctionImport Name="prdDesliquidar">
             <Parameter Name="Empresa" Mode="In" Type="String" />
             <Parameter Name="NumOrden" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="prdModificarEfectoCliente">
+            <Parameter Name="NumOrden" Mode="In" Type="Int32" />
+            <Parameter Name="FechaVto" Mode="In" Type="DateTime" />
+            <Parameter Name="CCC" Mode="In" Type="String" />
+            <Parameter Name="Ruta" Mode="In" Type="String" />
+            <Parameter Name="Estado" Mode="InOut" Type="String" />
+            <Parameter Name="Concepto" Mode="In" Type="String" />
           </FunctionImport>
           </EntityContainer>
         <EntityType Name="Productos">
@@ -5424,6 +5440,7 @@
             </EntityTypeMapping>
           </EntitySetMapping>
           <FunctionImportMapping FunctionImportName="prdDesliquidar" FunctionName="Nesto.Models.EF.Store.prdDesliquidar" />
+          <FunctionImportMapping FunctionImportName="prdModificarEfectoCliente" FunctionName="Nesto.Models.EF.Store.prdModificarEfectoCliente" />
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
