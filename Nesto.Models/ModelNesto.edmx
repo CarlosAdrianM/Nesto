@@ -1829,6 +1829,10 @@
           <Parameter Name="codigo" Type="char" Mode="In" />
           <Parameter Name="fechaCobro" Type="datetime" Mode="In" />
         </Function>
+        <Function Name="prdDesliquidar" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="Empresa" Type="char" Mode="In" />
+          <Parameter Name="NumOrden" Type="int" Mode="In" />
+        </Function>
         <Function Name="prdProductosAlquilerLista" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" />
         <EntityContainer Name="NestoModelsEFStoreContainer">
           <EntitySet Name="AgenciasTransporte" EntityType="Self.AgenciasTransporte" Schema="dbo" store:Type="Tables" />
@@ -2471,6 +2475,10 @@
             <End Role="EnviosAgencia" EntitySet="EnviosAgencia" />
             <End Role="EnviosHistoria" EntitySet="EnviosHistoria" />
           </AssociationSet>
+          <FunctionImport Name="prdDesliquidar">
+            <Parameter Name="Empresa" Mode="In" Type="String" />
+            <Parameter Name="NumOrden" Mode="In" Type="Int32" />
+          </FunctionImport>
           </EntityContainer>
         <EntityType Name="Productos">
           <Key>
@@ -5415,6 +5423,7 @@
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
+          <FunctionImportMapping FunctionImportName="prdDesliquidar" FunctionName="Nesto.Models.EF.Store.prdDesliquidar" />
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>

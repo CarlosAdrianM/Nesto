@@ -17,7 +17,7 @@ Imports System.Linq
 Imports System.Runtime.Serialization
 Imports System.Xml.Serialization
 
-<Assembly: EdmSchemaAttribute("35e0777d-21cc-4b71-a04f-bf27ec33ebb0")>
+<Assembly: EdmSchemaAttribute("1650b0a1-fc7e-4aaa-8f9b-ca4a25949013")>
 #Region "Metadatos de relaciones en EDM"
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_Productos_Productos", "Productos", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(Productos), "Productos1", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(Productos), True)>
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_CabAlquileres_Productos", "Productos", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(Productos), "CabAlquileres", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(CabAlquileres), True)>
@@ -965,6 +965,30 @@ Public Partial Class NestoEntities
         End If
 
         Return MyBase.ExecuteFunction("prdContabilizar", empresaParameter, diarioParameter)
+
+    End Function
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    ''' <param name="empresa">No hay documentación de metadatos disponible.</param>
+    ''' <param name="numOrden">No hay documentación de metadatos disponible.</param>
+    Public Function prdDesliquidar(empresa As Global.System.String, numOrden As Nullable(Of Global.System.Int32)) As Integer
+        Dim empresaParameter As ObjectParameter
+        If (empresa IsNot Nothing)
+            empresaParameter = New ObjectParameter("Empresa", empresa)
+        Else
+            empresaParameter = New ObjectParameter("Empresa", GetType(Global.System.String))
+        End If
+
+        Dim numOrdenParameter As ObjectParameter
+        If (numOrden.HasValue)
+            numOrdenParameter = New ObjectParameter("NumOrden", numOrden)
+        Else
+            numOrdenParameter = New ObjectParameter("NumOrden", GetType(Global.System.Int32))
+        End If
+
+        Return MyBase.ExecuteFunction("prdDesliquidar", empresaParameter, numOrdenParameter)
 
     End Function
 
