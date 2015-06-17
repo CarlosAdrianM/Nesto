@@ -1739,7 +1739,12 @@ Public Class AgenciasViewModel
         ElseIf movimientos.Count = 1 Then
             Return movimientos.SingleOrDefault
         Else
-            movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = env.Reembolso And m.Fecha = Today) ' con env.Fecha hay problemas cuando la etiqueta es del día anterior
+            If reembolsoAnterior > 0 Then
+                movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = reembolsoAnterior)
+            Else
+                movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = env.Reembolso And m.Fecha = Today) ' con env.Fecha hay problemas cuando la etiqueta es del día anterior
+            End If
+
             If movimientosConImporte.Count = 0 Then
                 Return movimientos.FirstOrDefault
             Else
@@ -1854,6 +1859,7 @@ Public Class AgenciasViewModel
                     DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                     If reembolsoAnterior <> reembolso Then
                         contabilizarModificacionReembolso(envio, reembolsoAnterior, reembolso)
+                        DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                     End If
                 End If
 
