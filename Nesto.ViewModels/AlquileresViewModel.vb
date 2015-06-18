@@ -28,9 +28,11 @@ Public Class AlquileresViewModel
 
         ' Comandos Prism
         cmdIntercambiarNumeroSerie = New DelegateCommand(Of Object)(AddressOf OnIntercambiarNumeroSerie, AddressOf CanIntercambiarNumeroSerie)
+        cmdInicializarAlquiler = New DelegateCommand(Of Object)(AddressOf OnInicializarAlquiler, AddressOf CanInicializarAlquiler)
 
         ' Prism
         NotificationRequest = New InteractionRequest(Of INotification)
+        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
     End Sub
 
@@ -58,6 +60,16 @@ Public Class AlquileresViewModel
         End Set
     End Property
 
+    Private resultMessage As String
+    Public Property InteractionResultMessage As String
+        Get
+            Return Me.resultMessage
+        End Get
+        Set(value As String)
+            Me.resultMessage = value
+            Me.OnPropertyChanged("InteractionResultMessage")
+        End Set
+    End Property
 
     Private _AlquileresCollection As ObservableCollection(Of CabAlquileres)
     Public Property AlquileresCollection() As ObservableCollection(Of CabAlquileres)
@@ -78,6 +90,7 @@ Public Class AlquileresViewModel
         Set(value As CabAlquileres)
             SetProperty(_LineaSeleccionada, value)
             cmdIntercambiarNumeroSerie.RaiseCanExecuteChanged()
+            cmdInicializarAlquiler.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -435,7 +448,43 @@ Public Class AlquileresViewModel
 
     End Sub
 
+    Private _cmdInicializarAlquiler As DelegateCommand(Of Object)
+    Public Property cmdInicializarAlquiler As DelegateCommand(Of Object)
+        Get
+            Return _cmdInicializarAlquiler
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdInicializarAlquiler = value
+        End Set
+    End Property
+    Private Function CanInicializarAlquiler(arg As Object) As Boolean
+        Return Not IsNothing(LineaSeleccionada)
+    End Function
+    Private Sub OnInicializarAlquiler(arg As Object)
+        Me.ConfirmationRequest.Raise(
+            New Confirmation() With {
+                .Content = "¿Desea inicializar los campos de este alquiler?", .Title = "Inicializar"
+            },
+            Sub(c)
+                InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+            End Sub
+        )
 
+        If InteractionResultMessage = "KO" Or IsNothing(LineaSeleccionada) Then
+            Return
+        End If
+
+        With LineaSeleccionada
+            .Cliente = Nothing
+            .Contacto = Nothing
+            .FechaEntrega = Nothing
+            .FechaSeñal = Nothing
+            .ImporteSeñal = Nothing
+            .Importe = Nothing
+            .CabPedidoVta = Nothing
+        End With
+
+    End Sub
 
 #End Region
 

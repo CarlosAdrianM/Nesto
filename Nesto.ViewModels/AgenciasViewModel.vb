@@ -1275,8 +1275,8 @@ Public Class AgenciasViewModel
                         .FormaPago = "CHQ",
                         .Vendedor = "NV" _
                     })
-                DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-
+                'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                DbContext.SaveChanges()
 
                 asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_PagoReemb")
             End If
@@ -1288,7 +1288,8 @@ Public Class AgenciasViewModel
                 For Each linea In listaReembolsosSeleccionados
                     linea.FechaPagoReembolso = fechaAFijar
                 Next
-                DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                DbContext.SaveChanges()
 
                 OnPropertyChanged("sumaContabilidad")
                 OnPropertyChanged("descuadreContabilidad")

@@ -2564,13 +2564,13 @@
           </Key>
           <Property Type="String" Name="Empresa" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="Int32" Name="Número" Nullable="false" annotation:StoreGeneratedPattern="Identity" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" />
-          <Property Type="String" Name="Cliente" MaxLength="10" FixedLength="true" Unicode="false" />
-          <Property Type="String" Name="Contacto" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Type="String" Name="Cliente" MaxLength="10" FixedLength="true" Unicode="false" Nullable="true" />
+          <Property Type="String" Name="Contacto" MaxLength="3" FixedLength="true" Unicode="false" Nullable="true" />
           <Property Type="String" Name="Producto" MaxLength="15" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Inmovilizado" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Type="Int32" Name="Cuotas" />
-          <Property Type="DateTime" Name="FechaEntrega" Precision="3" />
-          <Property Type="DateTime" Name="FechaSeñal" Precision="3" />
+          <Property Type="DateTime" Name="FechaEntrega" Precision="3" Nullable="true" />
+          <Property Type="DateTime" Name="FechaSeñal" Precision="3" Nullable="true" />
           <Property Type="Decimal" Name="ImporteSeñal" Precision="19" Scale="4" />
           <Property Type="String" Name="NumeroSerie" MaxLength="15" FixedLength="false" Unicode="false" />
           <Property Type="String" Name="NombreProducto" MaxLength="50" FixedLength="false" Unicode="false" />
@@ -2578,7 +2578,7 @@
           <Property Type="Boolean" Name="SeñalComisiona" />
           <Property Type="Decimal" Name="Indemnización" Precision="19" Scale="4" />
           <Property Type="Decimal" Name="Importe" Precision="19" Scale="4" />
-          <Property Type="Int32" Name="CabPedidoVta" />
+          <Property Type="Int32" Name="CabPedidoVta" Nullable="true" />
           <Property Type="String" Name="RutaContrato" MaxLength="50" FixedLength="false" Unicode="false" />
           <Property Type="String" Name="Usuario" MaxLength="30" FixedLength="false" Unicode="false" annotation:StoreGeneratedPattern="Computed" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" Nullable="false" />
           <Property Type="DateTime" Name="FechaModificación" Precision="3" annotation:StoreGeneratedPattern="Computed" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" Nullable="false" />
