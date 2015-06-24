@@ -51,6 +51,8 @@ Public Class AgenciasViewModel
 
     Dim factory As New Dictionary(Of String, Func(Of IAgencia))
 
+    Private imprimirEtiqueta As Boolean
+
 
     Public Sub New()
 
@@ -1095,7 +1097,9 @@ Public Class AgenciasViewModel
     Private Sub ImprimirEInsertar(ByVal param As Object)
         Try
             cmdInsertar.Execute(Nothing)
-            cmdImprimirEtiquetaPedido.Execute(Nothing)
+            If imprimirEtiqueta Then
+                cmdImprimirEtiquetaPedido.Execute(Nothing)
+            End If
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With { _
              .Title = "Error", _
@@ -1103,9 +1107,15 @@ Public Class AgenciasViewModel
             })
             Return
         End Try
+        Dim textoImprimir As String
+        If imprimirEtiqueta Then
+            textoImprimir = "Envío insertado correctamente e impresa la etiqueta"
+        Else
+            textoImprimir = "Envío ampliado correctamente"
+        End If
         NotificationRequest.Raise(New Notification() With { _
              .Title = "Envío", _
-            .Content = "Envío insertado correctamente e impresa la etiqueta" _
+            .Content = textoImprimir _
         })
     End Sub
 
@@ -1454,8 +1464,6 @@ Public Class AgenciasViewModel
 
 #Region "Funciones de Ayuda"
 
-
-
     Public Function telefonoUnico(listaTelefonos As String, Optional tipo As String = "F") As String
         ' tipo = F -> teléfono fijo
         ' tipo = M -> teléfono móvil
@@ -1477,7 +1485,6 @@ Public Class AgenciasViewModel
         Return ""
 
     End Function
-
     Public Function correoUnico(Optional listaPersonas As List(Of PersonasContactoCliente) = Nothing) As String
         Dim correo As String
         Dim personaAgencia As PersonasContactoCliente
@@ -1518,7 +1525,6 @@ Public Class AgenciasViewModel
 
 
     End Function
-
     Public Function importeReembolso() As Decimal
         ' Miramos los casos en los que no hay contra reembolso
         If IsNothing(pedidoSeleccionado) Then
@@ -1562,7 +1568,6 @@ Public Class AgenciasViewModel
             , 2)
 
     End Function
-
     Public Function calcularDigitoControl(ByVal number As String) As Integer
 
         If (number.Length <> 17) Then
@@ -1604,9 +1609,39 @@ Public Class AgenciasViewModel
         Return digito
 
     End Function
-
     Public Sub insertarRegistro()
-        envioActual = New EnviosAgencia
+        envioActual = buscarPedidoAmpliacion(pedidoSeleccionado)
+        Dim textoConfirmar As String
+        Dim esAmpliacion As Boolean = Not IsNothing(envioActual.Pedido)
+        If esAmpliacion Then
+            If envioActual.Bultos = bultos Then
+                textoConfirmar = "Si el nº total de bultos sigue siendo " + envioActual.Bultos.ToString
+                imprimirEtiqueta = False
+            Else
+                textoConfirmar = "Si el nº total de bultos pasa de " + envioActual.Bultos.ToString + " a " + bultos.ToString
+                imprimirEtiqueta = True
+            End If
+            Me.ConfirmationRequest.Raise(
+                New Confirmation() With {
+                    .Content = "Este pedido es una ampliación del pedido " + envioActual.Pedido.ToString + ". " +
+                    textoConfirmar +
+                    " puede actualizar los datos." + vbCrLf +
+                    "En caso contrario, pulse Cancelar, modifique el nº de bultos y vuelva a intentarlo." + vbCrLf + vbCrLf +
+                    "¿Desea actualizar los datos?", _
+                    .Title = "Ampliación"
+                },
+                Sub(c)
+                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+                End Sub
+            )
+
+            If InteractionResultMessage = "KO" Then
+                Throw New Exception("Cancelado por el usuario")
+                Return
+            End If
+        Else
+            imprimirEtiqueta = True
+        End If
         With envioActual
             .Empresa = pedidoSeleccionado.Empresa
             .Agencia = agenciaSeleccionada.Numero
@@ -1634,13 +1669,15 @@ Public Class AgenciasViewModel
             agenciaEspecifica.calcularPlaza(codPostalEnvio, .Nemonico, .NombrePlaza, .TelefonoPlaza, .EmailPlaza)
         End With
 
-        DbContext.AddToEnviosAgencia(envioActual)
-        listaEnvios.Add(envioActual)
-        listaEnviosPedido.Add(envioActual)
+        If Not esAmpliacion Then
+            DbContext.AddToEnviosAgencia(envioActual)
+            listaEnvios.Add(envioActual)
+            listaEnviosPedido.Add(envioActual)
+        End If
+
         DbContext.SaveChanges()
         envioActual.CodigoBarras = agenciaEspecifica.calcularCodigoBarras()
     End Sub
-
     Public Function contabilizarReembolso(envio As EnviosAgencia) As Integer
 
         Const diarioReembolsos As String = "_Reembolso"
@@ -1692,7 +1729,8 @@ Public Class AgenciasViewModel
 
             Try
                 DbContext.AddToPreContabilidad(lineaInsertar)
-                DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                DbContext.SaveChanges()
                 asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos)
                 transaction.Complete()
                 success = True
@@ -1720,7 +1758,6 @@ Public Class AgenciasViewModel
         Return asiento
 
     End Function
-
     Private Function calcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente
         Return calcularMovimientoLiq(env, env.Reembolso)
     End Function
@@ -1753,7 +1790,6 @@ Public Class AgenciasViewModel
             End If
         End If
     End Function
-
     Private Function calcularMovimientoDesliq(env As EnviosAgencia, importeAnterior As Double) As ExtractoCliente
         Dim movimientos As ObservableCollection(Of ExtractoCliente)
         Dim concepto As String = generarConcepto(env)
@@ -1768,7 +1804,6 @@ Public Class AgenciasViewModel
             Return movimientos.LastOrDefault
         End If
     End Function
-
     Private Sub configurarAgenciaPedido(ByRef agenciaConfigurar As AgenciasTransporte)
         If IsNothing(pedidoSeleccionado) Or IsNothing(agenciaConfigurar) Then
             Return
@@ -1796,11 +1831,9 @@ Public Class AgenciasViewModel
         '    OnPropertyChanged("horarioActual")
         'End If
     End Sub
-
     Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer)
         modificarEnvio(envio, reembolso, retorno, estado, False)
     End Sub
-
     Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, rehusar As Boolean)
         Dim historia As New EnviosHistoria
         Dim modificado As Boolean = False
@@ -1896,7 +1929,6 @@ Public Class AgenciasViewModel
         End Using
 
     End Sub
-
     Public Function contabilizarModificacionReembolso(envio As EnviosAgencia, importeAnterior As Double, importeNuevo As Double) As Integer
 
         ' Parámetro Rehusar es para marcar el ExtractoCliente como RHS (rehusado)
@@ -2018,9 +2050,18 @@ Public Class AgenciasViewModel
 
         Return asiento
     End Function
-
     Private Function generarConcepto(envio As EnviosAgencia) As String
         Return Left("S/Pago pedido " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
+    End Function
+    Private Function buscarPedidoAmpliacion(pedido As CabPedidoVta) As EnviosAgencia
+        Dim pedidoEncontrado As EnviosAgencia = (From e In DbContext.EnviosAgencia Where e.Cliente = pedido.Nº_Cliente And e.Contacto = pedido.Contacto And e.Estado = ESTADO_INICIAL_ENVIO).FirstOrDefault
+        If IsNothing(pedidoEncontrado) Then
+            ' Si no es ampliación devolvemos un envío nuevo
+            Return New EnviosAgencia
+        Else
+            'si sí es ampliación devolvemos el registro que está metido
+            Return pedidoEncontrado
+        End If
     End Function
 
 #End Region
