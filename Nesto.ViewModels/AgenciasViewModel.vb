@@ -606,8 +606,10 @@ Public Class AgenciasViewModel
             pedidoAnterior = pedidoSeleccionado
             Dim pedidoNumerico As Integer
             If Integer.TryParse(numeroPedido, pedidoNumerico) Then ' si el pedido es numérico
-                'pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO).FirstOrDefault
-                pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico).FirstOrDefault
+                pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO).FirstOrDefault
+                If IsNothing(pedidoSeleccionado) Then
+                    pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico).FirstOrDefault
+                End If
             Else ' si no es numérico (es una factura, lo tratamos como un cobro)
                 pedidoSeleccionado = (From c In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
                 If Not IsNothing(pedidoSeleccionado) Then
@@ -1526,24 +1528,29 @@ Public Class AgenciasViewModel
 
     End Function
     Public Function importeReembolso() As Decimal
+
+        ' Miramos la deuda que tenga en su extracto. 
+        ' Esa deuda la tiene que pagar independientemente de la forma de pago
+        Dim importeDeuda As Double = calcularDeuda()
+
         ' Miramos los casos en los que no hay contra reembolso
         If IsNothing(pedidoSeleccionado) Then
-            Return 0
+            Return importeDeuda
         End If
         If pedidoSeleccionado.CCC IsNot Nothing Then
-            Return 0
+            Return importeDeuda
         End If
         If pedidoSeleccionado.Periodo_Facturacion = "FDM" Then
-            Return 0
+            Return importeDeuda
         End If
         If (pedidoSeleccionado.Forma_Pago = "CNF" Or pedidoSeleccionado.Forma_Pago = "TRN") Then
-            Return 0
+            Return importeDeuda
         End If
         If pedidoSeleccionado.NotaEntrega Then
-            Return 0
+            Return importeDeuda
         End If
         If pedidoSeleccionado.PlazosPago = "PRE" Then
-            Return 0
+            Return importeDeuda
         End If
 
 
@@ -1551,7 +1558,7 @@ Public Class AgenciasViewModel
             Dim lineasSinFacturar As ObjectQuery(Of LinPedidoVta)
             lineasSinFacturar = (From l In DbContext.LinPedidoVta Where l.Número = pedidoSeleccionado.Número And l.Estado = ESTADO_LINEA_PENDIENTE)
             If lineasSinFacturar.Any Then
-                Return 0
+                Return importeDeuda
             End If
         End If
 
@@ -1559,13 +1566,21 @@ Public Class AgenciasViewModel
         Dim lineas As ObjectQuery(Of LinPedidoVta)
         lineas = (From l In DbContext.LinPedidoVta Where l.Número = pedidoSeleccionado.Número And l.Picking <> 0 And l.Estado = ESTADO_SIN_FACTURAR)
         If Not lineas.Any Then
-            Return 0
+            Return importeDeuda
         End If
 
-        Return Math.Round(
+        Dim importeFinal As Double = Math.Round(
             (Aggregate l In lineas _
             Select l.Total Into Sum()) _
-            , 2)
+            + importeDeuda, 2)
+
+        ' Evitamos los reembolsos negativos
+        If importeFinal < 0 Then
+            importeFinal = 0
+        End If
+
+
+        Return importeFinal
 
     End Function
     Public Function calcularDigitoControl(ByVal number As String) As Integer
@@ -2063,6 +2078,25 @@ Public Class AgenciasViewModel
             Return pedidoEncontrado
         End If
     End Function
+    Private Function calcularDeuda() As Double
+        Dim deudas As ObjectQuery(Of ExtractoCliente)
+        Dim fechaReclamar As Date = Today.AddDays(-7)
+        deudas = (From e In DbContext.ExtractoCliente Where e.Número = pedidoSeleccionado.Nº_Cliente And
+            e.ImportePdte <> 0 And
+            (e.Estado Is Nothing Or (e.Estado <> "RTN" And e.Estado <> "RHS")) And
+            (e.Ruta Is Nothing Or e.Ruta <> "RG") And
+            e.FechaVto < fechaReclamar And
+            e.TipoApunte <> "4")
+        If Not deudas.Any Then
+            Return 0
+        End If
+
+        Return Math.Round(
+            (Aggregate l In deudas _
+            Select l.ImportePdte Into Sum()) _
+            , 2)
+    End Function
+
 
 #End Region
 
@@ -2580,6 +2614,7 @@ Public Class AgenciaASM
         Else
             'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
             agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
+            agenciaVM.envioActual.Fecha = Today
             DbContext.SaveChanges()
             If agenciaVM.envioActual.Reembolso > 0 Then
                 agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
@@ -2756,6 +2791,7 @@ Public Class AgenciaOnTime
 
         ' Código puesto como asíncrono el 01/06/15
         agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
+        agenciaVM.envioActual.Fecha = Today
         DbContext.SaveChanges()
 
         'Await cambiarEstadoAsync(agenciaVM.envioActual)
