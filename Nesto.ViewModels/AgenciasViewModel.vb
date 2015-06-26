@@ -703,6 +703,7 @@ Public Class AgenciasViewModel
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaEnviosTramitados, value)
             OnPropertyChanged("sePuedeModificarReembolso")
+            OnPropertyChanged("etiquetaBultosTramitados")
         End Set
     End Property
 
@@ -966,7 +967,17 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-
+    Public ReadOnly Property etiquetaBultosTramitados As String
+        Get
+            If Not IsNothing(listaEnviosTramitados) AndAlso listaEnviosTramitados.Count > 0 Then
+                Dim totalBultos As Integer = (Aggregate e In listaEnviosTramitados Into Sum(e.Bultos))
+                Dim totalEnvios As Integer = (Aggregate e In listaEnviosTramitados Into Count())
+                Return "Hay " + totalEnvios.ToString + " envíos tramitados, que suman un total de " + totalBultos.ToString + " bultos."
+            Else
+                Return "No hay ningún envío tramitado"
+            End If
+        End Get
+    End Property
 
 #End Region
 
@@ -981,9 +992,12 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function CanTramitar(ByVal param As Object) As Boolean
-        Return Not IsNothing(envioActual)
+        Return Not IsNothing(envioActual) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
     End Function
     Private Sub Tramitar(ByVal param As Object)
+        If envioActual.Estado > 0 Then
+            Throw New Exception("No se puede tramitar un pedido ya tramitado")
+        End If
         agenciaEspecifica.llamadaWebService(DbContext)
         'mensajeError = "Pedido " + envioActual.Pedido.ToString.Trim + " tramitado correctamente"
     End Sub
@@ -1001,6 +1015,7 @@ Public Class AgenciasViewModel
         Return Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0
     End Function
     Private Sub TramitarTodos(ByVal param As Object)
+        DbContext.Refresh(RefreshMode.StoreWins, listaEnvios)
         barraProgresoActual = 0
         barraProgresoFinal = listaEnvios.Count
         For Each envio In listaEnvios
@@ -1060,9 +1075,12 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function canBorrar(ByVal param As Object) As Boolean
-        Return envioActual IsNot Nothing
+        Return envioActual IsNot Nothing AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
     End Function
     Private Sub Borrar(ByVal param As Object)
+        If envioActual.Estado > 0 Then
+            Throw New Exception("No se puede borrar un pedido tramitado")
+        End If
         DbContext.EnviosAgencia.DeleteObject(envioActual)
         listaEnvios.Remove(envioActual)
         envioActual = listaEnvios.LastOrDefault
@@ -1549,7 +1567,7 @@ Public Class AgenciasViewModel
         If pedidoSeleccionado.NotaEntrega Then
             Return importeDeuda
         End If
-        If pedidoSeleccionado.PlazosPago = "PRE" Then
+        If Not IsNothing(pedidoSeleccionado.PlazosPago) AndAlso pedidoSeleccionado.PlazosPago.Trim = "PRE" Then
             Return importeDeuda
         End If
 

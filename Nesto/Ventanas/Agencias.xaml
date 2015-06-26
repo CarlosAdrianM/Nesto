@@ -291,8 +291,9 @@
             <TabItem Name="tabTramitados" Header="Tramitados">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
                         <RowDefinition Height="4*"/>
+                        <RowDefinition Height="16*"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <DockPanel Grid.Row="0">
                         <StackPanel DockPanel.Dock="Left" HorizontalAlignment="Stretch">
@@ -358,6 +359,9 @@
                         </DataGrid>
 
                     </DockPanel>
+                    <StackPanel Grid.Row="2">
+                        <TextBlock Text="{Binding etiquetaBultosTramitados}" HorizontalAlignment="Right"/>
+                    </StackPanel>
                 </Grid>
             </TabItem>
             <TabItem Name="tabReembolsos" Header="Reembolsos">
