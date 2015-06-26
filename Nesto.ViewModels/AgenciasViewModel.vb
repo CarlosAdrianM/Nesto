@@ -182,9 +182,11 @@ Public Class AgenciasViewModel
                     listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                     listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
                     listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
+                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                     OnPropertyChanged("sumaContabilidad")
                     OnPropertyChanged("descuadreContabilidad")
                     OnPropertyChanged("visibilidadSoloImprimir")
+                    OnPropertyChanged("etiquetaBultosTramitados")
                 End If
             Catch
                 'mensajeError = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre
@@ -243,6 +245,7 @@ Public Class AgenciasViewModel
 
             OnPropertyChanged("sumaContabilidad")
             OnPropertyChanged("descuadreContabilidad")
+            OnPropertyChanged("etiquetaBultosTramitados")
             'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
             'una vez actualizadas, seleccionar el pedido o el envío actual también
         End Set
