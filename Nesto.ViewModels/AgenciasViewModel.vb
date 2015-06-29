@@ -517,7 +517,7 @@ Public Class AgenciasViewModel
                 cmdCargarEstado.RaiseCanExecuteChanged()
             End If
 
-            If Not IsNothing(envioActual) Then
+            If Not IsNothing(envioActual) AndAlso Not IsNothing(listaTiposRetorno) Then
                 reembolsoModificar = envioActual.Reembolso
                 retornoModificar = (From l In listaTiposRetorno Where l.id = envioActual.Retorno).FirstOrDefault
                 estadoModificar = envioActual.Estado
@@ -1841,7 +1841,7 @@ Public Class AgenciasViewModel
         End If
     End Function
     Private Sub configurarAgenciaPedido(ByRef agenciaConfigurar As AgenciasTransporte)
-        If IsNothing(pedidoSeleccionado) Or IsNothing(agenciaConfigurar) Then
+        If IsNothing(pedidoSeleccionado) Then
             Return
         End If
 
@@ -1854,7 +1854,7 @@ Public Class AgenciasViewModel
             dobleCiclo = True
         End If
 
-        If Not IsNothing(agenciaNueva) AndAlso (agenciaConfigurar.Numero <> agenciaNueva.Numero Or agenciaConfigurar.Empresa <> agenciaNueva.Empresa) Then
+        If Not IsNothing(agenciaNueva) AndAlso (IsNothing(agenciaConfigurar) OrElse (agenciaConfigurar.Numero <> agenciaNueva.Numero Or agenciaConfigurar.Empresa <> agenciaNueva.Empresa)) Then
             'empresaSeleccionada = (From e In DbContext.Empresas Where e.Número = pedidoSeleccionado.Empresa).FirstOrDefault
             empresaSeleccionada = agenciaNueva.Empresas
             agenciaConfigurar = agenciaNueva

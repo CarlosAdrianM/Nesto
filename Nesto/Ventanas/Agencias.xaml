@@ -355,6 +355,7 @@
                                 <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="4*"/>
                                 <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="4*"/>
                                 <DataGridTextColumn Header="Cód. Postal" Binding="{Binding CodPostal}" Width="2*"/>
+                                <DataGridTextColumn Header="Fecha Pago" Binding="{Binding FechaPagoReembolso, StringFormat=d}"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
