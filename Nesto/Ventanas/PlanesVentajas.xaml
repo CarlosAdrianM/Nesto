@@ -52,6 +52,12 @@
             <TabControl TabStripPlacement="Top" SelectedItem="{Binding PestañaSeleccionada}">
                 <TabItem Name="tabListado" Header="Listado de Planes">
                     <DockPanel>
+                        <Border DockPanel.Dock="Top" HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
+                            <DockPanel HorizontalAlignment="Stretch">
+                                <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎" />
+                                <TextBox DockPanel.Dock="Left" Text="{Binding filtro}" Name="txtFiltro" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0"/>
+                            </DockPanel>
+                        </Border>
                         <ListView DockPanel.Dock="Top" Name="listaIzda" ItemsSource="{Binding Path=listaClientes}" >
                             <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -86,24 +92,24 @@
                             <Button DockPanel.Dock="Left" Content="Ver Plan de Ventajas" Command="{Binding cmdVerPlan}" Margin="3" Name="btnVerPlan" />
                         </DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
-                        <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaPlanes}" SelectedItem="{Binding planActual}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" VerticalScrollBarVisibility="Visible">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
-                                <DataGridTextColumn Header="Empresa" Binding="{Binding Empresas.Nombre}" />
-                                <DataGridTextColumn Header="Fecha Inicio" Binding="{Binding FechaInicio, StringFormat=d}" />
-                                <DataGridTextColumn Header="Fecha Final" Binding="{Binding FechaFin, StringFormat=d}" />
-                                <DataGridTextColumn Header="Importe Compromiso" Binding="{Binding Importe, StringFormat=c}" >
-                                    <DataGridTextColumn.CellStyle>
-                                        <Style>
-                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                        </Style>
-                                    </DataGridTextColumn.CellStyle>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
-                                <DataGridTextColumn Header="Estado" Binding="{Binding EstadosPlanVentajas.Descripcion}" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </DockPanel>
+                            <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaPlanes}" SelectedItem="{Binding planActual}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" VerticalScrollBarVisibility="Visible">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
+                                    <DataGridTextColumn Header="Empresa" Binding="{Binding Empresas.Nombre}" />
+                                    <DataGridTextColumn Header="Fecha Inicio" Binding="{Binding FechaInicio, StringFormat=d}" />
+                                    <DataGridTextColumn Header="Fecha Final" Binding="{Binding FechaFin, StringFormat=d}" />
+                                    <DataGridTextColumn Header="Importe Compromiso" Binding="{Binding Importe, StringFormat=c}" >
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style>
+                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
+                                    <DataGridTextColumn Header="Estado" Binding="{Binding EstadosPlanVentajas.Descripcion}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
                 </TabItem>
                 <TabItem Name="tabEditar" Header="Editar">
                 <StackPanel>

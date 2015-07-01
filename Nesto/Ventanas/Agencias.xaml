@@ -329,7 +329,7 @@
                             <!-- Button Grid.Row="3" Grid.Column="0" Margin="3" Content="Imprimir" Command="{Binding cmdImprimirManifiesto}"/-->
                             <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding reembolsoModificar, StringFormat=c}" Style="{StaticResource campoTexto}"/>
                             <ComboBox Grid.Row="1" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" ItemsSource="{Binding listaTiposRetorno}" SelectedItem="{Binding retornoModificar}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
-                            <TextBox Grid.Row="2" Grid.Column="1" IsEnabled="False"  Text="{Binding estadoModificar}" Style="{StaticResource campoTexto}"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" IsEnabled="{Binding sePuedeModificarEstado}"  Text="{Binding estadoModificar}" Style="{StaticResource campoTexto}"/>
                             <Button Grid.Row="3" Grid.Column="1" Margin="3" Content="Modificar Envío" Command="{Binding cmdModificarEnvio}" />
                             <TextBox Grid.RowSpan="4" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding Path=observacionesModificacion}" Style="{StaticResource campoComentarios}" />
                         </Grid>

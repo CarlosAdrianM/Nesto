@@ -89,6 +89,8 @@ Public Class PlanesVentajasViewModel
                 OnPropertyChanged("importeDiaObjetivo")
                 OnPropertyChanged("barrasGrafico")
                 OnPropertyChanged("porcentajeRealizado")
+            Else
+                listaClientes = Nothing
             End If
         End Set
     End Property
@@ -268,6 +270,23 @@ Public Class PlanesVentajasViewModel
         Set(value As ObservableCollection(Of EstadosPlanVentajas))
             _listaEstados = value
             OnPropertyChanged("listaEstados")
+        End Set
+    End Property
+
+    Private _filtro As String
+    Public Property filtro As String
+        Get
+            Return _filtro
+        End Get
+        Set(value As String)
+            _filtro = value
+            If filtro.Trim <> "" Then
+                ActualizarListaPlanes(filtro)
+            Else
+                ActualizarListaPlanes()
+            End If
+
+            OnPropertyChanged("filtro")
         End Set
     End Property
 
@@ -452,28 +471,42 @@ Public Class PlanesVentajasViewModel
     End Function
 
     Private Sub ActualizarListaPlanes()
+        ActualizarListaPlanes(Nothing)
+    End Sub
+    Private Sub ActualizarListaPlanes(filtro As String)
         Dim clientesString As List(Of String)
         Dim clientes, clientesPlan, clientesTotales As List(Of Clientes)
         Dim clienteEncontrado As Clientes
         Dim listaInicial, listaMedia As ObservableCollection(Of PlanesVentajas)
-        If vendedor = "" Then
+        If vendedor = "" And IsNothing(filtro) Then
             listaPlanes = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Where p.Estado <> ESTADO_PLAN_CANCELADO Order By p.FechaFin)
         Else
             listaInicial = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Where p.Estado <> ESTADO_PLAN_CANCELADO Order By p.FechaFin)
             listaMedia = New ObservableCollection(Of PlanesVentajas)
             clientesString = New List(Of String)(From p In DbContext.PlanVentajasCliente Select p.Cliente)
-            clientesTotales = New List(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = "1" And c.Estado >= 0)
+            If IsNothing(filtro) Then
+                clientesTotales = New List(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = "1" And c.Estado >= 0)
+            Else
+                clientesTotales = New List(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = "1" And c.Estado >= 0 And c.Nº_Cliente = filtro)
+            End If
+
             clientes = New List(Of Clientes)(From s In clientesString Join c In clientesTotales On c.Nº_Cliente Equals s Select c)
             For Each plan In listaInicial
                 clientesString = New List(Of String)(From p In DbContext.PlanVentajasCliente Where p.NumeroContrato = plan.Numero Select p.Cliente)
                 clientesPlan = New List(Of Clientes)(From s In clientesString Join c In clientes On c.Nº_Cliente Equals s Select c)
-                clienteEncontrado = (From c In clientesPlan Where c.Vendedor.Trim = vendedor.Trim).FirstOrDefault
+                If Not IsNothing(filtro) Then
+                    clienteEncontrado = (From c In clientesPlan).FirstOrDefault
+                Else
+                    clienteEncontrado = (From c In clientesPlan Where c.Vendedor.Trim = vendedor.Trim).FirstOrDefault
+                End If
+
                 If Not IsNothing(clienteEncontrado) Then
                     listaMedia.Add(plan)
                 End If
                 'listaMedia.Add(plan)
             Next
             listaPlanes = listaMedia
+            planActual = listaPlanes.FirstOrDefault
         End If
     End Sub
 #End Region

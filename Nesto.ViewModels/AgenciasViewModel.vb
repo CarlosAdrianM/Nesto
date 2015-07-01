@@ -535,6 +535,7 @@ Public Class AgenciasViewModel
             End If
 
             OnPropertyChanged("sePuedeModificarReembolso")
+            OnPropertyChanged("sePuedeModificarEstado")
         End Set
     End Property
 
@@ -706,6 +707,7 @@ Public Class AgenciasViewModel
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaEnviosTramitados, value)
             OnPropertyChanged("sePuedeModificarReembolso")
+            OnPropertyChanged("sePuedeModificarEstado")
             OnPropertyChanged("etiquetaBultosTramitados")
         End Set
     End Property
@@ -907,6 +909,12 @@ Public Class AgenciasViewModel
         End Get
     End Property
 
+    Public ReadOnly Property sePuedeModificarEstado As Boolean
+        Get
+            Return sePuedeModificarReembolso AndAlso envioActual.Reembolso = 0
+        End Get
+    End Property
+
     Private _listaHistoriaEnvio As ObservableCollection(Of EnviosHistoria)
     Public Property listaHistoriaEnvio As ObservableCollection(Of EnviosHistoria)
         Get
@@ -981,6 +989,8 @@ Public Class AgenciasViewModel
             End If
         End Get
     End Property
+
+
 
 #End Region
 
@@ -1064,7 +1074,11 @@ Public Class AgenciasViewModel
             DbContext.SaveChanges()
             mensajeError = ""
         Catch ex As Exception
-            mensajeError = ex.InnerException.Message
+            If Not IsNothing(ex.InnerException) Then
+                mensajeError = ex.InnerException.Message
+            Else
+                mensajeError = ex.Message
+            End If
         End Try
     End Sub
 
@@ -2102,11 +2116,12 @@ Public Class AgenciasViewModel
     Private Function calcularDeuda() As Double
         Dim deudas As ObjectQuery(Of ExtractoCliente)
         Dim fechaReclamar As Date = Today.AddDays(-7)
-        deudas = (From e In DbContext.ExtractoCliente Where e.Número = pedidoSeleccionado.Nº_Cliente And
-            e.ImportePdte <> 0 And
-            (e.Estado Is Nothing Or (e.Estado <> "RTN" And e.Estado <> "RHS")) And
-            (e.Ruta Is Nothing Or e.Ruta <> "RG") And
-            e.FechaVto < fechaReclamar And
+        deudas = (From e In DbContext.ExtractoCliente Where e.Número = pedidoSeleccionado.Nº_Cliente AndAlso
+            e.ImportePdte <> 0 AndAlso
+            (e.Estado Is Nothing Or (e.Estado <> "RTN" And e.Estado <> "RHS")) AndAlso
+            (e.FormaPago <> "TRN") AndAlso
+            (e.Ruta Is Nothing Or e.Ruta <> "RG") AndAlso
+            e.FechaVto < fechaReclamar AndAlso
             e.TipoApunte <> "4")
         If Not deudas.Any Then
             Return 0
