@@ -326,6 +326,7 @@
           <Property Name="CodPostal" Type="varchar" MaxLength="5" />
           <Property Name="Poblacion" Type="varchar" MaxLength="80" />
           <Property Name="Provincia" Type="varchar" MaxLength="80" />
+          <Property Name="Pais" Type="int" Nullable="false" />
           <Property Name="Telefono" Type="varchar" MaxLength="9" />
           <Property Name="Movil" Type="varchar" MaxLength="9" />
           <Property Name="Email" Type="varchar" MaxLength="200" />
@@ -4166,6 +4167,7 @@
           <Property Name="FechaPagoReembolso" Type="DateTime" Precision="0" />
           <NavigationProperty Name="EnviosHistoria" Relationship="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" FromRole="EnviosAgencia" ToRole="EnviosHistoria" />
           <Property Name="FechaRetornoRecibido" Type="DateTime" Precision="0" />
+          <Property Name="Pais" Type="Int32" Nullable="false" />
         </EntityType>
         <Association Name="FK_AgenciasTransporte_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
@@ -5256,6 +5258,7 @@
           <EntitySetMapping Name="EnviosAgencia">
             <EntityTypeMapping TypeName="Nesto.Models.EF.EnviosAgencia">
               <MappingFragment StoreEntitySet="EnviosAgencia">
+                <ScalarProperty Name="Pais" ColumnName="Pais" />
                 <ScalarProperty Name="FechaRetornoRecibido" ColumnName="FechaRetornoRecibido" />
                 <ScalarProperty Name="FechaPagoReembolso" ColumnName="FechaPagoReembolso" />
                 <ScalarProperty Name="FechaModificacion" ColumnName="FechaModificacion" />
