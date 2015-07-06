@@ -23,6 +23,8 @@ Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Net.Http.Formatting
 Imports System.Threading.Tasks
+'Imports CrystalDecisions.CrystalReports.Engine
+
 
 
 Public Class AgenciasViewModel
@@ -370,22 +372,22 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private _listaPaises As ObservableCollection(Of tipoIdDescripcion)
-    Public Property listaPaises() As ObservableCollection(Of tipoIdDescripcion)
+    Private _listaPaises As ObservableCollection(Of tipoIdIntDescripcion)
+    Public Property listaPaises() As ObservableCollection(Of tipoIdIntDescripcion)
         Get
             Return _listaPaises
         End Get
-        Set(ByVal value As ObservableCollection(Of tipoIdDescripcion))
+        Set(ByVal value As ObservableCollection(Of tipoIdIntDescripcion))
             SetProperty(_listaPaises, value)
         End Set
     End Property
 
-    Private _paisActual As tipoIdDescripcion
-    Public Property paisActual() As tipoIdDescripcion
+    Private _paisActual As tipoIdIntDescripcion
+    Public Property paisActual() As tipoIdIntDescripcion
         Get
             Return _paisActual
         End Get
-        Set(ByVal value As tipoIdDescripcion)
+        Set(ByVal value As tipoIdIntDescripcion)
             SetProperty(_paisActual, value)
         End Set
     End Property
@@ -1180,24 +1182,6 @@ Public Class AgenciasViewModel
         })
     End Sub
 
-
-    'Private _cmdImprimirManifiesto As ICommand
-    'Public ReadOnly Property cmdImprimirManifiesto() As ICommand
-    '    Get
-    '        If _cmdImprimirManifiesto Is Nothing Then
-    '            _cmdImprimirManifiesto = New RelayCommand(AddressOf ImprimirManifiesto, AddressOf CanImprimirManifiesto)
-    '        End If
-    '        Return _cmdImprimirManifiesto
-    '    End Get
-    'End Property
-    'Private Function CanImprimirManifiesto(ByVal param As Object) As Boolean
-    '    Return True
-    'End Function
-    'Private Sub ImprimirManifiesto(ByVal param As Object)
-
-    'End Sub
-
-
     Private _cmdCargarEstado As DelegateCommand(Of Object)
     Public Property cmdCargarEstado As DelegateCommand(Of Object)
         Get
@@ -1452,11 +1436,19 @@ Public Class AgenciasViewModel
         Return Not IsNothing(listaEnviosTramitados)
     End Function
     Private Sub OnImprimirManifiesto(arg As Object)
-        Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of Object)("frmCRInforme")
-        region.Add(vista, "Clientes")
-        region.Activate(vista)
-        'regionManager.RequestNavigate("MainRegion", New Uri("/Clientes", UriKind.Relative))
+        'Dim region As IRegion = regionManager.Regions("MainRegion")
+        'Dim vista = container.Resolve(Of Object)("frmCRInforme")
+        'Dim report As New ReportClass
+        'report.FileName = "C:\Users\Carlos.NUEVAVISION\Documents\Visual Studio 2013\Projects\Nesto\Nesto\Informes\ImpresoUbicaciones_Inventario.rpt"
+        'report.Load()
+        ''report.SetDataSource(listaEnviosTramitados)
+        ''Dim stream As IO.Stream = rptH.ExportToStream(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat)
+        ''Return File(stream, "application/pdf")
+        'vista.crvInforme = report
+
+        'region.Add(vista, "frmCRInforme")
+        'region.Activate(vista)
+        ''regionManager.RequestNavigate("MainRegion", New Uri("/Clientes", UriKind.Relative))
     End Sub
 
     Private _cmdRecibirRetorno As DelegateCommand(Of Object)
@@ -2168,6 +2160,18 @@ End Class
 
 Public Structure tipoIdDescripcion
     Public Sub New( _
+   ByVal _id As Byte,
+   ByVal _descripcion As String
+   )
+        id = _id
+        descripcion = _descripcion
+    End Sub
+    Property id As Byte
+    Property descripcion As String
+End Structure
+
+Public Structure tipoIdIntDescripcion
+    Public Sub New( _
    ByVal _id As Integer,
    ByVal _descripcion As String
    )
@@ -2177,6 +2181,7 @@ Public Structure tipoIdDescripcion
     Property id As Integer
     Property descripcion As String
 End Structure
+
 
 #Region "ClasesAuxiliares"
 
@@ -2774,111 +2779,111 @@ Public Class AgenciaASM
         End Get
     End Property
     Private Sub rellenarPaises(agencia As AgenciasViewModel)
-        agencia.listaPaises = New ObservableCollection(Of tipoIdDescripcion)
-        agencia.paisActual = New tipoIdDescripcion(34, "ESPAÑA")
+        agencia.listaPaises = New ObservableCollection(Of tipoIdIntDescripcion)
+        agencia.paisActual = New tipoIdIntDescripcion(34, "ESPAÑA")
         agencia.listaPaises.Add(agencia.paisActual)
-        agencia.listaPaises.Add(New tipoIdDescripcion(351, "PORTUGAL"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(49, "ALEMANIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(966, "ARABIA SAUDITA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(213, "ARGELIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(54, "ARGENTINA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(61, "AUSTRALIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(43, "AUSTRIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(32, "BELGICA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(591, "BOLIVIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(387, "BOSNIA-HEZERGOVINA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(55, "BRASIL"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(359, "BULGARIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(11, "CANADA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(57, "COLOMBIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(82, "COREA DEL SUR"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(506, "COSTA RICA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(42, "REPUBLICA CHECA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(56, "CHILE"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(86, "CHINA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(385, "CROACIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(45, "DINAMARCA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(593, "ECUADOR"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(20, "EGIPTO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(503, "EL SALVADOR"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(421, "REPUBLICA ESLOVACA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(386, "ESLOVENIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(1, "ESTADOS UNIDOS"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(63, "FILIPINAS"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(358, "FINLANDIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(33, "FRANCIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(30, "GRECIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(502, "GUATEMALA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(504, "HONDURAS"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(852, "HONG KONG"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(36, "HUNGRIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(91, "INDIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(353, "IRLANDA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(354, "ISLANDIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(972, "ISRAEL"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(39, "ITALIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(81, "JAPON"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(41, "LIECHTENSTEIN"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(352, "LUXEMBURGO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(389, "MACEDONIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(212, "MARRUECOS"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(52, "MEJICO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(331, "MONACO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(505, "NICARAGUA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(47, "NORUEGA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(64, "NUEVA ZELANDA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(31, "HOLANDA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(507, "PANAMA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(595, "PARAGUAY"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(51, "PERU"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(48, "POLONIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(1809, "PUERTO RICO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(44, "REINO UNIDO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(391, "SAN MARINO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(46, "SUECIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(411, "SUIZA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(886, "TAIWAN"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(66, "THAILANDIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(216, "TUNEZ"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(90, "TURQUIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(7, "RUSIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(598, "URUGUAY"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(396, "VATICANO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(58, "VENEZUELA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(381, "YUGOSLAVIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(441, "GIBRALTAR"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(360, "ESTONIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(40, "RUMANIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(234, "NIGERIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(380, "UCRANIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(833, "VIETNAM"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(53, "CUBA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(1242, "BAHAMAS"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(691, "MICRONESIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(301, "CHIPRE"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(18091, "REPUBLICA DOMINICANA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(2341, "CABO VERDE"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(911, "SRI LANKA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(1243, "BERMUDA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(811, "SINGAPUR"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(9918, "MADEIRA/AZORES"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(692, "INDONESIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(693, "ANTILLA HOLANDESA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(2342, "IVORY COAST"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(77, "LITUANIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(2344, "MOZAMBIQUE"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(8111, "MALASIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(9666, "LIBANO"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(233, "SUDAFRICA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(963, "SIRIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(2343, "SENEGAL"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(78, "LETONIA(LATVIA)"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(443, "MALTA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(2345, "KENYA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(2346, "LIBIA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(2347, "ANGOLA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(241, "REPUBLICA GABONESA"))
-        agencia.listaPaises.Add(New tipoIdDescripcion(9633, "JORDANIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(351, "PORTUGAL"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(49, "ALEMANIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(966, "ARABIA SAUDITA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(213, "ARGELIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(54, "ARGENTINA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(61, "AUSTRALIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(43, "AUSTRIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(32, "BELGICA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(591, "BOLIVIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(387, "BOSNIA-HEZERGOVINA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(55, "BRASIL"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(359, "BULGARIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(11, "CANADA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(57, "COLOMBIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(82, "COREA DEL SUR"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(506, "COSTA RICA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(42, "REPUBLICA CHECA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(56, "CHILE"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(86, "CHINA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(385, "CROACIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(45, "DINAMARCA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(593, "ECUADOR"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(20, "EGIPTO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(503, "EL SALVADOR"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(421, "REPUBLICA ESLOVACA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(386, "ESLOVENIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(1, "ESTADOS UNIDOS"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(63, "FILIPINAS"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(358, "FINLANDIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(33, "FRANCIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(30, "GRECIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(502, "GUATEMALA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(504, "HONDURAS"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(852, "HONG KONG"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(36, "HUNGRIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(91, "INDIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(353, "IRLANDA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(354, "ISLANDIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(972, "ISRAEL"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(39, "ITALIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(81, "JAPON"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(41, "LIECHTENSTEIN"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(352, "LUXEMBURGO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(389, "MACEDONIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(212, "MARRUECOS"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(52, "MEJICO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(331, "MONACO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(505, "NICARAGUA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(47, "NORUEGA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(64, "NUEVA ZELANDA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(31, "HOLANDA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(507, "PANAMA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(595, "PARAGUAY"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(51, "PERU"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(48, "POLONIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(1809, "PUERTO RICO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(44, "REINO UNIDO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(391, "SAN MARINO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(46, "SUECIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(411, "SUIZA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(886, "TAIWAN"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(66, "THAILANDIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(216, "TUNEZ"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(90, "TURQUIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(7, "RUSIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(598, "URUGUAY"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(396, "VATICANO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(58, "VENEZUELA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(381, "YUGOSLAVIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(441, "GIBRALTAR"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(360, "ESTONIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(40, "RUMANIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(234, "NIGERIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(380, "UCRANIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(833, "VIETNAM"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(53, "CUBA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(1242, "BAHAMAS"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(691, "MICRONESIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(301, "CHIPRE"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(18091, "REPUBLICA DOMINICANA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(2341, "CABO VERDE"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(911, "SRI LANKA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(1243, "BERMUDA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(811, "SINGAPUR"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(9918, "MADEIRA/AZORES"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(692, "INDONESIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(693, "ANTILLA HOLANDESA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(2342, "IVORY COAST"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(77, "LITUANIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(2344, "MOZAMBIQUE"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(8111, "MALASIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(9666, "LIBANO"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(233, "SUDAFRICA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(963, "SIRIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(2343, "SENEGAL"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(78, "LETONIA(LATVIA)"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(443, "MALTA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(2345, "KENYA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(2346, "LIBIA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(2347, "ANGOLA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(241, "REPUBLICA GABONESA"))
+        agencia.listaPaises.Add(New tipoIdIntDescripcion(9633, "JORDANIA"))
 
 
     End Sub
@@ -3057,8 +3062,8 @@ Public Class AgenciaOnTime
         End Get
     End Property
     Private Sub rellenarPaises(agencia As AgenciasViewModel)
-        agencia.listaPaises = New ObservableCollection(Of tipoIdDescripcion)
-        agencia.paisActual = New tipoIdDescripcion(34, "ESPAÑA")
+        agencia.listaPaises = New ObservableCollection(Of tipoIdIntDescripcion)
+        agencia.paisActual = New tipoIdIntDescripcion(34, "ESPAÑA")
         agencia.listaPaises.Add(agencia.paisActual)
     End Sub
     Private Async Function cambiarEstadoAsync(enviosAgencia As EnviosAgencia) As Task(Of HttpResponseMessage)
