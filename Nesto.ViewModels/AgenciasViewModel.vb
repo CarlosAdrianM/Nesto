@@ -1582,7 +1582,7 @@ Public Class AgenciasViewModel
 
         ' Miramos la deuda que tenga en su extracto. 
         ' Esa deuda la tiene que pagar independientemente de la forma de pago
-        Dim importeDeuda As Double = calcularDeuda()
+        Dim importeDeuda As Double = 0 'calcularDeuda()
 
         ' Miramos los casos en los que no hay contra reembolso
         If IsNothing(pedidoSeleccionado) Then
