@@ -121,7 +121,7 @@ Public Class MainViewModel
     Private ReadOnly regionManager As IRegionManager
 
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
-        Me._RatiosVenta = RatioVenta.CargarRatiosVenta
+        'Me._RatiosVenta = RatioVenta.CargarRatiosVenta
         Me._Vendedor = MainModel.Vendedor.CargarVendedor
         Me.container = container
         Me.regionManager = regionManager

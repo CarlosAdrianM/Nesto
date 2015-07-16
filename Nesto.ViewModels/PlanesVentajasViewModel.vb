@@ -91,6 +91,7 @@ Public Class PlanesVentajasViewModel
                 OnPropertyChanged("porcentajeRealizado")
             Else
                 listaClientes = Nothing
+                lineasVenta = Nothing
             End If
         End Set
     End Property
@@ -113,7 +114,11 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of LinPedidoVta))
             _lineasVenta = value
-            importeVentas = Aggregate l In lineasVenta Into Sum(l.Base_Imponible)
+            If Not IsNothing(lineasVenta) Then
+                importeVentas = Aggregate l In lineasVenta Into Sum(l.Base_Imponible)
+            Else
+                importeVentas = 0
+            End If
             OnPropertyChanged("lineasVenta")
         End Set
     End Property

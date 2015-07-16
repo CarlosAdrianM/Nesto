@@ -1,193 +1,23 @@
-﻿<ribbon:RibbonWindow x:Class="MainWindow"
+﻿<Window x:Class="MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ribbon="clr-namespace:Microsoft.Windows.Controls.Ribbon;assembly=RibbonControlsLibrary"
         xmlns:local="clr-namespace:Nesto.Views"
-        xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels"
         xmlns:prism="http://www.codeplex.com/prism"
         Title="Nesto" 
         x:Name="RibbonWindow"
 		Icon="/Nesto;component/Icono2_NV_256x256.ico" WindowState="Maximized" xmlns:my="clr-namespace:SAPBusinessObjects.WPF.Viewer;assembly=SAPBusinessObjects.WPF.Viewer" VerticalContentAlignment="Center" VerticalAlignment="Center">
+
+
     
-    <ribbon:RibbonWindow.Resources>
-        
-            <DataTemplate x:Key="RatiosTemplateRojo">
-            <StackPanel>
-                <Border BorderThickness="2" Width ="200" BorderBrush="Red" CornerRadius="5" Padding="1"
-                        HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="20" Margin="1">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="5*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="2*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding Nombre}" 
-                       FontSize="8" HorizontalAlignment="Left" VerticalAlignment="Center"
-                       Grid.Column="0"/>
-                        <TextBlock Text="{Binding Ratio,StringFormat=p}" Name="txtRatio" 
-                       FontSize="8" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="2" Foreground="Red"/>
-                        <Image Source="pack://application:,,,/Nesto;component/Images/FlechaRoja.png" Grid.Column="1"></Image>
-                    </Grid>
-                </Border>
-            </StackPanel>
-        </DataTemplate>
 
-        <DataTemplate x:Key="RatiosTemplateVerde">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="2*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Border BorderThickness="2" Width ="200" BorderBrush="Green" CornerRadius="5" Padding="1"
-                        HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="20" Margin="1" Grid.Row="0">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="5*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="2*"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding Nombre}" 
-                       FontSize="8" HorizontalAlignment="Left"
-                       Grid.Column="0"/>
-                        <TextBlock Text="{Binding Ratio,StringFormat=p}" Name="txtRatio" 
-                       FontSize="8" FontWeight="Bold" HorizontalAlignment="Right" Grid.Column="2" Foreground="Green"/>
-                       <Image Source ="pack://application:,,,/Nesto;component/Images/FlechaVerde.png" Grid.Column="1"></Image>
-                    </Grid>
-                </Border>
-
-            </Grid>
-        </DataTemplate>
-
-        <vm:RatioDataTemplateSelector x:Key="myDataTemplateSelector"/>
-        
-        <vm:IconoConverter x:Key="iconoConverter"/>
-
-    </ribbon:RibbonWindow.Resources>
-    
-    
-    <DockPanel x:Name="LayoutRoot">
-        <DockPanel.ContextMenu>
+    <!--DockPanel.ContextMenu>
             <ContextMenu />
-        </DockPanel.ContextMenu>
-        <ribbon:Ribbon DockPanel.Dock="Top" x:Name="Ribbon" Margin="0,0,0,0">
-            <ribbon:Ribbon.QuickAccessToolBar>
-                <ribbon:RibbonQuickAccessToolBar IsManipulationEnabled="True" />
-            </ribbon:Ribbon.QuickAccessToolBar>
-            <ribbon:Ribbon.ApplicationMenu>
-                <ribbon:RibbonApplicationMenu Label="Nesto">
-                    <ribbon:RibbonApplicationMenu.ControlSizeDefinition>
-                        <ribbon:RibbonControlSizeDefinition IsLabelVisible="True" />
-                    </ribbon:RibbonApplicationMenu.ControlSizeDefinition>
-                    <ribbon:RibbonApplicationMenuItem Header="Archivo"
-                                                      x:Name="mnuItem1" />
-                </ribbon:RibbonApplicationMenu>
-            </ribbon:Ribbon.ApplicationMenu>
-            <ribbon:RibbonTab x:Name="tabInformes"
-                              Header="Informes">
-                <ribbon:RibbonGroup x:Name="grpVendedores"
-                                    Header="Vendedores calle">
-                    <ribbon:RibbonButton x:Name="btnInforme"
-                                         LargeImageSource="/Nesto;component/Images/UL_128x42.png"
-                                         Label="Unión Láser" HorizontalAlignment="Center" />
-
-                    <ribbon:RibbonButton x:Name="btnPeluquería"
-                                         LargeImageSource="/Nesto;component/Images/Peluquería.ico"
-                                         Label="Peluquería" HorizontalAlignment="Center" />
-
-                </ribbon:RibbonGroup>
-        
-                <ribbon:RibbonGroup  Name="grpTelefono" Header="Vendedores Teléfono">
-        <ribbon:RibbonButton Label="Detalle" LargeImageSource="/Nesto;component/Images/VendedorTelefonicoDetalle.png" Name="btnComisionesTelefono" />
-        <ribbon:RibbonButton Label="Resumen" LargeImageSource="/Nesto;component/Images/VendedorTelefonico.png" Name="btnResumen"  />
-        <ribbon:RibbonButton Label="Rapport" LargeImageSource="/Nesto;component/Images/rapports.png" Name="btnRapport"  />      
-                </ribbon:RibbonGroup>
-
-                <ribbon:RibbonGroup x:Name="grpGrupoEmpresas"
-                                    Header="Grupo de Empresas">
-                    <ribbon:RibbonButton Label="Ventas" Name="btnVentasEmpresas" HorizontalAlignment="Center" LargeImageSource="/Nesto;component/Icono2_NV_256x256.ico" Visibility="Hidden" />   
-                </ribbon:RibbonGroup>
-                <ribbon:RibbonGroup x:Name="grpControles"
-                                    Header="Informes de Control">
-                    <ribbon:RibbonButton Label="Pedidos" LargeImageSource="/Nesto;component/Images/ControlPedidos.png" Name="btnControlPedidos"  />
-                </ribbon:RibbonGroup>
-
-                <ribbon:RibbonGroup x:Name="grpInventarios"
-                                    Header="Inventario">
-                    <ribbon:RibbonButton Label="Inventario" LargeImageSource="/Nesto;component/Images/Inventario.png" Name="btnInventario"  />
-                    <ribbon:RibbonSplitButton Label="Ubicaciones" LargeImageSource="/Nesto;component/Images/Ubicaciones.png" Name="btnUbicaciones">
-                        <TextBox Name="txtLineas">
-                            15
-                        </TextBox>
-                    </ribbon:RibbonSplitButton>
-                </ribbon:RibbonGroup>
-
-                <ribbon:RibbonGroup x:Name="grpRatio"
-                                    Header="Ratios">
-                    <ribbon:RibbonSplitButton Label="{Binding Path=MediaRatioVenta, StringFormat=p}" Name="btnRatio" LargeImageSource="{Binding Path=MediaRatioVenta, Converter={StaticResource iconoConverter}}">
-                        <ListBox Name="lstRatios" ItemsSource="{Binding Path=RatiosVenta}" ItemTemplateSelector="{StaticResource myDataTemplateSelector}"/>
-                    </ribbon:RibbonSplitButton>
-
-                    <ribbon:RibbonButton Label="Premio Deuda" Name="btnRatioDeuda" LargeImageSource="/Nesto;component/Images/Premios.png"/>
-                        
-
-
-                </ribbon:RibbonGroup>
-                
-                <ribbon:RibbonGroup x:Name="grpFechas" Header="Fechas">
-                    <StackPanel>
-                    <ribbon:RibbonComboBox Name="cmbOpciones" VerticalAlignment="Top" HorizontalAlignment="Stretch">
-                        <ribbon:RibbonGallery SelectedValue="{Binding opcionesFechas}" SelectedValuePath="Content"
-                              MaxColumnCount="1">
-                            <ribbon:RibbonGalleryCategory>
-                                <ribbon:RibbonGalleryItem Content="Actual"/>
-                                <ribbon:RibbonGalleryItem Content="Anterior" />
-                                <ribbon:RibbonGalleryItem Content="Personalizar"/>
-                            </ribbon:RibbonGalleryCategory>
-                        </ribbon:RibbonGallery>
-                    </ribbon:RibbonComboBox>
-                    <!--ribbon:RibbonTextBox></>
-                    <ribbon:RibbonTextBox></ribbon:RibbonTextBox-->
-                        <StackPanel Visibility="{Binding mostrarFechas}">
-                            <DatePicker Text="{Binding ElementName=RibbonWindow, Path=fechaInformeInicial, Mode=TwoWay}"></DatePicker>
-                            <DatePicker Text="{Binding ElementName=RibbonWindow, Path=fechaInformeFinal, Mode=TwoWay}"></DatePicker>
-                        </StackPanel>
-                    </StackPanel>
-                </ribbon:RibbonGroup>
-
-            </ribbon:RibbonTab>
-            <ribbon:RibbonTab x:Name="tabClientes"
-                              Header="Clientes">
-                <ribbon:RibbonGroup x:Name="grpClientesMantenimiento"
-                                    Header="Mantenimiento">
-                    <ribbon:RibbonButton Label="Ficha" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesFicha" />
-                    <ribbon:RibbonButton Label="Alquileres" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesAlquileres" />
-                    <ribbon:RibbonButton Label="Remesas" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesRemesas" />
-                    <ribbon:RibbonButton Label="Agencias" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesAgencias" />
-                </ribbon:RibbonGroup>
-            </ribbon:RibbonTab>
-
-            <ribbon:RibbonTab x:Name="tabVendedores"
-                              Header="Vendedores">
-                <ribbon:RibbonGroup x:Name="grpVendedoresCliente" Header="Clientes">
-                    <ribbon:RibbonButton Label="Ficha" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnVendedoresClientes" />
-                    <ribbon:RibbonButton Label="Planes de Ventajas" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnVendedoresPlanVentajas" />
-                </ribbon:RibbonGroup>
-                <ribbon:RibbonGroup x:Name="grpVendedoresComisiones" Header="Comisiones">
-                    <ribbon:RibbonButton Label="Comisiones" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnVendedoresComisiones" />
-                </ribbon:RibbonGroup>
-            </ribbon:RibbonTab>
-
-            <ribbon:RibbonTab x:Name="tabHerramientas"
-                              Header="Herramientas">
-                <ribbon:RibbonGroup x:Name="grpPrestashop"
-                                    Header="Mantenimiento">
-
-                    <ribbon:RibbonButton Label="Prestashop" LargeImageSource="/Nesto;component/Images/Prestashop.png" Name="btnPrestashop" />
-                </ribbon:RibbonGroup>
-            </ribbon:RibbonTab>
-        </ribbon:Ribbon>
-        
-        <!-- Main Region -->
+        </-->
+    <DockPanel>
+        <Ribbon DockPanel.Dock="Top" x:Name="MainMenu" x:FieldModifier="Public"
+                prism:RegionManager.RegionName="MainMenu"/>
+        <!--<ContentControl DockPanel.Dock="Top" prism:RegionManager.RegionName="MainMenu"></ContentControl>-->
+         <!-- MainRegion -->
         <Border DockPanel.Dock="Bottom" Margin="2,2,8,8" 
                 Grid.Column="2" 
                 Grid.Row="1" 
@@ -214,9 +44,9 @@
                 </TabControl.ItemContainerStyle>
             </TabControl>
         </Border>
-        
-                
+
+
     </DockPanel>
-       
-    
-</ribbon:RibbonWindow>
+
+
+</Window>

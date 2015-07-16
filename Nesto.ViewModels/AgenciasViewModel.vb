@@ -183,7 +183,7 @@ Public Class AgenciasViewModel
                     OnPropertyChanged("paisActual")
                     'listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
                     listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
-                    listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+                    listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
                     listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
                     listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                     OnPropertyChanged("sumaContabilidad")
@@ -236,7 +236,7 @@ Public Class AgenciasViewModel
             If Not IsNothing(agenciaSeleccionada) Then
                 listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                 listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
-                listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+                listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
                 listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
             Else
                 listaEnvios = New ObservableCollection(Of EnviosAgencia)
@@ -693,7 +693,7 @@ Public Class AgenciasViewModel
         Set(value As TabItem)
             SetProperty(_PestañaSeleccionada, value)
             If PestañaSeleccionada.Name = "tabReembolsos" And IsNothing(listaReembolsos) Then
-                listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso > 0 And e.FechaPagoReembolso Is Nothing)
+                listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
             End If
 
             If PestañaSeleccionada.Name = "tabRetornos" And IsNothing(listaRetornos) Then
@@ -2685,7 +2685,7 @@ Public Class AgenciaASM
             agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
             agenciaVM.envioActual.Fecha = Today
             DbContext.SaveChanges()
-            If agenciaVM.envioActual.Reembolso > 0 Then
+            If agenciaVM.envioActual.Reembolso <> 0 Then
                 agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
             End If
             agenciaVM.mensajeError = "Envío del pedido " + agenciaVM.envioActual.Pedido.ToString + " tramitado correctamente."
@@ -2982,7 +2982,7 @@ Public Class AgenciaOnTime
 
         'Await cambiarEstadoAsync(agenciaVM.envioActual)
 
-        If agenciaVM.envioActual.Reembolso > 0 Then
+        If agenciaVM.envioActual.Reembolso <> 0 Then
             agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
         End If
 
