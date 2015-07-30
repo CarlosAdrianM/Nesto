@@ -254,7 +254,7 @@
                         <TextBox Grid.Column="3" Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding envioActual.CodPostal}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
                         <TextBox Grid.Column="3" Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding envioActual.Poblacion}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
                         <TextBox Grid.Column="3" Grid.Row="4" Text="{Binding envioActual.Provincia}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
-                        <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedItem="{Binding paisActual}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"/>
+                        <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedValue="{Binding envioActual.Pais}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"/>
                         <TextBox Grid.Column="3" Grid.Row="5" Grid.ColumnSpan="2" Text="{Binding envioActual.Telefono}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.Row="6" Grid.ColumnSpan="2" Text="{Binding envioActual.Movil}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.Row="7" Grid.ColumnSpan="2" Text="{Binding envioActual.Atencion}" Style="{StaticResource campoTexto}"/>

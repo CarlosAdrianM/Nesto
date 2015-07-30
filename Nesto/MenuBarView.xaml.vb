@@ -9,15 +9,18 @@ Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Modularity
 Imports Prism.RibbonRegionAdapter
+Imports Nesto.Contratos
 
+<[Module](ModuleName:="MenuBarView")>
 Public Class MenuBarView
-    Implements IModule
+    Implements IModule, IMenuBar
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
 
+
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
 
-        
+
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
 
@@ -33,15 +36,23 @@ Public Class MenuBarView
         'container.RegisterType(Of Object, frmCRInforme)("frmCRInforme")
 
 
+        'regionManager.RegisterViewWithRegion("MainMenu", Function() Me.container.Resolve(Of MenuBarView)())
+        'regionManager.AddToRegion("MainMenu", Me)
+        'regionManager.RequestNavigate("MainMenu", New Uri("MenuBarView", UriKind.Relative))
 
-        'regionManager.RegisterViewWithRegion("MainMenu", GetType(MenuBarView))
+        'Dim mainMenuRegion As IRegion = regionManager.Regions("MainMenu")
+        'AddHandler regionManager.Regions("MainMenu").Views.CollectionChanged, AddressOf OnColeccionCambiada
+        'mainMenuRegion.Add(Me, "MenuBar")
+
+
+
         Dim view = Me
         If Not IsNothing(view) Then
+
             'Dim regionAdapter = New RibbonRegionAdapter(Me.container.Resolve(GetType(RegionBehaviorFactory)))
-            Dim regionAdapter = Me.container.Resolve(GetType(RibbonRegionAdapter))
-            Dim mainWindow = Me.container.Resolve(GetType(MainWindow))
-            Dim region = regionAdapter.Initialize(mainWindow.MainMenu, "MainMenuQueNoExiste")
-            'Dim region = regionManager.Regions("MainMenu")
+            Dim regionAdapter = Me.container.Resolve(Of RibbonRegionAdapter)()
+            Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
+            Dim region = regionAdapter.Initialize(mainWindow.mainRibbon, "NewMainMenu")
             region.Add(view, "MenuBar")
         End If
 
@@ -686,5 +697,8 @@ Public Class MenuBarView
         Return nombreAmpliado
     End Function
 
+    Private Sub OnColeccionCambiada(sender As Object, e As EventArgs)
+
+    End Sub
 
 End Class

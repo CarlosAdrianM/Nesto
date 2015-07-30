@@ -15,7 +15,7 @@
         </-->
     <DockPanel>
         <Ribbon DockPanel.Dock="Top" x:Name="MainMenu" x:FieldModifier="Public"
-                prism:RegionManager.RegionName="MainMenu"/>
+                prism:RegionManager.RegionName="MainMenuRegion"/>
         <!--<ContentControl DockPanel.Dock="Top" prism:RegionManager.RegionName="MainMenu"></ContentControl>-->
          <!-- MainRegion -->
         <Border DockPanel.Dock="Bottom" Margin="2,2,8,8" 

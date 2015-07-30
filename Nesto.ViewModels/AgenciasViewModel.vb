@@ -1594,7 +1594,7 @@ Public Class AgenciasViewModel
         If pedidoSeleccionado.Periodo_Facturacion = "FDM" Then
             Return importeDeuda
         End If
-        If (pedidoSeleccionado.Forma_Pago = "CNF" Or pedidoSeleccionado.Forma_Pago = "TRN") Then
+        If (pedidoSeleccionado.Forma_Pago = "CNF" Or pedidoSeleccionado.Forma_Pago = "TRN" Or pedidoSeleccionado.Forma_Pago = "TAR") Then
             Return importeDeuda
         End If
         If pedidoSeleccionado.NotaEntrega Then

@@ -1,21 +1,26 @@
-﻿Imports System.Windows
+﻿'Imports System.Windows
 Imports Microsoft.Practices.Prism.Modularity
 Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.UnityExtensions
 Imports Microsoft.Practices.Prism.Regions
-Imports Prism.RibbonRegionAdapter.RibbonRegionAdapter
+'Imports Prism.RibbonRegionAdapter.RibbonRegionAdapter
 Imports Prism.RibbonRegionAdapter
-Imports System.Windows.Controls.Primitives
+Imports Nesto.Contratos
+Imports Nesto.Modulos.PlantillaVenta
+'Imports System.Windows.Controls.Primitives
+'Imports Nesto.Modulos.PlantillaVenta
+
 
 
 Public Class Bootstrapper
     Inherits UnityBootstrapper
 
+
     Protected Overrides Function CreateShell() As DependencyObject
-        Dim shell = Me.Container.Resolve(Of MainWindow)()
+        Dim shell = Me.Container.Resolve(Of IMainWindow)()
 
         ' Carlos 14/07/15: estas tres líneas no sé si valen para algo
-        Dim regionManager = Me.Container.Resolve(Of RegionManager)()
+        'Dim regionManager = Me.Container.Resolve(Of IRegionManager)()
         'Microsoft.Practices.Prism.Regions.RegionManager.SetRegionManager(shell, regionManager)
         'Microsoft.Practices.Prism.Regions.RegionManager.UpdateRegions()
 
@@ -30,34 +35,39 @@ Public Class Bootstrapper
         Application.Current.MainWindow.Show()
     End Sub
 
+    'Protected Overrides Function CreateModuleCatalog() As IModuleCatalog
+    '    Return New DirectoryModuleCatalog() With {.ModulePath = "C:\Users\Carlos.NUEVAVISION\Documents\Visual Studio 2013\Projects\Nesto\Modulos"}
+    'End Function
+
+    'Protected Overrides Function CreateModuleCatalog() As IModuleCatalog
+    '    Return New ConfigurationModuleCatalog
+    'End Function
+
     Protected Overrides Sub ConfigureModuleCatalog()
         MyBase.ConfigureModuleCatalog()
         Dim moduleCatalog As ModuleCatalog = CType(Me.ModuleCatalog, ModuleCatalog)
-        ' Carlos: aquí se añadirían los módulos
-        moduleCatalog.AddModule(GetType(MenuBarView)) ', InitializationMode.WhenAvailable
+
+        ' Módulo que tiene los botones del Ribbon de todo lo viejo que no se hizo con módulos
+        moduleCatalog.AddModule(GetType(IMenuBar)) ', InitializationMode.WhenAvailable
+
+        ' Plantilla de Ventas - 17/07/15
+        moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
+
+
     End Sub
 
     Protected Overrides Sub ConfigureContainer()
         MyBase.ConfigureContainer()
         RegisterTypeIfMissing(GetType(RibbonRegionAdapter), GetType(RibbonRegionAdapter), True)
-        RegisterTypeIfMissing(GetType(MainWindow), GetType(MainWindow), True)
-        'Me.Container.RegisterInstance(Of RibbonRegionAdapter
-        'builder.RegisterAssemblyTypes(GetType(RibbonRegionAdapter).Assembly).InNamespaceOf(Of RibbonRegionAdapter)().AsSelf().SingleInstance()
+        RegisterTypeIfMissing(GetType(IMainWindow), GetType(MainWindow), True)
+        RegisterTypeIfMissing(GetType(IMenuBar), GetType(MenuBarView), True)
+        RegisterTypeIfMissing(GetType(IPlantillaVenta), GetType(PlantillaVenta), False)
+        'Me.Container.RegisterType(GetType(MainWindow), GetType(MainWindow), "MainWindow")
+        'Me.Container.RegisterType(Of Object, MenuBarView)("MenuBarView", New TransientLifetimeManager())
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings
-        'Dim regionAdapterMappings As RegionAdapterMappings = Container.TryResolve(Of RegionAdapterMappings)()
-        'Dim selector As SelectorRegionAdapter = Me.Container.Resolve(Of SelectorRegionAdapter)()
-        'If regionAdapterMappings IsNot Nothing Then
-        '    regionAdapterMappings.RegisterMapping(GetType(Selector), selector)
-        '    regionAdapterMappings.RegisterMapping(GetType(ItemsControl), Me.Container.Resolve(Of ItemsControlRegionAdapter)())
-        '    regionAdapterMappings.RegisterMapping(GetType(ContentControl), Me.Container.Resolve(Of ContentControlRegionAdapter)())
-        'End If
-
-        'Dim tipo As SelectorRegionAdapter = regionAdapterMappings.GetMapping(GetType(Selector))
-        'Dim mappings = regionAdapterMappings 
-
-        Dim mappings = MyBase.ConfigureRegionAdapterMappings()
+        Dim mappings As RegionAdapterMappings = MyBase.ConfigureRegionAdapterMappings()
         mappings.RegisterMapping(GetType(Ribbon), Me.Container.Resolve(Of Prism.RibbonRegionAdapter.RibbonRegionAdapter)())
         Return mappings
     End Function

@@ -3,8 +3,10 @@ Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Prism.Commands
 Imports Prism.RibbonRegionAdapter
+Imports Nesto.Contratos
 
 Class MainWindow
+    Implements IMainWindow
 
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
@@ -19,6 +21,15 @@ Class MainWindow
         Me.regionManager = regionManager
         Me.DataContext = New MainViewModel(container, regionManager)
     End Sub
+
+    Public Property regionRibbon As Controls.Ribbon.Ribbon Implements IMainWindow.mainRibbon
+        Get
+            Return MainMenu
+        End Get
+        Set(value As Controls.Ribbon.Ribbon)
+            MainMenu = value
+        End Set
+    End Property
 
     'Private Sub btnPruebaBorrar_Click(sender As Object, e As RoutedEventArgs) Handles btnPruebaBorrar.Click
     '    Dim view = Me.container.Resolve(GetType(MenuBarView))

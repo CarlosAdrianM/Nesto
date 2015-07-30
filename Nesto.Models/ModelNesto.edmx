@@ -323,7 +323,7 @@
           <Property Name="Retorno" Type="smallint" Nullable="false" />
           <Property Name="Nombre" Type="varchar" MaxLength="80" />
           <Property Name="Direccion" Type="varchar" MaxLength="80" />
-          <Property Name="CodPostal" Type="varchar" MaxLength="5" />
+          <Property Name="CodPostal" Type="nvarchar" MaxLength="20" />
           <Property Name="Poblacion" Type="varchar" MaxLength="80" />
           <Property Name="Provincia" Type="varchar" MaxLength="80" />
           <Property Name="Pais" Type="int" Nullable="false" />
@@ -4141,7 +4141,7 @@
           <Property Name="Retorno" Type="Byte" Nullable="false" />
           <Property Name="Nombre" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Direccion" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
-          <Property Name="CodPostal" Type="String" MaxLength="5" FixedLength="false" Unicode="false" />
+          <Property Name="CodPostal" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
           <Property Name="Poblacion" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Provincia" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Telefono" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
