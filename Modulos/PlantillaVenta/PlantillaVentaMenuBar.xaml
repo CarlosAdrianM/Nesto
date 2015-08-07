@@ -1,0 +1,16 @@
+﻿<UserControl x:Class="PlantillaVentaMenuBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="clr-namespace:Nesto.Modulos.PlantillaVenta;assembly=PlantillaVenta">
+
+
+    <Ribbon x:Name="MainMenu" x:FieldModifier="Protected Friend">
+        <RibbonTab x:Name="tabClientes"
+                              Header="Clientes">
+            <RibbonGroup x:Name="grpClientesVentas"
+                                    Header="Ventas">
+                <RibbonButton Label="Plantilla" LargeImageSource="Images/Plantilla.png" Command="{Binding cmdAbrirPlantillaVenta}" />
+            </RibbonGroup>
+        </RibbonTab>
+    </Ribbon>
+</UserControl>

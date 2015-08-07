@@ -1,0 +1,138 @@
+﻿<UserControl x:Class="PlantillaVentaView" Name="Plantilla"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity" 
+             xmlns:prism="http://www.codeplex.com/prism"
+             xmlns:local="clr-namespace:Nesto.Modulos.PlantillaVenta"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300">
+
+
+    <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
+        <Grid>
+            <xctk:Wizard Finish="Wizard_Finish" Name="WizardPlantilla" 
+                         CancelButtonClosesWindow="False"
+                         FinishButtonClosesWindow="False" 
+                         BackButtonContent="&lt; Anterior"
+                         NextButtonContent="Siguiente &gt;"
+                         FinishButtonContent="Finalizar">
+                <xctk:WizardPage x:Name="SeleccionCliente" 
+                                       Title="Selección del cliente"
+                                       Description="Lo primero que debemos hacer es seleccionar el cliente al que vamos a enviar el pedido"
+                                       CanSelectNextPage="{Binding hayUnClienteSeleccionado}">
+                    
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="8*"/>
+                        </Grid.RowDefinitions>
+
+
+
+                        <StackPanel Grid.Row="0">
+                            <Border HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
+                                <DockPanel HorizontalAlignment="Stretch">
+                                    <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" FontSize="16" Text="🔎" />
+                                    <TextBox DockPanel.Dock="Left" Name="txtFiltroCliente" Text="{Binding filtroCliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxPlaceholder}" Tag="Introduce algún dato del cliente..." >
+                                        <TextBox.InputBindings>
+                                            <KeyBinding Command="{Binding cmdCargarClientesVendedor}" Key="Enter" />
+                                        </TextBox.InputBindings>
+                                    </TextBox>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                        <ListView Name="listViewClientes" Grid.Row="1" ItemsSource="{Binding listaClientes}" SelectedItem="{Binding clienteSeleccionado}">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Height="110" Margin="6" >
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" Width="110" Height="110" >
+                                            <Image Source="{Binding rutaLogo}"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0" >
+                                            <TextBlock Text="{Binding nombre}" FontWeight="Bold" TextWrapping="NoWrap"/>
+                                            <TextBlock Text="{Binding direccion}" TextWrapping="NoWrap"/>
+                                            <TextBlock Text="{Binding poblacion}" MaxHeight="60"/>
+                                            <TextBlock Text="{Binding comentarios}" MaxHeight="60"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </xctk:WizardPage>
+                <xctk:WizardPage x:Name="SeleccionProductos" PageType="Interior"
+                                       Title="Productos que componen el pedido"
+                                       Description="Ahora es el momento de seleccionar los productos que el cliente nos ha pedido"
+                                       NextPage="{Binding ElementName=Page2}"
+                                       PreviousPage="{Binding ElementName=SeleccionCliente}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="8*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+
+
+
+                        <StackPanel Grid.Row="0" Grid.ColumnSpan="2">
+                            <TextBox Name="txtFiltroProducto" Text="{Binding filtroProducto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxPlaceholder}" Tag="Introduce algún dato del producto..." >
+                                <TextBox.InputBindings>
+                                    <KeyBinding Command="{Binding cmdFijarFiltroProductos}" Key="Enter" />
+                                </TextBox.InputBindings>
+                            </TextBox>
+                        </StackPanel>
+                        <ListView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Height="110" Margin="6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" Width="110" Height="110" >
+                                            <Border Background="{Binding colorEstado}" Height="110" Width="110" HorizontalAlignment="Left" Margin="0,0,10,0"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0">
+                                            <TextBlock Text="{Binding texto}" FontWeight="Bold" TextWrapping="NoWrap"/>
+                                            <TextBlock Text="{Binding producto}" TextWrapping="NoWrap"/>
+                                            <TextBlock Text="{Binding familia}" MaxHeight="60"/>
+                                            <TextBlock Text="{Binding subGrupo}" MaxHeight="60"/>
+                                            <TextBlock Text="{Binding fechaUltimaVenta, StringFormat=d}" MaxHeight="60"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock>Vendidas: </TextBlock>
+                                                <TextBlock Text="{Binding cantidadVendida}" MaxHeight="60"/>
+                                                <TextBlock>Abonadas: </TextBlock>
+                                                <TextBlock Text="{Binding cantidadAbonada}" MaxHeight="60"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </xctk:WizardPage>
+                <xctk:WizardPage x:Name="Page2" PageType="Interior"
+                                       Title="Page 2"
+                                       Description="This is the second page in the process"/>
+                <xctk:WizardPage x:Name="LastPage" PageType="Interior"
+                                       Title="Last Page"
+                                       Description="This is the last page in the process"
+                                       CanFinish="True"/>
+            </xctk:Wizard>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>
