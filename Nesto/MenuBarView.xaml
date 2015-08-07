@@ -136,8 +136,8 @@
                     <!--ribbon:RibbonTextBox></>
                     <ribbon:RibbonTextBox></ribbon:RibbonTextBox-->
                     <StackPanel Visibility="{Binding mostrarFechas}">
-                        <DatePicker Text="{Binding ElementName=RibbonWindow, Path=fechaInformeInicial, Mode=TwoWay}"></DatePicker>
-                        <DatePicker Text="{Binding ElementName=RibbonWindow, Path=fechaInformeFinal, Mode=TwoWay}"></DatePicker>
+                        <DatePicker Text="{Binding fechaInformeInicial, Mode=TwoWay}"></DatePicker>
+                        <DatePicker Text="{Binding fechaInformeFinal, Mode=TwoWay}"></DatePicker>
                     </StackPanel>
                 </StackPanel>
             </RibbonGroup>

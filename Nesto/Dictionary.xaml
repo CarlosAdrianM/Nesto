@@ -46,4 +46,43 @@
         <Setter Property="Padding" Value="3"/>
     </Style>
 
+    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}"
+       x:Key="TextBoxPlaceholder">
+        <Setter Property="Padding" Value="3"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="Foreground" Value="Black"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border BorderThickness="1"
+                        CornerRadius="1"
+                        Background="{TemplateBinding Background}">
+                        <Grid>
+                            <ScrollViewer Margin="{TemplateBinding Padding}"
+                                  x:Name="PART_ContentHost"/>
+                            <TextBlock IsHitTestVisible="False" 
+                               Text="{TemplateBinding Tag}"
+                               VerticalAlignment="Center" 
+                               HorizontalAlignment="Left"
+                               Opacity="0.25"
+                               Foreground="{TemplateBinding Foreground}"
+                               Margin="10,0,0,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

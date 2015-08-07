@@ -35,14 +35,6 @@ Public Class Bootstrapper
         Application.Current.MainWindow.Show()
     End Sub
 
-    'Protected Overrides Function CreateModuleCatalog() As IModuleCatalog
-    '    Return New DirectoryModuleCatalog() With {.ModulePath = "C:\Users\Carlos.NUEVAVISION\Documents\Visual Studio 2013\Projects\Nesto\Modulos"}
-    'End Function
-
-    'Protected Overrides Function CreateModuleCatalog() As IModuleCatalog
-    '    Return New ConfigurationModuleCatalog
-    'End Function
-
     Protected Overrides Sub ConfigureModuleCatalog()
         MyBase.ConfigureModuleCatalog()
         Dim moduleCatalog As ModuleCatalog = CType(Me.ModuleCatalog, ModuleCatalog)

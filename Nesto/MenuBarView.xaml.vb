@@ -58,26 +58,6 @@ Public Class MenuBarView
 
     End Sub
 
-    Private _fechaInformeInicial As Date = Today
-    Public Property fechaInformeInicial As Date
-        Get
-            Return _fechaInformeInicial
-        End Get
-        Set(value As Date)
-            _fechaInformeInicial = value
-        End Set
-    End Property
-
-    Private _fechaInformeFinal As Date = Today
-    Public Property fechaInformeFinal As Date
-        Get
-            Return _fechaInformeFinal
-        End Get
-        Set(value As Date)
-            _fechaInformeFinal = value
-        End Set
-    End Property
-
 
     Private Sub Button1_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnInforme.Click
         'Dim w2 As New frmInforme
@@ -92,11 +72,11 @@ Public Class MenuBarView
 
         Select Case cmbOpciones.Text
             Case "Actual"
-                fechaInformeInicial = DateSerial(Year(Now()), Int((Month(Now()) - 1) / 3) * 3 + 1, 1)
-                fechaInformeFinal = DateSerial(Year(Now()), Int((Month(Now()) - 1) / 3) * 3 + 4, 0)
+                Me.DataContext.fechaInformeInicial = DateSerial(Year(Now()), Int((Month(Now()) - 1) / 3) * 3 + 1, 1)
+                Me.DataContext.fechaInformeFinal = DateSerial(Year(Now()), Int((Month(Now()) - 1) / 3) * 3 + 4, 0)
             Case "Anterior"
-                fechaInformeInicial = DateSerial(Year(Now()), Int((Month(Now()) - 4) / 3) * 3 + 1, 1)
-                fechaInformeFinal = DateSerial(Year(Now()), Int((Month(Now()) - 4) / 3) * 3 + 4, 0)
+                Me.DataContext.fechaInformeInicial = DateSerial(Year(Now()), Int((Month(Now()) - 4) / 3) * 3 + 1, 1)
+                Me.DataContext.fechaInformeFinal = DateSerial(Year(Now()), Int((Month(Now()) - 4) / 3) * 3 + 4, 0)
             Case Else
                 MsgBox("Parte del programa no implementada aún")
         End Select
@@ -106,7 +86,7 @@ Public Class MenuBarView
         Dim mv As New NVDataSetMV
         Dim ds As New DataSet
 
-        ds = mv.CargarDatos(fechaInformeInicial, fechaInformeFinal)
+        ds = mv.CargarDatos(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal)
 
         Dim rptPremio As New Premio_Vendedores_UL
 
@@ -114,8 +94,8 @@ Public Class MenuBarView
 
 
 
-        rptPremio.SetParameterValue("FechaDesde", fechaInformeInicial)
-        rptPremio.SetParameterValue("FechaHasta", fechaInformeFinal)
+        rptPremio.SetParameterValue("FechaDesde", Me.DataContext.fechaInformeInicial)
+        rptPremio.SetParameterValue("FechaHasta", Me.DataContext.fechaInformeFinal)
 
 
         vista.crvInforme.ViewerCore.ReportSource = rptPremio
@@ -284,7 +264,7 @@ Public Class MenuBarView
                 GenerarInformeVentasGrupo(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0), True)
             Case Else
                 'MsgBox("Parte del programa no implementada aún")
-                GenerarInformeVentasGrupo(fechaInformeInicial, fechaInformeFinal, True)
+                GenerarInformeVentasGrupo(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal, True)
         End Select
     End Sub
     Private Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SóloFacturas As Boolean)
@@ -481,7 +461,7 @@ Public Class MenuBarView
             Case "Anterior"
                 GenerarInformeRapports(Today.AddDays(-1), Today.AddDays(-1))
             Case Else
-                GenerarInformeRapports(fechaInformeInicial, fechaInformeFinal)
+                GenerarInformeRapports(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal)
         End Select
     End Sub
     Private Sub GenerarInformeRapports(FechaDesde As Date, FechaHasta As Date)

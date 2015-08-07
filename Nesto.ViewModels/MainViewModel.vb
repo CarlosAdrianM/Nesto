@@ -140,6 +140,28 @@ Public Class MainViewModel
         End Set
     End Property
 
+    Private _fechaInformeInicial As Date = Today
+    Public Property fechaInformeInicial As Date
+        Get
+            Return _fechaInformeInicial
+        End Get
+        Set(value As Date)
+            _fechaInformeInicial = value
+        End Set
+    End Property
+
+    Private _fechaInformeFinal As Date = Today
+    Public Property fechaInformeFinal As Date
+        Get
+            Return _fechaInformeFinal
+        End Get
+        Set(value As Date)
+            _fechaInformeFinal = value
+        End Set
+    End Property
+
+
+
 #Region "Comandos"
     Private _cmdCerrarVentana As DelegateCommand(Of Object)
     Public Property cmdCerrarVentana As DelegateCommand(Of Object)
