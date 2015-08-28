@@ -396,6 +396,7 @@
             End Set
         End Property
         Private m_cantidadAbonada As Integer
+
         Public Property fechaUltimaVenta() As System.Nullable(Of DateTime)
             Get
                 Return m_fechaUltimaVenta
@@ -419,6 +420,174 @@
                 End If
             End Get
         End Property
-    End Class
 
+        Public ReadOnly Property textoUnidadesVendidas As String
+            Get
+                If cantidadAbonada = 0 And cantidadVendida > 1 Then
+                    Return String.Format("Vendidas {0} unds.", cantidadVendida)
+                ElseIf cantidadAbonada = 0 And cantidadVendida = 1 Then
+                    Return "Vendida 1 und."
+                ElseIf fechaUltimaVenta = DateTime.MinValue Then
+                    Return ""
+                ElseIf (cantidadVendida = 0 AndAlso cantidadAbonada = 0)
+                    Return "Ninguna unidad vendida"
+                Else
+                    Return String.Format("Vendidas {0} unds. (facturadas {1} y abonadas {2}).", cantidadVendida - cantidadAbonada, cantidadVendida, cantidadAbonada)
+                End If
+            End Get
+        End Property
+
+        Public ReadOnly Property textoFechaUltimaVenta As String
+            Get
+                If IsNothing(fechaUltimaVenta) OrElse fechaUltimaVenta = DateTime.MinValue Then
+                    Return ""
+                Else
+                    Return fechaUltimaVenta.ToString
+                End If
+            End Get
+        End Property
+    End Class
+    Public Class DireccionesEntregaJson
+        Public Property contacto() As String
+            Get
+                Return m_contacto
+            End Get
+            Set
+                m_contacto = Value
+            End Set
+        End Property
+        Private m_contacto As String
+        Public Property clientePrincipal() As Boolean
+            Get
+                Return m_clientePrincipal
+            End Get
+            Set
+                m_clientePrincipal = Value
+            End Set
+        End Property
+        Private m_clientePrincipal As Boolean
+        Public Property nombre() As String
+            Get
+                Return m_nombre
+            End Get
+            Set
+                m_nombre = Value
+            End Set
+        End Property
+        Private m_nombre As String
+        Public Property direccion() As String
+            Get
+                Return m_direccion
+            End Get
+            Set
+                m_direccion = Value
+            End Set
+        End Property
+        Private m_direccion As String
+        Public Property poblacion() As String
+            Get
+                Return m_poblacion
+            End Get
+            Set
+                m_poblacion = Value
+            End Set
+        End Property
+        Private m_poblacion As String
+        Public Property comentarios() As String
+            Get
+                Return m_comentarios
+            End Get
+            Set
+                m_comentarios = Value
+            End Set
+        End Property
+        Private m_comentarios As String
+        Public Property codigoPostal() As String
+            Get
+                Return m_codigoPostal
+            End Get
+            Set
+                m_codigoPostal = Value
+            End Set
+        End Property
+        Private m_codigoPostal As String
+        Public Property provincia() As String
+            Get
+                Return m_provincia
+            End Get
+            Set
+                m_provincia = Value
+            End Set
+        End Property
+        Private m_provincia As String
+        Public Property estado() As Integer
+            Get
+                Return m_estado
+            End Get
+            Set
+                m_estado = Value
+            End Set
+        End Property
+        Private m_estado As Integer
+        Public Property iva() As String
+            Get
+                Return m_iva
+            End Get
+            Set
+                m_iva = Value
+            End Set
+        End Property
+        Private m_iva As String
+        Public Property comentarioRuta() As String
+            Get
+                Return m_comentarioRuta
+            End Get
+            Set
+                m_comentarioRuta = Value
+            End Set
+        End Property
+        Private m_comentarioRuta As String
+        Public Property comentarioPicking() As Object
+            Get
+                Return m_comentarioPicking
+            End Get
+            Set
+                m_comentarioPicking = Value
+            End Set
+        End Property
+        Private m_comentarioPicking As Object
+        Public Property noComisiona() As Double
+            Get
+                Return m_noComisiona
+            End Get
+            Set
+                m_noComisiona = Value
+            End Set
+        End Property
+        Private m_noComisiona As Double
+        Public Property servirJunto() As Boolean
+            Get
+                Return m_servirJunto
+            End Get
+            Set
+                m_servirJunto = Value
+            End Set
+        End Property
+        Private m_servirJunto As Boolean
+        Public Property mantenerJunto() As Boolean
+            Get
+                Return m_mantenerJunto
+            End Get
+            Set
+                m_mantenerJunto = Value
+            End Set
+        End Property
+        Private m_mantenerJunto As Boolean
+
+        Public ReadOnly Property textoPoblacion As String
+            Get
+                Return String.Format("{0} {1} ({2})", codigoPostal, poblacion, provincia)
+            End Get
+        End Property
+    End Class
 End Class

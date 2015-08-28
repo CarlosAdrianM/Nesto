@@ -20,14 +20,21 @@ Public Class PlantillaVentaViewModel
 
 
         cmdAbrirPlantillaVenta = New DelegateCommand(Of Object)(AddressOf OnAbrirPlantillaVenta, AddressOf CanAbrirPlantillaVenta)
+        cmdActualizarProductosPedido = New DelegateCommand(Of Object)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
+        cmdBuscarEnTodosLosProductos = New DelegateCommand(Of Object)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(Of Object)(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
+        cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
         cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
+        cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
-        ' Esto habrá que leerlo de un parámetro de usuario si queremos que algunos usuarios puedan y otros no
+
+        ' Esto habrá que leerlo de un parámetro de usuario si queremos que algunos usuarios puedan y otros no.
+        ' De momento dejamos que aquí todos los usuarios vean a todos los clientes, 
+        ' y en la plantilla de NestoWeb haremos que cada vendedor vea sólo los suyos.
         todosLosVendedores = True
     End Sub
 
@@ -76,6 +83,7 @@ Public Class PlantillaVentaViewModel
             SetProperty(_clienteSeleccionado, value)
             OnPropertyChanged("hayUnClienteSeleccionado")
             cmdCargarProductosPlantilla.Execute(Nothing)
+            'cmdCargarDireccionesEntrega.Execute(Nothing)
         End Set
     End Property
 
@@ -116,13 +124,21 @@ Public Class PlantillaVentaViewModel
             SetProperty(_filtroProducto, value.ToLower)
             If Not IsNothing(listaProductosFijada) Then
                 listaProductos = New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosFijada Where
+                    l IsNot Nothing AndAlso
                     (((l.producto IsNot Nothing) AndAlso (l.producto.ToLower.Contains(filtroProducto)))) OrElse
                     (((l.texto IsNot Nothing) AndAlso (l.texto.ToLower.Contains(filtroProducto)))) OrElse
                     (((l.familia IsNot Nothing) AndAlso (l.familia.ToLower.Contains(filtroProducto)))) OrElse
                     (((l.subGrupo IsNot Nothing) AndAlso (l.subGrupo.ToLower.Contains(filtroProducto))))
                 )
             End If
+            cmdBuscarEnTodosLosProductos.RaiseCanExecuteChanged()
         End Set
+    End Property
+
+    Public ReadOnly Property hayProductosEnElPedido As Boolean
+        Get
+            Return Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0
+        End Get
     End Property
 
     Public ReadOnly Property hayUnClienteSeleccionado As Boolean
@@ -153,6 +169,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _listaDireccionesEntrega As ObservableCollection(Of DireccionesEntregaJson)
+    Public Property listaDireccionesEntrega As ObservableCollection(Of DireccionesEntregaJson)
+        Get
+            Return _listaDireccionesEntrega
+        End Get
+        Set(ByVal value As ObservableCollection(Of DireccionesEntregaJson))
+            SetProperty(_listaDireccionesEntrega, value)
+        End Set
+    End Property
+
     Private _listaProductos As ObservableCollection(Of LineaPlantillaJson)
     Public Property listaProductos As ObservableCollection(Of LineaPlantillaJson)
         Get
@@ -160,6 +186,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of LineaPlantillaJson))
             SetProperty(_listaProductos, value)
+            OnPropertyChanged("listaProductosPedido")
         End Set
     End Property
 
@@ -183,6 +210,16 @@ Public Class PlantillaVentaViewModel
             SetProperty(_listaProductosOriginal, value)
             listaProductosFijada = listaProductosOriginal
         End Set
+    End Property
+
+    Public ReadOnly Property listaProductosPedido() As ObservableCollection(Of LineaPlantillaJson)
+        Get
+            If Not IsNothing(listaProductosOriginal) Then
+                Return New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosOriginal Where l.cantidad > 0 OrElse l.cantidadOferta > 0)
+            Else
+                Return Nothing
+            End If
+        End Get
     End Property
 
     Private _productoSeleccionado As LineaPlantillaJson
@@ -230,6 +267,65 @@ Public Class PlantillaVentaViewModel
         region.Activate(vista)
     End Sub
 
+    Private _cmdActualizarProductosPedido As DelegateCommand(Of Object)
+    Public Property cmdActualizarProductosPedido As DelegateCommand(Of Object)
+        Get
+            Return _cmdActualizarProductosPedido
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdActualizarProductosPedido, value)
+        End Set
+    End Property
+    Private Function CanActualizarProductosPedido(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnActualizarProductosPedido(arg As Object)
+        OnPropertyChanged("listaProductosPedido")
+        OnPropertyChanged("hayProductosEnElPedido")
+        If Not IsNothing(arg) Then
+            If arg.cantidadVendida = 0 AndAlso arg.cantidadAbonada = 0 Then
+                cmdInsertarProducto.Execute(arg)
+            End If
+        End If
+    End Sub
+
+    Private _cmdBuscarEnTodosLosProductos As DelegateCommand(Of Object)
+    Public Property cmdBuscarEnTodosLosProductos As DelegateCommand(Of Object)
+        Get
+            Return _cmdBuscarEnTodosLosProductos
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdBuscarEnTodosLosProductos, value)
+        End Set
+    End Property
+    Private Function CanBuscarEnTodosLosProductos(arg As Object) As Boolean
+        Return Not IsNothing(filtroProducto) AndAlso filtroProducto.Length >= 3
+    End Function
+    Private Async Sub OnBuscarEnTodosLosProductos(arg As Object)
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+            response = Await client.GetAsync("PlantillaVentas/BuscarProducto?empresa=" + clienteSeleccionado.empresa + "&filtroProducto=" + filtroProducto)
+
+            If response.IsSuccessStatusCode Then
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                listaProductosFijada = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+                Dim productoOriginal As LineaPlantillaJson
+                Dim producto As LineaPlantillaJson
+                For i = 0 To listaProductosFijada.Count - 1
+                    producto = listaProductosFijada(i)
+                    productoOriginal = listaProductosOriginal.Where(Function(p) p.producto = producto.producto).FirstOrDefault
+                    If Not IsNothing(productoOriginal) Then
+                        listaProductosFijada(i) = productoOriginal
+                    End If
+                Next
+                estaOcupado = False
+            End If
+        End Using
+    End Sub
+
     Private _cmdCargarClientesVendedor As DelegateCommand(Of Object)
     Public Property cmdCargarClientesVendedor As DelegateCommand(Of Object)
         Get
@@ -274,6 +370,40 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
+    Private _cmdCargarDireccionesEntrega As DelegateCommand(Of Object)
+    Public Property cmdCargarDireccionesEntrega As DelegateCommand(Of Object)
+        Get
+            Return _cmdCargarDireccionesEntrega
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCargarDireccionesEntrega, value)
+        End Set
+    End Property
+    Private Function CanCargarDireccionesEntrega(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCargarDireccionesEntrega(arg As Object)
+
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+            response = Await client.GetAsync("PlantillaVentas/DireccionesEntrega?empresa=" + clienteSeleccionado.empresa + "&clienteDirecciones=" + clienteSeleccionado.cliente)
+
+            If response.IsSuccessStatusCode Then
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                listaDireccionesEntrega = JsonConvert.DeserializeObject(Of ObservableCollection(Of DireccionesEntregaJson))(cadenaJson)
+                estaOcupado = False
+            End If
+        End Using
+
+    End Sub
+
     Private _cmdCargarProductosPlantilla As DelegateCommand(Of Object)
     Public Property cmdCargarProductosPlantilla As DelegateCommand(Of Object)
         Get
@@ -288,8 +418,12 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Async Sub OnCargarProductosPlantilla(arg As Object)
 
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
         Using client As New HttpClient
-            client.BaseAddress = New Uri("http://88.26.231.83/api/")
+            client.BaseAddress = New Uri(My.Resources.servidorAPI)
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -324,6 +458,30 @@ Public Class PlantillaVentaViewModel
         End If
     End Sub
 
+    Private _cmdInsertarProducto As DelegateCommand(Of Object)
+    Public Property cmdInsertarProducto As DelegateCommand(Of Object)
+        Get
+            Return _cmdInsertarProducto
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdInsertarProducto, value)
+        End Set
+    End Property
+    Private Function CanInsertarProducto(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnInsertarProducto(arg As Object)
+        ' Solo insertamos si es un producto que no está en listaProductosOrigina
+        If IsNothing(arg) OrElse Not IsNothing(listaProductosOriginal.Where(Function(p) p.producto = arg.producto).FirstOrDefault) Then
+            'OnPropertyChanged("listaProductosPedido")' 
+            Return
+        End If
+        'arg.cantidadVendida = arg.cantidad + arg.cantidadOferta
+        listaProductosOriginal.Add(arg)
+        listaProductos = listaProductosOriginal
+        filtroProducto = ""
+    End Sub
+
 #End Region
 
 #Region "Funciones Auxiliares"
@@ -345,10 +503,6 @@ Public Class PlantillaVentaViewModel
         End While
         Return nombreAmpliado
     End Function
-
-
-
-
 
 #End Region
 

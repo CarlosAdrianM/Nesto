@@ -35,4 +35,13 @@
     Private Sub txtFiltroProducto_MouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtFiltroProducto.MouseUp
         txtFiltroProducto.SelectAll()
     End Sub
+
+    Private Sub txtFiltroCliente_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtFiltroCliente.GotFocus
+        txtFiltroCliente.SelectAll()
+    End Sub
+
+    Private Sub txtFiltroCliente_MouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtFiltroCliente.MouseUp
+        txtFiltroCliente.SelectAll()
+    End Sub
+
 End Class

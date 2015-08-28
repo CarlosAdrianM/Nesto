@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity" 
+             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
              xmlns:prism="http://www.codeplex.com/prism"
              xmlns:local="clr-namespace:Nesto.Modulos.PlantillaVenta"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
@@ -21,7 +21,7 @@
                          FinishButtonContent="Finalizar">
                 <xctk:WizardPage x:Name="SeleccionCliente" 
                                        Title="Selección del cliente"
-                                       Description="Lo primero que debemos hacer es seleccionar el cliente al que vamos a enviar el pedido"
+                                       Description="Lo primero que debemos hacer es seleccionar el cliente al que vamos a enviar el pedido. Escriba las primeras letras del nombre, dirección, teléfono o población y pulse la tecla Enter. A continuación seleccione un cliente entre los que aparezcan y se cargará su plantilla para ayudarle a realizar el pedido."
                                        CanSelectNextPage="{Binding hayUnClienteSeleccionado}">
                     
                     <Grid>
@@ -36,7 +36,7 @@
                             <Border HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
                                 <DockPanel HorizontalAlignment="Stretch">
                                     <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" FontSize="16" Text="🔎" />
-                                    <TextBox DockPanel.Dock="Left" Name="txtFiltroCliente" Text="{Binding filtroCliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxPlaceholder}" Tag="Introduce algún dato del cliente..." >
+                                    <TextBox DockPanel.Dock="Left" Name="txtFiltroCliente" Text="{Binding filtroCliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxPlaceholder}" Tag="Introduce algún dato del cliente..." PreviewMouseLeftButtonUp="txtFiltroCliente_MouseUp">
                                         <TextBox.InputBindings>
                                             <KeyBinding Command="{Binding cmdCargarClientesVendedor}" Key="Enter" />
                                         </TextBox.InputBindings>
@@ -71,9 +71,11 @@
                 </xctk:WizardPage>
                 <xctk:WizardPage x:Name="SeleccionProductos" PageType="Interior"
                                        Title="Productos que componen el pedido"
-                                       Description="Ahora es el momento de seleccionar los productos que el cliente nos ha pedido"
-                                       NextPage="{Binding ElementName=Page2}"
-                                       PreviousPage="{Binding ElementName=SeleccionCliente}">
+                                       Description="Ahora es el momento de seleccionar los productos que el cliente desea que le enviemos. Puede ir poniendo filtros para facilitar la búsqueda, y pulsando la tecla Enter se quedarán fijos (para quitarlos hay que pulsar Enter dejando el campo de filtrar en blanco). Si el producto que desea el cliente no lo ha comprado anteriormente, puede localizarlo pulsando el botón de Buscar en todos los productos y filtrando posteriormente los resultados."
+                                       NextPage="{Binding ElementName=SeleccionEntrega}"
+                                       PreviousPage="{Binding ElementName=SeleccionCliente}"
+                                       CanSelectNextPage="{Binding hayProductosEnElPedido}">
+
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
@@ -84,22 +86,22 @@
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
 
-
-
                         <StackPanel Grid.Row="0" Grid.ColumnSpan="2">
-                            <TextBox Name="txtFiltroProducto" Text="{Binding filtroProducto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxPlaceholder}" Tag="Introduce algún dato del producto..." >
+                            <TextBox Name="txtFiltroProducto" Text="{Binding filtroProducto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxPlaceholder}" Tag="Introduce algún dato del producto..." PreviewMouseLeftButtonUp="txtFiltroProducto_MouseUp">
                                 <TextBox.InputBindings>
                                     <KeyBinding Command="{Binding cmdFijarFiltroProductos}" Key="Enter" />
                                 </TextBox.InputBindings>
                             </TextBox>
+                            <Button Command="{Binding cmdBuscarEnTodosLosProductos}">Buscar en todos los productos</Button>
                         </StackPanel>
-                        <ListView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}">
+                        <ListView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Height="110" Margin="6">
+                                    <Grid Height="110" Margin="6" HorizontalAlignment="Stretch">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel Grid.Column="0" Width="110" Height="110" >
@@ -111,23 +113,100 @@
                                             <TextBlock Text="{Binding producto}" TextWrapping="NoWrap"/>
                                             <TextBlock Text="{Binding familia}" MaxHeight="60"/>
                                             <TextBlock Text="{Binding subGrupo}" MaxHeight="60"/>
-                                            <TextBlock Text="{Binding fechaUltimaVenta, StringFormat=d}" MaxHeight="60"/>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock>Vendidas: </TextBlock>
-                                                <TextBlock Text="{Binding cantidadVendida}" MaxHeight="60"/>
-                                                <TextBlock>Abonadas: </TextBlock>
-                                                <TextBlock Text="{Binding cantidadAbonada}" MaxHeight="60"/>
+                                            <TextBlock Text="{Binding textoFechaUltimaVenta}" MaxHeight="60"/>
+                                            <TextBlock Text="{Binding textoUnidadesVendidas}"/>
+                                        </StackPanel>
+
+                                        <Grid Grid.Column="2" Width="110" Height="110">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition/>
+                                                <ColumnDefinition/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Margin="3" TextWrapping="WrapWithOverflow">Cantidad Cobrada</TextBlock>
+                                                <xctk:ByteUpDown Name="ofertasUpDown" Value="{Binding cantidad}" Margin="3">
+                                                    <i:Interaction.Triggers>
+                                                        <i:EventTrigger EventName="ValueChanged">
+                                                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                                        </i:EventTrigger>
+                                                    </i:Interaction.Triggers>
+                                                </xctk:ByteUpDown>
                                             </StackPanel>
+
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
+                                                <xctk:ByteUpDown Value="{Binding cantidadOferta}" Margin="3">
+                                                    <i:Interaction.Triggers>
+                                                        <i:EventTrigger EventName="ValueChanged">
+                                                                        <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                        </i:EventTrigger>
+                                                    </i:Interaction.Triggers>
+                                                </xctk:ByteUpDown>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <DataGrid Grid.Row="1" Grid.Column="1" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Producto" Binding="{Binding producto}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="3*" IsReadOnly="False"/>
+                                <DataGridTextColumn Header="Tamaño" Binding="{Binding tamanno}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Und.M." Binding="{Binding unidadMedida}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Familia" Binding="{Binding familia}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="SubGrupo" Binding="{Binding subGrupo}" Width="2*" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="False">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="False">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </xctk:WizardPage>
+                <xctk:WizardPage x:Name="SeleccionEntrega" PageType="Interior"
+                                       Title="Dirección de Entrega del Pedido"
+                                       Description="¿Dónde quiere que le entreguemos el pedido?">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Enter">
+                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarDireccionesEntrega, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                    <DockPanel>
+                        <ListView DockPanel.Dock="Top" ItemsSource="{Binding listaDireccionesEntrega}">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Height="55" Margin="6" >
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" Width="55" Height="55" >
+                                            <Border Background="Azure" Height="55" Width="55" HorizontalAlignment="Left" Margin="0,0,10,0"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0" >
+                                            <TextBlock Text="{Binding direccion}" TextWrapping="NoWrap"/>
+                                            <TextBlock Text="{Binding textoPoblacion}" MaxHeight="60"/>
                                         </StackPanel>
                                     </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
-                    </Grid>
+                    </DockPanel>
                 </xctk:WizardPage>
-                <xctk:WizardPage x:Name="Page2" PageType="Interior"
-                                       Title="Page 2"
-                                       Description="This is the second page in the process"/>
                 <xctk:WizardPage x:Name="LastPage" PageType="Interior"
                                        Title="Last Page"
                                        Description="This is the last page in the process"
