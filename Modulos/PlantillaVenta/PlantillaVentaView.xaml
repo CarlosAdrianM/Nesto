@@ -11,6 +11,15 @@
              d:DesignHeight="300" d:DesignWidth="300">
 
 
+    <i:Interaction.Triggers>
+        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
+            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
+        </prism:InteractionRequestTrigger>
+        <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
+            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
+        </prism:InteractionRequestTrigger>
+    </i:Interaction.Triggers>
+
     <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
         <Grid>
             <xctk:Wizard Finish="Wizard_Finish" Name="WizardPlantilla" 
@@ -176,7 +185,7 @@
                         </DataGrid>
                         <StackPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
                             <TextBlock TextWrapping="Wrap">Este comentario lo verá el compañero de almacén que prepare el pedido. El cliente no ve este comentario.</TextBlock>
-                            <TextBox Text="{Binding comentarioPicking}"/>
+                            <TextBox Text="{Binding clienteSeleccionado.comentarioPicking}"/>
                         </StackPanel>
                     </Grid>
                 </xctk:WizardPage>

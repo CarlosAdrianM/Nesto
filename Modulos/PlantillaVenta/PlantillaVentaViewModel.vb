@@ -333,6 +333,12 @@ Public Class PlantillaVentaViewModel
                     End If
                 Next
                 estaOcupado = False
+            Else
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = "Se ha producido un error al cargar los productos"
+                })
+                estaOcupado = False
             End If
         End Using
     End Sub
@@ -375,6 +381,12 @@ Public Class PlantillaVentaViewModel
                 Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                 listaClientesOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson)
                 estaOcupado = False
+            Else
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = "Se ha producido un error al cargar los clientes"
+                })
+                estaOcupado = False
             End If
 
         End Using
@@ -410,6 +422,12 @@ Public Class PlantillaVentaViewModel
                 Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                 listaDireccionesEntrega = JsonConvert.DeserializeObject(Of ObservableCollection(Of DireccionesEntregaJson))(cadenaJson)
                 estaOcupado = False
+            Else
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = "Se ha producido un error al cargar las direcciones de entrega"
+                })
+                estaOcupado = False
             End If
         End Using
 
@@ -443,6 +461,12 @@ Public Class PlantillaVentaViewModel
             If response.IsSuccessStatusCode Then
                 Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                 listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+                estaOcupado = False
+            Else
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = "Se ha producido un error al cargar la plantilla"
+                })
                 estaOcupado = False
             End If
         End Using
