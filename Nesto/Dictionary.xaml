@@ -4,13 +4,6 @@
     xmlns:chart="clr-namespace:De.TorstenMandelkow.MetroChart;assembly=De.TorstenMandelkow.MetroChart" >
     <!-- for windows 8 it is different: xmlns:chart="using:De.TorstenMandelkow.MetroChart" -->
     
-    <Style x:Key="MinimalChartStyle" TargetType="chart:ChartBase">
-        <Setter Property="Width" Value="500"/>
-        <!--Setter Property="Height" Value="500"/-->
-        <!--Setter Property="MinWidth" Value="450"/-->
-        <Setter Property="MinHeight" Value="400"/>
-    </Style>
-    
     <Style x:Key="campoTexto" TargetType="TextBox">
         <Setter Property="Margin" Value="3"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>

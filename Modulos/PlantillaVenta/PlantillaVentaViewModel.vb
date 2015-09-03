@@ -87,6 +87,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _direccionEntregaSeleccionada As DireccionesEntregaJson
+    Public Property direccionEntregaSeleccionada As DireccionesEntregaJson
+        Get
+            Return _direccionEntregaSeleccionada
+        End Get
+        Set(ByVal value As DireccionesEntregaJson)
+            SetProperty(_direccionEntregaSeleccionada, value)
+        End Set
+    End Property
+
     Private _estaOcupado As Boolean = False
     Public Property estaOcupado As Boolean
         Get
@@ -176,6 +186,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of DireccionesEntregaJson))
             SetProperty(_listaDireccionesEntrega, value)
+            direccionEntregaSeleccionada = (From d In listaDireccionesEntrega Where d.esDireccionPorDefecto).SingleOrDefault
         End Set
     End Property
 
@@ -347,7 +358,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri("http://88.26.231.83/api/")
+            client.BaseAddress = New Uri(My.Resources.servidorAPI)
             Dim response As HttpResponseMessage
 
 

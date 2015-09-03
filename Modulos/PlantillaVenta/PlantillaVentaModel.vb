@@ -409,11 +409,18 @@
 
         Public ReadOnly Property colorEstado As Brush
             Get
+                If producto = "18150" Then
+                    producto = producto
+                End If
                 If cantidadAbonada >= cantidadVendida Then
                     Return Brushes.Red
                 ElseIf fechaUltimaVenta < DateAdd(DateInterval.Year, -1, Now)
                     Return Brushes.Orange
-                ElseIf fechaUltimaVenta > DateAdd(DateInterval.Month, -2, Now) AndAlso (cantidadAbonada = 0 OrElse cantidadVendida / cantidadAbonada > 10)
+                ElseIf fechaUltimaVenta < DateAdd(DateInterval.Month, -6, Now) AndAlso (cantidadAbonada = 0 OrElse cantidadVendida / cantidadAbonada > 10)
+                    Return Brushes.Yellow
+                ElseIf fechaUltimaVenta < DateAdd(DateInterval.Month, -2, Now) AndAlso (cantidadAbonada = 0 OrElse cantidadVendida / cantidadAbonada > 10)
+                    Return Brushes.YellowGreen
+                ElseIf Not IsNothing(fechaUltimaVenta) Then
                     Return Brushes.Green
                 Else
                     Return Brushes.Blue
@@ -583,6 +590,17 @@
             End Set
         End Property
         Private m_mantenerJunto As Boolean
+
+        Public Property esDireccionPorDefecto() As Boolean
+            Get
+                Return m_esDireccionPorDefecto
+            End Get
+            Set
+                m_esDireccionPorDefecto = Value
+            End Set
+        End Property
+        Private m_esDireccionPorDefecto As Boolean
+
 
         Public ReadOnly Property textoPoblacion As String
             Get

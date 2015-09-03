@@ -79,7 +79,8 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
-                            <RowDefinition Height="8*"/>
+                            <RowDefinition Height="7*"/>
+                            <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -94,7 +95,7 @@
                             </TextBox>
                             <Button Command="{Binding cmdBuscarEnTodosLosProductos}">Buscar en todos los productos</Button>
                         </StackPanel>
-                        <ListView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Height="110" Margin="6" HorizontalAlignment="Stretch">
@@ -173,6 +174,10 @@
                                 </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
+                        <StackPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
+                            <TextBlock TextWrapping="Wrap">Este comentario lo verá el compañero de almacén que prepare el pedido. El cliente no ve este comentario.</TextBlock>
+                            <TextBox Text="{Binding comentarioPicking}"/>
+                        </StackPanel>
                     </Grid>
                 </xctk:WizardPage>
                 <xctk:WizardPage x:Name="SeleccionEntrega" PageType="Interior"
@@ -183,8 +188,13 @@
                             <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarDireccionesEntrega, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
-                    <DockPanel>
-                        <ListView DockPanel.Dock="Top" ItemsSource="{Binding listaDireccionesEntrega}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+
+                        <ListView Grid.Column="0" ItemsSource="{Binding listaDireccionesEntrega}" SelectedItem="{Binding direccionEntregaSeleccionada}">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Height="55" Margin="6" >
@@ -194,7 +204,7 @@
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel Grid.Column="0" Width="55" Height="55" >
-                                            <Border Background="Azure" Height="55" Width="55" HorizontalAlignment="Left" Margin="0,0,10,0"/>
+                                            <Image Source="pack://application:,,,/PlantillaVenta;component/Images/Direccion.jpg"/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0" >
@@ -205,7 +215,11 @@
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
-                    </DockPanel>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock TextWrapping="Wrap" Margin="3,0">Este comentario lo leerá la agencia y también el cliente, porque aparecerá en la factura:</TextBlock>
+                            <TextBox TextWrapping="Wrap" Text="{Binding direccionEntregaSeleccionada.comentarioRuta}" Margin="3,0"/>
+                        </StackPanel>
+                    </Grid>
                 </xctk:WizardPage>
                 <xctk:WizardPage x:Name="LastPage" PageType="Interior"
                                        Title="Last Page"

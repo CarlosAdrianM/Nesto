@@ -1,14 +1,10 @@
-﻿'Imports System.Windows
-Imports Microsoft.Practices.Prism.Modularity
+﻿Imports Microsoft.Practices.Prism.Modularity
 Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.UnityExtensions
 Imports Microsoft.Practices.Prism.Regions
-'Imports Prism.RibbonRegionAdapter.RibbonRegionAdapter
 Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
 Imports Nesto.Modulos.PlantillaVenta
-'Imports System.Windows.Controls.Primitives
-'Imports Nesto.Modulos.PlantillaVenta
 
 
 
@@ -54,13 +50,11 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(IMainWindow), GetType(MainWindow), True)
         RegisterTypeIfMissing(GetType(IMenuBar), GetType(MenuBarView), True)
         RegisterTypeIfMissing(GetType(IPlantillaVenta), GetType(PlantillaVenta), False)
-        'Me.Container.RegisterType(GetType(MainWindow), GetType(MainWindow), "MainWindow")
-        'Me.Container.RegisterType(Of Object, MenuBarView)("MenuBarView", New TransientLifetimeManager())
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings
         Dim mappings As RegionAdapterMappings = MyBase.ConfigureRegionAdapterMappings()
-        mappings.RegisterMapping(GetType(Ribbon), Me.Container.Resolve(Of Prism.RibbonRegionAdapter.RibbonRegionAdapter)())
+        mappings.RegisterMapping(GetType(RibbonRegionAdapter), Me.Container.Resolve(Of Prism.RibbonRegionAdapter.RibbonRegionAdapter)())
         Return mappings
     End Function
 

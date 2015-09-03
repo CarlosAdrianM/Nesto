@@ -15,7 +15,7 @@
             <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
         <DockPanel Grid.Column="1">
-            <chart:RadialGaugeChart  
+            <chart:RadialGaugeChart
                 DockPanel.Dock="Top"
                 ChartTitle="Porcentaje Realizado"
                 ChartSubTitle="Ventas Realizadas sobre Importe Comprometido"
@@ -34,14 +34,16 @@
         ChartTitle="Evolución del Plan de Ventajas"
         ChartSubTitle="Y estimación de ventas"
         SelectedItem="{Binding Path=itemSeleccionado, Mode=TwoWay}" >
-            <chart:ClusteredColumnChart.Series>
-                <chart:ChartSeries
+                <chart:ClusteredColumnChart.Series>
+                    <chart:ChartSeries
                 SeriesTitle="Ventas"
                 DisplayMember="clave"
                 ValueMember="valor"
                 ItemsSource="{Binding Path=barrasGrafico}" />
-            </chart:ClusteredColumnChart.Series>
-        </chart:ClusteredColumnChart>
+                </chart:ClusteredColumnChart.Series>
+            </chart:ClusteredColumnChart>
+
+
         </DockPanel>
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
