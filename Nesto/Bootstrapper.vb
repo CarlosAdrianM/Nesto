@@ -39,7 +39,9 @@ Public Class Bootstrapper
         moduleCatalog.AddModule(GetType(IMenuBar)) ', InitializationMode.WhenAvailable
 
         ' Plantilla de Ventas - 17/07/15
-        moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
+        If (System.Environment.UserName = "Alfredo") OrElse (System.Environment.UserName = "Carlos") OrElse (System.Environment.UserName = "Manuel") Then
+            moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
+        End If
 
 
     End Sub

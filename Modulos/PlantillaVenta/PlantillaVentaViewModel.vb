@@ -7,6 +7,7 @@ Imports System.Net.Http
 Imports System.Collections.ObjectModel
 Imports Newtonsoft.Json
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
+Imports System.Text
 
 Public Class PlantillaVentaViewModel
     Inherits BindableBase
@@ -25,6 +26,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarClientesVendedor = New DelegateCommand(Of Object)(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
         cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
+        cmdCrearPedido = New DelegateCommand(Of Object)(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
 
@@ -318,28 +320,37 @@ Public Class PlantillaVentaViewModel
             Dim response As HttpResponseMessage
 
             estaOcupado = True
-            response = Await client.GetAsync("PlantillaVentas/BuscarProducto?empresa=" + clienteSeleccionado.empresa + "&filtroProducto=" + filtroProducto)
 
-            If response.IsSuccessStatusCode Then
-                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                listaProductosFijada = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
-                Dim productoOriginal As LineaPlantillaJson
-                Dim producto As LineaPlantillaJson
-                For i = 0 To listaProductosFijada.Count - 1
-                    producto = listaProductosFijada(i)
-                    productoOriginal = listaProductosOriginal.Where(Function(p) p.producto = producto.producto).FirstOrDefault
-                    If Not IsNothing(productoOriginal) Then
-                        listaProductosFijada(i) = productoOriginal
-                    End If
-                Next
-                estaOcupado = False
-            Else
+            Try
+                response = Await client.GetAsync("PlantillaVentas/BuscarProducto?empresa=" + clienteSeleccionado.empresa + "&filtroProducto=" + filtroProducto)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaProductosFijada = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+                    Dim productoOriginal As LineaPlantillaJson
+                    Dim producto As LineaPlantillaJson
+                    For i = 0 To listaProductosFijada.Count - 1
+                        producto = listaProductosFijada(i)
+                        productoOriginal = listaProductosOriginal.Where(Function(p) p.producto = producto.producto).FirstOrDefault
+                        If Not IsNothing(productoOriginal) Then
+                            listaProductosFijada(i) = productoOriginal
+                        End If
+                    Next
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar los productos"
+                    })
+                End If
+            Catch ex As Exception
                 NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
-                    .Content = "Se ha producido un error al cargar los productos"
+                    .Content = ex.Message
                 })
+            Finally
                 estaOcupado = False
-            End If
+            End Try
+
         End Using
     End Sub
 
@@ -368,27 +379,32 @@ Public Class PlantillaVentaViewModel
             Dim response As HttpResponseMessage
 
 
+            Try
+                estaOcupado = True
+                If todosLosVendedores Then
+                    response = Await client.GetAsync("Clientes?empresa=1&filtro=" + filtroCliente)
+                Else
+                    response = Await client.GetAsync("Clientes?empresa=1&vendedor=" + vendedor + "&filtro=" + filtroCliente)
+                End If
 
-            estaOcupado = True
-            If todosLosVendedores Then
-                response = Await client.GetAsync("Clientes?empresa=1&filtro=" + filtroCliente)
-            Else
-                response = Await client.GetAsync("Clientes?empresa=1&vendedor=" + vendedor + "&filtro=" + filtroCliente)
-            End If
 
-
-            If response.IsSuccessStatusCode Then
-                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                listaClientesOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson)
-                estaOcupado = False
-            Else
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaClientesOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson)
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar los clientes"
+                    })
+                End If
+            Catch ex As Exception
                 NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
-                    .Content = "Se ha producido un error al cargar los clientes"
+                    .Content = ex.Message
                 })
+            Finally
                 estaOcupado = False
-            End If
-
+            End Try
         End Using
 
     End Sub
@@ -416,19 +432,28 @@ Public Class PlantillaVentaViewModel
             Dim response As HttpResponseMessage
 
             estaOcupado = True
-            response = Await client.GetAsync("PlantillaVentas/DireccionesEntrega?empresa=" + clienteSeleccionado.empresa + "&clienteDirecciones=" + clienteSeleccionado.cliente)
 
-            If response.IsSuccessStatusCode Then
-                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                listaDireccionesEntrega = JsonConvert.DeserializeObject(Of ObservableCollection(Of DireccionesEntregaJson))(cadenaJson)
-                estaOcupado = False
-            Else
+            Try
+                response = Await client.GetAsync("PlantillaVentas/DireccionesEntrega?empresa=" + clienteSeleccionado.empresa + "&clienteDirecciones=" + clienteSeleccionado.cliente)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaDireccionesEntrega = JsonConvert.DeserializeObject(Of ObservableCollection(Of DireccionesEntregaJson))(cadenaJson)
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar las direcciones de entrega"
+                    })
+                End If
+            Catch ex As Exception
                 NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
-                    .Content = "Se ha producido un error al cargar las direcciones de entrega"
+                    .Content = ex.Message
                 })
+            Finally
                 estaOcupado = False
-            End If
+            End Try
+
         End Using
 
     End Sub
@@ -456,19 +481,137 @@ Public Class PlantillaVentaViewModel
             Dim response As HttpResponseMessage
 
             estaOcupado = True
-            response = Await client.GetAsync("PlantillaVentas?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
 
-            If response.IsSuccessStatusCode Then
-                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+            Try
+                response = Await client.GetAsync("PlantillaVentas?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar la plantilla"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = ex.Message
+                    })
+            Finally
                 estaOcupado = False
-            Else
+            End Try
+
+        End Using
+
+    End Sub
+
+    Private _cmdCrearPedido As DelegateCommand(Of Object)
+    Public Property cmdCrearPedido As DelegateCommand(Of Object)
+        Get
+            Return _cmdCrearPedido
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCrearPedido, value)
+        End Set
+    End Property
+    Private Function CanCrearPedido(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCrearPedido(arg As Object)
+
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            estaOcupado = True
+
+            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Dim pedido As New PedidoVentaDTO With {
+                .empresa = clienteSeleccionado.empresa,
+                .cliente = clienteSeleccionado.cliente,
+                .contacto = direccionEntregaSeleccionada.contacto,
+                .fecha = Today,
+                .formaPago = "EFC", 'calcular
+                .plazosPago = "CONTADO", 'calcular
+                .primerVencimiento = Today, 'calcular
+                .iva = clienteSeleccionado.iva,
+                .vendedor = "NV", 'ojo, que tiene que ser de direccionSeleccionada
+                .periodoFacturacion = "NRM", 'ojo, de direccionSeleccionada
+                .ruta = "00", ' ojo, de direccionSeleccionada
+                .serie = "NV", 'calcular
+                .ccc = clienteSeleccionado.ccc, 'ojo, de direccion seleccionada
+                .origen = clienteSeleccionado.empresa,
+                .contactoCobro = clienteSeleccionado.contacto, 'calcular
+                .noComisiona = 0, 'calcular
+                .mantenerJunto = 1,
+                .servirJunto = 1
+            }
+
+            Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
+
+            For Each linea In listaProductosPedido
+                lineaPedido = New LineaPedidoVentaDTO With {
+                    .estado = 1, 'ojo, de parámetro. ¿Pongo 0 para tener que validar?
+                    .tipoLinea = 1, ' Producto
+                    .producto = linea.producto,
+                    .texto = linea.texto,
+                    .cantidad = linea.cantidad,
+                    .fechaEntrega = Today,
+                    .precio = 0, 'calcular
+                    .descuento = 0, 'habrá que implementarlo si permitimos meter un descuento directamente
+                    .aplicarDescuento = 1, 'habrá que implementarlo si permitimos meter un descuento directamente
+                    .vistoBueno = 0, 'calcular
+                    .usuario = "NUEVAVISION\Carlos", 'calcular
+                    .almacen = "ALG", 'calcular
+                    .iva = "G21", 'calcular
+                    .delegacion = "ALG", 'calcular
+                    .formaVenta = "VAR"
+                }
+                pedido.LineasPedido.Add(lineaPedido)
+
+                If linea.cantidadOferta <> 0 Then
+                    lineaPedidoOferta = lineaPedido.ShallowCopy
+                    lineaPedidoOferta.cantidad = linea.cantidadOferta
+                    lineaPedidoOferta.precio = 0
+                    pedido.LineasPedido.Add(lineaPedidoOferta)
+                End If
+
+            Next
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+
+            Try
+
+                response = Await client.PostAsync("PedidosVenta", content)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Plantilla",
+                        .Content = "Pedido creado correctamente"
+                    })
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = "Se ha producido un error al crear el pedido desde la plantilla"
+                })
+                End If
+            Catch ex As Exception
                 NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
-                    .Content = "Se ha producido un error al cargar la plantilla"
+                    .Content = ex.Message
                 })
+            Finally
                 estaOcupado = False
-            End If
+            End Try
+
         End Using
 
     End Sub

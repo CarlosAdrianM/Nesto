@@ -119,7 +119,7 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0">
-                                            <TextBlock Text="{Binding texto}" FontWeight="Bold" TextWrapping="NoWrap"/>
+                                            <TextBlock Text="{Binding textoNombreProducto}" FontWeight="Bold" TextWrapping="NoWrap"/>
                                             <TextBlock Text="{Binding producto}" TextWrapping="NoWrap"/>
                                             <TextBlock Text="{Binding familia}" MaxHeight="60"/>
                                             <TextBlock Text="{Binding subGrupo}" MaxHeight="60"/>
@@ -230,10 +230,14 @@
                         </StackPanel>
                     </Grid>
                 </xctk:WizardPage>
-                <xctk:WizardPage x:Name="LastPage" PageType="Interior"
-                                       Title="Last Page"
-                                       Description="This is the last page in the process"
-                                       CanFinish="True"/>
+                <xctk:WizardPage x:Name="Finalizar" PageType="Interior"
+                                       Title="Finalizar"
+                                       Description="Aquí se crearía el pedido. Es la parte que está sin hacer aún"
+                                       CanFinish="True">
+                    <StackPanel>
+                        <Button Command="{Binding cmdCrearPedido}" HorizontalAlignment="Center" VerticalAlignment="Center">Crear Pedido</Button>
+                    </StackPanel>
+                </xctk:WizardPage>
             </xctk:Wizard>
         </Grid>
     </xctk:BusyIndicator>

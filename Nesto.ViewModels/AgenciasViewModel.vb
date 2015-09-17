@@ -859,7 +859,12 @@ Public Class AgenciasViewModel
     Public ReadOnly Property sumaContabilidad As Double
         Get
             If Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Empresa = empresaSeleccionada.Número Then
-                Return Aggregate c In DbContext.Contabilidad Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cuenta = agenciaSeleccionada.CuentaReembolsos Into Sum(c.Debe - c.Haber)
+                Dim suma As Nullable(Of Double) = (Aggregate c In DbContext.Contabilidad Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cuenta = agenciaSeleccionada.CuentaReembolsos Into Sum(CType(c.Debe, Double?) - CType(c.Haber, Double?)))
+                If IsNothing(suma) Then
+                    Return 0
+                Else
+                    Return CType(suma, Double)
+                End If
             Else
                 Return 0
             End If
@@ -1313,7 +1318,7 @@ Public Class AgenciasViewModel
                         .FormaVenta = "VAR" _
                     })
                 Next
-                DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
+                DbContext.PreContabilidad.AddObject(New PreContabilidad With {
                         .Empresa = empresaSeleccionada.Número,
                         .Diario = "_PagoReemb",
                         .Asiento = 1,
@@ -1327,8 +1332,8 @@ Public Class AgenciasViewModel
                         .Nº_Documento = agenciaSeleccionada.Nombre,
                         .Delegación = "ALG",
                         .FormaVenta = "VAR",
-                        .FormaPago = "CHQ",
-                        .Vendedor = "NV" _
+                        .FormaPago = "TRN",
+                        .Vendedor = "NV"
                     })
                 'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                 DbContext.SaveChanges()
@@ -1693,7 +1698,7 @@ Public Class AgenciasViewModel
                     textoConfirmar +
                     " puede actualizar los datos." + vbCrLf +
                     "En caso contrario, pulse Cancelar, modifique el nº de bultos y vuelva a intentarlo." + vbCrLf + vbCrLf +
-                    "¿Desea actualizar los datos?", _
+                    "¿Desea actualizar los datos?",
                     .Title = "Ampliación"
                 },
                 Sub(c)
@@ -1708,8 +1713,14 @@ Public Class AgenciasViewModel
         Else
             imprimirEtiqueta = True
         End If
+
+        ' Carlos 16/09/15: hacemos que se pueda cobrar en efectivo por la agencia
+        If reembolso > 0 AndAlso IsNothing(pedidoSeleccionado.IVA) AndAlso agenciaSeleccionada.Empresa <> EMPRESA_ESPEJO Then
+            agenciaSeleccionada = listaAgencias.SingleOrDefault(Function(a) a.Empresa = EMPRESA_ESPEJO AndAlso a.CuentaReembolsos = agenciaSeleccionada.CuentaReembolsos AndAlso a.Nombre = agenciaSeleccionada.Nombre)
+        End If
+
         With envioActual
-            .Empresa = pedidoSeleccionado.Empresa
+            .Empresa = agenciaSeleccionada.Empresa
             .Agencia = agenciaSeleccionada.Numero
             .Cliente = pedidoSeleccionado.Nº_Cliente
             .Contacto = pedidoSeleccionado.Contacto
@@ -1876,12 +1887,24 @@ Public Class AgenciasViewModel
             Return
         End If
 
-        Dim agenciaNueva As AgenciasTransporte = (From a In DbContext.AgenciasTransporte Where a.Empresa = pedidoSeleccionado.Empresa And a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
+        Dim agenciaNueva As AgenciasTransporte
+
+        ' Carlos 16/09/15. Ponemos cobros de agencia en efectivo.
+        If IsNothing(pedidoSeleccionado.IVA) AndAlso importeReembolso() > 0 Then
+            agenciaNueva = DbContext.AgenciasTransporte.SingleOrDefault(Function(a) a.Empresa = EMPRESA_ESPEJO AndAlso a.Ruta = pedidoSeleccionado.Ruta)
+        Else
+            agenciaNueva = (From a In DbContext.AgenciasTransporte Where a.Empresa = pedidoSeleccionado.Empresa And a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
+        End If
 
         'Carlos 20/03/15. Hay que cambiar esto, que es una chapuza, pero lo pongo para que funcione hoy al menos
         Dim dobleCiclo As Boolean = False
         If IsNothing(agenciaNueva) AndAlso Not IsNothing(pedidoSeleccionado.Ruta) AndAlso pedidoSeleccionado.Ruta.Trim = "OT" Then
-            agenciaNueva = (From a In DbContext.AgenciasTransporte Where a.Empresa = pedidoSeleccionado.Empresa And a.Nombre = "OnTime").FirstOrDefault
+            If IsNothing(pedidoSeleccionado.IVA) AndAlso importeReembolso() > 0 Then
+                agenciaNueva = (From a In DbContext.AgenciasTransporte Where a.Empresa = EMPRESA_ESPEJO And a.Nombre = "OnTime").SingleOrDefault
+            Else
+                agenciaNueva = (From a In DbContext.AgenciasTransporte Where a.Empresa = pedidoSeleccionado.Empresa And a.Nombre = "OnTime").SingleOrDefault
+            End If
+
             dobleCiclo = True
         End If
 

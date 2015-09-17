@@ -453,6 +453,20 @@
                 End If
             End Get
         End Property
+
+        Public ReadOnly Property textoNombreProducto As String
+            Get
+                Dim textoCompleto As String = texto
+                If tamanno <> 0 Then
+                    textoCompleto = textoCompleto.Trim + " " + CType(tamanno, String)
+                End If
+                If unidadMedida <> "" Then
+                    textoCompleto = textoCompleto.Trim + " " + unidadMedida
+                End If
+                Return textoCompleto
+            End Get
+        End Property
+
     End Class
     Public Class DireccionesEntregaJson
         Public Property contacto() As String
@@ -607,5 +621,230 @@
                 Return String.Format("{0} {1} ({2})", codigoPostal, poblacion, provincia)
             End Get
         End Property
+    End Class
+    Public Class LineaPedidoVentaDTO
+        Public Property almacen() As String
+
+        Public Property aplicarDescuento() As Boolean
+
+        Public Property cantidad() As Short
+
+        ' era Nullable<short> 
+        Public Property delegacion() As String
+
+        Public Property descuento() As Decimal
+
+        Public Property estado() As Short
+
+        Public Property fechaEntrega() As System.DateTime
+
+        Public Property formaVenta() As String
+
+        Public Property iva() As String
+
+        Public Property precio() As Decimal
+
+        ' era Nullable<decimal> 
+        Public Property producto() As String
+
+        Public Property texto() As String
+
+        Public Property tipoLinea() As Nullable(Of Byte)
+
+        Public Property usuario() As String
+
+        Public Property vistoBueno() As Boolean
+
+        Public Function ShallowCopy() As LineaPedidoVentaDTO
+            Return DirectCast(Me.MemberwiseClone(), LineaPedidoVentaDTO)
+        End Function
+    End Class
+
+    Public Class PedidoVentaDTO
+        Public Sub New()
+            Me.LineasPedido = New HashSet(Of LineaPedidoVentaDTO)()
+        End Sub
+
+        Public Property empresa() As String
+            Get
+                Return m_empresa
+            End Get
+            Set
+                m_empresa = Value
+            End Set
+        End Property
+        Private m_empresa As String
+        Public Property numero() As Integer
+            Get
+                Return m_numero
+            End Get
+            Set
+                m_numero = Value
+            End Set
+        End Property
+        Private m_numero As Integer
+        Public Property cliente() As String
+            Get
+                Return m_cliente
+            End Get
+            Set
+                m_cliente = Value
+            End Set
+        End Property
+        Private m_cliente As String
+        Public Property contacto() As String
+            Get
+                Return m_contacto
+            End Get
+            Set
+                m_contacto = Value
+            End Set
+        End Property
+        Private m_contacto As String
+        Public Property fecha() As Nullable(Of System.DateTime)
+            Get
+                Return m_fecha
+            End Get
+            Set
+                m_fecha = Value
+            End Set
+        End Property
+        Private m_fecha As Nullable(Of System.DateTime)
+        Public Property formaPago() As String
+            Get
+                Return m_formaPago
+            End Get
+            Set
+                m_formaPago = Value
+            End Set
+        End Property
+        Private m_formaPago As String
+        Public Property plazosPago() As String
+            Get
+                Return m_plazosPago
+            End Get
+            Set
+                m_plazosPago = Value
+            End Set
+        End Property
+        Private m_plazosPago As String
+        Public Property primerVencimiento() As Nullable(Of System.DateTime)
+            Get
+                Return m_primerVencimiento
+            End Get
+            Set
+                m_primerVencimiento = Value
+            End Set
+        End Property
+        Private m_primerVencimiento As Nullable(Of System.DateTime)
+        Public Property iva() As String
+            Get
+                Return m_iva
+            End Get
+            Set
+                m_iva = Value
+            End Set
+        End Property
+        Private m_iva As String
+        Public Property vendedor() As String
+            Get
+                Return m_vendedor
+            End Get
+            Set
+                m_vendedor = Value
+            End Set
+        End Property
+        Private m_vendedor As String
+        Public Property comentarios() As String
+            Get
+                Return m_comentarios
+            End Get
+            Set
+                m_comentarios = Value
+            End Set
+        End Property
+        Private m_comentarios As String
+        Public Property comentarioPicking() As String
+            Get
+                Return m_comentarioPicking
+            End Get
+            Set
+                m_comentarioPicking = Value
+            End Set
+        End Property
+        Private m_comentarioPicking As String
+        Public Property periodoFacturacion() As String
+            Get
+                Return m_periodoFacturacion
+            End Get
+            Set
+                m_periodoFacturacion = Value
+            End Set
+        End Property
+        Private m_periodoFacturacion As String
+        Public Property ruta() As String
+            Get
+                Return m_ruta
+            End Get
+            Set
+                m_ruta = Value
+            End Set
+        End Property
+        Private m_ruta As String
+        Public Property serie() As String
+            Get
+                Return m_serie
+            End Get
+            Set
+                m_serie = Value
+            End Set
+        End Property
+        Private m_serie As String
+        Public Property ccc() As String
+            Get
+                Return m_ccc
+            End Get
+            Set
+                m_ccc = Value
+            End Set
+        End Property
+        Private m_ccc As String
+        Public Property origen() As String
+            Get
+                Return m_origen
+            End Get
+            Set
+                m_origen = Value
+            End Set
+        End Property
+        Private m_origen As String
+        Public Property contactoCobro() As String
+            Get
+                Return m_contactoCobro
+            End Get
+            Set
+                m_contactoCobro = Value
+            End Set
+        End Property
+        Private m_contactoCobro As String
+        Public Property noComisiona() As Decimal
+            Get
+                Return m_noComisiona
+            End Get
+            Set
+                m_noComisiona = Value
+            End Set
+        End Property
+        Private m_noComisiona As Decimal
+        Public Property vistoBuenoPlazosPago() As Boolean
+
+        Public Property mantenerJunto() As Boolean
+
+        Public Property servirJunto() As Boolean
+
+        Public Property usuario() As String
+
+        Public Overridable Property LineasPedido() As ICollection(Of LineaPedidoVentaDTO)
+
     End Class
 End Class
