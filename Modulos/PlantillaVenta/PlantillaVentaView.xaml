@@ -70,6 +70,7 @@
                                             <TextBlock Text="{Binding nombre}" FontWeight="Bold" TextWrapping="NoWrap"/>
                                             <TextBlock Text="{Binding direccion}" TextWrapping="NoWrap"/>
                                             <TextBlock Text="{Binding poblacion}" MaxHeight="60"/>
+                                            <TextBlock Text="{Binding cliente}" FontStyle="Italic"/>
                                             <TextBlock Text="{Binding comentarios}" MaxHeight="60"/>
                                         </StackPanel>
                                     </Grid>

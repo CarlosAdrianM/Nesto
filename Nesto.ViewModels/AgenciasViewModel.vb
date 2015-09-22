@@ -641,6 +641,10 @@ Public Class AgenciasViewModel
                 End If
             Else ' si no es numérico (es una factura, lo tratamos como un cobro)
                 pedidoSeleccionado = (From c In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
+                ' Carlos 22/09/15: para que permita meter los que solo llevan contra reembolso
+                'If IsNothing(agenciaEspecifica) AndAlso IsNothing(empresaSeleccionada) Then
+                '    agenciaSeleccionada = DbContext.AgenciasTransporte.OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Empresa = pedidoSeleccionado.Empresa)
+                'End If
                 If Not IsNothing(pedidoSeleccionado) Then
                     retornoActual = (From s In listaTiposRetorno Where s.id = agenciaEspecifica.retornoSoloCobros).FirstOrDefault
                     servicioActual = (From s In listaServicios Where s.id = agenciaEspecifica.servicioSoloCobros).FirstOrDefault
@@ -1132,6 +1136,7 @@ Public Class AgenciasViewModel
         DbContext.EnviosAgencia.DeleteObject(envioActual)
         listaEnvios.Remove(envioActual)
         envioActual = listaEnvios.LastOrDefault
+        OnPropertyChanged("listaEnvios")
     End Sub
 
     Private _cmdInsertar As ICommand
@@ -1743,7 +1748,7 @@ Public Class AgenciasViewModel
             .Atencion = attEnvio
             .Reembolso = reembolso
             '.CodigoBarras = calcularCodigoBarras()
-            .Vendedor = pedidoSeleccionado.Vendedor
+            .Vendedor = If(pedidoSeleccionado.Vendedor.Trim <> "", pedidoSeleccionado.Vendedor, "NV")
             agenciaEspecifica.calcularPlaza(codPostalEnvio, .Nemonico, .NombrePlaza, .TelefonoPlaza, .EmailPlaza)
         End With
 
@@ -1906,6 +1911,11 @@ Public Class AgenciasViewModel
             End If
 
             dobleCiclo = True
+        End If
+
+        ' Carlos 22/09/15. Para que se puedan meter reembolsos
+        If IsNothing(agenciaNueva) Then
+            agenciaNueva = DbContext.AgenciasTransporte.OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Empresa = pedidoSeleccionado.Empresa)
         End If
 
         If Not IsNothing(agenciaNueva) AndAlso (IsNothing(agenciaConfigurar) OrElse (agenciaConfigurar.Numero <> agenciaNueva.Numero Or agenciaConfigurar.Empresa <> agenciaNueva.Empresa)) Then
@@ -2375,6 +2385,8 @@ End Interface
 Public Class AgenciaASM
     Implements IAgencia
 
+    Private Const EMPRESA_ESPEJO As String = "3  "
+
     ' Propiedades de Prism
     Private _NotificationRequest As InteractionRequest(Of INotification)
     Public Property NotificationRequest As InteractionRequest(Of INotification)
@@ -2595,15 +2607,15 @@ Public Class AgenciaASM
                     <Pod>N</Pod>
                     <Remite>
                         <Plaza></Plaza>
-                        <Nombre><%= agenciaVM.envioActual.Empresas.Nombre.Trim %></Nombre>
-                        <Direccion><%= agenciaVM.envioActual.Empresas.Dirección.Trim %></Direccion>
-                        <Poblacion><%= agenciaVM.envioActual.Empresas.Población.Trim %></Poblacion>
-                        <Provincia><%= agenciaVM.envioActual.Empresas.Provincia.Trim %></Provincia>
+                        <Nombre><%= If(agenciaVM.envioActual.Empresas.Número = EMPRESA_ESPEJO, "Nueva Visión", agenciaVM.envioActual.Empresas.Nombre.Trim) %></Nombre>
+                        <Direccion><%= If(agenciaVM.envioActual.Empresas.Número = EMPRESA_ESPEJO, "c/ Río Tiétar, 11", agenciaVM.envioActual.Empresas.Dirección.Trim) %></Direccion>
+                        <Poblacion><%= If(agenciaVM.envioActual.Empresas.Número = EMPRESA_ESPEJO, "Algete", agenciaVM.envioActual.Empresas.Población.Trim) %></Poblacion>
+                        <Provincia><%= If(agenciaVM.envioActual.Empresas.Número = EMPRESA_ESPEJO, "Madrid", agenciaVM.envioActual.Empresas.Provincia.Trim) %></Provincia>
                         <Pais>34</Pais>
-                        <CP><%= agenciaVM.envioActual.Empresas.CodPostal.Trim %></CP>
-                        <Telefono><%= agenciaVM.envioActual.Empresas.Teléfono.Trim %></Telefono>
+                        <CP><%= If(agenciaVM.envioActual.Empresas.Número = EMPRESA_ESPEJO, "28110", agenciaVM.envioActual.Empresas.CodPostal.Trim) %></CP>
+                        <Telefono><%= If(agenciaVM.envioActual.Empresas.Número = EMPRESA_ESPEJO, "916281914", agenciaVM.envioActual.Empresas.Teléfono.Trim) %></Telefono>
                         <Movil></Movil>
-                        <Email><%= agenciaVM.envioActual.Empresas.Email.Trim %></Email>
+                        <Email><%= If(agenciaVM.envioActual.Empresas.Número = EMPRESA_ESPEJO, "logistica@nuevavision.es", agenciaVM.envioActual.Empresas.Email.Trim) %></Email>
                         <Observaciones></Observaciones>
                     </Remite>
                     <Destinatario>
