@@ -369,7 +369,7 @@ Public Class PlantillaVentaViewModel
     Private Async Sub OnCargarClientesVendedor(arg As Object)
 
         ' No se puede filtrar por menos de 4 caracteres
-        If IsNothing(filtroCliente) OrElse filtroCliente.Length < 4 Then
+        If IsNothing(filtroCliente) OrElse (filtroCliente.Length < 4 AndAlso Not IsNumeric(filtroCliente)) Then
             listaClientes = Nothing
             Return
         End If
@@ -591,8 +591,8 @@ Public Class PlantillaVentaViewModel
                 response = Await client.PostAsync("PedidosVenta", content)
 
                 If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+                    'Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    'listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Plantilla",
                         .Content = "Pedido creado correctamente"

@@ -237,6 +237,7 @@ Public Class MenuBarView
 
 
 
+        rptPremio.PrintOptions.PaperOrientation = PaperOrientation.Landscape
 
         vista.crvInforme.ViewerCore.ReportSource = rptPremio
 
