@@ -640,7 +640,7 @@ Public Class AgenciasViewModel
                     pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico).FirstOrDefault
                 End If
             Else ' si no es numérico (es una factura, lo tratamos como un cobro)
-                pedidoSeleccionado = (From c In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
+                pedidoSeleccionado = calcularPedidoTexto(numeroPedido)
                 ' Carlos 22/09/15: para que permita meter los que solo llevan contra reembolso
                 'If IsNothing(agenciaEspecifica) AndAlso IsNothing(empresaSeleccionada) Then
                 '    agenciaSeleccionada = DbContext.AgenciasTransporte.OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Empresa = pedidoSeleccionado.Empresa)
@@ -667,6 +667,21 @@ Public Class AgenciasViewModel
             OnPropertyChanged("agenciaSeleccionada")
         End Set
     End Property
+
+    Private Function calcularPedidoTexto(numeroPedido As String) As CabPedidoVta
+        Dim pedidoEncontrado As CabPedidoVta = (From c In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
+        If Not IsNothing(pedidoEncontrado) Then
+            Return pedidoEncontrado
+        End If
+
+        Dim clienteEncontrado = (From c In DbContext.Clientes Where c.Empresa = empresaSeleccionada.Número AndAlso (c.Nombre.Contains(numeroPedido) OrElse c.Dirección.Contains(numeroPedido) OrElse c.Teléfono.Contains(numeroPedido))).FirstOrDefault
+        If IsNothing(clienteEncontrado) Then
+            Return Nothing
+        End If
+
+        pedidoEncontrado = clienteEncontrado.CabPedidoVta.OrderByDescending(Function(c) c.Número).FirstOrDefault
+        Return pedidoEncontrado
+    End Function
 
     Private _numeroMultiusuario As Integer
     Public Property numeroMultiusuario As Integer
@@ -1047,6 +1062,7 @@ Public Class AgenciasViewModel
             Throw New Exception("No se puede tramitar un pedido ya tramitado")
         End If
         agenciaEspecifica.llamadaWebService(DbContext)
+        OnPropertyChanged("listaReembolsos")
         'mensajeError = "Pedido " + envioActual.Pedido.ToString.Trim + " tramitado correctamente"
     End Sub
 
@@ -2657,26 +2673,17 @@ Public Class AgenciaASM
     End Function
     Public Sub llamadaWebService(DbContext As NestoEntities) Implements IAgencia.llamadaWebService
         agenciaVM.XMLdeSalida = construirXMLdeSalida()
-        'If IsNothing(envioActual.Agencia) Then
-        '    resultadoWebservice = "No se pudo llamar al webservice (no hay ninguna agencia seleccionada)."
-        'Else
-        '    resultadoWebservice = "0"
-        'End If
-
-        'If resultadoWebservice <> "0" Then
-        '    Return
-        'End If
 
         'Comenzamos la llamada
-        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
-             "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " & _
-              "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " & _
-              "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" & _
-              "<soap:Body>" & _
-                    "<GrabaServicios xmlns=""http://www.asmred.com/"">" & _
-                        "<docIn>" & agenciaVM.XMLdeSalida.ToString & "</docIn>" & _
-                    "</GrabaServicios>" & _
-                "</soap:Body>" & _
+        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" &
+             "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " &
+              "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " &
+              "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" &
+              "<soap:Body>" &
+                    "<GrabaServicios xmlns=""http://www.asmred.com/"">" &
+                        "<docIn>" & agenciaVM.XMLdeSalida.ToString & "</docIn>" &
+                    "</GrabaServicios>" &
+                "</soap:Body>" &
              "</soap:Envelope>"
 
         Dim req As HttpWebRequest = WebRequest.Create("http://www.asmred.com/WebSrvs/b2b.asmx?op=GrabaServicios")

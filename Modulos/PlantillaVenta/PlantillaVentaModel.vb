@@ -407,11 +407,12 @@
         End Property
         Private m_fechaUltimaVenta As System.Nullable(Of DateTime)
 
+        Public Property iva() As String
+
+        Public Property precio() As Decimal
+
         Public ReadOnly Property colorEstado As Brush
             Get
-                If producto = "18150" Then
-                    producto = producto
-                End If
                 If cantidadAbonada >= cantidadVendida Then
                     Return Brushes.Red
                 ElseIf fechaUltimaVenta < DateAdd(DateInterval.Year, -1, Now)
@@ -801,41 +802,13 @@
         End Property
         Private m_serie As String
         Public Property ccc() As String
-            Get
-                Return m_ccc
-            End Get
-            Set
-                m_ccc = Value
-            End Set
-        End Property
-        Private m_ccc As String
+
         Public Property origen() As String
-            Get
-                Return m_origen
-            End Get
-            Set
-                m_origen = Value
-            End Set
-        End Property
-        Private m_origen As String
+
         Public Property contactoCobro() As String
-            Get
-                Return m_contactoCobro
-            End Get
-            Set
-                m_contactoCobro = Value
-            End Set
-        End Property
-        Private m_contactoCobro As String
+
         Public Property noComisiona() As Decimal
-            Get
-                Return m_noComisiona
-            End Get
-            Set
-                m_noComisiona = Value
-            End Set
-        End Property
-        Private m_noComisiona As Decimal
+
         Public Property vistoBuenoPlazosPago() As Boolean
 
         Public Property mantenerJunto() As Boolean

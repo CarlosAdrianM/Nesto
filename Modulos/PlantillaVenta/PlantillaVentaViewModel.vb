@@ -550,7 +550,8 @@ Public Class PlantillaVentaViewModel
                 .contactoCobro = clienteSeleccionado.contacto, 'calcular
                 .noComisiona = 0, 'calcular
                 .mantenerJunto = 1,
-                .servirJunto = 1
+                .servirJunto = 1,
+                .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
             }
 
             Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
@@ -563,13 +564,13 @@ Public Class PlantillaVentaViewModel
                     .texto = linea.texto,
                     .cantidad = linea.cantidad,
                     .fechaEntrega = Today,
-                    .precio = 0, 'calcular
+                    .precio = linea.precio,
                     .descuento = 0, 'habrá que implementarlo si permitimos meter un descuento directamente
                     .aplicarDescuento = 1, 'habrá que implementarlo si permitimos meter un descuento directamente
                     .vistoBueno = 0, 'calcular
-                    .usuario = "NUEVAVISION\Carlos", 'calcular
+                    .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,
                     .almacen = "ALG", 'calcular
-                    .iva = "G21", 'calcular
+                    .iva = linea.iva,
                     .delegacion = "ALG", 'calcular
                     .formaVenta = "VAR"
                 }
