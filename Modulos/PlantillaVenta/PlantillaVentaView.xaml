@@ -160,30 +160,53 @@
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
-                        <DataGrid Grid.Row="1" Grid.Column="1" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Producto" Binding="{Binding producto}" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="3*" IsReadOnly="False"/>
-                                <DataGridTextColumn Header="Tamaño" Binding="{Binding tamanno}" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Und.M." Binding="{Binding unidadMedida}" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Familia" Binding="{Binding familia}" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="SubGrupo" Binding="{Binding subGrupo}" Width="2*" IsReadOnly="True"/>
-                                <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="False">
-                                    <DataGridTextColumn.CellStyle>
-                                        <Style>
-                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                        </Style>
-                                    </DataGridTextColumn.CellStyle>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="False">
-                                    <DataGridTextColumn.CellStyle>
-                                        <Style>
-                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                        </Style>
-                                    </DataGridTextColumn.CellStyle>
-                                </DataGridTextColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <DockPanel Grid.Row="1" Grid.Column="1" >
+                            <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaUltimasVentas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Fecha" Binding="{Binding fecha, StringFormat=d}" />
+                                    <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" />
+                                    <DataGridTextColumn Header="Bruto Unidad" Binding="{Binding precioBruto, StringFormat=c}">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style>
+                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Descuentos" Binding="{Binding descuentos, StringFormat=p}" />
+                                    <DataGridTextColumn Header="Neto Unidad" Binding="{Binding precioNeto, StringFormat=c}">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style>
+                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Producto" Binding="{Binding producto}" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="3*" IsReadOnly="False"/>
+                                    <DataGridTextColumn Header="Tamaño" Binding="{Binding tamanno}" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Und.M." Binding="{Binding unidadMedida}" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Familia" Binding="{Binding familia}" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="SubGrupo" Binding="{Binding subGrupo}" Width="2*" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="False">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style>
+                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="False">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style>
+                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
                         <StackPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
                             <TextBlock TextWrapping="Wrap">Este comentario lo verá el compañero de almacén que prepare el pedido. El cliente no ve este comentario.</TextBlock>
                             <TextBox Text="{Binding clienteSeleccionado.comentarioPicking}"/>

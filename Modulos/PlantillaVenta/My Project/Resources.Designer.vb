@@ -61,7 +61,7 @@ Namespace My.Resources
         End Property
         
         '''<summary>
-        '''  Busca una cadena traducida similar a http://localhost:53364/api/.
+        '''  Busca una cadena traducida similar a http://192.168.154.26/api/.
         '''</summary>
         Friend ReadOnly Property servidorAPI() As String
             Get

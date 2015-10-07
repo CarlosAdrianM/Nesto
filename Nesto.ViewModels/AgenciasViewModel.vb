@@ -1353,7 +1353,7 @@ Public Class AgenciasViewModel
                         .Nº_Documento = agenciaSeleccionada.Nombre,
                         .Delegación = "ALG",
                         .FormaVenta = "VAR",
-                        .FormaPago = "TRN",
+                        .FormaPago = empresaSeleccionada.FormaPagoEfectivo,
                         .Vendedor = "NV"
                     })
                 'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)

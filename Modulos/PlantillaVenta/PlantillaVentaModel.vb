@@ -2,266 +2,36 @@
 
     Public Class ClienteJson
         Public Property empresa() As String
-            Get
-                Return m_empresa
-            End Get
-            Set
-                m_empresa = Value
-            End Set
-        End Property
-        Private m_empresa As String
         Public Property cliente() As String
-            Get
-                Return m_cliente
-            End Get
-            Set
-                m_cliente = Value
-            End Set
-        End Property
-        Private m_cliente As String
         Public Property contacto() As String
-            Get
-                Return m_contacto
-            End Get
-            Set
-                m_contacto = Value
-            End Set
-        End Property
-        Private m_contacto As String
         Public Property clientePrincipal() As Boolean
-            Get
-                Return m_clientePrincipal
-            End Get
-            Set
-                m_clientePrincipal = Value
-            End Set
-        End Property
-        Private m_clientePrincipal As Boolean
         Public Property nombre() As String
-            Get
-                Return m_nombre
-            End Get
-            Set
-                m_nombre = Value
-            End Set
-        End Property
-        Private m_nombre As String
         Public Property direccion() As String
-            Get
-                Return m_direccion
-            End Get
-            Set
-                m_direccion = Value
-            End Set
-        End Property
-        Private m_direccion As String
         Public Property poblacion() As String
-            Get
-                Return m_poblacion
-            End Get
-            Set
-                m_poblacion = Value
-            End Set
-        End Property
-        Private m_poblacion As String
         Public Property telefono() As String
-            Get
-                Return m_telefono
-            End Get
-            Set
-                m_telefono = Value
-            End Set
-        End Property
-        Private m_telefono As String
         Public Property vendedor() As String
-            Get
-                Return m_vendedor
-            End Get
-            Set
-                m_vendedor = Value
-            End Set
-        End Property
-        Private m_vendedor As String
         Public Property comentarios() As String
-            Get
-                Return m_comentarios
-            End Get
-            Set
-                m_comentarios = Value
-            End Set
-        End Property
-        Private m_comentarios As String
         Public Property codigoPostal() As String
-            Get
-                Return m_codigoPostal
-            End Get
-            Set
-                m_codigoPostal = Value
-            End Set
-        End Property
-        Private m_codigoPostal As String
         Public Property cifNif() As String
-            Get
-                Return m_cifNif
-            End Get
-            Set
-                m_cifNif = Value
-            End Set
-        End Property
-        Private m_cifNif As String
         Public Property provincia() As String
-            Get
-                Return m_provincia
-            End Get
-            Set
-                m_provincia = Value
-            End Set
-        End Property
-        Private m_provincia As String
         Public Property estado() As Integer
-            Get
-                Return m_estado
-            End Get
-            Set
-                m_estado = Value
-            End Set
-        End Property
-        Private m_estado As Integer
         Public Property iva() As String
-            Get
-                Return m_iva
-            End Get
-            Set
-                m_iva = Value
-            End Set
-        End Property
-        Private m_iva As String
         Public Property grupo() As String
-            Get
-                Return m_grupo
-            End Get
-            Set
-                m_grupo = Value
-            End Set
-        End Property
-        Private m_grupo As String
         Public Property periodoFacturacion() As String
-            Get
-                Return m_periodoFacturacion
-            End Get
-            Set
-                m_periodoFacturacion = Value
-            End Set
-        End Property
-        Private m_periodoFacturacion As String
         Public Property ccc() As String
-            Get
-                Return m_ccc
-            End Get
-            Set
-                m_ccc = Value
-            End Set
-        End Property
-        Private m_ccc As String
         Public Property ruta() As String
-            Get
-                Return m_ruta
-            End Get
-            Set
-                m_ruta = Value
-            End Set
-        End Property
-        Private m_ruta As String
         Public Property copiasAlbaran() As Integer
-            Get
-                Return m_copiasAlbaran
-            End Get
-            Set
-                m_copiasAlbaran = Value
-            End Set
-        End Property
-        Private m_copiasAlbaran As Integer
         Public Property copiasFactura() As Integer
-            Get
-                Return m_copiasFactura
-            End Get
-            Set
-                m_copiasFactura = Value
-            End Set
-        End Property
-        Private m_copiasFactura As Integer
         Public Property comentarioRuta() As Object
-            Get
-                Return m_comentarioRuta
-            End Get
-            Set
-                m_comentarioRuta = Value
-            End Set
-        End Property
-        Private m_comentarioRuta As Object
         Public Property comentarioPicking() As Object
-            Get
-                Return m_comentarioPicking
-            End Get
-            Set
-                m_comentarioPicking = Value
-            End Set
-        End Property
-        Private m_comentarioPicking As Object
         Public Property web() As String
-            Get
-                Return m_web
-            End Get
-            Set
-                m_web = Value
-            End Set
-        End Property
-        Private m_web As String
         Public Property albaranValorado() As Boolean
-            Get
-                Return m_albaranValorado
-            End Get
-            Set
-                m_albaranValorado = Value
-            End Set
-        End Property
-        Private m_albaranValorado As Boolean
         Public Property cadena() As Object
-            Get
-                Return m_cadena
-            End Get
-            Set
-                m_cadena = Value
-            End Set
-        End Property
-        Private m_cadena As Object
         Public Property noComisiona() As Double
-            Get
-                Return m_noComisiona
-            End Get
-            Set
-                m_noComisiona = Value
-            End Set
-        End Property
-        Private m_noComisiona As Double
         Public Property servirJunto() As Boolean
-            Get
-                Return m_servirJunto
-            End Get
-            Set
-                m_servirJunto = Value
-            End Set
-        End Property
-        Private m_servirJunto As Boolean
         Public Property mantenerJunto() As Boolean
-            Get
-                Return m_mantenerJunto
-            End Get
-            Set
-                m_mantenerJunto = Value
-            End Set
-        End Property
-        Private m_mantenerJunto As Boolean
+
+
 
         Public ReadOnly Property rutaLogo As String
             Get
@@ -471,151 +241,27 @@
     End Class
     Public Class DireccionesEntregaJson
         Public Property contacto() As String
-            Get
-                Return m_contacto
-            End Get
-            Set
-                m_contacto = Value
-            End Set
-        End Property
-        Private m_contacto As String
         Public Property clientePrincipal() As Boolean
-            Get
-                Return m_clientePrincipal
-            End Get
-            Set
-                m_clientePrincipal = Value
-            End Set
-        End Property
-        Private m_clientePrincipal As Boolean
         Public Property nombre() As String
-            Get
-                Return m_nombre
-            End Get
-            Set
-                m_nombre = Value
-            End Set
-        End Property
-        Private m_nombre As String
         Public Property direccion() As String
-            Get
-                Return m_direccion
-            End Get
-            Set
-                m_direccion = Value
-            End Set
-        End Property
-        Private m_direccion As String
         Public Property poblacion() As String
-            Get
-                Return m_poblacion
-            End Get
-            Set
-                m_poblacion = Value
-            End Set
-        End Property
-        Private m_poblacion As String
         Public Property comentarios() As String
-            Get
-                Return m_comentarios
-            End Get
-            Set
-                m_comentarios = Value
-            End Set
-        End Property
-        Private m_comentarios As String
         Public Property codigoPostal() As String
-            Get
-                Return m_codigoPostal
-            End Get
-            Set
-                m_codigoPostal = Value
-            End Set
-        End Property
-        Private m_codigoPostal As String
         Public Property provincia() As String
-            Get
-                Return m_provincia
-            End Get
-            Set
-                m_provincia = Value
-            End Set
-        End Property
-        Private m_provincia As String
         Public Property estado() As Integer
-            Get
-                Return m_estado
-            End Get
-            Set
-                m_estado = Value
-            End Set
-        End Property
-        Private m_estado As Integer
         Public Property iva() As String
-            Get
-                Return m_iva
-            End Get
-            Set
-                m_iva = Value
-            End Set
-        End Property
-        Private m_iva As String
         Public Property comentarioRuta() As String
-            Get
-                Return m_comentarioRuta
-            End Get
-            Set
-                m_comentarioRuta = Value
-            End Set
-        End Property
-        Private m_comentarioRuta As String
         Public Property comentarioPicking() As Object
-            Get
-                Return m_comentarioPicking
-            End Get
-            Set
-                m_comentarioPicking = Value
-            End Set
-        End Property
-        Private m_comentarioPicking As Object
         Public Property noComisiona() As Double
-            Get
-                Return m_noComisiona
-            End Get
-            Set
-                m_noComisiona = Value
-            End Set
-        End Property
-        Private m_noComisiona As Double
         Public Property servirJunto() As Boolean
-            Get
-                Return m_servirJunto
-            End Get
-            Set
-                m_servirJunto = Value
-            End Set
-        End Property
-        Private m_servirJunto As Boolean
         Public Property mantenerJunto() As Boolean
-            Get
-                Return m_mantenerJunto
-            End Get
-            Set
-                m_mantenerJunto = Value
-            End Set
-        End Property
-        Private m_mantenerJunto As Boolean
-
         Public Property esDireccionPorDefecto() As Boolean
-            Get
-                Return m_esDireccionPorDefecto
-            End Get
-            Set
-                m_esDireccionPorDefecto = Value
-            End Set
-        End Property
-        Private m_esDireccionPorDefecto As Boolean
-
+        Public Property vendedor() As String
+        Public Property periodoFacturacion() As String
+        Public Property ccc() As String
+        Public Property ruta() As String
+        Public Property formaPago() As String
+        Public Property plazosPago() As String
 
         Public ReadOnly Property textoPoblacion As String
             Get
@@ -643,6 +289,8 @@
 
         Public Property iva() As String
 
+        Public Property oferta() As Integer
+
         Public Property precio() As Decimal
 
         ' era Nullable<decimal> 
@@ -660,7 +308,6 @@
             Return DirectCast(Me.MemberwiseClone(), LineaPedidoVentaDTO)
         End Function
     End Class
-
     Public Class PedidoVentaDTO
         Public Sub New()
             Me.LineasPedido = New HashSet(Of LineaPedidoVentaDTO)()
@@ -819,5 +466,12 @@
 
         Public Overridable Property LineasPedido() As ICollection(Of LineaPedidoVentaDTO)
 
+    End Class
+    Public Class UltimasVentasProductoClienteDTO
+        Public Property fecha As DateTime
+        Public Property cantidad As Short
+        Public Property precioBruto As Decimal
+        Public Property descuentos As Decimal
+        Public Property precioNeto As Decimal
     End Class
 End Class

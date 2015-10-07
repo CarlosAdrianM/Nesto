@@ -26,6 +26,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarClientesVendedor = New DelegateCommand(Of Object)(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
         cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
+        cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
         cmdCrearPedido = New DelegateCommand(Of Object)(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
@@ -75,6 +76,7 @@ Public Class PlantillaVentaViewModel
 
     '*** Propiedades de Nesto
     Private vendedor As String = "NV"
+    Private ultimaOferta As Integer = 0
 
     Private _clienteSeleccionado As ClienteJson
     Public Property clienteSeleccionado As ClienteJson
@@ -235,6 +237,16 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    Private _listaUltimasVentas As ObservableCollection(Of UltimasVentasProductoClienteDTO)
+    Public Property listaUltimasVentas As ObservableCollection(Of UltimasVentasProductoClienteDTO)
+        Get
+            Return _listaUltimasVentas
+        End Get
+        Set(value As ObservableCollection(Of UltimasVentasProductoClienteDTO))
+            SetProperty(_listaUltimasVentas, value)
+        End Set
+    End Property
+
     Private _productoSeleccionado As LineaPlantillaJson
     Public Property productoSeleccionado As LineaPlantillaJson
         Get
@@ -242,6 +254,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As LineaPlantillaJson)
             SetProperty(_productoSeleccionado, value)
+            cmdCargarUltimasVentas.Execute(productoSeleccionado)
         End Set
     End Property
 
@@ -295,10 +308,17 @@ Public Class PlantillaVentaViewModel
     Private Sub OnActualizarProductosPedido(arg As Object)
         OnPropertyChanged("listaProductosPedido")
         OnPropertyChanged("hayProductosEnElPedido")
-        If Not IsNothing(arg) Then
-            If arg.cantidadVendida = 0 AndAlso arg.cantidadAbonada = 0 Then
-                cmdInsertarProducto.Execute(arg)
-            End If
+        If IsNothing(arg) Then
+            Return
+        End If
+
+        If arg.cantidadVendida = 0 AndAlso arg.cantidadAbonada = 0 Then
+            cmdInsertarProducto.Execute(arg)
+        End If
+
+        If IsNothing(productoSeleccionado) OrElse productoSeleccionado.producto <> arg.producto Then
+            'cmdCargarUltimasVentas.Execute(arg)
+            productoSeleccionado = arg
         End If
     End Sub
 
@@ -508,6 +528,69 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
+
+
+
+
+
+
+    Private _cmdCargarUltimasVentas As DelegateCommand(Of Object)
+    Public Property cmdCargarUltimasVentas As DelegateCommand(Of Object)
+        Get
+            Return _cmdCargarUltimasVentas
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCargarUltimasVentas, value)
+        End Set
+    End Property
+    Private Function CanCargarUltimasVentas(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCargarUltimasVentas(arg As Object)
+
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+
+            Try
+                response = Await client.GetAsync("PlantillaVentas/UltimasVentas?empresa=" + clienteSeleccionado.empresa + "&clienteUltimasVentas=" + clienteSeleccionado.cliente + "&productoUltimasVentas=" + arg.producto)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaUltimasVentas = JsonConvert.DeserializeObject(Of ObservableCollection(Of UltimasVentasProductoClienteDTO))(cadenaJson)
+
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar las últimas ventas del producto"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = ex.Message
+                    })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
+
+
+
+
+
+
+
+
     Private _cmdCrearPedido As DelegateCommand(Of Object)
     Public Property cmdCrearPedido As DelegateCommand(Of Object)
         Get
@@ -537,20 +620,20 @@ Public Class PlantillaVentaViewModel
                 .cliente = clienteSeleccionado.cliente,
                 .contacto = direccionEntregaSeleccionada.contacto,
                 .fecha = Today,
-                .formaPago = "EFC", 'calcular
-                .plazosPago = "CONTADO", 'calcular
-                .primerVencimiento = Today, 'calcular
+                .formaPago = direccionEntregaSeleccionada.formaPago,
+                .plazosPago = direccionEntregaSeleccionada.plazosPago,
+                .primerVencimiento = Today, 'se calcula en la API
                 .iva = clienteSeleccionado.iva,
-                .vendedor = "NV", 'ojo, que tiene que ser de direccionSeleccionada
-                .periodoFacturacion = "NRM", 'ojo, de direccionSeleccionada
-                .ruta = "00", ' ojo, de direccionSeleccionada
+                .vendedor = direccionEntregaSeleccionada.vendedor,
+                .periodoFacturacion = direccionEntregaSeleccionada.periodoFacturacion,
+                .ruta = direccionEntregaSeleccionada.ruta,
                 .serie = "NV", 'calcular
-                .ccc = clienteSeleccionado.ccc, 'ojo, de direccion seleccionada
+                .ccc = direccionEntregaSeleccionada.ccc,
                 .origen = clienteSeleccionado.empresa,
                 .contactoCobro = clienteSeleccionado.contacto, 'calcular
-                .noComisiona = 0, 'calcular
-                .mantenerJunto = 1,
-                .servirJunto = 1,
+                .noComisiona = direccionEntregaSeleccionada.noComisiona,
+                .mantenerJunto = direccionEntregaSeleccionada.mantenerJunto,
+                .servirJunto = direccionEntregaSeleccionada.servirJunto,
                 .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
             }
 
@@ -571,8 +654,9 @@ Public Class PlantillaVentaViewModel
                     .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,
                     .almacen = "ALG", 'calcular
                     .iva = linea.iva,
-                    .delegacion = "ALG", 'calcular
-                    .formaVenta = "VAR"
+                    .delegacion = "ALG", 'pedir al usuario en alguna parte
+                    .formaVenta = "TEL",
+                    .oferta = IIf(linea.cantidadOferta <> 0, cogerSiguienteOferta(), Nothing)
                 }
                 pedido.LineasPedido.Add(lineaPedido)
 
@@ -580,6 +664,7 @@ Public Class PlantillaVentaViewModel
                     lineaPedidoOferta = lineaPedido.ShallowCopy
                     lineaPedidoOferta.cantidad = linea.cantidadOferta
                     lineaPedidoOferta.precio = 0
+                    lineaPedidoOferta.oferta = lineaPedido.oferta
                     pedido.LineasPedido.Add(lineaPedidoOferta)
                 End If
 
@@ -682,6 +767,12 @@ Public Class PlantillaVentaViewModel
         End While
         Return nombreAmpliado
     End Function
+
+    Private Function cogerSiguienteOferta() As Integer
+        ultimaOferta += 1
+        Return ultimaOferta
+    End Function
+
 
 #End Region
 
