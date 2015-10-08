@@ -23,6 +23,8 @@
     <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
         <Grid>
             <xctk:Wizard Finish="Wizard_Finish" Name="WizardPlantilla" 
+                         CancelButtonVisibility="Hidden"
+                         HelpButtonVisibility="Hidden"
                          CancelButtonClosesWindow="False"
                          FinishButtonClosesWindow="False" 
                          BackButtonContent="&lt; Anterior"
@@ -205,6 +207,11 @@
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
                                 </DataGrid.Columns>
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="TextElement.Foreground" Value="{Binding colorStock}"/>
+                                    </Style>
+                                </DataGrid.RowStyle>
                             </DataGrid>
                         </DockPanel>
                         <StackPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
@@ -256,10 +263,11 @@
                 </xctk:WizardPage>
                 <xctk:WizardPage x:Name="Finalizar" PageType="Interior"
                                        Title="Finalizar"
-                                       Description="Aquí se crearía el pedido. Es la parte que está sin hacer aún"
+                                       Description="Ya tenemos toda la información necesaria. Pulse el botón finalizar para crear el pedido en Nesto."
                                        CanFinish="True">
                     <StackPanel>
-                        <Button Command="{Binding cmdCrearPedido}" HorizontalAlignment="Center" VerticalAlignment="Center">Crear Pedido</Button>
+                        <TextBlock>Una vez creado el pedido entre a Nesto 4 y seleccione "Clientes -> Pedidos -> Abrir" para ver el pedido que acaba de crear.</TextBlock>
+                        <TextBlock>¡Atención! Si tiene una ventana de pedidos abierta, ciérrela antes de pulsar el botón "Finalizar" para evitar perder el nº del pedido recién creado.</TextBlock>
                     </StackPanel>
                 </xctk:WizardPage>
             </xctk:Wizard>

@@ -26,6 +26,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarClientesVendedor = New DelegateCommand(Of Object)(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
         cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
+        cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
         cmdCrearPedido = New DelegateCommand(Of Object)(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
@@ -230,7 +231,7 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property listaProductosPedido() As ObservableCollection(Of LineaPlantillaJson)
         Get
             If Not IsNothing(listaProductosOriginal) Then
-                Return New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosOriginal Where l.cantidad > 0 OrElse l.cantidadOferta > 0)
+                Return New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosOriginal Where l.cantidad > 0 OrElse l.cantidadOferta > 0 Order By l.fechaInsercion)
             Else
                 Return Nothing
             End If
@@ -306,8 +307,8 @@ Public Class PlantillaVentaViewModel
         Return True
     End Function
     Private Sub OnActualizarProductosPedido(arg As Object)
-        OnPropertyChanged("listaProductosPedido")
-        OnPropertyChanged("hayProductosEnElPedido")
+
+
         If IsNothing(arg) Then
             Return
         End If
@@ -316,8 +317,12 @@ Public Class PlantillaVentaViewModel
             cmdInsertarProducto.Execute(arg)
         End If
 
+        If (arg.cantidad + arg.cantidadOferta <> 0) AndAlso Not arg.stockActualizado Then
+            cmdCargarStockProducto.Execute(arg)
+        End If
+        OnPropertyChanged("hayProductosEnElPedido")
+        'OnPropertyChanged("listaProductosPedido")
         If IsNothing(productoSeleccionado) OrElse productoSeleccionado.producto <> arg.producto Then
-            'cmdCargarUltimasVentas.Execute(arg)
             productoSeleccionado = arg
         End If
     End Sub
@@ -528,11 +533,61 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
+    Private _cmdCargarStockProducto As DelegateCommand(Of Object)
+    Public Property cmdCargarStockProducto As DelegateCommand(Of Object)
+        Get
+            Return _cmdCargarStockProducto
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCargarStockProducto, value)
+        End Set
+    End Property
+    Private Function CanCargarStockProducto(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCargarStockProducto(arg As Object)
 
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
 
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            Dim response As HttpResponseMessage
 
+            estaOcupado = True
 
+            Dim datosStock As StockProductoDTO
 
+            Try
+                response = Await client.GetAsync("PlantillaVentas/CargarStocks?empresa=" + clienteSeleccionado.empresa + "&almacen=ALG&productoStock=" + arg.producto)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    datosStock = JsonConvert.DeserializeObject(Of StockProductoDTO)(cadenaJson)
+                    arg.stock = datosStock.stock
+                    arg.cantidadDisponible = datosStock.cantidadDisponible
+                    arg.stockActualizado = True
+                    arg.fechaInsercion = Now
+                    OnPropertyChanged("listaProductosPedido")
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar el stock del producto"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = ex.Message
+                    })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
 
     Private _cmdCargarUltimasVentas As DelegateCommand(Of Object)
     Public Property cmdCargarUltimasVentas As DelegateCommand(Of Object)
@@ -548,7 +603,7 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Async Sub OnCargarUltimasVentas(arg As Object)
 
-        If IsNothing(clienteSeleccionado) Then
+        If IsNothing(clienteSeleccionado) OrElse IsNothing(arg) Then
             Return
         End If
 
@@ -559,7 +614,7 @@ Public Class PlantillaVentaViewModel
             estaOcupado = True
 
             Try
-                response = Await client.GetAsync("PlantillaVentas/UltimasVentas?empresa=" + clienteSeleccionado.empresa + "&clienteUltimasVentas=" + clienteSeleccionado.cliente + "&productoUltimasVentas=" + arg.producto)
+                response = Await client.GetAsync("PlantillaVentas/UltimasVentasProductoCliente?empresa=" + clienteSeleccionado.empresa + "&clienteUltimasVentas=" + clienteSeleccionado.cliente + "&productoUltimasVentas=" + arg.producto)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
@@ -583,13 +638,6 @@ Public Class PlantillaVentaViewModel
         End Using
 
     End Sub
-
-
-
-
-
-
-
 
     Private _cmdCrearPedido As DelegateCommand(Of Object)
     Public Property cmdCrearPedido As DelegateCommand(Of Object)
@@ -634,12 +682,20 @@ Public Class PlantillaVentaViewModel
                 .noComisiona = direccionEntregaSeleccionada.noComisiona,
                 .mantenerJunto = direccionEntregaSeleccionada.mantenerJunto,
                 .servirJunto = direccionEntregaSeleccionada.servirJunto,
+                .comentarioPicking = clienteSeleccionado.comentarioPicking,
+                .comentarios = direccionEntregaSeleccionada.comentarioRuta,
                 .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
             }
 
             Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
+            Dim ofertaLinea As Integer
 
             For Each linea In listaProductosPedido
+                If linea.cantidadOferta <> 0 Then
+                    ofertaLinea = cogerSiguienteOferta()
+                Else
+                    ofertaLinea = 0
+                End If
                 lineaPedido = New LineaPedidoVentaDTO With {
                     .estado = 1, 'ojo, de parámetro. ¿Pongo 0 para tener que validar?
                     .tipoLinea = 1, ' Producto
@@ -649,14 +705,14 @@ Public Class PlantillaVentaViewModel
                     .fechaEntrega = Today,
                     .precio = linea.precio,
                     .descuento = 0, 'habrá que implementarlo si permitimos meter un descuento directamente
-                    .aplicarDescuento = 1, 'habrá que implementarlo si permitimos meter un descuento directamente
+                    .aplicarDescuento = linea.aplicarDescuento,
                     .vistoBueno = 0, 'calcular
                     .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,
                     .almacen = "ALG", 'calcular
                     .iva = linea.iva,
                     .delegacion = "ALG", 'pedir al usuario en alguna parte
                     .formaVenta = "TEL",
-                    .oferta = IIf(linea.cantidadOferta <> 0, cogerSiguienteOferta(), Nothing)
+                    .oferta = ofertaLinea
                 }
                 pedido.LineasPedido.Add(lineaPedido)
 
@@ -683,6 +739,12 @@ Public Class PlantillaVentaViewModel
                         .Title = "Plantilla",
                         .Content = "Pedido creado correctamente"
                     })
+                    ' Cerramos la ventana
+                    Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
+                    If Not IsNothing(view) Then
+                        Me.regionManager.Regions("MainRegion").Deactivate(view)
+                        Me.regionManager.Regions("MainRegion").Remove(view)
+                    End If
                 Else
                     NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",

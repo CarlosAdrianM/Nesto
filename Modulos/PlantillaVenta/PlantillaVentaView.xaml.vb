@@ -7,7 +7,7 @@
     End Sub
 
     Private Sub Wizard_Finish(sender As Object, e As RoutedEventArgs)
-        WizardPlantilla.Visibility = Visibility.Hidden
+        Me.DataContext.cmdCrearPedido.Execute(Nothing)
     End Sub
 
     Private Sub SeleccionCliente_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionCliente.Enter

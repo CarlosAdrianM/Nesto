@@ -59,128 +59,25 @@
     End Class
     Public Class LineaPlantillaJson
         Public Property producto() As String
-            Get
-                Return m_producto
-            End Get
-            Set
-                m_producto = Value
-            End Set
-        End Property
-        Private m_producto As String
         Public Property texto() As String
-            Get
-                Return m_texto
-            End Get
-            Set
-                m_texto = Value
-            End Set
-        End Property
-        Private m_texto As String
         Public Property cantidad() As Integer
-            Get
-                Return m_cantidad
-            End Get
-            Set
-                m_cantidad = Value
-            End Set
-        End Property
-        Private m_cantidad As Integer
         Public Property cantidadOferta() As Integer
-            Get
-                Return m_cantidadOferta
-            End Get
-            Set
-                m_cantidadOferta = Value
-            End Set
-        End Property
-        Private m_cantidadOferta As Integer
         Public Property tamanno() As System.Nullable(Of Integer)
-            Get
-                Return m_tamanno
-            End Get
-            Set
-                m_tamanno = Value
-            End Set
-        End Property
-        Private m_tamanno As System.Nullable(Of Integer)
         Public Property unidadMedida() As String
-            Get
-                Return m_unidadMedida
-            End Get
-            Set
-                m_unidadMedida = Value
-            End Set
-        End Property
-        Private m_unidadMedida As String
         Public Property familia() As String
-            Get
-                Return m_familia
-            End Get
-            Set
-                m_familia = Value
-            End Set
-        End Property
-        Private m_familia As String
         Public Property subGrupo() As String
-            Get
-                Return m_subGrupo
-            End Get
-            Set
-                m_subGrupo = Value
-            End Set
-        End Property
-        Private m_subGrupo As String
         Public Property estado() As Integer
-            Get
-                Return m_estado
-            End Get
-            Set
-                m_estado = Value
-            End Set
-        End Property
-        Private m_estado As Integer
         Public Property yaFacturado() As Boolean
-            Get
-                Return m_yaFacturado
-            End Get
-            Set
-                m_yaFacturado = Value
-            End Set
-        End Property
-        Private m_yaFacturado As Boolean
         Public Property cantidadVendida() As Integer
-            Get
-                Return m_cantidadVendida
-            End Get
-            Set
-                m_cantidadVendida = Value
-            End Set
-        End Property
-        Private m_cantidadVendida As Integer
         Public Property cantidadAbonada() As Integer
-            Get
-                Return m_cantidadAbonada
-            End Get
-            Set
-                m_cantidadAbonada = Value
-            End Set
-        End Property
-        Private m_cantidadAbonada As Integer
-
         Public Property fechaUltimaVenta() As System.Nullable(Of DateTime)
-            Get
-                Return m_fechaUltimaVenta
-            End Get
-            Set
-                m_fechaUltimaVenta = Value
-            End Set
-        End Property
-        Private m_fechaUltimaVenta As System.Nullable(Of DateTime)
-
         Public Property iva() As String
-
         Public Property precio() As Decimal
-
+        Public Property aplicarDescuento() As Boolean
+        Public Property stock As Integer
+        Public Property cantidadDisponible As Integer
+        Public Property stockActualizado As Boolean
+        Public Property fechaInsercion As DateTime
         Public ReadOnly Property colorEstado As Brush
             Get
                 If cantidadAbonada >= cantidadVendida Then
@@ -198,7 +95,6 @@
                 End If
             End Get
         End Property
-
         Public ReadOnly Property textoUnidadesVendidas As String
             Get
                 If cantidadAbonada = 0 And cantidadVendida > 1 Then
@@ -214,7 +110,6 @@
                 End If
             End Get
         End Property
-
         Public ReadOnly Property textoFechaUltimaVenta As String
             Get
                 If IsNothing(fechaUltimaVenta) OrElse fechaUltimaVenta = DateTime.MinValue Then
@@ -224,7 +119,6 @@
                 End If
             End Get
         End Property
-
         Public ReadOnly Property textoNombreProducto As String
             Get
                 Dim textoCompleto As String = texto
@@ -237,7 +131,19 @@
                 Return textoCompleto
             End Get
         End Property
-
+        Public ReadOnly Property colorStock As Brush
+            Get
+                If Not stockActualizado Then
+                    Return Brushes.Gray
+                ElseIf cantidadDisponible >= cantidad + cantidadOferta Then
+                    Return Brushes.Green
+                ElseIf stock >= cantidad + cantidadOferta Then
+                    Return Brushes.DarkOrange
+                Else
+                    Return Brushes.Red
+                End If
+            End Get
+        End Property
     End Class
     Public Class DireccionesEntregaJson
         Public Property contacto() As String
@@ -314,158 +220,35 @@
         End Sub
 
         Public Property empresa() As String
-            Get
-                Return m_empresa
-            End Get
-            Set
-                m_empresa = Value
-            End Set
-        End Property
-        Private m_empresa As String
         Public Property numero() As Integer
-            Get
-                Return m_numero
-            End Get
-            Set
-                m_numero = Value
-            End Set
-        End Property
-        Private m_numero As Integer
         Public Property cliente() As String
-            Get
-                Return m_cliente
-            End Get
-            Set
-                m_cliente = Value
-            End Set
-        End Property
-        Private m_cliente As String
         Public Property contacto() As String
-            Get
-                Return m_contacto
-            End Get
-            Set
-                m_contacto = Value
-            End Set
-        End Property
-        Private m_contacto As String
         Public Property fecha() As Nullable(Of System.DateTime)
-            Get
-                Return m_fecha
-            End Get
-            Set
-                m_fecha = Value
-            End Set
-        End Property
-        Private m_fecha As Nullable(Of System.DateTime)
         Public Property formaPago() As String
-            Get
-                Return m_formaPago
-            End Get
-            Set
-                m_formaPago = Value
-            End Set
-        End Property
-        Private m_formaPago As String
         Public Property plazosPago() As String
-            Get
-                Return m_plazosPago
-            End Get
-            Set
-                m_plazosPago = Value
-            End Set
-        End Property
-        Private m_plazosPago As String
         Public Property primerVencimiento() As Nullable(Of System.DateTime)
-            Get
-                Return m_primerVencimiento
-            End Get
-            Set
-                m_primerVencimiento = Value
-            End Set
-        End Property
-        Private m_primerVencimiento As Nullable(Of System.DateTime)
         Public Property iva() As String
-            Get
-                Return m_iva
-            End Get
-            Set
-                m_iva = Value
-            End Set
-        End Property
-        Private m_iva As String
         Public Property vendedor() As String
-            Get
-                Return m_vendedor
-            End Get
-            Set
-                m_vendedor = Value
-            End Set
-        End Property
-        Private m_vendedor As String
         Public Property comentarios() As String
-            Get
-                Return m_comentarios
-            End Get
-            Set
-                m_comentarios = Value
-            End Set
-        End Property
-        Private m_comentarios As String
         Public Property comentarioPicking() As String
-            Get
-                Return m_comentarioPicking
-            End Get
-            Set
-                m_comentarioPicking = Value
-            End Set
-        End Property
-        Private m_comentarioPicking As String
         Public Property periodoFacturacion() As String
-            Get
-                Return m_periodoFacturacion
-            End Get
-            Set
-                m_periodoFacturacion = Value
-            End Set
-        End Property
-        Private m_periodoFacturacion As String
         Public Property ruta() As String
-            Get
-                Return m_ruta
-            End Get
-            Set
-                m_ruta = Value
-            End Set
-        End Property
-        Private m_ruta As String
         Public Property serie() As String
-            Get
-                Return m_serie
-            End Get
-            Set
-                m_serie = Value
-            End Set
-        End Property
-        Private m_serie As String
         Public Property ccc() As String
-
         Public Property origen() As String
-
         Public Property contactoCobro() As String
-
         Public Property noComisiona() As Decimal
-
         Public Property vistoBuenoPlazosPago() As Boolean
-
         Public Property mantenerJunto() As Boolean
-
         Public Property servirJunto() As Boolean
-
         Public Property usuario() As String
 
         Public Overridable Property LineasPedido() As ICollection(Of LineaPedidoVentaDTO)
 
+    End Class
+    Public Class StockProductoDTO
+        Public Property stock() As Integer
+        Public Property cantidadDisponible() As Integer
     End Class
     Public Class UltimasVentasProductoClienteDTO
         Public Property fecha As DateTime
