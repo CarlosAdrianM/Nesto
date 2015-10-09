@@ -39,10 +39,10 @@ Public Class Bootstrapper
         moduleCatalog.AddModule(GetType(IMenuBar)) ', InitializationMode.WhenAvailable
 
         ' Plantilla de Ventas - 17/07/15
-        If (System.Environment.UserName = "Alfredo") OrElse (System.Environment.UserName = "Carlos") OrElse (System.Environment.UserName = "Manuel") _
-            OrElse (System.Environment.UserName.ToLower = "silvia") OrElse (System.Environment.UserName.ToLower = "lalonso") OrElse (System.Environment.UserName = "amaia") OrElse (System.Environment.UserName = "carolina") OrElse (System.Environment.UserName = "marta") Then
-            moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
-        End If
+        'If (System.Environment.UserName = "Alfredo") OrElse (System.Environment.UserName = "Carlos") OrElse (System.Environment.UserName = "Manuel") _
+        '    OrElse (System.Environment.UserName.ToLower = "silvia") OrElse (System.Environment.UserName.ToLower = "lalonso") OrElse (System.Environment.UserName.ToLower = "amaia") OrElse (System.Environment.UserName.ToLower = "carolina") OrElse (System.Environment.UserName.ToLower = "marta") Then
+        moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
+        'End If
 
 
     End Sub

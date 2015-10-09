@@ -78,6 +78,7 @@
         Public Property cantidadDisponible As Integer
         Public Property stockActualizado As Boolean
         Public Property fechaInsercion As DateTime
+        Public Property descuento As Decimal
         Public ReadOnly Property colorEstado As Brush
             Get
                 If cantidadAbonada >= cantidadVendida Then

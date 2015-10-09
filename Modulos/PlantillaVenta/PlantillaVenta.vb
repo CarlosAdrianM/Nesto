@@ -3,6 +3,7 @@ Imports Microsoft.Practices.Prism.Modularity
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Prism.RibbonRegionAdapter
+Imports System.Globalization
 
 Public Class PlantillaVenta
     Implements IModule, IPlantillaVenta
@@ -33,5 +34,33 @@ Public Class PlantillaVenta
         End If
     End Sub
 
+
+End Class
+
+
+Public Class PercentageConverter
+    Implements IValueConverter
+
+    Public Function Convert(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.Convert
+        Dim fraction = Decimal.Parse(value.ToString())
+        Return fraction.ToString("P2")
+    End Function
+
+    Public Function ConvertBack(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.ConvertBack
+        Dim valueWithoutPercentage = value.ToString().TrimEnd(" ", "%")
+        Return Decimal.Parse(valueWithoutPercentage) / 100
+    End Function
+
+    ''E.g. DB 0.042367 --> UI "4.24 %"
+    'Public Function Convert(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object
+
+
+    'End Function
+
+    ''E.g. UI "4.2367 %" --> DB 0.042367
+    'Public Function ConvertBack(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object
+    '    'Trim any trailing percentage symbol that the user MAY have included
+
+    'End Function
 
 End Class

@@ -9,11 +9,13 @@ Imports Newtonsoft.Json
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports System.Text
 
+
 Public Class PlantillaVentaViewModel
     Inherits BindableBase
 
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
+    Dim formaVentaUsuario, delegacionUsuario, almacenRutaUsuario As String
 
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
         Me.container = container
@@ -657,6 +659,10 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
+        formaVentaUsuario = Await leerParametro("FormaVentaDefecto")
+        delegacionUsuario = Await leerParametro("DelegaciónDefecto")
+        almacenRutaUsuario = Await leerParametro("AlmacénRuta")
+
         Using client As New HttpClient
             estaOcupado = True
 
@@ -696,6 +702,11 @@ Public Class PlantillaVentaViewModel
                 Else
                     ofertaLinea = 0
                 End If
+
+                If linea.precio <> productoSeleccionado.precio OrElse linea.descuento > 0 Then
+                    linea.aplicarDescuento = False
+                End If
+
                 lineaPedido = New LineaPedidoVentaDTO With {
                     .estado = 1, 'ojo, de parámetro. ¿Pongo 0 para tener que validar?
                     .tipoLinea = 1, ' Producto
@@ -704,14 +715,14 @@ Public Class PlantillaVentaViewModel
                     .cantidad = linea.cantidad,
                     .fechaEntrega = Today,
                     .precio = linea.precio,
-                    .descuento = 0, 'habrá que implementarlo si permitimos meter un descuento directamente
+                    .descuento = linea.descuento,
                     .aplicarDescuento = linea.aplicarDescuento,
                     .vistoBueno = 0, 'calcular
                     .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,
-                    .almacen = "ALG", 'calcular
+                    .almacen = almacenRutaUsuario,
                     .iva = linea.iva,
-                    .delegacion = "ALG", 'pedir al usuario en alguna parte
-                    .formaVenta = "TEL",
+                    .delegacion = delegacionUsuario, 'pedir al usuario en alguna parte
+                    .formaVenta = formaVentaUsuario,
                     .oferta = ofertaLinea
                 }
                 pedido.LineasPedido.Add(lineaPedido)
@@ -812,6 +823,11 @@ Public Class PlantillaVentaViewModel
 
 #Region "Funciones Auxiliares"
 
+    Private Function cogerSiguienteOferta() As Integer
+        ultimaOferta += 1
+        Return ultimaOferta
+    End Function
+
     Private Function nombreVista(region As Region, nombre As String) As String
         Dim contador As Integer = 2
         Dim repetir As Boolean = True
@@ -830,13 +846,47 @@ Public Class PlantillaVentaViewModel
         Return nombreAmpliado
     End Function
 
-    Private Function cogerSiguienteOferta() As Integer
-        ultimaOferta += 1
-        Return ultimaOferta
+    Private Async Function leerParametro(clave As String) As Task(Of String)
+        If IsNothing(clienteSeleccionado) Then
+            Throw New Exception("No se puede leer el parámetro")
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+
+            Try
+                response = Await client.GetAsync("ParametrosUsuario?empresa=" + clienteSeleccionado.empresa + "&usuario=" + System.Environment.UserName + "&clave=" + clave)
+
+                If response.IsSuccessStatusCode Then
+                    Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    respuesta = JsonConvert.DeserializeObject(Of String)(respuesta)
+                    Return respuesta.Trim
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar las últimas ventas del producto"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = ex.Message
+                    })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+        Throw New Exception("No se puede leer el parámetro")
+
     End Function
 
-
 #End Region
+
 
 
 

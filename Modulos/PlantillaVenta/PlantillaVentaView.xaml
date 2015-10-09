@@ -10,6 +10,9 @@
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
 
+    <UserControl.Resources>
+        <local:PercentageConverter x:Key="porcentajeConverter" />
+    </UserControl.Resources>
 
     <i:Interaction.Triggers>
         <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
@@ -88,7 +91,7 @@
                                        PreviousPage="{Binding ElementName=SeleccionCliente}"
                                        CanSelectNextPage="{Binding hayProductosEnElPedido}">
 
-                    <Grid>
+                    <Grid HorizontalAlignment="Stretch">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="7*"/>
@@ -107,58 +110,63 @@
                             </TextBox>
                             <Button Command="{Binding cmdBuscarEnTodosLosProductos}">Buscar en todos los productos</Button>
                         </StackPanel>
-                        <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Height="110" Margin="6" HorizontalAlignment="Stretch">
-                                        <Grid.ColumnDefinitions>
+                                    <DockPanel Height="110" Margin="6" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                                        <!--Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                                        </-->
 
-                                        <StackPanel Grid.Column="0" Width="110" Height="110" >
+                                        <StackPanel DockPanel.Dock="Left" Grid.Column="0" Width="110" MinWidth="110" Height="110" >
                                             <Border Background="{Binding colorEstado}" Height="110" Width="110" HorizontalAlignment="Left" Margin="0,0,10,0"/>
                                         </StackPanel>
 
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0">
-                                            <TextBlock Text="{Binding textoNombreProducto}" FontWeight="Bold" TextWrapping="NoWrap"/>
-                                            <TextBlock Text="{Binding producto}" TextWrapping="NoWrap"/>
-                                            <TextBlock Text="{Binding familia}" MaxHeight="60"/>
-                                            <TextBlock Text="{Binding subGrupo}" MaxHeight="60"/>
-                                            <TextBlock Text="{Binding textoFechaUltimaVenta}" MaxHeight="60"/>
-                                            <TextBlock Text="{Binding textoUnidadesVendidas}"/>
-                                        </StackPanel>
+                                        <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
+                                            
+                                            <Grid DockPanel.Dock="Right" Width="110" MinWidth="110" Height="110" HorizontalAlignment="Stretch">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition/>
+                                                    <ColumnDefinition/>
+                                                </Grid.ColumnDefinitions>
 
-                                        <Grid Grid.Column="2" Width="110" Height="110">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition/>
-                                                <ColumnDefinition/>
-                                            </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0">
+                                                    <TextBlock Margin="3" TextWrapping="WrapWithOverflow">Cantidad Cobrada</TextBlock>
+                                                    <xctk:ByteUpDown Name="ofertasUpDown" Value="{Binding cantidad}" Margin="3">
+                                                        <i:Interaction.Triggers>
+                                                            <i:EventTrigger EventName="ValueChanged">
+                                                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                                            </i:EventTrigger>
+                                                        </i:Interaction.Triggers>
+                                                    </xctk:ByteUpDown>
+                                                </StackPanel>
 
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Margin="3" TextWrapping="WrapWithOverflow">Cantidad Cobrada</TextBlock>
-                                                <xctk:ByteUpDown Name="ofertasUpDown" Value="{Binding cantidad}" Margin="3">
-                                                    <i:Interaction.Triggers>
-                                                        <i:EventTrigger EventName="ValueChanged">
-                                                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                                                        </i:EventTrigger>
-                                                    </i:Interaction.Triggers>
-                                                </xctk:ByteUpDown>
-                                            </StackPanel>
-
-                                            <StackPanel Grid.Column="1">
-                                                <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
-                                                <xctk:ByteUpDown Value="{Binding cantidadOferta}" Margin="3">
-                                                    <i:Interaction.Triggers>
-                                                        <i:EventTrigger EventName="ValueChanged">
-                                                                        <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
-                                                        </i:EventTrigger>
-                                                    </i:Interaction.Triggers>
-                                                </xctk:ByteUpDown>
-                                            </StackPanel>
-                                        </Grid>
-                                    </Grid>
+                                                <StackPanel Grid.Column="1">
+                                                    <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
+                                                    <xctk:ByteUpDown Value="{Binding cantidadOferta}" Margin="3">
+                                                        <i:Interaction.Triggers>
+                                                            <i:EventTrigger EventName="ValueChanged">
+                                                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                            </i:EventTrigger>
+                                                        </i:Interaction.Triggers>
+                                                    </xctk:ByteUpDown>
+                                                </StackPanel>
+                                            </Grid>
+                                            <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
+                                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Top" Margin="10,0,0,0" HorizontalAlignment="Stretch">
+                                                    <TextBlock Text="{Binding textoNombreProducto}" FontWeight="Bold" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                    <TextBlock Text="{Binding producto}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                    <TextBlock Text="{Binding familia}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                    <TextBlock Text="{Binding subGrupo}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                    <TextBlock Text="{Binding textoFechaUltimaVenta}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                    <TextBlock Text="{Binding textoUnidadesVendidas}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </DockPanel>
+                                        
+                                    </DockPanel>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
@@ -200,6 +208,20 @@
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="False">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style>
+                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="Precio" Binding="{Binding precio, StringFormat=c}" IsReadOnly="False">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style>
+                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                    <DataGridTextColumn Header="% Dto." Binding="{Binding descuento, Converter={StaticResource porcentajeConverter}}" IsReadOnly="False">
                                         <DataGridTextColumn.CellStyle>
                                             <Style>
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -269,6 +291,7 @@
                         <TextBlock>Una vez creado el pedido entre a Nesto 4 y seleccione "Clientes -> Pedidos -> Abrir" para ver el pedido que acaba de crear.</TextBlock>
                         <TextBlock>¡Atención! Si tiene una ventana de pedidos abierta, ciérrela antes de pulsar el botón "Finalizar" para evitar perder el nº del pedido recién creado.</TextBlock>
                     </StackPanel>
+
                 </xctk:WizardPage>
             </xctk:Wizard>
         </Grid>
