@@ -703,10 +703,6 @@ Public Class PlantillaVentaViewModel
                     ofertaLinea = 0
                 End If
 
-                If linea.precio <> productoSeleccionado.precio OrElse linea.descuento > 0 Then
-                    linea.aplicarDescuento = False
-                End If
-
                 lineaPedido = New LineaPedidoVentaDTO With {
                     .estado = 1, 'ojo, de parámetro. ¿Pongo 0 para tener que validar?
                     .tipoLinea = 1, ' Producto
@@ -757,6 +753,8 @@ Public Class PlantillaVentaViewModel
                         Me.regionManager.Regions("MainRegion").Remove(view)
                     End If
                 Else
+
+                    Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(response.Content.ReadAsStringAsync().Result)
                     NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
                     .Content = "Se ha producido un error al crear el pedido desde la plantilla"
