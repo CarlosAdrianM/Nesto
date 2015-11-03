@@ -102,6 +102,7 @@ Public Class AgenciasViewModel
         listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
         'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
         listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+
     End Sub
 
 #Region "Propiedades"
@@ -174,6 +175,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As AgenciasTransporte)
             SetProperty(_agenciaSeleccionada, value)
+
             Try
                 If Not IsNothing(agenciaSeleccionada) Then
                     agenciaEspecifica = factory(agenciaSeleccionada.Nombre).Invoke

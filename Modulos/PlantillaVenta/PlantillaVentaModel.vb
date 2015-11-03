@@ -1,4 +1,6 @@
-﻿Public Class PlantillaVentaModel
+﻿Imports Microsoft.Practices.Prism.Mvvm
+
+Public Class PlantillaVentaModel
 
     Public Class ClienteJson
         Public Property empresa() As String
@@ -58,6 +60,7 @@
         End Property
     End Class
     Public Class LineaPlantillaJson
+        Inherits BindableBase
         Public Property producto() As String
         Public Property texto() As String
         Public Property cantidad() As Integer
@@ -79,6 +82,17 @@
         Public Property stockActualizado As Boolean
         Public Property fechaInsercion As DateTime
         Public Property descuento As Decimal
+        Private _urlImagen As String
+        Public Property urlImagen As String
+            Get
+                Return _urlImagen
+            End Get
+            Set(value As String)
+                SetProperty(_urlImagen, value)
+                OnPropertyChanged("imagen")
+                OnPropertyChanged("imagenVisible")
+            End Set
+        End Property
         Public ReadOnly Property colorEstado As Brush
             Get
                 If cantidadAbonada >= cantidadVendida Then
@@ -145,6 +159,27 @@
                 End If
             End Get
         End Property
+        Public ReadOnly Property imagenVisible As Visibility
+            Get
+                'Return Visibility.Visible
+                If urlImagen = "" Then
+                    Return Visibility.Collapsed
+                Else
+                    Return Visibility.Visible
+                End If
+            End Get
+        End Property
+        Public ReadOnly Property imagen As BitmapImage
+            Get
+                If Not IsNothing(urlImagen) Then
+                    Return New BitmapImage(New Uri(urlImagen, UriKind.Absolute))
+                Else
+                    Return Nothing
+                End If
+            End Get
+        End Property
+
+
     End Class
     Public Class DireccionesEntregaJson
         Public Property contacto() As String
@@ -196,7 +231,7 @@
 
         Public Property iva() As String
 
-        Public Property oferta() As Integer
+        Public Property oferta() As Integer?
 
         Public Property precio() As Decimal
 
@@ -250,6 +285,7 @@
     Public Class StockProductoDTO
         Public Property stock() As Integer
         Public Property cantidadDisponible() As Integer
+        Public Property urlImagen() As String
     End Class
     Public Class UltimasVentasProductoClienteDTO
         Public Property fecha As DateTime

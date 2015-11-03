@@ -309,8 +309,6 @@ Public Class PlantillaVentaViewModel
         Return True
     End Function
     Private Sub OnActualizarProductosPedido(arg As Object)
-
-
         If IsNothing(arg) Then
             Return
         End If
@@ -323,10 +321,14 @@ Public Class PlantillaVentaViewModel
             cmdCargarStockProducto.Execute(arg)
         End If
         OnPropertyChanged("hayProductosEnElPedido")
-        'OnPropertyChanged("listaProductosPedido")
         If IsNothing(productoSeleccionado) OrElse productoSeleccionado.producto <> arg.producto Then
             productoSeleccionado = arg
         End If
+
+        OnPropertyChanged("productoSeleccionado")
+        OnPropertyChanged("listaProductos")
+        OnPropertyChanged("listaProductosPedido")
+
     End Sub
 
     Private _cmdBuscarEnTodosLosProductos As DelegateCommand(Of Object)
@@ -569,9 +571,11 @@ Public Class PlantillaVentaViewModel
                     datosStock = JsonConvert.DeserializeObject(Of StockProductoDTO)(cadenaJson)
                     arg.stock = datosStock.stock
                     arg.cantidadDisponible = datosStock.cantidadDisponible
+                    arg.urlImagen = datosStock.urlImagen
                     arg.stockActualizado = True
                     arg.fechaInsercion = Now
                     OnPropertyChanged("listaProductosPedido")
+                    OnPropertyChanged("productoSeleccionado")
                 Else
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
@@ -694,13 +698,13 @@ Public Class PlantillaVentaViewModel
             }
 
             Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
-            Dim ofertaLinea As Integer
+            Dim ofertaLinea As Integer?
 
             For Each linea In listaProductosPedido
                 If linea.cantidadOferta <> 0 Then
                     ofertaLinea = cogerSiguienteOferta()
                 Else
-                    ofertaLinea = 0
+                    ofertaLinea = Nothing
                 End If
 
                 lineaPedido = New LineaPedidoVentaDTO With {
@@ -742,9 +746,11 @@ Public Class PlantillaVentaViewModel
                 If response.IsSuccessStatusCode Then
                     'Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     'listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+                    Dim pathNumeroPedido = response.Headers.Location.LocalPath
+                    Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Plantilla",
-                        .Content = "Pedido creado correctamente"
+                        .Content = "Pedido " + numPedido + " creado correctamente"
                     })
                     ' Cerramos la ventana
                     Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault

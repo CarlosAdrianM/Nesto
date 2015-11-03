@@ -102,13 +102,18 @@
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Row="0" Grid.ColumnSpan="2">
+                        <StackPanel Grid.Row="0" Grid.Column="0">
                             <TextBox Name="txtFiltroProducto" Text="{Binding filtroProducto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxPlaceholder}" Tag="Introduce algún dato del producto..." PreviewMouseLeftButtonUp="txtFiltroProducto_MouseUp">
                                 <TextBox.InputBindings>
                                     <KeyBinding Command="{Binding cmdFijarFiltroProductos}" Key="Enter" />
                                 </TextBox.InputBindings>
                             </TextBox>
                             <Button Command="{Binding cmdBuscarEnTodosLosProductos}">Buscar en todos los productos</Button>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="3,0">
+                            <TextBlock Text="{Binding clienteSeleccionado.cliente}"></TextBlock>
+                            <TextBlock Text="{Binding clienteSeleccionado.nombre}"></TextBlock>
+                            <TextBlock Text="{Binding clienteSeleccionado.direccion}"></TextBlock>
                         </StackPanel>
                         <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.ItemTemplate>
@@ -121,6 +126,12 @@
                                         </-->
 
                                         <StackPanel DockPanel.Dock="Left" Grid.Column="0" Width="110" MinWidth="110" Height="110" >
+                                            
+                                            <Image Source="{Binding imagen}" Height="100" Width="100" Visibility="{Binding imagenVisible}" Margin="0,0,10,0">
+                                                <xctk:MagnifierManager.Magnifier>
+                                                    <xctk:Magnifier Radius="100" ZoomFactor=".3" />
+                                                </xctk:MagnifierManager.Magnifier>
+                                            </Image>
                                             <Border Background="{Binding colorEstado}" Height="110" Width="110" HorizontalAlignment="Left" Margin="0,0,10,0"/>
                                         </StackPanel>
 
@@ -192,7 +203,7 @@
                                     </DataGridTextColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
-                            <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                            <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" SelectedItem="{Binding productoSeleccionado}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Producto" Binding="{Binding producto}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="3*" IsReadOnly="False"/>
@@ -280,6 +291,7 @@
                         <StackPanel Grid.Column="1">
                             <TextBlock TextWrapping="Wrap" Margin="3,0">Este comentario lo leerá la agencia y también el cliente, porque aparecerá en la factura:</TextBlock>
                             <TextBox TextWrapping="Wrap" Text="{Binding direccionEntregaSeleccionada.comentarioRuta}" Margin="3,0"/>
+                            <CheckBox Content="Servir Junto" IsChecked="{Binding direccionEntregaSeleccionada.servirJunto}" Margin="3,0"/>
                         </StackPanel>
                     </Grid>
                 </xctk:WizardPage>

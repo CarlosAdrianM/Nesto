@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>5</ApplicationRevision>
+    <ApplicationRevision>6</ApplicationRevision>
     <ApplicationVersion>1.2.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -244,6 +244,9 @@
     <Compile Include="Ventanas\CRInforme.xaml.vb">
       <DependentUpon>CRInforme.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Ventanas\Notificacion.xaml.vb">
+      <DependentUpon>Notificacion.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Ventanas\PlanesVentajas.xaml.vb">
       <DependentUpon>PlanesVentajas.xaml</DependentUpon>
     </Compile>
@@ -296,6 +299,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Ventanas\Informe.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Ventanas\Notificacion.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
