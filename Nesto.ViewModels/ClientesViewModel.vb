@@ -75,6 +75,8 @@ Public Class ClientesViewModel
         listaTipos = New ObservableCollection(Of tipoIdDescripcion)
         listaTipos.Add(New tipoIdDescripcion(1, "Consumidor final"))
         listaTipos.Add(New tipoIdDescripcion(2, "Profesional"))
+
+        Titulo = "Clientes"
     End Sub
 
 #Region "Propiedades"
@@ -99,6 +101,10 @@ Public Class ClientesViewModel
             _clienteActual = value
             actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
             OnPropertyChanged("clienteActual")
+            If Not IsNothing(clienteActivo) AndAlso Not IsNothing(clienteActivo.Nº_Cliente) Then
+                Titulo = String.Format("Cliente {0}", clienteActivo.Nº_Cliente.Trim)
+                OnPropertyChanged("Titulo")
+            End If
         End Set
     End Property
 

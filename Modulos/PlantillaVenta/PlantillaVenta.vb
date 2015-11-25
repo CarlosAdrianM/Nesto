@@ -19,6 +19,8 @@ Public Class PlantillaVenta
     End Sub
 
     Public Sub Initialize() Implements IModule.Initialize
+        container.RegisterType(Of Object, PlantillaVentaView)("PlantillaVentaView")
+
         Dim view = Me.container.Resolve(Of PlantillaVentaMenuBar)
         If Not IsNothing(view) Then
             'regionManager.RegisterViewWithRegion("MainMenu", GetType(PlantillaVentaView))

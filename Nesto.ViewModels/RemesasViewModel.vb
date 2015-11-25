@@ -35,6 +35,7 @@ Public Class RemesasViewModel
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
+        Titulo = "Remesas"
         DbContext = New NestoEntities
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha

@@ -25,6 +25,8 @@ Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "PlantillaVenta", "Modulos\P
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Contratos", "Contratos\Contratos.vbproj", "{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}"
 EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Inventario", "Modulos\Inventario\Inventario\Inventario.vbproj", "{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,12 +99,25 @@ Global
 		{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}.Release|x86.ActiveCfg = Release|Any CPU
 		{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}.Release|x86.Build.0 = Release|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Debug|x86.Build.0 = Debug|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|x86.ActiveCfg = Release|Any CPU
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{2C0AFE5D-A09A-40F1-8F60-75A446C6E7D4} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
+		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
 	EndGlobalSection
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = Nesto.vsmdi

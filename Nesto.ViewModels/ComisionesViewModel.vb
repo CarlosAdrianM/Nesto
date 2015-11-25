@@ -33,7 +33,7 @@ Public Class ComisionesViewModel
         mesActual = colMeses(0)
         vendedorActual = listaVendedores.FirstOrDefault
 
-
+        Titulo = "Comisiones"
 
 
 

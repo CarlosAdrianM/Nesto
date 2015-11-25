@@ -34,6 +34,7 @@ Public Class AlquileresViewModel
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
+        Titulo = "Alquileres"
     End Sub
 
 
@@ -68,6 +69,16 @@ Public Class AlquileresViewModel
         Set(value As String)
             Me.resultMessage = value
             Me.OnPropertyChanged("InteractionResultMessage")
+        End Set
+    End Property
+
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(value As String)
+            SetProperty(_titulo, value)
         End Set
     End Property
 

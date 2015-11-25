@@ -5,8 +5,7 @@ Imports Microsoft.Practices.Prism.Regions
 Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
 Imports Nesto.Modulos.PlantillaVenta
-
-
+Imports Nesto.Modulos.Inventario
 
 Public Class Bootstrapper
     Inherits UnityBootstrapper
@@ -42,7 +41,11 @@ Public Class Bootstrapper
         'If (System.Environment.UserName = "Alfredo") OrElse (System.Environment.UserName = "Carlos") OrElse (System.Environment.UserName = "Manuel") _
         '    OrElse (System.Environment.UserName.ToLower = "silvia") OrElse (System.Environment.UserName.ToLower = "lalonso") OrElse (System.Environment.UserName.ToLower = "amaia") OrElse (System.Environment.UserName.ToLower = "carolina") OrElse (System.Environment.UserName.ToLower = "marta") Then
         moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
-        'End If
+
+        ' Inventarios - 09/11/15
+        If (System.Environment.UserName = "Carlos") Then
+            moduleCatalog.AddModule(GetType(IInventario)) ', InitializationMode.WhenAvailable
+        End If
 
 
     End Sub
@@ -52,7 +55,9 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(RibbonRegionAdapter), GetType(RibbonRegionAdapter), True)
         RegisterTypeIfMissing(GetType(IMainWindow), GetType(MainWindow), True)
         RegisterTypeIfMissing(GetType(IMenuBar), GetType(MenuBarView), True)
+        RegisterTypeIfMissing(GetType(IConfiguracion), GetType(Configuracion), True)
         RegisterTypeIfMissing(GetType(IPlantillaVenta), GetType(PlantillaVenta), False)
+        RegisterTypeIfMissing(GetType(IInventario), GetType(Inventario), False)
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings

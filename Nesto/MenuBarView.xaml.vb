@@ -28,7 +28,7 @@ Public Class MenuBarView
         Me.container = container
         Me.regionManager = regionManager
         Me.DataContext = New MainViewModel(container, regionManager)
-
+        DataContext.Titulo = "Sin Título"
 
     End Sub
 
@@ -64,7 +64,7 @@ Public Class MenuBarView
         'w2.Owner = Me
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of frmCRInforme)()
-
+        'vista.DataContext.Titulo = "Informe"
 
         'Dim fchFechaInicial As New Date
         'Dim fchFechaFinal As New Date

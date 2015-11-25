@@ -55,7 +55,6 @@ Public Class AgenciasViewModel
 
     Private imprimirEtiqueta As Boolean
 
-
     Public Sub New()
 
     End Sub
@@ -69,6 +68,8 @@ Public Class AgenciasViewModel
         Me.regionManager = regionManager
 
         DbContext = New NestoEntities
+
+        Titulo = "Agencias"
 
         ' Prism
         cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
@@ -142,6 +143,16 @@ Public Class AgenciasViewModel
         Set(value As String)
             Me.resultMessage = value
             Me.OnPropertyChanged("InteractionResultMessage")
+        End Set
+    End Property
+
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(value As String)
+            SetProperty(_titulo, value)
         End Set
     End Property
 
@@ -637,7 +648,8 @@ Public Class AgenciasViewModel
             pedidoAnterior = pedidoSeleccionado
             Dim pedidoNumerico As Integer
             If Integer.TryParse(numeroPedido, pedidoNumerico) Then ' si el pedido es numérico
-                pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO).FirstOrDefault
+                'pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO).FirstOrDefault
+                pedidoSeleccionado = DbContext.CabPedidoVta.FirstOrDefault(Function(c) c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO)
                 If IsNothing(pedidoSeleccionado) Then
                     pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico).FirstOrDefault
                 End If
@@ -1739,7 +1751,7 @@ Public Class AgenciasViewModel
 
         ' Carlos 16/09/15: hacemos que se pueda cobrar en efectivo por la agencia
         If reembolso > 0 AndAlso IsNothing(pedidoSeleccionado.IVA) AndAlso agenciaSeleccionada.Empresa <> EMPRESA_ESPEJO Then
-            agenciaSeleccionada = listaAgencias.SingleOrDefault(Function(a) a.Empresa = EMPRESA_ESPEJO AndAlso a.CuentaReembolsos = agenciaSeleccionada.CuentaReembolsos AndAlso a.Nombre = agenciaSeleccionada.Nombre)
+            agenciaSeleccionada = DbContext.AgenciasTransporte.SingleOrDefault(Function(a) a.Empresa = EMPRESA_ESPEJO AndAlso a.CuentaReembolsos = agenciaSeleccionada.CuentaReembolsos AndAlso a.Nombre = agenciaSeleccionada.Nombre)
         End If
 
         With envioActual

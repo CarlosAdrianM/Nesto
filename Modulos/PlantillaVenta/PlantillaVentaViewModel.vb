@@ -8,25 +8,30 @@ Imports System.Collections.ObjectModel
 Imports Newtonsoft.Json
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports System.Text
-
+Imports Nesto.Contratos
 
 Public Class PlantillaVentaViewModel
-    Inherits BindableBase
+    Inherits ViewModelBase
 
+    Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
-    Dim formaVentaUsuario, delegacionUsuario, almacenRutaUsuario As String
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
+    Dim formaVentaPedido, delegacionUsuario, almacenRutaUsuario, vendedorUsuario As String
+
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion)
+        Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
 
+        Titulo = "Plantilla Ventas"
 
         cmdAbrirPlantillaVenta = New DelegateCommand(Of Object)(AddressOf OnAbrirPlantillaVenta, AddressOf CanAbrirPlantillaVenta)
         cmdActualizarProductosPedido = New DelegateCommand(Of Object)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
         cmdBuscarEnTodosLosProductos = New DelegateCommand(Of Object)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(Of Object)(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
+        cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
         cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
@@ -36,7 +41,6 @@ Public Class PlantillaVentaViewModel
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
 
         ' Esto habrá que leerlo de un parámetro de usuario si queremos que algunos usuarios puedan y otros no.
         ' De momento dejamos que aquí todos los usuarios vean a todos los clientes, 
@@ -88,6 +92,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As ClienteJson)
             SetProperty(_clienteSeleccionado, value)
+            Titulo = String.Format("Plantilla Ventas ({0})", clienteSeleccionado.cliente)
             OnPropertyChanged("hayUnClienteSeleccionado")
             cmdCargarProductosPlantilla.Execute(Nothing)
             'cmdCargarDireccionesEntrega.Execute(Nothing)
@@ -112,6 +117,22 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As Boolean)
             SetProperty(_estaOcupado, value)
         End Set
+    End Property
+
+    Private _fechaEntrega As DateTime = Today
+    Public Property fechaEntrega As DateTime
+        Get
+            Return _fechaEntrega
+        End Get
+        Set(ByVal value As DateTime)
+            SetProperty(_fechaEntrega, value)
+        End Set
+    End Property
+
+    Public ReadOnly Property fechaHoy As DateTime
+        Get
+            Return Today
+        End Get
     End Property
 
     Private _filtroCliente As String
@@ -149,6 +170,59 @@ Public Class PlantillaVentaViewModel
                 )
             End If
             cmdBuscarEnTodosLosProductos.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Private _formaVentaDirecta As Boolean
+    Public Property formaVentaDirecta() As Boolean
+        Get
+            Return formaVentaSeleccionada.Equals(1)
+        End Get
+        Set(ByVal value As Boolean)
+            formaVentaSeleccionada = 1
+        End Set
+    End Property
+
+    Private _formaVentaOtras As Boolean
+    Public Property formaVentaOtras() As Boolean
+        Get
+            Return formaVentaSeleccionada.Equals(3)
+        End Get
+        Set(ByVal value As Boolean)
+            formaVentaSeleccionada = 3
+        End Set
+    End Property
+
+    Private _formaVentaTelefono As Boolean
+    Public Property formaVentaTelefono() As Boolean
+        Get
+            Return formaVentaSeleccionada.Equals(2)
+        End Get
+        Set(ByVal value As Boolean)
+            formaVentaSeleccionada = 2
+        End Set
+    End Property
+
+    Private _formaVentaSeleccionada As Integer
+    Public Property formaVentaSeleccionada() As Integer
+        Get
+            Return _formaVentaSeleccionada
+        End Get
+        Set(ByVal value As Integer)
+            SetProperty(_formaVentaSeleccionada, value)
+            OnPropertyChanged("formaVentaDirecta")
+            OnPropertyChanged("formaVentaTelefono")
+            OnPropertyChanged("formaVentaOtras")
+        End Set
+    End Property
+
+    Private _formaVentaOtrasSeleccionada As FormaVentaDTO
+    Public Property formaVentaOtrasSeleccionada As FormaVentaDTO
+        Get
+            Return _formaVentaOtrasSeleccionada
+        End Get
+        Set(ByVal value As FormaVentaDTO)
+            SetProperty(_formaVentaOtrasSeleccionada, value)
         End Set
     End Property
 
@@ -197,6 +271,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _listaFormasVenta As ObservableCollection(Of FormaVentaDTO)
+    Public Property listaFormasVenta() As ObservableCollection(Of FormaVentaDTO)
+        Get
+            Return _listaFormasVenta
+        End Get
+        Set(ByVal value As ObservableCollection(Of FormaVentaDTO))
+            SetProperty(_listaFormasVenta, value)
+        End Set
+    End Property
+
     Private _listaProductos As ObservableCollection(Of LineaPlantillaJson)
     Public Property listaProductos As ObservableCollection(Of LineaPlantillaJson)
         Get
@@ -233,7 +317,7 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property listaProductosPedido() As ObservableCollection(Of LineaPlantillaJson)
         Get
             If Not IsNothing(listaProductosOriginal) Then
-                Return New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosOriginal Where l.cantidad > 0 OrElse l.cantidadOferta > 0 Order By l.fechaInsercion)
+                Return New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosOriginal Where (l.cantidad > 0 OrElse l.cantidadOferta > 0) Order By l.fechaInsercion)
             Else
                 Return Nothing
             End If
@@ -289,11 +373,12 @@ Public Class PlantillaVentaViewModel
         Return True
     End Function
     Private Sub OnAbrirPlantillaVenta(arg As Object)
+        regionManager.RequestNavigate("MainRegion", "PlantillaVentaView")
         'regionManager.RegisterViewWithRegion("MainRegion", GetType(PlantillaVentaView))
-        Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of PlantillaVentaView)()
-        region.Add(vista, nombreVista(region, vista.ToString))
-        region.Activate(vista)
+        'Dim region As IRegion = regionManager.Regions("MainRegion")
+        'Dim vista = container.Resolve(Of PlantillaVentaView)()
+        'region.Add(vista, nombreVista(region, vista.ToString))
+        'region.Activate(vista)
     End Sub
 
     Private _cmdActualizarProductosPedido As DelegateCommand(Of Object)
@@ -345,7 +430,7 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Async Sub OnBuscarEnTodosLosProductos(arg As Object)
         Using client As New HttpClient
-            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -404,7 +489,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
 
@@ -457,7 +542,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -472,6 +557,62 @@ Public Class PlantillaVentaViewModel
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
                         .Content = "Se ha producido un error al cargar las direcciones de entrega"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = ex.Message
+                })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
+
+    Private _cmdCargarFormasVenta As DelegateCommand(Of Object)
+    Public Property cmdCargarFormasVenta As DelegateCommand(Of Object)
+        Get
+            Return _cmdCargarFormasVenta
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCargarFormasVenta, value)
+        End Set
+    End Property
+    Private Function CanCargarFormasVenta(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCargarFormasVenta(arg As Object)
+
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        vendedorUsuario = Await leerParametro("Vendedor")
+        If vendedorUsuario = clienteSeleccionado.vendedor Then
+            formaVentaSeleccionada = 1 ' Directa
+        Else
+            formaVentaSeleccionada = 2 ' Telefono
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+
+            Try
+                response = Await client.GetAsync("FormasVenta?empresa=" + clienteSeleccionado.empresa)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaFormasVenta = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaVentaDTO))(cadenaJson)
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar las formas de venta"
                     })
                 End If
             Catch ex As Exception
@@ -506,7 +647,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -556,7 +697,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -614,7 +755,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -663,14 +804,21 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        formaVentaUsuario = Await leerParametro("FormaVentaDefecto")
         delegacionUsuario = Await leerParametro("DelegaciónDefecto")
         almacenRutaUsuario = Await leerParametro("AlmacénRuta")
+
+        If formaVentaSeleccionada = 1 Then
+            formaVentaPedido = "DIR"
+        ElseIf formaVentaSeleccionada = 2 Then
+            formaVentaPedido = "TEL"
+        Else
+            formaVentaPedido = formaVentaOtrasSeleccionada.numero
+        End If
 
         Using client As New HttpClient
             estaOcupado = True
 
-            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             Dim pedido As New PedidoVentaDTO With {
@@ -713,7 +861,7 @@ Public Class PlantillaVentaViewModel
                     .producto = linea.producto,
                     .texto = linea.texto,
                     .cantidad = linea.cantidad,
-                    .fechaEntrega = Today,
+                    .fechaEntrega = fechaEntrega,
                     .precio = linea.precio,
                     .descuento = linea.descuento,
                     .aplicarDescuento = linea.aplicarDescuento,
@@ -722,7 +870,7 @@ Public Class PlantillaVentaViewModel
                     .almacen = almacenRutaUsuario,
                     .iva = linea.iva,
                     .delegacion = delegacionUsuario, 'pedir al usuario en alguna parte
-                    .formaVenta = formaVentaUsuario,
+                    .formaVenta = formaVentaPedido,
                     .oferta = ofertaLinea
                 }
                 pedido.LineasPedido.Add(lineaPedido)
@@ -856,7 +1004,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri(My.Resources.servidorAPI)
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             estaOcupado = True

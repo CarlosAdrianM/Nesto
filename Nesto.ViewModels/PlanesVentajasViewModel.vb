@@ -20,6 +20,7 @@ Public Class PlanesVentajasViewModel
             Return
         End If
         DbContext = New NestoEntities
+        Titulo = "Planes de Ventajas"
 
         'Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
         Dim empresaDefecto As String = "1"

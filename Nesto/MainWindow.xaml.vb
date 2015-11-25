@@ -1,7 +1,7 @@
 ﻿Imports Nesto.ViewModels
 Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Prism.Commands
+Imports Microsoft.Practices.Prism.Mvvm
 Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
 
@@ -19,7 +19,7 @@ Class MainWindow
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.container = container
         Me.regionManager = regionManager
-        Me.DataContext = New MainViewModel(container, regionManager)
+        'Me.DataContext = New MainViewModel(container, regionManager)
     End Sub
 
     Public Property regionRibbon As Controls.Ribbon.Ribbon Implements IMainWindow.mainRibbon

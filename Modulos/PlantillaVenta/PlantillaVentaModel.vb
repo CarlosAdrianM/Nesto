@@ -1,7 +1,7 @@
 ﻿Imports Microsoft.Practices.Prism.Mvvm
+Imports Newtonsoft.Json
 
 Public Class PlantillaVentaModel
-
     Public Class ClienteJson
         Public Property empresa() As String
         Public Property cliente() As String
@@ -59,6 +59,42 @@ Public Class PlantillaVentaModel
             End Get
         End Property
     End Class
+    Public Class DireccionesEntregaJson
+        Public Property contacto() As String
+        Public Property clientePrincipal() As Boolean
+        Public Property nombre() As String
+        Public Property direccion() As String
+        Public Property poblacion() As String
+        Public Property comentarios() As String
+        Public Property codigoPostal() As String
+        Public Property provincia() As String
+        Public Property estado() As Integer
+        Public Property iva() As String
+        Public Property comentarioRuta() As String
+        Public Property comentarioPicking() As Object
+        Public Property noComisiona() As Double
+        Public Property servirJunto() As Boolean
+        Public Property mantenerJunto() As Boolean
+        Public Property esDireccionPorDefecto() As Boolean
+        Public Property vendedor() As String
+        Public Property periodoFacturacion() As String
+        Public Property ccc() As String
+        Public Property ruta() As String
+        Public Property formaPago() As String
+        Public Property plazosPago() As String
+
+        Public ReadOnly Property textoPoblacion As String
+            Get
+                Return String.Format("{0} {1} ({2})", codigoPostal, poblacion, provincia)
+            End Get
+        End Property
+    End Class
+    Public Class FormaVentaDTO
+        <JsonProperty("Número")>
+        Public Property numero As String
+        <JsonProperty("Descripción")>
+        Public Property descripcion As String
+    End Class
     Public Class LineaPlantillaJson
         Inherits BindableBase
         Public Property producto() As String
@@ -80,7 +116,7 @@ Public Class PlantillaVentaModel
         Public Property stock As Integer
         Public Property cantidadDisponible As Integer
         Public Property stockActualizado As Boolean
-        Public Property fechaInsercion As DateTime
+        Public Property fechaInsercion As DateTime = DateTime.MaxValue
         Public Property descuento As Decimal
         Private _urlImagen As String
         Public Property urlImagen As String
@@ -181,71 +217,23 @@ Public Class PlantillaVentaModel
 
 
     End Class
-    Public Class DireccionesEntregaJson
-        Public Property contacto() As String
-        Public Property clientePrincipal() As Boolean
-        Public Property nombre() As String
-        Public Property direccion() As String
-        Public Property poblacion() As String
-        Public Property comentarios() As String
-        Public Property codigoPostal() As String
-        Public Property provincia() As String
-        Public Property estado() As Integer
-        Public Property iva() As String
-        Public Property comentarioRuta() As String
-        Public Property comentarioPicking() As Object
-        Public Property noComisiona() As Double
-        Public Property servirJunto() As Boolean
-        Public Property mantenerJunto() As Boolean
-        Public Property esDireccionPorDefecto() As Boolean
-        Public Property vendedor() As String
-        Public Property periodoFacturacion() As String
-        Public Property ccc() As String
-        Public Property ruta() As String
-        Public Property formaPago() As String
-        Public Property plazosPago() As String
-
-        Public ReadOnly Property textoPoblacion As String
-            Get
-                Return String.Format("{0} {1} ({2})", codigoPostal, poblacion, provincia)
-            End Get
-        End Property
-    End Class
     Public Class LineaPedidoVentaDTO
         Public Property almacen() As String
-
         Public Property aplicarDescuento() As Boolean
-
         Public Property cantidad() As Short
-
-        ' era Nullable<short> 
         Public Property delegacion() As String
-
         Public Property descuento() As Decimal
-
         Public Property estado() As Short
-
         Public Property fechaEntrega() As System.DateTime
-
         Public Property formaVenta() As String
-
         Public Property iva() As String
-
         Public Property oferta() As Integer?
-
         Public Property precio() As Decimal
-
-        ' era Nullable<decimal> 
         Public Property producto() As String
-
         Public Property texto() As String
-
         Public Property tipoLinea() As Nullable(Of Byte)
-
         Public Property usuario() As String
-
         Public Property vistoBueno() As Boolean
-
         Public Function ShallowCopy() As LineaPedidoVentaDTO
             Return DirectCast(Me.MemberwiseClone(), LineaPedidoVentaDTO)
         End Function

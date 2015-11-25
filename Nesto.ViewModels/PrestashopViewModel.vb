@@ -16,6 +16,7 @@ Public Class PrestashopViewModel
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
+        Titulo = "Prestashop"
     End Sub
 
 

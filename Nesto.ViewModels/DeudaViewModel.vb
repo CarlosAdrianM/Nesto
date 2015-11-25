@@ -11,6 +11,7 @@ Public Class DeudaViewModel
 
     Public Sub New()
         Me._RatiosDeuda = RatioDeuda.CargarRatiosDeuda
+        Titulo = "Ratio de Deuda"
     End Sub
 
     Private _RatiosDeuda As RatioDeuda

@@ -117,8 +117,4 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="servidorAPI" xml:space="preserve">
-    <value>http://192.168.154.26/api/</value>
-    <comment>Dirección IP del servidor con NestoAPI</comment>
-  </data>
 </root>

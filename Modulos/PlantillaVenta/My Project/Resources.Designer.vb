@@ -59,14 +59,5 @@ Namespace My.Resources
                 resourceCulture = value
             End Set
         End Property
-        
-        '''<summary>
-        '''  Busca una cadena traducida similar a http://192.168.154.26/api/.
-        '''</summary>
-        Friend ReadOnly Property servidorAPI() As String
-            Get
-                Return ResourceManager.GetString("servidorAPI", resourceCulture)
-            End Get
-        End Property
     End Module
 End Namespace

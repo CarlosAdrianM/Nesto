@@ -25,6 +25,20 @@ Public Class ViewModelBase
         End If
     End Sub
 
+    Public Sub New()
+        Titulo = "Informe"
+    End Sub
+
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(ByVal value As String)
+            _titulo = value
+        End Set
+    End Property
+
 End Class
 Public Class RelayCommand
     Implements ICommand
@@ -66,6 +80,20 @@ Public Class RelayCommand
 End Class
 Public Class MainViewModel
     Inherits BindableBase
+
+    Public Sub New()
+
+    End Sub
+
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(ByVal value As String)
+            SetProperty(_titulo, value)
+        End Set
+    End Property
 
     Private _RatiosVenta As RatioVenta
     Public Property RatiosVenta As RatioVenta
@@ -125,7 +153,8 @@ Public Class MainViewModel
         Me._Vendedor = MainModel.Vendedor.CargarVendedor
         Me.container = container
         Me.regionManager = regionManager
-        cmdCerrarVentana = New DelegateCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
+        'cmdCerrarVentana = New DelegateCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
+        Titulo = "Sin Título"
     End Sub
 
     Private _Vendedor As String
@@ -163,37 +192,37 @@ Public Class MainViewModel
 
 
 #Region "Comandos"
-    Private _cmdCerrarVentana As DelegateCommand(Of Object)
-    Public Property cmdCerrarVentana As DelegateCommand(Of Object)
-        Get
-            Return _cmdCerrarVentana
-        End Get
-        Private Set(value As DelegateCommand(Of Object))
-            _cmdCerrarVentana = value
-        End Set
-    End Property
-    Private Function CanCerrarVentana(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Sub OnCerrarVentana(arg As Object)
-        'Dim view = Me.regionManager.Regions("MainRegion").GetView(arg.ToString)
-        Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
-        'Dim view = views.LastOrDefault
+    'Private _cmdCerrarVentana As DelegateCommand(Of Object)
+    'Public Property cmdCerrarVentana As DelegateCommand(Of Object)
+    '    Get
+    '        Return _cmdCerrarVentana
+    '    End Get
+    '    Private Set(value As DelegateCommand(Of Object))
+    '        _cmdCerrarVentana = value
+    '    End Set
+    'End Property
+    'Private Function CanCerrarVentana(arg As Object) As Boolean
+    '    Return True
+    'End Function
+    'Private Sub OnCerrarVentana(arg As Object)
+    '    'Dim view = Me.regionManager.Regions("MainRegion").GetView(arg.ToString)
+    '    Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
+    '    'Dim view = views.LastOrDefault
 
-        'For Each v In views
-        '    Debug.Print(v.Name)
-        '    If v.DataContext.IsActive Then
-        '        view = v
-        '        Exit For
-        '    End If
-        'Next
+    '    'For Each v In views
+    '    '    Debug.Print(v.Name)
+    '    '    If v.DataContext.IsActive Then
+    '    '        view = v
+    '    '        Exit For
+    '    '    End If
+    '    'Next
 
 
-        If Not IsNothing(view) Then
-            Me.regionManager.Regions("MainRegion").Deactivate(view)
-            Me.regionManager.Regions("MainRegion").Remove(view)
-        End If
-    End Sub
+    '    If Not IsNothing(view) Then
+    '        Me.regionManager.Regions("MainRegion").Deactivate(view)
+    '        Me.regionManager.Regions("MainRegion").Remove(view)
+    '    End If
+    'End Sub
 #End Region
 
 End Class

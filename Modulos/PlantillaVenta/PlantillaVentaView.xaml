@@ -203,7 +203,7 @@
                                     </DataGridTextColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
-                            <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" SelectedItem="{Binding productoSeleccionado}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                            <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Producto" Binding="{Binding producto}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="3*" IsReadOnly="False"/>
@@ -292,6 +292,15 @@
                             <TextBlock TextWrapping="Wrap" Margin="3,0">Este comentario lo leerá la agencia y también el cliente, porque aparecerá en la factura:</TextBlock>
                             <TextBox TextWrapping="Wrap" Text="{Binding direccionEntregaSeleccionada.comentarioRuta}" Margin="3,0"/>
                             <CheckBox Content="Servir Junto" IsChecked="{Binding direccionEntregaSeleccionada.servirJunto}" Margin="3,0"/>
+                            <TextBlock></TextBlock>
+                            <TextBlock>Fecha de entrega:</TextBlock>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="3*"/>
+                                </Grid.ColumnDefinitions>
+                                <xctk:DateTimePicker Grid.Column="0" Minimum="{Binding fechaHoy}" Format="ShortDate" AutoCloseCalendar="True" TimePickerVisibility="Hidden"  Text="{Binding fechaEntrega}"></xctk:DateTimePicker>
+                            </Grid>
                         </StackPanel>
                     </Grid>
                 </xctk:WizardPage>
@@ -299,9 +308,22 @@
                                        Title="Finalizar"
                                        Description="Ya tenemos toda la información necesaria. Pulse el botón finalizar para crear el pedido en Nesto."
                                        CanFinish="True">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Enter">
+                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasVenta, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
                     <StackPanel>
                         <TextBlock>Una vez creado el pedido entre a Nesto 4 y seleccione "Clientes -> Pedidos -> Abrir" para ver el pedido que acaba de crear.</TextBlock>
                         <TextBlock>¡Atención! Si tiene una ventana de pedidos abierta, ciérrela antes de pulsar el botón "Finalizar" para evitar perder el nº del pedido recién creado.</TextBlock>
+                        <TextBlock></TextBlock>
+                        <TextBlock>Seleccione la forma de venta del pedido:</TextBlock>
+                        <RadioButton Content="Directa" IsChecked="{Binding formaVentaDirecta,Mode=TwoWay}"/>
+                        <RadioButton Content="Teléfono" IsChecked="{Binding formaVentaTelefono,Mode=TwoWay}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Content="Otras: " IsChecked="{Binding formaVentaOtras,Mode=TwoWay}"/>
+                            <ComboBox MinWidth="300" IsEnabled="{Binding formaVentaOtras}" ItemsSource="{Binding listaFormasVenta}" SelectedItem="{Binding formaVentaOtrasSeleccionada}" DisplayMemberPath="descripcion"></ComboBox>
+                        </StackPanel>
                     </StackPanel>
 
                 </xctk:WizardPage>
