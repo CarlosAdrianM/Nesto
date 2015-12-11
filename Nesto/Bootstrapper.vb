@@ -43,9 +43,7 @@ Public Class Bootstrapper
         moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
 
         ' Inventarios - 09/11/15
-        If (System.Environment.UserName = "Carlos") Then
-            moduleCatalog.AddModule(GetType(IInventario)) ', InitializationMode.WhenAvailable
-        End If
+        moduleCatalog.AddModule(GetType(IInventario)) ', InitializationMode.WhenAvailable
 
 
     End Sub

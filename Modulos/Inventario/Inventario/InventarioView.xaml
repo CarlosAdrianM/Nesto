@@ -50,19 +50,51 @@
                 <RowDefinition/>
                 <RowDefinition/>
                 <RowDefinition/>
+                <RowDefinition/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Fecha: "></TextBlock>
-            <TextBox Name="txtFecha" Grid.Row="0" Grid.Column="1" Text="{Binding fechaSeleccionada, StringFormat=d}"></TextBox>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Almacén: "></TextBlock>
+            <TextBox Name="txtAlmacen" Grid.Row="0" Grid.Column="1" Text="{Binding almacen}"></TextBox>
 
-            <TextBlock Grid.Row="1" Grid.Column="0" Text="Producto: "></TextBlock>
-            <TextBox Name="txtProducto" Grid.Row="1" Grid.Column="1" Text="{Binding numeroProducto, Mode=TwoWay}"></TextBox>
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Fecha: "></TextBlock>
+            <TextBox Name="txtFecha" Grid.Row="1" Grid.Column="1" Text="{Binding fechaSeleccionada, StringFormat=d}"></TextBox>
 
-            <TextBlock Grid.Row="2" Grid.Column="0" Text="Cantidad: "></TextBlock>
-            <TextBox Name="txtCantidad" Grid.Row="2" Grid.Column="1" Text="{Binding cantidad, Mode=TwoWay}" IsEnabled="{Binding estaCantidadActiva}"></TextBox>
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Producto: "></TextBlock>
+            <TextBox Name="txtProducto" Grid.Row="2" Grid.Column="1" Text="{Binding numeroProducto, Mode=TwoWay}"></TextBox>
 
-            <CheckBox Name="chkCantidad" Grid.Row="3" Grid.Column="1" Content="Activar Cantidad" IsChecked="{Binding estaCantidadActiva}"></CheckBox>
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Cantidad: "></TextBlock>
+            <TextBox Name="txtCantidad" Grid.Row="3" Grid.Column="1" Text="{Binding cantidad, Mode=TwoWay}" IsEnabled="{Binding estaCantidadActiva}"></TextBox>
+
+            <CheckBox Name="chkCantidad" Grid.Row="4" Grid.Column="1" Content="Activar Cantidad" IsChecked="{Binding estaCantidadActiva}"></CheckBox>
         </Grid>
-        <xcdg:DataGridControl Grid.Column="1"/>
+        <TabControl Name="tclMovimientos" Grid.Column="1" TabStripPlacement="Bottom">
+            <TabItem Name="tabRecientes" Header="Recientes">
+                <xcdg:DataGridControl Name="dgrRecientes" ItemsSource="{Binding movimientosDia}" AutoCreateColumns="False" AutoScrollCurrentItem="All" ReadOnly="True" SynchronizeCurrent="True" SelectedItem="{Binding movimientoActual, Mode=TwoWay}" SynchronizeSelectionWithCurrent="True">
+                    <xcdg:DataGridControl.Columns>
+                        <xcdg:Column FieldName="Producto" Title="Producto" />
+                        <xcdg:Column FieldName="Descripcion" Width="2*" Title="Descripción" />
+                        <xcdg:Column FieldName="Familia" Title="Familia"/>
+                        <xcdg:Column FieldName="Cantidad" Title="Stock"/>
+                    </xcdg:DataGridControl.Columns>
+                </xcdg:DataGridControl>
+            </TabItem>
+            <TabItem Name="tabCompleto" Header="Completo">
+                <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Top" Command="{Binding cmdActualizarMovimientos}">Actualizar</Button>
+                        <xcdg:DataGridControl DockPanel.Dock="Bottom" Name="dgrCompleto" ItemsSource="{Binding movimientosTotal}" AutoCreateColumns="False" ReadOnly="True">
+                            <xcdg:DataGridControl.Columns>
+                                <xcdg:Column FieldName="Producto" Title="Producto" />
+                                <xcdg:Column FieldName="Descripcion" Width="2*" Title="Descripción" />
+                                <xcdg:Column FieldName="Familia" Title="Familia"/>
+                                <xcdg:Column FieldName="StockReal" Title="Stock"/>
+                            </xcdg:DataGridControl.Columns>
+                        </xcdg:DataGridControl>
+                    </DockPanel>
+                </xctk:BusyIndicator>
+
+            </TabItem>
+        </TabControl>
+        
     </Grid>
 </UserControl>

@@ -68,4 +68,10 @@ Class InventarioView
     Private Sub txtCantidad_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtCantidad.GotFocus
         txtCantidad.SelectAll()
     End Sub
+
+    Private Sub tclMovimientos_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles tclMovimientos.SelectionChanged
+        If tabCompleto.IsSelected Then
+            DataContext.cmdActualizarMovimientos.Execute(Nothing)
+        End If
+    End Sub
 End Class
