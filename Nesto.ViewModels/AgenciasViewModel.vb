@@ -1338,11 +1338,12 @@ Public Class AgenciasViewModel
 
             If Not MODO_CUADRE Then
                 For Each linea In listaReembolsosSeleccionados
-                    DbContext.PreContabilidad.AddObject(New PreContabilidad With { _
+                    DbContext.PreContabilidad.AddObject(New PreContabilidad With {
                         .Empresa = empresaSeleccionada.Número,
                         .Diario = "_PagoReemb",
                         .Asiento = 1,
                         .Fecha = Today,
+                        .FechaVto = Today,
                         .TipoApunte = "3",
                         .TipoCuenta = "1",
                         .Nº_Cuenta = linea.AgenciasTransporte.CuentaReembolsos,
@@ -1350,7 +1351,7 @@ Public Class AgenciasViewModel
                         .Haber = linea.Reembolso,
                         .Nº_Documento = linea.AgenciasTransporte.Nombre,
                         .Delegación = "ALG",
-                        .FormaVenta = "VAR" _
+                        .FormaVenta = "VAR"
                     })
                 Next
                 DbContext.PreContabilidad.AddObject(New PreContabilidad With {
@@ -1358,6 +1359,7 @@ Public Class AgenciasViewModel
                         .Diario = "_PagoReemb",
                         .Asiento = 1,
                         .Fecha = Today,
+                        .FechaVto = Today,
                         .TipoApunte = "3",
                         .TipoCuenta = "2",
                         .Nº_Cuenta = numClienteContabilizar,
@@ -1543,7 +1545,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanRehusarEnvio(arg As Object) As Boolean
-        Return Not IsNothing(envioActual)
+        Return Not IsNothing(envioActual) AndAlso IsNothing(envioActual.FechaPagoReembolso)
     End Function
     Private Sub OnRehusarEnvio(arg As Object)
         Dim tipoRetorno As tipoIdDescripcion = (From l In listaTiposRetorno Where l.id = agenciaEspecifica.retornoSinRetorno).FirstOrDefault
@@ -2184,7 +2186,7 @@ Public Class AgenciasViewModel
         Return Left("S/Pago pedido " + envio.Pedido.ToString + " a " + envio.AgenciasTransporte.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
     End Function
     Private Function buscarPedidoAmpliacion(pedido As CabPedidoVta) As EnviosAgencia
-        Dim pedidoEncontrado As EnviosAgencia = (From e In DbContext.EnviosAgencia Where e.Cliente = pedido.Nº_Cliente And e.Contacto = pedido.Contacto And e.Estado = ESTADO_INICIAL_ENVIO).FirstOrDefault
+        Dim pedidoEncontrado As EnviosAgencia = (From e In DbContext.EnviosAgencia Where e.Cliente = pedido.Nº_Cliente And e.Contacto = pedido.Contacto And e.Direccion = pedido.Clientes.Dirección And e.Estado = ESTADO_INICIAL_ENVIO).FirstOrDefault
         If IsNothing(pedidoEncontrado) Then
             ' Si no es ampliación devolvemos un envío nuevo
             Return New EnviosAgencia

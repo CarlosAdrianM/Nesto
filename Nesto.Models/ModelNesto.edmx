@@ -159,7 +159,7 @@
           <Property Name="Fax" Type="char" MaxLength="29" />
           <Property Name="Vendedor" Type="char" MaxLength="3" />
           <Property Name="Comentarios" Type="text" />
-          <Property Name="CodPostal" Type="char" MaxLength="5" />
+          <Property Name="CodPostal" Type="char" MaxLength="15" />
           <Property Name="CIF/NIF" Type="char" MaxLength="9" />
           <Property Name="Provincia" Type="char" MaxLength="30" />
           <Property Name="Estado" Type="smallint" />
@@ -248,7 +248,7 @@
           <Property Name="Dirección2" Type="char" MaxLength="50" />
           <Property Name="Teléfono" Type="char" MaxLength="29" />
           <Property Name="Fax" Type="char" MaxLength="29" />
-          <Property Name="CodPostal" Type="char" MaxLength="5" />
+          <Property Name="CodPostal" Type="char" MaxLength="15" />
           <Property Name="Población" Type="char" MaxLength="30" />
           <Property Name="Provincia" Type="char" MaxLength="30" />
           <Property Name="Texto" Type="char" MaxLength="50" />
@@ -460,7 +460,7 @@
           <Property Name="Nº Orden" Type="int" Nullable="false" />
           <Property Name="Número" Type="char" MaxLength="10" Nullable="false" />
           <Property Name="Contacto" Type="char" MaxLength="3" Nullable="false" />
-          <Property Name="CodPostal" Type="char" MaxLength="5" />
+          <Property Name="CodPostal" Type="char" MaxLength="15" />
           <Property Name="Fecha" Type="datetime" Nullable="false" />
           <Property Name="Nº Documento" Type="char" MaxLength="10" Nullable="false" />
           <Property Name="Efecto" Type="char" MaxLength="3" />
@@ -484,7 +484,7 @@
           </Key>
           <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
-          <Property Name="CodigoPostal" Type="char" MaxLength="5" Nullable="false" />
+          <Property Name="CodigoPostal" Type="char" MaxLength="15" Nullable="false" />
           <Property Name="Vendedor" Type="char" MaxLength="3" Nullable="false" />
           <Property Name="Familia" Type="char" MaxLength="10" Nullable="false" />
           <Property Name="FechaDesde" Type="datetime" Nullable="false" />
@@ -3099,7 +3099,7 @@
           <Property Type="String" Name="Fax" MaxLength="29" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Vendedor" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="false" />
-          <Property Type="String" Name="CodPostal" MaxLength="5" FixedLength="true" Unicode="false" />
+          <Property Type="String" Name="CodPostal" MaxLength="15" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="CIF_NIF" MaxLength="9" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Provincia" MaxLength="30" FixedLength="true" Unicode="false" />
           <Property Type="Int16" Name="Estado" />
@@ -3342,7 +3342,7 @@
           <Property Type="String" Name="Dirección2" MaxLength="50" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Teléfono" MaxLength="29" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Fax" MaxLength="29" FixedLength="true" Unicode="false" />
-          <Property Type="String" Name="CodPostal" MaxLength="5" FixedLength="true" Unicode="false" />
+          <Property Type="String" Name="CodPostal" MaxLength="15" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Población" MaxLength="30" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Provincia" MaxLength="30" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Texto" MaxLength="50" FixedLength="true" Unicode="false" />
@@ -4043,7 +4043,7 @@
           <Property Name="Nº_Orden" Type="Int32" Nullable="false" />
           <Property Name="Número" Type="String" Nullable="false" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Name="Contacto" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
-          <Property Name="CodPostal" Type="String" MaxLength="5" FixedLength="true" Unicode="false" />
+          <Property Name="CodPostal" Type="String" MaxLength="15" FixedLength="true" Unicode="false" />
           <Property Name="Fecha" Type="DateTime" Nullable="false" Precision="3" />
           <Property Name="Nº_Documento" Type="String" Nullable="false" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Name="Efecto" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
@@ -4387,7 +4387,7 @@
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
           <Property Name="Empresa" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
-          <Property Name="CodigoPostal" Type="String" Nullable="false" MaxLength="5" FixedLength="true" Unicode="false" />
+          <Property Name="CodigoPostal" Type="String" Nullable="false" MaxLength="15" FixedLength="true" Unicode="false" />
           <Property Name="Vendedor" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="Familia" Type="String" Nullable="false" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Name="FechaDesde" Type="DateTime" Nullable="false" Precision="3" />

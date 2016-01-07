@@ -254,7 +254,7 @@ Public Class MenuBarView
             Case "Anterior"
                 GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0), True, True)
             Case Else
-                MsgBox("Parte del programa no implementada aún")
+                GenerarInformeComisiones9(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal, True, True)
         End Select
     End Sub
     Private Sub btnVentasEmpresas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVentasEmpresas.Click
