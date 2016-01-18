@@ -81,6 +81,7 @@ Public Class AgenciasViewModel
         cmdModificarEnvio = New DelegateCommand(Of Object)(AddressOf OnModificarEnvio, AddressOf CanModificarEnvio)
         cmdImprimirManifiesto = New DelegateCommand(Of Object)(AddressOf OnImprimirManifiesto, AddressOf CanImprimirManifiesto)
         cmdRehusarEnvio = New DelegateCommand(Of Object)(AddressOf OnRehusarEnvio, AddressOf CanRehusarEnvio)
+        cmdInsertar = New DelegateCommand(Of Object)(AddressOf OnInsertar, AddressOf CanInsertar)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -1169,21 +1170,46 @@ Public Class AgenciasViewModel
         OnPropertyChanged("listaEnvios")
     End Sub
 
-    Private _cmdInsertar As ICommand
-    Public ReadOnly Property cmdInsertar() As ICommand
+    'Private _cmdInsertar As ICommand
+    'Public ReadOnly Property cmdInsertar() As ICommand
+    '    Get
+    '        If _cmdInsertar Is Nothing Then
+    '            _cmdInsertar = New RelayCommand(AddressOf Insertar, AddressOf CanInsertar)
+    '        End If
+    '        Return _cmdInsertar
+    '    End Get
+    'End Property
+    'Private Function CanInsertar(ByVal param As Object) As Boolean
+    '    Return Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso pedidoSeleccionado.Empresa <> EMPRESA_ESPEJO
+    'End Function
+    'Private Sub Insertar(ByVal param As Object)
+    '    insertarRegistro()
+    'End Sub
+
+    Private _cmdInsertar As DelegateCommand(Of Object)
+    Public Property cmdInsertar As DelegateCommand(Of Object)
         Get
-            If _cmdInsertar Is Nothing Then
-                _cmdInsertar = New RelayCommand(AddressOf Insertar, AddressOf CanInsertar)
-            End If
             Return _cmdInsertar
         End Get
+        Private Set(value As DelegateCommand(Of Object))
+            _cmdInsertar = value
+        End Set
     End Property
-    Private Function CanInsertar(ByVal param As Object) As Boolean
+    Private Function CanInsertar(arg As Object) As Boolean
         Return Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso pedidoSeleccionado.Empresa <> EMPRESA_ESPEJO
     End Function
-    Private Sub Insertar(ByVal param As Object)
-        insertarRegistro()
+    Private Sub OnInsertar(arg As Object)
+        Try
+            insertarRegistro()
+        Catch e As Exception
+            NotificationRequest.Raise(New Notification() With {
+                 .Title = "Error",
+                .Content = e.Message
+            })
+        End Try
     End Sub
+
+
 
     Private _cmdImprimirEInsertar As ICommand
     Public ReadOnly Property cmdImprimirEInsertar() As ICommand
@@ -1720,7 +1746,7 @@ Public Class AgenciasViewModel
     Public Sub insertarRegistro()
         envioActual = buscarPedidoAmpliacion(pedidoSeleccionado)
         Dim textoConfirmar As String
-        Dim esAmpliacion As Boolean = Not IsNothing(envioActual.Pedido)
+        Dim esAmpliacion As Boolean = Not IsNothing(envioActual.Pedido) AndAlso envioActual.Pedido <> pedidoSeleccionado.Número
         If esAmpliacion Then
             If envioActual.Bultos = bultos Then
                 textoConfirmar = "Si el nº total de bultos sigue siendo " + envioActual.Bultos.ToString
@@ -1749,6 +1775,24 @@ Public Class AgenciasViewModel
             End If
         Else
             imprimirEtiqueta = True
+        End If
+
+        Dim lineaConPicking As LinPedidoVta = DbContext.LinPedidoVta.FirstOrDefault(Function(l) l.Empresa = pedidoSeleccionado.Empresa AndAlso l.Número = pedidoSeleccionado.Número AndAlso l.Estado <= 1 AndAlso l.Estado >= -1 AndAlso l.Picking <> 0)
+        If IsNothing(lineaConPicking) Then
+            ConfirmationRequest.Raise(
+                New Confirmation() With {
+                    .Content = "Este pedido no tiene ninguna línea con picking. ¿Desea insertar el pedido de todos modos?",
+                    .Title = "Pedido Sin Picking"
+                },
+                Sub(c)
+                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+                End Sub
+            )
+
+            If InteractionResultMessage = "KO" Then
+                Throw New Exception("Cancelado por el usuario")
+                Return
+            End If
         End If
 
         ' Carlos 16/09/15: hacemos que se pueda cobrar en efectivo por la agencia
