@@ -275,6 +275,11 @@ Public Class AgenciasViewModel
         End Get
         Set(value As CabPedidoVta)
             SetProperty(_pedidoSeleccionado, value)
+
+            If Not IsNothing(cmdInsertar) Then
+                cmdInsertar.RaiseCanExecuteChanged()
+            End If
+
             configurarAgenciaPedido(agenciaSeleccionada)
             If Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(pedidoSeleccionado.Clientes) Then
                 Try
@@ -650,9 +655,11 @@ Public Class AgenciasViewModel
             Dim pedidoNumerico As Integer
             If Integer.TryParse(numeroPedido, pedidoNumerico) Then ' si el pedido es numérico
                 'pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO).FirstOrDefault
-                pedidoSeleccionado = DbContext.CabPedidoVta.FirstOrDefault(Function(c) c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO)
-                If IsNothing(pedidoSeleccionado) Then
+                Dim pedidoBuscado As CabPedidoVta = DbContext.CabPedidoVta.FirstOrDefault(Function(c) c.Número = pedidoNumerico And c.Empresa <> EMPRESA_ESPEJO)
+                If IsNothing(pedidoBuscado) Then
                     pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = pedidoNumerico).FirstOrDefault
+                Else
+                    pedidoSeleccionado = pedidoBuscado
                 End If
             Else ' si no es numérico (es una factura, lo tratamos como un cobro)
                 pedidoSeleccionado = calcularPedidoTexto(numeroPedido)
@@ -1196,12 +1203,13 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanInsertar(arg As Object) As Boolean
-        Return Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso pedidoSeleccionado.Empresa <> EMPRESA_ESPEJO
+        Return Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaSeleccionada) 'AndAlso pedidoSeleccionado.Empresa <> EMPRESA_ESPEJO
     End Function
     Private Sub OnInsertar(arg As Object)
         Try
             insertarRegistro()
         Catch e As Exception
+            imprimirEtiqueta = False
             NotificationRequest.Raise(New Notification() With {
                  .Title = "Error",
                 .Content = e.Message
@@ -1361,87 +1369,95 @@ Public Class AgenciasViewModel
         ' Empezamos una transacción
         Dim success As Boolean = False
         Using transaction As New TransactionScope()
-
-            If Not MODO_CUADRE Then
-                For Each linea In listaReembolsosSeleccionados
+            Try
+                If Not MODO_CUADRE Then
+                    For Each linea In listaReembolsosSeleccionados
+                        DbContext.PreContabilidad.AddObject(New PreContabilidad With {
+                            .Empresa = empresaSeleccionada.Número,
+                            .Diario = "_PagoReemb",
+                            .Asiento = 1,
+                            .Fecha = Today,
+                            .FechaVto = Today,
+                            .TipoApunte = "3",
+                            .TipoCuenta = "1",
+                            .Nº_Cuenta = linea.AgenciasTransporte.CuentaReembolsos,
+                            .Concepto = "Pago reembolso " + linea.Cliente,
+                            .Haber = linea.Reembolso,
+                            .Nº_Documento = linea.AgenciasTransporte.Nombre,
+                            .Delegación = "ALG",
+                            .FormaVenta = "VAR"
+                        })
+                    Next
                     DbContext.PreContabilidad.AddObject(New PreContabilidad With {
-                        .Empresa = empresaSeleccionada.Número,
-                        .Diario = "_PagoReemb",
-                        .Asiento = 1,
-                        .Fecha = Today,
-                        .FechaVto = Today,
-                        .TipoApunte = "3",
-                        .TipoCuenta = "1",
-                        .Nº_Cuenta = linea.AgenciasTransporte.CuentaReembolsos,
-                        .Concepto = "Pago reembolso " + linea.Cliente,
-                        .Haber = linea.Reembolso,
-                        .Nº_Documento = linea.AgenciasTransporte.Nombre,
-                        .Delegación = "ALG",
-                        .FormaVenta = "VAR"
-                    })
-                Next
-                DbContext.PreContabilidad.AddObject(New PreContabilidad With {
-                        .Empresa = empresaSeleccionada.Número,
-                        .Diario = "_PagoReemb",
-                        .Asiento = 1,
-                        .Fecha = Today,
-                        .FechaVto = Today,
-                        .TipoApunte = "3",
-                        .TipoCuenta = "2",
-                        .Nº_Cuenta = numClienteContabilizar,
-                        .Contacto = "0",
-                        .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
-                        .Debe = sumaSeleccionadas,
-                        .Nº_Documento = agenciaSeleccionada.Nombre,
-                        .Delegación = "ALG",
-                        .FormaVenta = "VAR",
-                        .FormaPago = empresaSeleccionada.FormaPagoEfectivo,
-                        .Vendedor = "NV"
-                    })
-                'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                DbContext.SaveChanges()
+                            .Empresa = empresaSeleccionada.Número,
+                            .Diario = "_PagoReemb",
+                            .Asiento = 1,
+                            .Fecha = Today,
+                            .FechaVto = Today,
+                            .TipoApunte = "3",
+                            .TipoCuenta = "2",
+                            .Nº_Cuenta = numClienteContabilizar,
+                            .Contacto = "0",
+                            .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
+                            .Debe = sumaSeleccionadas,
+                            .Nº_Documento = agenciaSeleccionada.Nombre,
+                            .Delegación = "ALG",
+                            .FormaVenta = "VAR",
+                            .FormaPago = empresaSeleccionada.FormaPagoEfectivo,
+                            .Vendedor = "NV"
+                        })
+                    'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                    DbContext.SaveChanges()
 
-                asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_PagoReemb")
-            End If
-            If (asiento > 0 Or MODO_CUADRE) Then
-                Dim fechaAFijar As Date = Today
-                If MODO_CUADRE Then
-                    fechaAFijar = "01/01/2015"
+                    asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_PagoReemb")
                 End If
-                For Each linea In listaReembolsosSeleccionados
-                    linea.FechaPagoReembolso = fechaAFijar
-                Next
-                'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                DbContext.SaveChanges()
+                If (asiento > 0 Or MODO_CUADRE) Then
+                    Dim fechaAFijar As Date = Today
+                    If MODO_CUADRE Then
+                        fechaAFijar = "01/01/2015"
+                    End If
+                    For Each linea In listaReembolsosSeleccionados
+                        linea.FechaPagoReembolso = fechaAFijar
+                    Next
+                    'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                    DbContext.SaveChanges()
 
-                OnPropertyChanged("sumaContabilidad")
-                OnPropertyChanged("descuadreContabilidad")
-                OnPropertyChanged("sumaReembolsos")
+                    OnPropertyChanged("sumaContabilidad")
+                    OnPropertyChanged("descuadreContabilidad")
+                    OnPropertyChanged("sumaReembolsos")
 
-                transaction.Complete()
-                success = True ' Marcamos correctas las transacciones
+                    transaction.Complete()
+                    success = True ' Marcamos correctas las transacciones
 
-                listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
-            Else
+                    listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+                Else
+                    transaction.Dispose()
+                    success = False
+                End If
+
+                ' Comprobamos que las transacciones sean correctas
+                If success Then
+                    ' Reset the context since the operation succeeded. 
+
+                    DbContext.AcceptAllChanges()
+                    NotificationRequest.Raise(New Notification() With {
+                         .Title = "Contabilizado Correctamente",
+                        .Content = "Nº Asiento: " + asiento.ToString
+                    })
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                         .Title = "¡Error!",
+                        .Content = "Se ha producido un error y no se han grabado los datos"
+                    })
+                End If
+            Catch ex As Exception
                 transaction.Dispose()
-                success = False
-            End If
+                NotificationRequest.Raise(New Notification() With {
+                         .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
+                        .Content = ex.Message
+                    })
+            End Try
 
-            ' Comprobamos que las transacciones sean correctas
-            If success Then
-                ' Reset the context since the operation succeeded. 
-
-                DbContext.AcceptAllChanges()
-                NotificationRequest.Raise(New Notification() With { _
-                     .Title = "Contabilizado Correctamente", _
-                    .Content = "Nº Asiento: " + asiento.ToString _
-                })
-            Else
-                NotificationRequest.Raise(New Notification() With { _
-                     .Title = "¡Error!", _
-                    .Content = "Se ha producido un error y no se han grabado los datos" _
-                })
-            End If
         End Using ' finaliza la transacción
     End Sub
 
@@ -1746,7 +1762,7 @@ Public Class AgenciasViewModel
     Public Sub insertarRegistro()
         envioActual = buscarPedidoAmpliacion(pedidoSeleccionado)
         Dim textoConfirmar As String
-        Dim esAmpliacion As Boolean = Not IsNothing(envioActual.Pedido) AndAlso envioActual.Pedido <> pedidoSeleccionado.Número
+        Dim esAmpliacion As Boolean = Not IsNothing(envioActual.Pedido) 'AndAlso envioActual.Pedido <> pedidoSeleccionado.Número
         If esAmpliacion Then
             If envioActual.Bultos = bultos Then
                 textoConfirmar = "Si el nº total de bultos sigue siendo " + envioActual.Bultos.ToString
