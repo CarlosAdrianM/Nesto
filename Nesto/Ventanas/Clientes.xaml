@@ -11,8 +11,8 @@
     <Grid FocusManager.FocusedElement="{Binding ElementName=txtCliente}">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="10*"/>
-            <RowDefinition Height="7*"/>
+            <RowDefinition Height="11*"/>
+            <RowDefinition Height="6*"/>
         </Grid.RowDefinitions>
         <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
@@ -30,7 +30,7 @@
             <Label Grid.Column="4" Content="Contacto:" VerticalAlignment="Center" HorizontalAlignment="Right"/>
             <ComboBox Grid.Column="1" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Número" SelectedValue="{Binding empresaActual}" VerticalAlignment="Center"/>
             <TextBox Grid.Column="3" Margin="3" Text="{Binding clienteActual}" SelectionStart="0" SelectionLength="4" Name="txtCliente" VerticalAlignment="Center"/>
-            <TextBox Grid.Column="5" Margin="3" Text="{Binding contactoActual}"  VerticalAlignment="Center"/>
+            <ComboBox Grid.Column="5" Margin="3" ItemsSource="{Binding listaContactos}" DisplayMemberPath="Contacto" SelectedValuePath="Contacto" SelectedValue="{Binding contactoActual}" VerticalAlignment="Center"/>
             <Button Grid.Column ="6" Content="Guardar Cambios" Command="{Binding cmdGuardar}" VerticalAlignment="Center"/>
             <ScrollViewer Grid.Column="7" VerticalScrollBarVisibility="Auto" >
             <TextBlock Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
@@ -38,9 +38,9 @@
         </Grid>
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*"/>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="3*"/>
                 <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0">
@@ -96,23 +96,26 @@
                     <Button Grid.Row="11" Grid.Column="1" Content="Asignar Mandato" Command="{Binding cmdAsignarMandato}" Margin="3" Name="btnAsignarMandato"/>
                 </Grid>
             </StackPanel>
+            <DockPanel Grid.Column="2" Margin="3,0" Visibility="{Binding estaVisibleExtractoCCC}">
+                <DataGrid ItemsSource="{Binding extractoCCC}" AutoGenerateColumns="False" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Vencimiento" Binding="{Binding FechaVto, StringFormat=d}"/>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Concepto}" Width="3*"/>
+                        <DataGridTextColumn Header="Importe Pendiente" Binding="{Binding ImportePdte, StringFormat=c}"/>
+                        <DataGridTextColumn Header="CCC" Binding="{Binding CCC}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
 
-            <Grid Grid.Column="3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <!--DockPanel Grid.Column="0">
-                    <StackPanel DockPanel.Dock="Top" >
-                        <Label Target="{Binding ElementName=txtRemesa}">Nº _Remesa:</Label>
-                        <TextBox Text="{Binding numeroRemesa}"  Name="txtRemesa"/>
-                        <Button Content="Crear Remesa" Command="{Binding cmdCrearFicheroRemesa}" Margin="3"/>
-                    </StackPanel>
-                </-->
-
-
-            </Grid>
+            <DockPanel Grid.Column="3" Margin="3,0" Visibility="{Binding estaVisiblePedidosCCC}">
+                <DataGrid ItemsSource="{Binding pedidosCCC}" AutoGenerateColumns="False" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
+                        <DataGridTextColumn Header="Número" Binding="{Binding Numero}"/>
+                        <DataGridTextColumn Header="CCC" Binding="{Binding CCC}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
 
         </Grid>
     </Grid>

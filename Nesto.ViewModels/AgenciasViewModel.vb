@@ -411,8 +411,6 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-
-    
     Private _listaHorarios As ObservableCollection(Of tipoIdDescripcion)
     Public Property listaHorarios As ObservableCollection(Of tipoIdDescripcion)
         Get
@@ -712,6 +710,11 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Integer)
             SetProperty(_numeroMultiusuario, value)
+            If IsNothing(empresaSeleccionada) Then
+                Debug.Print("No pasa")
+            Else
+                Debug.Print(empresaSeleccionada.ToString)
+            End If
             multiusuario = (From m In DbContext.MultiUsuarios Where m.Empresa = empresaSeleccionada.Número And m.Número = numeroMultiusuario).FirstOrDefault
         End Set
     End Property
@@ -1077,7 +1080,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function CanTramitar(ByVal param As Object) As Boolean
-        Return Not IsNothing(envioActual) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
+        Return Not IsNothing(envioActual) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0 AndAlso Not CanGuardar(Nothing)
     End Function
     Private Sub Tramitar(ByVal param As Object)
         If envioActual.Estado > 0 Then
@@ -1098,7 +1101,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function CanTramitarTodos(ByVal param As Object) As Boolean
-        Return Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0
+        Return Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso Not CanGuardar(Nothing)
     End Function
     Private Sub TramitarTodos(ByVal param As Object)
         DbContext.Refresh(RefreshMode.StoreWins, listaEnvios)
@@ -1177,22 +1180,6 @@ Public Class AgenciasViewModel
         OnPropertyChanged("listaEnvios")
     End Sub
 
-    'Private _cmdInsertar As ICommand
-    'Public ReadOnly Property cmdInsertar() As ICommand
-    '    Get
-    '        If _cmdInsertar Is Nothing Then
-    '            _cmdInsertar = New RelayCommand(AddressOf Insertar, AddressOf CanInsertar)
-    '        End If
-    '        Return _cmdInsertar
-    '    End Get
-    'End Property
-    'Private Function CanInsertar(ByVal param As Object) As Boolean
-    '    Return Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso pedidoSeleccionado.Empresa <> EMPRESA_ESPEJO
-    'End Function
-    'Private Sub Insertar(ByVal param As Object)
-    '    insertarRegistro()
-    'End Sub
-
     Private _cmdInsertar As DelegateCommand(Of Object)
     Public Property cmdInsertar As DelegateCommand(Of Object)
         Get
@@ -1216,8 +1203,6 @@ Public Class AgenciasViewModel
             })
         End Try
     End Sub
-
-
 
     Private _cmdImprimirEInsertar As ICommand
     Public ReadOnly Property cmdImprimirEInsertar() As ICommand
@@ -1678,7 +1663,10 @@ Public Class AgenciasViewModel
         If pedidoSeleccionado.Periodo_Facturacion = "FDM" Then
             Return importeDeuda
         End If
-        If (pedidoSeleccionado.Forma_Pago = "CNF" Or pedidoSeleccionado.Forma_Pago = "TRN" Or pedidoSeleccionado.Forma_Pago = "TAR") Then
+        If (pedidoSeleccionado.Forma_Pago = "CNF" Or
+            pedidoSeleccionado.Forma_Pago = "TRN" Or
+            pedidoSeleccionado.Forma_Pago = "CHC" Or
+            pedidoSeleccionado.Forma_Pago = "TAR") Then
             Return importeDeuda
         End If
         If pedidoSeleccionado.NotaEntrega Then
@@ -1687,7 +1675,6 @@ Public Class AgenciasViewModel
         If Not IsNothing(pedidoSeleccionado.PlazosPago) AndAlso pedidoSeleccionado.PlazosPago.Trim = "PRE" Then
             Return importeDeuda
         End If
-
 
         If pedidoSeleccionado.MantenerJunto Then
             Dim lineasSinFacturar As ObjectQuery(Of LinPedidoVta)
@@ -1816,42 +1803,74 @@ Public Class AgenciasViewModel
             agenciaSeleccionada = DbContext.AgenciasTransporte.SingleOrDefault(Function(a) a.Empresa = EMPRESA_ESPEJO AndAlso a.CuentaReembolsos = agenciaSeleccionada.CuentaReembolsos AndAlso a.Nombre = agenciaSeleccionada.Nombre)
         End If
 
-        With envioActual
-            .Empresa = agenciaSeleccionada.Empresa
-            .Agencia = agenciaSeleccionada.Numero
-            .Cliente = pedidoSeleccionado.Nº_Cliente
-            .Contacto = pedidoSeleccionado.Contacto
-            .Pedido = pedidoSeleccionado.Número
-            .Fecha = fechaEnvio
-            .Servicio = servicioActual.id
-            .Horario = horarioActual.id
-            .Bultos = bultos
-            .Retorno = retornoActual.id
-            .Nombre = nombreEnvio
-            .Direccion = direccionEnvio
-            .CodPostal = codPostalEnvio
-            .Poblacion = poblacionEnvio
-            .Provincia = provinciaEnvio
-            .Pais = paisActual.id
-            .Telefono = telefonoEnvio
-            .Movil = movilEnvio
-            .Email = correoEnvio
-            .Observaciones = Left(observacionesEnvio, 80)
-            .Atencion = attEnvio
-            .Reembolso = reembolso
-            '.CodigoBarras = calcularCodigoBarras()
-            .Vendedor = If(pedidoSeleccionado.Vendedor.Trim <> "", pedidoSeleccionado.Vendedor, "NV")
-            agenciaEspecifica.calcularPlaza(codPostalEnvio, .Nemonico, .NombrePlaza, .TelefonoPlaza, .EmailPlaza)
-        End With
+        Dim success As Boolean = False
+        Using transaction As New TransactionScope()
+            Try
+                With envioActual
+                    .Empresa = agenciaSeleccionada.Empresa
+                    .Agencia = agenciaSeleccionada.Numero
+                    .Cliente = pedidoSeleccionado.Nº_Cliente
+                    .Contacto = pedidoSeleccionado.Contacto
+                    .Pedido = pedidoSeleccionado.Número
+                    .Fecha = fechaEnvio
+                    .Servicio = servicioActual.id
+                    .Horario = horarioActual.id
+                    .Bultos = bultos
+                    .Retorno = retornoActual.id
+                    .Nombre = nombreEnvio
+                    .Direccion = direccionEnvio
+                    .CodPostal = codPostalEnvio
+                    .Poblacion = poblacionEnvio
+                    .Provincia = provinciaEnvio
+                    .Pais = paisActual.id
+                    .Telefono = telefonoEnvio
+                    .Movil = movilEnvio
+                    .Email = correoEnvio
+                    .Observaciones = Left(observacionesEnvio, 80)
+                    .Atencion = attEnvio
+                    .Reembolso = reembolso
+                    '.CodigoBarras = calcularCodigoBarras()
+                    .Vendedor = If(pedidoSeleccionado.Vendedor.Trim <> "", pedidoSeleccionado.Vendedor, "NV")
+                    agenciaEspecifica.calcularPlaza(codPostalEnvio, .Nemonico, .NombrePlaza, .TelefonoPlaza, .EmailPlaza)
+                End With
 
-        If Not esAmpliacion Then
-            DbContext.AddToEnviosAgencia(envioActual)
-            listaEnvios.Add(envioActual)
-            listaEnviosPedido.Add(envioActual)
-        End If
+                If Not esAmpliacion Then
+                    DbContext.AddToEnviosAgencia(envioActual)
+                    listaEnvios.Add(envioActual)
+                    listaEnviosPedido.Add(envioActual)
+                End If
 
-        DbContext.SaveChanges()
-        envioActual.CodigoBarras = agenciaEspecifica.calcularCodigoBarras()
+                DbContext.SaveChanges()
+                envioActual.CodigoBarras = agenciaEspecifica.calcularCodigoBarras()
+
+                If Not IsNothing(envioActual.CodigoBarras) Then
+                    transaction.Complete()
+                    success = True ' Marcamos correctas las transacciones
+                Else
+                    transaction.Dispose()
+                    success = False
+                End If
+
+            Catch ex As Exception
+                transaction.Dispose()
+                NotificationRequest.Raise(New Notification() With {
+                         .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
+                        .Content = ex.Message
+                    })
+            End Try
+
+            If success Then
+                ' Reset the context since the operation succeeded. 
+                DbContext.AcceptAllChanges()
+            Else
+                NotificationRequest.Raise(New Notification() With {
+                         .Title = "¡Error!",
+                        .Content = "Se ha producido un error y no se ha creado la etiqueta correctamente"
+                    })
+            End If
+
+        End Using ' finaliza la transacción
+
     End Sub
     Public Function contabilizarReembolso(envio As EnviosAgencia) As Integer
 
@@ -2799,6 +2818,7 @@ Public Class AgenciaASM
             End If
 
         Else
+            '¿Quizá un Using DbContext as new NestoEntities?
             'lo que tenemos que hacer es cambiar el estado del envío: cambiarEstadoEnvio(1)
             agenciaVM.envioActual.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
             agenciaVM.envioActual.Fecha = Today

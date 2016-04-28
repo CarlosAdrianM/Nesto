@@ -270,6 +270,10 @@ Public Class PlantillaVentaModel
         Public Overridable Property LineasPedido() As ICollection(Of LineaPedidoVentaDTO)
 
     End Class
+    Public Class PrecioProductoDTO
+        Public Property precio As Decimal
+        Public Property descuento As Decimal
+    End Class
     Public Class StockProductoDTO
         Public Property stock() As Integer
         Public Property cantidadDisponible() As Integer

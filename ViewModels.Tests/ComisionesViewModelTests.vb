@@ -56,18 +56,18 @@ End Class
         Assert.IsNotNull(comVM.mesActual)
     End Sub
 
-    <TestMethod()> Public Sub LaVentaDeCursosDeDavidEnMarzoDebeSerCorrecta()
-        'Arrange
-        comVM.mesActual = "Marzo"
-        Dim vendedor As New Vendedores
-        vendedor = (From c In DbContext.Vendedores Where c.Empresa = "1" And c.Estado >= 0 And c.Número = "DV").FirstOrDefault
+    '<TestMethod()> Public Sub LaVentaDeCursosDeDavidEnMarzoDebeSerCorrecta()
+    '    'Arrange
+    '    comVM.mesActual = "Marzo"
+    '    Dim vendedor As New Vendedores
+    '    vendedor = (From c In DbContext.Vendedores Where c.Empresa = "1" And c.Estado >= 0 And c.Número = "DV").FirstOrDefault
 
-        'Act
-        comVM.vendedorActual = vendedor
+    '    'Act
+    '    comVM.vendedorActual = vendedor
 
-        'Assert
-        Assert.IsTrue(CDbl(comVM.comisionesActual.VentaCur) = 1925)
+    '    'Assert
+    '    Assert.IsTrue(CDbl(comVM.comisionesActual.VentaCur) = 1925)
 
-    End Sub
+    'End Sub
 
 End Class

@@ -68,27 +68,27 @@ Public Class CuandoCargamosUnCliente
         Assert.IsTrue(clienteVM.cuentaActiva.Nº_Cuenta = "0200080296")
     End Sub
 
-    <TestMethod()>
-    Public Sub DebeTenerTresCuentasBanco()
-        'arrange
-        clienteVM.empresaActual = "1"
-        clienteVM.clienteActual = "15191"
-        clienteVM.contactoActual = "0"
-        'act
-        'assert
-        Assert.IsTrue(clienteVM.cuentasBanco.Count = 3)
-    End Sub
+    '<TestMethod()>
+    'Public Sub DebeTenerTresCuentasBanco()
+    '    'arrange
+    '    clienteVM.empresaActual = "1"
+    '    clienteVM.clienteActual = "15191"
+    '    clienteVM.contactoActual = "0"
+    '    'act
+    '    'assert
+    '    Assert.IsTrue(clienteVM.cuentasBanco.Count = 3)
+    'End Sub
 
-    <TestMethod()>
-    Public Sub CuentaActivaEsTres()
-        'arrange
-        clienteVM.empresaActual = "1"
-        clienteVM.clienteActual = "15191"
-        clienteVM.contactoActual = "0"
-        'act
-        'assert
-        Assert.IsTrue(clienteVM.cuentaActiva.Número = "3  ")
-    End Sub
+    '<TestMethod()>
+    'Public Sub CuentaActivaEsTres()
+    '    'arrange
+    '    clienteVM.empresaActual = "1"
+    '    clienteVM.clienteActual = "15191"
+    '    clienteVM.contactoActual = "0"
+    '    'act
+    '    'assert
+    '    Assert.IsTrue(clienteVM.cuentaActiva.Número = "3  ")
+    'End Sub
 
 
 End Class

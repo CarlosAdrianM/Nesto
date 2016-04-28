@@ -56,7 +56,7 @@ Public Class ClientesViewModel
 
 
         clienteActual = clienteDefecto
-        contactoActual = "0" 'esto hay que cambiarlo por el ClientePrincipal
+        'contactoActual = "0  " 'esto hay que cambiarlo por el ClientePrincipal
 
         listaEstadosCCC = New ObservableCollection(Of EstadosCCC)(From c In DbContext.EstadosCCC Where c.Empresa = empresaActual)
 
@@ -87,6 +87,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _empresaActual = value
+            listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
             OnPropertyChanged("empresaActual")
         End Set
@@ -99,6 +100,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _clienteActual = value
+            listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
             OnPropertyChanged("clienteActual")
             If Not IsNothing(clienteActivo) AndAlso Not IsNothing(clienteActivo.Nº_Cliente) Then
@@ -181,6 +183,8 @@ Public Class ClientesViewModel
                     cuentaActiva = cuentasBanco.Where(Function(x) x.Número = cliente.CCC2.Número).FirstOrDefault
                 End If
                 clienteActivo = cliente
+                extractoCCC = Nothing
+                pedidosCCC = Nothing
             End If
         End If
     End Sub
@@ -388,18 +392,64 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    'Private _IsActive As Boolean
-    'Public Property IsActive As Boolean Implements IActiveAware.IsActive
-    '    Get
-    '        Return _IsActive
-    '    End Get
-    '    Set(value As Boolean)
-    '        _IsActive = value
-    '        OnPropertyChanged("IsActive")
-    '    End Set
-    'End Property
-    'Public Event IsActiveChanged(sender As Object, e As System.EventArgs) Implements IActiveAware.IsActiveChanged
+    Private _extractoCCC As ObservableCollection(Of ExtractoCliente)
+    Public Property extractoCCC() As ObservableCollection(Of ExtractoCliente)
+        Get
+            Return _extractoCCC
+        End Get
+        Set(ByVal value As ObservableCollection(Of ExtractoCliente))
+            _extractoCCC = value
+            OnPropertyChanged("extractoCCC")
+            OnPropertyChanged("estaVisibleExtractoCCC")
+        End Set
+    End Property
 
+    Private _pedidosCCC As ObservableCollection(Of cabeceraPedidoAgrupada)
+    Public Property pedidosCCC() As ObservableCollection(Of cabeceraPedidoAgrupada)
+        Get
+            Return _pedidosCCC
+        End Get
+        Set(ByVal value As ObservableCollection(Of cabeceraPedidoAgrupada))
+            _pedidosCCC = value
+            OnPropertyChanged("pedidosCCC")
+            OnPropertyChanged("estaVisiblePedidosCCC")
+        End Set
+    End Property
+
+    Private _listaContactos As ObservableCollection(Of Clientes)
+    Public Property listaContactos() As ObservableCollection(Of Clientes)
+        Get
+            Return _listaContactos
+        End Get
+        Set(ByVal value As ObservableCollection(Of Clientes))
+            _listaContactos = value
+            OnPropertyChanged("listaContactos")
+            If Not IsNothing(value.FirstOrDefault) Then
+                contactoActual = value.FirstOrDefault.Contacto
+                OnPropertyChanged("contactoActual")
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property estaVisibleExtractoCCC As Visibility
+        Get
+            If Not IsNothing(extractoCCC) AndAlso extractoCCC.Count > 0 Then
+                Return Visibility.Visible
+            Else
+                Return Visibility.Hidden
+            End If
+        End Get
+    End Property
+
+    Public ReadOnly Property estaVisiblePedidosCCC As Visibility
+        Get
+            If Not IsNothing(pedidosCCC) AndAlso pedidosCCC.Count > 0 Then
+                Return Visibility.Visible
+            Else
+                Return Visibility.Hidden
+            End If
+        End Get
+    End Property
 
 #End Region
 #Region "Comandos"
@@ -418,6 +468,15 @@ Public Class ClientesViewModel
     End Function
     Private Sub Guardar(ByVal param As Object)
         Try
+            Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified)
+
+            extractoCCC = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual AndAlso e.Número = clienteActual AndAlso e.Contacto = contactoActual AndAlso e.ImportePdte <> 0 AndAlso e.CCC <> cuentaActiva.Número)
+            pedidosCCC = New ObservableCollection(Of cabeceraPedidoAgrupada)((From p In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On p.Empresa Equals l.Empresa And p.Número Equals l.Número Where p.Empresa = empresaActual AndAlso p.Nº_Cliente = clienteActual AndAlso (p.CCC <> cuentaActiva.Número Or p.CCC Is Nothing) AndAlso l.Estado >= -1 AndAlso l.Estado <= 1 Select New cabeceraPedidoAgrupada With {.CCC = p.CCC,
+                .Fecha = p.Fecha,
+                .Numero = p.Número}).Distinct)
+
+            ' hay que comprobar que no se queden dos CCC activos del mismo cliente
+
             DbContext.SaveChanges()
             mensajeError = ""
         Catch ex As Exception
@@ -683,4 +742,10 @@ Public Class lineaVentaAgrupada
             _subGrupo = value
         End Set
     End Property
+End Class
+
+Public Class cabeceraPedidoAgrupada
+    Public Property Numero As Integer
+    Public Property Fecha As Date
+    Public Property CCC As String
 End Class

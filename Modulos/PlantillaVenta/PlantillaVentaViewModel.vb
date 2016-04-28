@@ -27,6 +27,7 @@ Public Class PlantillaVentaViewModel
         Titulo = "Plantilla Ventas"
 
         cmdAbrirPlantillaVenta = New DelegateCommand(Of Object)(AddressOf OnAbrirPlantillaVenta, AddressOf CanAbrirPlantillaVenta)
+        cmdActualizarPrecioProducto = New DelegateCommand(Of Object)(AddressOf OnActualizarPrecioProducto, AddressOf CanActualizarPrecioProducto)
         cmdActualizarProductosPedido = New DelegateCommand(Of Object)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
         cmdBuscarEnTodosLosProductos = New DelegateCommand(Of Object)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(Of Object)(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
@@ -381,6 +382,62 @@ Public Class PlantillaVentaViewModel
         'region.Activate(vista)
     End Sub
 
+    Private _cmdActualizarPrecioProducto As DelegateCommand(Of Object)
+    Public Property cmdActualizarPrecioProducto As DelegateCommand(Of Object)
+        Get
+            Return _cmdActualizarPrecioProducto
+        End Get
+        Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdActualizarPrecioProducto, value)
+        End Set
+    End Property
+    Private Function CanActualizarPrecioProducto(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnActualizarPrecioProducto(arg As Object)
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+
+            Try
+                Dim urlConsulta As String = "PlantillaVentas/CargarPrecio?empresa=" + clienteSeleccionado.empresa
+                urlConsulta += "&cliente=" + clienteSeleccionado.cliente
+                urlConsulta += "&contacto=" + clienteSeleccionado.contacto
+                urlConsulta += "&productoPrecio=" + arg.producto
+                urlConsulta += "&cantidad=" + arg.cantidad.ToString
+                urlConsulta += "&aplicarDescuento=" + arg.aplicarDescuento.ToString
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    Dim datosPrecio = JsonConvert.DeserializeObject(Of PrecioProductoDTO)(cadenaJson)
+                    arg.precio = datosPrecio.precio
+                    arg.descuento = datosPrecio.descuento
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar el precio y los descuentos especiales"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = ex.Message
+                })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
+
     Private _cmdActualizarProductosPedido As DelegateCommand(Of Object)
     Public Property cmdActualizarProductosPedido As DelegateCommand(Of Object)
         Get
@@ -397,6 +454,8 @@ Public Class PlantillaVentaViewModel
         If IsNothing(arg) Then
             Return
         End If
+
+        cmdActualizarPrecioProducto.Execute(arg)
 
         If arg.cantidadVendida = 0 AndAlso arg.cantidadAbonada = 0 Then
             cmdInsertarProducto.Execute(arg)
@@ -812,7 +871,19 @@ Public Class PlantillaVentaViewModel
         ElseIf formaVentaSeleccionada = 2 Then
             formaVentaPedido = "TEL"
         Else
+            If IsNothing(formaVentaOtrasSeleccionada) Then
+                Return
+            End If
             formaVentaPedido = formaVentaOtrasSeleccionada.numero
+        End If
+
+        If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(direccionEntregaSeleccionada.plazosPago) Then
+            NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Este contacto no tiene plazos de pago asignados"
+                    })
+            Return
+            'Throw New Exception("Este contacto no tiene plazos de pago asignados")
         End If
 
         Using client As New HttpClient
