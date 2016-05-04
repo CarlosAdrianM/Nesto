@@ -211,14 +211,14 @@
                                     <DataGridTextColumn Header="Und.M." Binding="{Binding unidadMedida}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Familia" Binding="{Binding familia}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="SubGrupo" Binding="{Binding subGrupo}" Width="2*" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="False">
+                                    <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="True">
                                         <DataGridTextColumn.CellStyle>
                                             <Style>
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                             </Style>
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="False">
+                                    <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="True">
                                         <DataGridTextColumn.CellStyle>
                                             <Style>
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -227,15 +227,17 @@
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="Precio" Binding="{Binding precio, StringFormat=c}" IsReadOnly="False">
                                         <DataGridTextColumn.CellStyle>
-                                            <Style>
+                                            <Style TargetType="DataGridCell">
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                <Setter Property="IsEnabled" Value="{Binding aplicarDescuento}" />
                                             </Style>
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="% Dto." Binding="{Binding descuento, Converter={StaticResource porcentajeConverter}}" IsReadOnly="False">
                                         <DataGridTextColumn.CellStyle>
-                                            <Style>
+                                            <Style TargetType="DataGridCell">
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                <Setter Property="IsEnabled" Value="{Binding aplicarDescuento}" />
                                             </Style>
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>

@@ -418,13 +418,18 @@ Public Class PlantillaVentaViewModel
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     Dim datosPrecio = JsonConvert.DeserializeObject(Of PrecioProductoDTO)(cadenaJson)
                     arg.precio = datosPrecio.precio
-                    arg.descuento = datosPrecio.descuento
+                    arg.descuentoProducto = datosPrecio.descuento
+                    If arg.descuento < arg.descuentoProducto OrElse Not arg.aplicarDescuento Then
+                        arg.descuento = IIf(arg.aplicarDescuento, arg.descuentoProducto, 0)
+                    End If
                 Else
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
                         .Content = "Se ha producido un error al cargar el precio y los descuentos especiales"
                     })
                 End If
+
+                OnPropertyChanged("listaProductosPedido")
             Catch ex As Exception
                 NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
@@ -495,7 +500,8 @@ Public Class PlantillaVentaViewModel
             estaOcupado = True
 
             Try
-                response = Await client.GetAsync("PlantillaVentas/BuscarProducto?empresa=" + clienteSeleccionado.empresa + "&filtroProducto=" + filtroProducto)
+                Dim url As String = "PlantillaVentas/BuscarProducto?empresa=" + clienteSeleccionado.empresa + "&filtroProducto=" + filtroProducto
+                response = Await client.GetAsync(url)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
@@ -926,6 +932,12 @@ Public Class PlantillaVentaViewModel
                     ofertaLinea = Nothing
                 End If
 
+                If linea.descuento = linea.descuentoProducto Then
+                    linea.descuento = 0
+                Else
+                    linea.aplicarDescuento = False
+                End If
+
                 lineaPedido = New LineaPedidoVentaDTO With {
                     .estado = 1, 'ojo, de parámetro. ¿Pongo 0 para tener que validar?
                     .tipoLinea = 1, ' Producto
@@ -935,6 +947,7 @@ Public Class PlantillaVentaViewModel
                     .fechaEntrega = fechaEntrega,
                     .precio = linea.precio,
                     .descuento = linea.descuento,
+                    .descuentoProducto = linea.descuentoProducto,
                     .aplicarDescuento = linea.aplicarDescuento,
                     .vistoBueno = 0, 'calcular
                     .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,

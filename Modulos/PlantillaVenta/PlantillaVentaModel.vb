@@ -100,7 +100,18 @@ Public Class PlantillaVentaModel
         Public Property producto() As String
         Public Property texto() As String
         Public Property cantidad() As Integer
-        Public Property cantidadOferta() As Integer
+        Private _cantidadOferta As Integer
+        Public Property cantidadOferta As Integer
+            Get
+                Return _cantidadOferta
+            End Get
+            Set(value As Integer)
+                SetProperty(_cantidadOferta, value)
+
+                ' No permitimos sumar oferta y descuento
+                aplicarDescuento = (cantidadOferta = 0)
+            End Set
+        End Property
         Public Property tamanno() As System.Nullable(Of Integer)
         Public Property unidadMedida() As String
         Public Property familia() As String
@@ -118,6 +129,7 @@ Public Class PlantillaVentaModel
         Public Property stockActualizado As Boolean
         Public Property fechaInsercion As DateTime = DateTime.MaxValue
         Public Property descuento As Decimal
+        Public Property descuentoProducto As Decimal
         Private _urlImagen As String
         Public Property urlImagen As String
             Get
@@ -223,6 +235,7 @@ Public Class PlantillaVentaModel
         Public Property cantidad() As Short
         Public Property delegacion() As String
         Public Property descuento() As Decimal
+        Public Property descuentoProducto() As Decimal
         Public Property estado() As Short
         Public Property fechaEntrega() As System.DateTime
         Public Property formaVenta() As String

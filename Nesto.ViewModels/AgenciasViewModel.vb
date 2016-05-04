@@ -1174,6 +1174,10 @@ Public Class AgenciasViewModel
         If envioActual.Estado > 0 Then
             Throw New Exception("No se puede borrar un pedido tramitado")
         End If
+        Dim historias As List(Of EnviosHistoria) = DbContext.EnviosHistoria.Where(Function(e) e.NumeroEnvio = envioActual.Numero).ToList
+        For Each historia In historias
+            DbContext.EnviosHistoria.DeleteObject(historia)
+        Next
         DbContext.EnviosAgencia.DeleteObject(envioActual)
         listaEnvios.Remove(envioActual)
         envioActual = listaEnvios.LastOrDefault

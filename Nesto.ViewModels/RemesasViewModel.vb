@@ -8,7 +8,6 @@ Imports Microsoft.Office.Interop
 Imports System.Windows.Controls
 
 
-
 Public Class RemesasViewModel
     Inherits ViewModelBase
 
@@ -231,6 +230,18 @@ Public Class RemesasViewModel
         End Set
     End Property
 
+    Private _estaOcupado As Boolean = False
+    Public Property estaOcupado As Boolean
+        Get
+            Return _estaOcupado
+        End Get
+        Set(ByVal value As Boolean)
+            _estaOcupado = value
+            OnPropertyChanged("estaOcupado")
+        End Set
+    End Property
+
+
 
 #Region "Comandos"
 
@@ -257,7 +268,9 @@ Public Class RemesasViewModel
             'mensajeError = "Generando fichero..."
             DbContext.CommandTimeout = 6000
 
+            estaOcupado = True
             listaContenido = DbContext.CrearFicheroRemesa(remesaActual.Número, codigo, fechaCobro).ToList
+            estaOcupado = False
 
             DbContext.CommandTimeout = 180
             strContenido = ""
@@ -422,5 +435,6 @@ Public Class impagado
             _cuenta = value
         End Set
     End Property
+
 End Class
 
