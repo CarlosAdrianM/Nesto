@@ -419,6 +419,7 @@ Public Class PlantillaVentaViewModel
                     Dim datosPrecio = JsonConvert.DeserializeObject(Of PrecioProductoDTO)(cadenaJson)
                     arg.precio = datosPrecio.precio
                     arg.descuentoProducto = datosPrecio.descuento
+                    arg.aplicarDescuento = datosPrecio.aplicarDescuento
                     If arg.descuento < arg.descuentoProducto OrElse Not arg.aplicarDescuento Then
                         arg.descuento = IIf(arg.aplicarDescuento, arg.descuentoProducto, 0)
                     End If
@@ -723,7 +724,6 @@ Public Class PlantillaVentaViewModel
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
-
                 Else
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",

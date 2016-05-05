@@ -145,7 +145,7 @@
 
                                                 <StackPanel Grid.Column="0">
                                                     <TextBlock Margin="3" TextWrapping="WrapWithOverflow">Cantidad Cobrada</TextBlock>
-                                                    <xctk:ByteUpDown Name="ofertasUpDown" Value="{Binding cantidad}" Margin="3">
+                                                    <xctk:ByteUpDown Value="{Binding cantidad}" Margin="3">
                                                         <i:Interaction.Triggers>
                                                             <i:EventTrigger EventName="ValueChanged">
                                                                 <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
@@ -156,7 +156,7 @@
 
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
-                                                    <xctk:ByteUpDown Value="{Binding cantidadOferta}" Margin="3">
+                                                    <xctk:ByteUpDown Value="{Binding cantidadOferta}" Margin="3" IsEnabled="{Binding aplicarDescuentoFicha}" >
                                                         <i:Interaction.Triggers>
                                                             <i:EventTrigger EventName="ValueChanged">
                                                                 <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
@@ -211,17 +211,18 @@
                                     <DataGridTextColumn Header="Und.M." Binding="{Binding unidadMedida}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Familia" Binding="{Binding familia}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="SubGrupo" Binding="{Binding subGrupo}" Width="2*" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="True">
+                                    <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="False">
                                         <DataGridTextColumn.CellStyle>
                                             <Style>
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                             </Style>
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="True">
+                                    <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="False">
                                         <DataGridTextColumn.CellStyle>
-                                            <Style>
+                                            <Style TargetType="DataGridCell">
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                <Setter Property="IsEnabled" Value="{Binding aplicarDescuentoFicha}" />
                                             </Style>
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>

@@ -97,19 +97,31 @@ Public Class PlantillaVentaModel
     End Class
     Public Class LineaPlantillaJson
         Inherits BindableBase
+
         Public Property producto() As String
         Public Property texto() As String
-        Public Property cantidad() As Integer
+        Private _cantidad As Integer
+        Public Property cantidad As Integer
+            Get
+                Return _cantidad
+            End Get
+            Set(value As Integer)
+                SetProperty(_cantidad, value)
+            End Set
+        End Property
         Private _cantidadOferta As Integer
         Public Property cantidadOferta As Integer
             Get
                 Return _cantidadOferta
             End Get
             Set(value As Integer)
-                SetProperty(_cantidadOferta, value)
-
                 ' No permitimos sumar oferta y descuento
-                aplicarDescuento = (cantidadOferta = 0)
+                If value > 0 AndAlso cantidadOferta = 0 Then
+                    aplicarDescuento = False
+                ElseIf cantidadOferta > 0 AndAlso value = 0 Then
+                    aplicarDescuento = aplicarDescuentoFicha
+                End If
+                SetProperty(_cantidadOferta, value)
             End Set
         End Property
         Public Property tamanno() As System.Nullable(Of Integer)
@@ -123,7 +135,20 @@ Public Class PlantillaVentaModel
         Public Property fechaUltimaVenta() As System.Nullable(Of DateTime)
         Public Property iva() As String
         Public Property precio() As Decimal
-        Public Property aplicarDescuento() As Boolean
+        Private _aplicarDescuento As Boolean
+        Public Property aplicarDescuento As Boolean
+            Get
+                Return _aplicarDescuento
+            End Get
+            Set(value As Boolean)
+                If IsNothing(aplicarDescuentoFicha) Then
+                    'Esta línea hay que cambiarla cuando GestorPrecios funcione bien
+                    aplicarDescuentoFicha = IIf(subGrupo.ToLower = "otros aparatos", False, value)
+                End If
+                SetProperty(_aplicarDescuento, value)
+            End Set
+        End Property
+        Public Property aplicarDescuentoFicha() As Boolean?
         Public Property stock As Integer
         Public Property cantidadDisponible As Integer
         Public Property stockActualizado As Boolean
@@ -286,6 +311,7 @@ Public Class PlantillaVentaModel
     Public Class PrecioProductoDTO
         Public Property precio As Decimal
         Public Property descuento As Decimal
+        Public Property aplicarDescuento As Boolean
     End Class
     Public Class StockProductoDTO
         Public Property stock() As Integer
