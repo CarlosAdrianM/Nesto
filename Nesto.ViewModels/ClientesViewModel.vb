@@ -88,7 +88,11 @@ Public Class ClientesViewModel
         Set(value As String)
             _empresaActual = value
             listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
-            actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
+            If IsNothing(contactoActual) Then
+                clienteActual = mainModel.leerParametro(empresaActual, "UltNumCliente")
+                listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
+            End If
+            actualizarCliente(_empresaActual, clienteActual, contactoActual)
             OnPropertyChanged("empresaActual")
         End Set
     End Property
