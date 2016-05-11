@@ -312,6 +312,7 @@ Public Class PlantillaVentaModel
         Public Property precio As Decimal
         Public Property descuento As Decimal
         Public Property aplicarDescuento As Boolean
+        Public Property motivo As String
     End Class
     Public Class StockProductoDTO
         Public Property stock() As Integer

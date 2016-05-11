@@ -9,6 +9,7 @@ Imports Newtonsoft.Json
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports System.Text
 Imports Nesto.Contratos
+Imports System.Globalization
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase
@@ -36,6 +37,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
+        cmdComprobarCondicionesPrecio = New DelegateCommand(Of Object)(AddressOf OnComprobarCondicionesPrecio, AddressOf CanComprobarCondicionesPrecio)
         cmdCrearPedido = New DelegateCommand(Of Object)(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
@@ -429,6 +431,8 @@ Public Class PlantillaVentaViewModel
                         .Content = "Se ha producido un error al cargar el precio y los descuentos especiales"
                     })
                 End If
+
+                Await cmdComprobarCondicionesPrecio.Execute(arg)
 
                 OnPropertyChanged("listaProductosPedido")
             Catch ex As Exception
@@ -851,6 +855,90 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
+    Private _cmdComprobarCondicionesPrecio As DelegateCommand(Of Object)
+    Public Property cmdComprobarCondicionesPrecio As DelegateCommand(Of Object)
+        Get
+            Return _cmdComprobarCondicionesPrecio
+        End Get
+        Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdComprobarCondicionesPrecio, value)
+        End Set
+    End Property
+    Private Function CanComprobarCondicionesPrecio(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnComprobarCondicionesPrecio(arg As Object)
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        'Dim linea As LineaPlantillaJson = arg.EditingElement.DataContext
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+
+            Try
+                Dim precio As Double = arg.precio
+                Dim descuento As Double = arg.descuento
+
+                ' Solo puede ser "Precio" o "% Dto." porque lo miramos en el code behind de la vista
+                ' Chapuza grande, que habrá que apañar en el futuro
+                'If arg.Column.Header = "Precio" Then
+                'precio = Convert.ToDouble(arg.EditingElement.Text)
+                '                descuento = arg.descuento
+                'Else
+                '                precio = arg.precio
+                'descuento = Convert.ToDouble(arg.descuento) / 100
+                '               End If
+
+                Dim urlConsulta As String = "PlantillaVentas/ComprobarCondiciones?empresa=" + clienteSeleccionado.empresa
+                urlConsulta += "&producto=" + arg.producto
+                urlConsulta += "&aplicarDescuento=" + arg.aplicarDescuento.ToString
+                urlConsulta += "&precio=" + precio.ToString(CultureInfo.InvariantCulture)
+                urlConsulta += "&descuento=" + descuento.ToString(CultureInfo.InvariantCulture)
+                urlConsulta += "&cantidad=" + arg.cantidad.ToString
+                urlConsulta += "&cantidadOferta=" + arg.cantidadOferta.ToString
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    Dim datosPrecio As PrecioProductoDTO = JsonConvert.DeserializeObject(Of PrecioProductoDTO)(cadenaJson)
+
+                    If datosPrecio.motivo <> "" Then
+                        NotificationRequest.Raise(New Notification() With {
+                            .Title = "Gestor de Precios",
+                            .Content = datosPrecio.motivo
+                        })
+                        arg.precio = datosPrecio.precio
+                        arg.descuento = datosPrecio.descuento
+                        arg.aplicarDescuento = datosPrecio.aplicarDescuento
+                        arg.cantidadOferta = 0
+                    End If
+                    OnPropertyChanged("productoSeleccionado")
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al comprobar el precio y el descuento"
+                    })
+                End If
+
+                OnPropertyChanged("listaProductosPedido")
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = ex.Message
+                })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
+
     Private _cmdCrearPedido As DelegateCommand(Of Object)
     Public Property cmdCrearPedido As DelegateCommand(Of Object)
         Get
@@ -1122,9 +1210,6 @@ Public Class PlantillaVentaViewModel
     End Function
 
 #End Region
-
-
-
 
 End Class
 

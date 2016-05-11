@@ -1,4 +1,6 @@
-﻿Public Class PlantillaVentaView
+﻿Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
+
+Public Class PlantillaVentaView
     Public Sub New(viewModel As PlantillaVentaViewModel)
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
@@ -44,4 +46,20 @@
         txtFiltroCliente.SelectAll()
     End Sub
 
+    Private Sub grdListaProductos_CellEditEnding(sender As Object, e As DataGridCellEditEndingEventArgs) Handles grdListaProductos.CellEditEnding
+        If e.Column.Header = "Precio" OrElse e.Column.Header = "% Dto." Then
+            Dim linea As LineaPlantillaJson = e.EditingElement.DataContext
+            Dim textBox As TextBox = e.EditingElement
+            If e.Column.Header = "Precio" Then
+                linea.precio = Convert.ToDouble(textBox.Text)
+                'linea.descuento = linea.descuento
+            Else
+                'precio = linea.precio
+                linea.descuento = Convert.ToDouble(textBox.Text) / 100
+            End If
+
+
+            DataContext.cmdComprobarCondicionesPrecio.Execute(linea)
+        End If
+    End Sub
 End Class
