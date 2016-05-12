@@ -51,13 +51,16 @@ Public Class PlantillaVentaView
             Dim linea As LineaPlantillaJson = e.EditingElement.DataContext
             Dim textBox As TextBox = e.EditingElement
             If e.Column.Header = "Precio" Then
-                linea.precio = Convert.ToDouble(textBox.Text)
-                'linea.descuento = linea.descuento
+                If Not Double.TryParse(textBox.Text, linea.precio) Then
+                    Return
+                End If
             Else
-                'precio = linea.precio
-                linea.descuento = Convert.ToDouble(textBox.Text) / 100
+                If Not Double.TryParse(textBox.Text, linea.descuento) Then
+                    Return
+                Else
+                    linea.descuento = linea.descuento / 100
+                End If
             End If
-
 
             DataContext.cmdComprobarCondicionesPrecio.Execute(linea)
         End If
