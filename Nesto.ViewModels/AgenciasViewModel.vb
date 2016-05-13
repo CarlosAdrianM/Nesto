@@ -95,12 +95,14 @@ Public Class AgenciasViewModel
         agenciaSeleccionada = listaAgencias.FirstOrDefault
 
         bultos = 1
+        fechaFiltro = Today
+
         If Not IsNothing(agenciaSeleccionada) Then
             listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
         End If
         envioActual = listaEnvios.LastOrDefault
         numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
-        fechaFiltro = Today
+
         listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
         'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
         listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
@@ -1848,6 +1850,7 @@ Public Class AgenciasViewModel
                 envioActual.CodigoBarras = agenciaEspecifica.calcularCodigoBarras()
 
                 If Not IsNothing(envioActual.CodigoBarras) Then
+                    DbContext.SaveChanges()
                     transaction.Complete()
                     success = True ' Marcamos correctas las transacciones
                 Else
