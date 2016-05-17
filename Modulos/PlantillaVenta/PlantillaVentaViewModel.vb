@@ -872,6 +872,10 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
+        If clienteSeleccionado.cliente = "15191" Then
+            Return
+        End If
+
         'Dim linea As LineaPlantillaJson = arg.EditingElement.DataContext
 
         Using client As New HttpClient

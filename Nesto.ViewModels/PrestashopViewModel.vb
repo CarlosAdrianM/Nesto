@@ -123,6 +123,7 @@ Public Class PrestashopViewModel
         Dim psprod As New PrestashopProductos
         psprod.Empresa = "1"
         psprod.Número = productoBuscar
+        psprod.VistoBueno = (System.Environment.UserName = "Laura") Or (System.Environment.UserName = "Carlos")
         DbContext.AddToPrestashopProductos(psprod)
         Producto.Add(psprod)
         LineaSeleccionada = Producto.Where(Function(f) f.Número.Contains(productoBuscar)).FirstOrDefault
