@@ -33,7 +33,9 @@ Public Class PlantillaVentaViewModel
         cmdBuscarEnTodosLosProductos = New DelegateCommand(Of Object)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(Of Object)(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
+        cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
+        cmdCargarPlazosPago = New DelegateCommand(Of Object)(AddressOf OnCargarPlazosPago, AddressOf CanCargarPlazosPago)
         cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
@@ -176,6 +178,17 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _formaPagoSeleccionada As FormaPagoDTO
+    Public Property formaPagoSeleccionada() As FormaPagoDTO
+        Get
+            Return _formaPagoSeleccionada
+        End Get
+        Set(ByVal value As FormaPagoDTO)
+            SetProperty(_formaPagoSeleccionada, value)
+            cmdCrearPedido.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
     Private _formaVentaDirecta As Boolean
     Public Property formaVentaDirecta() As Boolean
         Get
@@ -274,6 +287,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _listaFormasPago As ObservableCollection(Of FormaPagoDTO)
+    Public Property listaFormasPago() As ObservableCollection(Of FormaPagoDTO)
+        Get
+            Return _listaFormasPago
+        End Get
+        Set(ByVal value As ObservableCollection(Of FormaPagoDTO))
+            SetProperty(_listaFormasPago, value)
+        End Set
+    End Property
+
     Private _listaFormasVenta As ObservableCollection(Of FormaVentaDTO)
     Public Property listaFormasVenta() As ObservableCollection(Of FormaVentaDTO)
         Get
@@ -281,6 +304,16 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of FormaVentaDTO))
             SetProperty(_listaFormasVenta, value)
+        End Set
+    End Property
+
+    Private _listaPlazosPago As ObservableCollection(Of PlazoPagoDTO)
+    Public Property listaPlazosPago() As ObservableCollection(Of PlazoPagoDTO)
+        Get
+            Return _listaPlazosPago
+        End Get
+        Set(ByVal value As ObservableCollection(Of PlazoPagoDTO))
+            SetProperty(_listaPlazosPago, value)
         End Set
     End Property
 
@@ -334,6 +367,17 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As ObservableCollection(Of UltimasVentasProductoClienteDTO))
             SetProperty(_listaUltimasVentas, value)
+        End Set
+    End Property
+
+    Private _plazoPagoSeleccionado As PlazoPagoDTO
+    Public Property plazoPagoSeleccionado As PlazoPagoDTO
+        Get
+            Return _plazoPagoSeleccionado
+        End Get
+        Set(ByVal value As PlazoPagoDTO)
+            SetProperty(_plazoPagoSeleccionado, value)
+            cmdCrearPedido.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -642,6 +686,56 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
+    Private _cmdCargarFormasPago As DelegateCommand(Of Object)
+    Public Property cmdCargarFormasPago As DelegateCommand(Of Object)
+        Get
+            Return _cmdCargarFormasPago
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCargarFormasPago, value)
+        End Set
+    End Property
+    Private Function CanCargarFormasPago(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCargarFormasPago(arg As Object)
+
+        If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+
+            Try
+                response = Await client.GetAsync("FormasPago?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaFormasPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaPagoDTO))(cadenaJson)
+                    formaPagoSeleccionada = listaFormasPago.Where(Function(l) l.formaPago = direccionEntregaSeleccionada.formaPago).SingleOrDefault
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar las formas de pago"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = ex.Message
+                })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
+
     Private _cmdCargarFormasVenta As DelegateCommand(Of Object)
     Public Property cmdCargarFormasVenta As DelegateCommand(Of Object)
         Get
@@ -683,6 +777,56 @@ Public Class PlantillaVentaViewModel
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
                         .Content = "Se ha producido un error al cargar las formas de venta"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = ex.Message
+                })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
+
+    Private _cmdCargarPlazosPago As DelegateCommand(Of Object)
+    Public Property cmdCargarPlazosPago As DelegateCommand(Of Object)
+        Get
+            Return _cmdCargarPlazosPago
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCargarPlazosPago, value)
+        End Set
+    End Property
+    Private Function CanCargarPlazosPago(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCargarPlazosPago(arg As Object)
+
+        If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+
+            Try
+                response = Await client.GetAsync("PlazosPago?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaPlazosPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of PlazoPagoDTO))(cadenaJson)
+                    plazoPagoSeleccionado = listaPlazosPago.Where(Function(l) l.plazoPago = direccionEntregaSeleccionada.plazosPago).SingleOrDefault
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al cargar los plazos de pago"
                     })
                 End If
             Catch ex As Exception
@@ -953,11 +1097,11 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Function CanCrearPedido(arg As Object) As Boolean
-        Return True
+        Return Not IsNothing(formaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado)
     End Function
     Private Async Sub OnCrearPedido(arg As Object)
 
-        If IsNothing(clienteSeleccionado) Then
+        If IsNothing(formaPagoSeleccionada) OrElse IsNothing(plazoPagoSeleccionado) OrElse IsNothing(clienteSeleccionado) Then
             Return
         End If
 
@@ -975,7 +1119,7 @@ Public Class PlantillaVentaViewModel
             formaVentaPedido = formaVentaOtrasSeleccionada.numero
         End If
 
-        If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(direccionEntregaSeleccionada.plazosPago) Then
+        If IsNothing(plazoPagoSeleccionado) AndAlso (IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(direccionEntregaSeleccionada.plazosPago)) Then
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
                         .Content = "Este contacto no tiene plazos de pago asignados"
@@ -995,15 +1139,15 @@ Public Class PlantillaVentaViewModel
                 .cliente = clienteSeleccionado.cliente,
                 .contacto = direccionEntregaSeleccionada.contacto,
                 .fecha = Today,
-                .formaPago = direccionEntregaSeleccionada.formaPago,
-                .plazosPago = direccionEntregaSeleccionada.plazosPago,
+                .formaPago = formaPagoSeleccionada.formaPago,
+                .plazosPago = plazoPagoSeleccionado.plazoPago,
                 .primerVencimiento = Today, 'se calcula en la API
                 .iva = clienteSeleccionado.iva,
                 .vendedor = direccionEntregaSeleccionada.vendedor,
                 .periodoFacturacion = direccionEntregaSeleccionada.periodoFacturacion,
                 .ruta = direccionEntregaSeleccionada.ruta,
                 .serie = "NV", 'calcular
-                .ccc = direccionEntregaSeleccionada.ccc,
+                .ccc = IIf(formaPagoSeleccionada.cccObligatorio, direccionEntregaSeleccionada.ccc, Nothing),
                 .origen = clienteSeleccionado.empresa,
                 .contactoCobro = clienteSeleccionado.contacto, 'calcular
                 .noComisiona = direccionEntregaSeleccionada.noComisiona,

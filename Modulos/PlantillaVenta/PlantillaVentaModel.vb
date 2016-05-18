@@ -89,6 +89,12 @@ Public Class PlantillaVentaModel
             End Get
         End Property
     End Class
+    Public Class FormaPagoDTO
+        Public Property formaPago As String
+        Public Property descripcion As String
+        Public bloquearPagos As Boolean
+        Public cccObligatorio As Boolean
+    End Class
     Public Class FormaVentaDTO
         <JsonProperty("Número")>
         Public Property numero As String
@@ -143,7 +149,8 @@ Public Class PlantillaVentaModel
             Set(value As Boolean)
                 If IsNothing(aplicarDescuentoFicha) Then
                     'Esta línea hay que cambiarla cuando GestorPrecios funcione bien
-                    aplicarDescuentoFicha = IIf(subGrupo.ToLower = "otros aparatos", False, value)
+                    'aplicarDescuentoFicha = IIf(subGrupo.ToLower = "otros aparatos", False, value)
+                    aplicarDescuentoFicha = value
                 End If
                 SetProperty(_aplicarDescuento, value)
             End Set
@@ -308,12 +315,23 @@ Public Class PlantillaVentaModel
         Public Overridable Property LineasPedido() As ICollection(Of LineaPedidoVentaDTO)
 
     End Class
-    Public Class PrecioProductoDTO
-        Public Property precio As Decimal
-        Public Property descuento As Decimal
-        Public Property aplicarDescuento As Boolean
-        Public Property motivo As String
+    Public Class PlazoPagoDTO
+        Public Property plazoPago As String
+        Public Property descripcion As String
+        Public Property numeroPlazos As Short
+        Public Property diasPrimerPlazo As Short
+        Public Property diasEntrePlazos As Short
+        Public Property mesesPrimerPlazo As Short
+        Public Property mesesEntrePlazos As Short
+        Public Property descuentoPP As Decimal
+        Public Property financiacion As Decimal?
     End Class
+    Public Class PrecioProductoDTO
+            Public Property precio As Decimal
+            Public Property descuento As Decimal
+            Public Property aplicarDescuento As Boolean
+            Public Property motivo As String
+        End Class
     Public Class StockProductoDTO
         Public Property stock() As Integer
         Public Property cantidadDisponible() As Integer

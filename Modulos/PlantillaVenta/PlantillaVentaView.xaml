@@ -314,6 +314,8 @@
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="Enter">
                             <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasVenta, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarPlazosPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                     <StackPanel>
@@ -327,6 +329,11 @@
                             <RadioButton Content="Otras: " IsChecked="{Binding formaVentaOtras,Mode=TwoWay}"/>
                             <ComboBox MinWidth="300" IsEnabled="{Binding formaVentaOtras}" ItemsSource="{Binding listaFormasVenta}" SelectedItem="{Binding formaVentaOtrasSeleccionada}" DisplayMemberPath="descripcion"></ComboBox>
                         </StackPanel>
+
+                        <TextBlock></TextBlock>
+                        <TextBlock>Seleccione la forma de pago y los plazos:</TextBlock>
+                        <ComboBox MinWidth="300" ItemsSource="{Binding listaFormasPago}" SelectedItem="{Binding formaPagoSeleccionada}" DisplayMemberPath="descripcion"></ComboBox>
+                        <ComboBox MinWidth="300" ItemsSource="{Binding listaPlazosPago}" SelectedItem="{Binding plazoPagoSeleccionado}" DisplayMemberPath="descripcion"></ComboBox>
                     </StackPanel>
 
                 </xctk:WizardPage>
