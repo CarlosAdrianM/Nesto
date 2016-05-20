@@ -110,11 +110,16 @@
                             </TextBox>
                             <Button Command="{Binding cmdBuscarEnTodosLosProductos}">Buscar en todos los productos</Button>
                         </StackPanel>
-                        <StackPanel Grid.Row="0" Grid.Column="1" Margin="3,0">
-                            <TextBlock Text="{Binding clienteSeleccionado.cliente}"></TextBlock>
-                            <TextBlock Text="{Binding clienteSeleccionado.nombre}"></TextBlock>
-                            <TextBlock Text="{Binding clienteSeleccionado.direccion}"></TextBlock>
-                        </StackPanel>
+                        <DockPanel  Grid.Row="0" Grid.Column="1" Margin="3,0">
+                            <StackPanel DockPanel.Dock="Left">
+                                <TextBlock Text="{Binding clienteSeleccionado.cliente}"></TextBlock>
+                                <TextBlock Text="{Binding clienteSeleccionado.nombre}"></TextBlock>
+                                <TextBlock Text="{Binding clienteSeleccionado.direccion}"></TextBlock>
+                            </StackPanel>
+                            <StackPanel DockPanel.Dock="Right">
+                                <TextBlock Text="{Binding clienteSeleccionado.vendedor}"></TextBlock>
+                            </StackPanel>
+                        </DockPanel>
                         <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.ItemTemplate>
                                 <DataTemplate>

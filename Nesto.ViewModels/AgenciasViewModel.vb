@@ -2843,6 +2843,10 @@ Public Class AgenciaASM
 
     End Sub
     Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
+        If IsNothing(agenciaVM.envioActual.CodigoBarras) OrElse agenciaVM.envioActual.CodigoBarras.Trim = "" Then
+            Throw New Exception("El envío debe tener un código de barras asignada para poder imprimir la etiqueta")
+        End If
+
         Dim mainModel As New Nesto.Models.MainModel
         Dim puerto As String = mainModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
 
