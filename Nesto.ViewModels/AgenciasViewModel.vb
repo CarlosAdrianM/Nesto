@@ -1397,12 +1397,12 @@ Public Class AgenciasViewModel
                             .FormaPago = empresaSeleccionada.FormaPagoEfectivo,
                             .Vendedor = "NV"
                         })
-                    'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                    DbContext.SaveChanges()
+                    DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                    'DbContext.SaveChanges()
 
                     asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_PagoReemb")
                 End If
-                If (asiento > 0 Or MODO_CUADRE) Then
+                If (asiento > 0 OrElse MODO_CUADRE) Then
                     Dim fechaAFijar As Date = Today
                     If MODO_CUADRE Then
                         fechaAFijar = "01/01/2015"
@@ -1410,8 +1410,8 @@ Public Class AgenciasViewModel
                     For Each linea In listaReembolsosSeleccionados
                         linea.FechaPagoReembolso = fechaAFijar
                     Next
-                    'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                    DbContext.SaveChanges()
+                    DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                    'DbContext.SaveChanges()
 
                     OnPropertyChanged("sumaContabilidad")
                     OnPropertyChanged("descuadreContabilidad")
@@ -1436,6 +1436,7 @@ Public Class AgenciasViewModel
                         .Content = "Nº Asiento: " + asiento.ToString
                     })
                 Else
+                    transaction.Dispose()
                     NotificationRequest.Raise(New Notification() With {
                          .Title = "¡Error!",
                         .Content = "Se ha producido un error y no se han grabado los datos"
