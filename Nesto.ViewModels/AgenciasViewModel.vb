@@ -1088,7 +1088,7 @@ Public Class AgenciasViewModel
         If envioActual.Estado > 0 Then
             Throw New Exception("No se puede tramitar un pedido ya tramitado")
         End If
-        agenciaEspecifica.llamadaWebService(DbContext)
+        agenciaEspecifica.llamadaWebService(New NestoEntities)
         OnPropertyChanged("listaReembolsos")
         'mensajeError = "Pedido " + envioActual.Pedido.ToString.Trim + " tramitado correctamente"
     End Sub
@@ -1360,10 +1360,11 @@ Public Class AgenciasViewModel
         ' Empezamos una transacción
         Dim success As Boolean = False
         Using transaction As New TransactionScope()
-            Try
-                If Not MODO_CUADRE Then
-                    For Each linea In listaReembolsosSeleccionados
-                        DbContext.PreContabilidad.AddObject(New PreContabilidad With {
+            Using DbContext As New NestoEntities
+                Try
+                    If Not MODO_CUADRE Then
+                        For Each linea In listaReembolsosSeleccionados
+                            DbContext.PreContabilidad.AddObject(New PreContabilidad With {
                             .Empresa = empresaSeleccionada.Número,
                             .Diario = "_PagoReemb",
                             .Asiento = 1,
@@ -1378,8 +1379,8 @@ Public Class AgenciasViewModel
                             .Delegación = "ALG",
                             .FormaVenta = "VAR"
                         })
-                    Next
-                    DbContext.PreContabilidad.AddObject(New PreContabilidad With {
+                        Next
+                        DbContext.PreContabilidad.AddObject(New PreContabilidad With {
                             .Empresa = empresaSeleccionada.Número,
                             .Diario = "_PagoReemb",
                             .Asiento = 1,
@@ -1397,59 +1398,58 @@ Public Class AgenciasViewModel
                             .FormaPago = empresaSeleccionada.FormaPagoEfectivo,
                             .Vendedor = "NV"
                         })
-                    DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                    'DbContext.SaveChanges()
+                        'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                        DbContext.SaveChanges()
 
-                    asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_PagoReemb")
-                End If
-                If (asiento > 0 OrElse MODO_CUADRE) Then
-                    Dim fechaAFijar As Date = Today
-                    If MODO_CUADRE Then
-                        fechaAFijar = "01/01/2015"
+                        asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_PagoReemb")
                     End If
-                    For Each linea In listaReembolsosSeleccionados
-                        linea.FechaPagoReembolso = fechaAFijar
-                    Next
-                    DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
-                    'DbContext.SaveChanges()
+                    If (asiento > 0 OrElse MODO_CUADRE) Then
+                        Dim fechaAFijar As Date = Today
+                        If MODO_CUADRE Then
+                            fechaAFijar = "01/01/2015"
+                        End If
+                        For Each linea In listaReembolsosSeleccionados
+                            linea.FechaPagoReembolso = fechaAFijar
+                        Next
+                        'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
+                        DbContext.SaveChanges()
 
-                    OnPropertyChanged("sumaContabilidad")
-                    OnPropertyChanged("descuadreContabilidad")
-                    OnPropertyChanged("sumaReembolsos")
+                        OnPropertyChanged("sumaContabilidad")
+                        OnPropertyChanged("descuadreContabilidad")
+                        OnPropertyChanged("sumaReembolsos")
 
-                    transaction.Complete()
-                    success = True ' Marcamos correctas las transacciones
+                        transaction.Complete()
+                        success = True ' Marcamos correctas las transacciones
 
-                    listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
-                Else
-                    transaction.Dispose()
-                    success = False
-                End If
+                        listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+                    Else
+                        transaction.Dispose()
+                        success = False
+                    End If
 
-                ' Comprobamos que las transacciones sean correctas
-                If success Then
-                    ' Reset the context since the operation succeeded. 
-
-                    DbContext.AcceptAllChanges()
-                    NotificationRequest.Raise(New Notification() With {
+                    ' Comprobamos que las transacciones sean correctas
+                    If success Then
+                        ' Reset the context since the operation succeeded. 
+                        DbContext.AcceptAllChanges()
+                        NotificationRequest.Raise(New Notification() With {
                          .Title = "Contabilizado Correctamente",
                         .Content = "Nº Asiento: " + asiento.ToString
                     })
-                Else
-                    transaction.Dispose()
-                    NotificationRequest.Raise(New Notification() With {
+                    Else
+                        transaction.Dispose()
+                        NotificationRequest.Raise(New Notification() With {
                          .Title = "¡Error!",
                         .Content = "Se ha producido un error y no se han grabado los datos"
                     })
-                End If
-            Catch ex As Exception
-                transaction.Dispose()
-                NotificationRequest.Raise(New Notification() With {
+                    End If
+                Catch ex As Exception
+                    transaction.Dispose()
+                    NotificationRequest.Raise(New Notification() With {
                          .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
                         .Content = ex.Message
                     })
-            End Try
-
+                End Try
+            End Using ' Cerramos el contexto
         End Using ' finaliza la transacción
     End Sub
 
