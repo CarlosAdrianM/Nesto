@@ -90,6 +90,16 @@ Public Class PlantillaVentaViewModel
     Private vendedor As String = "NV"
     Private ultimaOferta As Integer = 0
 
+    Public ReadOnly Property baseImponiblePedido As Decimal
+        Get
+            Dim baseImponible As Decimal = 0
+            If (Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0) Then
+                baseImponible = listaProductosPedido.Sum(Function(l) l.cantidad * l.precio * (1 - l.descuento))
+            End If
+            Return baseImponible
+        End Get
+    End Property
+
     Private _clienteSeleccionado As ClienteJson
     Public Property clienteSeleccionado As ClienteJson
         Get
@@ -402,6 +412,12 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Public ReadOnly Property totalPedido As Decimal
+        Get
+            Return baseImponiblePedido * 1.21
+        End Get
+    End Property
+
 
 #End Region
 
@@ -526,6 +542,7 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged("productoSeleccionado")
         OnPropertyChanged("listaProductos")
         OnPropertyChanged("listaProductosPedido")
+
 
     End Sub
 
@@ -1066,6 +1083,9 @@ Public Class PlantillaVentaViewModel
                         arg.cantidadOferta = 0
                     End If
                     OnPropertyChanged("productoSeleccionado")
+                    OnPropertyChanged("baseImponiblePedido")
+                    OnPropertyChanged("totalPedido")
+
                 Else
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
