@@ -350,7 +350,7 @@
                                 <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" />
                                 <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="2*"/>
                                 <DataGridTextColumn Header="Servicio" Binding="{Binding Servicio}" />
-                                <DataGridTextColumn Header="Horario" Binding="{Binding Servicio}" />
+                                <DataGridTextColumn Header="Horario" Binding="{Binding Horario}" />
                                 <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}" Width="2*" >
                                     <DataGridTextColumn.CellStyle>
                                         <Style>

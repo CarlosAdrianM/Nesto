@@ -53,47 +53,50 @@
             <Grid Grid.Row="0">
             <TabControl TabStripPlacement="Top" SelectedItem="{Binding PestañaSeleccionada}">
                 <TabItem Name="tabListado" Header="Listado de Planes">
-                    <DockPanel>
-                        <Border DockPanel.Dock="Top" HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
-                            <DockPanel HorizontalAlignment="Stretch">
-                                <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎" />
-                                <TextBox DockPanel.Dock="Left" Text="{Binding filtro}" Name="txtFiltro" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0"/>
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
+                                <DockPanel HorizontalAlignment="Stretch">
+                                    <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎" />
+                                    <TextBox DockPanel.Dock="Left" Text="{Binding filtro}" Name="txtFiltro" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0"/>
+                                </DockPanel>
+                            </Border>
+                            <ListView DockPanel.Dock="Top" Name="listaIzda" ItemsSource="{Binding Path=listaClientes}" >
+                                <ListView.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"></StackPanel>
+                                    </ItemsPanelTemplate>
+                                </ListView.ItemsPanel>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border VerticalAlignment="Top" BorderBrush="Black" BorderThickness="2" Width="Auto" Padding="3">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Path=Nombre}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Path=Dirección}" TextTrimming="CharacterEllipsis"/>
+                                                <WrapPanel>
+                                                    <TextBlock Text="{Binding Path=CodPostal}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text=" "/>
+                                                    <TextBlock Text="{Binding Path=Población}" TextTrimming="CharacterEllipsis"/>
+                                                </WrapPanel>
+                                                <WrapPanel>
+                                                    <TextBlock Text="{Binding Path=Nº_Cliente}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="Contacto "/>
+                                                    <TextBlock Text="{Binding Path=Contacto}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Path=Vendedor}" TextTrimming="CharacterEllipsis"/>
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <TextBox DockPanel.Dock="Top" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" VerticalAlignment="Stretch" Text="{Binding planActual.Comentarios}" Background="LightYellow"/>
+                            <DockPanel DockPanel.Dock="Top">
+                                <Button DockPanel.Dock="Right" Content="Crear Cita en Outlook" Command="{Binding cmdCrearCitasOutlook}" Margin="3"/>
+                                <Button DockPanel.Dock="Left" Content="Ver Plan de Ventajas" Command="{Binding cmdVerPlan}" Margin="3" Name="btnVerPlan" />
                             </DockPanel>
-                        </Border>
-                        <ListView DockPanel.Dock="Top" Name="listaIzda" ItemsSource="{Binding Path=listaClientes}" >
-                            <ListView.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal"></StackPanel>
-                                </ItemsPanelTemplate>
-                            </ListView.ItemsPanel>
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Border VerticalAlignment="Top" BorderBrush="Black" BorderThickness="2" Width="Auto" Padding="3">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Path=Nombre}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding Path=Dirección}" TextTrimming="CharacterEllipsis"/>
-                                            <WrapPanel>
-                                                <TextBlock Text="{Binding Path=CodPostal}" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text=" "/>
-                                                <TextBlock Text="{Binding Path=Población}" TextTrimming="CharacterEllipsis"/>
-                                            </WrapPanel>
-                                            <WrapPanel>
-                                                <TextBlock Text="{Binding Path=Nº_Cliente}" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="Contacto "/>
-                                                <TextBlock Text="{Binding Path=Contacto}" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding Path=Vendedor}" TextTrimming="CharacterEllipsis"/>
-                                            </WrapPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                        <TextBox DockPanel.Dock="Top" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" AcceptsReturn="True" VerticalAlignment="Stretch" Text="{Binding planActual.Comentarios}" Background="LightYellow"/>
-                        <DockPanel DockPanel.Dock="Top">
-                            <Button DockPanel.Dock="Right" Content="Crear Cita en Outlook" Command="{Binding cmdCrearCitasOutlook}" Margin="3"/>
-                            <Button DockPanel.Dock="Left" Content="Ver Plan de Ventajas" Command="{Binding cmdVerPlan}" Margin="3" Name="btnVerPlan" />
-                        </DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
+                            <StackPanel DockPanel.Dock="Top" HorizontalAlignment="Right">
+                                <CheckBox IsChecked="{Binding verPlanesNulos}" Content="Ver Planes Cancelados"/>
+                            </StackPanel>
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
                             <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaPlanes}" SelectedItem="{Binding planActual}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" VerticalScrollBarVisibility="Visible">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
@@ -112,7 +115,7 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
-                </TabItem>
+                    </TabItem>
                 <TabItem Name="tabEditar" Header="Editar">
                 <StackPanel>
                     <Grid>

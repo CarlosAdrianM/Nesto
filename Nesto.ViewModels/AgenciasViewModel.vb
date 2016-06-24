@@ -1871,7 +1871,7 @@ Public Class AgenciasViewModel
                     .Email = correoEnvio
                     .Observaciones = Left(observacionesEnvio, 80)
                     .Atencion = attEnvio
-                    .Reembolso = envioActual.Reembolso + reembolso
+                    .Reembolso = IIf(pedidoSeleccionado.Número = envioActual.Pedido, reembolso, envioActual.Reembolso + reembolso) ' por si es ampliación
                     '.CodigoBarras = calcularCodigoBarras()
                     .Vendedor = If(pedidoSeleccionado.Vendedor.Trim <> "", pedidoSeleccionado.Vendedor, "NV")
                     agenciaEspecifica.calcularPlaza(codPostalEnvio, .Nemonico, .NombrePlaza, .TelefonoPlaza, .EmailPlaza)

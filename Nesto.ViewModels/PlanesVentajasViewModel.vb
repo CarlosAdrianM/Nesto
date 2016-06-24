@@ -77,7 +77,7 @@ Public Class PlanesVentajasViewModel
             mensajeError = ""
             If Not IsNothing(planActual) Then
                 listaClientes = New ObservableCollection(Of Clientes)(From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c)
-                lineasVenta = New ObservableCollection(Of LinPedidoVta)(From l In DbContext.LinPedidoVta Join c In (From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c) On l.Nº_Cliente Equals c.Nº_Cliente And l.Contacto Equals c.Contacto Where l.Familia = planActual.Familia And l.Fecha_Factura >= planActual.FechaInicio And l.Fecha_Factura <= planActual.FechaFin Select l)
+                lineasVenta = New ObservableCollection(Of LinPedidoVta)(From l In DbContext.LinPedidoVta Join c In (From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c) On l.Nº_Cliente Equals c.Nº_Cliente And l.Contacto Equals c.Contacto Where l.Familia = planActual.Familia And l.Fecha_Factura >= planActual.FechaInicio And l.Fecha_Factura <= planActual.FechaFin Select l Order By l.Fecha_Factura Descending)
                 barrasGrafico.Clear()
                 barrasGrafico.Add(New datosGrafico With {.clave = "Presupuestado", .valor = planActual.Importe})
                 barrasGrafico.Add(New datosGrafico With {.clave = "Realizado", .valor = importeVentas})
@@ -296,6 +296,17 @@ Public Class PlanesVentajasViewModel
         End Set
     End Property
 
+    Private _verPlanesNulos As Boolean = False
+    Public Property verPlanesNulos() As Boolean
+        Get
+            Return _verPlanesNulos
+        End Get
+        Set(ByVal value As Boolean)
+            _verPlanesNulos = value
+            OnPropertyChanged("verPlanesNulos")
+            ActualizarListaPlanes()
+        End Set
+    End Property
 
 #Region "Comandos"
 
@@ -480,14 +491,20 @@ Public Class PlanesVentajasViewModel
         ActualizarListaPlanes(Nothing)
     End Sub
     Private Sub ActualizarListaPlanes(filtro As String)
+        Dim filtroEstado As Integer
+        If verPlanesNulos Then
+            filtroEstado = Integer.MaxValue
+        Else
+            filtroEstado = ESTADO_PLAN_CANCELADO
+        End If
         Dim clientesString As List(Of String)
         Dim clientes, clientesPlan, clientesTotales As List(Of Clientes)
         Dim clienteEncontrado As Clientes
         Dim listaInicial, listaMedia As ObservableCollection(Of PlanesVentajas)
         If vendedor = "" And IsNothing(filtro) Then
-            listaPlanes = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Where p.Estado <> ESTADO_PLAN_CANCELADO Order By p.FechaFin)
+            listaPlanes = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Where p.Estado <> filtroEstado Order By p.FechaFin)
         Else
-            listaInicial = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Where p.Estado <> ESTADO_PLAN_CANCELADO Order By p.FechaFin)
+            listaInicial = New ObservableCollection(Of PlanesVentajas)(From p In DbContext.PlanesVentajas Where p.Estado <> filtroEstado Order By p.FechaFin)
             listaMedia = New ObservableCollection(Of PlanesVentajas)
             clientesString = New List(Of String)(From p In DbContext.PlanVentajasCliente Select p.Cliente)
             If IsNothing(filtro) Then
