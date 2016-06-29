@@ -335,6 +335,7 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As ObservableCollection(Of LineaPlantillaJson))
             SetProperty(_listaProductos, value)
             OnPropertyChanged("listaProductosPedido")
+            OnPropertyChanged("baseImponiblePedido")
         End Set
     End Property
 
@@ -1309,6 +1310,7 @@ Public Class PlantillaVentaViewModel
         listaProductosOriginal.Add(arg)
         listaProductos = listaProductosOriginal
         filtroProducto = ""
+        OnPropertyChanged("baseImponiblePedido")
     End Sub
 
 #End Region
