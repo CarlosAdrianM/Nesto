@@ -336,6 +336,7 @@ Public Class PlantillaVentaViewModel
             SetProperty(_listaProductos, value)
             OnPropertyChanged("listaProductosPedido")
             OnPropertyChanged("baseImponiblePedido")
+            OnPropertyChanged("totalPedido")
         End Set
     End Property
 
@@ -496,6 +497,8 @@ Public Class PlantillaVentaViewModel
                 Await cmdComprobarCondicionesPrecio.Execute(arg)
 
                 OnPropertyChanged("listaProductosPedido")
+                OnPropertyChanged("baseImponiblePedido")
+                OnPropertyChanged("totalPedido")
             Catch ex As Exception
                 NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
@@ -543,7 +546,8 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged("productoSeleccionado")
         OnPropertyChanged("listaProductos")
         OnPropertyChanged("listaProductosPedido")
-
+        OnPropertyChanged("baseImponiblePedido")
+        OnPropertyChanged("totalPedido")
 
     End Sub
 

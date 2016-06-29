@@ -8,8 +8,8 @@ Public Class Configuracion
             If Environment.MachineName = "ALGETE17" Then
                 'Return "http://81.43.72.38/api/"
                 'Return "http://88.26.231.83/api/"
-                Return "http://192.168.154.26/api/"
-                'Return "http://localhost:53364/api/"
+                'Return "http://192.168.154.26/api/"
+                Return "http://localhost:53364/api/"
             End If
             Return "http://192.168.154.26/api/"
         End Get
