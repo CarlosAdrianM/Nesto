@@ -2167,6 +2167,10 @@ Public Class AgenciasViewModel
                         Dim movimientoFactura As ExtractoCliente = calcularMovimientoLiq(envio, reembolsoAnterior)
                         Dim estadoRehusado As New ObjectParameter("Estado", GetType(String))
                         estadoRehusado.Value = "RHS"
+                        envio.Retorno = True
+                        If Not DbContext.SaveChanges() Then
+                            success = False
+                        End If
                         DbContext.prdModificarEfectoCliente(movimientoFactura.Nº_Orden, movimientoFactura.FechaVto, movimientoFactura.CCC, movimientoFactura.Ruta, estadoRehusado, movimientoFactura.Concepto)
                     End If
 
