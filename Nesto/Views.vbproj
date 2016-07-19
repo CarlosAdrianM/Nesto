@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>39</ApplicationRevision>
+    <ApplicationRevision>40</ApplicationRevision>
     <ApplicationVersion>1.2.1.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -522,6 +522,10 @@
     <ProjectReference Include="..\Contratos\Contratos.vbproj">
       <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
       <Name>Contratos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Modulos\CarteraPagos\CarteraPagos\CarteraPagos.vbproj">
+      <Project>{0a78f73c-a593-4296-843e-49634234b955}</Project>
+      <Name>CarteraPagos</Name>
     </ProjectReference>
     <ProjectReference Include="..\Modulos\Inventario\Inventario\Inventario.vbproj">
       <Project>{fc02d1b6-1dbb-4a32-a0d4-d7bbcfb7f283}</Project>

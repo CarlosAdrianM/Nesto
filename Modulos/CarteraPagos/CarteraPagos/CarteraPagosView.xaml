@@ -1,0 +1,34 @@
+﻿<UserControl x:Class="CarteraPagosView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Nesto.Modulos.CarteraPagos"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:prism="http://www.codeplex.com/prism"
+        xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        mc:Ignorable="d">
+
+    <i:Interaction.Triggers>
+        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
+            <prism:PopupWindowAction  IsModal="True" CenterOverAssociatedObject="True">
+                <prism:PopupWindowAction.WindowContent>
+                    <local:Notificacion/>
+                </prism:PopupWindowAction.WindowContent>
+            </prism:PopupWindowAction>
+        </prism:InteractionRequestTrigger>
+        <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
+            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
+        </prism:InteractionRequestTrigger>
+    </i:Interaction.Triggers>
+
+    <StackPanel>
+        <TextBlock>Empresa: </TextBlock>
+        <TextBox Name="txtEmpresa" Text="{Binding empresa, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+        <TextBlock>Remesa: </TextBlock>
+        <TextBox Name="txtRemesa" Text="{Binding numeroRemesa, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+        <TextBlock></TextBlock>
+        <Button Command="{Binding cmdCrearFicheroRemesa}">Crear Fichero de la Remesa</Button>
+    </StackPanel>
+</UserControl>

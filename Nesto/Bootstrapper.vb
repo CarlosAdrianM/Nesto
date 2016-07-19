@@ -6,6 +6,7 @@ Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
 Imports Nesto.Modulos.PlantillaVenta
 Imports Nesto.Modulos.Inventario
+Imports Nesto.Modulos.CarteraPagos
 
 Public Class Bootstrapper
     Inherits UnityBootstrapper
@@ -45,6 +46,9 @@ Public Class Bootstrapper
         ' Inventarios - 09/11/15
         moduleCatalog.AddModule(GetType(IInventario)) ', InitializationMode.WhenAvailable
 
+        ' Cartera de Pagos - 19/07/16
+        moduleCatalog.AddModule(GetType(ICarteraPagos)) ', InitializationMode.WhenAvailable
+
 
     End Sub
 
@@ -56,6 +60,8 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(IConfiguracion), GetType(Configuracion), True)
         RegisterTypeIfMissing(GetType(IPlantillaVenta), GetType(PlantillaVenta), False)
         RegisterTypeIfMissing(GetType(IInventario), GetType(Inventario), False)
+        RegisterTypeIfMissing(GetType(ICarteraPagosService), GetType(CarteraPagosService), False)
+        RegisterTypeIfMissing(GetType(ICarteraPagos), GetType(CarteraPagos), False)
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings

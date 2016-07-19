@@ -96,6 +96,7 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ICarteraPagos.vb" />
     <Compile Include="IConfiguracion.vb" />
     <Compile Include="IInventario.vb" />
     <Compile Include="IMainWindow.vb" />

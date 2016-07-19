@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Views", "Nesto\Views.vbproj", "{F9C51E8E-BB41-4EE0-A54C-0A7E6ACB4037}"
 EndProject
@@ -26,6 +26,8 @@ EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Contratos", "Contratos\Contratos.vbproj", "{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}"
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Inventario", "Modulos\Inventario\Inventario\Inventario.vbproj", "{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}"
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CarteraPagos", "Modulos\CarteraPagos\CarteraPagos\CarteraPagos.vbproj", "{0A78F73C-A593-4296-843E-49634234B955}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -115,6 +117,18 @@ Global
 		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|x86.ActiveCfg = Release|Any CPU
 		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283}.Release|x86.Build.0 = Release|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Debug|x86.Build.0 = Debug|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Release|x86.ActiveCfg = Release|Any CPU
+		{0A78F73C-A593-4296-843E-49634234B955}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -122,6 +136,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{2C0AFE5D-A09A-40F1-8F60-75A446C6E7D4} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
 		{FC02D1B6-1DBB-4A32-A0D4-D7BBCFB7F283} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
+		{0A78F73C-A593-4296-843E-49634234B955} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
 	EndGlobalSection
 	GlobalSection(TestCaseManagementSettings) = postSolution
 		CategoryFile = Nesto.vsmdi
