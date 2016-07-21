@@ -1,4 +1,5 @@
-﻿Imports Microsoft.Practices.Prism.Commands
+﻿Imports System.IO
+Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
 Imports Nesto.Contratos
@@ -121,7 +122,7 @@ Public Class CarteraPagosViewModel
         If respuesta <> "" Then
             NotificationRequest.Raise(New Notification() With {
                 .Title = "Fichero Creado",
-                .Content = "Se ha creado correctamente el fichero " + respuesta
+                .Content = "Se ha creado correctamente el fichero: " + vbCrLf + respuesta
             })
         Else
             NotificationRequest.Raise(New Notification() With {
