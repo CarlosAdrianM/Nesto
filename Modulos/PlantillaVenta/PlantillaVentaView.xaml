@@ -112,6 +112,7 @@
                         </StackPanel>
                         <Grid  Grid.Row="0" Grid.Column="1" Margin="3,0">
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
                                 <ColumnDefinition/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
@@ -124,6 +125,10 @@
                                 <TextBlock Text="{Binding clienteSeleccionado.vendedor}"></TextBlock>
                                 <TextBlock Text="{Binding baseImponiblePedido, StringFormat=c}"></TextBlock>
                                 <TextBlock Text="{Binding totalPedido, StringFormat=c}"></TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Base Imponible para Portes"></TextBlock>
+                                <TextBlock Text="{Binding baseImponibleParaPortes, StringFormat=c}"></TextBlock>
                             </StackPanel>
                         </Grid>
                         <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -156,24 +161,24 @@
 
                                                 <StackPanel Grid.Column="0">
                                                     <TextBlock Margin="3" TextWrapping="WrapWithOverflow">Cantidad Cobrada</TextBlock>
-                                                    <xctk:ByteUpDown Value="{Binding cantidad}" Margin="3">
+                                                    <xctk:ShortUpDown Value="{Binding cantidad}" Margin="3">
                                                         <i:Interaction.Triggers>
                                                             <i:EventTrigger EventName="ValueChanged">
                                                                 <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
                                                             </i:EventTrigger>
                                                         </i:Interaction.Triggers>
-                                                    </xctk:ByteUpDown>
+                                                    </xctk:ShortUpDown>
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Column="1">
                                                     <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
-                                                    <xctk:ByteUpDown Value="{Binding cantidadOferta}" Margin="3" IsEnabled="{Binding aplicarDescuentoFicha}" >
+                                                    <xctk:ShortUpDown Value="{Binding cantidadOferta}" Margin="3" IsEnabled="{Binding aplicarDescuentoFicha}" >
                                                         <i:Interaction.Triggers>
                                                             <i:EventTrigger EventName="ValueChanged">
                                                                 <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
                                                             </i:EventTrigger>
                                                         </i:Interaction.Triggers>
-                                                    </xctk:ByteUpDown>
+                                                    </xctk:ShortUpDown>
                                                 </StackPanel>
                                             </Grid>
                                             <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
@@ -223,6 +228,11 @@
                                     <DataGridTextColumn Header="Familia" Binding="{Binding familia}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="SubGrupo" Binding="{Binding subGrupo}" Width="2*" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" IsReadOnly="False">
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="CellEditEnded">
+                                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
                                         <DataGridTextColumn.CellStyle>
                                             <Style>
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -230,6 +240,11 @@
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="Oferta" Binding="{Binding cantidadOferta}" IsReadOnly="False">
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="CellEditEnded">
+                                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
                                         <DataGridTextColumn.CellStyle>
                                             <Style TargetType="DataGridCell">
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -257,6 +272,7 @@
                                 <DataGrid.RowStyle>
                                     <Style TargetType="DataGridRow">
                                         <Setter Property="TextElement.Foreground" Value="{Binding colorStock}"/>
+                                        <Setter Property="Background" Value="{Binding colorSobrePedido}"/>
                                     </Style>
                                 </DataGrid.RowStyle>
                             </DataGrid>

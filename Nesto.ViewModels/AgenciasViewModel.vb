@@ -296,13 +296,18 @@ Public Class AgenciasViewModel
                 Try
                     reembolso = importeReembolso()
                     bultos = 1
-                    nombreEnvio = pedidoSeleccionado.Clientes.Nombre.Trim
-                    direccionEnvio = pedidoSeleccionado.Clientes.Dirección.Trim
-                    poblacionEnvio = pedidoSeleccionado.Clientes.Población.Trim
-                    provinciaEnvio = pedidoSeleccionado.Clientes.Provincia.Trim
-                    codPostalEnvio = pedidoSeleccionado.Clientes.CodPostal.Trim
-                    telefonoEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "F")
-                    movilEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "M")
+                    nombreEnvio = If(pedidoSeleccionado.Clientes.Nombre IsNot Nothing, pedidoSeleccionado.Clientes.Nombre.Trim, "")
+                    direccionEnvio = If(pedidoSeleccionado.Clientes.Dirección IsNot Nothing, pedidoSeleccionado.Clientes.Dirección.Trim, "")
+                    poblacionEnvio = If(pedidoSeleccionado.Clientes.Población IsNot Nothing, pedidoSeleccionado.Clientes.Población.Trim, "")
+                    provinciaEnvio = If(pedidoSeleccionado.Clientes.Provincia IsNot Nothing, pedidoSeleccionado.Clientes.Provincia.Trim, "")
+                    codPostalEnvio = If(pedidoSeleccionado.Clientes.CodPostal IsNot Nothing, pedidoSeleccionado.Clientes.CodPostal.Trim, "")
+                    If pedidoSeleccionado.Clientes.Teléfono IsNot Nothing Then
+                        telefonoEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "F")
+                        movilEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "M")
+                    Else
+                        telefonoEnvio = ""
+                        movilEnvio = ""
+                    End If
                     correoEnvio = correoUnico()
                     observacionesEnvio = pedidoSeleccionado.Comentarios
                     attEnvio = nombreEnvio

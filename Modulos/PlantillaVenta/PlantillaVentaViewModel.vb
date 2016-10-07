@@ -96,6 +96,17 @@ Public Class PlantillaVentaViewModel
             If (Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0) Then
                 baseImponible = listaProductosPedido.Sum(Function(l) l.cantidad * l.precio * (1 - l.descuento))
             End If
+            OnPropertyChanged("baseImponibleParaPortes")
+            Return baseImponible
+        End Get
+    End Property
+
+    Public ReadOnly Property baseImponibleParaPortes As Decimal
+        Get
+            Dim baseImponible As Decimal = 0
+            If (Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0) Then
+                baseImponible = listaProductosPedido.Where(Function(l) l.esSobrePedido = False).Sum(Function(l) l.cantidad * l.precio * (1 - l.descuento))
+            End If
             Return baseImponible
         End Get
     End Property
@@ -419,7 +430,6 @@ Public Class PlantillaVentaViewModel
             Return baseImponiblePedido * 1.21
         End Get
     End Property
-
 
 #End Region
 
@@ -952,6 +962,7 @@ Public Class PlantillaVentaViewModel
                     arg.fechaInsercion = Now
                     OnPropertyChanged("listaProductosPedido")
                     OnPropertyChanged("productoSeleccionado")
+                    OnPropertyChanged("baseImponiblePedido")
                 Else
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",

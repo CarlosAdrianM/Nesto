@@ -258,6 +258,24 @@ Public Class PlantillaVentaModel
                 End If
             End Get
         End Property
+        Public ReadOnly Property esSobrePedido As Boolean
+            Get
+                Return Not (Me.estado = 0 OrElse
+                    (stockActualizado AndAlso cantidadDisponible >= cantidad + cantidadOferta))
+            End Get
+        End Property
+        Public ReadOnly Property colorSobrePedido As Brush
+            Get
+                If Not stockActualizado Then
+                    Return Brushes.LightGray
+                End If
+                If esSobrePedido Then
+                    Return Brushes.Yellow
+                Else
+                    Return Brushes.White
+                End If
+            End Get
+        End Property
 
 
     End Class
