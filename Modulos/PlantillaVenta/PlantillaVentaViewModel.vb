@@ -145,19 +145,24 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _fechaEntrega As DateTime = Today
+    Private _fechaEntrega As DateTime = fechaMinimaEntrega
     Public Property fechaEntrega As DateTime
         Get
             Return _fechaEntrega
         End Get
         Set(ByVal value As DateTime)
+            If value < fechaMinimaEntrega Then
+                value = fechaMinimaEntrega
+            End If
             SetProperty(_fechaEntrega, value)
         End Set
     End Property
 
-    Public ReadOnly Property fechaHoy As DateTime
+    Public ReadOnly Property fechaMinimaEntrega As DateTime
         Get
-            Return Today
+            Dim fechaMinima As DateTime
+            fechaMinima = IIf(Now.Hour < 11, Today, Today.AddDays(1))
+            Return fechaMinima
         End Get
     End Property
 
@@ -1138,6 +1143,10 @@ Public Class PlantillaVentaViewModel
     Private Async Sub OnCrearPedido(arg As Object)
 
         If IsNothing(formaPagoSeleccionada) OrElse IsNothing(plazoPagoSeleccionado) OrElse IsNothing(clienteSeleccionado) Then
+            NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = "Compruebe que tiene seleccionados plazos y forma de pago, por favor."
+                })
             Return
         End If
 

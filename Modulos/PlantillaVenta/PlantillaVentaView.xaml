@@ -329,7 +329,7 @@
                                     <ColumnDefinition/>
                                     <ColumnDefinition Width="3*"/>
                                 </Grid.ColumnDefinitions>
-                                <xctk:DateTimePicker Grid.Column="0" Minimum="{Binding fechaHoy}" Format="ShortDate" AutoCloseCalendar="True" TimePickerVisibility="Hidden"  Text="{Binding fechaEntrega}"></xctk:DateTimePicker>
+                                <xctk:DateTimePicker Grid.Column="0" Minimum="{Binding fechaMinimaEntrega}" Format="ShortDate" AutoCloseCalendar="True" TimePickerVisibility="Hidden"  Value="{Binding fechaEntrega}"></xctk:DateTimePicker>
                             </Grid>
                         </StackPanel>
                     </Grid>
