@@ -482,7 +482,7 @@ Public Class PlantillaVentaViewModel
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
-            estaOcupado = True
+            'estaOcupado = True
 
             Try
                 Dim urlConsulta As String = "PlantillaVentas/CargarPrecio?empresa=" + clienteSeleccionado.empresa
@@ -502,6 +502,7 @@ Public Class PlantillaVentaViewModel
                     If arg.descuento < arg.descuentoProducto OrElse Not arg.aplicarDescuento Then
                         arg.descuento = IIf(arg.aplicarDescuento, arg.descuentoProducto, 0)
                     End If
+                    OnPropertyChanged("baseImponiblePedido")
                 Else
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
@@ -520,7 +521,7 @@ Public Class PlantillaVentaViewModel
                     .Content = ex.Message
                 })
             Finally
-                estaOcupado = False
+                'estaOcupado = False
             End Try
 
         End Using
@@ -556,6 +557,7 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged("hayProductosEnElPedido")
         If IsNothing(productoSeleccionado) OrElse productoSeleccionado.producto <> arg.producto Then
             productoSeleccionado = arg
+
         End If
 
         OnPropertyChanged("productoSeleccionado")
@@ -950,7 +952,7 @@ Public Class PlantillaVentaViewModel
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
-            estaOcupado = True
+            'estaOcupado = True
 
             Dim datosStock As StockProductoDTO
 
@@ -980,7 +982,7 @@ Public Class PlantillaVentaViewModel
                         .Content = ex.Message
                     })
             Finally
-                estaOcupado = False
+                'estaOcupado = False
             End Try
 
         End Using
@@ -1009,7 +1011,7 @@ Public Class PlantillaVentaViewModel
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
-            estaOcupado = True
+            'estaOcupado = True
 
             Try
                 response = Await client.GetAsync("PlantillaVentas/UltimasVentasProductoCliente?empresa=" + clienteSeleccionado.empresa + "&clienteUltimasVentas=" + clienteSeleccionado.cliente + "&productoUltimasVentas=" + arg.producto)
@@ -1030,7 +1032,7 @@ Public Class PlantillaVentaViewModel
                         .Content = ex.Message
                     })
             Finally
-                estaOcupado = False
+                'estaOcupado = False
             End Try
 
         End Using
@@ -1064,7 +1066,7 @@ Public Class PlantillaVentaViewModel
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
-            estaOcupado = True
+            'estaOcupado = True
 
             Try
                 Dim precio As Double = arg.precio
@@ -1102,10 +1104,12 @@ Public Class PlantillaVentaViewModel
                         arg.descuento = datosPrecio.descuento
                         arg.aplicarDescuento = datosPrecio.aplicarDescuento
                         arg.cantidadOferta = 0
+
                     End If
                     OnPropertyChanged("productoSeleccionado")
                     OnPropertyChanged("baseImponiblePedido")
                     OnPropertyChanged("totalPedido")
+
 
                 Else
                     NotificationRequest.Raise(New Notification() With {
@@ -1121,7 +1125,7 @@ Public Class PlantillaVentaViewModel
                     .Content = ex.Message
                 })
             Finally
-                estaOcupado = False
+                'estaOcupado = False
             End Try
 
         End Using
@@ -1327,14 +1331,15 @@ Public Class PlantillaVentaViewModel
     Private Sub OnInsertarProducto(arg As Object)
         ' Solo insertamos si es un producto que no está en listaProductosOrigina
         If IsNothing(arg) OrElse Not IsNothing(listaProductosOriginal.Where(Function(p) p.producto = arg.producto).FirstOrDefault) Then
-            'OnPropertyChanged("listaProductosPedido")' 
             Return
         End If
         'arg.cantidadVendida = arg.cantidad + arg.cantidadOferta
         listaProductosOriginal.Add(arg)
-        listaProductos = listaProductosOriginal
-        filtroProducto = ""
+        'listaProductos = listaProductosOriginal
+        'filtroProducto = ""
         OnPropertyChanged("baseImponiblePedido")
+        OnPropertyChanged("listaProductos")
+        OnPropertyChanged("listaProductosOriginal")
     End Sub
 
 #End Region
