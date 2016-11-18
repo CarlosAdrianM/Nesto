@@ -101,7 +101,9 @@
     <Compile Include="IInventario.vb" />
     <Compile Include="IMainWindow.vb" />
     <Compile Include="IMenuBar.vb" />
+    <Compile Include="IPedidoVenta.vb" />
     <Compile Include="IPlantillaVenta.vb" />
+    <Compile Include="ISelectorDireccionEntregaViewModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>

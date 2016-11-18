@@ -10,6 +10,7 @@ Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports System.Text
 Imports Nesto.Contratos
 Imports System.Globalization
+Imports Nesto.Models.PedidoVenta
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase
@@ -1276,8 +1277,8 @@ Public Class PlantillaVentaViewModel
                         Me.regionManager.Regions("MainRegion").Remove(view)
                     End If
                 Else
-
-                    Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(response.Content.ReadAsStringAsync().Result)
+                    Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)
                     NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
                     .Content = "Se ha producido un error al crear el pedido desde la plantilla"
@@ -1351,6 +1352,14 @@ Public Class PlantillaVentaViewModel
         Return ultimaOferta
     End Function
 
+    Private Async Function leerParametro(v As String) As Task(Of String)
+        If IsNothing(clienteSeleccionado) Then
+            Return ""
+        End If
+
+        Return Await configuracion.leerParametro(clienteSeleccionado.empresa, v)
+    End Function
+
     Private Function nombreVista(region As Region, nombre As String) As String
         Dim contador As Integer = 2
         Dim repetir As Boolean = True
@@ -1369,44 +1378,6 @@ Public Class PlantillaVentaViewModel
         Return nombreAmpliado
     End Function
 
-    Private Async Function leerParametro(clave As String) As Task(Of String)
-        If IsNothing(clienteSeleccionado) Then
-            Throw New Exception("No se puede leer el parámetro")
-        End If
-
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
-
-            estaOcupado = True
-
-            Try
-                response = Await client.GetAsync("ParametrosUsuario?empresa=" + clienteSeleccionado.empresa + "&usuario=" + System.Environment.UserName + "&clave=" + clave)
-
-                If response.IsSuccessStatusCode Then
-                    Dim respuesta As String = Await response.Content.ReadAsStringAsync()
-                    respuesta = JsonConvert.DeserializeObject(Of String)(respuesta)
-                    Return respuesta.Trim
-                Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar las últimas ventas del producto"
-                    })
-                End If
-            Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = ex.Message
-                    })
-            Finally
-                estaOcupado = False
-            End Try
-
-        End Using
-
-        Throw New Exception("No se puede leer el parámetro")
-
-    End Function
 
 #End Region
 
