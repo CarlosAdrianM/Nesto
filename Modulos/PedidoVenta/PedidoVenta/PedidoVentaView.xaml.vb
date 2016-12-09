@@ -8,4 +8,8 @@
         Me.DataContext = viewModel
 
     End Sub
+
+    Private Sub grdLineas_CellEditEnding(sender As Object, e As DataGridCellEditEndingEventArgs) Handles grdLineas.CellEditEnding
+        DataContext.cmdCeldaModificada.Execute(e)
+    End Sub
 End Class

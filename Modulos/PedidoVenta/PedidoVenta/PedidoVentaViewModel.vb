@@ -1,4 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.Collections.Specialized
+Imports System.ComponentModel
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
@@ -9,11 +11,13 @@ Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Public Class PedidoVentaViewModel
     Inherits ViewModelBase
 
+    Private estaActualizarFechaActivo As Boolean = True
     Private ReadOnly regionManager As IRegionManager
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
     Private vendedor As String
     Private verTodosLosVendedores As Boolean = False
+
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService)
         Me.regionManager = regionManager
@@ -21,14 +25,15 @@ Public Class PedidoVentaViewModel
         Me.servicio = servicio
 
         cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
+        cmdCambiarFechaEntrega = New DelegateCommand(Of Object)(AddressOf OnCambiarFechaEntrega, AddressOf CanCambiarFechaEntrega)
         cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
         cmdCargarPedido = New DelegateCommand(Of Object)(AddressOf OnCargarPedido, AddressOf CanCargarPedido)
+        cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada, AddressOf CanCeldaModificada)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
         Titulo = "Lista de Pedidos"
-
     End Sub
 
 #Region "Propiedades de Prism"
@@ -66,6 +71,16 @@ Public Class PedidoVentaViewModel
 #End Region
 
 #Region "Propiedades"
+    Private _celdaActual As DataGridCellInfo
+    Public Property celdaActual As DataGridCellInfo
+        Get
+            Return _celdaActual
+        End Get
+        Set(value As DataGridCellInfo)
+            SetProperty(_celdaActual, value)
+        End Set
+    End Property
+
     Private _estaCargandoListaPedidos As Boolean
     Public Property estaCargandoListaPedidos() As Boolean
         Get
@@ -73,6 +88,30 @@ Public Class PedidoVentaViewModel
         End Get
         Set(ByVal value As Boolean)
             SetProperty(_estaCargandoListaPedidos, value)
+        End Set
+    End Property
+
+    Private _fechaEntrega As Date
+    Public Property fechaEntrega As Date
+        Get
+            Return _fechaEntrega
+        End Get
+        Set(value As Date)
+            SetProperty(_fechaEntrega, value)
+            If estaActualizarFechaActivo Then
+                cmdCambiarFechaEntrega.Execute(Nothing)
+                OnPropertyChanged("pedido")
+            End If
+        End Set
+    End Property
+
+    Private _lineaActual As LineaPedidoVentaDTO
+    Public Property lineaActual As LineaPedidoVentaDTO
+        Get
+            Return _lineaActual
+        End Get
+        Set(value As LineaPedidoVentaDTO)
+            SetProperty(_lineaActual, value)
         End Set
     End Property
 
@@ -93,6 +132,9 @@ Public Class PedidoVentaViewModel
         End Get
         Set(ByVal value As PedidoVentaDTO)
             SetProperty(_pedido, value)
+            estaActualizarFechaActivo = False
+            fechaEntrega = pedido.LineasPedido.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)?.fechaEntrega
+            estaActualizarFechaActivo = True
         End Set
     End Property
 
@@ -124,6 +166,30 @@ Public Class PedidoVentaViewModel
     End Function
     Private Sub OnAbrirModulo(arg As Object)
         regionManager.RequestNavigate("MainRegion", "PedidoVentaView")
+    End Sub
+
+    Private _cmdCambiarFechaEntrega As DelegateCommand(Of Object)
+    Public Property cmdCambiarFechaEntrega As DelegateCommand(Of Object)
+        Get
+            Return _cmdCambiarFechaEntrega
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCambiarFechaEntrega, value)
+        End Set
+    End Property
+    Private Function CanCambiarFechaEntrega(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnCambiarFechaEntrega(arg As Object)
+        'pedido.LineasPedido.ToList.ForEach(Function(l)
+        '                                       l.fechaEntrega = fechaEntrega
+        '                                       Return l
+        '                                   End Function)
+        For Each linea In pedido.LineasPedido
+            linea.fechaEntrega = fechaEntrega
+        Next
+
+        OnPropertyChanged("pedido")
     End Sub
 
     Private _cmdCargarListaPedidos As DelegateCommand(Of Object)
@@ -165,7 +231,29 @@ Public Class PedidoVentaViewModel
         pedido = Await servicio.cargarPedido(arg.empresa, arg.numero)
     End Sub
 
-
+    Private _cmdCeldaModificada As DelegateCommand(Of Object)
+    Public Property cmdCeldaModificada As DelegateCommand(Of Object)
+        Get
+            Return _cmdCeldaModificada
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCeldaModificada, value)
+        End Set
+    End Property
+    Private Function CanCeldaModificada(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCeldaModificada(arg As Object)
+        arg = CType(arg, DataGridCellEditEndingEventArgs)
+        If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.producto Then
+            Dim lineaCambio As LineaPedidoVentaDTO = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
+            Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, arg.EditingElement.Text)
+            lineaCambio.precio = producto.precio
+            lineaCambio.texto = producto.nombre
+            lineaCambio.aplicarDescuento = producto.aplicarDescuento
+            lineaCambio.descuento = 0 'habrá que calcularlo llamando a la API en una futura iteración
+        End If
+    End Sub
 #End Region
 
 End Class

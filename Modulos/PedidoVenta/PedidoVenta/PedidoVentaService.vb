@@ -83,6 +83,37 @@ Public Class PedidoVentaService
 
         End Using
     End Function
+    Public Async Function cargarProducto(empresa As String, id As String) As Task(Of Producto) Implements IPedidoVentaService.cargarProducto
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                Dim urlConsulta As String = "Productos"
+                urlConsulta += "?empresa=" + empresa
+                urlConsulta += "&id=" + id
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = ""
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido cargar el producto " + id)
+            Finally
+
+            End Try
+
+            Dim producto As Producto = JsonConvert.DeserializeObject(Of Producto)(respuesta)
+
+            Return producto
+
+        End Using
+    End Function
 
 
 End Class

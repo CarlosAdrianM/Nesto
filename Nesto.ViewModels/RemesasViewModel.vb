@@ -6,7 +6,7 @@ Imports System.Windows
 Imports Microsoft.Win32
 Imports Microsoft.Office.Interop
 Imports System.Windows.Controls
-
+Imports System.Threading.Tasks
 
 Public Class RemesasViewModel
     Inherits ViewModelBase
@@ -52,6 +52,8 @@ Public Class RemesasViewModel
         fechaCobro = Today
     End Sub
 
+
+#Region "Propiedades"
     Private Property _listaEmpresas As ObservableCollection(Of Empresas)
     Public Property listaEmpresas As ObservableCollection(Of Empresas)
         Get
@@ -241,7 +243,7 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-
+#End Region
 
 #Region "Comandos"
 
@@ -257,7 +259,7 @@ Public Class RemesasViewModel
     Private Function CanCrearFicheroRemesa(ByVal param As Object) As Boolean
         Return Not remesaActual Is Nothing
     End Function
-    Private Sub CrearFicheroRemesa(ByVal param As Object)
+    Private Async Sub CrearFicheroRemesa(ByVal param As Object)
         Dim strContenido As String
         Dim listaContenido As List(Of String)
         Dim codigo As String
@@ -265,27 +267,30 @@ Public Class RemesasViewModel
         Dim nombreFichero As String = mainModel.leerParametro(empresaActual, "PathNorma19") + CStr(remesaActual.Número) + ".xml"
         'Dim nombreFichero As String = "c:\banco\prueba.xml"
         Try
-            'mensajeError = "Generando fichero..."
+            mensajeError = "Generando fichero..."
             DbContext.CommandTimeout = 6000
 
             estaOcupado = True
-            listaContenido = DbContext.CrearFicheroRemesa(remesaActual.Número, codigo, fechaCobro).ToList
-            estaOcupado = False
+            Await Task.Run(Sub()
+                               listaContenido = crearFicheroRemesa(remesaActual.Número, codigo, fechaCobro)
+                               DbContext.CommandTimeout = 180
+                               strContenido = ""
+                               For Each linea In listaContenido
+                                   strContenido = strContenido + linea
+                               Next
+                               contenidoFichero = XDocument.Parse(strContenido)
+                               contenidoFichero.Save(nombreFichero)
+                               mensajeError = "Fichero " + nombreFichero + " creado correctamente"
+                           End Sub)
 
-            DbContext.CommandTimeout = 180
-            strContenido = ""
-            For Each linea In listaContenido
-                strContenido = strContenido + linea
-            Next
-            contenidoFichero = XDocument.Parse(strContenido)
-            contenidoFichero.Save(nombreFichero)
-            mensajeError = "Fichero " + nombreFichero + " creado correctamente"
         Catch ex As Exception
             If IsNothing(ex.InnerException) Then
                 mensajeError = ex.Message
             Else
                 mensajeError = ex.InnerException.Message
             End If
+        Finally
+            estaOcupado = False
         End Try
     End Sub
 
@@ -301,7 +306,7 @@ Public Class RemesasViewModel
     Private Function CanLeerFicheroImpagado(ByVal param As Object) As Boolean
         Return True
     End Function
-    Private Sub LeerFicheroImpagado(ByVal param As Object)
+    Private Async Sub LeerFicheroImpagado(ByVal param As Object)
         Dim elegirFichero = New OpenFileDialog
         elegirFichero.Filter = "xml files (*.xml)|*.xml|All files (*.*)|*.*"
         elegirFichero.FilterIndex = 1
@@ -311,8 +316,12 @@ Public Class RemesasViewModel
         If elegirFichero.ShowDialog() Then
             Try
                 contenidoFichero = XDocument.Load(elegirFichero.FileName)
-                DbContext.prdContabilizarImpagadosSepa(contenidoFichero.ToString)
-                mensajeError = "Impagados contabilizados correctamente"
+                estaOcupado = True
+                mensajeError = "Contabilizando..."
+                Await Task.Run(Sub()
+                                   contabilizarImpagados(contenidoFichero.ToString)
+                                   mensajeError = "Impagados contabilizados correctamente"
+                               End Sub)
             Catch ex As Exception
                 If IsNothing(ex.InnerException) Then
                     mensajeError = ex.Message
@@ -320,7 +329,7 @@ Public Class RemesasViewModel
                     mensajeError = ex.InnerException.Message
                 End If
             Finally
-
+                estaOcupado = False
             End Try
         End If
 
@@ -397,6 +406,16 @@ Public Class RemesasViewModel
         End Try
     End Sub
 
+#End Region
+
+#Region "Funciones Auxiliares"
+    Private Sub contabilizarImpagados(contenidoFichero As String)
+        DbContext.prdContabilizarImpagadosSepa(contenidoFichero)
+    End Sub
+
+    Private Function crearFicheroRemesa(remesa As Integer, codigo As String, fechaCobro As Date) As List(Of String)
+        Return DbContext.CrearFicheroRemesa(remesa, codigo, fechaCobro).ToList
+    End Function
 #End Region
 
 End Class

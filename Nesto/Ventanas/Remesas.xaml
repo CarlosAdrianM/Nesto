@@ -9,7 +9,7 @@
         <vm:RemesasViewModel/>
     </UserControl.DataContext>
 
-    <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
+    <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Espere, por favor...">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>

@@ -23,4 +23,14 @@
         Public Property total As Decimal
         Public Property vendedor As String
     End Class
+
+    Public Class Producto
+        Public Property producto() As String
+        Public Property nombre() As String
+        Public Property precio() As Decimal
+        Public Property aplicarDescuento() As Boolean
+        Public Property Stock() As Integer
+        Public Property CantidadReservada() As Integer
+        Public Property CantidadDisponible() As Integer
+    End Class
 End Class
