@@ -21,7 +21,7 @@ Public Class PedidoVenta
                 OnPropertyChanged("aplicarDescuento")
             End Set
         End Property
-        Public Property cantidad() As Short
+        Public Property cantidad() As Short = 1
         Public Property delegacion() As String
         Private _descuento As Decimal
         Public Property descuento() As Decimal
@@ -46,8 +46,10 @@ Public Class PedidoVenta
             End Set
         End Property
         Public Property formaVenta() As String
+        Public Property id() As Integer
         Public Property iva() As String
         Public Property oferta() As Integer?
+        Public Property picking() As Integer
         Private _precio As Decimal
         Public Property precio() As Decimal
             Get
@@ -92,6 +94,12 @@ Public Class PedidoVenta
         Public ReadOnly Property estaFacturada As Boolean
             Get
                 Return estado >= 4
+            End Get
+        End Property
+
+        Public ReadOnly Property tienePicking As Boolean
+            Get
+                Return picking <> 0
             End Get
         End Property
 

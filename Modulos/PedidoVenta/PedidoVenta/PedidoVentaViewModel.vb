@@ -29,6 +29,7 @@ Public Class PedidoVentaViewModel
         cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
         cmdCargarPedido = New DelegateCommand(Of Object)(AddressOf OnCargarPedido, AddressOf CanCargarPedido)
         cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada, AddressOf CanCeldaModificada)
+        cmdModificarPedido = New DelegateCommand(Of Object)(AddressOf OnModificarPedido, AddressOf CanModificarPedido)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -252,8 +253,35 @@ Public Class PedidoVentaViewModel
             lineaCambio.texto = producto.nombre
             lineaCambio.aplicarDescuento = producto.aplicarDescuento
             lineaCambio.descuento = 0 'habrá que calcularlo llamando a la API en una futura iteración
+            If IsNothing(lineaCambio.usuario) Then
+                lineaCambio.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+            End If
         End If
     End Sub
+
+    Private _cmdModificarPedido As DelegateCommand(Of Object)
+    Public Property cmdModificarPedido As DelegateCommand(Of Object)
+        Get
+            Return _cmdModificarPedido
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdModificarPedido, value)
+        End Set
+    End Property
+    Private Function CanModificarPedido(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnModificarPedido(arg As Object)
+        Try
+            servicio.modificarPedido(pedido)
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = ex.Message
+                    })
+        End Try
+    End Sub
+
 #End Region
 
 End Class

@@ -20,6 +20,9 @@
                 <DataTrigger Binding="{Binding estaAlbaraneada}" Value="True">
                     <Setter Property="IsEnabled" Value="False" />
                 </DataTrigger>
+                <DataTrigger Binding="{Binding tienePicking}" Value="True">
+                    <Setter Property="IsEnabled" Value="False" />
+                </DataTrigger>
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
@@ -72,71 +75,80 @@
                 </ListView.ItemTemplate>
             </ListView>
         </xctk:BusyIndicator>
-        <TabControl Grid.Column="1">
-            <TabItem Header="Cabecera">
-                <StackPanel DockPanel.Dock="Top">
-                    <TextBlock Text="Cliente: "></TextBlock>
-                    <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
-                    <TextBlock Text="Fecha pedido:"></TextBlock>
-                    <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
-                </StackPanel>
-            </TabItem>
-            <TabItem Header="Entrega">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition/>
-                        <ColumnDefinition/>
-                    </Grid.ColumnDefinitions>
-                    <controles:SelectorDireccionEntrega Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto}" ></controles:SelectorDireccionEntrega>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="Fecha de Entrega:"></TextBlock>
-                        <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>
-                        <CheckBox IsChecked="{Binding pedido.servirJunto}">Servir Junto</CheckBox>
-                        <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="10*"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <TabControl Grid.Row="0">
+                <TabItem Header="Cabecera">
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="Cliente: "></TextBlock>
+                        <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
+                        <TextBlock Text="Fecha pedido:"></TextBlock>
+                        <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
                     </StackPanel>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Pago">
-                <StackPanel>
-                    <controles:SelectorFormaPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.formaPago}"></controles:SelectorFormaPago>
-                    <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago}"></controles:SelectorPlazosPago>
-                    <TextBlock Text="Fecha vencimiento:"></TextBlock>
-                    <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
-                </StackPanel>
-            </TabItem>
-            <TabItem Header="Líneas">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="3*"/>
-                        <ColumnDefinition Width="2*"/>
-                    </Grid.ColumnDefinitions>
-                    <DataGrid Name="grdLineas" Grid.Column="0" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.LineasPedido}" MinHeight="500" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
-                            <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
-                            <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding producto}" />
-                            <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
+                </TabItem>
+                <TabItem Header="Entrega">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <controles:SelectorDireccionEntrega Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto}" ></controles:SelectorDireccionEntrega>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="Fecha de Entrega:"></TextBlock>
+                            <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>
+                            <CheckBox IsChecked="{Binding pedido.servirJunto}">Servir Junto</CheckBox>
+                            <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Pago">
+                    <StackPanel>
+                        <controles:SelectorFormaPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.formaPago}"></controles:SelectorFormaPago>
+                        <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago}"></controles:SelectorPlazosPago>
+                        <TextBlock Text="Fecha vencimiento:"></TextBlock>
+                        <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
+                    </StackPanel>
+                </TabItem>
+                <TabItem Header="Líneas">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3*"/>
+                            <ColumnDefinition Width="2*"/>
+                        </Grid.ColumnDefinitions>
+                        <DataGrid Name="grdLineas" Grid.Column="0" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.LineasPedido}" MinHeight="500" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
+                                <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
+                                <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding producto}" />
+                                <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
 
-                            <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding cantidad}" />
-                            <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding precio, StringFormat=c}">
-                                <DataGridTextColumn.CellStyle>
-                                    <Style>
-                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                    </Style>
-                                </DataGridTextColumn.CellStyle>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding descuento, StringFormat=p}" >
-                                <DataGridTextColumn.CellStyle>
-                                    <Style>
-                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                    </Style>
-                                </DataGridTextColumn.CellStyle>
-                            </DataGridTextColumn>
-                            <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </TabItem>
-        </TabControl>
+                                <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding cantidad}" />
+                                <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding precio, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding descuento, StringFormat=p}" >
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+            <StackPanel Grid.Row="1">
+                <Button Command="{Binding cmdModificarPedido}">Modificar Pedido</Button>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

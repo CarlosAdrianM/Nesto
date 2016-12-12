@@ -1,5 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
+Imports System.Text
 Imports Nesto.Contratos
 Imports Nesto.Models
 Imports Nesto.Models.PedidoVenta
@@ -114,6 +115,30 @@ Public Class PedidoVentaService
 
         End Using
     End Function
+    Public Async Sub modificarPedido(pedido As PedidoVentaDTO) Implements IPedidoVentaService.modificarPedido
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
 
+            Try
+                Dim urlConsulta As String = "PedidosVenta"
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
+                response = Await client.PutAsync(urlConsulta, content)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    Throw New Exception("Se ha detectado un problema al modificar el pedido " + pedido.numero.ToString)
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido modificar el pedido " + pedido.numero.ToString)
+            Finally
+
+            End Try
+        End Using
+
+    End Sub
 End Class
