@@ -60,6 +60,7 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Data.Entity" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
     <Reference Include="System.Web.Services" />
@@ -121,9 +122,7 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
     </Compile>
-    <Compile Include="MainModel.vb">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="MainModel.vb" />
     <Compile Include="ModelNesto.Designer.vb">
       <DependentUpon>ModelNesto.edmx</DependentUpon>
       <AutoGen>True</AutoGen>
@@ -144,6 +143,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="PedidoVenta.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">
