@@ -274,6 +274,10 @@ Public Class PedidoVentaViewModel
     Private Sub OnModificarPedido(arg As Object)
         Try
             servicio.modificarPedido(pedido)
+            NotificationRequest.Raise(New Notification() With {
+                        .Title = "Pedido Modificado",
+                        .Content = "Pedido " + pedido.numero.ToString + " modificado correctamente"
+                    })
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
