@@ -77,7 +77,7 @@
         </xctk:BusyIndicator>
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="10*"/>
+                <RowDefinition Height="8*"/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
             <TabControl Grid.Row="0">
@@ -148,6 +148,36 @@
             </TabControl>
             <StackPanel Grid.Row="1">
                 <Button Command="{Binding cmdModificarPedido}">Modificar Pedido</Button>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Column="0" Grid.Row="1">Base Imponible</TextBlock>
+                    <TextBlock Grid.Column="0" Grid.Row="2">Total</TextBlock>
+
+                    <TextBlock Grid.Column="1" Grid.Row="0">Picking</TextBlock>
+                    <TextBlock Grid.Column="2" Grid.Row="0">Total</TextBlock>
+
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding pedido.baseImponible, StringFormat=c}"></TextBlock>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="{Binding pedido.total, StringFormat=c}"></TextBlock>
+
+                    <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding pedido.baseImponiblePicking, StringFormat=c}"></TextBlock>
+                    <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding pedido.totalPicking, StringFormat=c}"></TextBlock>
+
+                </Grid>
+                
+                
+                    
+                
+                
             </StackPanel>
         </Grid>
     </Grid>

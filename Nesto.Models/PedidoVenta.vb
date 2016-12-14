@@ -19,9 +19,20 @@ Public Class PedidoVenta
             Set(value As Boolean)
                 _aplicarDescuento = value
                 OnPropertyChanged("aplicarDescuento")
+                OnPropertyChanged("total")
             End Set
         End Property
-        Public Property cantidad() As Short = 1
+
+        Private _cantidad As Short = 1
+        Public Property cantidad() As Short
+            Get
+                Return _cantidad
+            End Get
+            Set(value As Short)
+                _cantidad = value
+                OnPropertyChanged("cantidad")
+            End Set
+        End Property
         Public Property delegacion() As String
         Private _descuento As Decimal
         Public Property descuento() As Decimal
@@ -31,6 +42,7 @@ Public Class PedidoVenta
             Set(value As Decimal)
                 _descuento = value
                 OnPropertyChanged("descuento")
+                OnPropertyChanged("total")
             End Set
         End Property
         Public Property descuentoProducto() As Decimal
@@ -58,6 +70,7 @@ Public Class PedidoVenta
             Set(value As Decimal)
                 _precio = value
                 OnPropertyChanged("precio")
+                OnPropertyChanged("total")
             End Set
         End Property
         Private _producto As String
@@ -84,6 +97,24 @@ Public Class PedidoVenta
         Public Property usuario() As String
         Public Property vistoBueno() As Boolean
 
+
+        Public ReadOnly Property bruto As Decimal
+            Get
+                Return _cantidad * precio
+            End Get
+        End Property
+        Public ReadOnly Property baseImponible As Decimal
+            Get
+                Return bruto * (1 - descuento)
+            End Get
+        End Property
+
+        Public ReadOnly Property total As Decimal
+            Get
+                ' Esto hay que arreglarlo cuando tengamos el gestor de impuestos
+                Return Math.Round(baseImponible * 1.21)
+            End Get
+        End Property
 
         Public ReadOnly Property estaAlbaraneada() As Boolean
             Get
@@ -142,6 +173,44 @@ Public Class PedidoVenta
         Public Property mantenerJunto() As Boolean
         Public Property servirJunto() As Boolean
         Public Property usuario() As String
+
+        Public ReadOnly Property baseImponible As Decimal
+            Get
+                Return LineasPedido.Sum(Function(l) l.baseImponible)
+            End Get
+        End Property
+
+        Public ReadOnly Property bruto As Decimal
+            Get
+                Return LineasPedido.Sum(Function(l) l.bruto)
+            End Get
+        End Property
+
+        Public ReadOnly Property total As Decimal
+            Get
+                Return LineasPedido.Sum(Function(l) l.total)
+            End Get
+        End Property
+
+        Public ReadOnly Property baseImponiblePicking As Decimal
+            Get
+                Return LineasPedido.Where(Function(l) l.picking > 0).Sum(Function(l) l.baseImponible)
+            End Get
+        End Property
+
+        Public ReadOnly Property brutoPicking As Decimal
+            Get
+                Return LineasPedido.Where(Function(l) l.picking > 0).Sum(Function(l) l.bruto)
+            End Get
+        End Property
+
+        Public ReadOnly Property totalPicking As Decimal
+            Get
+                Return LineasPedido.Where(Function(l) l.picking > 0).Sum(Function(l) l.total)
+            End Get
+        End Property
+
+
 
         Public Overridable Property LineasPedido() As ObservableCollection(Of LineaPedidoVentaDTO)
 

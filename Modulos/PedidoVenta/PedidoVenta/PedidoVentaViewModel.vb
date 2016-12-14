@@ -25,6 +25,7 @@ Public Class PedidoVentaViewModel
         Me.servicio = servicio
 
         cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
+        cmdActualizarTotales = New DelegateCommand(Of Object)(AddressOf OnActualizarTotales, AddressOf CanActualizarTotales)
         cmdCambiarFechaEntrega = New DelegateCommand(Of Object)(AddressOf OnCambiarFechaEntrega, AddressOf CanCambiarFechaEntrega)
         cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
         cmdCargarPedido = New DelegateCommand(Of Object)(AddressOf OnCargarPedido, AddressOf CanCargarPedido)
@@ -113,6 +114,7 @@ Public Class PedidoVentaViewModel
         End Get
         Set(value As LineaPedidoVentaDTO)
             SetProperty(_lineaActual, value)
+            OnPropertyChanged("pedido")
         End Set
     End Property
 
@@ -167,6 +169,22 @@ Public Class PedidoVentaViewModel
     End Function
     Private Sub OnAbrirModulo(arg As Object)
         regionManager.RequestNavigate("MainRegion", "PedidoVentaView")
+    End Sub
+
+    Private _cmdActualizarTotales As DelegateCommand(Of Object)
+    Public Property cmdActualizarTotales As DelegateCommand(Of Object)
+        Get
+            Return _cmdActualizarTotales
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdActualizarTotales, value)
+        End Set
+    End Property
+    Private Function CanActualizarTotales(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnActualizarTotales(arg As Object)
+        OnPropertyChanged("pedido")
     End Sub
 
     Private _cmdCambiarFechaEntrega As DelegateCommand(Of Object)
@@ -249,12 +267,14 @@ Public Class PedidoVentaViewModel
         If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.producto Then
             Dim lineaCambio As LineaPedidoVentaDTO = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
             Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, arg.EditingElement.Text)
-            lineaCambio.precio = producto.precio
-            lineaCambio.texto = producto.nombre
-            lineaCambio.aplicarDescuento = producto.aplicarDescuento
-            lineaCambio.descuento = 0 'habrá que calcularlo llamando a la API en una futura iteración
-            If IsNothing(lineaCambio.usuario) Then
-                lineaCambio.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+            If Not IsNothing(producto) Then
+                lineaCambio.precio = producto.precio
+                lineaCambio.texto = producto.nombre
+                lineaCambio.aplicarDescuento = producto.aplicarDescuento
+                lineaCambio.descuento = 0 'habrá que calcularlo llamando a la API en una futura iteración
+                If IsNothing(lineaCambio.usuario) Then
+                    lineaCambio.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+                End If
             End If
         End If
     End Sub
