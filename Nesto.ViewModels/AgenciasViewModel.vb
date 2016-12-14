@@ -2099,6 +2099,15 @@ Public Class AgenciasViewModel
         Dim modificado As Boolean = False
         Dim reembolsoAnterior As Double = envio.Reembolso
 
+        ' Carlos 14/12/16: no se pueden modificar los envíos que estén cobrados
+        If Not IsNothing(envio.FechaPagoReembolso) Then
+            NotificationRequest.Raise(New Notification() With {
+                     .Title = "¡Error!",
+                    .Content = "No se puede modificar este envío, porque ya está cobrado"
+                })
+            Return
+        End If
+
         If Math.Abs(reembolso) > Math.Abs(envio.Reembolso * 10) Then 'es demasiado grande
             Me.ConfirmationRequest.Raise(
                 New Confirmation() With {
