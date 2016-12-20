@@ -181,6 +181,9 @@
       <DependentUpon>PedidoVentaView.xaml</DependentUpon>
     </Compile>
     <Compile Include="PedidoVentaViewModel.vb" />
+    <Compile Include="PickingPopupView.xaml.vb">
+      <DependentUpon>PickingPopupView.xaml</DependentUpon>
+    </Compile>
     <Page Include="Notificacion.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -195,6 +198,10 @@
     </Compile>
     <Compile Include="PedidoVenta.vb" />
     <Page Include="PedidoVentaView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="PickingPopupView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

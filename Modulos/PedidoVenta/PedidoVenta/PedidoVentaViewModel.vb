@@ -17,6 +17,9 @@ Public Class PedidoVentaViewModel
     Private ReadOnly servicio As IPedidoVentaService
     Private vendedor As String
     Private verTodosLosVendedores As Boolean = False
+    Private ivaOriginal As String
+
+    Private Const IVA_POR_DEFECTO = "G21"
 
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService)
@@ -25,15 +28,19 @@ Public Class PedidoVentaViewModel
         Me.servicio = servicio
 
         cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
+        cmdAbrirPicking = New DelegateCommand(Of Object)(AddressOf OnAbrirPicking, AddressOf CanAbrirPicking)
         cmdActualizarTotales = New DelegateCommand(Of Object)(AddressOf OnActualizarTotales, AddressOf CanActualizarTotales)
         cmdCambiarFechaEntrega = New DelegateCommand(Of Object)(AddressOf OnCambiarFechaEntrega, AddressOf CanCambiarFechaEntrega)
+        cmdCambiarIva = New DelegateCommand(Of Object)(AddressOf OnCambiarIva, AddressOf CanCambiarIva)
         cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
         cmdCargarPedido = New DelegateCommand(Of Object)(AddressOf OnCargarPedido, AddressOf CanCargarPedido)
         cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada, AddressOf CanCeldaModificada)
         cmdModificarPedido = New DelegateCommand(Of Object)(AddressOf OnModificarPedido, AddressOf CanModificarPedido)
+        cmdSacarPicking = New DelegateCommand(Of Object)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
+        PickingPopup = New InteractionRequest(Of INotification)
 
         Titulo = "Lista de Pedidos"
     End Sub
@@ -69,6 +76,18 @@ Public Class PedidoVentaViewModel
             Me.OnPropertyChanged("InteractionResultMessage")
         End Set
     End Property
+
+    Private _PickingPopup As InteractionRequest(Of INotification)
+    Public Property PickingPopup As InteractionRequest(Of INotification)
+        Get
+            Return _PickingPopup
+        End Get
+        Private Set(value As InteractionRequest(Of INotification))
+            _PickingPopup = value
+        End Set
+    End Property
+
+
 
 #End Region
 
@@ -171,6 +190,25 @@ Public Class PedidoVentaViewModel
         regionManager.RequestNavigate("MainRegion", "PedidoVentaView")
     End Sub
 
+    Private _cmdAbrirPicking As DelegateCommand(Of Object)
+    Public Property cmdAbrirPicking As DelegateCommand(Of Object)
+        Get
+            Return _cmdAbrirPicking
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdAbrirPicking, value)
+        End Set
+    End Property
+    Private Function CanAbrirPicking(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnAbrirPicking(arg As Object)
+        PickingPopup.Raise(New Notification() With {
+                        .Title = "Picking",
+                        .Content = Me
+                    })
+    End Sub
+
     Private _cmdActualizarTotales As DelegateCommand(Of Object)
     Public Property cmdActualizarTotales As DelegateCommand(Of Object)
         Get
@@ -211,6 +249,23 @@ Public Class PedidoVentaViewModel
         OnPropertyChanged("pedido")
     End Sub
 
+    Private _cmdCambiarIva As DelegateCommand(Of Object)
+    Public Property cmdCambiarIva As DelegateCommand(Of Object)
+        Get
+            Return _cmdCambiarIva
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCambiarIva, value)
+        End Set
+    End Property
+    Private Function CanCambiarIva(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnCambiarIva(arg As Object)
+        pedido.iva = IIf(IsNothing(pedido.iva), ivaOriginal, Nothing)
+        OnPropertyChanged("pedido")
+    End Sub
+
     Private _cmdCargarListaPedidos As DelegateCommand(Of Object)
     Public Property cmdCargarListaPedidos As DelegateCommand(Of Object)
         Get
@@ -248,6 +303,7 @@ Public Class PedidoVentaViewModel
     Private Async Sub OnCargarPedido(arg As Object)
         Me.Titulo = "Pedido Venta (" + arg.numero.ToString + ")"
         pedido = Await servicio.cargarPedido(arg.empresa, arg.numero)
+        ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
     End Sub
 
     Private _cmdCeldaModificada As DelegateCommand(Of Object)
@@ -305,6 +361,34 @@ Public Class PedidoVentaViewModel
                     })
         End Try
     End Sub
+
+    Private _cmdSacarPicking As DelegateCommand(Of Object)
+    Public Property cmdSacarPicking As DelegateCommand(Of Object)
+        Get
+            Return _cmdSacarPicking
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdSacarPicking, value)
+        End Set
+    End Property
+    Private Function CanSacarPicking(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnSacarPicking(arg As Object)
+        Dim pedidoPicking As PedidoVentaDTO = arg
+        Try
+            Await Task.Run(Sub()
+                               servicio.sacarPickingPedido(pedidoPicking.empresa, pedidoPicking.numero)
+                           End Sub)
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = ex.Message
+                    })
+        End Try
+    End Sub
+
+
 
 #End Region
 

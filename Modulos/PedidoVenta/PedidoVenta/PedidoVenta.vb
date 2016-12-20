@@ -1,4 +1,5 @@
-﻿Imports Microsoft.Practices.Prism.Modularity
+﻿Imports System.Globalization
+Imports Microsoft.Practices.Prism.Modularity
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
@@ -30,4 +31,18 @@ Public Class PedidoVenta
         End If
     End Sub
 
+End Class
+
+Public Class PercentageConverter
+    Implements IValueConverter
+
+    Public Function Convert(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.Convert
+        Dim fraction = Decimal.Parse(value.ToString())
+        Return fraction.ToString("P2")
+    End Function
+
+    Public Function ConvertBack(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.ConvertBack
+        Dim valueWithoutPercentage = value.ToString().TrimEnd(" ", "%")
+        Return Decimal.Parse(valueWithoutPercentage) / 100
+    End Function
 End Class

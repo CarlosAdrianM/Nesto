@@ -7,4 +7,5 @@ Public Interface IPedidoVentaService
     Function cargarPedido(empresa As String, numero As Integer) As Task(Of PedidoVentaDTO)
     Function cargarProducto(empresa As String, id As String) As Task(Of Producto)
     Sub modificarPedido(pedido As PedidoVentaDTO)
+    Sub sacarPickingPedido(empresa As String, numero As Integer)
 End Interface

@@ -1,4 +1,6 @@
-﻿Public Class PedidoVentaView
+﻿Imports System.Globalization
+
+Public Class PedidoVentaView
     Public Sub New(viewModel As PedidoVentaViewModel)
 
         ' Esta llamada es exigida por el diseñador.
@@ -13,7 +15,7 @@
 
     Private Sub grdLineas_CellEditEnding(sender As Object, e As DataGridCellEditEndingEventArgs) Handles grdLineas.CellEditEnding
         DataContext.cmdCeldaModificada.Execute(e)
-        'actualizarTotales = True
+        actualizarTotales = True
     End Sub
 
     'Private Sub grdLineas_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles grdLineas.SelectionChanged
@@ -72,6 +74,23 @@
     'End Sub
 
     Private Sub grdLineas_KeyUp(sender As Object, e As KeyEventArgs) Handles grdLineas.KeyUp
-        DataContext.cmdActualizarTotales.Execute(Nothing)
+        If actualizarTotales Then
+            DataContext.cmdActualizarTotales.Execute(Nothing)
+            actualizarTotales = False
+        End If
     End Sub
+
+    Public Class porcentajeConverter
+        Implements IValueConverter
+        Public Function Convert(ByVal value As Object, ByVal targetType As Type, ByVal parameter As Object, ByVal culture As CultureInfo) As Object Implements IValueConverter.Convert
+            Dim fraccion As Decimal = Decimal.Parse(value.ToString)
+            Return fraccion.ToString("P2")
+        End Function
+
+        Public Function ConvertBack(ByVal value As Object, ByVal targetType As Type, ByVal parameter As Object, ByVal culture As CultureInfo) As Object Implements IValueConverter.ConvertBack
+            Dim valueWithoutPercentage As String = value.ToString().TrimEnd(" ", "%")
+            Return Decimal.Parse(valueWithoutPercentage) / 100
+        End Function
+    End Class
+
 End Class

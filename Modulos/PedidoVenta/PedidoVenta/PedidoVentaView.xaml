@@ -25,6 +25,8 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <local:PercentageConverter x:Key="porcentajeConverter" />
     </UserControl.Resources>
     
     <i:Interaction.Triggers>
@@ -35,8 +37,17 @@
                 </prism:PopupWindowAction.WindowContent>
             </prism:PopupWindowAction>
         </prism:InteractionRequestTrigger>
+        
         <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
             <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
+        </prism:InteractionRequestTrigger>
+        
+        <prism:InteractionRequestTrigger SourceObject="{Binding PickingPopup, Mode=OneWay}">
+            <prism:PopupWindowAction>
+                <prism:PopupWindowAction.WindowContent>
+                    <local:PickingPopupView />
+                </prism:PopupWindowAction.WindowContent>
+            </prism:PopupWindowAction>
         </prism:InteractionRequestTrigger>
     </i:Interaction.Triggers>
     
@@ -87,6 +98,8 @@
                         <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
                         <TextBlock Text="Fecha pedido:"></TextBlock>
                         <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
+                        <TextBlock></TextBlock>
+                        <Button Command="{Binding cmdAbrirPicking}">Sacar Picking del Pedido</Button>
                     </StackPanel>
                 </TabItem>
                 <TabItem Header="Entrega">
@@ -110,6 +123,14 @@
                         <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago}"></controles:SelectorPlazosPago>
                         <TextBlock Text="Fecha vencimiento:"></TextBlock>
                         <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
+                        <TextBlock></TextBlock>
+                        <TextBox Text="{Binding pedido.iva}" IsReadOnly="True">
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseDoubleClick" >
+                                    <i:InvokeCommandAction Command="{Binding cmdCambiarIva}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                        </TextBox>
                     </StackPanel>
                 </TabItem>
                 <TabItem Header="Líneas">
@@ -133,7 +154,7 @@
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding descuento, StringFormat=p}" >
+                                <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding descuento, Converter={StaticResource porcentajeConverter}}" >
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />

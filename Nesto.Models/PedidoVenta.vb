@@ -59,7 +59,16 @@ Public Class PedidoVenta
         End Property
         Public Property formaVenta() As String
         Public Property id() As Integer
+        Private _iva As String
         Public Property iva() As String
+            Get
+                Return _iva
+            End Get
+            Set(value As String)
+                _iva = value
+                OnPropertyChanged("iva")
+            End Set
+        End Property
         Public Property oferta() As Integer?
         Public Property picking() As Integer
         Private _precio As Decimal
@@ -100,21 +109,22 @@ Public Class PedidoVenta
 
         Public ReadOnly Property bruto As Decimal
             Get
-                Return _cantidad * precio
-            End Get
-        End Property
-        Public ReadOnly Property baseImponible As Decimal
-            Get
-                Return bruto * (1 - descuento)
+                Return cantidad * precio
             End Get
         End Property
 
-        Public ReadOnly Property total As Decimal
-            Get
-                ' Esto hay que arreglarlo cuando tengamos el gestor de impuestos
-                Return Math.Round(baseImponible * 1.21)
-            End Get
-        End Property
+        'Public ReadOnly Property baseImponible As Decimal
+        '    Get
+        '        Return bruto * (1 - descuento)
+        '    End Get
+        'End Property
+
+        'Public ReadOnly Property sumaDescuentosLinea As Decimal
+        '    Get
+        '        ' (1-(1-(inserted.descuentocliente)) * (1-(inserted.descuentoproducto)) * (1-(inserted.descuento)) * (1-(inserted.descuentopp)))
+        '        Return 1 - ((1 - descuento) * (1 - descuentoProducto))
+        '    End Get
+        'End Property
 
         Public ReadOnly Property estaAlbaraneada() As Boolean
             Get
@@ -176,7 +186,11 @@ Public Class PedidoVenta
 
         Public ReadOnly Property baseImponible As Decimal
             Get
-                Return LineasPedido.Sum(Function(l) l.baseImponible)
+                Dim baseImponibleParcial As Decimal
+                For Each linea In LineasPedido
+                    baseImponibleParcial += calcularBaseImponibleLinea(linea)
+                Next
+                Return baseImponibleParcial
             End Get
         End Property
 
@@ -188,13 +202,21 @@ Public Class PedidoVenta
 
         Public ReadOnly Property total As Decimal
             Get
-                Return LineasPedido.Sum(Function(l) l.total)
+                Dim totalParcial As Decimal
+                For Each linea In LineasPedido
+                    totalParcial += calcularTotalLinea(linea)
+                Next
+                Return totalParcial
             End Get
         End Property
 
         Public ReadOnly Property baseImponiblePicking As Decimal
             Get
-                Return LineasPedido.Where(Function(l) l.picking > 0).Sum(Function(l) l.baseImponible)
+                Dim baseImponibleParcial As Decimal
+                For Each linea In LineasPedido.Where(Function(l) l.picking > 0)
+                    baseImponibleParcial += calcularBaseImponibleLinea(linea)
+                Next
+                Return baseImponibleParcial
             End Get
         End Property
 
@@ -204,13 +226,36 @@ Public Class PedidoVenta
             End Get
         End Property
 
-        Public ReadOnly Property totalPicking As Decimal
+        Public ReadOnly Property sumaDescuentos(linea As LineaPedidoVentaDTO) As Decimal
             Get
-                Return LineasPedido.Where(Function(l) l.picking > 0).Sum(Function(l) l.total)
+                ' falta añadir el descuento del cliente y el descuento PP
+                Return 1 - ((1 - linea.descuento) * (1 - linea.descuentoProducto))
             End Get
         End Property
 
+        Public ReadOnly Property totalPicking As Decimal
+            Get
+                Dim totalParcial As Decimal
+                For Each linea In LineasPedido.Where(Function(l) l.picking > 0)
+                    totalParcial += calcularTotalLinea(linea)
+                Next
+                Return totalParcial
+            End Get
+        End Property
 
+        Private Function calcularBaseImponibleLinea(linea As LineaPedidoVentaDTO)
+            Return linea.bruto * (1 - sumaDescuentos(linea))
+        End Function
+
+        Private Function calcularTotalLinea(linea As LineaPedidoVentaDTO)
+            If IsNothing(Me.iva) Then
+                Return calcularBaseImponibleLinea(linea)
+            ElseIf Me.iva = "R10" Then
+                Return calcularBaseImponibleLinea(linea) * 1.1
+            Else
+                Return calcularBaseImponibleLinea(linea) * 1.21
+            End If
+        End Function
 
         Public Overridable Property LineasPedido() As ObservableCollection(Of LineaPedidoVentaDTO)
 
