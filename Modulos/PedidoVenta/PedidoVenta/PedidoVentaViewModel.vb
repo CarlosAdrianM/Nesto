@@ -126,6 +126,31 @@ Public Class PedidoVentaViewModel
         End Set
     End Property
 
+    Private _filtroPedidos As String
+    Public Property filtroPedidos As String
+        Get
+            Return _filtroPedidos
+        End Get
+        Set(value As String)
+            SetProperty(_filtroPedidos, value)
+            If filtroPedidos = "" Then
+                listaPedidos = listaPedidosOriginal
+            Else
+                listaPedidos = New ObservableCollection(Of ResumenPedido)(listaPedidos.Where(Function(p) (Not IsNothing(p.direccion) AndAlso p.direccion.ToLower.Contains(filtroPedidos.ToLower)) OrElse
+                                                                                                 (Not IsNothing(p.nombre) AndAlso p.nombre.ToLower.Contains(filtroPedidos.ToLower)) OrElse
+                                                                                                 (Not IsNothing(p.cliente) AndAlso p.cliente.Trim.ToLower.Equals(filtroPedidos.ToLower)) OrElse
+                                                                                                 (p.numero = Me.convertirCadenaInteger(filtroPedidos))
+                                                                                                 ))
+            End If
+
+            'p.direccion.Contains(filtroPedidos) OrElse
+            'p.nombre.Contains(filtroPedidos) OrElse
+            'p.cliente.Contains(filtroPedidos)
+            'OrElse p.numero = CInt(filtroPedidos)
+            '   ))
+        End Set
+    End Property
+
     Private _lineaActual As LineaPedidoVentaDTO
     Public Property lineaActual As LineaPedidoVentaDTO
         Get
@@ -144,6 +169,16 @@ Public Class PedidoVentaViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of ResumenPedido))
             SetProperty(_listaPedidos, value)
+        End Set
+    End Property
+
+    Private _listaPedidosOriginal As ObservableCollection(Of ResumenPedido)
+    Public Property listaPedidosOriginal As ObservableCollection(Of ResumenPedido)
+        Get
+            Return _listaPedidosOriginal
+        End Get
+        Set(value As ObservableCollection(Of ResumenPedido))
+            SetProperty(_listaPedidosOriginal, value)
         End Set
     End Property
 
@@ -283,6 +318,12 @@ Public Class PedidoVentaViewModel
             estaCargandoListaPedidos = True
             vendedor = Await configuracion.leerParametro("1", "Vendedor")
             listaPedidos = Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores)
+            listaPedidosOriginal = listaPedidos
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
+            .Title = "Error",
+            .Content = ex.Message
+        })
         Finally
             estaCargandoListaPedidos = False
         End Try
@@ -301,9 +342,13 @@ Public Class PedidoVentaViewModel
         Return True
     End Function
     Private Async Sub OnCargarPedido(arg As Object)
-        Me.Titulo = "Pedido Venta (" + arg.numero.ToString + ")"
-        pedido = Await servicio.cargarPedido(arg.empresa, arg.numero)
-        ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
+        If Not IsNothing(arg) AndAlso Not IsNothing(arg.numero) Then
+            Me.Titulo = "Pedido Venta (" + arg.numero.ToString + ")"
+            pedido = Await servicio.cargarPedido(arg.empresa, arg.numero)
+            ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
+        Else
+            Me.Titulo = "Lista de Pedidos"
+        End If
     End Sub
 
     Private _cmdCeldaModificada As DelegateCommand(Of Object)
@@ -347,13 +392,15 @@ Public Class PedidoVentaViewModel
     Private Function CanModificarPedido(arg As Object) As Boolean
         Return True
     End Function
-    Private Sub OnModificarPedido(arg As Object)
+    Private Async Sub OnModificarPedido(arg As Object)
         Try
-            servicio.modificarPedido(pedido)
+            Await Task.Run(Sub()
+                               servicio.modificarPedido(pedido)
+                           End Sub)
             NotificationRequest.Raise(New Notification() With {
-                        .Title = "Pedido Modificado",
-                        .Content = "Pedido " + pedido.numero.ToString + " modificado correctamente"
-                    })
+                           .Title = "Pedido Modificado",
+                           .Content = "Pedido " + pedido.numero.ToString + " modificado correctamente"
+                       })
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
@@ -380,6 +427,10 @@ Public Class PedidoVentaViewModel
             Await Task.Run(Sub()
                                servicio.sacarPickingPedido(pedidoPicking.empresa, pedidoPicking.numero)
                            End Sub)
+            NotificationRequest.Raise(New Notification() With {
+                        .Title = "Picking",
+                        .Content = "Lanzado el proceso de picking"
+                    })
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
@@ -389,6 +440,14 @@ Public Class PedidoVentaViewModel
     End Sub
 
 
+
+#End Region
+
+#Region "Funciones auxiliares"
+    Private Function convertirCadenaInteger(texto As String) As Integer
+        Dim valor As Integer
+        Return IIf(Integer.TryParse(texto, valor), valor, Nothing)
+    End Function
 
 #End Region
 

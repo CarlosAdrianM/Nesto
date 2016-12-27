@@ -59,32 +59,36 @@
             <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
         <xctk:BusyIndicator Grid.Column="0" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos...">
-            <ListView ItemsSource="{Binding listaPedidos}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">
-                            <StackPanel>
-                                <TextBlock Text="{Binding nombre}"></TextBlock>
-                                <TextBlock Text="{Binding direccion}"></TextBlock>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding cliente}"></TextBlock>
-                                    <TextBlock xml:space="preserve" Text=" - "></TextBlock>
-                                    <TextBlock Text="{Binding fecha, StringFormat=d}"></TextBlock>
-                                    <TextBlock xml:space="preserve" Text=" ("></TextBlock>
-                                    <TextBlock Text="{Binding baseImponible, StringFormat=c}"></TextBlock>
-                                    <TextBlock>)</TextBlock>
+            <DockPanel>
+                <TextBox ></TextBox>
+                <xctk:WatermarkTextBox Name="txtFiltro" DockPanel.Dock="Top" Text="{Binding filtroPedidos}" Watermark="Buscar Pedidos..."></xctk:WatermarkTextBox>
+                <ListView DockPanel.Dock="Bottom" ItemsSource="{Binding listaPedidos}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding nombre}"></TextBlock>
+                                    <TextBlock Text="{Binding direccion}"></TextBlock>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding cliente}"></TextBlock>
+                                        <TextBlock xml:space="preserve" Text=" - "></TextBlock>
+                                        <TextBlock Text="{Binding fecha, StringFormat=d}"></TextBlock>
+                                        <TextBlock xml:space="preserve" Text=" ("></TextBlock>
+                                        <TextBlock Text="{Binding baseImponible, StringFormat=c}"></TextBlock>
+                                        <TextBlock>)</TextBlock>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Background="Red" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePendientes, Converter={StaticResource BooleanToVisibilityConverter} }">Pendientes</TextBlock>
+                                        <TextBlock Background="Green" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePicking, Converter={StaticResource BooleanToVisibilityConverter} }">Picking</TextBlock>
+                                        <TextBlock Background="Blue" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneFechasFuturas, Converter={StaticResource BooleanToVisibilityConverter} }">En Espera</TextBlock>
+                                        <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
+                                    </StackPanel>
                                 </StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Background="Red" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePendientes, Converter={StaticResource BooleanToVisibilityConverter} }">Pendientes</TextBlock>
-                                    <TextBlock Background="Green" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePicking, Converter={StaticResource BooleanToVisibilityConverter} }">Picking</TextBlock>
-                                    <TextBlock Background="Blue" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneFechasFuturas, Converter={StaticResource BooleanToVisibilityConverter} }">En Espera</TextBlock>
-                                    <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </DockPanel>
         </xctk:BusyIndicator>
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>

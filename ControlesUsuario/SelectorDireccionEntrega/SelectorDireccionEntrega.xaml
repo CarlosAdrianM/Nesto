@@ -11,7 +11,7 @@
         <ListView ItemsSource="{Binding listaDireccionesEntrega}" SelectedItem="{Binding direccionEntregaSeleccionada}">
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Height="55" Margin="6" >
+                    <Grid Height="55" Margin="6" ToolTip="{Binding nombre}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
