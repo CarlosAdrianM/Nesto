@@ -32,5 +32,6 @@
         Public Property Stock() As Integer
         Public Property CantidadReservada() As Integer
         Public Property CantidadDisponible() As Integer
+        Public Property descuento() As Decimal
     End Class
 End Class

@@ -367,12 +367,12 @@ Public Class PedidoVentaViewModel
         arg = CType(arg, DataGridCellEditEndingEventArgs)
         If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.producto Then
             Dim lineaCambio As LineaPedidoVentaDTO = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
-            Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, arg.EditingElement.Text)
+            Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, arg.EditingElement.Text, pedido.cliente, pedido.contacto, lineaActual.cantidad)
             If Not IsNothing(producto) Then
                 lineaCambio.precio = producto.precio
                 lineaCambio.texto = producto.nombre
                 lineaCambio.aplicarDescuento = producto.aplicarDescuento
-                lineaCambio.descuento = 0 'habrá que calcularlo llamando a la API en una futura iteración
+                lineaCambio.descuentoProducto = producto.descuento
                 If IsNothing(lineaCambio.usuario) Then
                     lineaCambio.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
                 End If
@@ -395,17 +395,23 @@ Public Class PedidoVentaViewModel
     Private Async Sub OnModificarPedido(arg As Object)
         Try
             Await Task.Run(Sub()
-                               servicio.modificarPedido(pedido)
+                               Try
+                                   servicio.modificarPedido(pedido)
+                               Catch ex As Exception
+                                   Throw New Exception(ex.Message)
+                               End Try
                            End Sub)
             NotificationRequest.Raise(New Notification() With {
                            .Title = "Pedido Modificado",
                            .Content = "Pedido " + pedido.numero.ToString + " modificado correctamente"
                        })
+
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
                         .Content = ex.Message
                     })
+
         End Try
     End Sub
 

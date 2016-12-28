@@ -84,7 +84,7 @@ Public Class PedidoVentaService
 
         End Using
     End Function
-    Public Async Function cargarProducto(empresa As String, id As String) As Task(Of Producto) Implements IPedidoVentaService.cargarProducto
+    Public Async Function cargarProducto(empresa As String, id As String, cliente As String, contacto As String, cantidad As Short) As Task(Of Producto) Implements IPedidoVentaService.cargarProducto
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -94,6 +94,9 @@ Public Class PedidoVentaService
                 Dim urlConsulta As String = "Productos"
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&id=" + id
+                urlConsulta += "&cliente=" + cliente
+                urlConsulta += "&contacto=" + contacto
+                urlConsulta += "&cantidad=" + cantidad.ToString
 
                 response = Await client.GetAsync(urlConsulta)
 
@@ -121,23 +124,17 @@ Public Class PedidoVentaService
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
-            Try
-                Dim urlConsulta As String = "PedidosVenta"
-                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+            Dim urlConsulta As String = "PedidosVenta"
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
-                response = Await client.PutAsync(urlConsulta, content)
+            response = Await client.PutAsync(urlConsulta, content)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    Throw New Exception("Se ha detectado un problema al modificar el pedido " + pedido.numero.ToString)
-                End If
+            If response.IsSuccessStatusCode Then
+                respuesta = Await response.Content.ReadAsStringAsync()
+            Else
+                Throw New Exception("Se ha detectado un problema al modificar el pedido " + pedido.numero.ToString)
+            End If
 
-            Catch ex As Exception
-                Throw New Exception("No se ha podido modificar el pedido " + pedido.numero.ToString)
-            Finally
-
-            End Try
         End Using
 
     End Sub

@@ -228,6 +228,11 @@ Public Class PedidoVenta
 
         Public ReadOnly Property sumaDescuentos(linea As LineaPedidoVentaDTO) As Decimal
             Get
+                ' Si no está marcado el aplicar descuento, solo aplica el de la propia línea
+                If Not linea.aplicarDescuento Then
+                    Return linea.descuento
+                End If
+
                 ' falta añadir el descuento del cliente y el descuento PP
                 Return 1 - ((1 - linea.descuento) * (1 - linea.descuentoProducto))
             End Get
