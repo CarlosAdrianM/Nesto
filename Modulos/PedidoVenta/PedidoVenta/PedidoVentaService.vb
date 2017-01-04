@@ -118,7 +118,7 @@ Public Class PedidoVentaService
 
         End Using
     End Function
-    Public Async Sub modificarPedido(pedido As PedidoVentaDTO) Implements IPedidoVentaService.modificarPedido
+    Public Sub modificarPedido(pedido As PedidoVentaDTO) Implements IPedidoVentaService.modificarPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -127,18 +127,18 @@ Public Class PedidoVentaService
             Dim urlConsulta As String = "PedidosVenta"
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
-            response = Await client.PutAsync(urlConsulta, content)
+            response = client.PutAsync(urlConsulta, content).Result
 
             If response.IsSuccessStatusCode Then
-                respuesta = Await response.Content.ReadAsStringAsync()
+                respuesta = response.Content.ReadAsStringAsync().Result
             Else
-                Throw New Exception("Se ha detectado un problema al modificar el pedido " + pedido.numero.ToString)
+                Throw New Exception(response.Content.ReadAsStringAsync().Result)
             End If
 
         End Using
 
     End Sub
-    Public Async Sub sacarPickingPedido(empresa As String, numero As Integer) Implements IPedidoVentaService.sacarPickingPedido
+    Public Sub sacarPickingPedido(empresa As String, numero As Integer) Implements IPedidoVentaService.sacarPickingPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -149,12 +149,12 @@ Public Class PedidoVentaService
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroPedido=" + numero.ToString
 
-                response = Await client.GetAsync(urlConsulta)
+                response = client.GetAsync(urlConsulta).Result
 
                 If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
+                    respuesta = response.Content.ReadAsStringAsync().Result
                 Else
-                    respuesta = ""
+                    Throw New Exception(response.Content.ReadAsStringAsync().Result)
                 End If
 
             Catch ex As Exception

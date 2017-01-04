@@ -55,7 +55,7 @@
     
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition/>
+            <ColumnDefinition />
             <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
         <xctk:BusyIndicator Grid.Column="0" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos...">
@@ -112,7 +112,7 @@
                             <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
-                        <controles:SelectorDireccionEntrega Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto}" ></controles:SelectorDireccionEntrega>
+                        <controles:SelectorDireccionEntrega Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto, Mode=TwoWay}"></controles:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Fecha de Entrega:"></TextBlock>
                             <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>
@@ -168,6 +168,35 @@
                                 <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
                             </DataGrid.Columns>
                         </DataGrid>
+                        
+                        <xctk:PropertyGrid Grid.Column="1" x:Name="_propertyGrid" AutoGenerateProperties="False" SelectedObject="{Binding lineaActual}">
+                            <xctk:PropertyGrid.PropertyDefinitions>
+                                <xctk:PropertyDefinition TargetProperties="almacen" DisplayName="Almacén"/>
+                                <xctk:PropertyDefinition TargetProperties="aplicarDescuento" DisplayName="Aplicar Descuento" />
+                                <xctk:PropertyDefinition TargetProperties="bruto" DisplayName="Importe Bruto"/>
+                                <xctk:PropertyDefinition TargetProperties="cantidad" DisplayName="Cantidad"/>
+                                <xctk:PropertyDefinition TargetProperties="delegacion" DisplayName="Delegación"/>
+                                <xctk:PropertyDefinition TargetProperties="descuento" DisplayName="Descuento"/>
+                                <xctk:PropertyDefinition TargetProperties="descuentoProducto" DisplayName="Descuento del Producto"/>
+                                <xctk:PropertyDefinition TargetProperties="estaAlbaraneada" DisplayName="¿Tiene Albarán?"/>
+                                <xctk:PropertyDefinition TargetProperties="estado" DisplayName="Estado"/>
+                                <xctk:PropertyDefinition TargetProperties="estaFacturada" DisplayName="¿Está Facturada?"/>
+                                <xctk:PropertyDefinition TargetProperties="fechaEntrega" DisplayName="Fecha de Entrega"/>
+                                <xctk:PropertyDefinition TargetProperties="formaVenta" DisplayName="Forma de Venta"/>
+                                <xctk:PropertyDefinition TargetProperties="id"  DisplayName="Nº Orden"/>
+                                <xctk:PropertyDefinition TargetProperties="iva" DisplayName="Tipo de IVA"/>
+                                <xctk:PropertyDefinition TargetProperties="oferta" DisplayName="Nº de Oferta"/>
+                                <xctk:PropertyDefinition TargetProperties="picking" DisplayName="Picking"/>
+                                <xctk:PropertyDefinition TargetProperties="precio" DisplayName="Precio Unitario"/>
+                                <xctk:PropertyDefinition TargetProperties="producto" DisplayName="Producto"/>
+                                <xctk:PropertyDefinition TargetProperties="texto" DisplayName="Texto"/>
+                                <xctk:PropertyDefinition TargetProperties="tienePicking" DisplayName="¿Tiene Picking?"/>
+                                <xctk:PropertyDefinition TargetProperties="tipoLinea" DisplayName="Tipo de Línea"/>
+                                <xctk:PropertyDefinition TargetProperties="usuario" DisplayName="Usuario"/>
+                                <xctk:PropertyDefinition TargetProperties="vistoBueno" DisplayName="Visto Bueno"/>
+                            </xctk:PropertyGrid.PropertyDefinitions>
+                        </xctk:PropertyGrid>
+                        
                     </Grid>
                 </TabItem>
             </TabControl>
@@ -205,5 +234,6 @@
                 
             </StackPanel>
         </Grid>
+        
     </Grid>
 </UserControl>

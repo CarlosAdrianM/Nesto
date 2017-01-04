@@ -139,6 +139,7 @@ namespace ControlesUsuario
             {
                 _direccionEntregaSeleccionada = value;
                 OnPropertyChanged("direccionEntregaSeleccionada");
+                Seleccionada = direccionEntregaSeleccionada.contacto;
             }
         }
         private ObservableCollection<DireccionesEntregaCliente> _listaDireccionesEntrega;

@@ -133,6 +133,16 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As DireccionesEntregaJson)
             SetProperty(_direccionEntregaSeleccionada, value)
+            If fechaMinimaEntrega > fechaEntrega Then
+                fechaEntrega = fechaMinimaEntrega
+            End If
+            OnPropertyChanged("fechaMinimaEntrega")
+            ' Se hace así para que coja la fecha de hoy cuando se pueda
+            ' Si lo hacemos en otro orden, da error porque ponemos una fecha
+            ' menor a la que nos permite el datapicker
+            If fechaMinimaEntrega < fechaEntrega Then
+                fechaEntrega = fechaMinimaEntrega
+            End If
         End Set
     End Property
 
@@ -146,7 +156,7 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _fechaEntrega As DateTime = fechaMinimaEntrega
+    Private _fechaEntrega As DateTime = DateTime.MinValue
     Public Property fechaEntrega As DateTime
         Get
             Return _fechaEntrega
@@ -161,8 +171,16 @@ Public Class PlantillaVentaViewModel
 
     Public ReadOnly Property fechaMinimaEntrega As DateTime
         Get
-            Dim fechaMinima As DateTime
-            fechaMinima = IIf(Now.Hour < 11, Today, Today.AddDays(1))
+            Dim fechaMinima As DateTime = IIf(Now.Hour < 11, Today, Today.AddDays(1))
+            If Not IsNothing(direccionEntregaSeleccionada) AndAlso Not IsNothing(direccionEntregaSeleccionada.ruta) Then
+                If direccionEntregaSeleccionada.ruta <> "FW" AndAlso
+                    direccionEntregaSeleccionada.ruta <> "00" AndAlso
+                    direccionEntregaSeleccionada.ruta <> "16" AndAlso
+                    direccionEntregaSeleccionada.ruta <> "AT" AndAlso
+                    direccionEntregaSeleccionada.ruta <> "OT" Then
+                    fechaMinima = Today
+                End If
+            End If
             Return fechaMinima
         End Get
     End Property
@@ -902,6 +920,7 @@ Public Class PlantillaVentaViewModel
 
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+            client.Timeout = client.Timeout.Add(New TimeSpan(0, 5, 0)) 'cinco minutos más
             Dim response As HttpResponseMessage
 
             estaOcupado = True

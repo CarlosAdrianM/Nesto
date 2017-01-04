@@ -182,6 +182,16 @@ Public Class PedidoVentaViewModel
         End Set
     End Property
 
+    Private _numeroPedidoPicking As Integer
+    Public Property numeroPedidoPicking As Integer
+        Get
+            Return _numeroPedidoPicking
+        End Get
+        Set(value As Integer)
+            SetProperty(_numeroPedidoPicking, value)
+        End Set
+    End Property
+
     Private _pedido As PedidoVentaDTO
     Public Property pedido() As PedidoVentaDTO
         Get
@@ -190,7 +200,10 @@ Public Class PedidoVentaViewModel
         Set(ByVal value As PedidoVentaDTO)
             SetProperty(_pedido, value)
             estaActualizarFechaActivo = False
-            fechaEntrega = pedido.LineasPedido.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)?.fechaEntrega
+            Dim linea As LineaPedidoVentaDTO = pedido.LineasPedido.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
+            If Not IsNothing(linea) AndAlso Not IsNothing(linea.fechaEntrega) Then
+                fechaEntrega = linea.fechaEntrega
+            End If
             estaActualizarFechaActivo = True
         End Set
     End Property
@@ -238,10 +251,15 @@ Public Class PedidoVentaViewModel
         Return True
     End Function
     Private Sub OnAbrirPicking(arg As Object)
+        If Not IsNothing(pedido) Then
+            numeroPedidoPicking = pedido.numero
+        Else
+            numeroPedidoPicking = 0
+        End If
         PickingPopup.Raise(New Notification() With {
-                        .Title = "Picking",
-                        .Content = Me
-                    })
+                            .Title = "Picking",
+                            .Content = Me
+                        })
     End Sub
 
     Private _cmdActualizarTotales As DelegateCommand(Of Object)
@@ -408,7 +426,7 @@ Public Class PedidoVentaViewModel
 
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
+                        .Title = "Error en pedido " + pedido.numero.ToString,
                         .Content = ex.Message
                     })
 
@@ -431,15 +449,19 @@ Public Class PedidoVentaViewModel
         Dim pedidoPicking As PedidoVentaDTO = arg
         Try
             Await Task.Run(Sub()
-                               servicio.sacarPickingPedido(pedidoPicking.empresa, pedidoPicking.numero)
+                               Try
+                                   servicio.sacarPickingPedido(pedidoPicking.empresa, numeroPedidoPicking)
+                               Catch ex As Exception
+                                   Throw New Exception(ex.Message)
+                               End Try
                            End Sub)
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Picking",
-                        .Content = "Lanzado el proceso de picking"
+                        .Content = "Se ha asignado el picking correctamente al pedido " + numeroPedidoPicking.ToString
                     })
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
+                        .Title = "Error Picking pedido " + numeroPedidoPicking.ToString,
                         .Content = ex.Message
                     })
         End Try

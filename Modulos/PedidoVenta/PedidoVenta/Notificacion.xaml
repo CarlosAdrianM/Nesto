@@ -13,7 +13,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ContentControl HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Row="0" Content="{Binding Content}"/>
+        <TextBlock HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Row="0" Text="{Binding Content}" TextWrapping="Wrap"/>
         <Button x:Name="OKButton" Content="OK" Width="75" Height="25" HorizontalAlignment="Right" Margin="0,10,0,0" Grid.Row="1" IsDefault="True"/>
 
     </Grid>

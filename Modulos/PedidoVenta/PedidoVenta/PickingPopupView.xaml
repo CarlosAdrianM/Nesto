@@ -8,7 +8,7 @@
              d:DesignHeight="300" d:DesignWidth="300">
     <StackPanel Margin="10">
         <TextBlock>Nº Pedido:</TextBlock>
-        <TextBox Text="{Binding Content.pedido.numero, Mode=OneTime}"></TextBox>
+        <TextBox Text="{Binding Content.numeroPedidoPicking}"></TextBox>
         <Button Command="{Binding Content.cmdSacarPicking}" CommandParameter="{Binding Content.pedido}">Aceptar</Button>
     </StackPanel>
 </UserControl>

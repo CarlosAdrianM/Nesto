@@ -163,7 +163,15 @@ Public Class PedidoVenta
         Public Property empresa() As String
         Public Property numero() As Integer
         Public Property cliente() As String
+        Private _contacto As String
         Public Property contacto() As String
+            Get
+                Return _contacto
+            End Get
+            Set(value As String)
+                _contacto = value
+            End Set
+        End Property
         Public Property fecha() As Nullable(Of System.DateTime)
         Public Property formaPago() As String
         Public Property plazosPago() As String

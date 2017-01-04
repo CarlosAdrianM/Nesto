@@ -20,6 +20,11 @@ Public Class PedidoVentaView
         actualizarTotales = True
     End Sub
 
+
+    Private Sub grdLineas_RowEditEnding(sender As Object, e As DataGridRowEditEndingEventArgs) Handles grdLineas.RowEditEnding
+        ' Aquí comprobaremos las condiciones de precios (servicio.comprobarCondicionesPrecio)
+    End Sub
+
     Private Sub grdLineas_KeyUp(sender As Object, e As KeyEventArgs) Handles grdLineas.KeyUp
         If actualizarTotales Then
             DataContext.cmdActualizarTotales.Execute(Nothing)
