@@ -166,5 +166,30 @@ Public Class PedidoVentaService
         End Using
     End Sub
 
+    Public Sub sacarPickingPedido(cliente As String) Implements IPedidoVentaService.sacarPickingPedido
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
 
+            Try
+                Dim urlConsulta As String = "Picking"
+                urlConsulta += "?cliente=" + cliente
+
+                response = client.GetAsync(urlConsulta).Result
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = response.Content.ReadAsStringAsync().Result
+                Else
+                    Throw New Exception(response.Content.ReadAsStringAsync().Result)
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se han podido sacar los picking del cliente " + cliente)
+            Finally
+
+            End Try
+
+        End Using
+    End Sub
 End Class

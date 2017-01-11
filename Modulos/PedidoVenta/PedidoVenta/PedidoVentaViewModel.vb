@@ -20,6 +20,7 @@ Public Class PedidoVentaViewModel
     Private ivaOriginal As String
 
     Private Const IVA_POR_DEFECTO = "G21"
+    Private Const EMPRESA_POR_DEFECTO = "1"
 
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService)
@@ -189,6 +190,18 @@ Public Class PedidoVentaViewModel
         End Get
         Set(value As Integer)
             SetProperty(_numeroPedidoPicking, value)
+            _numeroClientePicking = ""
+        End Set
+    End Property
+
+    Private _numeroClientePicking As String
+    Public Property numeroClientePicking() As String
+        Get
+            Return _numeroClientePicking
+        End Get
+        Set(ByVal value As String)
+            SetProperty(_numeroClientePicking, value)
+            _numeroPedidoPicking = 0
         End Set
     End Property
 
@@ -446,22 +459,52 @@ Public Class PedidoVentaViewModel
         Return True
     End Function
     Private Async Sub OnSacarPicking(arg As Object)
+        If numeroPedidoPicking <> 0 AndAlso numeroClientePicking <> "" Then
+            NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "No se pueden especificar a la vez pedido y cliente"
+                    })
+            Return
+        End If
         Dim pedidoPicking As PedidoVentaDTO = arg
         Try
             Await Task.Run(Sub()
                                Try
-                                   servicio.sacarPickingPedido(pedidoPicking.empresa, numeroPedidoPicking)
+                                   If numeroPedidoPicking <> 0 Then
+                                       Dim empresaPicking As String
+                                       If Not IsNothing(pedidoPicking) Then
+                                           empresaPicking = pedidoPicking.empresa
+                                       Else
+                                           empresaPicking = EMPRESA_POR_DEFECTO
+                                       End If
+                                       servicio.sacarPickingPedido(empresaPicking, numeroPedidoPicking)
+                                   Else
+                                       servicio.sacarPickingPedido(numeroClientePicking)
+                                   End If
                                Catch ex As Exception
                                    Throw New Exception(ex.Message)
                                End Try
                            End Sub)
+
+            Dim textoMensaje As String
+            If numeroPedidoPicking <> 0 Then
+                textoMensaje = "Se ha asignado el picking correctamente al pedido " + numeroPedidoPicking.ToString
+            Else
+                textoMensaje = "Se ha asignado el picking correctamente al cliente " + numeroClientePicking
+            End If
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Picking",
-                        .Content = "Se ha asignado el picking correctamente al pedido " + numeroPedidoPicking.ToString
+                        .Content = textoMensaje
                     })
         Catch ex As Exception
+            Dim tituloError As String
+            If numeroPedidoPicking <> 0 Then
+                tituloError = "Error Picking pedido " + numeroPedidoPicking.ToString
+            Else
+                tituloError = "Error Picking cliente " + numeroClientePicking
+            End If
             NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error Picking pedido " + numeroPedidoPicking.ToString,
+                        .Title = tituloError,
                         .Content = ex.Message
                     })
         End Try

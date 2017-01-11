@@ -103,7 +103,7 @@
                         <TextBlock Text="Fecha pedido:"></TextBlock>
                         <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
                         <TextBlock></TextBlock>
-                        <Button Command="{Binding cmdAbrirPicking}">Sacar Picking del Pedido</Button>
+                        <Button Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
                     </StackPanel>
                 </TabItem>
                 <TabItem Header="Entrega">
@@ -168,7 +168,7 @@
                                 <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                        
+                        <!--
                         <xctk:PropertyGrid Grid.Column="1" x:Name="_propertyGrid" AutoGenerateProperties="False" SelectedObject="{Binding lineaActual}">
                             <xctk:PropertyGrid.PropertyDefinitions>
                                 <xctk:PropertyDefinition TargetProperties="almacen" DisplayName="Almacén"/>
@@ -196,7 +196,7 @@
                                 <xctk:PropertyDefinition TargetProperties="vistoBueno" DisplayName="Visto Bueno"/>
                             </xctk:PropertyGrid.PropertyDefinitions>
                         </xctk:PropertyGrid>
-                        
+                        -->
                     </Grid>
                 </TabItem>
             </TabControl>

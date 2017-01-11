@@ -256,7 +256,7 @@
                                         <DataGridTextColumn.CellStyle>
                                             <Style TargetType="DataGridCell">
                                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                                <Setter Property="IsEnabled" Value="{Binding aplicarDescuento}" />
+                                                <Setter Property="IsEnabled" Value="{Binding precioHabilitado}" />
                                             </Style>
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>

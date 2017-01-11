@@ -276,6 +276,11 @@ Public Class PlantillaVentaModel
                 End If
             End Get
         End Property
+        Public ReadOnly Property precioHabilitado As Boolean
+            Get
+                Return aplicarDescuento OrElse subGrupo = "Productos depilación ceras"
+            End Get
+        End Property
 
 
     End Class
