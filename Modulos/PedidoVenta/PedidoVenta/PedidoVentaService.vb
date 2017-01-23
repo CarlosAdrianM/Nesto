@@ -1,5 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
+Imports System.Runtime.ExceptionServices
 Imports System.Text
 Imports Nesto.Contratos
 Imports Nesto.Models
@@ -7,6 +8,7 @@ Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
 
 Public Class PedidoVentaService
     Implements IPedidoVentaService
@@ -151,21 +153,26 @@ Public Class PedidoVentaService
 
                 response = client.GetAsync(urlConsulta).Result
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = response.Content.ReadAsStringAsync().Result
-                Else
-                    Throw New Exception(response.Content.ReadAsStringAsync().Result)
+                respuesta = response.Content.ReadAsStringAsync().Result
+                If Not response.IsSuccessStatusCode Then
+                    Dim objetoRespuesta As JObject
+                    objetoRespuesta = JsonConvert.DeserializeObject(respuesta)
+                    If Not IsNothing(objetoRespuesta("ExceptionMessage")) Then
+                        Dim textoError As String = objetoRespuesta("ExceptionMessage")
+                        Throw New Exception(textoError)
+                    Else
+                        Throw New Exception(respuesta)
+                    End If
                 End If
 
             Catch ex As Exception
-                Throw New Exception("No se ha podido sacar el picking del pedido " + numero.ToString)
+                Throw New Exception("No se ha podido sacar el picking del pedido " + numero.ToString + vbCr + vbCr + ex.Message)
             Finally
 
             End Try
 
         End Using
     End Sub
-
     Public Sub sacarPickingPedido(cliente As String) Implements IPedidoVentaService.sacarPickingPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
@@ -178,14 +185,20 @@ Public Class PedidoVentaService
 
                 response = client.GetAsync(urlConsulta).Result
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = response.Content.ReadAsStringAsync().Result
-                Else
-                    Throw New Exception(response.Content.ReadAsStringAsync().Result)
+                respuesta = response.Content.ReadAsStringAsync().Result
+                If Not response.IsSuccessStatusCode Then
+                    Dim objetoRespuesta As JObject
+                    objetoRespuesta = JsonConvert.DeserializeObject(respuesta)
+                    If Not IsNothing(objetoRespuesta("ExceptionMessage")) Then
+                        Dim textoError As String = objetoRespuesta("ExceptionMessage")
+                        Throw New Exception(textoError)
+                    Else
+                        Throw New Exception(respuesta)
+                    End If
                 End If
 
             Catch ex As Exception
-                Throw New Exception("No se han podido sacar los picking del cliente " + cliente)
+                Throw New Exception("No se han podido sacar los picking del cliente " + cliente, ex)
             Finally
 
             End Try

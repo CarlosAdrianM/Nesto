@@ -482,7 +482,7 @@ Public Class PedidoVentaViewModel
                                        servicio.sacarPickingPedido(numeroClientePicking)
                                    End If
                                Catch ex As Exception
-                                   Throw New Exception(ex.Message)
+                                   Throw ex
                                End Try
                            End Sub)
 
@@ -503,9 +503,15 @@ Public Class PedidoVentaViewModel
             Else
                 tituloError = "Error Picking cliente " + numeroClientePicking
             End If
+            Dim textoError As String
+            If IsNothing(ex.InnerException) Then
+                textoError = ex.Message
+            Else
+                textoError = ex.Message + vbCr + ex.InnerException.Message
+            End If
             NotificationRequest.Raise(New Notification() With {
                         .Title = tituloError,
-                        .Content = ex.Message
+                        .Content = textoError
                     })
         End Try
     End Sub
