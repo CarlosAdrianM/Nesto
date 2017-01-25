@@ -9,4 +9,5 @@ Public Interface IPedidoVentaService
     Sub modificarPedido(pedido As PedidoVentaDTO)
     Sub sacarPickingPedido(empresa As String, numero As Integer)
     Sub sacarPickingPedido(cliente As String)
+    Sub sacarPickingPedido()
 End Interface

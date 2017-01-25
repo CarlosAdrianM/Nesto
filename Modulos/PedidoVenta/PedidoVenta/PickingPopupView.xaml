@@ -5,13 +5,28 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Nesto.Modulos.PedidoVenta"
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
-    <StackPanel Margin="10">
-        <TextBlock>Nº Pedido:</TextBlock>
-        <TextBox Name="txtNumeroPedido" Text="{Binding Content.numeroPedidoPicking}"></TextBox>
-        <TextBlock></TextBlock>
-        <TextBlock>Nº Cliente:</TextBlock>
-        <TextBox Name="txtCliente" Text="{Binding Content.numeroClientePicking}"></TextBox>
-        <Button Command="{Binding Content.cmdSacarPicking}" CommandParameter="{Binding Content.pedido}">Aceptar</Button>
-    </StackPanel>
+             d:DesignHeight="300" d:DesignWidth="350"
+             Width="350">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        
+        <RadioButton Grid.Column="0" Grid.Row="0" Content="Pedido" IsChecked="{Binding Content.esPickingPedido, Mode=TwoWay}" GroupName="TipoPicking"></RadioButton>
+        <TextBox Grid.Column="1" Grid.Row="0" Name="txtNumeroPedido" Text="{Binding Content.numeroPedidoPicking}"></TextBox>
+        <RadioButton Grid.Column="0" Grid.Row="1" Content="Cliente" IsChecked="{Binding Content.esPickingCliente, Mode=TwoWay}" GroupName="TipoPicking"></RadioButton>
+        <TextBox Grid.Column="1" Grid.Row="1" Name="txtCliente" Text="{Binding Content.numeroClientePicking}"></TextBox>
+        <RadioButton Grid.Column="0" Grid.Row="2" Content="Rutas" IsChecked="{Binding Content.esPickingRutas, Mode=TwoWay}" GroupName="TipoPicking"></RadioButton>
+        <TextBlock Grid.Column="0" Grid.Row="3"></TextBlock>
+        
+        <Button Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="4" Command="{Binding Content.cmdSacarPicking}" CommandParameter="{Binding Content.pedido}">Aceptar</Button>
+    </Grid>
 </UserControl>

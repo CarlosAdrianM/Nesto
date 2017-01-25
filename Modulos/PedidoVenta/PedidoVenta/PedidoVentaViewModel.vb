@@ -103,6 +103,36 @@ Public Class PedidoVentaViewModel
         End Set
     End Property
 
+    Private _esPickingCliente As Boolean
+    Public Property esPickingCliente As Boolean
+        Get
+            Return _esPickingCliente
+        End Get
+        Set(value As Boolean)
+            SetProperty(_esPickingCliente, value)
+        End Set
+    End Property
+
+    Private _esPickingPedido As Boolean = True
+    Public Property esPickingPedido As Boolean
+        Get
+            Return _esPickingPedido
+        End Get
+        Set(value As Boolean)
+            SetProperty(_esPickingPedido, value)
+        End Set
+    End Property
+
+    Private _esPickingRutas As Boolean
+    Public Property esPickingRutas As Boolean
+        Get
+            Return _esPickingRutas
+        End Get
+        Set(value As Boolean)
+            SetProperty(_esPickingRutas, value)
+        End Set
+    End Property
+
     Private _estaCargandoListaPedidos As Boolean
     Public Property estaCargandoListaPedidos() As Boolean
         Get
@@ -190,7 +220,6 @@ Public Class PedidoVentaViewModel
         End Get
         Set(value As Integer)
             SetProperty(_numeroPedidoPicking, value)
-            _numeroClientePicking = ""
         End Set
     End Property
 
@@ -201,7 +230,6 @@ Public Class PedidoVentaViewModel
         End Get
         Set(ByVal value As String)
             SetProperty(_numeroClientePicking, value)
-            _numeroPedidoPicking = 0
         End Set
     End Property
 
@@ -266,6 +294,7 @@ Public Class PedidoVentaViewModel
     Private Sub OnAbrirPicking(arg As Object)
         If Not IsNothing(pedido) Then
             numeroPedidoPicking = pedido.numero
+            numeroClientePicking = pedido.cliente
         Else
             numeroPedidoPicking = 0
         End If
@@ -459,18 +488,11 @@ Public Class PedidoVentaViewModel
         Return True
     End Function
     Private Async Sub OnSacarPicking(arg As Object)
-        If numeroPedidoPicking <> 0 AndAlso numeroClientePicking <> "" Then
-            NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "No se pueden especificar a la vez pedido y cliente"
-                    })
-            Return
-        End If
         Dim pedidoPicking As PedidoVentaDTO = arg
         Try
             Await Task.Run(Sub()
                                Try
-                                   If numeroPedidoPicking <> 0 Then
+                                   If esPickingPedido Then
                                        Dim empresaPicking As String
                                        If Not IsNothing(pedidoPicking) Then
                                            empresaPicking = pedidoPicking.empresa
@@ -478,8 +500,12 @@ Public Class PedidoVentaViewModel
                                            empresaPicking = EMPRESA_POR_DEFECTO
                                        End If
                                        servicio.sacarPickingPedido(empresaPicking, numeroPedidoPicking)
-                                   Else
+                                   ElseIf esPickingCliente Then
                                        servicio.sacarPickingPedido(numeroClientePicking)
+                                   ElseIf esPickingRutas Then
+                                       servicio.sacarPickingPedido()
+                                   Else
+                                       Throw New Exception("No hay ningún tipo de picking seleccionado")
                                    End If
                                Catch ex As Exception
                                    Throw ex
@@ -487,10 +513,14 @@ Public Class PedidoVentaViewModel
                            End Sub)
 
             Dim textoMensaje As String
-            If numeroPedidoPicking <> 0 Then
+            If esPickingPedido Then
                 textoMensaje = "Se ha asignado el picking correctamente al pedido " + numeroPedidoPicking.ToString
-            Else
+            ElseIf esPickingCliente Then
                 textoMensaje = "Se ha asignado el picking correctamente al cliente " + numeroClientePicking
+            ElseIf esPickingRutas Then
+                textoMensaje = "Se ha asignado el picking correctamente a las rutas"
+            Else
+                Throw New Exception("Tiene que haber algún tipo de picking seleccionado")
             End If
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Picking",
@@ -498,10 +528,14 @@ Public Class PedidoVentaViewModel
                     })
         Catch ex As Exception
             Dim tituloError As String
-            If numeroPedidoPicking <> 0 Then
+            If esPickingPedido Then
                 tituloError = "Error Picking pedido " + numeroPedidoPicking.ToString
-            Else
+            ElseIf esPickingCliente Then
                 tituloError = "Error Picking cliente " + numeroClientePicking
+            ElseIf esPickingRutas Then
+                tituloError = "Error Picking Rutas"
+            Else
+                tituloError = "Error Picking sin tipo"
             End If
             Dim textoError As String
             If IsNothing(ex.InnerException) Then
