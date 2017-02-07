@@ -357,6 +357,9 @@ Public Class PedidoVentaViewModel
         Return True
     End Function
     Private Sub OnCambiarIva(arg As Object)
+        If IsNothing(pedido) Then
+            Return
+        End If
         pedido.iva = IIf(IsNothing(pedido.iva), ivaOriginal, Nothing)
         OnPropertyChanged("pedido")
     End Sub
