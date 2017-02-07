@@ -428,6 +428,9 @@ Public Class PedidoVentaViewModel
     End Function
     Private Async Sub OnCeldaModificada(arg As Object)
         arg = CType(arg, DataGridCellEditEndingEventArgs)
+        If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = DateTime.MinValue Then
+            lineaActual.fechaEntrega = fechaEntrega
+        End If
         If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.producto Then
             Dim lineaCambio As LineaPedidoVentaDTO = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
             Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, arg.EditingElement.Text, pedido.cliente, pedido.contacto, lineaActual.cantidad)
