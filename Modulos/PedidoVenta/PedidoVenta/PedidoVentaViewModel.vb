@@ -143,6 +143,16 @@ Public Class PedidoVentaViewModel
         End Set
     End Property
 
+    Private _estaSacandoPicking As Boolean
+    Public Property estaSacandoPicking() As Boolean
+        Get
+            Return _estaSacandoPicking
+        End Get
+        Set(ByVal value As Boolean)
+            SetProperty(_estaSacandoPicking, value)
+        End Set
+    End Property
+
     Private _fechaEntrega As Date
     Public Property fechaEntrega As Date
         Get
@@ -496,6 +506,7 @@ Public Class PedidoVentaViewModel
     Private Async Sub OnSacarPicking(arg As Object)
         Dim pedidoPicking As PedidoVentaDTO = arg
         Try
+            estaSacandoPicking = True
             Await Task.Run(Sub()
                                Try
                                    If esPickingPedido Then
@@ -553,6 +564,8 @@ Public Class PedidoVentaViewModel
                         .Title = tituloError,
                         .Content = textoError
                     })
+        Finally
+            estaSacandoPicking = False
         End Try
     End Sub
 
