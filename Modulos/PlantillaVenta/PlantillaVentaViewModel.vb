@@ -1262,7 +1262,9 @@ Public Class PlantillaVentaViewModel
                     .formaVenta = formaVentaPedido,
                     .oferta = ofertaLinea
                 }
-                pedido.LineasPedido.Add(lineaPedido)
+                If linea.cantidad <> 0 Then
+                    pedido.LineasPedido.Add(lineaPedido)
+                End If
 
                 If linea.cantidadOferta <> 0 Then
                     lineaPedidoOferta = lineaPedido.ShallowCopy
