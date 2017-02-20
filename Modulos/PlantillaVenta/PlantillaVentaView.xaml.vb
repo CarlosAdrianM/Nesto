@@ -1,4 +1,5 @@
-﻿Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
+﻿Imports System.Globalization
+Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 
 Public Class PlantillaVentaView
     Public Sub New(viewModel As PlantillaVentaViewModel)
@@ -50,6 +51,9 @@ Public Class PlantillaVentaView
         If e.Column.Header = "Precio" OrElse e.Column.Header = "% Dto." Then
             Dim linea As LineaPlantillaJson = e.EditingElement.DataContext
             Dim textBox As TextBox = e.EditingElement
+            ' Windows debería hacer que el teclado numérico escribiese coma en vez de punto
+            ' pero como no lo hace, lo cambiamos nosotros
+            textBox.Text = Replace(textBox.Text, ".", ",")
             If e.Column.Header = "Precio" Then
                 If Not Double.TryParse(textBox.Text, linea.precio) Then
                     Return
@@ -65,4 +69,6 @@ Public Class PlantillaVentaView
             DataContext.cmdComprobarCondicionesPrecio.Execute(linea)
         End If
     End Sub
+
+
 End Class
