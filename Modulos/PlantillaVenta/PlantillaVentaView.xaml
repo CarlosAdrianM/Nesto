@@ -219,7 +219,7 @@
                                     </DataGridTextColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
-                            <DataGrid Name="grdListaProductos" DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                            <DataGrid Name="grdListaProductos" DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsSynchronizedWithCurrentItem="True">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Producto" Binding="{Binding producto}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="3*" IsReadOnly="False"/>

@@ -576,7 +576,6 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged("hayProductosEnElPedido")
         If IsNothing(productoSeleccionado) OrElse productoSeleccionado.producto <> arg.producto Then
             productoSeleccionado = arg
-
         End If
 
         OnPropertyChanged("productoSeleccionado")
