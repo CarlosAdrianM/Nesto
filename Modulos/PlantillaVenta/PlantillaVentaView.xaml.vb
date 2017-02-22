@@ -71,7 +71,7 @@ Public Class PlantillaVentaView
     End Sub
 
     Private Sub grdListaProductos_LoadingRow(sender As Object, e As DataGridRowEventArgs) Handles grdListaProductos.LoadingRow
-        If DataContext.productoSeleccionado.producto = e.Row.Item.producto Then
+        If Not IsNothing(DataContext.productoSeleccionado) AndAlso DataContext.productoSeleccionado.producto = e.Row.Item.producto Then
             grdListaProductos.ScrollIntoView(DataContext.productoSeleccionado)
         End If
 
