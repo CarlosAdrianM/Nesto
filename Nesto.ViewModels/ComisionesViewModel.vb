@@ -20,9 +20,9 @@ Public Class ComisionesViewModel
         End If
         DbContext = New NestoEntities
         If vendedor = "" Then
-            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And c.Estado = 0)
+            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4))
         Else
-            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And c.Estado = 0 And c.Número.Trim = vendedor)
+            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4) And c.Número.Trim = vendedor)
         End If
 
         colMeses = New Collection(Of String)
