@@ -102,6 +102,7 @@
                         <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
                         <TextBlock Text="Fecha pedido:"></TextBlock>
                         <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
+                        <controles:SelectorVendedor Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Seleccionado="{Binding pedido.vendedor, Mode=TwoWay}" Etiqueta="Vendedor del Pedido:"></controles:SelectorVendedor>
                         <TextBlock></TextBlock>
                         <Button Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
                     </StackPanel>

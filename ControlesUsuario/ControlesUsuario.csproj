@@ -78,6 +78,10 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SelectorVendedor\SelectorVendedor.xaml.cs">
+      <DependentUpon>SelectorVendedor.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="SelectorVendedor\SelectorVendedorModel.cs" />
     <Page Include="SelectorPlazosPago\SelectorPlazosPago.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -102,6 +106,10 @@
     <Compile Include="SelectorDireccionEntrega\SelectorDireccionEntrega.xaml.cs">
       <DependentUpon>SelectorDireccionEntrega.xaml</DependentUpon>
     </Compile>
+    <Page Include="SelectorVendedor\SelectorVendedor.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -138,6 +146,7 @@
       <Name>Contratos</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -156,6 +156,9 @@ Public Class PedidoVenta
         End Sub
     End Class
     Public Class PedidoVentaDTO
+        Implements INotifyPropertyChanged
+
+        Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
         Public Sub New()
             Me.LineasPedido = New ObservableCollection(Of LineaPedidoVentaDTO)()
         End Sub
@@ -163,6 +166,7 @@ Public Class PedidoVenta
         Public Property empresa() As String
         Public Property numero() As Integer
         Public Property cliente() As String
+
         Private _contacto As String
         Public Property contacto() As String
             Get
@@ -170,6 +174,7 @@ Public Class PedidoVenta
             End Get
             Set(value As String)
                 _contacto = value
+                OnPropertyChanged("contacto")
             End Set
         End Property
         Public Property fecha() As Nullable(Of System.DateTime)
@@ -177,7 +182,17 @@ Public Class PedidoVenta
         Public Property plazosPago() As String
         Public Property primerVencimiento() As Nullable(Of System.DateTime)
         Public Property iva() As String
-        Public Property vendedor() As String
+
+        Private _vendedor As String
+        Public Property vendedor As String
+            Get
+                Return _vendedor
+            End Get
+            Set(value As String)
+                _vendedor = value
+                OnPropertyChanged("vendedor")
+            End Set
+        End Property
         Public Property comentarios() As String
         Public Property comentarioPicking() As String
         Public Property periodoFacturacion() As String
@@ -271,7 +286,17 @@ Public Class PedidoVenta
         End Function
 
         Public Overridable Property LineasPedido() As ObservableCollection(Of LineaPedidoVentaDTO)
+        Public Overridable Property VendedoresGrupoProducto As ObservableCollection(Of VendedorGrupoProductoDTO)
 
+        Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
+            RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
+        End Sub
+
+    End Class
+
+    Public Class VendedorGrupoProductoDTO
+        Public Property vendedor As String
+        Public Property grupoProducto As String
     End Class
 
 End Class
