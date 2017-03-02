@@ -148,6 +148,10 @@ namespace ControlesUsuario
             {
                 _vendedorSeleccionado = value;
                 OnPropertyChanged("vendedorSeleccionado");
+                if (vendedorSeleccionado != null)
+                {
+                    Seleccionado = vendedorSeleccionado.vendedor;
+                }
             }
         }
         private ObservableCollection<Vendedor> _listaVendedores;
@@ -185,7 +189,10 @@ namespace ControlesUsuario
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
                         listaVendedores = JsonConvert.DeserializeObject<ObservableCollection<Vendedor>>(resultado);
-                        vendedorSeleccionado = listaVendedores.Where(l => l.vendedor == Seleccionado.Trim()).SingleOrDefault();
+                        if (Seleccionado != null)
+                        {
+                            vendedorSeleccionado = listaVendedores.Where(l => l.vendedor == Seleccionado.Trim()).SingleOrDefault();
+                        }
                     }
                 }
                 catch

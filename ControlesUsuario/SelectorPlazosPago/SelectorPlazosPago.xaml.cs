@@ -134,6 +134,10 @@ namespace ControlesUsuario
             {
                 _plazosPagoSeleccionado = value;
                 OnPropertyChanged("plazosPagoSeleccionado");
+                if (plazosPagoSeleccionado != null)
+                {
+                    Seleccionada = plazosPagoSeleccionado.plazoPago;
+                }
             }
         }
         private ObservableCollection<PlazosPago> _listaPlazosPago;

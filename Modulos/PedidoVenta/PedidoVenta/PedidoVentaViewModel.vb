@@ -256,6 +256,7 @@ Public Class PedidoVentaViewModel
                 fechaEntrega = linea.fechaEntrega
             End If
             estaActualizarFechaActivo = True
+            vendedorPorGrupo = pedido.VendedoresGrupoProducto.FirstOrDefault
         End Set
     End Property
 
@@ -267,6 +268,16 @@ Public Class PedidoVentaViewModel
         Set(ByVal value As ResumenPedido)
             SetProperty(_resumenSeleccionado, value)
             cmdCargarPedido.Execute(value)
+        End Set
+    End Property
+
+    Private _vendedorPorGrupo As VendedorGrupoProductoDTO
+    Public Property vendedorPorGrupo As VendedorGrupoProductoDTO
+        Get
+            Return _vendedorPorGrupo
+        End Get
+        Set(value As VendedorGrupoProductoDTO)
+            SetProperty(_vendedorPorGrupo, value)
         End Set
     End Property
 

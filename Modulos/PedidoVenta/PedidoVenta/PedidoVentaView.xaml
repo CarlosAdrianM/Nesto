@@ -102,7 +102,15 @@
                         <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
                         <TextBlock Text="Fecha pedido:"></TextBlock>
                         <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
-                        <controles:SelectorVendedor Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Seleccionado="{Binding pedido.vendedor, Mode=TwoWay}" Etiqueta="Vendedor del Pedido:"></controles:SelectorVendedor>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <controles:SelectorVendedor Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Seleccionado="{Binding pedido.vendedor, Mode=TwoWay}" Etiqueta="Vendedor del Pedido:"></controles:SelectorVendedor>
+                            <controles:SelectorVendedor Grid.Column="1" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Seleccionado="{Binding vendedorPorGrupo.vendedor, Mode=TwoWay}" Etiqueta="Vendedor de Peluquería:"></controles:SelectorVendedor>
+                        </Grid>
+                        
                         <TextBlock></TextBlock>
                         <Button Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
                     </StackPanel>
@@ -124,8 +132,8 @@
                 </TabItem>
                 <TabItem Header="Pago">
                     <StackPanel>
-                        <controles:SelectorFormaPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.formaPago}"></controles:SelectorFormaPago>
-                        <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago}"></controles:SelectorPlazosPago>
+                        <controles:SelectorFormaPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.formaPago, Mode=TwoWay}"></controles:SelectorFormaPago>
+                        <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}"></controles:SelectorPlazosPago>
                         <TextBlock Text="Fecha vencimiento:"></TextBlock>
                         <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
                         <TextBlock></TextBlock>

@@ -134,6 +134,10 @@ namespace ControlesUsuario
             {
                 _formaPagoSeleccionada = value;
                 OnPropertyChanged("formaPagoSeleccionada");
+                if (formaPagoSeleccionada != null)
+                {
+                    Seleccionada = formaPagoSeleccionada.formaPago;
+                }
             }
         }
         private ObservableCollection<FormaPago> _listaFormasPago;
