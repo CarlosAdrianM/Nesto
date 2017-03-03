@@ -295,8 +295,24 @@ Public Class PedidoVenta
     End Class
 
     Public Class VendedorGrupoProductoDTO
+        Implements INotifyPropertyChanged
+
+        Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
+
+        Private _vendedor As String
         Public Property vendedor As String
+            Get
+                Return _vendedor
+            End Get
+            Set(value As String)
+                _vendedor = value
+                OnPropertyChanged("vendedor")
+            End Set
+        End Property
         Public Property grupoProducto As String
+        Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
+            RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
+        End Sub
     End Class
 
 End Class

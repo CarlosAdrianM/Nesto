@@ -9,6 +9,7 @@ Imports System.Windows.Data
 Imports System.Globalization
 Imports System.Xml.Linq
 Imports Microsoft.Practices.Prism
+Imports Nesto.Contratos
 
 'Imports Nesto.Models.Nesto.Models.EF
 
@@ -24,6 +25,7 @@ Public Class ClientesViewModel
     '    Implements IActiveAware
 
     Private Shared DbContext As NestoEntities
+    Public Property configuracion As IConfiguracion
 
     Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String = mainModel.leerParametro(empresaActual, "RutaMandatos")
@@ -42,41 +44,12 @@ Public Class ClientesViewModel
     End Structure
 
     Public Sub New()
-        If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
-            Return
-        End If
-        DbContext = New NestoEntities
-        listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
+        cargarDatos()
+    End Sub
 
-        Dim mainModel As New Nesto.Models.MainModel
-        Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
-        Dim clienteDefecto As String = mainModel.leerParametro(empresaDefecto, "UltNumCliente")
-        empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
-        vendedor = mainModel.leerParametro(empresaDefecto, "Vendedor")
-
-
-        clienteActual = clienteDefecto
-        'contactoActual = "0  " 'esto hay que cambiarlo por el ClientePrincipal
-
-        listaEstadosCCC = New ObservableCollection(Of EstadosCCC)(From c In DbContext.EstadosCCC Where c.Empresa = empresaActual)
-
-        Dim rangosFechas As New List(Of String)
-        rangosFechas.Add("Ventas del Último Año")
-        rangosFechas.Add("Ventas de Siempre")
-
-        deudaVencida = (Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?)))
-
-        listaSecuencias = New ObservableCollection(Of tipoIdDescripcion)
-        listaSecuencias.Add(New tipoIdDescripcion("FRST", "Primer adeudo recurrente"))
-        listaSecuencias.Add(New tipoIdDescripcion("RCUR", "Resto de adeudos recurrentes"))
-        listaSecuencias.Add(New tipoIdDescripcion("OOFF", "Operación de un único pago"))
-        listaSecuencias.Add(New tipoIdDescripcion("FNAL", "Último adeudo recurrente"))
-
-        listaTipos = New ObservableCollection(Of tipoIdDescripcion)
-        listaTipos.Add(New tipoIdDescripcion(1, "Consumidor final"))
-        listaTipos.Add(New tipoIdDescripcion(2, "Profesional"))
-
-        Titulo = "Clientes"
+    Public Sub New(configuracion As IConfiguracion)
+        Me.configuracion = configuracion
+        cargarDatos()
     End Sub
 
 #Region "Propiedades"
@@ -658,6 +631,43 @@ Public Class ClientesViewModel
         End If
 
     End Function
+    Private Sub cargarDatos()
+        If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
+            Return
+        End If
+        DbContext = New NestoEntities
+        listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
+
+        Dim mainModel As New Nesto.Models.MainModel
+        Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
+        Dim clienteDefecto As String = mainModel.leerParametro(empresaDefecto, "UltNumCliente")
+        empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
+        vendedor = mainModel.leerParametro(empresaDefecto, "Vendedor")
+
+
+        clienteActual = clienteDefecto
+        'contactoActual = "0  " 'esto hay que cambiarlo por el ClientePrincipal
+
+        listaEstadosCCC = New ObservableCollection(Of EstadosCCC)(From c In DbContext.EstadosCCC Where c.Empresa = empresaActual)
+
+        Dim rangosFechas As New List(Of String)
+        rangosFechas.Add("Ventas del Último Año")
+        rangosFechas.Add("Ventas de Siempre")
+
+        deudaVencida = (Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?)))
+
+        listaSecuencias = New ObservableCollection(Of tipoIdDescripcion)
+        listaSecuencias.Add(New tipoIdDescripcion("FRST", "Primer adeudo recurrente"))
+        listaSecuencias.Add(New tipoIdDescripcion("RCUR", "Resto de adeudos recurrentes"))
+        listaSecuencias.Add(New tipoIdDescripcion("OOFF", "Operación de un único pago"))
+        listaSecuencias.Add(New tipoIdDescripcion("FNAL", "Último adeudo recurrente"))
+
+        listaTipos = New ObservableCollection(Of tipoIdDescripcion)
+        listaTipos.Add(New tipoIdDescripcion(1, "Consumidor final"))
+        listaTipos.Add(New tipoIdDescripcion(2, "Profesional"))
+
+        Titulo = "Clientes"
+    End Sub
 #End Region
 End Class
 

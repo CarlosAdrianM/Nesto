@@ -7,7 +7,7 @@
              d:DesignHeight="300" d:DesignWidth="300">
     
     <StackPanel Name="GridPrincipal">
-        <TextBlock Text="{Binding Etiqueta}"></TextBlock>
+        <TextBlock Text="{Binding Etiqueta}" Visibility="{Binding visibilidad}"></TextBlock>
         <ComboBox MinWidth="300" ItemsSource="{Binding listaVendedores}" SelectedItem="{Binding vendedorSeleccionado}" DisplayMemberPath="nombre"></ComboBox>
     </StackPanel>
 </UserControl>

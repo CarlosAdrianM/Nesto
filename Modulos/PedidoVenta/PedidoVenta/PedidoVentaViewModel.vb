@@ -257,6 +257,13 @@ Public Class PedidoVentaViewModel
             End If
             estaActualizarFechaActivo = True
             vendedorPorGrupo = pedido.VendedoresGrupoProducto.FirstOrDefault
+            If IsNothing(vendedorPorGrupo) Then
+                vendedorPorGrupo = New VendedorGrupoProductoDTO With {
+                    .vendedor = Nothing,
+                    .grupoProducto = "PEL" 'lo ponemos así porque el programa está puesto solo para peluquería. Sería fácil modificarlo para más grupos
+                }
+                pedido.VendedoresGrupoProducto.Add(vendedorPorGrupo)
+            End If
         End Set
     End Property
 
@@ -278,6 +285,12 @@ Public Class PedidoVentaViewModel
         End Get
         Set(value As VendedorGrupoProductoDTO)
             SetProperty(_vendedorPorGrupo, value)
+            If IsNothing(pedido) Then
+                Return
+            End If
+            If IsNothing(pedido.VendedoresGrupoProducto) OrElse IsNothing(pedido.VendedoresGrupoProducto.Count = 0) Then
+                pedido.VendedoresGrupoProducto.Add(vendedorPorGrupo)
+            End If
         End Set
     End Property
 
@@ -480,6 +493,18 @@ Public Class PedidoVentaViewModel
         Return True
     End Function
     Private Async Sub OnModificarPedido(arg As Object)
+        ' Quitamos el vendedor por grupo ficticio que se creó al cargar el pedido (si sigue existiendo)
+        If Not IsNothing(pedido.VendedoresGrupoProducto) Then
+            Dim vendedorPorGrupo As VendedorGrupoProductoDTO = pedido.VendedoresGrupoProducto.FirstOrDefault
+            If Not IsNothing(vendedorPorGrupo) AndAlso vendedorPorGrupo.vendedor = "" Then
+                pedido.VendedoresGrupoProducto.Remove(vendedorPorGrupo)
+            End If
+        End If
+
+        ' Modificamos el usuario del pedido
+        pedido.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+
+
         Try
             Await Task.Run(Sub()
                                Try

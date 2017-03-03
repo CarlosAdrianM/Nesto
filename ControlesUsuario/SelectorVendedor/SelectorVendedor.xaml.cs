@@ -110,7 +110,14 @@ namespace ControlesUsuario
             {
                 return;
             }
-            selector.vendedorSeleccionado = selector.listaVendedores.Where(l => l.vendedor == selector.Seleccionado.Trim()).SingleOrDefault();
+            if (selector.Seleccionado == null)
+            {
+                selector.vendedorSeleccionado = null;
+            } else
+            {
+                selector.vendedorSeleccionado = selector.listaVendedores.Where(l => l.vendedor == selector.Seleccionado.Trim()).SingleOrDefault();
+            }
+            
         }
 
 
@@ -168,6 +175,12 @@ namespace ControlesUsuario
             }
         }
 
+        public Visibility visibilidad { 
+            get
+            {
+                return Etiqueta == "" ? Visibility.Collapsed : Visibility.Visible;
+            }
+        }
         #endregion
 
         #region "Funciones Auxiliares"
