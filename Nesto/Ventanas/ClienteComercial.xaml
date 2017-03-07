@@ -20,20 +20,20 @@
             <Border DockPanel.Dock="Top" HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
                 <DockPanel HorizontalAlignment="Stretch">
                     <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎" />
-                    <TextBox DockPanel.Dock="Left" Text="{Binding filtro}" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0"/>
+                    <TextBox Name="txtFiltro" DockPanel.Dock="Left" Text="{Binding filtro}" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0"/>
                 </DockPanel>
             </Border>
-            <ListView DockPanel.Dock="Bottom" Name="listaIzda" ItemsSource="{Binding Path=listaClientesVendedor}" SelectedItem="{Binding clienteActivo}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch">
+            <ListView DockPanel.Dock="Bottom" Name="listaIzda" ItemsSource="{Binding Path=listaClientesVendedor}" SelectedItem="{Binding clienteActivoDTO}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border VerticalAlignment="Top" BorderBrush="Black" BorderThickness="2" HorizontalAlignment="Stretch" Width="Auto" Padding="3">
                             <StackPanel>
-                                <TextBlock Text="{Binding Nombre, Converter={StaticResource trimConverter}}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding Dirección, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding nombre, Converter={StaticResource trimConverter}}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding direccion, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
                                 <WrapPanel>
-                                    <TextBlock Text="{Binding CodPostal, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding codigoPostal, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Text=" "/>
-                                    <TextBlock Text="{Binding Población, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding poblacion, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
                                 </WrapPanel>
                             </StackPanel>
                         </Border>
@@ -65,12 +65,16 @@
                 <TextBlock Grid.Row="0" Grid.Column="0">Nº Cliente:</TextBlock>
                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding clienteActivo.Nº_Cliente}" />
                 <TextBlock Grid.Row="1" Grid.Column="0">Teléfono:</TextBlock>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Path=SelectedItem.Teléfono, ElementName=listaIzda}" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Path=SelectedItem.telefono, ElementName=listaIzda}" />
                 <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding clienteActivo.CCC, Converter={StaticResource bancoConverter}}" />
                 <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding clienteActivo.CCC2.EstadosCCC.Descripción}" />
                 <TextBlock Grid.Row="2" Grid.Column="2">Deuda vencida:</TextBlock>
                 <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding deudaVencida, StringFormat=c}" Foreground="Red"/>
-                <controles:SelectorVendedor Grid.Column="4" Grid.Row="0" Configuracion="{Binding configuracion}" Empresa="{Binding clienteActivo.Empresa}" Seleccionado="{Binding clienteActivo.Vendedor, Mode=TwoWay}" Etiqueta=""></controles:SelectorVendedor>
+                <TextBlock Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor en Ficha:</TextBlock>
+                <controles:SelectorVendedor Grid.Row="0" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding clienteServidor.vendedor, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
+                <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor Peluquería:</TextBlock>
+                <controles:SelectorVendedor Grid.Row="1" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding vendedorPorGrupo.vendedor, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
+                <Button Grid.Row="2" Grid.Column="4" Command="{Binding cmdGuardarVendedores}" Margin="2">Guardar Vendedores</Button>
                 <DataGrid Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContactoCliente}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Número" Binding="{Binding Número}" />

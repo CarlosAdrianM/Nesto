@@ -11,6 +11,7 @@ Imports System.Text
 Imports Nesto.Contratos
 Imports System.Globalization
 Imports Nesto.Models.PedidoVenta
+Imports Nesto.Models
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase

@@ -6,8 +6,9 @@
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
     
-    <StackPanel Name="GridPrincipal">
+    <StackPanel Name="GridPrincipal" HorizontalAlignment="Stretch">
         <TextBlock Text="{Binding Etiqueta}" Visibility="{Binding visibilidad}"></TextBlock>
-        <ComboBox MinWidth="300" ItemsSource="{Binding listaVendedores}" SelectedItem="{Binding vendedorSeleccionado}" DisplayMemberPath="nombre"></ComboBox>
+        <ComboBox MinWidth="30" ItemsSource="{Binding listaVendedores}" SelectedItem="{Binding vendedorSeleccionado}" DisplayMemberPath="nombre"></ComboBox>
     </StackPanel>
+    
 </UserControl>

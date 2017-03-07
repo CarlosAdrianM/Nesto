@@ -10,6 +10,11 @@ Imports System.Globalization
 Imports System.Xml.Linq
 Imports Microsoft.Practices.Prism
 Imports Nesto.Contratos
+Imports Nesto.Models.PedidoVenta
+Imports System.Net.Http
+Imports Newtonsoft.Json
+Imports System.Text
+Imports System.Threading.Tasks
 
 'Imports Nesto.Models.Nesto.Models.EF
 
@@ -31,8 +36,9 @@ Public Class ClientesViewModel
     Private ruta As String = mainModel.leerParametro(empresaActual, "RutaMandatos")
     Private esVendedorDeFamilias As Boolean = False
 
+
     Public Structure tipoIdDescripcion
-        Public Sub New( _
+        Public Sub New(
        ByVal _id As String,
        ByVal _descripcion As String
        )
@@ -44,16 +50,21 @@ Public Class ClientesViewModel
     End Structure
 
     Public Sub New()
+        ' Este ViewModel se usa con dos Views y eso es un desastre.
+        ' Deberíamos separarlo en dos ViewModels diferentes, uno para Clientes y otro para ClientesComercial
+        '***************************
         cargarDatos()
     End Sub
 
     Public Sub New(configuracion As IConfiguracion)
         Me.configuracion = configuracion
         cargarDatos()
+        clienteActivo = Nothing
+        'inicializarListaClientesVendedor()
     End Sub
 
 #Region "Propiedades"
-    Private Property _empresaActual As String
+    Private _empresaActual As String
     Public Property empresaActual As String
         Get
             Return _empresaActual
@@ -70,7 +81,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _clienteActual As String
+    Private _clienteActual As String
     Public Property clienteActual As String
         Get
             Return _clienteActual
@@ -87,7 +98,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _contactoActual As String
+    Private _contactoActual As String
     Public Property contactoActual As String
         Get
             Return _contactoActual
@@ -99,7 +110,18 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _listaEmpresas As ObservableCollection(Of Empresas)
+    Private _clienteServidor As ClienteJson
+    Public Property clienteServidor As ClienteJson
+        Get
+            Return _clienteServidor
+        End Get
+        Set(value As ClienteJson)
+            _clienteServidor = value
+            OnPropertyChanged("clienteServidor")
+        End Set
+    End Property
+
+    Private _listaEmpresas As ObservableCollection(Of Empresas)
     Public Property listaEmpresas As ObservableCollection(Of Empresas)
         Get
             Return _listaEmpresas
@@ -110,7 +132,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _nombre As String
+    Private _nombre As String
     Public Property nombre As String
         Get
             Return _nombre
@@ -121,7 +143,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _cuentaActiva As CCC
+    Private _cuentaActiva As CCC
     Public Property cuentaActiva As CCC
         Get
             Return _cuentaActiva
@@ -132,7 +154,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _cuentasBanco As ObservableCollection(Of CCC)
+    Private _cuentasBanco As ObservableCollection(Of CCC)
     Public Property cuentasBanco As ObservableCollection(Of CCC)
         Get
             Return _cuentasBanco
@@ -166,7 +188,52 @@ Public Class ClientesViewModel
         End If
     End Sub
 
-    Private Property _clienteActivo As Clientes
+    Private Async Sub cargarVendedoresPorGrupo()
+        If IsNothing(clienteActivo) Then
+            Return
+        End If
+        ' Calculamos el vendedor de peluquería
+        If IsNothing(clienteServidor) OrElse clienteServidor.empresa <> clienteActivo.Empresa OrElse clienteServidor.cliente <> clienteActivo.Nº_Cliente OrElse clienteServidor.contacto <> clienteActivo.Contacto Then
+            Using client As New HttpClient
+                client.BaseAddress = New Uri(configuracion.servidorAPI)
+                Dim response As HttpResponseMessage
+                Dim respuesta As String = ""
+                Dim vendedorConsulta As String = vendedor
+
+
+                Try
+                    Dim urlConsulta As String = "Clientes"
+                    urlConsulta += "?empresa=" + clienteActivo.Empresa
+                    urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
+                    urlConsulta += "&contacto=" + clienteActivo.Contacto
+
+                    response = Await client.GetAsync(urlConsulta)
+
+                    If response.IsSuccessStatusCode Then
+                        respuesta = Await response.Content.ReadAsStringAsync()
+                    Else
+                        respuesta = ""
+                    End If
+
+                Catch ex As Exception
+                    Throw New Exception("No se ha podido recuperar el cliente desde el servidor")
+                Finally
+
+                End Try
+
+                clienteServidor = JsonConvert.DeserializeObject(Of ClienteJson)(respuesta)
+                If Not IsNothing(clienteServidor) AndAlso Not IsNothing(clienteServidor.VendedoresGrupoProducto) AndAlso clienteServidor.VendedoresGrupoProducto.Count > 0 Then
+                    vendedorPorGrupo = clienteServidor.VendedoresGrupoProducto.ElementAt(0)
+                Else
+                    vendedorPorGrupo = New VendedorGrupoProductoDTO
+                End If
+
+
+
+            End Using
+        End If
+    End Sub
+    Private _clienteActivo As Clientes
     Public Property clienteActivo As Clientes
         Get
             Return _clienteActivo
@@ -174,8 +241,9 @@ Public Class ClientesViewModel
         Set(value As Clientes)
             Dim fechaDesde As Date
             _clienteActivo = value
-            If Not IsNothing(_listaClientesVendedor) Then
-                If Not IsNothing(clienteActivo) Then
+            If Not IsNothing(listaClientesVendedor) Then
+                If Not IsNothing(clienteActivoDTO) Then
+                    cargarVendedoresPorGrupo()
                     seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
                     If rangoFechasVenta = "System.Windows.Controls.ComboBoxItem: Ventas de siempre" Then 'esto está fatal, hay que desacoplarlo de la vista 
                         fechaDesde = DateTime.MinValue
@@ -188,9 +256,30 @@ Public Class ClientesViewModel
                     seguimientosOrdenados = Nothing
                     listaVentas = Nothing
                 End If
+            ElseIf IsNothing(value) Then
+                seguimientosOrdenados = Nothing
+                listaVentas = Nothing
+                deudaVencida = 0
             End If
 
             OnPropertyChanged("clienteActivo")
+        End Set
+    End Property
+
+    Private _clienteActivoDTO As ClienteJson
+    Public Property clienteActivoDTO As ClienteJson
+        Get
+            Return _clienteActivoDTO
+        End Get
+        Set(value As ClienteJson)
+            _clienteActivoDTO = value
+            If Not IsNothing(clienteActivoDTO) Then
+                clienteActivo = DbContext.Clientes.SingleOrDefault(Function(c) c.Empresa = clienteActivoDTO.empresa AndAlso c.Nº_Cliente = clienteActivoDTO.cliente AndAlso c.Contacto = clienteActivoDTO.contacto)
+            Else
+                clienteActivo = Nothing
+            End If
+
+            OnPropertyChanged("clienteActivoDTO")
         End Set
     End Property
 
@@ -246,15 +335,23 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _listaClientesVendedor As ObservableCollection(Of Clientes)
-    Public Property listaClientesVendedor As ObservableCollection(Of Clientes)
+    Private _vendedorPorGrupo As VendedorGrupoProductoDTO
+    Public Property vendedorPorGrupo As VendedorGrupoProductoDTO
         Get
-            If IsNothing(_listaClientesVendedor) Then
-                _listaClientesVendedor = inicializarListaClientesVendedor()
-            End If
+            Return _vendedorPorGrupo
+        End Get
+        Set(value As VendedorGrupoProductoDTO)
+            _vendedorPorGrupo = value
+            OnPropertyChanged("vendedorPorGrupo")
+        End Set
+    End Property
+
+    Private _listaClientesVendedor As ObservableCollection(Of ClienteJson)
+    Public Property listaClientesVendedor As ObservableCollection(Of ClienteJson)
+        Get
             Return _listaClientesVendedor
         End Get
-        Set(value As ObservableCollection(Of Clientes))
+        Set(value As ObservableCollection(Of ClienteJson))
             _listaClientesVendedor = value
             OnPropertyChanged("listaClientesVendedor")
         End Set
@@ -263,13 +360,13 @@ Public Class ClientesViewModel
     Private _seguimientosOrdenados As ObservableCollection(Of SeguimientoCliente)
     Public Property seguimientosOrdenados As ObservableCollection(Of SeguimientoCliente)
         Get
-            If IsNothing(_seguimientosOrdenados) Then
-                If Not IsNothing(clienteActivo) Then
-                    _seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
-                Else
-                    _seguimientosOrdenados = Nothing
-                End If
-            End If
+            'If IsNothing(_seguimientosOrdenados) Then
+            '    If Not IsNothing(clienteActivo) Then
+            '        _seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
+            '    Else
+            '        _seguimientosOrdenados = Nothing
+            '    End If
+            'End If
             Return _seguimientosOrdenados
         End Get
         Set(value As ObservableCollection(Of SeguimientoCliente))
@@ -278,7 +375,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _listaVentas As ObservableCollection(Of lineaVentaAgrupada)
+    Private _listaVentas As ObservableCollection(Of lineaVentaAgrupada)
     Public Property listaVentas As ObservableCollection(Of lineaVentaAgrupada)
         Get
             Return _listaVentas
@@ -289,24 +386,46 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _filtro As String
+    Private _filtro As String
     Public Property filtro As String
         Get
             Return _filtro
         End Get
         Set(value As String)
             _filtro = value
-            If filtro.Trim <> "" Then
-                listaClientesVendedor = New ObservableCollection(Of Clientes)(From c In listaClientesVendedor Where (Not IsNothing(c.Dirección) AndAlso c.Dirección.ToLower.Contains(filtro.ToLower)) Or (Not IsNothing(c.Nombre) AndAlso c.Nombre.ToLower.Contains(filtro.ToLower)) Or (Not IsNothing(c.Nº_Cliente) AndAlso c.Nº_Cliente.ToLower.Trim = filtro.ToLower))
-            Else
-                listaClientesVendedor = inicializarListaClientesVendedor()
-            End If
-
-            OnPropertyChanged("filtro")
+            actualizarFiltro(filtro)
         End Set
     End Property
 
-    Private Property _rangoFechasVenta As String
+    Public Sub actualizarFiltro(filtro As String)
+        If IsNothing(filtro) Then
+            Return
+        End If
+
+        If IsNothing(listaClientesVendedor) Then
+            inicializarListaClientesVendedor(filtro)
+            Return
+        End If
+
+        If filtro.Trim <> "" Then
+            listaClientesVendedor = New ObservableCollection(Of ClienteJson) _
+            (From c In listaClientesVendedor Where
+                                                 (Not IsNothing(c.cliente) AndAlso c.cliente.ToLower.Trim = filtro.ToLower) OrElse
+                (Not IsNothing(c.direccion) AndAlso c.direccion.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(c.nombre) AndAlso c.nombre.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(c.telefono) AndAlso c.telefono.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(c.cifNif) AndAlso c.cifNif.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(c.poblacion) AndAlso c.poblacion.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(c.comentarios) AndAlso c.comentarios.ToLower.Contains(filtro.ToLower)))
+        Else
+            inicializarListaClientesVendedor(filtro)
+            filtro = ""
+        End If
+
+        OnPropertyChanged("filtro")
+    End Sub
+
+    Private _rangoFechasVenta As String
     Public Property rangoFechasVenta As String
         Get
             Return _rangoFechasVenta
@@ -326,7 +445,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _deudaVencida As Nullable(Of Decimal)
+    Private _deudaVencida As Nullable(Of Decimal)
     Public Property deudaVencida As Nullable(Of Decimal)
         Get
             Return _deudaVencida
@@ -337,7 +456,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _listaSecuencias As ObservableCollection(Of tipoIdDescripcion)
+    Private _listaSecuencias As ObservableCollection(Of tipoIdDescripcion)
     Public Property listaSecuencias As ObservableCollection(Of tipoIdDescripcion)
         Get
             Return _listaSecuencias
@@ -348,7 +467,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _listaTipos As ObservableCollection(Of tipoIdDescripcion)
+    Private _listaTipos As ObservableCollection(Of tipoIdDescripcion)
     Public Property listaTipos As ObservableCollection(Of tipoIdDescripcion)
         Get
             Return _listaTipos
@@ -359,7 +478,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _listaCodigosPostalesVendedor As List(Of String)
+    Private _listaCodigosPostalesVendedor As List(Of String)
     Public Property listaCodigosPostalesVendedor As List(Of String)
         Get
             Return _listaCodigosPostalesVendedor
@@ -405,6 +524,17 @@ Public Class ClientesViewModel
                 contactoActual = value.FirstOrDefault.Contacto
                 OnPropertyChanged("contactoActual")
             End If
+        End Set
+    End Property
+
+    Private _estaOcupado As Boolean
+    Public Property estaOcupado As Boolean
+        Get
+            Return _estaOcupado
+        End Get
+        Set(value As Boolean)
+            _estaOcupado = value
+            OnPropertyChanged("estaOcupado")
         End Set
     End Property
 
@@ -576,42 +706,49 @@ Public Class ClientesViewModel
         End If
     End Sub
 
-    'Private _cmdCrearFicheroRemesa As ICommand
-    'Public ReadOnly Property cmdCrearFicheroRemesa() As ICommand
-    '    Get
-    '        If _cmdCrearFicheroRemesa Is Nothing Then
-    '            _cmdCrearFicheroRemesa = New RelayCommand(AddressOf CrearFicheroRemesa, AddressOf CanCrearFicheroRemesa)
-    '        End If
-    '        Return _cmdCrearFicheroRemesa
-    '    End Get
-    'End Property
-    'Private Function CanCrearFicheroRemesa(ByVal param As Object) As Boolean
-    '    Return True
-    'End Function
-    'Private Sub CrearFicheroRemesa(ByVal param As Object)
-    '    Dim strContenido As String
-    '    Dim listaContenido As List(Of String)
-    '    Dim codigo As String = "B2B"
-    '    Dim nombreFichero As String = mainModel.leerParametro(empresaActual, "PathNorma19") + CStr(numeroRemesa) + ".xml"
-    '    'Dim nombreFichero As String = "c:\banco\prueba.xml"
-    '    Try
-    '        'mensajeError = "Generando fichero..."
-    '        listaContenido = DbContext.CrearFicheroRemesa(numeroRemesa, codigo).ToList
-    '        strContenido = ""
-    '        For Each linea In listaContenido
-    '            strContenido = strContenido + linea
-    '        Next
-    '        contenidoFichero = XDocument.Parse(strContenido)
-    '        contenidoFichero.Save(nombreFichero)
-    '        mensajeError = "Fichero " + nombreFichero + " creado correctamente"
-    '    Catch ex As Exception
-    '        If IsNothing(ex.InnerException) Then
-    '            mensajeError = ex.Message
-    '        Else
-    '            mensajeError = ex.InnerException.Message
-    '        End If
-    '    End Try
-    'End Sub
+    Private _cmdGuardarVendedores As ICommand
+    Public ReadOnly Property cmdGuardarVendedores() As ICommand
+        Get
+            If _cmdGuardarVendedores Is Nothing Then
+                _cmdGuardarVendedores = New RelayCommand(AddressOf GuardarVendedores, AddressOf CanGuardarVendedores)
+            End If
+            Return _cmdGuardarVendedores
+        End Get
+    End Property
+    Private Function CanGuardarVendedores(ByVal param As Object) As Boolean
+        Return True
+    End Function
+    Private Sub GuardarVendedores(ByVal param As Object)
+        Try
+            ' PUT de clienteServidor
+            Using client As New HttpClient
+                client.BaseAddress = New Uri(configuracion.servidorAPI)
+                Dim response As HttpResponseMessage
+                Dim respuesta As String = ""
+
+                Dim urlConsulta As String = "Clientes"
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(clienteServidor), Encoding.UTF8, "application/json")
+
+                response = client.PutAsync(urlConsulta, content).Result
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = response.Content.ReadAsStringAsync().Result
+                Else
+                    Throw New Exception(response.Content.ReadAsStringAsync().Result)
+                End If
+            End Using
+
+            mensajeError = "Cliente guardado correctamente"
+        Catch ex As Exception
+            If Not IsNothing(ex.InnerException) Then
+                mensajeError = ex.InnerException.Message
+            Else
+                mensajeError = ex.Message
+            End If
+        End Try
+
+    End Sub
+
 
 #End Region
 
@@ -619,18 +756,50 @@ Public Class ClientesViewModel
     Private Function rutaMandato() As String
         Return ruta + empresaActual.Trim + "_" + clienteActual.Trim + "_" + contactoActual.Trim + "_" + cuentaActiva.Número.Trim + ".pdf"
     End Function
-    Private Function inicializarListaClientesVendedor() As ObservableCollection(Of Clientes)
-        If vendedor <> "" Then
-            If esVendedorDeFamilias Then
-                Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0 And listaCodigosPostalesVendedor.Contains(c.CodPostal) Order By c.CodPostal, c.Dirección)
-            Else
-                Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Vendedor = vendedor And c.Estado >= 0 Order By c.CodPostal, c.Dirección)
-            End If
-        Else
-            Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0)
+    Private Async Sub inicializarListaClientesVendedor(filtro As String)
+        'If vendedor <> "" Then
+        '    If esVendedorDeFamilias Then
+        '        Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0 And listaCodigosPostalesVendedor.Contains(c.CodPostal) Order By c.CodPostal, c.Dirección)
+        '    Else
+        '        Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Vendedor = vendedor And c.Estado >= 0 Order By c.CodPostal, c.Dirección)
+        '    End If
+        'Else
+        '    Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0)
+        'End If
+        If IsNothing(filtro) OrElse (filtro.Length < 4 AndAlso Not IsNumeric(filtro)) Then
+            listaClientesVendedor = Nothing
+            Return
         End If
 
-    End Function
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+
+            Try
+                estaOcupado = True
+                If vendedor = "" Then
+                    response = Await client.GetAsync("Clientes?empresa=1&filtro=" + filtro)
+                Else
+                    response = Await client.GetAsync("Clientes?empresa=1&vendedor=" + vendedor + "&filtro=" + filtro)
+                End If
+
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    listaClientesVendedor = JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson)
+                Else
+                    mensajeError = "Se ha producido un error al cargar los clientes"
+                End If
+            Catch ex As Exception
+                mensajeError = ex.Message
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
     Private Sub cargarDatos()
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
@@ -707,7 +876,7 @@ Public Class datosBancoConverter
 End Class
 
 Public Class lineaVentaAgrupada
-    Private Property _producto As String
+    Private _producto As String
     Public Property producto As String
         Get
             Return _producto
@@ -717,7 +886,7 @@ Public Class lineaVentaAgrupada
         End Set
     End Property
 
-    Private Property _nombre As String
+    Private _nombre As String
     Public Property nombre As String
         Get
             Return _nombre
@@ -727,7 +896,7 @@ Public Class lineaVentaAgrupada
         End Set
     End Property
 
-    Private Property _cantidad As Integer
+    Private _cantidad As Integer
     Public Property cantidad As Integer
         Get
             Return _cantidad
@@ -737,7 +906,7 @@ Public Class lineaVentaAgrupada
         End Set
     End Property
 
-    Private Property _fechaUltVenta As Date
+    Private _fechaUltVenta As Date
     Public Property fechaUltVenta As Date
         Get
             Return _fechaUltVenta
@@ -747,7 +916,7 @@ Public Class lineaVentaAgrupada
         End Set
     End Property
 
-    Private Property _subGrupo As String
+    Private _subGrupo As String
     Public Property subGrupo As String
         Get
             Return _subGrupo

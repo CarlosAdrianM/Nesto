@@ -80,6 +80,7 @@
     <Import Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cliente.vb" />
     <Compile Include="DataSets\ControlPedidos.Designer.vb">
       <DependentUpon>ControlPedidos.xsd</DependentUpon>
       <AutoGen>True</AutoGen>
