@@ -1,6 +1,8 @@
 ﻿<UserControl x:Class="Comisiones" x:Name="Comisiones"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
     <UserControl.DataContext>
@@ -8,6 +10,21 @@
     </UserControl.DataContext>
 
     <Grid>
+        <Grid.Resources>
+            <xcdg:CurrencyConverter x:Key="currencyConverter"/>
+
+            <DataTemplate x:Key="currency_celltemplate">
+                <TextBlock Text="{Binding Converter={StaticResource currencyConverter}}"/>
+            </DataTemplate>
+
+            <xcdg:DataGridCollectionViewSource x:Key="cvs_listaPedidos" Source="{Binding listaPedidos}">
+                <xcdg:DataGridCollectionViewSource.GroupDescriptions>
+                    <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
+                    <xcdg:DataGridGroupDescription PropertyName="Número"/>
+                </xcdg:DataGridCollectionViewSource.GroupDescriptions>
+            </xcdg:DataGridCollectionViewSource>
+        </Grid.Resources>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="2*"/>
             <RowDefinition Height="30*"/>
@@ -193,11 +210,35 @@
 
 
             </Grid>
-            <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaPedidos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
+
+            <xcdg:DataGridControl DockPanel.Dock="Bottom" ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                <xcdg:DataGridControl.View>
+                    <xcdg:TableflowView UseDefaultHeadersFooters="False">
+                        <xcdg:TableflowView.FixedHeaders>
+                            <DataTemplate>
+                                <xcdg:ColumnManagerRow />
+                            </DataTemplate>
+                        </xcdg:TableflowView.FixedHeaders>
+                    </xcdg:TableflowView>
+                </xcdg:DataGridControl.View>
+                <xcdg:DataGridControl.Columns>
+                    <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
+                    <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
+                    <xcdg:Column FieldName="Dirección" Width="3*" Title="Dirección" />
+                    <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
+                    <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
+                    <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
+                    <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
+                    <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
+                    <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
+                    <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
+                </xcdg:DataGridControl.Columns>
+            </xcdg:DataGridControl>
+            <!--<DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaPedidos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
                     <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Nº_Cliente}" />
-                    <DataGridTextColumn Header="Dirección" Binding="{Binding Clientes.Dirección}" Width="3*"/>
+                    <DataGridTextColumn Header="Dirección" Binding="{Binding Dirección}" Width="3*"/>
                     <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
                     <DataGridTextColumn Header="Texto" Binding="{Binding Texto}" Width="3*"/>
                     <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
@@ -218,7 +259,7 @@
                     </DataGridTextColumn>
                     <DataGridTextColumn Header="Picking" Binding="{Binding Picking}" />
                 </DataGrid.Columns>
-            </DataGrid>
+            </DataGrid>-->
         </DockPanel>
     </Grid>
     

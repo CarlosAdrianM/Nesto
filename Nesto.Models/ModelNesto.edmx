@@ -873,6 +873,37 @@
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" />
           <Property Name="Fecha Modificación" Type="datetime" Nullable="false" />
         </EntityType>
+        <!--Errores durante la generación:
+advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene definida ninguna clave principal. Se ha inferido la clave y la definición se creado como una vista o tabla de solo lectura.-->
+        <EntityType Name="vstLinPedidoVtaConVendedor">
+          <Key>
+            <PropertyRef Name="Nº Orden" />
+            <PropertyRef Name="Empresa" />
+            <PropertyRef Name="Número" />
+            <PropertyRef Name="Fecha Entrega" />
+            <PropertyRef Name="Estado" />
+            <PropertyRef Name="Base Imponible" />
+          </Key>
+          <Property Name="Nº Orden" Type="int" Nullable="false" />
+          <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
+          <Property Name="Nº Cliente" Type="char" MaxLength="10" />
+          <Property Name="Contacto" Type="char" MaxLength="3" />
+          <Property Name="Vendedor" Type="char" MaxLength="3" />
+          <Property Name="Ruta" Type="char" MaxLength="3" />
+          <Property Name="Nombre" Type="char" MaxLength="50" />
+          <Property Name="Dirección" Type="char" MaxLength="50" />
+          <Property Name="CodPostal" Type="char" MaxLength="15" />
+          <Property Name="Población" Type="char" MaxLength="30" />
+          <Property Name="Número" Type="int" Nullable="false" />
+          <Property Name="Producto" Type="char" MaxLength="15" />
+          <Property Name="Texto" Type="char" MaxLength="50" />
+          <Property Name="Familia" Type="char" MaxLength="10" />
+          <Property Name="Fecha Entrega" Type="datetime" Nullable="false" />
+          <Property Name="Cantidad" Type="smallint" />
+          <Property Name="Estado" Type="smallint" Nullable="false" />
+          <Property Name="Picking" Type="int" />
+          <Property Name="Base Imponible" Type="money" Nullable="false" />
+        </EntityType>
         <Association Name="FK_AgenciasTransporte_Empresas">
           <End Role="Empresas" Type="Self.Empresas" Multiplicity="1" />
           <End Role="AgenciasTransporte" Type="Self.AgenciasTransporte" Multiplicity="*" />
@@ -1877,6 +1908,29 @@
           <EntitySet Name="SeguimientoCliente" EntityType="Self.SeguimientoCliente" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="SubGruposProducto" EntityType="Self.SubGruposProducto" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Vendedores" EntityType="Self.Vendedores" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="vstLinPedidoVtaConVendedor" EntityType="Self.vstLinPedidoVtaConVendedor" store:Type="Views" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+[vstLinPedidoVtaConVendedor].[Nº Orden] AS [Nº Orden], 
+[vstLinPedidoVtaConVendedor].[Empresa] AS [Empresa], 
+[vstLinPedidoVtaConVendedor].[Nº Cliente] AS [Nº Cliente], 
+[vstLinPedidoVtaConVendedor].[Contacto] AS [Contacto], 
+[vstLinPedidoVtaConVendedor].[Vendedor] AS [Vendedor], 
+[vstLinPedidoVtaConVendedor].[Ruta] AS [Ruta], 
+[vstLinPedidoVtaConVendedor].[Nombre] AS [Nombre], 
+[vstLinPedidoVtaConVendedor].[Dirección] AS [Dirección], 
+[vstLinPedidoVtaConVendedor].[CodPostal] AS [CodPostal], 
+[vstLinPedidoVtaConVendedor].[Población] AS [Población], 
+[vstLinPedidoVtaConVendedor].[Número] AS [Número], 
+[vstLinPedidoVtaConVendedor].[Producto] AS [Producto], 
+[vstLinPedidoVtaConVendedor].[Texto] AS [Texto], 
+[vstLinPedidoVtaConVendedor].[Familia] AS [Familia], 
+[vstLinPedidoVtaConVendedor].[Fecha Entrega] AS [Fecha Entrega], 
+[vstLinPedidoVtaConVendedor].[Cantidad] AS [Cantidad], 
+[vstLinPedidoVtaConVendedor].[Estado] AS [Estado], 
+[vstLinPedidoVtaConVendedor].[Picking] AS [Picking], 
+[vstLinPedidoVtaConVendedor].[Base Imponible] AS [Base Imponible]
+FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</DefiningQuery>
+          </EntitySet>
           <AssociationSet Name="FK_AgenciasTransporte_Empresas" Association="Self.FK_AgenciasTransporte_Empresas">
             <End Role="Empresas" EntitySet="Empresas" />
             <End Role="AgenciasTransporte" EntitySet="AgenciasTransporte" />
@@ -2496,6 +2550,7 @@
             <Parameter Name="Estado" Mode="InOut" Type="String" />
             <Parameter Name="Concepto" Mode="In" Type="String" />
           </FunctionImport>
+          <EntitySet Name="vstLinPedidoVtaConVendedor" EntityType="Nesto.Models.EF.vstLinPedidoVtaConVendedor" />
           </EntityContainer>
         <EntityType Name="Productos">
           <Key>
@@ -4506,6 +4561,35 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="vstLinPedidoVtaConVendedor">
+          <Key>
+            <PropertyRef Name="Nº_Orden" />
+            <PropertyRef Name="Número" />
+            <PropertyRef Name="Fecha_Entrega" />
+            <PropertyRef Name="Estado" />
+            <PropertyRef Name="Empresa" />
+            <PropertyRef Name="Base_Imponible" />
+          </Key>
+          <Property Name="Nº_Orden" Type="Int32" Nullable="false" />
+          <Property Name="Vendedor" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Ruta" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Nombre" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="Dirección" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="CodPostal" Type="String" MaxLength="15" FixedLength="true" Unicode="false" />
+          <Property Name="Población" Type="String" MaxLength="30" FixedLength="true" Unicode="false" />
+          <Property Name="Número" Type="Int32" Nullable="false" />
+          <Property Name="Producto" Type="String" MaxLength="15" FixedLength="true" Unicode="false" />
+          <Property Name="Texto" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="Familia" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Fecha_Entrega" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="Cantidad" Type="Int16" />
+          <Property Name="Estado" Type="Int16" Nullable="false" />
+          <Property Name="Picking" Type="Int32" />
+          <Property Name="Empresa" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Nº_Cliente" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Contacto" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Base_Imponible" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+        </EntityType>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -5444,6 +5528,31 @@
           </EntitySetMapping>
           <FunctionImportMapping FunctionImportName="prdDesliquidar" FunctionName="Nesto.Models.EF.Store.prdDesliquidar" />
           <FunctionImportMapping FunctionImportName="prdModificarEfectoCliente" FunctionName="Nesto.Models.EF.Store.prdModificarEfectoCliente" />
+          <EntitySetMapping Name="vstLinPedidoVtaConVendedor">
+            <EntityTypeMapping TypeName="Nesto.Models.EF.vstLinPedidoVtaConVendedor">
+              <MappingFragment StoreEntitySet="vstLinPedidoVtaConVendedor">
+                <ScalarProperty Name="Base_Imponible" ColumnName="Base Imponible" />
+                <ScalarProperty Name="Contacto" ColumnName="Contacto" />
+                <ScalarProperty Name="Nº_Cliente" ColumnName="Nº Cliente" />
+                <ScalarProperty Name="Empresa" ColumnName="Empresa" />
+                <ScalarProperty Name="Picking" ColumnName="Picking" />
+                <ScalarProperty Name="Estado" ColumnName="Estado" />
+                <ScalarProperty Name="Cantidad" ColumnName="Cantidad" />
+                <ScalarProperty Name="Fecha_Entrega" ColumnName="Fecha Entrega" />
+                <ScalarProperty Name="Familia" ColumnName="Familia" />
+                <ScalarProperty Name="Texto" ColumnName="Texto" />
+                <ScalarProperty Name="Producto" ColumnName="Producto" />
+                <ScalarProperty Name="Número" ColumnName="Número" />
+                <ScalarProperty Name="Población" ColumnName="Población" />
+                <ScalarProperty Name="CodPostal" ColumnName="CodPostal" />
+                <ScalarProperty Name="Dirección" ColumnName="Dirección" />
+                <ScalarProperty Name="Nombre" ColumnName="Nombre" />
+                <ScalarProperty Name="Ruta" ColumnName="Ruta" />
+                <ScalarProperty Name="Vendedor" ColumnName="Vendedor" />
+                <ScalarProperty Name="Nº_Orden" ColumnName="Nº Orden" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
@@ -5798,6 +5907,7 @@
         <EntityTypeShape EntityType="Nesto.Models.EF.Contabilidad" Width="1.5" PointX="18.75" PointY="20.25" />
         <EntityTypeShape EntityType="Nesto.Models.EF.EnviosHistoria" Width="1.5" PointX="16.875" PointY="26.125" />
         <AssociationConnector Association="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" />
+        <EntityTypeShape EntityType="Nesto.Models.EF.vstLinPedidoVtaConVendedor" Width="1.5" PointX="21.375" PointY="1.25" />
         </Diagram>
     </Diagrams>
   </Designer>
