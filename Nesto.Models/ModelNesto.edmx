@@ -874,6 +874,44 @@
           <Property Name="Fecha Modificación" Type="datetime" Nullable="false" />
         </EntityType>
         <!--Errores durante la generación:
+advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaComisiones' no tiene definida ninguna clave principal. Se ha inferido la clave y la definición se creado como una vista o tabla de solo lectura.-->
+        <EntityType Name="vstLinPedidoVtaComisiones">
+          <Key>
+            <PropertyRef Name="Nº Orden" />
+            <PropertyRef Name="Empresa" />
+            <PropertyRef Name="Vendedor" />
+            <PropertyRef Name="Número" />
+            <PropertyRef Name="Fecha Entrega" />
+            <PropertyRef Name="Estado" />
+            <PropertyRef Name="Base Imponible" />
+          </Key>
+          <Property Name="Nº Orden" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
+          <Property Name="Nº Cliente" Type="char" MaxLength="10" />
+          <Property Name="Contacto" Type="char" MaxLength="3" />
+          <Property Name="Vendedor" Type="char" MaxLength="3" Nullable="false" />
+          <Property Name="Ruta" Type="char" MaxLength="3" />
+          <Property Name="Nombre" Type="char" MaxLength="50" />
+          <Property Name="Dirección" Type="char" MaxLength="50" />
+          <Property Name="CodPostal" Type="char" MaxLength="15" />
+          <Property Name="Población" Type="char" MaxLength="30" />
+          <Property Name="Número" Type="int" Nullable="false" />
+          <Property Name="Producto" Type="char" MaxLength="15" />
+          <Property Name="Texto" Type="char" MaxLength="50" />
+          <Property Name="Familia" Type="char" MaxLength="10" />
+          <Property Name="Fecha Entrega" Type="datetime" Nullable="false" />
+          <Property Name="Cantidad" Type="smallint" />
+          <Property Name="Estado" Type="smallint" Nullable="false" />
+          <Property Name="Picking" Type="int" />
+          <Property Name="Base Imponible" Type="money" Nullable="false" />
+          <Property Name="Fecha Albarán" Type="datetime" />
+          <Property Name="Nº Albarán" Type="int" />
+          <Property Name="Fecha Factura" Type="datetime" />
+          <Property Name="Nº Factura" Type="char" MaxLength="10" />
+          <Property Name="Grupo" Type="char" MaxLength="50" />
+          <Property Name="SubGrupo" Type="char" MaxLength="50" />
+        </EntityType>
+        <!--Errores durante la generación:
 advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene definida ninguna clave principal. Se ha inferido la clave y la definición se creado como una vista o tabla de solo lectura.-->
         <EntityType Name="vstLinPedidoVtaConVendedor">
           <Key>
@@ -884,7 +922,7 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
             <PropertyRef Name="Estado" />
             <PropertyRef Name="Base Imponible" />
           </Key>
-          <Property Name="Nº Orden" Type="int" Nullable="false" />
+          <Property Name="Nº Orden" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
           <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
           <Property Name="Nº Cliente" Type="char" MaxLength="10" />
           <Property Name="Contacto" Type="char" MaxLength="3" />
@@ -1908,6 +1946,35 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
           <EntitySet Name="SeguimientoCliente" EntityType="Self.SeguimientoCliente" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="SubGruposProducto" EntityType="Self.SubGruposProducto" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Vendedores" EntityType="Self.Vendedores" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="vstLinPedidoVtaComisiones" EntityType="Self.vstLinPedidoVtaComisiones" store:Type="Views" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+[vstLinPedidoVtaComisiones].[Nº Orden] AS [Nº Orden], 
+[vstLinPedidoVtaComisiones].[Empresa] AS [Empresa], 
+[vstLinPedidoVtaComisiones].[Nº Cliente] AS [Nº Cliente], 
+[vstLinPedidoVtaComisiones].[Contacto] AS [Contacto], 
+[vstLinPedidoVtaComisiones].[Vendedor] AS [Vendedor], 
+[vstLinPedidoVtaComisiones].[Ruta] AS [Ruta], 
+[vstLinPedidoVtaComisiones].[Nombre] AS [Nombre], 
+[vstLinPedidoVtaComisiones].[Dirección] AS [Dirección], 
+[vstLinPedidoVtaComisiones].[CodPostal] AS [CodPostal], 
+[vstLinPedidoVtaComisiones].[Población] AS [Población], 
+[vstLinPedidoVtaComisiones].[Número] AS [Número], 
+[vstLinPedidoVtaComisiones].[Producto] AS [Producto], 
+[vstLinPedidoVtaComisiones].[Texto] AS [Texto], 
+[vstLinPedidoVtaComisiones].[Familia] AS [Familia], 
+[vstLinPedidoVtaComisiones].[Fecha Entrega] AS [Fecha Entrega], 
+[vstLinPedidoVtaComisiones].[Cantidad] AS [Cantidad], 
+[vstLinPedidoVtaComisiones].[Estado] AS [Estado], 
+[vstLinPedidoVtaComisiones].[Picking] AS [Picking], 
+[vstLinPedidoVtaComisiones].[Base Imponible] AS [Base Imponible], 
+[vstLinPedidoVtaComisiones].[Fecha Albarán] AS [Fecha Albarán], 
+[vstLinPedidoVtaComisiones].[Nº Albarán] AS [Nº Albarán], 
+[vstLinPedidoVtaComisiones].[Fecha Factura] AS [Fecha Factura], 
+[vstLinPedidoVtaComisiones].[Nº Factura] AS [Nº Factura], 
+[vstLinPedidoVtaComisiones].[Grupo] AS [Grupo], 
+[vstLinPedidoVtaComisiones].[SubGrupo] AS [SubGrupo]
+FROM [dbo].[vstLinPedidoVtaComisiones] AS [vstLinPedidoVtaComisiones]</DefiningQuery>
+          </EntitySet>
           <EntitySet Name="vstLinPedidoVtaConVendedor" EntityType="Self.vstLinPedidoVtaConVendedor" store:Type="Views" store:Schema="dbo">
             <DefiningQuery>SELECT 
 [vstLinPedidoVtaConVendedor].[Nº Orden] AS [Nº Orden], 
@@ -2551,6 +2618,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
             <Parameter Name="Concepto" Mode="In" Type="String" />
           </FunctionImport>
           <EntitySet Name="vstLinPedidoVtaConVendedor" EntityType="Nesto.Models.EF.vstLinPedidoVtaConVendedor" />
+          <EntitySet Name="vstLinPedidoVtaComisiones" EntityType="Nesto.Models.EF.vstLinPedidoVtaComisiones" />
           </EntityContainer>
         <EntityType Name="Productos">
           <Key>
@@ -4570,7 +4638,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
             <PropertyRef Name="Empresa" />
             <PropertyRef Name="Base_Imponible" />
           </Key>
-          <Property Name="Nº_Orden" Type="Int32" Nullable="false" />
+          <Property Name="Nº_Orden" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
           <Property Name="Vendedor" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="Ruta" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="Nombre" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
@@ -4589,6 +4657,42 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="Nº_Cliente" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Name="Contacto" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="Base_Imponible" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+        </EntityType>
+        <EntityType Name="vstLinPedidoVtaComisiones">
+          <Key>
+            <PropertyRef Name="Nº_Orden" />
+            <PropertyRef Name="Empresa" />
+            <PropertyRef Name="Vendedor" />
+            <PropertyRef Name="Número" />
+            <PropertyRef Name="Fecha_Entrega" />
+            <PropertyRef Name="Estado" />
+            <PropertyRef Name="Base_Imponible" />
+          </Key>
+          <Property Name="Nº_Orden" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Empresa" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Nº_Cliente" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Contacto" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Vendedor" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Ruta" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
+          <Property Name="Nombre" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="Dirección" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="CodPostal" Type="String" MaxLength="15" FixedLength="true" Unicode="false" />
+          <Property Name="Población" Type="String" MaxLength="30" FixedLength="true" Unicode="false" />
+          <Property Name="Número" Type="Int32" Nullable="false" />
+          <Property Name="Producto" Type="String" MaxLength="15" FixedLength="true" Unicode="false" />
+          <Property Name="Texto" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="Familia" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Fecha_Entrega" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="Cantidad" Type="Int16" />
+          <Property Name="Estado" Type="Int16" Nullable="false" />
+          <Property Name="Picking" Type="Int32" />
+          <Property Name="Base_Imponible" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+          <Property Name="Fecha_Albarán" Type="DateTime" Precision="3" />
+          <Property Name="Nº_Albarán" Type="Int32" />
+          <Property Name="Fecha_Factura" Type="DateTime" Precision="3" />
+          <Property Name="Nº_Factura" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
+          <Property Name="Grupo" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="SubGrupo" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
         </EntityType>
         </Schema>
     </edmx:ConceptualModels>
@@ -5553,6 +5657,37 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
+          <EntitySetMapping Name="vstLinPedidoVtaComisiones">
+            <EntityTypeMapping TypeName="Nesto.Models.EF.vstLinPedidoVtaComisiones">
+              <MappingFragment StoreEntitySet="vstLinPedidoVtaComisiones">
+                <ScalarProperty Name="SubGrupo" ColumnName="SubGrupo" />
+                <ScalarProperty Name="Grupo" ColumnName="Grupo" />
+                <ScalarProperty Name="Nº_Factura" ColumnName="Nº Factura" />
+                <ScalarProperty Name="Fecha_Factura" ColumnName="Fecha Factura" />
+                <ScalarProperty Name="Nº_Albarán" ColumnName="Nº Albarán" />
+                <ScalarProperty Name="Fecha_Albarán" ColumnName="Fecha Albarán" />
+                <ScalarProperty Name="Base_Imponible" ColumnName="Base Imponible" />
+                <ScalarProperty Name="Picking" ColumnName="Picking" />
+                <ScalarProperty Name="Estado" ColumnName="Estado" />
+                <ScalarProperty Name="Cantidad" ColumnName="Cantidad" />
+                <ScalarProperty Name="Fecha_Entrega" ColumnName="Fecha Entrega" />
+                <ScalarProperty Name="Familia" ColumnName="Familia" />
+                <ScalarProperty Name="Texto" ColumnName="Texto" />
+                <ScalarProperty Name="Producto" ColumnName="Producto" />
+                <ScalarProperty Name="Número" ColumnName="Número" />
+                <ScalarProperty Name="Población" ColumnName="Población" />
+                <ScalarProperty Name="CodPostal" ColumnName="CodPostal" />
+                <ScalarProperty Name="Dirección" ColumnName="Dirección" />
+                <ScalarProperty Name="Nombre" ColumnName="Nombre" />
+                <ScalarProperty Name="Ruta" ColumnName="Ruta" />
+                <ScalarProperty Name="Vendedor" ColumnName="Vendedor" />
+                <ScalarProperty Name="Contacto" ColumnName="Contacto" />
+                <ScalarProperty Name="Nº_Cliente" ColumnName="Nº Cliente" />
+                <ScalarProperty Name="Empresa" ColumnName="Empresa" />
+                <ScalarProperty Name="Nº_Orden" ColumnName="Nº Orden" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
@@ -5908,6 +6043,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
         <EntityTypeShape EntityType="Nesto.Models.EF.EnviosHistoria" Width="1.5" PointX="16.875" PointY="26.125" />
         <AssociationConnector Association="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" />
         <EntityTypeShape EntityType="Nesto.Models.EF.vstLinPedidoVtaConVendedor" Width="1.5" PointX="21.375" PointY="1.25" />
+        <EntityTypeShape EntityType="Nesto.Models.EF.vstLinPedidoVtaComisiones" Width="1.5" PointX="21.75" PointY="7.25" />
         </Diagram>
     </Diagrams>
   </Designer>
