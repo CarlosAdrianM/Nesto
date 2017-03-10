@@ -64,12 +64,16 @@ Public Class ComisionesViewModel
                                                                                    Where (l.Empresa = "1" Or l.Empresa = "3") And l.Estado >= -1 And l.Estado <= 1 And l.Vendedor = vendedorActual.Número
                                                                                    Order By l.Número, l.Nº_Orden
                                                                                    Select l)
-            listaVentasComision = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
-                                                                                         Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
-                                                                                             (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
-                                                                                             l.Vendedor = vendedorActual.Número)
-                                                                                         Order By l.Grupo, l.Dirección
-                                                                                         Select l)
+            If fechaDesde >= New Date(2017, 3, 1) Then
+                listaVentasComision = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
+                                                                                             Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
+                                                                                                 (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
+                                                                                                 l.Vendedor = vendedorActual.Número)
+                                                                                             Order By l.Grupo, l.Dirección
+                                                                                             Select l)
+            Else
+                listaVentasComision = Nothing
+            End If
         End Set
     End Property
 
@@ -108,12 +112,16 @@ Public Class ComisionesViewModel
             fechaHasta = (fechaDesde.AddMonths(1)).AddDays(-1)
             If vendedorActual IsNot Nothing Then
                 comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
-                listaVentasComision = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
-                                                                                             Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
-                                                                                             (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
-                                                                                             l.Vendedor = vendedorActual.Número)
-                                                                                             Order By l.Grupo, l.Dirección
-                                                                                             Select l)
+                If fechaDesde >= New Date(2017, 3, 1) Then
+                    listaVentasComision = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
+                                                                                                 Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
+                                                                                                 (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
+                                                                                                 l.Vendedor = vendedorActual.Número)
+                                                                                                 Order By l.Grupo, l.Dirección
+                                                                                                 Select l)
+                Else
+                    listaVentasComision = Nothing
+                End If
             End If
         End Set
     End Property
