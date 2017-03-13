@@ -16,7 +16,9 @@
             <DataTemplate x:Key="currency_celltemplate">
                 <TextBlock Text="{Binding Converter={StaticResource currencyConverter}}"/>
             </DataTemplate>
-
+            <Style TargetType="{x:Type xcdg:DataRow}">
+                <Setter Property="Height" Value="20" />
+            </Style>
             <xcdg:DataGridCollectionViewSource x:Key="cvs_listaPedidos" Source="{Binding listaPedidos}">
                 <xcdg:DataGridCollectionViewSource.GroupDescriptions>
                     <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
@@ -221,13 +223,13 @@
                 <TabItem Header="Pendientes de Entregar">
                     <xcdg:DataGridControl ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
                         <xcdg:DataGridControl.View>
-                            <xcdg:TableflowView UseDefaultHeadersFooters="False">
-                                <xcdg:TableflowView.FixedHeaders>
+                            <xcdg:TableView UseDefaultHeadersFooters="False">
+                                <xcdg:TableView.FixedHeaders>
                                     <DataTemplate>
-                                        <xcdg:ColumnManagerRow />
+                                        <xcdg:ColumnManagerRow/>
                                     </DataTemplate>
-                                </xcdg:TableflowView.FixedHeaders>
-                            </xcdg:TableflowView>
+                                </xcdg:TableView.FixedHeaders>
+                            </xcdg:TableView>
                         </xcdg:DataGridControl.View>
                         <xcdg:DataGridControl.Columns>
                             <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
@@ -249,13 +251,13 @@
                             <xcdg:GroupConfiguration InitiallyExpanded="False"/>
                         </xcdg:DataGridControl.DefaultGroupConfiguration>
                         <xcdg:DataGridControl.View>
-                            <xcdg:TableflowView UseDefaultHeadersFooters="False">
-                                <xcdg:TableflowView.FixedHeaders>
+                            <xcdg:TableView UseDefaultHeadersFooters="False">
+                                <xcdg:TableView.FixedHeaders>
                                     <DataTemplate>
                                         <xcdg:ColumnManagerRow />
                                     </DataTemplate>
-                                </xcdg:TableflowView.FixedHeaders>
-                            </xcdg:TableflowView>
+                                </xcdg:TableView.FixedHeaders>
+                            </xcdg:TableView>
                         </xcdg:DataGridControl.View>
                         <xcdg:DataGridControl.Columns>
                             <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
