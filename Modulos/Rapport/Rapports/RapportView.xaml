@@ -1,0 +1,77 @@
+﻿<UserControl x:Class="RapportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Nesto.Modulos.Rapports"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+             xmlns:prism="http://www.codeplex.com/prism"
+
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300" Margin="3">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="3*"/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition Height="6*"/>
+            <RowDefinition/>
+            <RowDefinition Height="2*"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Stretch">
+            <TextBlock Text="Cliente: "></TextBlock>
+            <controles:SelectorCliente Name="txtSelectorClienteRapport" Configuracion="{Binding configuracion}" Empresa="1" Contacto="{Binding rapport.Contacto, Mode=TwoWay}" Cliente="{Binding rapport.Cliente, Mode=TwoWay}" HorizontalAlignment="Stretch"></controles:SelectorCliente>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Orientation="Horizontal">
+            <TextBlock Text="Nombre: "></TextBlock>
+            <TextBlock Text="{Binding rapport.Nombre}"></TextBlock>
+        </StackPanel>
+        <StackPanel Grid.Row="2" Orientation="Horizontal">
+            <TextBlock Text="Dirección: "></TextBlock>
+            <TextBlock Text="{Binding rapport.Direccion}"></TextBlock>
+        </StackPanel>
+        <StackPanel Grid.Row="3" Orientation="Horizontal">
+            <TextBlock Text="Fecha: "></TextBlock>
+            <TextBlock Text="{Binding rapport.Fecha}"></TextBlock>
+        </StackPanel>
+        <StackPanel Grid.Row="4" HorizontalAlignment="Stretch">
+            <TextBlock Text="Tipo de Visita:"></TextBlock>
+            <ComboBox Name="cmbTiposRapport" ItemsSource="{Binding listaTiposRapports}" SelectedValue="{Binding rapport.Tipo}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="5" HorizontalAlignment="Stretch">
+            <TextBlock Text="Estado:"></TextBlock>
+            <ComboBox Name="cmbEstadosRapport" SelectedItem="{Binding rapport.Estado}"></ComboBox>
+        </StackPanel>
+        <CheckBox Grid.Row="6" IsChecked="{Binding rapport.Pedido}" Content="Pedido"></CheckBox>
+        <CheckBox Grid.Row="7" IsChecked="{Binding rapport.ClienteNuevo}" Content="Cliente Nuevo"></CheckBox>
+        <CheckBox Grid.Row="8" IsChecked="{Binding rapport.Aviso}" Content="Aviso"></CheckBox>
+        <CheckBox Grid.Row="9" IsChecked="{Binding rapport.Aparatos}" Content="Aparatos"></CheckBox>
+        <CheckBox Grid.Row="10" IsChecked="{Binding rapport.GestionAparatos}" Content="Gestión de Aparatos"></CheckBox>
+        <CheckBox Grid.Row="11" IsChecked="{Binding rapport.PrimeraVisita}" Content="Primera Visita"></CheckBox>
+        <DockPanel Grid.Row="12">
+            <TextBlock DockPanel.Dock="Top" Text="Comentarios: "></TextBlock>
+            <TextBox DockPanel.Dock="Bottom" Text="{Binding rapport.Comentarios}" TextWrapping="WrapWithOverflow"></TextBox>
+        </DockPanel>
+        <StackPanel Grid.Row="13" Orientation="Horizontal">
+            <TextBlock Text="Usuario: "></TextBlock>
+            <TextBlock Text="{Binding rapport.Usuario}"></TextBlock>
+        </StackPanel>
+        <StackPanel Grid.Row="14" HorizontalAlignment="Stretch">
+            <TextBlock Text="Tipo de Centro:"></TextBlock>
+            <ComboBox Name="cmbTiposCentro" SelectedItem="{Binding rapport.TipoCentro}"></ComboBox>
+        </StackPanel>
+
+
+
+    </Grid>
+</UserControl>

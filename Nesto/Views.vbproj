@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>11</ApplicationRevision>
+    <ApplicationRevision>12</ApplicationRevision>
     <ApplicationVersion>1.2.2.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -135,8 +135,8 @@
       <HintPath>..\packages\Unity.3.5.1404.0\lib\net45\Microsoft.Practices.Unity.RegistrationByConvention.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.10.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Prism.RibbonRegionAdapter, Version=0.20.0.1, Culture=neutral, PublicKeyToken=3ddef0a054eea43a, processorArchitecture=MSIL">
@@ -546,6 +546,10 @@
     <ProjectReference Include="..\Modulos\PlantillaVenta\PlantillaVenta.vbproj">
       <Project>{2c0afe5d-a09a-40f1-8f60-75a446c6e7d4}</Project>
       <Name>PlantillaVenta</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Modulos\Rapport\Rapports\Rapports.vbproj">
+      <Project>{A2E6851D-AA9D-48DD-9B44-AFF9FC754FD1}</Project>
+      <Name>Rapports</Name>
     </ProjectReference>
     <ProjectReference Include="..\Nesto.ViewModels\ViewModels.vbproj">
       <Project>{88335EDE-B08A-44EA-9286-F9C0AED290C8}</Project>

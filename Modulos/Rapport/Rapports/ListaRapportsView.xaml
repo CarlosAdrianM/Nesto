@@ -1,0 +1,49 @@
+﻿<UserControl x:Class="ListaRapportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Nesto.Modulos.Rapports"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+             xmlns:prism="http://www.codeplex.com/prism"
+             xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <StackPanel Grid.Column="0">
+            <controles:SelectorCliente Name="txtSelectorCliente" Configuracion="{Binding configuracion}" Empresa="1" Cliente="{Binding clienteSeleccionado, Mode=TwoWay}" Contacto="{Binding contactoSeleccionado, Mode=TwoWay}"></controles:SelectorCliente>
+            <TextBlock></TextBlock>
+            <DatePicker SelectedDate="{Binding fechaSeleccionada}"></DatePicker>
+            <CheckBox IsChecked="{Binding esUsuarioElVendedor}">Filtrar por Usuario</CheckBox>
+            <TextBlock></TextBlock>
+            <Button Command="{Binding cmdCargarListaRapports}">Cargar Rapports</Button>
+        </StackPanel>
+        <xcdg:DataGridControl Grid.Column="1" ItemsSource="{Binding listaRapports}" SelectedItem="{Binding rapportSeleccionado}" AutoCreateColumns="False" ReadOnly="True">
+            <xcdg:DataGridControl.View>
+                <xcdg:TableView UseDefaultHeadersFooters="False">
+                    <xcdg:TableView.FixedHeaders>
+                        <DataTemplate>
+                            <xcdg:ColumnManagerRow/>
+                        </DataTemplate>
+                    </xcdg:TableView.FixedHeaders>
+                </xcdg:TableView>
+            </xcdg:DataGridControl.View>
+            <xcdg:DataGridControl.Columns>
+                <xcdg:Column FieldName="Fecha" Width="*" Title="Fecha" />
+                <xcdg:Column FieldName="Tipo" Width="*" Title="Tipo" />
+                <xcdg:Column FieldName="Vendedor" Width="*" Title="Vendedor" />
+                <xcdg:Column FieldName="Producto" Width="*" Title="Estado"/>
+                <xcdg:Column FieldName="Comentarios" Width="3*" Title="Comentarios" />
+            </xcdg:DataGridControl.Columns>
+        </xcdg:DataGridControl>
+        <ContentControl Grid.Column="2" prism:RegionManager.RegionName="RapportDetailRegion"></ContentControl>
+    </Grid>
+    
+</UserControl>

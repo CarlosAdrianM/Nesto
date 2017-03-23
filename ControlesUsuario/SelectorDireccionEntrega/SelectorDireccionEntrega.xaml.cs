@@ -80,9 +80,19 @@ namespace ControlesUsuario
         /// </summary>
         public static readonly DependencyProperty ConfiguracionProperty =
             DependencyProperty.Register("Configuracion", typeof(IConfiguracion),
-              typeof(SelectorDireccionEntrega));
+              typeof(SelectorDireccionEntrega),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnConfiguracionChanged)));
 
-        
+        private static void OnConfiguracionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
+            if (selector != null && selector.Configuracion != null)
+            {
+                selector.cargarDatos();
+            }
+        }
+
+
 
         /// <summary>
         /// Gets or sets the EMPRESA para las llamadas a la API
@@ -101,8 +111,17 @@ namespace ControlesUsuario
         /// </summary>
         public static readonly DependencyProperty EmpresaProperty =
             DependencyProperty.Register("Empresa", typeof(string),
-              typeof(SelectorDireccionEntrega));
+              typeof(SelectorDireccionEntrega),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnEmpresaChanged)));
 
+        private static void OnEmpresaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
+            if (selector != null && selector.Empresa != null)
+            {
+                selector.cargarDatos();
+            }
+        }
 
 
         /// <summary>
@@ -123,7 +142,7 @@ namespace ControlesUsuario
         public static readonly DependencyProperty SeleccionadaProperty =
             DependencyProperty.Register("Seleccionada", typeof(string),
               typeof(SelectorDireccionEntrega));
-
+        
 
         #endregion
 
@@ -163,6 +182,10 @@ namespace ControlesUsuario
         #region "Funciones Auxiliares"
         private async void cargarDatos()
         {
+            if(Configuracion == null || Empresa == null || Cliente == null)
+            {
+                return;
+            }
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(Configuracion.servidorAPI);
@@ -176,7 +199,12 @@ namespace ControlesUsuario
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
                         listaDireccionesEntrega = JsonConvert.DeserializeObject<ObservableCollection<DireccionesEntregaCliente>>(resultado);
-                        direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.contacto == Seleccionada).SingleOrDefault();
+                        if (direccionEntregaSeleccionada == null && Seleccionada == null)
+                        {
+                            direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.contacto == Seleccionada).SingleOrDefault();
+                        }
+
+                        
                     }                    
                 } catch
                 {

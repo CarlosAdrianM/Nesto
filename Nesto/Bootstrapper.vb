@@ -9,6 +9,7 @@ Imports Nesto.Modulos.Inventario
 Imports Nesto.Modulos.CarteraPagos
 Imports Nesto.Modulos.PedidoVenta
 Imports ControlesUsuario
+Imports Nesto.Modulos.Rapports
 
 Public Class Bootstrapper
     Inherits UnityBootstrapper
@@ -54,6 +55,9 @@ Public Class Bootstrapper
         ' Pedido de Venta - 26/10/16
         moduleCatalog.AddModule(GetType(IPedidoVenta))
 
+        ' Rapports - 14/03/17
+        moduleCatalog.AddModule(GetType(IRapports))
+
 
     End Sub
 
@@ -69,6 +73,8 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(ICarteraPagos), GetType(CarteraPagos), False)
         RegisterTypeIfMissing(GetType(IPedidoVentaService), GetType(PedidoVentaService), False)
         RegisterTypeIfMissing(GetType(IPedidoVenta), GetType(PedidoVenta), False)
+        RegisterTypeIfMissing(GetType(IRapportService), GetType(RapportService), False)
+        RegisterTypeIfMissing(GetType(IRapports), GetType(Rapports), False)
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings
