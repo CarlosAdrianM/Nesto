@@ -1,18 +1,56 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
+Imports System.Text
+Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Newtonsoft.Json
 
 Public Class RapportService
+    Inherits ViewModelBase
     Implements IRapportService
+
 
     Private ReadOnly configuracion As IConfiguracion
 
     Public Sub New(configuracion As IConfiguracion)
         Me.configuracion = configuracion
     End Sub
+
+#Region "Propiedades"
+    '*** Propiedades de Prism 
+    Private _NotificationRequest As InteractionRequest(Of INotification)
+    Public Property NotificationRequest As InteractionRequest(Of INotification)
+        Get
+            Return _NotificationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of INotification))
+            _NotificationRequest = value
+        End Set
+    End Property
+
+    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
+    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
+        Get
+            Return _ConfirmationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of IConfirmation))
+            _ConfirmationRequest = value
+        End Set
+    End Property
+
+    Private resultMessage As String
+    Public Property InteractionResultMessage As String
+        Get
+            Return Me.resultMessage
+        End Get
+        Set(value As String)
+            Me.resultMessage = value
+            Me.OnPropertyChanged("InteractionResultMessage")
+        End Set
+    End Property
+#End Region
 
     Public Async Function cargarListaRapports(vendedor As String, fecha As Date) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
         Using client As New HttpClient
@@ -43,6 +81,45 @@ Public Class RapportService
             Dim listaRapports As ObservableCollection(Of SeguimientoClienteDTO) = JsonConvert.DeserializeObject(Of ObservableCollection(Of SeguimientoClienteDTO))(respuesta)
 
             Return listaRapports
+
+        End Using
+    End Function
+
+    Public Async Function crearRapport(rapport As SeguimientoClienteDTO) As Task Implements IRapportService.crearRapport
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(rapport), Encoding.UTF8, "application/json")
+
+            Try
+                If rapport.Id = 0 Then
+                    response = Await client.PostAsync("SeguimientosClientes", content)
+                Else
+                    response = Await client.PutAsync("SeguimientosClientes", content)
+                End If
+
+
+                If response.IsSuccessStatusCode Then
+                    NotificationRequest.Raise(New Notification() With {
+                    .Title = "Rapports",
+                    .Content = "Rapport creado correctamente"
+                    })
+                Else
+                    Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)
+                    NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = "Se ha producido un error al crear el rapport"
+                })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = ex.Message
+                })
+            Finally
+
+            End Try
 
         End Using
     End Function

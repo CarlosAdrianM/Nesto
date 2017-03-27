@@ -4,12 +4,15 @@ Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Prism.Mvvm
 Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
+Imports System.Deployment.Application
+
 
 Class MainWindow
     Implements IMainWindow
 
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly tituloVentana As String
 
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
 
@@ -20,6 +23,13 @@ Class MainWindow
         Me.container = container
         Me.regionManager = regionManager
         'Me.DataContext = New MainViewModel(container, regionManager)
+        Try
+            tituloVentana = "Nesto (" + ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString() + ")"
+        Catch ex As InvalidDeploymentException
+            tituloVentana = "Nesto"
+        End Try
+
+        Me.Title = tituloVentana
     End Sub
 
     Public Property regionRibbon As Controls.Ribbon.Ribbon Implements IMainWindow.mainRibbon

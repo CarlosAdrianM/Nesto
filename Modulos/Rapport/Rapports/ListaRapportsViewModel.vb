@@ -13,7 +13,7 @@ Public Class ListaRapportsViewModel
     Private ReadOnly regionManager As IRegionManager
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IRapportService
-    Private Property vendedor As String '= "JM"
+    Private Property vendedor As String
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService)
         Me.regionManager = regionManager
@@ -22,8 +22,7 @@ Public Class ListaRapportsViewModel
 
         cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
         cmdCargarListaRapports = New DelegateCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
-
-        cmdCargarListaRapports.Execute(Nothing)
+        cmdCrearRapport = New DelegateCommand(Of Object)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -146,8 +145,9 @@ Public Class ListaRapportsViewModel
     Private Function CanAbrirModulo(arg As Object) As Boolean
         Return True
     End Function
-    Private Sub OnAbrirModulo(arg As Object)
+    Private Async Sub OnAbrirModulo(arg As Object)
         regionManager.RequestNavigate("MainRegion", "ListaRapportsView")
+        vendedor = Await configuracion.leerParametro(empresaPorDefecto, "Vendedor")
     End Sub
 
     Private _cmdCargarListaRapports As DelegateCommand(Of Object)
@@ -171,6 +171,33 @@ Public Class ListaRapportsViewModel
             listaRapports = Await servicio.cargarListaRapports(parametroVendedor, fechaSeleccionada)
         End If
     End Sub
+
+    Private _cmdCrearRapport As DelegateCommand(Of Object)
+    Public Property cmdCrearRapport As DelegateCommand(Of Object)
+        Get
+            Return _cmdCrearRapport
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCrearRapport, value)
+        End Set
+    End Property
+    Private Function CanCrearRapport(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnCrearRapport(arg As Object)
+        Dim rapportNuevo As New SeguimientoClienteDTO With {
+            .Empresa = empresaPorDefecto,
+            .Estado = SeguimientoClienteDTO.EstadoSeguimientoDTO.Vigente,
+            .Fecha = IIf(fechaSeleccionada >= Today, Now, fechaSeleccionada),
+            .Tipo = SeguimientoClienteDTO.TipoSeguimientoDTO.TELEFONO,
+            .TipoCentro = SeguimientoClienteDTO.TiposCentro.NoSeSabe,
+            .Vendedor = vendedor,
+            .Usuario = configuracion.usuario
+        }
+
+        rapportSeleccionado = rapportNuevo
+    End Sub
+
 #End Region
 
 

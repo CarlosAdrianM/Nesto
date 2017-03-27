@@ -24,6 +24,8 @@
             <CheckBox IsChecked="{Binding esUsuarioElVendedor}">Filtrar por Usuario</CheckBox>
             <TextBlock></TextBlock>
             <Button Command="{Binding cmdCargarListaRapports}">Cargar Rapports</Button>
+            <TextBlock></TextBlock>
+            <Button Command="{Binding cmdCrearRapport}">Crear Rapport</Button>
         </StackPanel>
         <xcdg:DataGridControl Grid.Column="1" ItemsSource="{Binding listaRapports}" SelectedItem="{Binding rapportSeleccionado}" AutoCreateColumns="False" ReadOnly="True">
             <xcdg:DataGridControl.View>

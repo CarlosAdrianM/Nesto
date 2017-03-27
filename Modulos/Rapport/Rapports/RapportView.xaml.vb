@@ -12,6 +12,5 @@ Public Class RapportView
 
     Private Sub RapportView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         cmbEstadosRapport.ItemsSource = [Enum].GetValues(GetType(EstadoSeguimientoDTO)).Cast(Of EstadoSeguimientoDTO)()
-        cmbTiposCentro.ItemsSource = [Enum].GetValues(GetType(TiposCentro)).Cast(Of TiposCentro)()
     End Sub
 End Class
