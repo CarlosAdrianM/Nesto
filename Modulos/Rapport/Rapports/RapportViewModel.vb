@@ -1,4 +1,5 @@
 ﻿Imports Microsoft.Practices.Prism.Commands
+Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
@@ -38,8 +39,44 @@ Public Class RapportViewModel
 
         cmdGuardarCambios = New DelegateCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
 
+        NotificationRequest = New InteractionRequest(Of INotification)
+        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
+
+
     End Sub
 
+#Region "Propiedades de Prism"
+    Private _NotificationRequest As InteractionRequest(Of INotification)
+    Public Property NotificationRequest As InteractionRequest(Of INotification)
+        Get
+            Return _NotificationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of INotification))
+            _NotificationRequest = value
+        End Set
+    End Property
+
+    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
+    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
+        Get
+            Return _ConfirmationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of IConfirmation))
+            _ConfirmationRequest = value
+        End Set
+    End Property
+
+    Private resultMessage As String
+    Public Property InteractionResultMessage As String
+        Get
+            Return Me.resultMessage
+        End Get
+        Set(value As String)
+            Me.resultMessage = value
+            Me.OnPropertyChanged("InteractionResultMessage")
+        End Set
+    End Property
+#End Region
 
     Public Property configuracion As IConfiguracion
     Private Const empresaPorDefecto As String = "1"
@@ -91,8 +128,21 @@ Public Class RapportViewModel
     Private Function CanGuardarCambios(arg As Object) As Boolean
         Return Not IsNothing(rapport) AndAlso rapport.Usuario = configuracion.usuario
     End Function
-    Private Sub OnGuardarCambios(arg As Object)
-        servicio.crearRapport(rapport)
+    Private Async Sub OnGuardarCambios(arg As Object)
+        Dim texto As String
+        Try
+            texto = Await servicio.crearRapport(rapport)
+            NotificationRequest.Raise(New Notification() With {
+                .Title = "Rapport",
+                .Content = texto
+            })
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
+                .Title = "Error",
+                .Content = ex.Message
+            })
+
+        End Try
     End Sub
 
 

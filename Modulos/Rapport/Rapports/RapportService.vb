@@ -18,39 +18,7 @@ Public Class RapportService
         Me.configuracion = configuracion
     End Sub
 
-#Region "Propiedades"
-    '*** Propiedades de Prism 
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
 
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
-        End Set
-    End Property
-#End Region
 
     Public Async Function cargarListaRapports(vendedor As String, fecha As Date) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
         Using client As New HttpClient
@@ -85,7 +53,7 @@ Public Class RapportService
         End Using
     End Function
 
-    Public Async Function crearRapport(rapport As SeguimientoClienteDTO) As Task Implements IRapportService.crearRapport
+    Public Async Function crearRapport(rapport As SeguimientoClienteDTO) As Task(Of String) Implements IRapportService.crearRapport
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -100,23 +68,14 @@ Public Class RapportService
 
 
                 If response.IsSuccessStatusCode Then
-                    NotificationRequest.Raise(New Notification() With {
-                    .Title = "Rapports",
-                    .Content = "Rapport creado correctamente"
-                    })
+                    Return "Rapport creado correctamente"
                 Else
                     Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)
-                    NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = "Se ha producido un error al crear el rapport"
-                })
+                    Return "Se ha producido un error al crear el rapport"
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                Throw ex
             Finally
 
             End Try
