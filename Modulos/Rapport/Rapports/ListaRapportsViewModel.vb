@@ -13,7 +13,15 @@ Public Class ListaRapportsViewModel
     Private ReadOnly regionManager As IRegionManager
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IRapportService
-    Private Property vendedor As String
+    Private _vendedor As String
+    Public Property vendedor As String
+        Get
+            Return _vendedor
+        End Get
+        Set(value As String)
+            _vendedor = value
+        End Set
+    End Property
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService)
         Me.regionManager = regionManager
@@ -145,9 +153,8 @@ Public Class ListaRapportsViewModel
     Private Function CanAbrirModulo(arg As Object) As Boolean
         Return True
     End Function
-    Private Async Sub OnAbrirModulo(arg As Object)
+    Private Sub OnAbrirModulo(arg As Object)
         regionManager.RequestNavigate("MainRegion", "ListaRapportsView")
-        vendedor = Await configuracion.leerParametro(empresaPorDefecto, "Vendedor")
     End Sub
 
     Private _cmdCargarListaRapports As DelegateCommand(Of Object)
@@ -163,6 +170,9 @@ Public Class ListaRapportsViewModel
         Return Not IsNothing(clienteSeleccionado) Or Not IsNothing(fechaSeleccionada)
     End Function
     Private Async Sub OnCargarListaRapports(arg As Object)
+        If IsNothing(vendedor) Then
+            vendedor = Await configuracion.leerParametro(empresaPorDefecto, "Vendedor")
+        End If
         If Not IsNothing(clienteSeleccionado) Then
             listaRapports = Await servicio.cargarListaRapports(empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
         Else
