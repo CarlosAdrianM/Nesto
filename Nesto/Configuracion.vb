@@ -19,6 +19,7 @@ Public Class Configuracion
     Public ReadOnly Property usuario As String Implements IConfiguracion.usuario
         Get
             Return System.Environment.UserDomainName + "\" + System.Environment.UserName
+            'Return System.Environment.UserDomainName + "\Carolina"
         End Get
     End Property
 
@@ -30,6 +31,7 @@ Public Class Configuracion
 
             Try
                 response = Await client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=" + System.Environment.UserName + "&clave=" + clave)
+                'response = Await client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=Carolina&clave=" + clave)
 
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = Await response.Content.ReadAsStringAsync()

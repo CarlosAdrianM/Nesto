@@ -478,6 +478,23 @@ Public Class PedidoVentaViewModel
                 End If
             End If
         End If
+        If arg.Column.Header = "Precio" OrElse arg.Column.Header = "Descuento" Then
+            Dim textBox As TextBox = arg.EditingElement
+            ' Windows debería hacer que el teclado numérico escribiese coma en vez de punto
+            ' pero como no lo hace, lo cambiamos nosotros
+            textBox.Text = Replace(textBox.Text, ".", ",")
+            If arg.Column.Header = "Precio" Then
+                If Not Double.TryParse(textBox.Text, lineaActual.precio) Then
+                    Return
+                End If
+            Else
+                If Not Double.TryParse(textBox.Text, lineaActual.descuento) Then
+                    Return
+                Else
+                    lineaActual.descuento = lineaActual.descuento / 100
+                End If
+            End If
+        End If
     End Sub
 
     Private _cmdModificarPedido As DelegateCommand(Of Object)
