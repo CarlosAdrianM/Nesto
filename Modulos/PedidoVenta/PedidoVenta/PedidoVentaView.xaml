@@ -4,52 +4,13 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Nesto.Modulos.PedidoVenta"
-             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
-             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
              xmlns:prism="http://www.codeplex.com/prism"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
 
-    <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        
-        <Style x:Key="DataGridCellStyle" TargetType="DataGridRow">
-            <Setter Property="IsEnabled" Value="True"/>
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding estaAlbaraneada}" Value="True">
-                    <Setter Property="IsEnabled" Value="False" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding tienePicking}" Value="True">
-                    <Setter Property="IsEnabled" Value="False" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <local:PercentageConverter x:Key="porcentajeConverter" />
-    </UserControl.Resources>
     
-    <i:Interaction.Triggers>
-        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction  IsModal="True" CenterOverAssociatedObject="True">
-                <prism:PopupWindowAction.WindowContent>
-                    <local:Notificacion/>
-                </prism:PopupWindowAction.WindowContent>
-            </prism:PopupWindowAction>
-        </prism:InteractionRequestTrigger>
-        
-        <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
-        </prism:InteractionRequestTrigger>
-        
-        <prism:InteractionRequestTrigger SourceObject="{Binding PickingPopup, Mode=OneWay}">
-            <prism:PopupWindowAction>
-                <prism:PopupWindowAction.WindowContent>
-                    <local:PickingPopupView />
-                </prism:PopupWindowAction.WindowContent>
-            </prism:PopupWindowAction>
-        </prism:InteractionRequestTrigger>
-    </i:Interaction.Triggers>
+    
     
     
     
@@ -58,190 +19,14 @@
             <ColumnDefinition />
             <ColumnDefinition Width="4*"/>
         </Grid.ColumnDefinitions>
-        <xctk:BusyIndicator Grid.Column="0" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos...">
-            <DockPanel>
-                <TextBox ></TextBox>
-                <xctk:WatermarkTextBox Name="txtFiltro" DockPanel.Dock="Top" Text="{Binding filtroPedidos}" Watermark="Buscar Pedidos..."></xctk:WatermarkTextBox>
-                <ListView DockPanel.Dock="Bottom" ItemsSource="{Binding listaPedidos}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
-                    <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding nombre}"></TextBlock>
-                                    <TextBlock Text="{Binding direccion}"></TextBlock>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding cliente}"></TextBlock>
-                                        <TextBlock xml:space="preserve" Text=" - "></TextBlock>
-                                        <TextBlock Text="{Binding fecha, StringFormat=d}"></TextBlock>
-                                        <TextBlock xml:space="preserve" Text=" ("></TextBlock>
-                                        <TextBlock Text="{Binding baseImponible, StringFormat=c}"></TextBlock>
-                                        <TextBlock>)</TextBlock>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Background="Red" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePendientes, Converter={StaticResource BooleanToVisibilityConverter} }">Pendientes</TextBlock>
-                                        <TextBlock Background="Green" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePicking, Converter={StaticResource BooleanToVisibilityConverter} }">Picking</TextBlock>
-                                        <TextBlock Background="Blue" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneFechasFuturas, Converter={StaticResource BooleanToVisibilityConverter} }">En Espera</TextBlock>
-                                        <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
-            </DockPanel>
-        </xctk:BusyIndicator>
+
+        <DockPanel>
+            <TextBlock></TextBlock>
+            <ContentControl DockPanel.Dock="Bottom" prism:RegionManager.RegionName="ListaPedidosRegion"></ContentControl>
+        </DockPanel>
+
         <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="8*"/>
-                <RowDefinition/>
-            </Grid.RowDefinitions>
-            <TabControl Grid.Row="0">
-                <TabItem Header="Cabecera">
-                    <StackPanel DockPanel.Dock="Top">
-                        <TextBlock Text="Cliente: "></TextBlock>
-                        <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
-                        <TextBlock Text="Fecha pedido:"></TextBlock>
-                        <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition/>
-                                <ColumnDefinition/>
-                            </Grid.ColumnDefinitions>
-                            <controles:SelectorVendedor Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Seleccionado="{Binding pedido.vendedor, Mode=TwoWay}" Etiqueta="Vendedor del Pedido:"></controles:SelectorVendedor>
-                            <controles:SelectorVendedor Grid.Column="1" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Seleccionado="{Binding vendedorPorGrupo.vendedor, Mode=TwoWay}" Etiqueta="Vendedor de Peluquería:"></controles:SelectorVendedor>
-                        </Grid>
-                        
-                        <TextBlock></TextBlock>
-                        <Button Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
-                    </StackPanel>
-                </TabItem>
-                <TabItem Header="Entrega">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition/>
-                        </Grid.ColumnDefinitions>
-                        <controles:SelectorDireccionEntrega Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto, Mode=TwoWay}"></controles:SelectorDireccionEntrega>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="Fecha de Entrega:"></TextBlock>
-                            <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>
-                            <CheckBox IsChecked="{Binding pedido.servirJunto}">Servir Junto</CheckBox>
-                            <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
-                        </StackPanel>
-                    </Grid>
-                </TabItem>
-                <TabItem Header="Pago">
-                    <StackPanel>
-                        <controles:SelectorFormaPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.formaPago, Mode=TwoWay}"></controles:SelectorFormaPago>
-                        <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}"></controles:SelectorPlazosPago>
-                        <TextBlock Text="Fecha vencimiento:"></TextBlock>
-                        <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
-                        <TextBlock></TextBlock>
-                        <TextBox Text="{Binding pedido.iva}" IsReadOnly="True">
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseDoubleClick" >
-                                    <i:InvokeCommandAction Command="{Binding cmdCambiarIva}" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
-                        </TextBox>
-                    </StackPanel>
-                </TabItem>
-                <TabItem Header="Líneas">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="3*"/>
-                            <ColumnDefinition Width="2*"/>
-                        </Grid.ColumnDefinitions>
-                        <DataGrid Name="grdLineas" Grid.Column="0" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.LineasPedido}" MinHeight="500" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
-                                <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
-                                <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding producto}" />
-                                <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
-
-                                <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding cantidad}" />
-                                <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding precio, StringFormat=c}">
-                                    <DataGridTextColumn.CellStyle>
-                                        <Style>
-                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                        </Style>
-                                    </DataGridTextColumn.CellStyle>
-                                </DataGridTextColumn>
-                                <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding descuento, Converter={StaticResource porcentajeConverter}}" >
-                                    <DataGridTextColumn.CellStyle>
-                                        <Style>
-                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                        </Style>
-                                    </DataGridTextColumn.CellStyle>
-                                </DataGridTextColumn>
-                                <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                        <!--
-                        <xctk:PropertyGrid Grid.Column="1" x:Name="_propertyGrid" AutoGenerateProperties="False" SelectedObject="{Binding lineaActual}">
-                            <xctk:PropertyGrid.PropertyDefinitions>
-                                <xctk:PropertyDefinition TargetProperties="almacen" DisplayName="Almacén"/>
-                                <xctk:PropertyDefinition TargetProperties="aplicarDescuento" DisplayName="Aplicar Descuento" />
-                                <xctk:PropertyDefinition TargetProperties="bruto" DisplayName="Importe Bruto"/>
-                                <xctk:PropertyDefinition TargetProperties="cantidad" DisplayName="Cantidad"/>
-                                <xctk:PropertyDefinition TargetProperties="delegacion" DisplayName="Delegación"/>
-                                <xctk:PropertyDefinition TargetProperties="descuento" DisplayName="Descuento"/>
-                                <xctk:PropertyDefinition TargetProperties="descuentoProducto" DisplayName="Descuento del Producto"/>
-                                <xctk:PropertyDefinition TargetProperties="estaAlbaraneada" DisplayName="¿Tiene Albarán?"/>
-                                <xctk:PropertyDefinition TargetProperties="estado" DisplayName="Estado"/>
-                                <xctk:PropertyDefinition TargetProperties="estaFacturada" DisplayName="¿Está Facturada?"/>
-                                <xctk:PropertyDefinition TargetProperties="fechaEntrega" DisplayName="Fecha de Entrega"/>
-                                <xctk:PropertyDefinition TargetProperties="formaVenta" DisplayName="Forma de Venta"/>
-                                <xctk:PropertyDefinition TargetProperties="id"  DisplayName="Nº Orden"/>
-                                <xctk:PropertyDefinition TargetProperties="iva" DisplayName="Tipo de IVA"/>
-                                <xctk:PropertyDefinition TargetProperties="oferta" DisplayName="Nº de Oferta"/>
-                                <xctk:PropertyDefinition TargetProperties="picking" DisplayName="Picking"/>
-                                <xctk:PropertyDefinition TargetProperties="precio" DisplayName="Precio Unitario"/>
-                                <xctk:PropertyDefinition TargetProperties="producto" DisplayName="Producto"/>
-                                <xctk:PropertyDefinition TargetProperties="texto" DisplayName="Texto"/>
-                                <xctk:PropertyDefinition TargetProperties="tienePicking" DisplayName="¿Tiene Picking?"/>
-                                <xctk:PropertyDefinition TargetProperties="tipoLinea" DisplayName="Tipo de Línea"/>
-                                <xctk:PropertyDefinition TargetProperties="usuario" DisplayName="Usuario"/>
-                                <xctk:PropertyDefinition TargetProperties="vistoBueno" DisplayName="Visto Bueno"/>
-                            </xctk:PropertyGrid.PropertyDefinitions>
-                        </xctk:PropertyGrid>
-                        -->
-                    </Grid>
-                </TabItem>
-            </TabControl>
-            <StackPanel Grid.Row="1">
-                <Button Command="{Binding cmdModificarPedido}">Modificar Pedido</Button>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition/>
-                        <ColumnDefinition/>
-                        <ColumnDefinition/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                        <RowDefinition/>
-                    </Grid.RowDefinitions>
-                    
-                    <TextBlock Grid.Column="0" Grid.Row="1">Base Imponible</TextBlock>
-                    <TextBlock Grid.Column="0" Grid.Row="2">Total</TextBlock>
-
-                    <TextBlock Grid.Column="1" Grid.Row="0">Picking</TextBlock>
-                    <TextBlock Grid.Column="2" Grid.Row="0">Total</TextBlock>
-
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding pedido.baseImponible, StringFormat=c}"></TextBlock>
-                    <TextBlock Grid.Column="2" Grid.Row="2" Text="{Binding pedido.total, StringFormat=c}"></TextBlock>
-
-                    <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding pedido.baseImponiblePicking, StringFormat=c}"></TextBlock>
-                    <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding pedido.totalPicking, StringFormat=c}"></TextBlock>
-
-                </Grid>
-                
-                
-                    
-                
-                
-            </StackPanel>
+            <ContentControl prism:RegionManager.RegionName="DetallePedidoRegion"></ContentControl>
         </Grid>
         
     </Grid>

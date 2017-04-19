@@ -11,7 +11,7 @@ Public Class PedidoVenta
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, viewModel As PedidoVentaViewModel)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
 
         Me.container = container
         Me.regionManager = regionManager
@@ -20,6 +20,7 @@ Public Class PedidoVenta
 
     Public Sub Initialize() Implements IModule.Initialize
         container.RegisterType(Of Object, PedidoVentaView)("PedidoVentaView")
+        container.RegisterType(Of Object, DetallePedidoView)("DetallePedidoView")
 
         Dim view = Me.container.Resolve(Of PedidoVentaMenuBar)
         If Not IsNothing(view) Then

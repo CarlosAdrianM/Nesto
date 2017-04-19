@@ -168,7 +168,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DetallePedidoView.xaml.vb">
+      <DependentUpon>DetallePedidoView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="DetallePedidoViewModel.vb" />
     <Compile Include="IPedidoVentaService.vb" />
+    <Compile Include="ListaPedidosVenta.xaml.vb">
+      <DependentUpon>ListaPedidosVenta.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ListaPedidosVentaViewModel.vb" />
     <Compile Include="Notificacion.xaml.vb">
       <DependentUpon>Notificacion.xaml</DependentUpon>
     </Compile>
@@ -184,6 +192,14 @@
     <Compile Include="PickingPopupView.xaml.vb">
       <DependentUpon>PickingPopupView.xaml</DependentUpon>
     </Compile>
+    <Page Include="DetallePedidoView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="ListaPedidosVenta.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Notificacion.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

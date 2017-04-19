@@ -82,11 +82,19 @@
       <DependentUpon>SelectorCliente.xaml</DependentUpon>
     </Compile>
     <Compile Include="SelectorCliente\SelectorClienteModel.cs" />
+    <Compile Include="SelectorEmpresa\SelectorEmpresa.xaml.cs">
+      <DependentUpon>SelectorEmpresa.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="SelectorEmpresa\SelectorEmpresaModel.cs" />
     <Compile Include="SelectorVendedor\SelectorVendedor.xaml.cs">
       <DependentUpon>SelectorVendedor.xaml</DependentUpon>
     </Compile>
     <Compile Include="SelectorVendedor\SelectorVendedorModel.cs" />
     <Page Include="SelectorCliente\SelectorCliente.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SelectorEmpresa\SelectorEmpresa.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
