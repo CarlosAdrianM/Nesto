@@ -1,6 +1,7 @@
 ﻿Imports System.Globalization
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
+Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
 Public Class PedidoVentaView
     Private ReadOnly container As IUnityContainer
@@ -22,6 +23,13 @@ Public Class PedidoVentaView
             view.cambiarRegionManager(scopedRegionManager)
             Dim region As IRegion = scopedRegionManager.Regions("ListaPedidosRegion")
             region.Add(view, "ListaPedidosVenta")
+            If Me.DataContext.empresaInicial <> "" AndAlso Me.DataContext.pedidoInicial <> 0 Then
+                Dim resumen As ResumenPedido = New ResumenPedido With {
+                    .empresa = Me.DataContext.empresaInicial,
+                    .numero = Me.DataContext.pedidoInicial
+                    }
+                view.DataContext.resumenSeleccionado = resumen
+            End If
             region.Activate(view)
             cargado = True
         End If

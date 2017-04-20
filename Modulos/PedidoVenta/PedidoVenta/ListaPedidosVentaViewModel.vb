@@ -2,6 +2,7 @@
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
+Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
@@ -10,15 +11,16 @@ Public Class ListaPedidosVentaViewModel
 
 
     Public Property configuracion As IConfiguracion
+    Private ReadOnly container As IUnityContainer
     Private ReadOnly servicio As IPedidoVentaService
 
     Private vendedor As String
     Private verTodosLosVendedores As Boolean = False
 
-
-    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService)
+    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer)
         Me.configuracion = configuracion
         Me.servicio = servicio
+        Me.container = container
 
         cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
     End Sub
@@ -85,14 +87,31 @@ Public Class ListaPedidosVentaViewModel
         End Get
         Set(value As String)
             SetProperty(_filtroPedidos, value)
+
             If filtroPedidos = "" Then
                 listaPedidos = listaPedidosOriginal
             Else
-                listaPedidos = New ObservableCollection(Of ResumenPedido)(listaPedidos.Where(Function(p) (Not IsNothing(p.direccion) AndAlso p.direccion.ToLower.Contains(filtroPedidos.ToLower)) OrElse
+                If Not IsNothing(listaPedidos) Then
+                    listaPedidos = New ObservableCollection(Of ResumenPedido)(listaPedidos.Where(Function(p) (Not IsNothing(p.direccion) AndAlso p.direccion.ToLower.Contains(filtroPedidos.ToLower)) OrElse
                                                                                                  (Not IsNothing(p.nombre) AndAlso p.nombre.ToLower.Contains(filtroPedidos.ToLower)) OrElse
                                                                                                  (Not IsNothing(p.cliente) AndAlso p.cliente.Trim.ToLower.Equals(filtroPedidos.ToLower)) OrElse
                                                                                                  (p.numero = Me.convertirCadenaInteger(filtroPedidos))
                                                                                                  ))
+
+                End If
+                If Not IsNothing(listaPedidos) AndAlso listaPedidos.Count = 1 Then
+                    resumenSeleccionado = listaPedidos.FirstOrDefault
+                End If
+
+                If (Not IsNothing(listaPedidos) AndAlso listaPedidos.Count = 0) OrElse estaCargandoListaPedidos Then
+                    Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
+                        .empresa = empresaSeleccionada,
+                        .numero = filtroPedidos
+                    }
+                    resumenSeleccionado = nuevoResumen
+                End If
+
+
             End If
 
             'p.direccion.Contains(filtroPedidos) OrElse
@@ -133,6 +152,7 @@ Public Class ListaPedidosVentaViewModel
             Dim parameters As NavigationParameters = New NavigationParameters()
             parameters.Add("numeroPedidoParameter", resumenSeleccionado)
             scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
+            empresaSeleccionada = resumenSeleccionado.empresa
         End Set
     End Property
 
@@ -164,7 +184,14 @@ Public Class ListaPedidosVentaViewModel
     Private Async Sub OnCargarListaPedidos(arg As Object)
         Try
             estaCargandoListaPedidos = True
-            vendedor = Await configuracion.leerParametro("1", "Vendedor")
+            Dim empresaDefecto As String = Await configuracion.leerParametro("1", "EmpresaPorDefecto")
+            Dim pedidoDefecto As String = Await configuracion.leerParametro(empresaDefecto, "UltNumPedidoVta")
+            Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
+                .empresa = empresaDefecto,
+                .numero = pedidoDefecto
+            }
+            resumenSeleccionado = nuevoResumen
+            vendedor = Await configuracion.leerParametro(empresaDefecto, "Vendedor")
             listaPedidos = Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores)
             listaPedidosOriginal = listaPedidos
         Catch ex As Exception

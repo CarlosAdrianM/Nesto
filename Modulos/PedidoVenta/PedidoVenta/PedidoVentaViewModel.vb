@@ -32,6 +32,9 @@ Public Class PedidoVentaViewModel
         Titulo = "Lista de Pedidos"
     End Sub
 
+    Public Property empresaInicial As String
+    Public Property pedidoInicial As Integer
+
     Private _scopedRegionManager As IRegionManager
     Public Property scopedRegionManager As IRegionManager
         Get
@@ -41,9 +44,6 @@ Public Class PedidoVentaViewModel
             SetProperty(_scopedRegionManager, value)
         End Set
     End Property
-
-
-
 
 #Region "Comandos"
     Private _cmdAbrirModulo As DelegateCommand(Of Object)
@@ -59,7 +59,6 @@ Public Class PedidoVentaViewModel
         Return True
     End Function
     Private Sub OnAbrirModulo(arg As Object)
-        'regionManager.RequestNavigate("MainRegion", "PedidoVentaView")
         Dim view = Me.container.Resolve(Of PedidoVentaView)
         If Not IsNothing(view) Then
             Dim region = regionManager.Regions("MainRegion")
@@ -71,16 +70,18 @@ Public Class PedidoVentaViewModel
 
 #End Region
 
-    'Public Sub cargarListaPedidos(view As PedidoVentaView)
-    '    'Dim view As PedidoVentaView = Me.container.Resolve(Of PedidoVentaView)
-    '    If Not IsNothing(view) Then
-    '        Dim region As IRegion
-    '        region = regionManager.Regions("ListaPedidosRegion")
-    '        regionManager = region.Add(view, Nothing, True)
-    '        'view.DataContext.scopedRegionManager = scopedRegionManager
-    '        'regionManager.RequestNavigate("ListaPedidosRegion", "ListaPedidosVenta")
-    '        region.Activate(view)
-    '    End If
-    'End Sub
+    Public Shared Sub cargarPedido(empresa As String, pedido As Integer, container As IUnityContainer)
+        Dim view = container.Resolve(Of PedidoVentaView)
+        Dim regionManager = container.Resolve(Of IRegionManager)
+        If Not IsNothing(view) Then
+            Dim region = regionManager.Regions("MainRegion")
+            regionManager = region.Add(view, Nothing, True)
+            view.scopedRegionManager = regionManager
+            view.DataContext.empresaInicial = empresa
+            view.DataContext.pedidoInicial = pedido
+            region.Activate(view)
+        End If
+    End Sub
+
 
 End Class

@@ -188,6 +188,9 @@ Public Class DetallePedidoViewModel
         End Get
         Set(ByVal value As PedidoVentaDTO)
             SetProperty(_pedido, value)
+            If IsNothing(pedido) Then
+                Return
+            End If
             estaActualizarFechaActivo = False
             Dim linea As LineaPedidoVentaDTO = pedido.LineasPedido.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
             If Not IsNothing(linea) AndAlso Not IsNothing(linea.fechaEntrega) Then
@@ -327,7 +330,9 @@ Public Class DetallePedidoViewModel
         If Not IsNothing(arg) AndAlso Not IsNothing(arg.numero) Then
             Me.Titulo = "Pedido Venta (" + arg.numero.ToString + ")"
             pedido = Await servicio.cargarPedido(arg.empresa, arg.numero)
-            ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
+            If Not IsNothing(pedido) Then
+                ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
+            End If
         Else
             Me.Titulo = "Lista de Pedidos"
         End If

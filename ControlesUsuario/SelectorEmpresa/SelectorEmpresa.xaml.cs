@@ -182,6 +182,10 @@ namespace ControlesUsuario
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
                         listaEmpresas = JsonConvert.DeserializeObject<ObservableCollection<Empresa>>(resultado);
+                        foreach (Empresa empresa in listaEmpresas)
+                        {
+                            empresa.empresa = empresa.empresa.Trim();
+                        }
                         if (Seleccionada != null)
                         {
                             empresaSeleccionada = listaEmpresas.Where(l => l.empresa == Seleccionada.Trim()).SingleOrDefault();

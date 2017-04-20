@@ -34,4 +34,7 @@ Public Class ListaPedidosVenta
         Me.DataContext.scopedRegionManager = newRegionManager
     End Sub
 
+    Private Sub ListaPedidosVenta_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+        txtFiltro.Focus()
+    End Sub
 End Class
