@@ -2,10 +2,15 @@
 Imports Nesto.Models
 'Imports Nesto.Models.Nesto.Models.EF
 Imports Nesto.ViewModels.ComisionesViewModel
+Imports Microsoft.Practices.Unity
 
 <TestClass()> Public Class CuandoCambiamosLasFechas
+    Public Sub CuandoCambiamosLasFechas(container As IUnityContainer)
+        Me.container = container
+    End Sub
 
-    Dim comVM As New ComisionesViewModel
+    Dim container As IUnityContainer
+    Dim comVM As ComisionesViewModel = container.Resolve(Of ComisionesViewModel)
 
     <TestMethod()> Public Sub ElMesDeAgostoDebeEmpezarElDia1()
         'arrange
@@ -49,7 +54,12 @@ End Class
 <TestClass()> Public Class CuandoCambiamosElVendedor
 
     Dim DbContext As New NestoEntities
-    Dim comVM As New ComisionesViewModel
+    Public Sub CuandoCambiamosElVendedor(container As IUnityContainer)
+        Me.container = container
+    End Sub
+
+    Dim container As IUnityContainer
+    Dim comVM As ComisionesViewModel = container.Resolve(Of ComisionesViewModel)
 
 
     <TestMethod()> Public Sub DebeHaberUnMesSeleccionado()

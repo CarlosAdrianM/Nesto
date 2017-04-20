@@ -127,6 +127,10 @@
     <Compile Include="My Project\AssemblyInfo.vb" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Contratos\Contratos.vbproj">
+      <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
+      <Name>Contratos</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Nesto.Models\Models.vbproj">
       <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>
       <Name>Models</Name>

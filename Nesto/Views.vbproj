@@ -277,6 +277,9 @@
     <Compile Include="Ventanas\ClienteComercial.xaml.vb">
       <DependentUpon>ClienteComercial.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Ventanas\Comisiones.xaml.vb">
+      <DependentUpon>Comisiones.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Ventanas\CRInforme.xaml.vb">
       <DependentUpon>CRInforme.xaml</DependentUpon>
     </Compile>

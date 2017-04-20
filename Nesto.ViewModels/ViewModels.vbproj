@@ -184,6 +184,10 @@
       <Project>{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}</Project>
       <Name>Contratos</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj">
+      <Project>{5678F232-EBFE-4834-B77F-51B2C0824380}</Project>
+      <Name>PedidoVenta</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Nesto.Models\Models.vbproj">
       <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>
       <Name>Models</Name>

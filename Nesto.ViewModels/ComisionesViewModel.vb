@@ -4,20 +4,25 @@ Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Input
 Imports System.Globalization
+Imports Microsoft.Practices.Prism.Commands
+Imports Nesto.Modulos.PedidoVenta
+Imports Microsoft.Practices.Unity
 'Imports Nesto.Models.Nesto.Models.EF
 
 Public Class ComisionesViewModel
-    Inherits ViewModelBase
+    Inherits Nesto.Contratos.ViewModelBase
 
     Private Shared DbContext As NestoEntities
+    Private container As IUnityContainer
 
     Dim mainModel As New Nesto.Models.MainModel
     Private vendedor As String = mainModel.leerParametro("1", "Vendedor")
 
-    Public Sub New()
+    Public Sub New(container As IUnityContainer)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
+        Me.container = container
         DbContext = New NestoEntities
         If vendedor = "" Then
             listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4))
@@ -35,7 +40,7 @@ Public Class ComisionesViewModel
 
         Titulo = "Comisiones"
 
-
+        cmdAbrirPedido = New DelegateCommand(Of Object)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
 
 
     End Sub
@@ -174,21 +179,22 @@ Public Class ComisionesViewModel
 
 
 #Region "Comandos"
-    'Private _cmdCargarComisiones As ICommand
-    'Public ReadOnly Property cmdCargarComisiones() As ICommand
-    '    Get
-    '        If _cmdCargarComisiones Is Nothing Then
-    '            _cmdCargarComisiones = New RelayCommand(AddressOf CargarComisiones, AddressOf CanCargarComisiones)
-    '        End If
-    '        Return _cmdCargarComisiones
-    '    End Get
-    'End Property
-    'Private Function CanCargarComisiones(ByVal param As Object) As Boolean
-    '    Return True
-    'End Function
-    'Private Sub CargarComisiones(ByVal param As Object)
-    '    comisionesActual = DbContext.Comisiones("1", "01/01/13", "31/01/13", vendedorActual.Número, 0).FirstOrDefault
-    'End Sub
+    Private _cmdAbrirPedido As DelegateCommand(Of Object)
+    Public Property cmdAbrirPedido As DelegateCommand(Of Object)
+        Get
+            Return _cmdAbrirPedido
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdAbrirPedido, value)
+        End Set
+    End Property
+    Private Function CanAbrirPedido(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnAbrirPedido(arg As Object)
+        Dim linea As vstLinPedidoVtaConVendedor = arg
+        PedidoVentaViewModel.cargarPedido(linea.Empresa, linea.Número, container)
+    End Sub
 
 #End Region
 

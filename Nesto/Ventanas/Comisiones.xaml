@@ -3,11 +3,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+    xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
-    <UserControl.DataContext>
-        <vm:ComisionesViewModel/>
-    </UserControl.DataContext>
 
     <Grid>
         <Grid.Resources>
@@ -221,7 +219,12 @@
 
             <TabControl DockPanel.Dock="Bottom" >
                 <TabItem Header="Pendientes de Entregar">
-                    <xcdg:DataGridControl ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                    <xcdg:DataGridControl Name="dgrPendientesEntregar" ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="MouseDoubleClick">
+                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdAbrirPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding ElementName=dgrPendientesEntregar, Path=SelectedItem}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
                         <xcdg:DataGridControl.View>
                             <xcdg:TableView UseDefaultHeadersFooters="False">
                                 <xcdg:TableView.FixedHeaders>
@@ -246,7 +249,12 @@
                     </xcdg:DataGridControl>
                 </TabItem>
                 <TabItem Header="Entregados">
-                    <xcdg:DataGridControl ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                    <xcdg:DataGridControl Name="dgrEntregados" ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="MouseDoubleClick">
+                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdAbrirPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding ElementName=dgrEntregados, Path=SelectedItem}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
                         <xcdg:DataGridControl.DefaultGroupConfiguration>
                             <xcdg:GroupConfiguration InitiallyExpanded="False"/>
                         </xcdg:DataGridControl.DefaultGroupConfiguration>

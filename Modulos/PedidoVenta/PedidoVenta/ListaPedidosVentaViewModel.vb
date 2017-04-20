@@ -184,14 +184,7 @@ Public Class ListaPedidosVentaViewModel
     Private Async Sub OnCargarListaPedidos(arg As Object)
         Try
             estaCargandoListaPedidos = True
-            Dim empresaDefecto As String = Await configuracion.leerParametro("1", "EmpresaPorDefecto")
-            Dim pedidoDefecto As String = Await configuracion.leerParametro(empresaDefecto, "UltNumPedidoVta")
-            Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
-                .empresa = empresaDefecto,
-                .numero = pedidoDefecto
-            }
-            resumenSeleccionado = nuevoResumen
-            vendedor = Await configuracion.leerParametro(empresaDefecto, "Vendedor")
+            vendedor = Await configuracion.leerParametro("1", "Vendedor")
             listaPedidos = Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores)
             listaPedidosOriginal = listaPedidos
         Catch ex As Exception
@@ -212,5 +205,15 @@ Public Class ListaPedidosVentaViewModel
         Return IIf(Integer.TryParse(texto, valor), valor, Nothing)
     End Function
 
+
+    Public Async Function cargarPedidoPorDefecto() As Task(Of ResumenPedido)
+        Dim empresaDefecto As String = Await configuracion.leerParametro("1", "EmpresaPorDefecto")
+        Dim pedidoDefecto As String = Await configuracion.leerParametro(empresaDefecto, "UltNumPedidoVta")
+        Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
+            .empresa = empresaDefecto,
+            .numero = pedidoDefecto
+        }
+        Return nuevoResumen
+    End Function
 #End Region
 End Class
