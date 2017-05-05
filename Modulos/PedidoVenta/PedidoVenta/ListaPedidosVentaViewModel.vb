@@ -152,7 +152,9 @@ Public Class ListaPedidosVentaViewModel
             Dim parameters As NavigationParameters = New NavigationParameters()
             parameters.Add("numeroPedidoParameter", resumenSeleccionado)
             scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
-            empresaSeleccionada = resumenSeleccionado.empresa
+            If Not IsNothing(resumenSeleccionado) Then
+                empresaSeleccionada = resumenSeleccionado.empresa
+            End If
         End Set
     End Property
 

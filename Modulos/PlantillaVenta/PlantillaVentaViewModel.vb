@@ -12,6 +12,7 @@ Imports Nesto.Contratos
 Imports System.Globalization
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
+Imports Nesto.Modulos.PedidoVenta
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase
@@ -1287,16 +1288,20 @@ Public Class PlantillaVentaViewModel
                     'listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
                     Dim pathNumeroPedido = response.Headers.Location.LocalPath
                     Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Plantilla",
-                        .Content = "Pedido " + numPedido + " creado correctamente"
-                    })
+                    'NotificationRequest.Raise(New Notification() With {
+                    '    .Title = "Plantilla",
+                    '    .Content = "Pedido " + numPedido + " creado correctamente"
+                    '})
+
                     ' Cerramos la ventana
                     Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
                     If Not IsNothing(view) Then
                         Me.regionManager.Regions("MainRegion").Deactivate(view)
                         Me.regionManager.Regions("MainRegion").Remove(view)
                     End If
+
+                    ' Abrimos el pedido
+                    PedidoVentaViewModel.cargarPedido(clienteSeleccionado.empresa, numPedido, container)
                 Else
                     Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)

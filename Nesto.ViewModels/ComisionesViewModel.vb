@@ -192,8 +192,8 @@ Public Class ComisionesViewModel
         Return True
     End Function
     Private Sub OnAbrirPedido(arg As Object)
-        Dim linea As vstLinPedidoVtaConVendedor = arg
-        PedidoVentaViewModel.cargarPedido(linea.Empresa, linea.Número, container)
+        'Dim linea As vstLinPedidoVtaConVendedor = arg
+        PedidoVentaViewModel.cargarPedido(arg.Empresa, arg.Número, container)
     End Sub
 
 #End Region
