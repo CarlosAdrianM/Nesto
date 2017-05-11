@@ -192,7 +192,9 @@ Public Class ComisionesViewModel
         Return True
     End Function
     Private Sub OnAbrirPedido(arg As Object)
-        'Dim linea As vstLinPedidoVtaConVendedor = arg
+        If IsNothing(arg) Then
+            Return
+        End If
         PedidoVentaViewModel.cargarPedido(arg.Empresa, arg.Número, container)
     End Sub
 
