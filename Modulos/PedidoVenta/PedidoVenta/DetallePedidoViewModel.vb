@@ -1,4 +1,5 @@
-﻿Imports Microsoft.Practices.Prism.Commands
+﻿Imports System.Globalization
+Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
 Imports Nesto.Contratos
@@ -373,12 +374,15 @@ Public Class DetallePedidoViewModel
             ' Windows debería hacer que el teclado numérico escribiese coma en vez de punto
             ' pero como no lo hace, lo cambiamos nosotros
             textBox.Text = Replace(textBox.Text, ".", ",")
+            Dim style As NumberStyles = NumberStyles.Number Or NumberStyles.AllowCurrencySymbol
+            Dim culture As CultureInfo = CultureInfo.CurrentCulture
+
             If arg.Column.Header = "Precio" Then
-                If Not Double.TryParse(textBox.Text, lineaActual.precio) Then
+                If Not Double.TryParse(textBox.Text, style, culture, lineaActual.precio) Then
                     Return
                 End If
             Else
-                If Not Double.TryParse(textBox.Text, lineaActual.descuento) Then
+                If Not Double.TryParse(textBox.Text, style, culture, lineaActual.descuento) Then
                     Return
                 Else
                     lineaActual.descuento = lineaActual.descuento / 100
