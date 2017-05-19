@@ -220,11 +220,6 @@
             <TabControl DockPanel.Dock="Bottom" >
                 <TabItem Header="Pendientes de Entregar">
                     <xcdg:DataGridControl Name="dgrPendientesEntregar" ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
-                        <i:Interaction.Triggers>
-                            <i:EventTrigger EventName="MouseDoubleClick">
-                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdAbrirPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding ElementName=dgrPendientesEntregar, Path=SelectedItem}" />
-                            </i:EventTrigger>
-                        </i:Interaction.Triggers>
                         <xcdg:DataGridControl.View>
                             <xcdg:TableView UseDefaultHeadersFooters="False">
                                 <xcdg:TableView.FixedHeaders>
@@ -250,11 +245,6 @@
                 </TabItem>
                 <TabItem Header="Entregados">
                     <xcdg:DataGridControl Name="dgrEntregados" ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
-                        <i:Interaction.Triggers>
-                            <i:EventTrigger EventName="MouseDoubleClick">
-                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdAbrirPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding ElementName=dgrEntregados, Path=SelectedItem}" />
-                            </i:EventTrigger>
-                        </i:Interaction.Triggers>
                         <xcdg:DataGridControl.DefaultGroupConfiguration>
                             <xcdg:GroupConfiguration InitiallyExpanded="False"/>
                         </xcdg:DataGridControl.DefaultGroupConfiguration>
