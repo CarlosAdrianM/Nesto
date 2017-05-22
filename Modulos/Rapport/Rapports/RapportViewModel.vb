@@ -9,9 +9,10 @@ Public Class RapportViewModel
     Inherits ViewModelBase
     Implements INavigationAware
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService)
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As RegionManager)
         Me.configuracion = configuracion
         Me.servicio = servicio
+        Me.regionManager = regionManager
 
         listaTiposRapports = New List(Of idDescripcion)
         listaTiposRapports.Add(New idDescripcion With {
@@ -80,6 +81,7 @@ Public Class RapportViewModel
 
     Public Property configuracion As IConfiguracion
     Private Const empresaPorDefecto As String = "1"
+    Private ReadOnly regionManager As IRegionManager
 
 
     Private _listaTiposCentros As List(Of idDescripcionTipoCentro)

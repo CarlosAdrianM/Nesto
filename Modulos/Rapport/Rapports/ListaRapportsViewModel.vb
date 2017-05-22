@@ -206,6 +206,8 @@ Public Class ListaRapportsViewModel
         }
 
         rapportSeleccionado = rapportNuevo
+
+        listaRapports.Add(rapportNuevo)
     End Sub
 
 #End Region
