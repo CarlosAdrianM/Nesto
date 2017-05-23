@@ -13,7 +13,7 @@
 
     <i:Interaction.Triggers>
         <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
+            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="False"/>
         </prism:InteractionRequestTrigger>
         <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
             <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>

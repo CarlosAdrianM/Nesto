@@ -206,7 +206,9 @@ Public Class ListaRapportsViewModel
         }
 
         rapportSeleccionado = rapportNuevo
-
+        If IsNothing(listaRapports) Then
+            listaRapports = New ObservableCollection(Of SeguimientoClienteDTO)
+        End If
         listaRapports.Add(rapportNuevo)
     End Sub
 
