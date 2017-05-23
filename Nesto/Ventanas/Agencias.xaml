@@ -345,6 +345,7 @@
                     <DockPanel Grid.Row="1">
                         <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaEnviosTramitados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
+                                <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="2*"/>
                                 <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="2*"/>
                                 <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="2*"/>
                                 <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" />
@@ -360,10 +361,10 @@
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="Bultos" Binding="{Binding Bultos}" />
                                 <DataGridTextColumn Header="Retorno" Binding="{Binding Retorno}" />
-                                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="4*"/>
-                                <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="4*"/>
+                                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="5*"/>
+                                <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="5*"/>
                                 <DataGridTextColumn Header="Cód. Postal" Binding="{Binding CodPostal}" Width="2*"/>
-                                <DataGridTextColumn Header="Fecha Pago" Binding="{Binding FechaPagoReembolso, StringFormat=d}"/>
+                                <DataGridTextColumn Header="Fecha Pago" Binding="{Binding FechaPagoReembolso, StringFormat=d}" Width="2*"/>
                             </DataGrid.Columns>
                         </DataGrid>
 

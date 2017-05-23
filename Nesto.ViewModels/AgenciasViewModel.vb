@@ -106,7 +106,7 @@ Public Class AgenciasViewModel
             envioActual = listaEnvios.LastOrDefault
             numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
 
-            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
             'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
             listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
         End Using
@@ -207,7 +207,7 @@ Public Class AgenciasViewModel
                     Using ContextoBreve As New NestoEntities
                         listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
                         listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
-                        listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+                        listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                     End Using
                     OnPropertyChanged("sumaContabilidad")
                     OnPropertyChanged("descuadreContabilidad")
@@ -259,7 +259,7 @@ Public Class AgenciasViewModel
             If Not IsNothing(agenciaSeleccionada) Then
                 listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                 Using ContextoBreve As New NestoEntities
-                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                     listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
                     listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
                 End Using
@@ -571,7 +571,7 @@ Public Class AgenciasViewModel
                 agenciaEnvio = DbContext.AgenciasTransporte.Where(Function(a) a.Numero = envioActual.Agencia).SingleOrDefault
             End If
 
-            If Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaEnvio) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Numero <> agenciaEnvio.Numero Then
+            If IsNothing(clienteFiltro) AndAlso Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaEnvio) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Numero <> agenciaEnvio.Numero Then
                 agenciaSeleccionada = agenciaEnvio
             End If
 
@@ -621,7 +621,7 @@ Public Class AgenciasViewModel
             SetProperty(_fechaFiltro, value)
             'actualizamos listaPedidos
             Using ContextoBreve As New NestoEntities
-                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
             End Using
             envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
@@ -635,7 +635,7 @@ Public Class AgenciasViewModel
         Set(value As String)
             SetProperty(_clienteFiltro, value)
             Using ContextoBreve As New NestoEntities
-                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Cliente = clienteFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(ContextoBreve.EnviosAgencia.Include("AgenciasTransporte").Where(Function(e) e.Empresa = empresaSeleccionada.Número AndAlso e.Cliente = clienteFiltro AndAlso e.Estado = ESTADO_TRAMITADO_ENVIO).OrderByDescending(Function(e) e.Fecha))
             End Using
             envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
@@ -649,7 +649,7 @@ Public Class AgenciasViewModel
         Set(value As String)
             SetProperty(_nombreFiltro, value)
             Using ContextoBreve As New NestoEntities
-                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Clientes.Nombre.Contains(nombreFiltro) And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Clientes.Nombre.Contains(nombreFiltro) And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
             End Using
             envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
@@ -2196,7 +2196,7 @@ Public Class AgenciasViewModel
                     'DbContext.SaveChanges()
                     transaction.Dispose()
                     success = False
-                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                     envioActual = listaEnviosTramitados.FirstOrDefault
                 End Try
 
