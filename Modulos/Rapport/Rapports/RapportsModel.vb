@@ -30,7 +30,19 @@ Public Class RapportsModel
                 End If
             End Set
         End Property
+
+        Private _Cliente As String
         Public Property Cliente As String
+            Get
+                Return _Cliente
+            End Get
+            Set(value As String)
+                If _Cliente <> value Then
+                    _Cliente = value
+                    OnPropertyChanged("Cliente")
+                End If
+            End Set
+        End Property
         Public Property Contacto As String
 
         Private _Fecha As DateTime
@@ -72,7 +84,18 @@ Public Class RapportsModel
             End Set
         End Property
 
+        Private _Pedido As Boolean
         Public Property Pedido As Boolean
+            Get
+                Return _Pedido
+            End Get
+            Set(value As Boolean)
+                If _Pedido <> value Then
+                    _Pedido = value
+                    OnPropertyChanged("Pedido")
+                End If
+            End Set
+        End Property
         Public Property ClienteNuevo As Boolean
         Public Property Aviso As Boolean
         Public Property Aparatos As Boolean
