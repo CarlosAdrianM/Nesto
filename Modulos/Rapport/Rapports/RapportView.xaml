@@ -7,6 +7,7 @@
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
              xmlns:prism="http://www.codeplex.com/prism"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
 
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300" Margin="3">
@@ -55,14 +56,36 @@
             <TextBlock Text="Fecha: "></TextBlock>
             <TextBlock Text="{Binding rapport.Fecha}"></TextBlock>
         </StackPanel>
-        <StackPanel Grid.Row="4" HorizontalAlignment="Stretch">
-            <TextBlock Text="Tipo de Visita:"></TextBlock>
-            <ComboBox Name="cmbTiposRapport" ItemsSource="{Binding listaTiposRapports}" SelectedValue="{Binding rapport.Tipo}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
-        </StackPanel>
-        <StackPanel Grid.Row="5" HorizontalAlignment="Stretch">
-            <TextBlock Text="Estado:"></TextBlock>
-            <ComboBox Name="cmbEstadosRapport" SelectedItem="{Binding rapport.Estado}"></ComboBox>
-        </StackPanel>
+        <Grid Grid.Row="4" Grid.RowSpan="2">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch">
+                <TextBlock Text="Tipo de Visita:"></TextBlock>
+                <ComboBox Name="cmbTiposRapport" ItemsSource="{Binding listaTiposRapports}" SelectedValue="{Binding rapport.Tipo}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.Column="0" HorizontalAlignment="Stretch">
+                <TextBlock Text="Estado:"></TextBlock>
+                <ComboBox Name="cmbEstadosRapport" SelectedItem="{Binding rapport.Estado}"></ComboBox>
+            </StackPanel>
+            <StackPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center" Margin="3">
+                <xctk:DateTimePicker Value="{Binding fechaAviso}"></xctk:DateTimePicker>
+            </StackPanel>
+            <StackPanel Grid.Row="1" Grid.Column="1" Margin="3">
+                <Button HorizontalContentAlignment="Left" VerticalAlignment="Center" Command="{Binding cmdCrearCita}">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="Images/outlook.png" Width="25"/>
+                        <TextBlock Text="Crear Aviso" TextWrapping="Wrap" Margin="3" VerticalAlignment="Center" TextAlignment="Left"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Grid>
+        
         <CheckBox Grid.Row="6" IsChecked="{Binding rapport.Pedido}" Content="Pedido"></CheckBox>
         <CheckBox Grid.Row="7" IsChecked="{Binding rapport.ClienteNuevo}" Content="Cliente Nuevo"></CheckBox>
         <CheckBox Grid.Row="8" IsChecked="{Binding rapport.Aviso}" Content="Aviso"></CheckBox>

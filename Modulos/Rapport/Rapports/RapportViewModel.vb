@@ -1,4 +1,5 @@
-﻿Imports Microsoft.Practices.Prism.Commands
+﻿Imports Microsoft.Office.Interop
+Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
 Imports Nesto.Contratos
@@ -38,6 +39,7 @@ Public Class RapportViewModel
                               .id = TiposCentro.EsteticaYPeluqueria,
                               .descripcion = "Estética y Peluquería"})
 
+        cmdCrearCita = New DelegateCommand(Of Object)(AddressOf OnCrearCita, AddressOf CanCrearCita)
         cmdGuardarCambios = New DelegateCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
 
         NotificationRequest = New InteractionRequest(Of INotification)
@@ -84,6 +86,16 @@ Public Class RapportViewModel
     Private ReadOnly regionManager As IRegionManager
 
 
+    Private _fechaAviso As DateTime = DateTime.Now.AddDays(1)
+    Public Property fechaAviso As DateTime
+        Get
+            Return _fechaAviso
+        End Get
+        Set(value As DateTime)
+            SetProperty(_fechaAviso, value)
+        End Set
+    End Property
+
     Private _listaTiposCentros As List(Of idDescripcionTipoCentro)
     Public Property listaTiposCentros As List(Of idDescripcionTipoCentro)
         Get
@@ -112,10 +124,47 @@ Public Class RapportViewModel
         End Get
         Set(value As SeguimientoClienteDTO)
             SetProperty(_rapport, value)
+            cmdCrearCita.RaiseCanExecuteChanged
         End Set
     End Property
 
     Private ReadOnly servicio As IRapportService
+
+
+    Private _cmdCrearCita As DelegateCommand(Of Object)
+    Public Property cmdCrearCita As DelegateCommand(Of Object)
+        Get
+            Return _cmdCrearCita
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdCrearCita, value)
+        End Set
+    End Property
+    Private Function CanCrearCita(arg As Object) As Boolean
+        Return Not IsNothing(rapport)
+    End Function
+    Private Sub OnCrearCita(arg As Object)
+        Dim objOL As Outlook.Application
+        objOL = New Outlook.Application
+        Dim nuevaCita As Outlook.AppointmentItem
+
+        If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
+            NotificationRequest.Raise(New Notification() With {
+                .Title = "Error",
+                .Content = "No se puede crear el aviso si no se especifica un cliente y un contacto"
+            })
+        End If
+
+        nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
+        nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
+        nuevaCita.Body = rapport.Comentarios
+        nuevaCita.Start = fechaAviso
+        nuevaCita.End = fechaAviso.AddMinutes(15)
+        nuevaCita.ReminderSet = True
+        nuevaCita.ReminderMinutesBeforeStart = 0
+        nuevaCita.Save()
+
+    End Sub
 
 
     Private _cmdGuardarCambios As DelegateCommand(Of Object)
