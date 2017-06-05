@@ -32,6 +32,7 @@ Public Class DetallePedidoViewModel
         cmdCargarPedido = New DelegateCommand(Of Object)(AddressOf OnCargarPedido, AddressOf CanCargarPedido)
         cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada, AddressOf CanCeldaModificada)
         cmdModificarPedido = New DelegateCommand(Of Object)(AddressOf OnModificarPedido, AddressOf CanModificarPedido)
+        cmdPonerDescuentoPedido = New DelegateCommand(Of Object)(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         cmdSacarPicking = New DelegateCommand(Of Object)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
 
         NotificationRequest = New InteractionRequest(Of INotification)
@@ -94,6 +95,31 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As DataGridCellInfo)
             SetProperty(_celdaActual, value)
+        End Set
+    End Property
+
+    Private _descuentoPedido As Decimal
+    Public Property descuentoPedido As Decimal
+        Get
+            Return _descuentoPedido
+        End Get
+        Set(value As Decimal)
+            If _descuentoPedido <> value Then
+                Me.ConfirmationRequest.Raise(
+                    New Confirmation() With {
+                        .Content = "¿Desea aplicar el descuento a todas las líneas?", .Title = "Descuento Pedido"
+            },
+            Sub(c)
+                InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+            End Sub
+        )
+
+                If InteractionResultMessage = "KO" Then
+                    Return
+                End If
+                SetProperty(_descuentoPedido, value)
+                cmdPonerDescuentoPedido.Execute(Nothing)
+            End If
         End Set
     End Property
 
@@ -226,8 +252,6 @@ Public Class DetallePedidoViewModel
     End Property
 
 #End Region
-
-
 
 #Region "Comandos"
     Private _cmdAbrirPicking As DelegateCommand(Of Object)
@@ -436,6 +460,25 @@ Public Class DetallePedidoViewModel
                     })
 
         End Try
+    End Sub
+
+    Private _cmdPonerDescuentoPedido As DelegateCommand(Of Object)
+    Public Property cmdPonerDescuentoPedido As DelegateCommand(Of Object)
+        Get
+            Return _cmdPonerDescuentoPedido
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdPonerDescuentoPedido, value)
+        End Set
+    End Property
+    Private Function CanPonerDescuentoPedido(arg As Object) As Boolean
+        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.LineasPedido)
+    End Function
+    Private Sub OnPonerDescuentoPedido(arg As Object)
+        For Each linea In pedido.LineasPedido.Where(Function(l) l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
+            linea.descuento = descuentoPedido
+        Next
+        OnPropertyChanged("pedido")
     End Sub
 
     Private _cmdSacarPicking As DelegateCommand(Of Object)

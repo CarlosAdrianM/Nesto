@@ -62,5 +62,32 @@ Public Class DetallePedidoView
         End Function
     End Class
 
+    Private Sub txtDescuentoPedido_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtDescuentoPedido.GotFocus
+        txtDescuentoPedido.SelectAll()
+    End Sub
 
+    Private Sub txtDescuentoPedido_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles txtDescuentoPedido.MouseDoubleClick
+        txtDescuentoPedido.SelectAll()
+    End Sub
+
+    Private Sub txtDescuentoPedido_PreviewMouseLeftButtonDown(sender As Object, e As MouseButtonEventArgs) Handles txtDescuentoPedido.PreviewMouseLeftButtonDown
+        Dim tb As TextBox = sender
+        If Not IsNothing(tb) Then
+            If Not tb.IsKeyboardFocusWithin Then
+                e.Handled = True
+                tb.Focus()
+            End If
+        End If
+    End Sub
+
+    Private Sub txtDescuentoPedido_KeyUp(sender As Object, e As KeyEventArgs) Handles txtDescuentoPedido.KeyUp
+        If e.Key = Key.Enter Then
+            Dim prop As DependencyProperty = TextBox.TextProperty
+            Dim binding As BindingExpression = BindingOperations.GetBindingExpression(txtDescuentoPedido, prop)
+            'DataContext.cmdPonerDescuentoPedido.Execute(Nothing)
+            If Not IsNothing(binding) Then
+                binding.UpdateSource()
+            End If
+        End If
+    End Sub
 End Class

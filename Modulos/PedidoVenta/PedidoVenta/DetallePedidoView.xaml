@@ -140,6 +140,7 @@
                             <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
                         </DataGrid.Columns>
                     </DataGrid>
+                    
                     <!--
                         <xctk:PropertyGrid Grid.Column="1" x:Name="_propertyGrid" AutoGenerateProperties="False" SelectedObject="{Binding lineaActual}">
                             <xctk:PropertyGrid.PropertyDefinitions>
@@ -176,7 +177,9 @@
             <Button Command="{Binding cmdModificarPedido}">Modificar Pedido</Button>
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="3*"/>
                     <ColumnDefinition/>
                     <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
@@ -198,6 +201,8 @@
                 <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding pedido.baseImponiblePicking, StringFormat=c}"></TextBlock>
                 <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding pedido.totalPicking, StringFormat=c}"></TextBlock>
 
+                <TextBlock Grid.Column="3" Grid.Row="0" Text="Descuento Pedido:"></TextBlock>
+                <TextBox Grid.Column="4" Grid.Row="0" Name="txtDescuentoPedido" Text="{Binding descuentoPedido, StringFormat=p, Converter={StaticResource porcentajeConverter}}"></TextBox>
             </Grid>
 
 

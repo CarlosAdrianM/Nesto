@@ -1,4 +1,5 @@
-﻿Imports Microsoft.Office.Interop
+﻿Imports ControlesUsuario.Models
+Imports Microsoft.Office.Interop
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
@@ -85,6 +86,15 @@ Public Class RapportViewModel
     Private Const empresaPorDefecto As String = "1"
     Private ReadOnly regionManager As IRegionManager
 
+    Private _clienteRapport As ClienteDTO
+    Public Property clienteRapport As ClienteDTO
+        Get
+            Return _clienteRapport
+        End Get
+        Set(value As ClienteDTO)
+            SetProperty(_clienteRapport, value)
+        End Set
+    End Property
 
     Private _fechaAviso As DateTime = DateTime.Now.AddDays(1)
     Public Property fechaAviso As DateTime
@@ -105,7 +115,6 @@ Public Class RapportViewModel
             SetProperty(_listaTiposCentros, value)
         End Set
     End Property
-
 
     Private _listaTiposRapports As List(Of idDescripcion)
     Public Property listaTiposRapports As List(Of idDescripcion)
