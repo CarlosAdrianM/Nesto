@@ -205,6 +205,10 @@ Public Class ListaRapportsViewModel
             .Usuario = configuracion.usuario
         }
 
+        'no entiendo por qué es necesaria esta línea
+        'pero si la quitamos solo crea bien un rapport de cada dos
+        rapportSeleccionado = Nothing
+
         rapportSeleccionado = rapportNuevo
         If IsNothing(listaRapports) Then
             listaRapports = New ObservableCollection(Of SeguimientoClienteDTO)
