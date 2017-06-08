@@ -475,7 +475,7 @@ Public Class DetallePedidoViewModel
         Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.LineasPedido)
     End Function
     Private Sub OnPonerDescuentoPedido(arg As Object)
-        For Each linea In pedido.LineasPedido.Where(Function(l) l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
+        For Each linea In pedido.LineasPedido.Where(Function(l) l.aplicarDescuento AndAlso l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
             linea.descuento = descuentoPedido
         Next
         OnPropertyChanged("pedido")
