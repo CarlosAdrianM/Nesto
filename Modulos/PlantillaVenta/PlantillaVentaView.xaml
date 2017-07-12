@@ -187,6 +187,7 @@
                                                     <TextBlock Text="{Binding producto}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                                     <TextBlock Text="{Binding familia}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                                     <TextBlock Text="{Binding subGrupo}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                    <TextBlock Text="{Binding precio, StringFormat=c}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                                     <TextBlock Text="{Binding textoFechaUltimaVenta}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                                     <TextBlock Text="{Binding textoUnidadesVendidas}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                                 </StackPanel>
