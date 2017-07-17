@@ -2720,7 +2720,7 @@ Public Class AgenciaASM
             Case -131
                 Return "El código postal del destinatario debe tener al menos cuatro caracteres"
             Case Else
-                Return "El código de error " + numeroError + " no está controlado por Nesto"
+                Return "El código de error " + numeroError.ToString() + " no está controlado por Nesto"
         End Select
     End Function
     Public Function calcularCodigoBarras() As String Implements IAgencia.calcularCodigoBarras
