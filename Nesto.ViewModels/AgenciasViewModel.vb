@@ -23,6 +23,7 @@ Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Net.Http.Formatting
 Imports System.Threading.Tasks
+Imports Nesto.ViewModels
 'Imports CrystalDecisions.CrystalReports.Engine
 
 
@@ -216,9 +217,9 @@ Public Class AgenciasViewModel
                 End If
             Catch ex As Exception
                 'mensajeError = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre
-                NotificationRequest.Raise(New Notification() With { _
-                    .Title = "Error", _
-                    .Content = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre _
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre
                 })
             End Try
 
@@ -320,17 +321,17 @@ Public Class AgenciasViewModel
                     envioActual = listaEnviosPedido.LastOrDefault
                 Catch ex As Exception
                     If Not IsNothing(NotificationRequest) Then
-                        NotificationRequest.Raise(New Notification() With { _
-                         .Title = "Error", _
-                        .Content = ex.Message _
+                        NotificationRequest.Raise(New Notification() With {
+                         .Title = "Error",
+                        .Content = ex.Message
                         })
                     End If
                 End Try
 
             Else
-                NotificationRequest.Raise(New Notification() With { _
-                 .Title = "Error", _
-                .Content = "El pedido seleccionado no existe" _
+                NotificationRequest.Raise(New Notification() With {
+                 .Title = "Error",
+                .Content = "El pedido seleccionado no existe"
                 })
             End If
         End Set
@@ -1259,9 +1260,9 @@ Public Class AgenciasViewModel
                 cmdImprimirEtiquetaPedido.Execute(Nothing)
             End If
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With { _
-             .Title = "Error", _
-            .Content = ex.Message _
+            NotificationRequest.Raise(New Notification() With {
+             .Title = "Error",
+            .Content = ex.Message
             })
             Return
         End Try
@@ -1271,9 +1272,9 @@ Public Class AgenciasViewModel
         Else
             textoImprimir = "Envío ampliado correctamente"
         End If
-        NotificationRequest.Raise(New Notification() With { _
-             .Title = "Envío", _
-            .Content = textoImprimir _
+        NotificationRequest.Raise(New Notification() With {
+             .Title = "Envío",
+            .Content = textoImprimir
         })
     End Sub
 
@@ -1378,9 +1379,9 @@ Public Class AgenciasViewModel
         ' Comprobamos si existe el cliente
         Dim cliente As Clientes = (From c In DbContext.Clientes Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cliente = numClienteContabilizar And c.ClientePrincipal = True And c.Estado >= 0).FirstOrDefault
         If IsNothing(cliente) Then
-            NotificationRequest.Raise(New Notification() With { _
-                .Title = "Error al contabilizar", _
-                .Content = "El cliente " + numClienteContabilizar + " no existe en " + empresaSeleccionada.Nombre _
+            NotificationRequest.Raise(New Notification() With {
+                .Title = "Error al contabilizar",
+                .Content = "El cliente " + numClienteContabilizar + " no existe en " + empresaSeleccionada.Nombre
             })
             Return
         End If
@@ -1623,13 +1624,9 @@ Public Class AgenciasViewModel
         Return Not IsNothing(envioActual) AndAlso IsNothing(envioActual.FechaPagoReembolso)
     End Function
     Private Sub OnRehusarEnvio(arg As Object)
-        Dim tipoRetorno As tipoIdDescripcion = (From l In listaTiposRetorno Where l.id = agenciaEspecifica.retornoSinRetorno).FirstOrDefault
-
+        Dim tipoRetorno As tipoIdDescripcion = (From l In listaTiposRetorno Where l.id = agenciaEspecifica.retornoObligatorio).FirstOrDefault
         modificarEnvio(envioActual, 0, tipoRetorno, envioActual.Estado, True)
     End Sub
-
-
-
 #End Region
 
 #Region "Funciones de Ayuda"
@@ -1740,7 +1737,7 @@ Public Class AgenciasViewModel
         End If
 
         Dim importeFinal As Double = Math.Round(
-            (Aggregate l In lineas _
+            (Aggregate l In lineas
             Select l.Total Into Sum()) _
             + importeDeuda, 2)
 
@@ -1989,9 +1986,9 @@ Public Class AgenciasViewModel
                 ' Reset the context since the operation succeeded. 
                 DbContext.AcceptAllChanges()
             Else
-                NotificationRequest.Raise(New Notification() With { _
-                     .Title = "¡Error!", _
-                    .Content = "Se ha producido un error y no se grabado los datos" _
+                NotificationRequest.Raise(New Notification() With {
+                     .Title = "¡Error!",
+                    .Content = "Se ha producido un error y no se grabado los datos"
                 })
             End If
 
@@ -2181,10 +2178,8 @@ Public Class AgenciasViewModel
                         Dim movimientoFactura As ExtractoCliente = calcularMovimientoLiq(envio, reembolsoAnterior)
                         Dim estadoRehusado As New ObjectParameter("Estado", GetType(String))
                         estadoRehusado.Value = "RHS"
-                        envio.Retorno = True
-                        If Not DbContext.SaveChanges() Then
-                            success = False
-                        End If
+                        envio.Retorno = retorno.id
+                        DbContext.SaveChanges()
                         DbContext.prdModificarEfectoCliente(movimientoFactura.Nº_Orden, movimientoFactura.FechaVto, movimientoFactura.CCC, movimientoFactura.Ruta, estadoRehusado, movimientoFactura.Concepto)
                     End If
 
@@ -2374,7 +2369,7 @@ Public Class AgenciasViewModel
         End If
 
         Return Math.Round(
-            (Aggregate l In deudas _
+            (Aggregate l In deudas
             Select l.ImportePdte Into Sum()) _
             , 2)
     End Function
@@ -2388,7 +2383,7 @@ Public Class AgenciasViewModel
 End Class
 
 Public Structure tipoIdDescripcion
-    Public Sub New( _
+    Public Sub New(
    ByVal _id As Byte,
    ByVal _descripcion As String
    )
@@ -2400,7 +2395,7 @@ Public Structure tipoIdDescripcion
 End Structure
 
 Public Structure tipoIdIntDescripcion
-    Public Sub New( _
+    Public Sub New(
    ByVal _id As Integer,
    ByVal _descripcion As String
    )
@@ -2575,6 +2570,7 @@ Public Interface IAgencia
     ReadOnly Property servicioSoloCobros As Integer
     ReadOnly Property horarioSoloCobros As Integer
     ReadOnly Property retornoSinRetorno As Integer ' Especifica la forma de retorno = NO, es decir, cuando no debe mostrarse en la lista de retornos pendientes
+    ReadOnly Property retornoObligatorio As Integer ' Forma de retorno = SI (obligatorio)
     ReadOnly Property paisDefecto As Integer
 End Interface
 
@@ -2632,9 +2628,9 @@ Public Class AgenciaASM
     ' Funciones
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
         If IsNothing(envio) Then
-            NotificationRequest.Raise(New Notification() With { _
-                 .Title = "Error", _
-                .Content = "No hay ningún envío seleccionado, no se puede cargar el estado" _
+            NotificationRequest.Raise(New Notification() With {
+                 .Title = "Error",
+                .Content = "No hay ningún envío seleccionado, no se puede cargar el estado"
             })
             Return Nothing
         End If
@@ -2732,16 +2728,16 @@ Public Class AgenciaASM
     End Function
     Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         'Comenzamos la llamada
-        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & _
-             "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " & _
-              "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " & _
-              "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" & _
-              "<soap:Body>" & _
-                    "<GetPlazaXCP xmlns=""http://www.asmred.com/"">" & _
-                        "<codPais>" + agenciaVM.paisActual.id.ToString + "</codPais>" & _
-                        "<cp>" + codPostal + "</cp>" & _
-                    "</GetPlazaXCP>" & _
-                "</soap:Body>" & _
+        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" &
+             "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " &
+              "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " &
+              "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" &
+              "<soap:Body>" &
+                    "<GetPlazaXCP xmlns=""http://www.asmred.com/"">" &
+                        "<codPais>" + agenciaVM.paisActual.id.ToString + "</codPais>" &
+                        "<cp>" + codPostal + "</cp>" &
+                    "</GetPlazaXCP>" &
+                "</soap:Body>" &
              "</soap:Envelope>"
 
         Dim req As HttpWebRequest = WebRequest.Create("http://www.asmred.com/WebSrvs/b2b.asmx?op=GetPlazaXCP")
@@ -3035,6 +3031,13 @@ Public Class AgenciaASM
             Return 34
         End Get
     End Property
+
+    Public ReadOnly Property retornoObligatorio As Integer Implements IAgencia.retornoObligatorio
+        Get
+            Return 1 ' Retorno obligatorio
+        End Get
+    End Property
+
     Private Sub rellenarPaises(agencia As AgenciasViewModel)
         agencia.listaPaises = New ObservableCollection(Of tipoIdIntDescripcion)
         agencia.paisActual = New tipoIdIntDescripcion(34, "ESPAÑA")
@@ -3328,6 +3331,11 @@ Public Class AgenciaOnTime
     Public ReadOnly Property retornoSinRetorno As Integer Implements IAgencia.retornoSinRetorno
         Get
             Return 0 ' NO
+        End Get
+    End Property
+    Public ReadOnly Property retornoObligatorio As Integer Implements IAgencia.retornoObligatorio
+        Get
+            Return 1 ' Retorno obligatorio
         End Get
     End Property
     Public ReadOnly Property paisDefecto As Integer Implements IAgencia.paisDefecto
