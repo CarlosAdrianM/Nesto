@@ -7,6 +7,7 @@ Imports System.Globalization
 Imports Microsoft.Practices.Prism.Commands
 Imports Nesto.Modulos.PedidoVenta
 Imports Microsoft.Practices.Unity
+Imports System.Windows.Data
 'Imports Nesto.Models.Nesto.Models.EF
 
 Public Class ComisionesViewModel
@@ -76,8 +77,15 @@ Public Class ComisionesViewModel
                                                                                                  l.Vendedor = vendedorActual.Número)
                                                                                              Order By l.Grupo, l.Dirección
                                                                                              Select l)
+                listaVentasFamilia = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
+                                                                                            Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
+                                                                                                 (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
+                                                                                                 l.Vendedor = vendedorActual.Número)
+                                                                                            Order By l.Familia
+                                                                                            Select l)
             Else
                 listaVentasComision = Nothing
+                listaVentasFamilia = Nothing
             End If
         End Set
     End Property
@@ -124,8 +132,15 @@ Public Class ComisionesViewModel
                                                                                                  l.Vendedor = vendedorActual.Número)
                                                                                                  Order By l.Grupo, l.Dirección
                                                                                                  Select l)
+                    listaVentasFamilia = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
+                                                                                                Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
+                                                                                                 (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
+                                                                                                 l.Vendedor = vendedorActual.Número)
+                                                                                                Order By l.Familia
+                                                                                                Select l)
                 Else
                     listaVentasComision = Nothing
+                    listaVentasFamilia = Nothing
                 End If
             End If
         End Set
@@ -174,9 +189,16 @@ Public Class ComisionesViewModel
         End Set
     End Property
 
-
-
-
+    Private _listaVentasFamilia As ObservableCollection(Of vstLinPedidoVtaComisiones)
+    Public Property listaVentasFamilia As ObservableCollection(Of vstLinPedidoVtaComisiones)
+        Get
+            Return _listaVentasFamilia
+        End Get
+        Set(value As ObservableCollection(Of vstLinPedidoVtaComisiones))
+            _listaVentasFamilia = value
+            OnPropertyChanged("listaVentasFamilia")
+        End Set
+    End Property
 
 #Region "Comandos"
     Private _cmdAbrirPedido As DelegateCommand(Of Object)
@@ -201,7 +223,4 @@ Public Class ComisionesViewModel
 #End Region
 
 End Class
-
-
-
 

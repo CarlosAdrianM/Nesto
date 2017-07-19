@@ -14,11 +14,19 @@ Public Class Comisiones
         'txtFiltro.Focus()
     End Sub
 
-    Private Sub dgrEntregados_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrEntregados.MouseDoubleClick
+    Private Sub dgrFamilias_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrFamilias.MouseDoubleClick
         Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
 
         If src.[GetType]() = GetType(CellContentPresenter) Then
-            DataContext.cmdAbrirPedido.Execute(dgrEntregados.SelectedItem)
+            DataContext.cmdAbrirPedido.Execute(dgrFamilias.SelectedItem)
+        End If
+    End Sub
+
+    Private Sub dgrGrupos_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrGrupos.MouseDoubleClick
+        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
+
+        If src.[GetType]() = GetType(CellContentPresenter) Then
+            DataContext.cmdAbrirPedido.Execute(dgrGrupos.SelectedItem)
         End If
     End Sub
 

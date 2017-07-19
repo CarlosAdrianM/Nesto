@@ -6,11 +6,10 @@
     xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
-
     <Grid>
         <Grid.Resources>
             <xcdg:CurrencyConverter x:Key="currencyConverter"/>
-
+            
             <DataTemplate x:Key="currency_celltemplate">
                 <TextBlock Text="{Binding Converter={StaticResource currencyConverter}}"/>
             </DataTemplate>
@@ -27,6 +26,11 @@
                 <xcdg:DataGridCollectionViewSource.GroupDescriptions>
                     <xcdg:DataGridGroupDescription PropertyName="Grupo"/>
                     <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
+                </xcdg:DataGridCollectionViewSource.GroupDescriptions>
+            </xcdg:DataGridCollectionViewSource>
+            <xcdg:DataGridCollectionViewSource x:Key="cvs_listaVentasFamilia" Source="{Binding listaVentasFamilia}">
+                <xcdg:DataGridCollectionViewSource.GroupDescriptions>
+                    <xcdg:DataGridGroupDescription PropertyName="Familia"/>
                 </xcdg:DataGridCollectionViewSource.GroupDescriptions>
             </xcdg:DataGridCollectionViewSource>
         </Grid.Resources>
@@ -243,8 +247,8 @@
                         </xcdg:DataGridControl.Columns>
                     </xcdg:DataGridControl>
                 </TabItem>
-                <TabItem Header="Entregados">
-                    <xcdg:DataGridControl Name="dgrEntregados" ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                <TabItem Header="Entregados por Grupo">
+                    <xcdg:DataGridControl Name="dgrGrupos" ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
                         <xcdg:DataGridControl.DefaultGroupConfiguration>
                             <xcdg:GroupConfiguration InitiallyExpanded="False"/>
                         </xcdg:DataGridControl.DefaultGroupConfiguration>
@@ -271,7 +275,34 @@
                         </xcdg:DataGridControl.Columns>
                     </xcdg:DataGridControl>
                 </TabItem>
-                
+                <TabItem Header="Entregados por Familia">
+                    <xcdg:DataGridControl Name="dgrFamilias" ItemsSource="{Binding Source={StaticResource cvs_listaVentasFamilia}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                        <xcdg:DataGridControl.DefaultGroupConfiguration>
+                            <xcdg:GroupConfiguration InitiallyExpanded="False"/>
+                        </xcdg:DataGridControl.DefaultGroupConfiguration>
+                        <xcdg:DataGridControl.View>
+                            <xcdg:TableView UseDefaultHeadersFooters="False">
+                                <xcdg:TableView.FixedHeaders>
+                                    <DataTemplate>
+                                        <xcdg:ColumnManagerRow />
+                                    </DataTemplate>
+                                </xcdg:TableView.FixedHeaders>
+                            </xcdg:TableView>
+                        </xcdg:DataGridControl.View>
+                        <xcdg:DataGridControl.Columns>
+                            <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
+                            <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
+                            <xcdg:Column FieldName="Dirección" Width="0" Title="Dirección" />
+                            <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
+                            <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
+                            <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
+                            <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
+                            <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
+                            <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
+                            <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
+                        </xcdg:DataGridControl.Columns>
+                    </xcdg:DataGridControl>
+                </TabItem>
             </TabControl>
         </DockPanel>
     </Grid>
