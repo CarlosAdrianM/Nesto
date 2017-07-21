@@ -12,7 +12,7 @@
                               Header="Clientes">
             <RibbonGroup x:Name="grpVentas"
                                     Header="Ventas">
-                <RibbonButton Label="Pedidos (¡pruebas!)" LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirModulo}" />
+                <RibbonButton Label="Pedidos" LargeImageSource="Images/PedidoVenta.png" Command="{Binding cmdAbrirModulo}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>
