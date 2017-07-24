@@ -43,6 +43,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
         cmdComprobarCondicionesPrecio = New DelegateCommand(Of Object)(AddressOf OnComprobarCondicionesPrecio, AddressOf CanComprobarCondicionesPrecio)
+        cmdComprobarPendientes = New DelegateCommand(Of Object)(AddressOf OnComprobarPendientes, AddressOf CanComprobarPendientes)
         cmdCrearPedido = New DelegateCommand(Of Object)(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
@@ -121,10 +122,12 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As ClienteJson)
             SetProperty(_clienteSeleccionado, value)
-            Titulo = String.Format("Plantilla Ventas ({0})", clienteSeleccionado.cliente)
             OnPropertyChanged("hayUnClienteSeleccionado")
-            cmdCargarProductosPlantilla.Execute(Nothing)
-            'cmdCargarDireccionesEntrega.Execute(Nothing)
+            If Not IsNothing(clienteSeleccionado) Then
+                Titulo = String.Format("Plantilla Ventas ({0})", clienteSeleccionado.cliente)
+                cmdCargarProductosPlantilla.Execute(Nothing)
+                cmdComprobarPendientes.Execute(Nothing)
+            End If
         End Set
     End Property
 
@@ -1152,6 +1155,71 @@ Public Class PlantillaVentaViewModel
         End Using
 
     End Sub
+
+
+
+    Private _cmdComprobarPendientes As DelegateCommand(Of Object)
+    Public Property cmdComprobarPendientes As DelegateCommand(Of Object)
+        Get
+            Return _cmdComprobarPendientes
+        End Get
+        Set(value As DelegateCommand(Of Object))
+            SetProperty(_cmdComprobarPendientes, value)
+        End Set
+    End Property
+    Private Function CanComprobarPendientes(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Async Sub OnComprobarPendientes(arg As Object)
+        If IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Try
+                Dim urlConsulta As String = "PlantillaVentas/PedidosPendientes?empresa=" + clienteSeleccionado.empresa
+                urlConsulta += "&clientePendientes=" + clienteSeleccionado.cliente
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    Dim pedidosPendientes As List(Of Integer) = JsonConvert.DeserializeObject(Of List(Of Integer))(cadenaJson)
+
+                    If pedidosPendientes.Count > 0 Then
+                        Dim textoMensaje As String = "Este cliente tiene otros pedidos pendientes." + vbCr + vbCr
+                        For Each i In pedidosPendientes
+                            textoMensaje += i.ToString + vbCr
+                        Next
+                        textoMensaje += vbCr + "Por favor, revise que sea todo correcto."
+                        NotificationRequest.Raise(New Notification() With {
+                            .Title = "Pendientes",
+                            .Content = textoMensaje
+                        })
+                    End If
+                Else
+                    NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = "Se ha producido un error al comprobar los pedidos pendientes del cliente"
+                    })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = ex.Message
+                })
+            Finally
+                'estaOcupado = False
+            End Try
+
+        End Using
+
+    End Sub
+
+
+
 
     Private _cmdCrearPedido As DelegateCommand(Of Object)
     Public Property cmdCrearPedido As DelegateCommand(Of Object)
