@@ -187,6 +187,12 @@ Public Class ListaPedidosVentaViewModel
         Try
             estaCargandoListaPedidos = True
             vendedor = Await configuracion.leerParametro("1", "Vendedor")
+            If vendedor.Trim() <> "" Then
+                Dim verTodos As Integer = Await configuracion.leerParametro("1", "PermitirVerTodosLosPedidos")
+                If verTodos = "1" Then
+                    vendedor = ""
+                End If
+            End If
             listaPedidos = Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores)
             listaPedidosOriginal = listaPedidos
         Catch ex As Exception

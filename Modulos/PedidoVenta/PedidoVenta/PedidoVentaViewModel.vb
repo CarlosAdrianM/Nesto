@@ -16,10 +16,6 @@ Public Class PedidoVentaViewModel
     Private ReadOnly container As IUnityContainer
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
-    Private vendedor As String
-    Private verTodosLosVendedores As Boolean = False
-
-
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer)
         Me.regionManager = regionManager
