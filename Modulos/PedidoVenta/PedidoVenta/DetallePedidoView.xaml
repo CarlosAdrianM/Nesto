@@ -115,7 +115,7 @@
                         <ColumnDefinition Width="3*"/>
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
-                    <DataGrid Name="grdLineas" Grid.Column="0" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.LineasPedido}" MinHeight="500" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}">
+                    <DataGrid Name="grdLineas" Grid.Column="0" ItemsSource="{Binding pedido.LineasPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
                             <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
