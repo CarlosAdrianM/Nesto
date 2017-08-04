@@ -164,6 +164,9 @@ Public Class PlantillaVentaViewModel
     Private _fechaEntrega As DateTime = DateTime.MinValue
     Public Property fechaEntrega As DateTime
         Get
+            If _fechaEntrega < fechaMinimaEntrega Then
+                _fechaEntrega = fechaMinimaEntrega
+            End If
             Return _fechaEntrega
         End Get
         Set(ByVal value As DateTime)
