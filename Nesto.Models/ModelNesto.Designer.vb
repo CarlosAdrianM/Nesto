@@ -17,7 +17,7 @@ Imports System.Linq
 Imports System.Runtime.Serialization
 Imports System.Xml.Serialization
 
-<Assembly: EdmSchemaAttribute("8a3cf7e5-c849-46f5-bc1e-9564086eaed8")>
+<Assembly: EdmSchemaAttribute("7127446e-a55f-42ed-9ea8-e8b9f1afb982")>
 #Region "Metadatos de relaciones en EDM"
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_Productos_Productos", "Productos", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(Productos), "Productos1", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(Productos), True)>
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_CabAlquileres_Productos", "Productos", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(Productos), "CabAlquileres", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(CabAlquileres), True)>
@@ -10196,6 +10196,31 @@ Public Partial Class EnviosAgencia
     End Sub
 
     Private Partial Sub OnPaisChanged()
+    End Sub
+
+    ''' <summary>
+    ''' No hay documentación de metadatos disponible.
+    ''' </summary>
+    <EdmScalarPropertyAttribute(EntityKeyProperty:=false, IsNullable:=true)>
+    <DataMemberAttribute()>
+    Public Property FechaEntrega() As Nullable(Of Global.System.DateTime)
+        Get
+            Return _FechaEntrega
+        End Get
+        Set
+            OnFechaEntregaChanging(value)
+            ReportPropertyChanging("FechaEntrega")
+            _FechaEntrega = StructuralObject.SetValidValue(value, "FechaEntrega")
+            ReportPropertyChanged("FechaEntrega")
+            OnFechaEntregaChanged()
+        End Set
+    End Property
+
+    Private _FechaEntrega As Nullable(Of Global.System.DateTime)
+    Private Partial Sub OnFechaEntregaChanging(value As Nullable(Of Global.System.DateTime))
+    End Sub
+
+    Private Partial Sub OnFechaEntregaChanged()
     End Sub
 
     #End Region

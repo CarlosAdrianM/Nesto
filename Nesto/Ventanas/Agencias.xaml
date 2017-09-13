@@ -299,7 +299,7 @@
             <TabItem Name="tabTramitados" Header="Tramitados">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="4*"/>
+                        <RowDefinition Height="5*"/>
                         <RowDefinition Height="16*"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
@@ -325,6 +325,7 @@
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="*"/>
                                 <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
@@ -334,12 +335,14 @@
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Reembolso" Style="{StaticResource etiquetaTexto}"/>
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Retorno" Style="{StaticResource etiquetaTexto}"/>
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="Estado" Style="{StaticResource etiquetaTexto}"/>
-                            <Button Grid.Row="3" Grid.Column="0" Margin="3" Content="Rehusado" Command="{Binding cmdRehusarEnvio}" />
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Fecha Entrega" Style="{StaticResource etiquetaTexto}"/>
+                            <Button Grid.Row="4" Grid.Column="0" Margin="3" Content="Rehusado" Command="{Binding cmdRehusarEnvio}" />
                             <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding reembolsoModificar, StringFormat=c}" Style="{StaticResource campoTexto}"/>
                             <ComboBox Grid.Row="1" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" ItemsSource="{Binding listaTiposRetorno}" SelectedItem="{Binding retornoModificar}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
                             <TextBox Grid.Row="2" Grid.Column="1" IsEnabled="{Binding sePuedeModificarEstado}"  Text="{Binding estadoModificar}" Style="{StaticResource campoTexto}"/>
-                            <Button Grid.Row="3" Grid.Column="1" Margin="3" Content="Modificar Envío" Command="{Binding cmdModificarEnvio}" />
-                            <TextBox Grid.RowSpan="4" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding Path=observacionesModificacion}" Style="{StaticResource campoComentarios}" />
+                            <DatePicker Grid.Row="3" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" SelectedDate="{Binding fechaEntregaModificar}" Margin="3"></DatePicker>
+                            <Button Grid.Row="4" Grid.Column="1" Margin="3" Content="Modificar Envío" Command="{Binding cmdModificarEnvio}" />
+                            <TextBox Grid.RowSpan="5" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding Path=observacionesModificacion}" Style="{StaticResource campoComentarios}" />
                         </Grid>
                     </DockPanel>
                     <DockPanel Grid.Row="1">
@@ -390,10 +393,11 @@
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="2*" />
                             <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" />
                             <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" />
                             <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                            <DataGridTextColumn Header="Fecha Entrega" Binding="{Binding FechaEntrega, StringFormat=d}" />
                             <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}" >
                                 <DataGridTextColumn.CellStyle>
                                     <Style>

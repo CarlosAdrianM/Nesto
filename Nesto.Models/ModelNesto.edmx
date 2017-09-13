@@ -317,6 +317,7 @@
           <Property Name="Pedido" Type="int" />
           <Property Name="Estado" Type="smallint" Nullable="false" />
           <Property Name="Fecha" Type="date" Nullable="false" />
+          <Property Name="FechaEntrega" Type="date" />
           <Property Name="Servicio" Type="smallint" Nullable="false" />
           <Property Name="Horario" Type="smallint" Nullable="false" />
           <Property Name="Bultos" Type="smallint" Nullable="false" />
@@ -4291,6 +4292,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <NavigationProperty Name="EnviosHistoria" Relationship="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" FromRole="EnviosAgencia" ToRole="EnviosHistoria" />
           <Property Name="FechaRetornoRecibido" Type="DateTime" Precision="0" />
           <Property Name="Pais" Type="Int32" Nullable="false" />
+          <Property Name="FechaEntrega" Type="DateTime" Precision="0" />
         </EntityType>
         <Association Name="FK_AgenciasTransporte_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
@@ -5446,6 +5448,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <EntitySetMapping Name="EnviosAgencia">
             <EntityTypeMapping TypeName="Nesto.Models.EF.EnviosAgencia">
               <MappingFragment StoreEntitySet="EnviosAgencia">
+                <ScalarProperty Name="FechaEntrega" ColumnName="FechaEntrega" />
                 <ScalarProperty Name="Pais" ColumnName="Pais" />
                 <ScalarProperty Name="FechaRetornoRecibido" ColumnName="FechaRetornoRecibido" />
                 <ScalarProperty Name="FechaPagoReembolso" ColumnName="FechaPagoReembolso" />
@@ -5709,7 +5712,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
     </Options>
     <!-- Diagram content (shape and connector positions) -->
     <Diagrams>
-      <Diagram Name="ModelNesto" ZoomLevel="62">
+      <Diagram Name="ModelNesto" ZoomLevel="58">
         <EntityTypeShape EntityType="Nesto.Models.EF.Productos" Width="1.5" PointX="0.75" PointY="16.5" Height="8.3262337239583317" />
         <AssociationConnector Association="Nesto.Models.EF.FK_Productos_Productos">
           <ConnectorPoint PointX="1.2819230769230767" PointY="25.210836588541667" />

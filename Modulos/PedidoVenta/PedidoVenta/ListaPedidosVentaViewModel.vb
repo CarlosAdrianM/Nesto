@@ -23,6 +23,9 @@ Public Class ListaPedidosVentaViewModel
         Me.container = container
 
         cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
+
+        NotificationRequest = New InteractionRequest(Of INotification)
+        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
     End Sub
 
 #Region "Propiedades de Prism"

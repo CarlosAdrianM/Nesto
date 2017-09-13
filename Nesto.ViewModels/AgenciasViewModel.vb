@@ -585,6 +585,7 @@ Public Class AgenciasViewModel
                 reembolsoModificar = envioActual.Reembolso
                 retornoModificar = (From l In listaTiposRetorno Where l.id = envioActual.Retorno).FirstOrDefault
                 estadoModificar = envioActual.Estado
+                fechaEntregaModificar = envioActual.FechaEntrega
                 listaHistoriaEnvio = New ObservableCollection(Of EnviosHistoria)(From h In DbContext.EnviosHistoria Where h.NumeroEnvio = envioActual.Numero)
             Else
                 listaHistoriaEnvio = Nothing
@@ -1007,6 +1008,16 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             SetProperty(_observacionesModificacion, value)
+        End Set
+    End Property
+
+    Private _fechaEntregaModificar As Date?
+    Public Property fechaEntregaModificar() As Date?
+        Get
+            Return _fechaEntregaModificar
+        End Get
+        Set(ByVal value As Date?)
+            SetProperty(_fechaEntregaModificar, value)
         End Set
     End Property
 
@@ -1533,7 +1544,7 @@ Public Class AgenciasViewModel
         Return sePuedeModificarReembolso
     End Function
     Private Sub OnModificarEnvio(arg As Object)
-        modificarEnvio(envioActual, reembolsoModificar, retornoModificar, estadoModificar)
+        modificarEnvio(envioActual, reembolsoModificar, retornoModificar, estadoModificar, fechaEntregaModificar)
     End Sub
 
     Private _cmdImprimirManifiesto As DelegateCommand(Of Object)
@@ -1625,7 +1636,7 @@ Public Class AgenciasViewModel
     End Function
     Private Sub OnRehusarEnvio(arg As Object)
         Dim tipoRetorno As tipoIdDescripcion = (From l In listaTiposRetorno Where l.id = agenciaEspecifica.retornoObligatorio).FirstOrDefault
-        modificarEnvio(envioActual, 0, tipoRetorno, envioActual.Estado, True)
+        modificarEnvio(envioActual, 0, tipoRetorno, envioActual.Estado, True, envioActual.FechaEntrega)
     End Sub
 #End Region
 
@@ -2088,10 +2099,10 @@ Public Class AgenciasViewModel
         '    OnPropertyChanged("horarioActual")
         'End If
     End Sub
-    Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer)
-        modificarEnvio(envio, reembolso, retorno, estado, False)
+    Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, fechaEntrega As Date)
+        modificarEnvio(envio, reembolso, retorno, estado, False, fechaEntrega)
     End Sub
-    Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, rehusar As Boolean)
+    Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, rehusar As Boolean, fechaEntrega As Date)
         Dim historia As New EnviosHistoria
         Dim modificado As Boolean = False
         Dim reembolsoAnterior As Double = envio.Reembolso
@@ -2156,6 +2167,14 @@ Public Class AgenciasViewModel
                         DbContext.EnviosHistoria.AddObject(historia)
                         modificado = True
                     End If
+                    If envio.FechaEntrega <> fechaEntrega Then
+                        historia.NumeroEnvio = envio.Numero
+                        historia.Campo = "FechaEntrega"
+                        historia.ValorAnterior = envio.FechaEntrega.ToString
+                        envioEncontrado.FechaEntrega = fechaEntrega
+                        DbContext.EnviosHistoria.AddObject(historia)
+                        modificado = True
+                    End If
 
                     If modificado Then
                         historia.Observaciones = observacionesModificacion
@@ -2171,7 +2190,14 @@ Public Class AgenciasViewModel
                         Else
                             Throw New Exception("No se han podido guardar los cambios")
                         End If
-
+                        ' Si el envío está en listaReembolsos lo actualizamos
+                        Dim envioLista As EnviosAgencia = listaEnviosTramitados.Where(Function(l) l.Numero = numeroEnvio).SingleOrDefault
+                        If Not IsNothing(envioLista) Then
+                            envioLista.Reembolso = reembolso
+                            envioLista.Retorno = retorno.id
+                            envioLista.Estado = estado
+                            envioLista.FechaEntrega = fechaEntrega
+                        End If
                     End If
 
                     If rehusar Then
@@ -2182,6 +2208,8 @@ Public Class AgenciasViewModel
                         DbContext.SaveChanges()
                         DbContext.prdModificarEfectoCliente(movimientoFactura.Nº_Orden, movimientoFactura.FechaVto, movimientoFactura.CCC, movimientoFactura.Ruta, estadoRehusado, movimientoFactura.Concepto)
                     End If
+
+
 
                     transaction.Complete()
                     success = True
@@ -2918,6 +2946,7 @@ Public Class AgenciaASM
 
                 envioEncontrado.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
                 envioEncontrado.Fecha = Today
+                envioEncontrado.FechaEntrega = Today
                 success = DbContext.SaveChanges()
 
                 'Await cambiarEstadoAsync(agenciaVM.envioActual)
@@ -3245,6 +3274,7 @@ Public Class AgenciaOnTime
 
             envioEncontrado.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
             envioEncontrado.Fecha = Today
+            envioEncontrado.FechaEntrega = Today
             success = DbContext.SaveChanges()
 
             'Await cambiarEstadoAsync(agenciaVM.envioActual)
