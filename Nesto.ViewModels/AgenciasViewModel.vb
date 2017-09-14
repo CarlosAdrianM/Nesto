@@ -1869,7 +1869,7 @@ Public Class AgenciasViewModel
                     .Contacto = pedidoSeleccionado.Contacto
                     .Pedido = pedidoSeleccionado.Número
                     .Fecha = fechaEnvio
-                    .FechaEntrega = fechaEnvio
+                    .FechaEntrega = fechaEnvio.AddDays(1) 'Se entrega al día siguiente
                     .Servicio = servicioActual.id
                     .Horario = horarioActual.id
                     .Bultos = bultos
@@ -2947,7 +2947,7 @@ Public Class AgenciaASM
 
                 envioEncontrado.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
                 envioEncontrado.Fecha = Today
-                envioEncontrado.FechaEntrega = Today
+                envioEncontrado.FechaEntrega = Today.AddDays(1) 'Se entrega al día siguiente
                 success = DbContext.SaveChanges()
 
                 'Await cambiarEstadoAsync(agenciaVM.envioActual)
@@ -3275,7 +3275,7 @@ Public Class AgenciaOnTime
 
             envioEncontrado.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
             envioEncontrado.Fecha = Today
-            envioEncontrado.FechaEntrega = Today
+            envioEncontrado.FechaEntrega = Today.AddDays(1) 'Se sirve al día siguiente
             success = DbContext.SaveChanges()
 
             'Await cambiarEstadoAsync(agenciaVM.envioActual)
