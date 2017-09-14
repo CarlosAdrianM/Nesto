@@ -1869,6 +1869,7 @@ Public Class AgenciasViewModel
                     .Contacto = pedidoSeleccionado.Contacto
                     .Pedido = pedidoSeleccionado.Número
                     .Fecha = fechaEnvio
+                    .FechaEntrega = fechaEnvio
                     .Servicio = servicioActual.id
                     .Horario = horarioActual.id
                     .Bultos = bultos
