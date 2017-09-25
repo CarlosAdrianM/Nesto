@@ -209,7 +209,7 @@ Public Class DetallePedidoViewModel
     End Property
 
     Private _pedido As PedidoVentaDTO
-    Public Property pedido() As PedidoVentaDTO
+    Public Property pedido As PedidoVentaDTO
         Get
             Return _pedido
         End Get
@@ -412,6 +412,9 @@ Public Class DetallePedidoViewModel
                     lineaActual.descuento = lineaActual.descuento / 100
                 End If
             End If
+        End If
+        If arg.Column.Header = "Aplicar Dto." Then
+            Await cmdActualizarTotales.Execute(Nothing)
         End If
     End Sub
 

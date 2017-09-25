@@ -80,7 +80,7 @@
                         <Button Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
                         <TextBlock></TextBlock>
                     </StackPanel>
-                    <DataGrid Name="grdLineasCabecera" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.LineasPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}">
+                    <DataGrid Name="grdLineasCabecera" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.LineasPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}" CanUserAddRows="False" IsReadOnly="True">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
                             <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
@@ -144,7 +144,7 @@
                         <ColumnDefinition Width="3*"/>
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
-                    <DataGrid Name="grdLineas" Grid.Column="0" ItemsSource="{Binding pedido.LineasPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}" CanUserAddRows="False">
+                    <DataGrid Name="grdLineas" Grid.Column="0" ItemsSource="{Binding pedido.LineasPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}" CanUserAddRows="True" IsReadOnly="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
                             <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />

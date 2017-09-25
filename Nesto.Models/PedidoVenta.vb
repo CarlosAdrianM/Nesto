@@ -18,7 +18,7 @@ Public Class PedidoVenta
             End Get
             Set(value As Boolean)
                 _aplicarDescuento = value
-                OnPropertyChanged("aplicarDescuento")
+                OnPropertyChanged()
                 OnPropertyChanged("total")
             End Set
         End Property
@@ -30,7 +30,8 @@ Public Class PedidoVenta
             End Get
             Set(value As Short)
                 _cantidad = value
-                OnPropertyChanged("cantidad")
+                OnPropertyChanged()
+                OnPropertyChanged("total")
             End Set
         End Property
         Public Property delegacion() As String
@@ -45,7 +46,17 @@ Public Class PedidoVenta
                 OnPropertyChanged("total")
             End Set
         End Property
-        Public Property descuentoProducto() As Decimal
+        Private _descuentoProducto As Decimal
+        Public Property descuentoProducto As Decimal
+            Get
+                Return _descuentoProducto
+            End Get
+            Set(value As Decimal)
+                _descuentoProducto = value
+                OnPropertyChanged()
+                OnPropertyChanged("total")
+            End Set
+        End Property
         Public Property estado() As Short = 1
         Private _fechaEntrega As System.DateTime
         Public Property fechaEntrega() As System.DateTime
@@ -66,7 +77,8 @@ Public Class PedidoVenta
             End Get
             Set(value As String)
                 _iva = value
-                OnPropertyChanged("iva")
+                OnPropertyChanged()
+                OnPropertyChanged("total")
             End Set
         End Property
         Public Property oferta() As Integer?
