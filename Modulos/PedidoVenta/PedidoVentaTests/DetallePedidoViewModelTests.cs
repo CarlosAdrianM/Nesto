@@ -85,57 +85,5 @@ namespace PedidoVentaTests
             // Assert
             A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "descuentoProducto"))).MustHaveHappened(Repeated.Exactly.Once);
         }
-
-        [TestMethod]
-        public void DetallePedidoViewModel_siSeModificaElDescuentoProducto_debeLanzarsePropertyChangedEnPedidoTotal()
-        {
-            // Arrange
-            IRegionManager regionManager = A.Fake<IRegionManager>();
-            IConfiguracion configuracion = A.Fake<IConfiguracion>();
-            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio);
-            PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
-            LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
-            lineaFake.descuentoProducto = (decimal).4; 
-            lineaFake.aplicarDescuento = true; 
-            lineaFake.cantidad = 1; 
-            lineaFake.precio = 100; 
-            pedido.LineasPedido.Add(lineaFake);
-            detallePedidoViewModel.pedido = pedido;
-            var handler = A.Fake<PropertyChangedEventHandler>();
-            pedido.PropertyChanged += handler;
-
-            // Act
-            lineaFake.descuentoProducto = (decimal).3; 
-
-            // Assert 
-            A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "total"))).MustHaveHappened(Repeated.Exactly.Once);
-        }
-
-        [TestMethod]
-        public void DetallePedidoViewModel_siSeModificaElAplicarDescuento_debeLanzarsePropertyChangedEnPedidoTotal()
-        {
-            // Arrange
-            IRegionManager regionManager = A.Fake<IRegionManager>();
-            IConfiguracion configuracion = A.Fake<IConfiguracion>();
-            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio);
-            PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
-            LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
-            lineaFake.descuentoProducto = (decimal).4;
-            lineaFake.aplicarDescuento = true;
-            lineaFake.cantidad = 1;
-            lineaFake.precio = 100;
-            pedido.LineasPedido.Add(lineaFake);
-            detallePedidoViewModel.pedido = pedido;
-            var handler = A.Fake<PropertyChangedEventHandler>();
-            pedido.PropertyChanged += handler;
-
-            // Act
-            lineaFake.aplicarDescuento = false;
-
-            // Assert 
-            A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "total"))).MustHaveHappened(Repeated.Exactly.Once);
-        }
     }
 }
