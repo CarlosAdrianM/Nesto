@@ -68,11 +68,18 @@ Public Class RapportService
 
 
                 If response.IsSuccessStatusCode Then
-                    Return "Rapport creado correctamente"
+                    If rapport.Id = 0 Then
+                        Dim pathNumeroOrden = response.Headers.Location.LocalPath
+                        Dim numOrdenRapport As String = pathNumeroOrden.Substring(pathNumeroOrden.LastIndexOf("/") + 1)
+                        rapport.Id = Convert.ToInt32(numOrdenRapport)
+                        Return "Rapport creado correctamente"
+                    Else
+                        Return "Rapport modificado correctamente"
+                    End If
                 Else
                     Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)
-                    Return "Se ha producido un error al crear el rapport"
+                    Return "Se ha producido un error al guardar el rapport"
                 End If
             Catch ex As Exception
                 Throw ex

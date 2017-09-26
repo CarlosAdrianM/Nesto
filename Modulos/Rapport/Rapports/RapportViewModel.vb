@@ -11,7 +11,7 @@ Public Class RapportViewModel
     Inherits ViewModelBase
     Implements INavigationAware
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As RegionManager)
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.regionManager = regionManager
