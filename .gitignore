@@ -154,3 +154,5 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+/Nesto/clavesSecretas.config
+/CanalesExternos/ApisExternas/MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_

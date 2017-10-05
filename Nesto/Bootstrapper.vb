@@ -10,6 +10,7 @@ Imports Nesto.Modulos.CarteraPagos
 Imports Nesto.Modulos.PedidoVenta
 Imports ControlesUsuario
 Imports Nesto.Modulos.Rapports
+Imports Nesto.Modulos.CanalesExternos
 
 Public Class Bootstrapper
     Inherits UnityBootstrapper
@@ -42,8 +43,6 @@ Public Class Bootstrapper
         moduleCatalog.AddModule(GetType(IMenuBar)) ', InitializationMode.WhenAvailable
 
         ' Plantilla de Ventas - 17/07/15
-        'If (System.Environment.UserName = "Alfredo") OrElse (System.Environment.UserName = "Carlos") OrElse (System.Environment.UserName = "Manuel") _
-        '    OrElse (System.Environment.UserName.ToLower = "silvia") OrElse (System.Environment.UserName.ToLower = "lalonso") OrElse (System.Environment.UserName.ToLower = "amaia") OrElse (System.Environment.UserName.ToLower = "carolina") OrElse (System.Environment.UserName.ToLower = "marta") Then
         moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
 
         ' Inventarios - 09/11/15
@@ -58,6 +57,8 @@ Public Class Bootstrapper
         ' Rapports - 14/03/17
         moduleCatalog.AddModule(GetType(IRapports))
 
+        ' Canalex Externos - 03/10/17
+        moduleCatalog.AddModule(GetType(ICanalesExternos))
 
     End Sub
 
@@ -75,6 +76,7 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(IPedidoVenta), GetType(PedidoVenta), False)
         RegisterTypeIfMissing(GetType(IRapportService), GetType(RapportService), False)
         RegisterTypeIfMissing(GetType(IRapports), GetType(Rapports), False)
+        RegisterTypeIfMissing(GetType(ICanalesExternos), GetType(Nesto.Modulos.CanalesExternos.CanalesExternos), False)
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings

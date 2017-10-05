@@ -304,5 +304,6 @@
   <ItemGroup>
     <Resource Include="Images\PedidoVenta.png" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

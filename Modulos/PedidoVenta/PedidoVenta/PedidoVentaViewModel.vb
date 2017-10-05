@@ -1,6 +1,8 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Collections.Specialized
 Imports System.ComponentModel
+Imports System.Net.Http
+Imports System.Text
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
@@ -8,6 +10,7 @@ Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Newtonsoft.Json
 
 Public Class PedidoVentaViewModel
     Inherits ViewModelBase
@@ -78,6 +81,36 @@ Public Class PedidoVentaViewModel
             region.Activate(view)
         End If
     End Sub
+
+    Public Shared Async Function CrearPedidoAsync(pedido As PedidoVentaDTO, configuracion As IConfiguracion) As Task(Of String)
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+
+            Try
+
+                response = Await client.PostAsync("PedidosVenta", content)
+
+                If response.IsSuccessStatusCode Then
+                    Dim pathNumeroPedido = response.Headers.Location.LocalPath
+                    Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
+                    Return "Pedido " + numPedido + " creado correctamente"
+                Else
+                    Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)
+                    Return detallesError
+                End If
+            Catch ex As Exception
+                Return ex.Message
+            Finally
+
+            End Try
+
+        End Using
+
+    End Function
 
 
 End Class

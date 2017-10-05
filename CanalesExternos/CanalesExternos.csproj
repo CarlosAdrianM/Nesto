@@ -1,0 +1,239 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C7C073B3-9808-40AE-B522-3F613922B5AA}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Nesto.Modulos.CanalesExternos</RootNamespace>
+    <AssemblyName>CanalesExternos</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <WarningLevel>4</WarningLevel>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>true</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Expression.Interactions, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.Practices.Prism.Composition, Version=5.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.Composition.5.0.0\lib\NET45\Microsoft.Practices.Prism.Composition.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.Prism.Interactivity, Version=5.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.Interactivity.5.0.0\lib\NET45\Microsoft.Practices.Prism.Interactivity.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.Prism.Mvvm, Version=1.1.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.Mvvm.1.1.1\lib\net45\Microsoft.Practices.Prism.Mvvm.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.Prism.Mvvm.Desktop, Version=1.1.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.Mvvm.1.1.1\lib\net45\Microsoft.Practices.Prism.Mvvm.Desktop.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.Prism.PubSubEvents, Version=1.1.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.PubSubEvents.1.1.2\lib\portable-sl5+windowsphone8+windows8+net40+wpa81\Microsoft.Practices.Prism.PubSubEvents.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.Prism.SharedInterfaces, Version=1.1.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.Mvvm.1.1.1\lib\net45\Microsoft.Practices.Prism.SharedInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.ServiceLocation, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\CommonServiceLocator.1.2\lib\portable-windows8+net40+sl5+windowsphone8\Microsoft.Practices.ServiceLocation.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.Unity, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.3.5.1404.0\lib\net45\Microsoft.Practices.Unity.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.Unity.Configuration, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.3.5.1404.0\lib\net45\Microsoft.Practices.Unity.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Practices.Unity.RegistrationByConvention, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Unity.3.5.1404.0\lib\net45\Microsoft.Practices.Unity.RegistrationByConvention.dll</HintPath>
+    </Reference>
+    <Reference Include="Prism.RibbonRegionAdapter, Version=0.20.0.1, Culture=neutral, PublicKeyToken=3ddef0a054eea43a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Prism.RibbonRegionAdapter.0.20.0.1\lib\net45\Prism.RibbonRegionAdapter.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.configuration" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Windows.Controls.Ribbon" />
+    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xaml">
+      <RequiredTargetFramework>4.0</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="WindowsBase" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+  </ItemGroup>
+  <ItemGroup>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Page Include="CanalesExternosMenuBar.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="CanalesExternosView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\AbstractMwsObject.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsCall.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsObject.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsReader.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsRequestType.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsWriter.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsAQCall.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsConnection.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsException.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsResponseHeaderMetadata.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsResponseMetadata.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsUtil.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsXmlBuilder.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsXmlReader.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsXmlWriter.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\MarketplaceWebServiceOrders.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\MarketplaceWebServiceOrdersClient.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\MarketplaceWebServiceOrdersConfig.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\MarketplaceWebServiceOrdersException.cs" />
+    <Compile Include="ApisExternas\MarketplaceWebServiceOrdersNuevaVision.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrdersMock.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\Address.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\BuyerCustomizedInfoDetail.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\BuyerTaxInfo.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetOrderRequest.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetOrderResponse.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetOrderResult.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetServiceStatusRequest.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetServiceStatusResponse.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetServiceStatusResult.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\IMWSResponse.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\InvoiceData.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsByNextTokenRequest.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsByNextTokenResponse.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsByNextTokenResult.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsRequest.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsResponse.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsResult.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersByNextTokenRequest.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersByNextTokenResponse.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersByNextTokenResult.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersRequest.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersResponse.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersResult.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\Message.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\Money.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\Order.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\OrderItem.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\PaymentExecutionDetailItem.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\PointsGrantedDetail.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ResponseHeaderMetadata.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ResponseMetadata.cs" />
+    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\TaxClassification.cs" />
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="CanalesExternos.cs" />
+    <Compile Include="CanalesExternosMenuBar.xaml.cs">
+      <DependentUpon>CanalesExternosMenuBar.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="CanalesExternosViewModel.cs" />
+    <Compile Include="CanalesExternosView.xaml.cs">
+      <DependentUpon>CanalesExternosView.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CanalExternoPedidosAmazon.cs" />
+    <Compile Include="ICanalExternoPedidos.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="packages.config" />
+    <None Include="Properties\app.manifest" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Contratos\Contratos.vbproj">
+      <Project>{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}</Project>
+      <Name>Contratos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj">
+      <Project>{5678F232-EBFE-4834-B77F-51B2C0824380}</Project>
+      <Name>PedidoVenta</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Nesto.Models\Models.vbproj">
+      <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>
+      <Name>Models</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\CanalesExternos.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\dist\MWSClientCsRuntime-1.0.dll" />
+    <Content Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\dist\MWSOrders_2013-09-01_v2017-02-22.dll" />
+    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\LICENSE.txt" />
+    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\NOTICE.txt" />
+    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.GetOrderResponse.xml" />
+    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.GetServiceStatusResponse.xml" />
+    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.ListOrderItemsByNextTokenResponse.xml" />
+    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.ListOrderItemsResponse.xml" />
+    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.ListOrdersByNextTokenResponse.xml" />
+    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.ListOrdersResponse.xml" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
