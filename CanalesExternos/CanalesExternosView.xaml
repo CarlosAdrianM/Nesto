@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:Nesto.Modulos.CanalesExternos"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"     
         xmlns:prism="http://www.codeplex.com/prism"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d" Loaded="UserControl_Loaded">
 
     <i:Interaction.Triggers>
@@ -20,28 +21,37 @@
             <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
 
-        <DockPanel Grid.Column="0">
-            <ComboBox DockPanel.Dock="Top" ItemsSource="{Binding Factory}" DisplayMemberPath="Key" SelectedValuePath="Value" SelectedValue="{Binding CanalSeleccionado}"></ComboBox>
-            <Button DockPanel.Dock="Bottom" Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
-            <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding ListaPedidos}" SelectedItem="{Binding PedidoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Fecha" Binding="{Binding fecha}" IsReadOnly="True" />
-                    <DataGridTextColumn Header="Comentarios" Binding="{Binding comentarios}" IsReadOnly="True" Width="*"/>
-                    <DataGridTemplateColumn>
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Command="{Binding Path=DataContext.CrearPedidoCommand,RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" CommandParameter="{Binding}" Content="Crear Pedido"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </DockPanel>
+        <xctk:BusyIndicator Grid.Column="0" IsBusy="{Binding EstaOcupado}" BusyContent="Espere, por favor...">
+            <DockPanel>
+                <ComboBox DockPanel.Dock="Top" ItemsSource="{Binding Factory}" DisplayMemberPath="Key" SelectedValuePath="Value" SelectedValue="{Binding CanalSeleccionado}"></ComboBox>
+                <Button DockPanel.Dock="Bottom" Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
+                <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding ListaPedidos}" SelectedItem="{Binding PedidoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding fecha}" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Comentarios" Binding="{Binding comentarios}" IsReadOnly="True" Width="*"/>
+                        <DataGridTemplateColumn>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding Path=DataContext.CrearPedidoCommand,RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" CommandParameter="{Binding}" Content="Crear Pedido"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </xctk:BusyIndicator>
         <DataGrid Grid.Column="1" ItemsSource="{Binding PedidoSeleccionado.LineasPedido}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Producto" Binding="{Binding producto}"/>
                 <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>
                 <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}"/>
+                <DataGridTextColumn Header="Precio" Binding="{Binding precio, StringFormat=c}">
+                    <DataGridTextColumn.CellStyle>
+                        <Style>
+                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Bruto" Binding="{Binding bruto, StringFormat=c}">
                     <DataGridTextColumn.CellStyle>
                         <Style>

@@ -28,19 +28,21 @@ namespace Nesto.Modulos.CanalesExternos
             this.configuracion = configuracion;
         }
 
-        public List<PedidoVentaDTO> GetAllPedidos()
+        public async Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync()
         {
             List<Order> listaAmazon = MarketplaceWebServiceOrdersNuevaVision.Ejecutar();
 
 
-            List<PedidoVentaDTO> listaNesto = new List<PedidoVentaDTO>();
-            foreach (Order order in listaAmazon)
-            {
-                PedidoVentaDTO pedido = TrasformarPedido(order);
-                List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
-                pedido.LineasPedido = TrasformarLineas(lineasAmazon);
-                listaNesto.Add(pedido);
-            }
+            ObservableCollection<PedidoVentaDTO> listaNesto = new ObservableCollection<PedidoVentaDTO>();
+            await Task.Run(() => { 
+                foreach (Order order in listaAmazon)
+                {
+                    PedidoVentaDTO pedido = TrasformarPedido(order);
+                    List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
+                    pedido.LineasPedido = TrasformarLineas(lineasAmazon);
+                    listaNesto.Add(pedido);
+                }
+            });
             
             return listaNesto;
         }
@@ -123,7 +125,7 @@ namespace Nesto.Modulos.CanalesExternos
                         fechaEntrega = DateTime.Today,
                         iva = "G21", // TODO: LEER DEL PRODUCTO
                         precio = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100,
-                        producto = "62400030",
+                        producto = "62400003",
                         texto = "PORTES " + orderItem.Title.ToUpper(),
                         tipoLinea = 2, // cuenta contable
                         usuario = configuracion.usuario

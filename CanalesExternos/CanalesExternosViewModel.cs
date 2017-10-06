@@ -5,6 +5,8 @@ using Nesto.Contratos;
 using Nesto.Modulos.PedidoVenta;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using static Nesto.Models.PedidoVenta;
 
@@ -15,8 +17,10 @@ namespace Nesto.Modulos.CanalesExternos
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
 
+        public event EventHandler CanalSeleccionadoHaCambiado;
+
         private ICanalExternoPedidos _canalSeleccionado;
-        private List<PedidoVentaDTO> _listaPedidos;
+        private ObservableCollection<PedidoVentaDTO> _listaPedidos;
         private PedidoVentaDTO _pedidoSeleccionado;
 
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
@@ -27,7 +31,7 @@ namespace Nesto.Modulos.CanalesExternos
             Configuracion = configuracion;
 
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
-            CanalSeleccionado = Factory["Amazon"];
+            Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
             
             CrearComandosAsync();
 
@@ -44,7 +48,18 @@ namespace Nesto.Modulos.CanalesExternos
         public ICanalExternoPedidos CanalSeleccionado
         {
             get { return _canalSeleccionado; }
-            set { SetProperty(ref _canalSeleccionado, value); }
+            set {
+                SetProperty(ref _canalSeleccionado, value);
+                CanalSeleccionadoHaCambiado?.Invoke(this, new EventArgs());
+            }
+        }
+
+        private bool _estaOcupado;
+
+        public bool EstaOcupado
+        {
+            get { return _estaOcupado; }
+            set { SetProperty(ref _estaOcupado, value); }
         }
 
         public Dictionary<string, ICanalExternoPedidos> Factory
@@ -53,7 +68,7 @@ namespace Nesto.Modulos.CanalesExternos
             set => SetProperty(ref _factory, value);
         }
 
-        public List<PedidoVentaDTO> ListaPedidos
+        public ObservableCollection<PedidoVentaDTO> ListaPedidos
         {
             get { return _listaPedidos; }
             set { SetProperty(ref _listaPedidos, value); }
@@ -73,7 +88,7 @@ namespace Nesto.Modulos.CanalesExternos
         public ICommand AbrirModuloCommand { get; private set; }
         private bool CanAbrirModulo()
         {
-            return Environment.UserName == "Carlos";
+            return Environment.UserName.ToLower() == "carlos" || Environment.UserName.ToLower() == "laura";
         }
         private void OnAbrirModulo()
         {
@@ -81,9 +96,21 @@ namespace Nesto.Modulos.CanalesExternos
         }
 
         public ICommand CargarPedidosCommand { get; private set; }
-        private void OnCargarPedidos()
-        {            
-            ListaPedidos = CanalSeleccionado.GetAllPedidos();
+        private async void OnCargarPedidos()
+        {
+            if (CanalSeleccionado == null)
+            {
+                CanalSeleccionado = Factory["Amazon"];
+            }
+            try
+            {
+                EstaOcupado = true;
+                ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync();
+            } finally
+            {
+                EstaOcupado = false;
+            }
+            
         }
 
         public ICommand CrearPedidoCommand { get; private set; }
@@ -93,16 +120,38 @@ namespace Nesto.Modulos.CanalesExternos
         }
         private async void OnCrearPedidoAsync(PedidoVentaDTO pedido)
         {
-            string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
-            NotificationRequest.Raise(new Notification { Content = resultado, Title = "Crear Pedido" });
+            try
+            {
+                EstaOcupado = true;
+                string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
+                EstaOcupado = false;
+                NotificationRequest.Raise(new Notification { Content = resultado, Title = "Crear Pedido" });
+            } finally
+            {
+                EstaOcupado = false;
+            }            
         }
 #endregion
 
-        private async System.Threading.Tasks.Task CrearComandosAsync()
+        private async Task CrearComandosAsync()
         {
+            CanalSeleccionadoHaCambiado += OnCanalSeleccionadoHaCambiadoAsync;
+
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
             CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
             CrearPedidoCommand = new DelegateCommand<PedidoVentaDTO>(OnCrearPedidoAsync, CanCrearPedido);
+        }
+
+        async void OnCanalSeleccionadoHaCambiadoAsync(object sender, EventArgs e)
+        {
+            try
+            {
+                EstaOcupado = true;
+                ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync();
+            } finally
+            {
+                EstaOcupado = false;
+            }
         }
     }
 }
