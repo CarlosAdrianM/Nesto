@@ -46,7 +46,7 @@ namespace Nesto.Modulos.CanalesExternos
 
             pedidoSalida.iva = "G21";
             pedidoSalida.comentarios = pedidoEntrada.orderId.ToString() + " \r\n";
-            pedidoSalida.comentarios += (pedidoEntrada.customerFirstName + " " + pedidoEntrada.customerFirstName).ToUpper() + "\r\n";
+            pedidoSalida.comentarios += (pedidoEntrada.customerFirstName + " " + pedidoEntrada.customerLastName).ToUpper() + "\r\n";
             pedidoSalida.comentarios += pedidoEntrada.customerAddress.ToUpper() + "\r\n";
             pedidoSalida.comentarios += pedidoEntrada.customerPc.ToUpper() + " ";
             pedidoSalida.comentarios += pedidoEntrada.customerCity.ToUpper() + " (";
