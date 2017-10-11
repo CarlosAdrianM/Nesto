@@ -57,6 +57,7 @@ namespace Nesto.Modulos.CanalesExternos
             PedidoVentaDTO pedidoSalida = new PedidoVentaDTO();
 
             pedidoSalida.empresa = "1";
+            pedidoSalida.origen = "1";
             pedidoSalida.cliente = CLIENTE_AMAZON;
             pedidoSalida.contacto = CONTACTO_AMAZON;
             pedidoSalida.contactoCobro = CONTACTO_AMAZON;

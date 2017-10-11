@@ -15,9 +15,6 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 {
     public class PrestashopService
     {
-    
-        private const string CLIENTE_PRESTASHOP = "10458";
-
         public async Task<List<string>> CargarListaPedidosAsync()
         {
             // estado 2 = Pago Aceptamos
@@ -26,7 +23,15 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
 
             List<string> listaPrestashop = new List<string>();
-            string userName = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
+            string userName;
+            try
+            {
+                userName = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
+            } catch
+            {
+                return listaPrestashop;
+            }
+            
 
             using (var handler = new HttpClientHandler { Credentials = new NetworkCredential {UserName = userName} })
             using (HttpClient client = new HttpClient(handler))
@@ -41,24 +46,12 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
 
                     foreach (var node in xml.Descendants("order"))
                     {
-                        listaPrestashop.Add(node.LastAttribute.Value); //or loop through its children as well
+                        listaPrestashop.Add(node.LastAttribute.Value); 
                     }
 
-
-                    /*
-                    var query = from c in xml.Root.Descendants("order")
-                                    //where (int)c.Attribute("id") < 4
-                                select c.Element("order").LastAttribute.Value;
-                    //     c.Element("total_paid_real").Value;
-
-                    foreach (string urlPedido in query)
-                    {
-                        listaPrestashop.Add(urlPedido);
-                    }
-                    */
                 } catch (Exception ex)
                 {
-                    throw;
+                    throw ex;
                 }
                 
                 return listaPrestashop;

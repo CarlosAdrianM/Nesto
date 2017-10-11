@@ -41,9 +41,8 @@ namespace Nesto.Modulos.CanalesExternos
         {
             PedidoVentaDTO pedidoSalida = new PedidoVentaDTO();
 
-            //XElement xmlPedido = pedidoEntrada.Pedido.Element("order");
-
             pedidoSalida.empresa = "1";
+            pedidoSalida.origen = "1";
             pedidoSalida.cliente = "31517";
             pedidoSalida.contacto = "0";
             pedidoSalida.contactoCobro = "0";

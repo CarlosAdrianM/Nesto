@@ -32,7 +32,8 @@ namespace Nesto.Modulos.CanalesExternos
 
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
-            
+            Factory.Add("Guapalia", new CanalExternoPedidosGuapalia(configuracion));
+
             CrearComandosAsync();
 
             Titulo = "Canales Externos";
@@ -106,7 +107,11 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 EstaOcupado = true;
                 ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync();
-            } finally
+            } catch (Exception ex)
+            {
+                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+            }
+            finally
             {
                 EstaOcupado = false;
             }
@@ -148,7 +153,11 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 EstaOcupado = true;
                 ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync();
-            } finally
+            } catch (Exception ex)
+            {
+                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+            }
+            finally
             {
                 EstaOcupado = false;
             }
