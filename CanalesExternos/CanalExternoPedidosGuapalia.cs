@@ -80,7 +80,7 @@ namespace Nesto.Modulos.CanalesExternos
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
-                    precio = Convert.ToDecimal(pedidoEntrada.shipping),
+                    precio = Convert.ToDecimal(pedidoEntrada.shipping) / 10000 / (decimal)1.21, //comprobar,
                     producto = "62400003",
                     texto = "GASTOS DE TRANSPORTE",
                     tipoLinea = 2, // cuenta contable
@@ -107,7 +107,7 @@ namespace Nesto.Modulos.CanalesExternos
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21", // TODO: LEER DEL PRODUCTO
-                    precio = Convert.ToDecimal(orderItem.unitPrice) / (decimal)1.21, //comprobar
+                    precio = Math.Round(Convert.ToDecimal(orderItem.unitPrice) / (decimal)1.21, 4),//comprobar
                     producto = orderItem.itemId.ToString(), // comprobar
                     texto = orderItem.description.ToUpper(),
                     tipoLinea = 1, // producto
