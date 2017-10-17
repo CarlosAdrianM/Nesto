@@ -60,14 +60,14 @@ namespace Nesto.Modulos.CanalesExternos
 
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("phone")?.Value != "" ? "Tel.: " + pedidoEntrada.Direccion.Element("phone")?.Value.ToString().ToUpper() + "\r\n" : "";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("phone_mobile")?.Value != "" ? "Móvil: " + pedidoEntrada.Direccion.Element("phone_mobile")?.Value.ToString().ToUpper() + "\r\n" : "";
-            decimal totalPagado = Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_paid_real")?.Value) / 1000000;
+            decimal totalPagado = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_paid_real")?.Value) / 1000000, 4);
             pedidoSalida.comentarios += "TOTAL PEDIDO: " + totalPagado.ToString("c");
 
             pedidoSalida.fecha = Convert.ToDateTime(pedidoEntrada.Pedido.Element("date_add")?.Value);
             
-            decimal totalPedido = Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products_wt")?.Value) / 1000000;
-            decimal totalPortes = Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000;
-            decimal totalDescuentos = Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000;
+            decimal totalPedido = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products_wt")?.Value) / 1000000, 4);
+            decimal totalPortes = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000, 4);
+            decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
             if (totalPagado < totalPedido + totalPortes - totalDescuentos)
             {
                 pedidoSalida.formaPago = "EFC";
@@ -99,7 +99,7 @@ namespace Nesto.Modulos.CanalesExternos
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21", // TODO: LEER DEL PRODUCTO
-                    precio = Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000,
+                    precio = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
                     producto = linea.Element("product_reference").Value,
                     texto = linea.Element("product_name").Value.ToUpper(),
                     tipoLinea = 1, // producto
