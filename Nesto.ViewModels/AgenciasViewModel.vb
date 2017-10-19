@@ -19,6 +19,7 @@ Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks
 Imports Unity
+Imports System.Data.Entity.Infrastructure
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -1185,14 +1186,33 @@ Public Class AgenciasViewModel
         Try
             DbContext.SaveChanges()
             mensajeError = ""
-            'Catch ex As DbUpdateConcurrencyException
+        Catch ex As OptimisticConcurrencyException
+            mensajeError = String.Format("Otro usuario actualizó el envío {1} antes de que se guardase.{0}Pulse OK para cargar los datos del otro usuario y verificarlos{0}o pulse Cancel y otra vez Guardar Cambios para sobreescribir los datos del otro usuario", Environment.NewLine, ex.StateEntries.Single().Entity.Numero)
+            Me.ConfirmationRequest.Raise(
+                New Confirmation() With {
+                    .Content = mensajeError, .Title = "Error de Concurrencia"
+                },
+                Sub(c)
+                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+                End Sub
+            )
 
+            If InteractionResultMessage = "OK" Then
+                DbContext.Refresh(RefreshMode.StoreWins, listaEnvios)
+                OnPropertyChanged("")
+            Else
+                DbContext.Refresh(RefreshMode.ClientWins, listaEnvios)
+            End If
         Catch ex As Exception
             If Not IsNothing(ex.InnerException) Then
                 mensajeError = ex.InnerException.Message
             Else
                 mensajeError = ex.Message
             End If
+            NotificationRequest.Raise(New Notification() With {
+                 .Title = "Error",
+                .Content = mensajeError
+            })
         End Try
     End Sub
 
