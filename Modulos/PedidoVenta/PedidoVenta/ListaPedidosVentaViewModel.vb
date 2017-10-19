@@ -5,6 +5,7 @@ Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Unity
 
 Public Class ListaPedidosVentaViewModel
     Inherits ViewModelBase

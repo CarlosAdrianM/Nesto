@@ -2,6 +2,7 @@
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Unity
 
 Public Class PedidoVentaView
     Private ReadOnly container As IUnityContainer

@@ -12,7 +12,7 @@ Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.Mvvm
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Regions
-
+Imports Unity
 
 Public Class ViewModelBase
     Implements INotifyPropertyChanged

@@ -1,23 +1,22 @@
 ﻿Imports Microsoft.Practices.Prism.Modularity
-Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.UnityExtensions
 Imports Microsoft.Practices.Prism.Regions
+Imports Microsoft.Practices.Unity
 Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
 Imports Nesto.Modulos.PlantillaVenta
 Imports Nesto.Modulos.Inventario
 Imports Nesto.Modulos.CarteraPagos
 Imports Nesto.Modulos.PedidoVenta
-Imports ControlesUsuario
 Imports Nesto.Modulos.Rapports
-Imports Nesto.Modulos.CanalesExternos
+
 
 Public Class Bootstrapper
     Inherits UnityBootstrapper
 
 
     Protected Overrides Function CreateShell() As DependencyObject
-        Dim shell = Me.Container.Resolve(Of IMainWindow)()
+        Dim shell = Container.Resolve(Of IMainWindow)()
 
         ' Carlos 14/07/15: estas tres líneas no sé si valen para algo
         'Dim regionManager = Me.Container.Resolve(Of IRegionManager)()

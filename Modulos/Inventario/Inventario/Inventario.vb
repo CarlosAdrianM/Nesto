@@ -3,6 +3,7 @@ Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
 Imports Prism.RibbonRegionAdapter
+Imports Unity
 
 Public Class Inventario
     Implements IModule, IInventario

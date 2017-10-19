@@ -1,11 +1,7 @@
-﻿Imports Nesto.ViewModels
-Imports Microsoft.Practices.Unity
+﻿Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Prism.Mvvm
-Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
 Imports System.Deployment.Application
-
 
 Class MainWindow
     Implements IMainWindow

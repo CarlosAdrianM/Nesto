@@ -11,6 +11,7 @@ Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
+Imports Unity
 
 Public Class PedidoVentaViewModel
     Inherits ViewModelBase

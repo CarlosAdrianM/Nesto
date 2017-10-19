@@ -10,23 +10,15 @@ Imports System.Text.RegularExpressions
 Imports System.Data.Objects
 Imports Microsoft.Practices.Prism.Mvvm
 Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports Microsoft.Practices.Prism.PubSubEvents
-Imports System.Text
 Imports Microsoft.Win32
-Imports Microsoft.Practices.Prism
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports System.Transactions
 Imports System.Net.Http
 Imports System.Net.Http.Headers
-Imports System.Net.Http.Formatting
 Imports System.Threading.Tasks
-Imports Nesto.ViewModels
-'Imports CrystalDecisions.CrystalReports.Engine
-
-
+Imports Unity
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -1193,6 +1185,8 @@ Public Class AgenciasViewModel
         Try
             DbContext.SaveChanges()
             mensajeError = ""
+            'Catch ex As DbUpdateConcurrencyException
+
         Catch ex As Exception
             If Not IsNothing(ex.InnerException) Then
                 mensajeError = ex.InnerException.Message

@@ -13,6 +13,7 @@ Imports System.Globalization
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
+Imports Unity
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase

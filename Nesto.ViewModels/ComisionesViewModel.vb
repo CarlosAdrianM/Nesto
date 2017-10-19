@@ -2,13 +2,10 @@
 Imports Nesto.Models
 Imports System.ComponentModel
 Imports System.Windows
-Imports System.Windows.Input
 Imports System.Globalization
 Imports Microsoft.Practices.Prism.Commands
 Imports Nesto.Modulos.PedidoVenta
 Imports Microsoft.Practices.Unity
-Imports System.Windows.Data
-'Imports Nesto.Models.Nesto.Models.EF
 
 Public Class ComisionesViewModel
     Inherits Nesto.Contratos.ViewModelBase

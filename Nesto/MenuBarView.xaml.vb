@@ -1,15 +1,12 @@
 ﻿Imports CrystalDecisions.CrystalReports.Engine
 Imports CrystalDecisions.Shared
-Imports System.Data.SqlClient
 Imports System.Data
-'Imports Nesto.ViewModels.MainViewModel
 Imports Nesto.ViewModels
-Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Modularity
 Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
+Imports Microsoft.Practices.Unity
 
 <[Module](ModuleName:="MenuBarView")>
 Public Class MenuBarView
