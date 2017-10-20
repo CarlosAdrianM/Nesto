@@ -18,8 +18,6 @@ Imports System.Transactions
 Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks
-Imports Unity
-Imports System.Data.Entity.Infrastructure
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -66,6 +64,7 @@ Public Class AgenciasViewModel
         Titulo = "Agencias"
 
         ' Prism
+        cmdCargarDatos = New DelegateCommand(AddressOf OnCargarDatos)
         cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
         cmdAgregarReembolsoContabilizar = New DelegateCommand(Of Object)(AddressOf OnAgregarReembolsoContabilizar, AddressOf CanAgregarReembolsoContabilizar)
         cmdRecibirRetorno = New DelegateCommand(Of Object)(AddressOf OnRecibirRetorno, AddressOf CanRecibirRetorno)
@@ -82,29 +81,9 @@ Public Class AgenciasViewModel
 
         factory.Add("ASM", Function() New AgenciaASM(Me))
         factory.Add("OnTime", Function() New AgenciaOnTime(Me))
+    End Sub
 
-        listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
-        empresaSeleccionada = (From e In DbContext.Empresas Where e.Número = empresaDefecto).FirstOrDefault
-        listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
-        agenciaSeleccionada = listaAgencias.FirstOrDefault
-
-        Using ContextoBreve As New NestoEntities
-
-
-            bultos = 1
-            fechaFiltro = Today
-
-            If Not IsNothing(agenciaSeleccionada) Then
-                listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
-            End If
-            envioActual = listaEnvios.LastOrDefault
-            numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
-
-            listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
-            'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
-            listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
-        End Using
-
+    Public Async Sub Cargar()
 
     End Sub
 
@@ -246,30 +225,35 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Empresas)
             SetProperty(_empresaSeleccionada, value)
-            listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
-            If numeroPedido = "" Then
-                agenciaSeleccionada = listaAgencias.FirstOrDefault
-            End If
-            If Not IsNothing(agenciaSeleccionada) Then
-                listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
-                Using ContextoBreve As New NestoEntities
-                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
-                    listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
-                    listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
-                End Using
-            Else
-                listaEnvios = New ObservableCollection(Of EnviosAgencia)
-                listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)
-                listaReembolsos = New ObservableCollection(Of EnviosAgencia)
-                listaRetornos = New ObservableCollection(Of EnviosAgencia)
-            End If
-            listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+            Try
+                listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
+                If numeroPedido = "" Then
+                    agenciaSeleccionada = listaAgencias.FirstOrDefault
+                End If
+                If Not IsNothing(agenciaSeleccionada) Then
+                    listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
+                    Using ContextoBreve As New NestoEntities
+                        listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+                        listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
+                        listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
+                    End Using
+                Else
+                    listaEnvios = New ObservableCollection(Of EnviosAgencia)
+                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)
+                    listaReembolsos = New ObservableCollection(Of EnviosAgencia)
+                    listaRetornos = New ObservableCollection(Of EnviosAgencia)
+                End If
+                listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
 
-            OnPropertyChanged("sumaContabilidad")
-            OnPropertyChanged("descuadreContabilidad")
-            OnPropertyChanged("etiquetaBultosTramitados")
-            'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
-            'una vez actualizadas, seleccionar el pedido o el envío actual también
+                OnPropertyChanged("sumaContabilidad")
+                OnPropertyChanged("descuadreContabilidad")
+                OnPropertyChanged("etiquetaBultosTramitados")
+                'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
+                'una vez actualizadas, seleccionar el pedido o el envío actual también
+            Catch ex As Exception
+                Return
+            End Try
+
         End Set
     End Property
 
@@ -558,42 +542,48 @@ Public Class AgenciasViewModel
         End Get
         Set(value As EnviosAgencia)
             SetProperty(_envioActual, value)
-            estadoEnvioCargado = Nothing
-            mensajeError = ""
-            Dim agenciaEnvio As AgenciasTransporte = Nothing
-            If Not IsNothing(envioActual) AndAlso Not IsNothing(envioActual.Agencia) Then
-                agenciaEnvio = DbContext.AgenciasTransporte.Where(Function(a) a.Numero = envioActual.Agencia).SingleOrDefault
-            End If
 
-            If IsNothing(clienteFiltro) AndAlso Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaEnvio) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Numero <> agenciaEnvio.Numero Then
-                agenciaSeleccionada = agenciaEnvio
-            End If
+            Try
+                estadoEnvioCargado = Nothing
+                mensajeError = ""
+                Dim agenciaEnvio As AgenciasTransporte = Nothing
+                If Not IsNothing(envioActual) AndAlso Not IsNothing(envioActual.Agencia) Then
+                    agenciaEnvio = DbContext.AgenciasTransporte.Where(Function(a) a.Numero = envioActual.Agencia).SingleOrDefault
+                End If
 
-            OnPropertyChanged("agenciaSeleccionada") 'Una vez haya datos (un pedido con dos envios de agencias diferentes), comprobar si se puede quitar esta línea
-            If Not IsNothing(cmdCargarEstado) Then
-                cmdCargarEstado.RaiseCanExecuteChanged()
-            End If
+                If IsNothing(clienteFiltro) AndAlso Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaEnvio) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Numero <> agenciaEnvio.Numero Then
+                    agenciaSeleccionada = agenciaEnvio
+                End If
 
-            If Not IsNothing(envioActual) AndAlso Not IsNothing(listaTiposRetorno) Then
-                reembolsoModificar = envioActual.Reembolso
-                retornoModificar = (From l In listaTiposRetorno Where l.id = envioActual.Retorno).FirstOrDefault
-                estadoModificar = envioActual.Estado
-                fechaEntregaModificar = envioActual.FechaEntrega
-                listaHistoriaEnvio = New ObservableCollection(Of EnviosHistoria)(From h In DbContext.EnviosHistoria Where h.NumeroEnvio = envioActual.Numero)
-            Else
-                listaHistoriaEnvio = Nothing
-            End If
+                OnPropertyChanged("agenciaSeleccionada") 'Una vez haya datos (un pedido con dos envios de agencias diferentes), comprobar si se puede quitar esta línea
+                If Not IsNothing(cmdCargarEstado) Then
+                    cmdCargarEstado.RaiseCanExecuteChanged()
+                End If
 
-            If Not IsNothing(cmdModificarEnvio) Then
-                cmdModificarEnvio.RaiseCanExecuteChanged()
-            End If
+                If Not IsNothing(envioActual) AndAlso Not IsNothing(listaTiposRetorno) Then
+                    reembolsoModificar = envioActual.Reembolso
+                    retornoModificar = (From l In listaTiposRetorno Where l.id = envioActual.Retorno).FirstOrDefault
+                    estadoModificar = envioActual.Estado
+                    fechaEntregaModificar = envioActual.FechaEntrega
+                    listaHistoriaEnvio = New ObservableCollection(Of EnviosHistoria)(From h In DbContext.EnviosHistoria Where h.NumeroEnvio = envioActual.Numero)
+                Else
+                    listaHistoriaEnvio = Nothing
+                End If
 
-            If Not IsNothing(cmdRehusarEnvio) Then
-                cmdRehusarEnvio.RaiseCanExecuteChanged()
-            End If
+                If Not IsNothing(cmdModificarEnvio) Then
+                    cmdModificarEnvio.RaiseCanExecuteChanged()
+                End If
 
-            OnPropertyChanged("sePuedeModificarReembolso")
-            OnPropertyChanged("sePuedeModificarEstado")
+                If Not IsNothing(cmdRehusarEnvio) Then
+                    cmdRehusarEnvio.RaiseCanExecuteChanged()
+                End If
+
+                OnPropertyChanged("sePuedeModificarReembolso")
+                OnPropertyChanged("sePuedeModificarEstado")
+            Catch ex As Exception
+                Return
+            End Try
+
         End Set
     End Property
 
@@ -928,16 +918,20 @@ Public Class AgenciasViewModel
 
     Public ReadOnly Property sumaContabilidad As Double
         Get
-            If Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Empresa = empresaSeleccionada.Número Then
-                Dim suma As Nullable(Of Double) = (Aggregate c In DbContext.Contabilidad Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cuenta = agenciaSeleccionada.CuentaReembolsos Into Sum(CType(c.Debe, Double?) - CType(c.Haber, Double?)))
-                If IsNothing(suma) Then
-                    Return 0
+            Try
+                If Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Empresa = empresaSeleccionada.Número Then
+                    Dim suma As Nullable(Of Double) = (Aggregate c In DbContext.Contabilidad Where c.Empresa = empresaSeleccionada.Número And c.Nº_Cuenta = agenciaSeleccionada.CuentaReembolsos Into Sum(CType(c.Debe, Double?) - CType(c.Haber, Double?)))
+                    If IsNothing(suma) Then
+                        Return 0
+                    Else
+                        Return CType(suma, Double)
+                    End If
                 Else
-                    Return CType(suma, Double)
+                    Return 0
                 End If
-            Else
+            Catch ex As Exception
                 Return 0
-            End If
+            End Try
         End Get
     End Property
 
@@ -1325,6 +1319,50 @@ Public Class AgenciasViewModel
         XMLdeEstado = agenciaEspecifica.cargarEstado(envioActual)
         estadoEnvioCargado = agenciaEspecifica.transformarXMLdeEstado(XMLdeEstado)
         mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
+    End Sub
+
+    Private _cmdCargarDatos As DelegateCommand
+    Public Property cmdCargarDatos As DelegateCommand
+        Get
+            Return _cmdCargarDatos
+        End Get
+        Private Set(value As DelegateCommand)
+            _cmdCargarDatos = value
+        End Set
+    End Property
+    Private Async Sub OnCargarDatos()
+
+
+        Try
+
+                               listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
+                               empresaSeleccionada = (From e In listaEmpresas Where e.Número = empresaDefecto).SingleOrDefault
+
+
+            Await Task.Run(Sub()
+                               listaAgencias = New ObservableCollection(Of AgenciasTransporte)(From c In DbContext.AgenciasTransporte Where c.Empresa = empresaSeleccionada.Número)
+                               agenciaSeleccionada = listaAgencias.FirstOrDefault
+                               Using ContextoBreve As New NestoEntities
+
+
+                                   bultos = 1
+                                   fechaFiltro = Today
+
+                                   If Not IsNothing(agenciaSeleccionada) Then
+                                       listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
+                                   End If
+                                   envioActual = listaEnvios.LastOrDefault
+                                   numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
+
+                                   listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
+                                   'listaReembolsos = New ObservableCollection(Of EnviosAgencia)
+                                   listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+                               End Using
+                           End Sub)
+        Catch ex As Exception
+            Throw ex
+        End Try
+
     End Sub
 
     Private _cmdAgregarReembolsoContabilizar As DelegateCommand(Of Object)

@@ -3,7 +3,6 @@ Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
 Imports Prism.RibbonRegionAdapter
-Imports Unity
 
 Public Class Rapports
     Implements IModule, IRapports

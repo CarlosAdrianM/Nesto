@@ -83,7 +83,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 }
                 catch (Exception ex)
                 {
-                    throw;
+                    throw ex;
                 }
             }
 
@@ -102,7 +102,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 }
                 catch (Exception ex)
                 {
-                    throw;
+                    throw ex;
                 }
             }
 
@@ -121,7 +121,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 }
                 catch (Exception ex)
                 {
-                    throw;
+                    throw ex;
                 }
             }
 

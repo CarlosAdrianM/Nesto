@@ -156,3 +156,7 @@ $RECYCLE.BIN/
 .DS_Store
 /Nesto/clavesSecretas.config
 /CanalesExternos/ApisExternas/MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_
+/.vs/Nesto/v15/Server/sqlite3
+/.vs/Nesto/v15/sqlite3/db.lock
+/.vs/Nesto/v15/sqlite3/storage.ide-shm
+/.vs/Nesto/v15/sqlite3/storage.ide-wal

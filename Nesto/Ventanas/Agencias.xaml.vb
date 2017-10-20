@@ -1,4 +1,5 @@
-﻿Imports Nesto.ViewModels
+﻿Imports System.Threading.Tasks
+Imports Nesto.ViewModels
 
 Public Class Agencias
 
@@ -41,5 +42,9 @@ Public Class Agencias
         InitializeComponent()
 
         Me.DataContext = viewModel
+    End Sub
+
+    Private Async Sub Agencias_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+        Await CType(Me.DataContext, AgenciasViewModel).cmdCargarDatos.Execute()
     End Sub
 End Class
