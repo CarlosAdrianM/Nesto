@@ -17,6 +17,15 @@ namespace Nesto.Modulos.CanalesExternos
     public class CanalExternoPedidosPrestashopNuevaVision : ICanalExternoPedidos
     {
         private IConfiguracion configuracion;
+        const string EMPRESA_DEFECTO = "1";
+        Clientes CLIENTE_TIENDA_ONLINE = new Clientes {
+            Nº_Cliente = "31517",
+            Contacto = "0",
+            ContactoCobro = "0",
+            Vendedor = "NV",
+            IVA = null
+        };
+
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)
         {
             this.configuracion = configuracion;
@@ -41,14 +50,15 @@ namespace Nesto.Modulos.CanalesExternos
         {
             PedidoVentaDTO pedidoSalida = new PedidoVentaDTO();
 
-            pedidoSalida.empresa = "1";
-            pedidoSalida.origen = "1";
-            pedidoSalida.cliente = "31517";
-            pedidoSalida.contacto = "0";
-            pedidoSalida.contactoCobro = "0";
-            pedidoSalida.vendedor = "NV";
+            pedidoSalida.empresa = EMPRESA_DEFECTO;
+            pedidoSalida.origen = EMPRESA_DEFECTO;
+            Clientes cliente = BuscarCliente(pedidoEntrada.Direccion.Element("dni")?.Value);
+            pedidoSalida.cliente = cliente.Nº_Cliente;
+            pedidoSalida.contacto = cliente.ContactoDefecto;
+            pedidoSalida.contactoCobro = cliente.ContactoCobro;
+            pedidoSalida.vendedor = cliente.Vendedor;
 
-            pedidoSalida.iva = null;
+            pedidoSalida.iva = cliente.IVA;
             pedidoSalida.comentarios = pedidoEntrada.Pedido.Element("reference").Value + " \r\n";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("firstname").Value.ToString().ToUpper() + " ";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("lastname").Value.ToString().ToUpper() + "\r\n";
@@ -105,6 +115,12 @@ namespace Nesto.Modulos.CanalesExternos
                     tipoLinea = 1, // producto
                     usuario = configuracion.usuario
                 };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaNesto.precio = lineaNesto.precio / (decimal)1.21;
+                }
+
                 pedidoSalida.LineasPedido.Add(lineaNesto);
             }
 
@@ -127,6 +143,12 @@ namespace Nesto.Modulos.CanalesExternos
                     tipoLinea = 2, // cuenta contable
                     usuario = configuracion.usuario
                 };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaPortes.precio = lineaPortes.precio / (decimal)1.21;
+                }
+
                 pedidoSalida.LineasPedido.Add(lineaPortes);
             }
 
@@ -153,6 +175,25 @@ namespace Nesto.Modulos.CanalesExternos
             }
             
             return pedidoSalida;
+        }
+
+        private Clientes BuscarCliente(string dniCliente)
+        {
+            if (dniCliente == null || dniCliente.Trim() == "")
+            {
+                return CLIENTE_TIENDA_ONLINE;
+            }
+
+            using (NestoEntities db = new NestoEntities())
+            {
+                Clientes clienteEncontrado = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Contains(dniCliente)).SingleOrDefault();
+                if (clienteEncontrado != null)
+                {
+                    return clienteEncontrado;
+                }
+            }
+
+            return CLIENTE_TIENDA_ONLINE;          
         }
 
         public PedidoVentaDTO GetPedido(int Id)
