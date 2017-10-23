@@ -11,6 +11,7 @@ using System.Xml.Linq;
 using System.Globalization;
 using System.Xml;
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -179,6 +180,7 @@ namespace Nesto.Modulos.CanalesExternos
 
         private Clientes BuscarCliente(string dniCliente)
         {
+            dniCliente = LimpiarDni(dniCliente);
             if (dniCliente == null || dniCliente.Trim() == "")
             {
                 return CLIENTE_TIENDA_ONLINE;
@@ -194,6 +196,18 @@ namespace Nesto.Modulos.CanalesExternos
             }
 
             return CLIENTE_TIENDA_ONLINE;          
+        }
+
+        public string LimpiarDni(string dniCliente)
+        {
+            if (dniCliente == null)
+            {
+                return "";
+            }
+            dniCliente = dniCliente.Trim();
+            dniCliente = Regex.Replace(dniCliente, @"[^0-9A-Za-z]", "", RegexOptions.None);
+            dniCliente = dniCliente.TrimStart('0');
+            return dniCliente;
         }
 
         public PedidoVentaDTO GetPedido(int Id)
