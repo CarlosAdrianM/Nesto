@@ -481,7 +481,7 @@ namespace ControlesUsuario
                         await buscarClientes();
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await buscarClientes();
                 }

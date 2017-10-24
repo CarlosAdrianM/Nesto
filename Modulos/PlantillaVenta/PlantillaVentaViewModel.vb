@@ -1,7 +1,6 @@
 ﻿Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Mvvm
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports System.Net.Http
 Imports System.Collections.ObjectModel
@@ -13,7 +12,6 @@ Imports System.Globalization
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
-Imports Unity
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase

@@ -4,7 +4,6 @@ Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Prism.RibbonRegionAdapter
 Imports System.Globalization
-Imports Unity
 
 Public Class PlantillaVenta
     Implements IModule, IPlantillaVenta

@@ -1,17 +1,11 @@
-﻿Imports System.Collections.ObjectModel
-Imports System.Collections.Specialized
-Imports System.ComponentModel
-Imports System.Net.Http
+﻿Imports System.Net.Http
 Imports System.Text
 Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
-Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
-Imports Unity
 
 Public Class PedidoVentaViewModel
     Inherits ViewModelBase

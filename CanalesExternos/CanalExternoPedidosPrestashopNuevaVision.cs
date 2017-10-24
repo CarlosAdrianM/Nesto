@@ -1,15 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Nesto.Models;
 using Nesto.Modulos.CanalesExternos.ApisExternas;
 using static Nesto.Models.PedidoVenta;
 using Nesto.Contratos;
-using System.Xml.Linq;
-using System.Globalization;
-using System.Xml;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 
@@ -22,6 +17,7 @@ namespace Nesto.Modulos.CanalesExternos
         Clientes CLIENTE_TIENDA_ONLINE = new Clientes {
             Nº_Cliente = "31517",
             Contacto = "0",
+            ContactoDefecto = "0",
             ContactoCobro = "0",
             Vendedor = "NV",
             IVA = null
