@@ -1,30 +1,23 @@
-﻿Imports System.Text
-Imports Microsoft.VisualStudio.TestTools.UnitTesting
-Imports Nesto.ViewModels
-Imports Nesto.Models
-Imports Microsoft.Practices.Unity
+﻿Imports Nesto.ViewModels
 Imports Microsoft.Practices.Prism.Regions
+Imports FakeItEasy
+Imports Microsoft.Practices.Unity
+Imports System.Windows.Controls
+Imports Nesto.Models
+Imports System.ComponentModel
 
 <TestClass()>
-Public Class cuandoInsertamosUnEnvio
-
-    Dim agenciaVM As New AgenciasViewModel
-    Private Shared DbContext As New NestoEntities
-
-    Private testContextInstance As TestContext
+Public Class AgenciaViewModelTests
+    Private viewModel As AgenciasViewModel
 
     '''<summary>
     '''Obtiene o establece el contexto de las pruebas que proporciona
     '''información y funcionalidad para la serie de pruebas actual.
     '''</summary>
-    Public Property TestContext() As TestContext
-        Get
-            Return testContextInstance
-        End Get
-        Set(ByVal value As TestContext)
-            testContextInstance = value
-        End Set
-    End Property
+    Private container As IUnityContainer
+    Private regionManager As IRegionManager
+    Private servicio As IAgenciaService
+    Private context As NestoEntities
 
 #Region "Atributos de prueba adicionales"
     '
@@ -47,422 +40,299 @@ Public Class cuandoInsertamosUnEnvio
     ' End Sub
     '
 #End Region
-
-    '<TestMethod()>
-    'Public Sub debeDevolverUnValorAlXMLdeEntrada()
-    '    'arrange
-    '    agenciaVM.agenciaSeleccionada = New AgenciasTransporte With {.Empresa = "1", .Numero = "1", .Identificador = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11", .Nombre = "ASM"}
-    '    agenciaVM.empresaSeleccionada = New Empresas With {.Número = "95", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
-    '    agenciaVM.pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = 545861).FirstOrDefault
-    '    'error con el 561369 y 545860
-    '    'act
-    '    agenciaVM.llamadaWebService()
-    '    'assert
-    '    Debug.Print(agenciaVM.XMLdeSalida.ToString)
-    '    Debug.Print(agenciaVM.XMLdeEntrada.ToString)
-    '    Assert.IsFalse(IsNothing(agenciaVM.XMLdeEntrada))
-    'End Sub
+    <TestInitialize()>
+    Public Sub Initialize()
+        container = A.Fake(Of IUnityContainer)
+        regionManager = A.Fake(Of RegionManager)
+        servicio = A.Fake(Of IAgenciaService)
+        context = A.Fake(Of NestoEntities)
+        viewModel = Nothing
+    End Sub
 
     <TestMethod()>
-    Public Sub elDigitoControlEsCorrecto()
+    Public Sub AgenciaViewModel_AlCalcularElDigitoDeControl_DevuelveElDigitoControlCorrecto()
         'arrange
-
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
         'act
 
         'assert
-        Assert.IsTrue(agenciaVM.calcularDigitoControl("21005190520534001") = 2)
-        Assert.IsTrue(agenciaVM.calcularDigitoControl("61771001461814001") = 0)
-        Assert.IsTrue(agenciaVM.calcularDigitoControl("61771001461814002") = 7)
+        Assert.IsTrue(viewModel.calcularDigitoControl("21005190520534001") = 2)
+        Assert.IsTrue(viewModel.calcularDigitoControl("61771001461814001") = 0)
+        Assert.IsTrue(viewModel.calcularDigitoControl("61771001461814002") = 7)
     End Sub
 
-    '<TestMethod()>
-    'Public Sub debemosPoderImprimirEtiquetas()
-    '    'arrange
-    '    agenciaVM.empresaSeleccionada = New Empresas With {.Número = "1", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
-    '    agenciaVM.pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = 561371).FirstOrDefault
-    '    agenciaVM.bultos = 2
-    '    'act
-    '    agenciaVM.cmdImprimirEtiquetaPedido.Execute(Nothing)
-    '    'assert
-    '    Assert.IsTrue(True)
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlSeleccionarTabPendientes_ListaPendientesNoPuedeSerNulo()
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+        Assert.IsNotNull(viewModel.listaPendientes)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlSeleccionarTabPendientes_ElContextoPendientesNoPuedeSerNulo()
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+        Assert.IsNotNull(viewModel.contextPendientes)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_SiHayEtiquetasPendientesAlSeleccionarLaTabPendientes_ListaPendientesTieneAlgunRegistro()
+        CrearViewModelConUnEnvioEnLaLista()
+
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+        Assert.AreEqual(1, viewModel.listaPendientes.Count)
+        A.CallTo(Function() servicio.CargarListaPendientes(A(Of NestoEntities).Ignored)).MustHaveHappened(Repeated.Exactly.Once)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_SiHayEtiquetasPendientesAlSeleccionarLaTabPendientes_EnvioPendienteSeleccionadoNoEsNull()
+        CrearViewModelConUnEnvioEnLaLista()
+
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+        Assert.IsNotNull(viewModel.EnvioPendienteSeleccionado)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_SiHayEtiquetasPendientesAntesDeSeleccionarLaTabPendientes_ListaPendientesEstaVacia()
+        Dim envio = A.Fake(Of EnviosAgencia)
+        Dim lista = New List(Of EnviosAgencia) From {
+            envio
+        }
+        A.CallTo(Function() servicio.CargarListaPendientes(context)).Returns(lista)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+
+        Assert.AreEqual(0, viewModel.listaPendientes.Count)
+    End Sub
+
+    ' seleccionar pestaña pendientes se desactiva la combo de agencias, porque tratamos todos juntos
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_SiNoHayEnvioSeleccionado_ElBotonGuardarEstaInactivo()
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+        viewModel.EnvioPendienteSeleccionado = Nothing
+
+        Assert.IsFalse(viewModel.BorrarEnvioPendienteCommand.CanExecute)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_SiHayEnvioSeleccionado_ElBotonGuardarEstaActivo()
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+        viewModel.EnvioPendienteSeleccionado = A.Fake(Of EnviosAgencia)
+
+        Assert.IsTrue(viewModel.BorrarEnvioPendienteCommand.CanExecute)
+    End Sub
+
+    '<TestMethod>
+    'Public Sub AgenciaViewModel_SiNoHayCambiosSinGuardar_ElBotonGuardarEstaInactivo()
+    '    CrearViewModelConUnEnvioEnLaLista()
+    '    viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+    '    Assert.IsFalse(viewModel.GuardarEnvioPendienteCommand.CanExecute)
     'End Sub
 
-    '<TestMethod()>
-    'Public Sub debemosPoderInsertarEnvios()
-    '    agenciaVM.empresaSeleccionada = New Empresas With {.Número = "1", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
-    '    agenciaVM.pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = 562142).FirstOrDefault
-    '    agenciaVM.agenciaSeleccionada = New AgenciasTransporte With {.Empresa = "1", .Numero = "1", .Identificador = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11", .Nombre = "ASM"}
-    '    agenciaVM.bultos = 2
-    '    'act
-    '    agenciaVM.cmdInsertar.Execute(Nothing)
-    '    'agenciaVM.cmdImprimirEtiquetaPedido.Execute(Nothing)
-    '    'assert
-    '    Assert.IsTrue(True)
+    '<TestMethod>
+    'Public Sub AgenciaViewModel_SiHayCambiosSinGuardar_ElBotonGuardarEstaActivo()
+    '    CrearViewModelConUnEnvioEnLaLista()
+    '    viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+    '    Assert.IsTrue(viewModel.GuardarEnvioPendienteCommand.CanExecute)
     'End Sub
+
+    '<TestMethod>
+    'Public Sub AgenciaViewModel_AlSeleccionarLaTabPendientes_ElBotonInsertarEstaActivo()
+    '    CrearViewModelConUnEnvioEnLaLista()
+
+    '    viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+    '    Assert.IsTrue(viewModel.InsertarEnvioPendienteCommand.CanExecute)
+    'End Sub
+
+    '<TestMethod>
+    'Public Sub AgenciaViewModel_SiHayCambiosSinGuardar_ElBotonInsertarEstaInactivo()
+    '    CrearViewModelConUnEnvioEnLaLista()
+    '    viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+    '    viewModel.EnvioPendienteSeleccionado.Nombre = "Carlos"
+
+    '    Assert.IsFalse(viewModel.InsertarEnvioPendienteCommand.CanExecute)
+    'End Sub
+
+    ' si se modifica alguna propiedad de EnvioPendienteSeleccionado hay que raise el guardar e insertar 
+
+    <TestMethod>
+    Public Sub AgenciasViewModel_AlInsertar_TenemosUnEnvioMas()
+        CrearViewModelConUnEnvioEnLaLista()
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+        viewModel.InsertarEnvioPendienteCommand.Execute()
+
+        Assert.AreEqual(2, viewModel.listaPendientes.Count)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlInsertar_ElNuevoEnvioEstaEnPendientes()
+        CrearViewModelConUnEnvioEnLaLista()
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+        viewModel.InsertarEnvioPendienteCommand.Execute()
+
+        Assert.AreEqual(CType(-1, Short), viewModel.EnvioPendienteSeleccionado.Estado)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlInsertar_HayUnaLlamadaPropertyChangeDeInsertar()
+        CrearViewModelConUnEnvioEnLaLista()
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+        Dim ejecutado As Boolean = False
+        Dim seHaEjecutado = Sub()
+                                ejecutado = True
+                            End Sub
+        AddHandler viewModel.InsertarEnvioPendienteCommand.CanExecuteChanged, seHaEjecutado
+
+        viewModel.InsertarEnvioPendienteCommand.Execute()
+
+        Assert.IsTrue(ejecutado)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_CuandoNoHayEnvioPendienteSeleccionado_LosCamposDeLaTabPendientesEstanInactivos()
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+        viewModel.EnvioPendienteSeleccionado = Nothing
+
+        Assert.IsFalse(viewModel.HayUnEnvioPendienteSeleccionado)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_CuandoCambiaEnvioPendienteSeleccionado_SeActualizaHayUnEnvioPendienteSeleccionado()
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+        Dim ejecutado As Boolean = False
+        Dim seHaEjecutado = Sub(s, e)
+                                If e.PropertyName = "HayUnEnvioPendienteSeleccionado" Then
+                                    ejecutado = True
+                                End If
+                            End Sub
+        AddHandler viewModel.PropertyChanged, seHaEjecutado
+        viewModel.EnvioPendienteSeleccionado = Nothing
+
+        Assert.IsTrue(ejecutado)
+    End Sub
+
+    ' Otra forma más elegante de hacer lo mismo que en AgenciaViewModel_AlInsertar_HayUnaLlamadaPropertyChangeDeInsertar
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlInsertar_HayUnaLlamadaPropertyChangeDeBorrar()
+        CrearViewModelConUnEnvioEnLaLista()
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+        Dim handler = A.Fake(Of EventHandler)
+        AddHandler viewModel.BorrarEnvioPendienteCommand.CanExecuteChanged, handler
+
+        viewModel.InsertarEnvioPendienteCommand.Execute()
+
+        A.CallTo(Sub() handler.Invoke(A(Of Object).Ignored, A(Of EventArgs).Ignored)).MustHaveHappened(Repeated.Exactly.Once)
+    End Sub
+
+    '<TestMethod>
+    'Public Sub AgenciaViewModel_AlModificarAlgunaPropiedadDelEnvioPendienteSeleccionado_HayUnaLlamadaPropertyChangeDeBorrar()
+    '    CrearViewModelConUnEnvioEnLaLista()
+    '    viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+    '    Dim handler = A.Fake(Of PropertyChangedEventHandler)
+    '    AddHandler viewModel.EnvioPendienteSeleccionado.PropertyChanged, handler
+
+    '    viewModel.EnvioPendienteSeleccionado.Nombre = "Carlos"
+    '    viewModel.EnvioPendienteSeleccionado.Fecha = New DateTime(2017, 10, 26)
+    '    viewModel.EnvioPendienteSeleccionado.Horario = 2
+
+    '    A.CallTo(Sub() handler.Invoke(A(Of Object).Ignored, A(Of EventArgs).Ignored)).MustHaveHappened(Repeated.Exactly.Times(3))
+    'End Sub
+
+
+    '<TestMethod>
+    'Public Sub AgenciaViewModel_AlBorrar_HayUnaLlamadaPropertyChangeDeInsertar()
+    '    CrearViewModelConUnEnvioEnLaLista()
+    '    viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+    '    Dim handler = A.Fake(Of EventHandler)
+    '    AddHandler viewModel.InsertarEnvioPendienteCommand.CanExecuteChanged, handler
+
+    '    viewModel.BorrarEnvioPendienteCommand.Execute()
+
+    '    A.CallTo(Sub() handler.Invoke(A(Of Object).Ignored, A(Of EventArgs).Ignored)).MustHaveHappened(Repeated.Exactly.Once)
+    'End Sub
+
+    '<TestMethod>
+    'Public Sub AgenciaViewModel_AlBorrar_HayUnaLlamadaPropertyChangeDeBorrar()
+    '    CrearViewModelConUnEnvioEnLaLista()
+    '    viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+    '    Dim handler = A.Fake(Of EventHandler)
+    '    AddHandler viewModel.BorrarEnvioPendienteCommand.CanExecuteChanged, handler
+
+    '    viewModel.BorrarEnvioPendienteCommand.Execute()
+
+    '    A.CallTo(Sub() handler.Invoke(A(Of Object).Ignored, A(Of EventArgs).Ignored)).MustHaveHappened(Repeated.Exactly.Once)
+    'End Sub
+
+    '<TestMethod>
+    'Public Sub AgenciaViewModel_AlBorrar_TenemosUnEnvioMenos()
+    '    CrearViewModelConUnEnvioEnLaLista()
+    '    viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+    '    viewModel.BorrarEnvioPendienteCommand.Execute()
+
+    '    Assert.AreEqual(0, viewModel.listaPendientes.Count)
+    'End Sub
+
+
+    ' al imprimir etiqueta busca si hay etiqueta pendiente antes de crear una nueva
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_SiHayBorrarEnvioPendienteNoQuedanMas_EnvioPendienteSeleccionadoTieneQueSerNulo()
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+        viewModel.InsertarEnvioPendienteCommand.Execute()
+        viewModel.BorrarEnvioPendienteCommand.Execute()
+
+        Assert.IsNull(viewModel.EnvioPendienteSeleccionado)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_SiHayUnEnvioPendienteSeleccionado_BorrarCommandEstaActivo()
+        CrearViewModelConUnEnvioEnLaLista()
+        Dim ejecutado As Boolean = False
+        Dim seHaEjecutado = Sub()
+                                ejecutado = True
+                            End Sub
+        AddHandler viewModel.BorrarEnvioPendienteCommand.CanExecuteChanged, seHaEjecutado
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
+
+        Assert.IsTrue(viewModel.BorrarEnvioPendienteCommand.CanExecute)
+        Assert.IsTrue(ejecutado)
+    End Sub
+
+
+
+    Private Sub CrearViewModelConUnEnvioEnLaLista()
+        Dim envio = A.Fake(Of EnviosAgencia)
+        Dim lista = New List(Of EnviosAgencia) From {
+            envio
+        }
+        A.CallTo(Function() servicio.CargarListaPendientes(A(Of NestoEntities).Ignored)).Returns(lista)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel.cmdCargarDatos.Execute()
+    End Sub
+
 
 End Class
 
-'<TestClass()>
-'Public Class cuandoCargamosElModelo
-'    Dim container As IUnityContainer
-'    Dim regionManager As IRegionManager
-'    Dim agenciaVM As New AgenciasViewModel(container, regionManager)
-
-
-'    Private testContextInstance As TestContext
-
-'    '''<summary>
-'    '''Obtiene o establece el contexto de las pruebas que proporciona
-'    '''información y funcionalidad para la serie de pruebas actual.
-'    '''</summary>
-'    Public Property TestContext() As TestContext
-'        Get
-'            Return testContextInstance
-'        End Get
-'        Set(ByVal value As TestContext)
-'            testContextInstance = value
-'        End Set
-'    End Property
-
-'#Region "Atributos de prueba adicionales"
-'    '
-'    ' Puede usar los siguientes atributos adicionales conforme escribe las pruebas:
-'    '
-'    ' Use ClassInitialize para ejecutar el código antes de ejecutar la primera prueba en la clase
-'    ' <ClassInitialize()> Public Shared Sub MyClassInitialize(ByVal testContext As TestContext)
-'    ' End Sub
-'    '
-'    ' Use ClassCleanup para ejecutar el código después de haberse ejecutado todas las pruebas en una clase
-'    ' <ClassCleanup()> Public Shared Sub MyClassCleanup()
-'    ' End Sub
-'    '
-'    ' Usar TestInitialize para ejecutar el código antes de ejecutar cada prueba
-'    ' <TestInitialize()> Public Sub MyTestInitialize()
-'    ' End Sub
-'    '
-'    ' Use TestCleanup para ejecutar el código una vez ejecutadas todas las pruebas
-'    ' <TestCleanup()> Public Sub MyTestCleanup()
-'    ' End Sub
-'    '
-'#End Region
-'    <TestMethod()>
-'    Public Sub laListaDeAgenciasNoPuedeEstarVacia()
-'        'arrange
-
-'        'act
-
-'        'assert
-'        Assert.IsFalse(agenciaVM.listaAgencias.Count = 0)
-'    End Sub
-
-
-
-'End Class
-
-'<TestClass()>
-'Public Class cuandoCogemosLosTelefonos
-'    Dim agenciaVM As New AgenciasViewModel
-
-'    <TestMethod()>
-'    Public Sub tieneQueDevolverUnTelefono()
-'        Dim listaTelefonos As String
-'        'act
-'        listaTelefonos = "123456789/911234567/666123456"
-'        'assert
-'        Assert.IsTrue(agenciaVM.telefonoUnico(listaTelefonos) <> "")
-'    End Sub
-
-'    <TestMethod()>
-'    Public Sub siPasamosVariosTieneQueDevolverUnoSolo()
-'        Dim listaTelefonos As String
-'        'act
-'        listaTelefonos = "123456789/911234567/666123456"
-'        'assert
-'        Assert.IsTrue(agenciaVM.telefonoUnico(listaTelefonos).Length = 9)
-'    End Sub
-
-'    <TestMethod()>
-'    Public Sub elFijoDebeEmpezarPorNueve()
-'        'arrange
-'        Dim listaTelefonos As String
-'        'act
-'        listaTelefonos = "123456789/911234567/666123456"
-'        'assert
-'        Assert.IsTrue(agenciaVM.telefonoUnico(listaTelefonos, "F").Substring(0, 1) = "9")
-'    End Sub
-
-'    <TestMethod()>
-'    Public Sub elMovilDebeEmpezarPorSeisSieteUOcho()
-'        Dim listaTelefonos As String
-'        'act
-'        listaTelefonos = "123456789/911234567/666123456"
-'        'assert
-'        Assert.IsTrue(agenciaVM.telefonoUnico(listaTelefonos, "M").Substring(0, 1) = "6" _
-'            Or agenciaVM.telefonoUnico(listaTelefonos, "M").Substring(0, 1) = "7" _
-'            Or agenciaVM.telefonoUnico(listaTelefonos, "M").Substring(0, 1) = "8")
-'    End Sub
-
-'    <TestMethod()>
-'    Public Sub siNoHayNingunoDelTipoSolicitadoDevolveraCadenaVacia()
-'        'arrange
-'        Dim listaTelefonos As String
-'        'act
-'        listaTelefonos = "666123456"
-'        'assert
-'        Assert.IsTrue(agenciaVM.telefonoUnico(listaTelefonos, "F") = "")
-'    End Sub
-
-'    <TestMethod()>
-'    Public Sub siUnTelefonoNoTieneLaLongitudValidaNoLoDevuelve()
-'        'arrange
-'        Dim listaTelefonos As String
-'        'act
-'        listaTelefonos = "66612345/911234567/611234567"
-'        'assert
-'        Assert.IsTrue(agenciaVM.telefonoUnico(listaTelefonos, "M") = "611234567")
-'    End Sub
-
-
-'End Class
-
-'<TestClass()>
-'Public Class cuandoCogemosLosCorreos
-'    Dim agenciaVM As New AgenciasViewModel
-'    Private Shared DbContext As New NestoEntities
-
-
-'    <TestMethod()>
-'    Public Sub debeDevolverUnoDeLosCorreos()
-'        'arrange
-'        Dim listaPersonas As New List(Of PersonasContactoCliente)
-'        'act
-'        listaPersonas.Add(New PersonasContactoCliente With {.CorreoElectrónico = "pepito@pepito.com", .Cargo = 5})
-'        'assert
-'        Assert.IsTrue(agenciaVM.correoUnico(listaPersonas) = "pepito@pepito.com")
-'    End Sub
-
-'    <TestMethod()>
-'    Public Sub siHayUnoDeAgenciasDebeDevolverEse()
-'        'arrange
-'        Dim listaPersonas As New List(Of PersonasContactoCliente)
-'        'act
-'        listaPersonas.Add(New PersonasContactoCliente With {.CorreoElectrónico = "pepito@pepito.com", .Cargo = 1})
-'        listaPersonas.Add(New PersonasContactoCliente With {.CorreoElectrónico = "fulanito@fulanito.com", .Cargo = 26})
-'        'assert
-'        Assert.IsTrue(agenciaVM.correoUnico(listaPersonas) = "fulanito@fulanito.com")
-'    End Sub
-
-'    <TestMethod()>
-'    Public Sub siNoHayPersonasDebeDevolverCadenaVacia()
-'        'arrange
-'        Dim listaPersonas As New List(Of PersonasContactoCliente)
-'        'act
-'        'assert
-'        Assert.IsTrue(agenciaVM.correoUnico(listaPersonas) = "")
-'    End Sub
-
-'    <TestMethod()>
-'    Public Sub debeDevolverElCorreoCorrecto()
-'        'arrange
-'        Dim cliente As Clientes
-'        cliente = (From c In DbContext.Clientes Where c.Empresa = "1" And c.Nº_Cliente = "17036" And c.Contacto = "0").FirstOrDefault
-'        'act
-
-'        'assert
-'        Assert.IsTrue(agenciaVM.correoUnico(cliente.PersonasContactoCliente.ToList) = "analoma@telefonica.net")
-'    End Sub
-
-
-'End Class
-
-'<TestClass()>
-'Public Class cuandoImprimimosLaEtiqueta
-'    Dim container As IUnityContainer
-'    Dim regionManager As IRegionManager
-'    Dim agenciaVM As New AgenciasViewModel(container, regionManager)
-'    Private Shared DbContext As New NestoEntities
-
-
-
-'    '<TestMethod()>
-'    'Public Sub debeGuardarElRegistroEnLaBBDD()
-'    '    'arrange
-'    '    agenciaVM.empresaSeleccionada = New Empresas With {.Número = "1", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
-'    '    agenciaVM.pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = 561372).FirstOrDefault
-'    '    agenciaVM.agenciaSeleccionada = New AgenciasTransporte With {.Empresa = "1", .Numero = "1", .Identificador = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11", .Nombre = "ASM", .PrefijoCodigoBarras = "6112979"}
-'    '    agenciaVM.bultos = 2
-'    '    'act
-'    '    'agenciaVM.cmdImprimirEtiquetaPedido.Execute(Nothing)
-'    '    agenciaVM.insertarRegistro()
-'    '    'assert
-'    '    Assert.IsTrue(agenciaVM.envioActual.CodigoBarras = "61129790561372")
-'    '    Assert.IsTrue(agenciaVM.envioActual.Nemonico = "A63")
-'    '    Assert.IsTrue(agenciaVM.envioActual.NombrePlaza = "RETIRO 797")
-'    '    Assert.IsTrue(agenciaVM.envioActual.TelefonoPlaza = "915744174")
-'    '    Assert.IsTrue(agenciaVM.envioActual.EmailPlaza = "asm.retiro@asmred.com")
-'    'End Sub
-
-'    '<TestMethod()>
-'    'Public Sub debeGuardarElRegistroEnLaBBDD2()
-'    '    'arrange
-'    '    agenciaVM.empresaSeleccionada = New Empresas With {.Número = "1", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com"}
-'    '    agenciaVM.pedidoSeleccionado = (From c In DbContext.CabPedidoVta Where c.Número = 563148).FirstOrDefault
-'    '    agenciaVM.agenciaSeleccionada = New AgenciasTransporte With {.Empresa = "1", .Numero = "1", .Identificador = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11", .Nombre = "ASM", .PrefijoCodigoBarras = "6112979"}
-'    '    agenciaVM.bultos = 2
-'    '    'act
-'    '    'agenciaVM.cmdImprimirEtiquetaPedido.Execute(Nothing)
-'    '    agenciaVM.insertarRegistro()
-'    '    'assert
-'    '    Assert.IsTrue(agenciaVM.envioActual.CodigoBarras = "61129790563148")
-'    '    'Assert.IsTrue(agenciaVM.envioActual.Nemonico = "A42")
-'    '    'Assert.IsTrue(agenciaVM.envioActual.NombrePlaza = "ASM NAVALCARNERO")
-'    '    'Assert.IsTrue(agenciaVM.envioActual.TelefonoPlaza = "918134517")
-'    '    'Assert.IsTrue(agenciaVM.envioActual.EmailPlaza = "asm.703@asmred.es")
-'    'End Sub
-
-'    <TestMethod()>
-'    Public Sub debeBuscarElMultiusuario()
-'        'arrange
-'        agenciaVM.empresaSeleccionada = New Empresas With {.Número = "1", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
-'        'agenciaVM.empresaSeleccionada = DbContext.Empresas.Where(Function(e) e.Número = "1  ").FirstOrDefault
-'        'Debug.Print(agenciaVM.ToString)
-'        'agenciaVM.agenciaSeleccionada = New AgenciasTransporte With {.Empresa = "1", .Numero = "1", .Identificador = "6BAB7A53-3B6D-4D5A-9450-702D2FAC0B11", .Nombre = "ASM", .PrefijoCodigoBarras = "6112979"}
-
-'        agenciaVM.numeroMultiusuario = 25
-'        'act
-
-'        'assert
-'        Assert.IsTrue(True) 'agenciaVM.multiusuario.Nombre.Trim = "Pedro Jurado")
-'    End Sub
-'End Class
-
-'<TestClass()>
-'Public Class cuandoCambiamosElNumeroDePedido
-'    Dim container As IUnityContainer
-'    Dim regionManager As IRegionManager
-'    Dim agenciaVM As New AgenciasViewModel(container, regionManager)
-'    Private Shared DbContext As New NestoEntities
-'    <TestMethod()>
-'    Public Sub debeBuscarElPedido()
-'        'arrange
-'        agenciaVM.empresaSeleccionada = New Empresas With {.Número = "1", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
-'        agenciaVM.numeroPedido = 523418
-'        'act
-
-'        'assert
-'        Assert.IsTrue(agenciaVM.direccionEnvio = "Pª DEL PIREO Nº6")
-'    End Sub
-
-
-'End Class
-
-'<TestClass()>
-'Public Class cuandoContabilizamosElReembolso
-'    Dim agenciaVM As New AgenciasViewModel
-'    Dim dbContext As New NestoEntities
-'    Private testContextInstance As TestContext
-
-'    '''<summary>
-'    '''Obtiene o establece el contexto de las pruebas que proporciona
-'    '''información y funcionalidad para la serie de pruebas actual.
-'    '''</summary>
-'    Public Property TestContext() As TestContext
-'        Get
-'            Return testContextInstance
-'        End Get
-'        Set(ByVal value As TestContext)
-'            testContextInstance = value
-'        End Set
-'    End Property
-
-'#Region "Atributos de prueba adicionales"
-'    '
-'    ' Puede usar los siguientes atributos adicionales conforme escribe las pruebas:
-'    '
-'    ' Use ClassInitialize para ejecutar el código antes de ejecutar la primera prueba en la clase
-'    ' <ClassInitialize()> Public Shared Sub MyClassInitialize(ByVal testContext As TestContext)
-'    ' End Sub
-'    '
-'    ' Use ClassCleanup para ejecutar el código después de haberse ejecutado todas las pruebas en una clase
-'    ' <ClassCleanup()> Public Shared Sub MyClassCleanup()
-'    ' End Sub
-'    '
-'    ' Usar TestInitialize para ejecutar el código antes de ejecutar cada prueba
-'    ' <TestInitialize()> Public Sub MyTestInitialize()
-'    ' End Sub
-'    '
-'    ' Use TestCleanup para ejecutar el código una vez ejecutadas todas las pruebas
-'    ' <TestCleanup()> Public Sub MyTestCleanup()
-'    ' End Sub
-'    '
-'#End Region
-
-'    '<TestMethod()>
-'    'Public Sub debeContabilizarElReembolso()
-'    '    'arrange
-'    '    Dim asiento As Integer
-'    '    agenciaVM.envioActual = (From c In dbContext.EnviosAgencia Where c.Empresa = "1" And c.Numero = 195).FirstOrDefault
-'    '    'act Lo comento porque podría contabilizar
-'    '    asiento = agenciaVM.contabilizarReembolso(agenciaVM.envioActual)
-'    '    'assert
-'    '    Assert.IsFalse(asiento <= 0)
-'    'End Sub
-'End Class
-
-'<TestClass()>
-'Public Class cuandoCargamosElEstado
-'    Dim container As IUnityContainer
-'    Dim regionManager As IRegionManager
-'    Dim agenciaVM As New AgenciasViewModel(container, regionManager)
-'    Dim agenciaEspecifica As AgenciaASM = New AgenciaASM(agenciaVM)
-'    Private Shared DbContext As New NestoEntities
-
-'    Private testContextInstance As TestContext
-
-'    '''<summary>
-'    '''Obtiene o establece el contexto de las pruebas que proporciona
-'    '''información y funcionalidad para la serie de pruebas actual.
-'    '''</summary>
-'    Public Property TestContext() As TestContext
-'        Get
-'            Return testContextInstance
-'        End Get
-'        Set(ByVal value As TestContext)
-'            testContextInstance = value
-'        End Set
-'    End Property
-
-'#Region "Atributos de prueba adicionales"
-'    '
-'    ' Puede usar los siguientes atributos adicionales conforme escribe las pruebas:
-'    '
-'    ' Use ClassInitialize para ejecutar el código antes de ejecutar la primera prueba en la clase
-'    ' <ClassInitialize()> Public Shared Sub MyClassInitialize(ByVal testContext As TestContext)
-'    ' End Sub
-'    '
-'    ' Use ClassCleanup para ejecutar el código después de haberse ejecutado todas las pruebas en una clase
-'    ' <ClassCleanup()> Public Shared Sub MyClassCleanup()
-'    ' End Sub
-'    '
-'    ' Usar TestInitialize para ejecutar el código antes de ejecutar cada prueba
-'    ' <TestInitialize()> Public Sub MyTestInitialize()
-'    ' End Sub
-'    '
-'    ' Use TestCleanup para ejecutar el código una vez ejecutadas todas las pruebas
-'    ' <TestCleanup()> Public Sub MyTestCleanup()
-'    ' End Sub
-'    '
-'#End Region
-
-'    '<TestMethod()>
-'    'Public Sub debeDevolverUnValorAlXMLdeEstado()
-'    '    'arrange
-'    '    agenciaVM.envioActual = (From c In DbContext.EnviosAgencia Where c.Numero = 173).FirstOrDefault
-'    '    'agenciaVM.empresaSeleccionada = New Empresas With {.Número = "95", .Nombre = "Empresa de Pruebas", .Dirección = "c/ Mi Calle, 1", .Población = "Ripollet", .Provincia = "Barcelona", .CodPostal = "08001", .Teléfono = "916233343", .Email = "carlos@midominio.com", .FechaPicking = "21/08/2014"}
-'    '    'act
-'    '    agenciaVM.XMLdeEstado = agenciaEspecifica.cargarEstado(agenciaVM.envioActual)
-'    '    'assert
-'    '    'Debug.Print(agenciaVM.XMLdeEstado.ToString)
-'    '    Assert.IsFalse(IsNothing(agenciaVM.XMLdeEstado))
-'    'End Sub
-'End Class

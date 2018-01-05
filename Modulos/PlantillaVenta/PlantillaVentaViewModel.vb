@@ -12,6 +12,8 @@ Imports System.Globalization
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
+Imports System.Dynamic
+Imports Newtonsoft.Json.Linq
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase
@@ -1373,11 +1375,12 @@ Public Class PlantillaVentaViewModel
                     ' Abrimos el pedido
                     PedidoVentaViewModel.cargarPedido(clienteSeleccionado.empresa, numPedido, container)
                 Else
-                    Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)
+                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
                     NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
-                    .Content = "Se ha producido un error al crear el pedido desde la plantilla"
+                    .Content = contenido
                 })
                 End If
             Catch ex As Exception

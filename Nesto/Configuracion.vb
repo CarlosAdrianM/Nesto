@@ -19,7 +19,7 @@ Public Class Configuracion
     Public ReadOnly Property usuario As String Implements IConfiguracion.usuario
         Get
             Return System.Environment.UserDomainName + "\" + System.Environment.UserName
-            'Return System.Environment.UserDomainName + "\Carolina"
+            'Return System.Environment.UserDomainName + "\Administrador"
         End Get
     End Property
 

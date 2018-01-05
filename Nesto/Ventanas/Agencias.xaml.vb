@@ -45,6 +45,22 @@ Public Class Agencias
     End Sub
 
     Private Async Sub Agencias_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
-        Await CType(Me.DataContext, AgenciasViewModel).cmdCargarDatos.Execute()
+        Dim viewModel As AgenciasViewModel = CType(Me.DataContext, AgenciasViewModel)
+        ' Ponemos e IF para que no entre cada vez que coja el foco
+        If IsNothing(viewModel.numeroPedido) OrElse viewModel.numeroPedido.Trim = "" Then
+            Await viewModel.cmdCargarDatos.Execute()
+        End If
+    End Sub
+
+    Private Async Sub InsertarEnvioPendienteButton_Click(sender As Object, e As RoutedEventArgs) Handles InsertarEnvioPendienteButton.Click
+        Await Task.Delay(300)
+        EnvioPendientePedidoTextBox.Focus()
+    End Sub
+
+    Private Sub EnvioPendientePedidoTextBox_KeyUp(sender As Object, e As KeyEventArgs) Handles EnvioPendientePedidoTextBox.KeyUp
+        If e.Key = Key.Enter Then
+            Dim Binding = sender.GetBindingExpression(TextBox.TextProperty)
+            Binding.UpdateSource()
+        End If
     End Sub
 End Class

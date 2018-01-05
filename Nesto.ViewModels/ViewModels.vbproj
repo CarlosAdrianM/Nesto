@@ -162,6 +162,8 @@
     <Compile Include="PlanesVentajasViewModel.vb" />
     <Compile Include="PrestashopViewModel.vb" />
     <Compile Include="RemesasViewModel.vb" />
+    <Compile Include="Servicios\AgenciaService.vb" />
+    <Compile Include="Servicios\IAgenciaService.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">
@@ -194,7 +196,7 @@
       <Name>PedidoVenta</Name>
     </ProjectReference>
     <ProjectReference Include="..\Nesto.Models\Models.vbproj">
-      <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>
+      <Project>{81ea708b-89e1-439e-b5f1-a054250f1b36}</Project>
       <Name>Models</Name>
     </ProjectReference>
   </ItemGroup>

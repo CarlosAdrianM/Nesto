@@ -17,7 +17,7 @@ Imports System.Linq
 Imports System.Runtime.Serialization
 Imports System.Xml.Serialization
 
-<Assembly: EdmSchemaAttribute("622300bc-3950-4955-9952-ebdfce510312")>
+<Assembly: EdmSchemaAttribute("3bda9961-6d35-4c0a-9c7f-7bb54633272c")>
 #Region "Metadatos de relaciones en EDM"
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_Productos_Productos", "Productos", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(Productos), "Productos1", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(Productos), True)>
 <Assembly: EdmRelationshipAttribute("Nesto.Models.EF", "FK_CabAlquileres_Productos", "Productos", System.Data.Metadata.Edm.RelationshipMultiplicity.ZeroOrOne, GetType(Productos), "CabAlquileres", System.Data.Metadata.Edm.RelationshipMultiplicity.Many, GetType(CabAlquileres), True)>
@@ -9274,7 +9274,7 @@ Public Partial Class EnviosAgencia
     ''' <param name="fechaModificacion">Valor inicial de la propiedad FechaModificacion.</param>
     ''' <param name="pais">Valor inicial de la propiedad Pais.</param>
     ''' <param name="rowVersion">Valor inicial de la propiedad RowVersion.</param>
-    Public Shared Function CreateEnviosAgencia(numero As Global.System.Int32, empresa As Global.System.String, agencia As Global.System.Int32, estado As Global.System.Byte, fecha As Global.System.DateTime, servicio As Global.System.Byte, horario As Global.System.Byte, bultos As Global.System.Byte, retorno As Global.System.Byte, reembolso As Global.System.Decimal, importeGasto As Global.System.Decimal, usuario As Global.System.String, fechaModificacion As Global.System.DateTime, pais As Global.System.Int32, rowVersion As Global.System.Byte()) As EnviosAgencia
+    Public Shared Function CreateEnviosAgencia(numero As Global.System.Int32, empresa As Global.System.String, agencia As Global.System.Int32, estado As Global.System.Int16, fecha As Global.System.DateTime, servicio As Global.System.Byte, horario As Global.System.Byte, bultos As Global.System.Byte, retorno As Global.System.Byte, reembolso As Global.System.Decimal, importeGasto As Global.System.Decimal, usuario As Global.System.String, fechaModificacion As Global.System.DateTime, pais As Global.System.Int32, rowVersion As Global.System.Byte()) As EnviosAgencia
         Dim enviosAgencia as EnviosAgencia = New EnviosAgencia
         enviosAgencia.Numero = numero
         enviosAgencia.Empresa = empresa
@@ -9455,7 +9455,7 @@ Public Partial Class EnviosAgencia
     ''' </summary>
     <EdmScalarPropertyAttribute(EntityKeyProperty:=false, IsNullable:=false)>
     <DataMemberAttribute()>
-    Public Property Estado() As Global.System.Byte
+    Public Property Estado() As Global.System.Int16
         Get
             Return _Estado
         End Get
@@ -9468,8 +9468,8 @@ Public Partial Class EnviosAgencia
         End Set
     End Property
 
-    Private _Estado As Global.System.Byte
-    Private Partial Sub OnEstadoChanging(value As Global.System.Byte)
+    Private _Estado As Global.System.Int16
+    Private Partial Sub OnEstadoChanging(value As Global.System.Int16)
     End Sub
 
     Private Partial Sub OnEstadoChanged()
