@@ -6,6 +6,7 @@ Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
 
 Public Class PedidoVentaViewModel
     Inherits ViewModelBase
@@ -93,9 +94,15 @@ Public Class PedidoVentaViewModel
                     Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
                     Return "Pedido " + numPedido + " creado correctamente"
                 Else
-                    Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)
-                    Return detallesError
+                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+                    Return contenido
                 End If
             Catch ex As Exception
                 Return ex.Message

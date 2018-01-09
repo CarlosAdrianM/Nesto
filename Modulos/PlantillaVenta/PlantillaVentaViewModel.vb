@@ -940,9 +940,17 @@ Public Class PlantillaVentaViewModel
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
                 Else
+                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
                     NotificationRequest.Raise(New Notification() With {
                         .Title = "Error",
-                        .Content = "Se ha producido un error al cargar la plantilla"
+                        .Content = "Se ha producido un error al cargar la plantilla" + vbCr + contenido
                     })
                 End If
             Catch ex As Exception
@@ -1378,6 +1386,12 @@ Public Class PlantillaVentaViewModel
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
                     Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+
                     NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
                     .Content = contenido
