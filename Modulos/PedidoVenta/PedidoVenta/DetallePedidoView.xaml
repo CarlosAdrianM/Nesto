@@ -166,6 +166,13 @@
                                     </Style>
                                 </DataGridTextColumn.CellStyle>
                             </DataGridTextColumn>
+                            <DataGridTextColumn Header="Descuento Producto" Width="3*" Binding="{Binding descuentoProducto, Converter={StaticResource porcentajeConverter}}" IsReadOnly="True" >
+                                <DataGridTextColumn.CellStyle>
+                                    <Style>
+                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
                             <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
                         </DataGrid.Columns>
                     </DataGrid>                    

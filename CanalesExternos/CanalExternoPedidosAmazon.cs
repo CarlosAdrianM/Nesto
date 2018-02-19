@@ -105,7 +105,7 @@ namespace Nesto.Modulos.CanalesExternos
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21", // TODO: LEER DEL PRODUCTO
-                    precio = Convert.ToDecimal(orderItem.ItemPrice.Amount)/100/orderItem.QuantityOrdered,
+                    precio = Convert.ToDecimal(orderItem.ItemPrice?.Amount)/100/orderItem.QuantityOrdered,
                     producto = orderItem.SellerSKU,
                     texto = orderItem.Title.ToUpper(),
                     tipoLinea = 1, // producto
@@ -113,7 +113,7 @@ namespace Nesto.Modulos.CanalesExternos
                 };
                 lineasNesto.Add(lineaNesto);
 
-                if (Convert.ToDecimal(orderItem.ShippingPrice.Amount) != 0)
+                if (Convert.ToDecimal(orderItem.ShippingPrice?.Amount) != 0)
                 {
                     LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                     {
