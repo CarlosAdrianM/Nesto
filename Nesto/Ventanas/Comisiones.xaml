@@ -47,7 +47,7 @@
             </Grid.ColumnDefinitions>
             <ComboBox Grid.Column="0" Name="vendedor" ItemsSource="{Binding Path=listaVendedores}" DisplayMemberPath="Descripción" SelectedValuePath="Número" SelectedValue="{Binding Path=vendedorActual}" VerticalAlignment="Center" SelectedItem="{Binding vendedorActual}" Margin="3"/>
             <ComboBox Grid.Column="1" ItemsSource="{Binding Path=colMeses}" SelectedValue="{Binding mesActual}" VerticalAlignment="Center" Margin="3"/>
-            <CheckBox Grid.Column="2" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" IsChecked="{Binding IncluirAlbaranes}" VerticalAlignment="Center" VerticalContentAlignment="Center">Incluir Albaranes</CheckBox>
+            <CheckBox Grid.Column="2" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" IsChecked="{Binding IncluirAlbaranes}" VerticalAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding EsMesEnCurso}">Incluir Albaranes</CheckBox>
         </Grid>
         <DockPanel Grid.Row="1">
             <Grid DockPanel.Dock="Top"  Visibility="{Binding Path=MostrarPanelAntiguo, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">

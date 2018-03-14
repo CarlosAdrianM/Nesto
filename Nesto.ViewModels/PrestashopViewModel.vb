@@ -145,7 +145,8 @@ Public Class PrestashopViewModel
             Return False
         Else
             If LineaSeleccionada.VistoBueno Is Nothing Then
-                Return (System.Environment.UserName = "Laura") Or (System.Environment.UserName = "Carlos")
+                Dim nombreUsuario As String = System.Environment.UserName.ToLower
+                Return (nombreUsuario = "laura") Or (nombreUsuario = "carlos") Or (nombreUsuario = "enrique")
             Else
                 Return Not LineaSeleccionada.VistoBueno
             End If

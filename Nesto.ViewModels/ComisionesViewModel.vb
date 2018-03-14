@@ -139,12 +139,15 @@ Public Class ComisionesViewModel
             Return _mesActual
         End Get
         Set(value As String)
-            _mesActual = value
+            SetProperty(_mesActual, value)
             fechaDesde = DateSerial(Year(Now), DateTime.ParseExact(value, "MMMM", CultureInfo.CurrentCulture).Month, 1)
             If fechaDesde > Now Then
                 fechaDesde = fechaDesde.AddYears(-1)
             End If
             fechaHasta = (fechaDesde.AddMonths(1)).AddDays(-1)
+
+            IncluirAlbaranes = EsMesEnCurso
+
             If vendedorActual IsNot Nothing Then
                 If MostrarPanelAntiguo Then
                     comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
@@ -179,6 +182,7 @@ Public Class ComisionesViewModel
         End Get
         Set(value As Date)
             _fechaDesde = value
+            OnPropertyChanged("EsMesEnCurso")
         End Set
     End Property
 
@@ -250,6 +254,12 @@ Public Class ComisionesViewModel
     Public ReadOnly Property MostrarPanelComisionAnual As Boolean
         Get
             Return Not MostrarPanelAntiguo
+        End Get
+    End Property
+
+    Public ReadOnly Property EsMesEnCurso As Boolean
+        Get
+            Return fechaDesde.Month = Today.Month
         End Get
     End Property
 
