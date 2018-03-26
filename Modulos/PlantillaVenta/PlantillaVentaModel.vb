@@ -118,19 +118,24 @@ Public Class PlantillaVentaModel
         End Property
         Public ReadOnly Property colorEstado As Brush
             Get
+                Dim color As Brush
                 If cantidadAbonada >= cantidadVendida Then
-                    Return Brushes.Red
-                ElseIf fechaUltimaVenta < DateAdd(DateInterval.Year, -1, Now)
-                    Return Brushes.Orange
-                ElseIf fechaUltimaVenta < DateAdd(DateInterval.Month, -6, Now) AndAlso (cantidadAbonada = 0 OrElse cantidadVendida / cantidadAbonada > 10)
-                    Return Brushes.Yellow
-                ElseIf fechaUltimaVenta < DateAdd(DateInterval.Month, -2, Now) AndAlso (cantidadAbonada = 0 OrElse cantidadVendida / cantidadAbonada > 10)
-                    Return Brushes.YellowGreen
+                    color = Brushes.Red
+                ElseIf fechaUltimaVenta < DateAdd(DateInterval.Year, -1, Now) Then
+                    color = Brushes.Orange
+                ElseIf fechaUltimaVenta < DateAdd(DateInterval.Month, -6, Now) AndAlso (cantidadAbonada = 0 OrElse cantidadVendida / cantidadAbonada > 10) Then
+                    color = Brushes.Yellow
+                ElseIf fechaUltimaVenta < DateAdd(DateInterval.Month, -2, Now) AndAlso (cantidadAbonada = 0 OrElse cantidadVendida / cantidadAbonada > 10) Then
+                    color = Brushes.YellowGreen
                 ElseIf Not IsNothing(fechaUltimaVenta) Then
-                    Return Brushes.Green
+                    color = Brushes.Green
                 Else
-                    Return Brushes.Blue
+                    color = Brushes.Blue
                 End If
+                If color IsNot Brushes.Green AndAlso estado = 0 Then
+                    color = Brushes.DarkGreen
+                End If
+                Return color
             End Get
         End Property
         Public ReadOnly Property textoUnidadesVendidas As String
