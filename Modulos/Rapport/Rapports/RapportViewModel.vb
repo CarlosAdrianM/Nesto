@@ -45,8 +45,6 @@ Public Class RapportViewModel
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
-
     End Sub
 
 #Region "Propiedades de Prism"
@@ -152,7 +150,7 @@ Public Class RapportViewModel
     Private Function CanCrearCita(arg As Object) As Boolean
         Return Not IsNothing(rapport)
     End Function
-    Private Sub OnCrearCita(arg As Object)
+    Private Async Sub OnCrearCita(arg As Object)
         Dim objOL As Outlook.Application
         objOL = New Outlook.Application
         Dim nuevaCita As Outlook.AppointmentItem
@@ -163,16 +161,17 @@ Public Class RapportViewModel
                 .Content = "No se puede crear el aviso si no se especifica un cliente y un contacto"
             })
         End If
+        Await Task.Run(Sub()
 
-        nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
-        nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
-        nuevaCita.Body = rapport.Comentarios
-        nuevaCita.Start = fechaAviso
-        nuevaCita.End = fechaAviso.AddMinutes(15)
-        nuevaCita.ReminderSet = True
-        nuevaCita.ReminderMinutesBeforeStart = 0
-        nuevaCita.Save()
-
+                           nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
+                           nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
+                           nuevaCita.Body = rapport.Comentarios
+                           nuevaCita.Start = fechaAviso
+                           nuevaCita.End = fechaAviso.AddMinutes(15)
+                           nuevaCita.ReminderSet = True
+                           nuevaCita.ReminderMinutesBeforeStart = 0
+                           nuevaCita.Save()
+                       End Sub)
     End Sub
 
 

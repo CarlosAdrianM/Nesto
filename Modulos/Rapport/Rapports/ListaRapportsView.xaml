@@ -27,7 +27,9 @@
             <TextBlock></TextBlock>
             <Button Command="{Binding cmdCrearRapport}">Crear Rapport</Button>
         </StackPanel>
+        
         <xcdg:DataGridControl Grid.Column="1" ItemsSource="{Binding listaRapports}" SelectedItem="{Binding rapportSeleccionado}" AutoCreateColumns="False" ReadOnly="True">
+
             <xcdg:DataGridControl.View>
                 <xcdg:TableView UseDefaultHeadersFooters="False">
                     <xcdg:TableView.FixedHeaders>
@@ -37,6 +39,7 @@
                     </xcdg:TableView.FixedHeaders>
                 </xcdg:TableView>
             </xcdg:DataGridControl.View>
+            
             <xcdg:DataGridControl.Columns>
                 <xcdg:Column FieldName="Fecha" Width="*" Title="Fecha" />
                 <xcdg:Column FieldName="Cliente" Width="*" Title="Cliente" />
@@ -47,6 +50,7 @@
                 <xcdg:Column FieldName="Comentarios" Width="3*" Title="Comentarios" />
             </xcdg:DataGridControl.Columns>
         </xcdg:DataGridControl>
+        
         <ContentControl Grid.Column="2" prism:RegionManager.RegionName="RapportDetailRegion"></ContentControl>
     </Grid>
     
