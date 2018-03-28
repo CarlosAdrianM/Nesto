@@ -70,7 +70,7 @@ Public Class ComisionesViewModel
             _vendedorActual = value
             OnPropertyChanged("vendedorActual")
 
-            MostrarPanelAntiguo = vendedorActual.Número = "IF " OrElse vendedorActual.Número = "AH " OrElse vendedorActual.Número = "SC " OrElse vendedorActual.Número = "PI "
+            MostrarPanelAntiguo = vendedorActual.Número = "SC " OrElse vendedorActual.Número = "PI "
 
             If MostrarPanelAntiguo Then
                 comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
@@ -120,6 +120,7 @@ Public Class ComisionesViewModel
         End Get
         Set(ByVal value As ComisionAnualResumen)
             SetProperty(_comisionAnualResumenActual, value)
+            OnPropertyChanged("MostrarColumnaTres")
         End Set
     End Property
 
@@ -240,6 +241,18 @@ Public Class ComisionesViewModel
         End Set
     End Property
 
+
+    Public ReadOnly Property MostrarColumnaTres() As Boolean
+        Get
+            Return Not IsNothing(ComisionAnualResumenActual) AndAlso
+                Not IsNothing(ComisionAnualResumenActual.Etiquetas) AndAlso
+                ComisionAnualResumenActual.Etiquetas.Count >= 3 AndAlso
+                Not IsNothing(ComisionAnualResumenActual.Etiquetas(3)) AndAlso
+                Not IsNothing(ComisionAnualResumenActual.Etiquetas(3).Nombre) AndAlso
+                ComisionAnualResumenActual.Etiquetas(3).Nombre.Trim <> ""
+        End Get
+    End Property
+
     Private _incluirAlbaranes As Boolean = True
     Public Property IncluirAlbaranes() As Boolean
         Get
@@ -331,21 +344,18 @@ Public Class ComisionesViewModel
         Public Property Vendedor As String
         Public Property Anno As Integer
         Public Property Mes As Integer
-        Public Property GeneralVenta As Decimal
+        Public Property Etiquetas As Collection(Of EtiquetaComision)
         Public Property GeneralProyeccion As Decimal
-        Public Property GeneralTipo As Decimal
-        Public Property GeneralComision As Decimal
         Public Property GeneralFaltaParaSalto As Decimal
-        Public Property UnionLaserVenta As Decimal
-        Public Property UnionLaserTipo As Decimal
-        Public Property UnionLaserComision As Decimal
-        Public Property EvaVisnuVenta As Decimal
-        Public Property EvaVisnuTipo As Decimal
-        Public Property EvaVisnuComision As Decimal
-        Public Property OtrosAparatosVenta As Decimal
-        Public Property OtrosAparatosTipo As Decimal
-        Public Property OtrosAparatosComision As Decimal
         Public Property TotalComisiones As Decimal
+    End Class
+
+    Public Class EtiquetaComision
+        Public Property Id As Integer
+        Public Property Nombre As String
+        Public Property Venta As Decimal
+        Public Property Tipo As Decimal
+        Public Property Comision As Decimal
     End Class
 End Class
 
