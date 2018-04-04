@@ -152,7 +152,6 @@ Public Class RapportViewModel
     End Function
     Private Async Sub OnCrearCita(arg As Object)
         Dim objOL As Outlook.Application
-        objOL = New Outlook.Application
         Dim nuevaCita As Outlook.AppointmentItem
 
         If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
@@ -162,7 +161,7 @@ Public Class RapportViewModel
             })
         End If
         Await Task.Run(Sub()
-
+                           objOL = New Outlook.Application
                            nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
                            nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
                            nuevaCita.Body = rapport.Comentarios
