@@ -401,6 +401,12 @@
                                 <TextBlock>Nombre:</TextBlock>
                                 <TextBox Name="txtNombreFiltro" Text="{Binding nombreFiltro}" MinWidth="50" HorizontalAlignment="Stretch"/>
                             </StackPanel>
+                            <TextBlock></TextBlock>
+                            <TextBlock>
+                                <Hyperlink Command="{Binding AbrirEnlaceSeguimientoCommand}">
+                                    <Run Text="{Binding EnlaceSeguimientoEnvio}"/>
+                                </Hyperlink>
+                            </TextBlock>
                             <!--Button Margin="3" Content="Imprimir" Command="{Binding cmdImprimirManifiesto}"/-->
                         </StackPanel>
                         <Grid DockPanel.Dock="Right">

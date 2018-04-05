@@ -18,6 +18,7 @@ Imports System.Transactions
 Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks
+Imports Nesto.ViewModels
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -82,6 +83,7 @@ Public Class AgenciasViewModel
         InsertarEnvioPendienteCommand = New DelegateCommand(AddressOf OnInsertarEnvioPendiente, AddressOf CanInsertarEnvioPendiente)
         BorrarEnvioPendienteCommand = New DelegateCommand(AddressOf OnBorrarEnvioPendiente, AddressOf CanBorrarEnvioPendiente)
         GuardarEnvioPendienteCommand = New DelegateCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
+        AbrirEnlaceSeguimientoCommand = New DelegateCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -548,6 +550,16 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    Private _enlaceSeguimientoEnvio As String
+    Public Property EnlaceSeguimientoEnvio As String
+        Get
+            Return _enlaceSeguimientoEnvio
+        End Get
+        Set(value As String)
+            SetProperty(_enlaceSeguimientoEnvio, value)
+        End Set
+    End Property
+
     Private _envioActual As EnviosAgencia
     Public Property envioActual As EnviosAgencia
         Get
@@ -575,6 +587,7 @@ Public Class AgenciasViewModel
 
                 If Not IsNothing(envioActual) AndAlso Not IsNothing(listaTiposRetorno) Then
                     reembolsoModificar = envioActual.Reembolso
+                    EnlaceSeguimientoEnvio = agenciaEspecifica.EnlaceSeguimiento(envioActual)
                     retornoModificar = (From l In listaTiposRetorno Where l.id = envioActual.Retorno).FirstOrDefault
                     estadoModificar = envioActual.Estado
                     fechaEntregaModificar = envioActual.FechaEntrega
@@ -1774,6 +1787,16 @@ Public Class AgenciasViewModel
     Private Sub OnGuardarEnvioPendiente()
         contextPendientes.SaveChanges()
     End Sub
+
+
+
+    Public Property AbrirEnlaceSeguimientoCommand As DelegateCommand
+    Private Function CanAbrirEnlaceSeguimientoCommand() As Boolean
+        Return EnlaceSeguimientoEnvio <> ""
+    End Function
+    Private Sub OnAbrirEnlaceSeguimientoCommand()
+        System.Diagnostics.Process.Start(EnlaceSeguimientoEnvio)
+    End Sub
 #End Region
 
 #Region "Funciones de Ayuda"
@@ -2811,6 +2834,7 @@ Public Interface IAgencia
     ReadOnly Property retornoSinRetorno As Integer ' Especifica la forma de retorno = NO, es decir, cuando no debe mostrarse en la lista de retornos pendientes
     ReadOnly Property retornoObligatorio As Integer ' Forma de retorno = SI (obligatorio)
     ReadOnly Property paisDefecto As Integer
+    Function EnlaceSeguimiento(envio As EnviosAgencia) As String
 End Interface
 
 Public Class AgenciaASM
@@ -3276,7 +3300,6 @@ Public Class AgenciaASM
             Return 1 ' Retorno obligatorio
         End Get
     End Property
-
     Private Sub rellenarPaises(agencia As AgenciasViewModel)
         agencia.listaPaises = New ObservableCollection(Of tipoIdIntDescripcion)
         agencia.paisActual = New tipoIdIntDescripcion(34, "ESPAÑA")
@@ -3386,6 +3409,10 @@ Public Class AgenciaASM
 
 
     End Sub
+
+    Private Function IAgencia_EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
+        Return "http://m.asmred.com/e/" + envio.CodigoBarras + "/" + envio.CodPostal
+    End Function
 End Class
 Public Class AgenciaOnTime
     Implements IAgencia
@@ -3583,6 +3610,7 @@ Public Class AgenciaOnTime
             Return 34 'España
         End Get
     End Property
+
     Private Sub rellenarPaises(agencia As AgenciasViewModel)
         agencia.listaPaises = New ObservableCollection(Of tipoIdIntDescripcion)
         agencia.paisActual = New tipoIdIntDescripcion(34, "ESPAÑA")
@@ -3603,5 +3631,7 @@ Public Class AgenciaOnTime
         Return response.EnsureSuccessStatusCode
     End Function
 
-
+    Private Function IAgencia_EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
+        Return ""
+    End Function
 End Class
