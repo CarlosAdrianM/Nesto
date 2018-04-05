@@ -557,6 +557,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             SetProperty(_enlaceSeguimientoEnvio, value)
+            AbrirEnlaceSeguimientoCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 

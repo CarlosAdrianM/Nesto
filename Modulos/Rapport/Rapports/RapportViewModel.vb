@@ -84,13 +84,13 @@ Public Class RapportViewModel
     Private Const empresaPorDefecto As String = "1"
     Private ReadOnly regionManager As IRegionManager
 
-    Private _clienteRapport As ClienteDTO
-    Public Property clienteRapport As ClienteDTO
+    Private _clienteCompleto As Object
+    Public Property ClienteCompleto As Object
         Get
-            Return _clienteRapport
+            Return _clienteCompleto
         End Get
-        Set(value As ClienteDTO)
-            SetProperty(_clienteRapport, value)
+        Set(value As Object)
+            SetProperty(_clienteCompleto, value)
         End Set
     End Property
 

@@ -128,6 +128,7 @@ namespace ControlesUsuario
                     _clienteSeleccionado = value;
                     this.Cliente = value != null ? value.cliente : null;
                     this.Contacto = value != null ? value.contacto : null;
+                    this.ClienteCompleto = _clienteSeleccionado;
                     OnPropertyChanged("clienteSeleccionado");
                     OnPropertyChanged("visibilidadDatosCliente");
                 }
@@ -397,6 +398,63 @@ namespace ControlesUsuario
               typeof(SelectorCliente),
               new UIPropertyMetadata("Seleccione un cliente:"));
 
+
+        public ClienteDTO ClienteCompleto
+        {
+            get { return (ClienteDTO)GetValue(ClienteCompletoProperty); }
+            set
+            {
+                SetValue(ClienteCompletoProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the EMPRESA dependency property
+        /// </summary>
+        public static readonly DependencyProperty ClienteCompletoProperty =
+            DependencyProperty.Register("ClienteCompleto", typeof(ClienteDTO),
+              typeof(SelectorCliente),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnClienteCompletoChanged)));
+
+        private static void OnClienteCompletoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorCliente selector = (SelectorCliente)d;
+
+
+            //if (selector == null)
+            //{
+            //    return;
+            //}
+            //if (selector.ClienteCompleto == null)
+            //{
+            //    return;
+            //}
+            //else
+            //{
+            //    if (selector.contactoSeleccionado == null || (selector.contactoSeleccionado.Trim() != selector.Contacto.Trim()))
+            //    {
+            //        selector.contactoSeleccionado = selector.Contacto.Trim();
+            //    }
+            //}
+
+        }
+
+        ///// <summary>
+        ///// Identified the ClienteCompleto dependency property
+        ///// </summary>
+        //private static readonly DependencyPropertyKey ClienteCompletoPropertyKey
+        //= DependencyProperty.RegisterReadOnly("ClienteCompleto", typeof(ClienteDTO), typeof(SelectorCliente),
+        //    new FrameworkPropertyMetadata((ClienteDTO)new ClienteDTO(),
+        //        FrameworkPropertyMetadataOptions.None));
+
+        //public static readonly DependencyProperty ClienteCompletoProperty
+        //    = ClienteCompletoPropertyKey.DependencyProperty;
+
+        //public ClienteDTO ClienteCompleto
+        //{
+        //    get { return (ClienteDTO)GetValue(ClienteCompletoProperty); }
+        //    protected set { SetValue(ClienteCompletoPropertyKey, value); }
+        //}
 
         #endregion
 
