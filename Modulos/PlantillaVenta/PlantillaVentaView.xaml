@@ -221,6 +221,15 @@
                                 </DataGrid.Columns>
                             </DataGrid>
                             <DataGrid Name="grdListaProductos" DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsSynchronizedWithCurrentItem="True">
+                                <DataGrid.Resources>
+                                    <Style TargetType="{x:Type DataGridCell}" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource Self}, Path=Foreground}" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.Resources>
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Producto" Binding="{Binding producto}" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="3*" IsReadOnly="False"/>
