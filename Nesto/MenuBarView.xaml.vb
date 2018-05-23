@@ -14,7 +14,6 @@ Public Class MenuBarView
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
 
-
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
 
 
@@ -56,7 +55,7 @@ Public Class MenuBarView
     End Sub
 
 
-    Private Sub Button1_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnInforme.Click
+    Private Sub Button1_Click(sender As System.Object, e As RoutedEventArgs) Handles btnInforme.Click
         'Dim w2 As New frmInforme
         'w2.Owner = Me
         Dim region As IRegion = regionManager.Regions("MainRegion")
@@ -94,7 +93,8 @@ Public Class MenuBarView
         rptPremio.SetParameterValue("FechaDesde", Me.DataContext.fechaInformeInicial)
         rptPremio.SetParameterValue("FechaHasta", Me.DataContext.fechaInformeFinal)
 
-
+        Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
+        vista.crvInforme.Owner = Window.GetWindow(mainWindow)
         vista.crvInforme.ViewerCore.ReportSource = rptPremio
         vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
         region.Add(vista, nombreVista(region, vista.ToString))
@@ -236,6 +236,8 @@ Public Class MenuBarView
 
         rptPremio.PrintOptions.PaperOrientation = PaperOrientation.Landscape
 
+        Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
+        vista.crvInforme.Owner = Window.GetWindow(mainWindow)
         vista.crvInforme.ViewerCore.ReportSource = rptPremio
 
 
@@ -345,10 +347,13 @@ Public Class MenuBarView
 
 
 
-
+        Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
+        vista.crvInforme.Owner = Window.GetWindow(mainWindow)
         vista.crvInforme.ViewerCore.ReportSource = rptPremio
+
         region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
+
         'Try
         'Ventana.Show()
         'Catch ex As Exception

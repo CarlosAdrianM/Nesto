@@ -160,7 +160,7 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <StackPanel Grid.Column="0">
-                                                    <TextBlock Margin="3" TextWrapping="WrapWithOverflow">Cantidad Cobrada</TextBlock>
+                                                    <TextBlock Margin="3" TextWrapping="WrapWithOverflow" Text="Cantidad Cobrada"></TextBlock>
                                                     <xctk:ShortUpDown Value="{Binding cantidad}" Margin="3">
                                                         <i:Interaction.Triggers>
                                                             <i:EventTrigger EventName="ValueChanged">
