@@ -535,11 +535,11 @@ Public Class DetallePedidoViewModel
             Else
                 Throw New Exception("Tiene que haber algún tipo de picking seleccionado")
             End If
-            eventAggregator.GetEvent(Of SacarPickingEvent).Publish(1)
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Picking",
                         .Content = textoMensaje
                     })
+            eventAggregator.GetEvent(Of SacarPickingEvent).Publish(1)
         Catch ex As Exception
             Dim tituloError As String
             If esPickingPedido Then
