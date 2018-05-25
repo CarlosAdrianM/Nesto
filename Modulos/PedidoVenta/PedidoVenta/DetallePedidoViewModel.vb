@@ -1,6 +1,7 @@
 ﻿Imports System.Globalization
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
+Imports Microsoft.Practices.Prism.PubSubEvents
 Imports Microsoft.Practices.Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
@@ -14,16 +15,18 @@ Public Class DetallePedidoViewModel
     Private ReadOnly regionManager As IRegionManager
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
+    Private ReadOnly eventAggregator As IEventAggregator
 
     Private ivaOriginal As String
 
     Private Const IVA_POR_DEFECTO = "G21"
     Private Const EMPRESA_POR_DEFECTO = "1"
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
+        Me.eventAggregator = eventAggregator
 
         cmdAbrirPicking = New DelegateCommand(Of Object)(AddressOf OnAbrirPicking, AddressOf CanAbrirPicking)
         cmdActualizarTotales = New DelegateCommand(Of Object)(AddressOf OnActualizarTotales, AddressOf CanActualizarTotales)
@@ -532,6 +535,7 @@ Public Class DetallePedidoViewModel
             Else
                 Throw New Exception("Tiene que haber algún tipo de picking seleccionado")
             End If
+            eventAggregator.GetEvent(Of SacarPickingEvent).Publish(1)
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Picking",
                         .Content = textoMensaje

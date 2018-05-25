@@ -95,6 +95,8 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Eventos\PedidoCreadoEvent.vb" />
+    <Compile Include="Eventos\SacarPickingEvent.vb" />
     <Compile Include="ICanalesExternos.vb" />
     <Compile Include="ICarteraPagos.vb" />
     <Compile Include="IConfiguracion.vb" />
@@ -142,6 +144,12 @@
       <LastGenOutput>Settings.Designer.vb</LastGenOutput>
     </None>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Nesto.Models\Models.vbproj">
+      <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>
+      <Name>Models</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

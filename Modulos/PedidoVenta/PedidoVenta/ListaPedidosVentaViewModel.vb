@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
+Imports Microsoft.Practices.Prism.PubSubEvents
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
@@ -13,19 +14,23 @@ Public Class ListaPedidosVentaViewModel
     Public Property configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
     Private ReadOnly servicio As IPedidoVentaService
+    Private ReadOnly eventAggregator As IEventAggregator
 
     Private vendedor As String
     Private verTodosLosVendedores As Boolean = False
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer)
+    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer, eventAggregator As IEventAggregator)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.container = container
+        Me.eventAggregator = eventAggregator
 
         cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
+
+        eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
     End Sub
 
 #Region "Propiedades de Prism"
@@ -152,14 +157,18 @@ Public Class ListaPedidosVentaViewModel
         End Get
         Set(ByVal value As ResumenPedido)
             SetProperty(_resumenSeleccionado, value)
-            Dim parameters As NavigationParameters = New NavigationParameters()
-            parameters.Add("numeroPedidoParameter", resumenSeleccionado)
-            scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
-            If Not IsNothing(resumenSeleccionado) Then
-                empresaSeleccionada = resumenSeleccionado.empresa
-            End If
+            CargarResumenSeleccionado()
         End Set
     End Property
+
+    Private Sub CargarResumenSeleccionado()
+        Dim parameters As NavigationParameters = New NavigationParameters()
+        parameters.Add("numeroPedidoParameter", resumenSeleccionado)
+        scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
+        If Not IsNothing(resumenSeleccionado) Then
+            empresaSeleccionada = resumenSeleccionado.empresa
+        End If
+    End Sub
 
     Private _scopedRegionManager As IRegionManager
     Public Property scopedRegionManager As IRegionManager

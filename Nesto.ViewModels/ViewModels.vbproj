@@ -142,7 +142,6 @@
     <Compile Include="ClientesViewModel.vb" />
     <Compile Include="ComisionesViewModel.vb" />
     <Compile Include="DeudaViewModel.vb" />
-    <Compile Include="Eventos\PedidoCreadoEvent.vb" />
     <Compile Include="MainViewModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
