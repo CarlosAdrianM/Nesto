@@ -33,6 +33,7 @@ Public Class DetallePedidoViewModel
         cmdCambiarFechaEntrega = New DelegateCommand(Of Object)(AddressOf OnCambiarFechaEntrega, AddressOf CanCambiarFechaEntrega)
         cmdCambiarIva = New DelegateCommand(Of Object)(AddressOf OnCambiarIva, AddressOf CanCambiarIva)
         cmdCargarPedido = New DelegateCommand(Of Object)(AddressOf OnCargarPedido, AddressOf CanCargarPedido)
+        CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
         cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada, AddressOf CanCeldaModificada)
         cmdModificarPedido = New DelegateCommand(Of Object)(AddressOf OnModificarPedido, AddressOf CanModificarPedido)
         cmdPonerDescuentoPedido = New DelegateCommand(Of Object)(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
@@ -364,6 +365,24 @@ Public Class DetallePedidoViewModel
         Else
             Me.Titulo = "Lista de Pedidos"
         End If
+    End Sub
+
+    Private _cargarProductoCommand As DelegateCommand(Of Object)
+    Public Property CargarProductoCommand As DelegateCommand(Of Object)
+        Get
+            Return _cargarProductoCommand
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cargarProductoCommand, value)
+        End Set
+    End Property
+    Private Function CanCargarProducto(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnCargarProducto(arg As Object)
+        Dim parameters As NavigationParameters = New NavigationParameters()
+        parameters.Add("numeroProductoParameter", lineaActual.producto)
+        regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
     Private _cmdCeldaModificada As DelegateCommand(Of Object)

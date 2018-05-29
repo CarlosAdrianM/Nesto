@@ -377,6 +377,7 @@
                             <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
                             <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
                             <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
+                            <xcdg:Column FieldName="Estado" Width="*" Title="Estado" CellHorizontalContentAlignment="Right"/>
                         </xcdg:DataGridControl.Columns>
                     </xcdg:DataGridControl>
                 </TabItem>

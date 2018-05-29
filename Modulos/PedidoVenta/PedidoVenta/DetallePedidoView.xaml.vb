@@ -1,4 +1,5 @@
 ﻿Imports System.Globalization
+Imports Xceed.Wpf.DataGrid
 
 Public Class DetallePedidoView
     Private actualizarTotales As Boolean = False
@@ -88,6 +89,30 @@ Public Class DetallePedidoView
             If Not IsNothing(binding) Then
                 binding.UpdateSource()
             End If
+        End If
+    End Sub
+
+    Private Sub grdLineas_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles grdLineas.MouseDoubleClick
+        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
+
+        If IsNothing(src) Then
+            Return
+        End If
+
+        If src.[GetType]() = GetType(ScrollContentPresenter) Then
+            DataContext.CargarProductoCommand.Execute(grdLineas.SelectedItem)
+        End If
+    End Sub
+
+    Private Sub grdLineasCabecera_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles grdLineasCabecera.MouseDoubleClick
+        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
+
+        If IsNothing(src) Then
+            Return
+        End If
+
+        If src.[GetType]() = GetType(ContentPresenter) Then
+            DataContext.CargarProductoCommand.Execute(grdLineas.SelectedItem)
         End If
     End Sub
 End Class

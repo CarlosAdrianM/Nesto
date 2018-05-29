@@ -6,6 +6,7 @@ using Nesto.Modulos.PedidoVenta;
 using Microsoft.Practices.Unity;
 using static Nesto.Modulos.PedidoVenta.PedidoVentaModel;
 using System.Collections.ObjectModel;
+using Microsoft.Practices.Prism.PubSubEvents;
 
 namespace PedidoVentaTests
 {
@@ -18,9 +19,10 @@ namespace PedidoVentaTests
             var configuracion = A.Fake<IConfiguracion>();
             var servicio = A.Fake<IPedidoVentaService>();
             var container = A.Fake<IUnityContainer>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             var pedido = A.Fake<ResumenPedido>();
             A.CallTo(() => servicio.cargarListaPedidos("", false)).Returns(new ObservableCollection<ResumenPedido> { pedido });
-            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, container);
+            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, container, eventAggregator);
 
             vm.cmdCargarListaPedidos.Execute(null);
 
@@ -35,9 +37,10 @@ namespace PedidoVentaTests
             var configuracion = A.Fake<IConfiguracion>();
             var servicio = A.Fake<IPedidoVentaService>();
             var container = A.Fake<IUnityContainer>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             A.CallTo(() => configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1");
             A.CallTo(() => configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("123456");
-            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, container);
+            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, container, eventAggregator);
 
             ResumenPedido resumen = vm.cargarPedidoPorDefecto().Result;
             ResumenPedido esperado = new ResumenPedido { empresa = "1", numero = 123456 };

@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>9</ApplicationRevision>
+    <ApplicationRevision>10</ApplicationRevision>
     <ApplicationVersion>1.3.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -562,6 +562,10 @@
     <ProjectReference Include="..\Nesto.ViewModels\ViewModels.vbproj">
       <Project>{88335EDE-B08A-44EA-9286-F9C0AED290C8}</Project>
       <Name>ViewModels</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Producto\Producto.csproj">
+      <Project>{6bad5df5-b47e-4f88-98ad-e58a1be33119}</Project>
+      <Name>Producto</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

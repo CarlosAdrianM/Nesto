@@ -1,0 +1,95 @@
+﻿<UserControl x:Class="Nesto.Modulos.Producto.ProductoView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:prism="http://www.codeplex.com/prism"
+        xmlns:local="clr-namespace:Nesto.Modulos.Producto"
+        mc:Ignorable="d">
+    <!--Loaded="UserControl_Loaded"-->
+
+    <i:Interaction.Triggers>
+        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
+            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
+        </prism:InteractionRequestTrigger>
+    </i:Interaction.Triggers>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Column="0" Grid.Row="0" Text="Referencia"></TextBlock>
+        <TextBlock Grid.Column="0" Grid.Row="1" Text="Nombre"></TextBlock>
+        <TextBlock Grid.Column="0" Grid.Row="2" Text="Tamaño"></TextBlock>
+        <TextBlock Grid.Column="0" Grid.Row="3" Text="Familia"></TextBlock>
+        <TextBlock Grid.Column="0" Grid.Row="4" Text="Precio Prof."></TextBlock>
+        <TextBlock Grid.Column="0" Grid.Row="5" Text="Grupo"></TextBlock>
+        <TextBlock Grid.Column="0" Grid.Row="6" Text="Subgrupo"></TextBlock>
+        <TextBlock Grid.Column="0" Grid.Row="7" Text="Estado"></TextBlock>
+
+        <TextBox Grid.Column="1" Grid.Row="0" Text="{Binding ReferenciaBuscar}"></TextBox>
+        <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding ProductoActual.Nombre}"></TextBox>
+        <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding ProductoActual.Tamanno}"></TextBox>
+        <TextBox Grid.Column="1" Grid.Row="3" Text="{Binding ProductoActual.Familia}"></TextBox>
+        <TextBox Grid.Column="1" Grid.Row="4" Text="{Binding ProductoActual.PrecioProfesional, StringFormat=c}"></TextBox>
+        <TextBox Grid.Column="1" Grid.Row="5" Text="{Binding ProductoActual.Grupo}"></TextBox>
+        <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding ProductoActual.Subgrupo}"></TextBox>
+        <TextBox Grid.Column="1" Grid.Row="7" Text="{Binding ProductoActual.Estado}"></TextBox>
+
+        <ItemsControl ItemsSource="{Binding ProductoActual.Stocks}" Grid.Column="1" Grid.Row="8">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border BorderBrush="PaleVioletRed" BorderThickness="3">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="{Binding Almacen}" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Background="PaleVioletRed" Foreground="White" FontWeight="Black"></TextBlock>
+                            <TextBlock Text="Stock" Grid.Column="0" Grid.Row="1" FontWeight="Bold"></TextBlock>
+                            <TextBlock Text="{Binding Stock}" Grid.Column="1" Grid.Row="1" FontWeight="Bold"></TextBlock>
+                            <TextBlock Text="Pendientes de Entregar" Grid.Column="0" Grid.Row="2"></TextBlock>
+                            <TextBlock Text="{Binding PendienteEntregar}" Grid.Column="1" Grid.Row="2"></TextBlock>
+                            <TextBlock Text="Pendientes de Recibir" Grid.Column="0" Grid.Row="3"></TextBlock>
+                            <TextBlock Text="{Binding PendienteRecibir}" Grid.Column="1" Grid.Row="3"></TextBlock>
+                            <TextBlock Text="Fecha Estimada de Recepción" Grid.Column="0" Grid.Row="4"></TextBlock>
+                            <TextBlock Text="{Binding FechaEstimadaRecepcion,StringFormat=d}" Grid.Column="1" Grid.Row="4"></TextBlock>
+                            <TextBlock Text="Pendientes de Reposición" Grid.Column="0" Grid.Row="5"></TextBlock>
+                            <TextBlock Text="{Binding PendienteReposicion}" Grid.Column="1" Grid.Row="5"></TextBlock>
+                            <TextBlock Text="Cantidad Disponible" Grid.Column="0" Grid.Row="6"></TextBlock>
+                            <TextBlock Text="{Binding CantidadDisponible}" Grid.Column="1" Grid.Row="6"></TextBlock>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>

@@ -10,6 +10,7 @@ Imports Nesto.Modulos.CarteraPagos
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.Rapports
 Imports Nesto.ViewModels
+Imports Nesto.Modules.Producto
 
 Public Class Bootstrapper
     Inherits UnityBootstrapper
@@ -56,9 +57,11 @@ Public Class Bootstrapper
         ' Rapports - 14/03/17
         moduleCatalog.AddModule(GetType(IRapports))
 
-        ' Canalex Externos - 03/10/17
+        ' Canales Externos - 03/10/17
         moduleCatalog.AddModule(GetType(ICanalesExternos))
 
+        ' Producto - 29/05/18
+        moduleCatalog.AddModule(GetType(IProducto))
     End Sub
 
     Protected Overrides Sub ConfigureContainer()
@@ -77,6 +80,8 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(IRapports), GetType(Rapports), False)
         RegisterTypeIfMissing(GetType(ICanalesExternos), GetType(Nesto.Modulos.CanalesExternos.CanalesExternos), False)
         RegisterTypeIfMissing(GetType(IAgenciaService), GetType(AgenciaService), False)
+        RegisterTypeIfMissing(GetType(IProducto), GetType(Nesto.Modulos.Producto.Producto), False)
+        RegisterTypeIfMissing(GetType(IProductoService), GetType(ProductoService), False)
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings

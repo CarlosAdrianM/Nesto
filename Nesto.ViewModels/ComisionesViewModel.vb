@@ -11,6 +11,7 @@ Imports System.Threading.Tasks
 Imports System.Net.Http
 Imports Nesto.Contratos
 Imports Newtonsoft.Json
+Imports Microsoft.Practices.Prism.Regions
 
 Public Class ComisionesViewModel
     Inherits Nesto.Contratos.ViewModelBase
@@ -46,8 +47,6 @@ Public Class ComisionesViewModel
         Titulo = "Comisiones"
 
         cmdAbrirPedido = New DelegateCommand(Of Object)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
-
-
     End Sub
 
     Private _listaVendedores As ObservableCollection(Of Vendedores)
@@ -295,6 +294,7 @@ Public Class ComisionesViewModel
         End If
         PedidoVentaViewModel.cargarPedido(arg.Empresa, arg.Número, container)
     End Sub
+
 #End Region
 
     Private Async Function CalcularComisionAsync() As Task

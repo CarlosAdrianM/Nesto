@@ -105,6 +105,7 @@
     <Compile Include="IMenuBar.vb" />
     <Compile Include="IPedidoVenta.vb" />
     <Compile Include="IPlantillaVenta.vb" />
+    <Compile Include="IProducto.vb" />
     <Compile Include="IRapports.vb" />
     <Compile Include="ISelectorDireccionEntregaViewModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
