@@ -34,6 +34,10 @@ namespace Nesto.Modulos.Producto
             try
             {
                 ProductoActual = await Servicio.LeerProducto(ReferenciaBuscar);
+                if ((ReferenciaBuscar == "" || ReferenciaBuscar ==  null) && ProductoActual != null)
+                {
+                    ReferenciaBuscar = ProductoActual.Producto;
+                }
                 Titulo = "Producto " + ProductoActual.Producto;
             } catch (Exception ex)
             {
