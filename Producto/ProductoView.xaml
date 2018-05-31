@@ -8,6 +8,11 @@
         xmlns:local="clr-namespace:Nesto.Modulos.Producto"
         mc:Ignorable="d" Loaded="UserControl_Loaded">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
+
     <i:Interaction.Triggers>
         <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
             <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
@@ -77,10 +82,10 @@
                             <TextBlock Text="{Binding Stock}" Grid.Column="1" Grid.Row="1" FontWeight="Bold"></TextBlock>
                             <TextBlock Text="Pendientes de Entregar" Grid.Column="0" Grid.Row="2"></TextBlock>
                             <TextBlock Text="{Binding PendienteEntregar}" Grid.Column="1" Grid.Row="2"></TextBlock>
-                            <TextBlock Text="Pendientes de Recibir" Grid.Column="0" Grid.Row="3"></TextBlock>
-                            <TextBlock Text="{Binding PendienteRecibir}" Grid.Column="1" Grid.Row="3"></TextBlock>
-                            <TextBlock Text="Fecha Estimada de Recepción" Grid.Column="0" Grid.Row="4"></TextBlock>
-                            <TextBlock Text="{Binding FechaEstimadaRecepcion,StringFormat=d}" Grid.Column="1" Grid.Row="4"></TextBlock>
+                            <TextBlock Text="Pendientes de Recibir" Grid.Column="0" Grid.Row="3" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
+                            <TextBlock Text="{Binding PendienteRecibir}" Grid.Column="1" Grid.Row="3" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
+                            <TextBlock Text="Fecha Estimada de Recepción" Grid.Column="0" Grid.Row="4" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
+                            <TextBlock Text="{Binding FechaEstimadaRecepcion,StringFormat=d}" Grid.Column="1" Grid.Row="4" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
                             <TextBlock Text="Pendientes de Reposición" Grid.Column="0" Grid.Row="5"></TextBlock>
                             <TextBlock Text="{Binding PendienteReposicion}" Grid.Column="1" Grid.Row="5"></TextBlock>
                             <TextBlock Text="Cantidad Disponible" Grid.Column="0" Grid.Row="6"></TextBlock>

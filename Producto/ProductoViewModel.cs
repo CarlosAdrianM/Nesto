@@ -49,7 +49,7 @@ namespace Nesto.Modulos.Producto
         public InteractionRequest<INotification> NotificationRequest { get; private set; }
         #endregion
 
-        #region "Propiedades"
+        #region "Propiedades Nesto"
         public ProductoModel ProductoActual {
             get { return _productoActual; }
             set { SetProperty(ref _productoActual, value); }

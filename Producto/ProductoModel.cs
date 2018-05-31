@@ -30,6 +30,7 @@ namespace Nesto.Modules.Producto
             public int CantidadDisponible { get; set; }
             public DateTime FechaEstimadaRecepcion { get; set; }
             public int PendienteReposicion { get; set; }
+            public bool HayPendienteDeRecibir { get { return PendienteRecibir > 0; } }
         }
 
     }
