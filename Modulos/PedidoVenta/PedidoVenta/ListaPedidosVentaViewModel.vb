@@ -5,6 +5,7 @@ Imports Microsoft.Practices.Prism.PubSubEvents
 Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports Nesto.Contratos
+Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
 Public Class ListaPedidosVentaViewModel
@@ -31,6 +32,7 @@ Public Class ListaPedidosVentaViewModel
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
         eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
+        eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
     End Sub
 
 #Region "Propiedades de Prism"
@@ -161,15 +163,6 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
-    Private Sub CargarResumenSeleccionado()
-        Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("numeroPedidoParameter", resumenSeleccionado)
-        scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
-        If Not IsNothing(resumenSeleccionado) Then
-            empresaSeleccionada = resumenSeleccionado.empresa
-        End If
-    End Sub
-
     Private _scopedRegionManager As IRegionManager
     Public Property scopedRegionManager As IRegionManager
         Get
@@ -220,6 +213,24 @@ Public Class ListaPedidosVentaViewModel
 #End Region
 
 #Region "Funciones auxiliares"
+    Private Sub ActualizarResumen(pedido As Models.PedidoVenta.PedidoVentaDTO)
+        resumenSeleccionado.baseImponible = pedido.baseImponible
+        resumenSeleccionado.contacto = pedido.contacto
+        resumenSeleccionado.tienePicking = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(p) p.picking > 0))
+        resumenSeleccionado.tieneFechasFuturas = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > Today))
+        resumenSeleccionado.tieneProductos = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(l) l.tipoLinea = 1))
+        OnPropertyChanged("resumenSeleccionado")
+    End Sub
+
+    Private Sub CargarResumenSeleccionado()
+        Dim parameters As NavigationParameters = New NavigationParameters()
+        parameters.Add("numeroPedidoParameter", resumenSeleccionado)
+        scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
+        If Not IsNothing(resumenSeleccionado) Then
+            empresaSeleccionada = resumenSeleccionado.empresa
+        End If
+    End Sub
+
     Private Function convertirCadenaInteger(texto As String) As Integer
         Dim valor As Integer
         Return IIf(Integer.TryParse(texto, valor), valor, Nothing)

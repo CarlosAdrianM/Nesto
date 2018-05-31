@@ -477,7 +477,7 @@ Public Class DetallePedidoViewModel
                            .Title = "Pedido Modificado",
                            .Content = "Pedido " + pedido.numero.ToString + " modificado correctamente"
                        })
-
+            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
                         .Title = "Error en pedido " + pedido.numero.ToString,
