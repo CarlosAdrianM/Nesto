@@ -18,7 +18,7 @@
             <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
         </prism:InteractionRequestTrigger>
     </i:Interaction.Triggers>
-
+    
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
@@ -35,7 +35,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
         <TextBlock Grid.Column="0" Grid.Row="0" Text="Referencia"></TextBlock>
         <TextBlock Grid.Column="0" Grid.Row="1" Text="Nombre"></TextBlock>
         <TextBlock Grid.Column="0" Grid.Row="2" Text="Tamaño"></TextBlock>
@@ -45,7 +46,7 @@
         <TextBlock Grid.Column="0" Grid.Row="6" Text="Subgrupo"></TextBlock>
         <TextBlock Grid.Column="0" Grid.Row="7" Text="Estado"></TextBlock>
 
-        <TextBox Name="txtReferencia" Grid.Column="1" Grid.Row="0" Text="{Binding ReferenciaBuscar}" GotFocus="txtReferencia_GotFocus" KeyUp="txtReferencia_KeyUp" MouseUp="txtReferencia_MouseUp"></TextBox>
+        <TextBox Name="txtReferencia" Grid.Column="1" Grid.Row="0" Text="{Binding ReferenciaBuscar}" GotFocus="txtReferencia_GotFocus" KeyUp="txtReferencia_KeyUp" PreviewMouseUp="txtReferencia_PreviewMouseUp"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding ProductoActual.Nombre}"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding ProductoActual.Tamanno}"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="3" Text="{Binding ProductoActual.Familia}"></TextBox>
@@ -95,5 +96,11 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-    </Grid>
+            
+        <Image Grid.Row="9" Grid.Column="1" Source="{Binding ProductoActual.UrlFoto}" Height="Auto" Width="Auto" Margin="0,0,10,0">
+
+            </Image>
+
+        </Grid>
+
 </UserControl>

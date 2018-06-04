@@ -21,6 +21,7 @@ namespace Nesto.Modulos.Producto
             //((ProductoViewModel)DataContext).CargarProducto();
             txtReferencia.Focus();
             Keyboard.Focus(txtReferencia);
+            txtReferencia.SelectAll();
         }
 
         private void txtReferencia_GotFocus(object sender, RoutedEventArgs e)
@@ -38,7 +39,7 @@ namespace Nesto.Modulos.Producto
             }
         }
 
-        private void txtReferencia_MouseUp(object sender, MouseButtonEventArgs e)
+        private void txtReferencia_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             txtReferencia.SelectAll();
         }
