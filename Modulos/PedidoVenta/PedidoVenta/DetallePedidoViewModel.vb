@@ -42,6 +42,15 @@ Public Class DetallePedidoViewModel
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
         PickingPopup = New InteractionRequest(Of INotification)
+
+        eventAggregator.GetEvent(Of ProductoSeleccionadoEvent).Subscribe(AddressOf InsertarProducto)
+    End Sub
+
+    Private Async Sub InsertarProducto(productoSeleccionado As String)
+        If Not IsNothing(lineaActual) Then
+            lineaActual.producto = productoSeleccionado
+            Await CargarDatosProducto(productoSeleccionado)
+        End If
     End Sub
 
 
@@ -403,17 +412,7 @@ Public Class DetallePedidoViewModel
             lineaActual.fechaEntrega = fechaEntrega
         End If
         If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.producto Then
-            Dim lineaCambio As LineaPedidoVentaDTO = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
-            Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, arg.EditingElement.Text, pedido.cliente, pedido.contacto, lineaActual.cantidad)
-            If Not IsNothing(producto) Then
-                lineaCambio.precio = producto.precio
-                lineaCambio.texto = producto.nombre
-                lineaCambio.aplicarDescuento = producto.aplicarDescuento
-                lineaCambio.descuentoProducto = producto.descuento
-                If IsNothing(lineaCambio.usuario) Then
-                    lineaCambio.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
-                End If
-            End If
+            Await CargarDatosProducto(arg.EditingElement.Text)
         End If
         If arg.Column.Header = "Precio" OrElse arg.Column.Header = "Descuento" Then
             Dim textBox As TextBox = arg.EditingElement
@@ -439,6 +438,20 @@ Public Class DetallePedidoViewModel
             Await cmdActualizarTotales.Execute(Nothing)
         End If
     End Sub
+
+    Private Async Function CargarDatosProducto(numeroProducto As String) As Task
+        Dim lineaCambio As LineaPedidoVentaDTO = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
+        Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, lineaActual.cantidad)
+        If Not IsNothing(producto) Then
+            lineaCambio.precio = producto.precio
+            lineaCambio.texto = producto.nombre
+            lineaCambio.aplicarDescuento = producto.aplicarDescuento
+            lineaCambio.descuentoProducto = producto.descuento
+            If IsNothing(lineaCambio.usuario) Then
+                lineaCambio.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+            End If
+        End If
+    End Function
 
     Private _cmdModificarPedido As DelegateCommand(Of Object)
     Public Property cmdModificarPedido As DelegateCommand(Of Object)

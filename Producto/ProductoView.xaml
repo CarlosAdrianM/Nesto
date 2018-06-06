@@ -10,6 +10,7 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <local:EstadoToBorderBrushConverter x:Key="EstadoToBorderBrushConverter"/>
     </UserControl.Resources>
 
 
@@ -96,11 +97,52 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-            
-        <Image Grid.Row="9" Grid.Column="1" Source="{Binding ProductoActual.UrlFoto}" Height="Auto" Width="Auto" Margin="0,0,10,0">
 
-            </Image>
+        <Image Grid.Row="9" Grid.Column="1" Source="{Binding ProductoActual.UrlFoto}" Height="Auto" Width="Auto" Margin="0,0,10,0"/>
 
+        <Grid Grid.Column="2" Grid.RowSpan="99999">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Column="0" Grid.Row="0" Text="Filtro Nombre:"/>
+            <TextBlock Grid.Column="0" Grid.Row="1" Text="Filtro Familia:"/>
+            <TextBlock Grid.Column="0" Grid.Row="2" Text="Filtro Subgrupo:"/>
+            <TextBox Name="txtFiltroNombre" Grid.Column="1" Grid.Row="0" Text="{Binding FiltroNombre}" KeyUp="txtFiltroNombre_KeyUp"/>
+            <TextBox Name="txtFiltroFamilia" Grid.Column="1" Grid.Row="1" Text="{Binding FiltroFamilia}" KeyUp="txtFiltroFamilia_KeyUp"/>
+            <TextBox Name="txtFiltroSubgrupo" Grid.Column="1" Grid.Row="2" Text="{Binding FiltroSubgrupo}" KeyUp="txtFiltroSubgrupo_KeyUp"/>
+
+            <Button Grid.Column="2" Grid.RowSpan="3" Command="{Binding BuscarProductoCommand}" >
+                <Image MaxHeight="64" Source="Images/BuscarProducto.png"></Image>
+            </Button>
+
+            <ListView Grid.Row="3" Grid.ColumnSpan="9999" ItemsSource="{Binding ProductosResultadoBusqueda}" SelectedItem="{Binding ProductoResultadoSeleccionado}">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="MouseDoubleClick">
+                        <i:InvokeCommandAction Command="{Binding Path=DataContext.SeleccionarProductoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding Nombre}"/>
+                            <TextBlock Text="{Binding Familia}"/>
+                            <TextBlock Text="{Binding Subgrupo}"/>
+                            <TextBlock Text="{Binding PrecioProfesional, StringFormat=c}"/>
+                            <TextBlock Text="{Binding Estado}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
         </Grid>
+
+    </Grid>
 
 </UserControl>

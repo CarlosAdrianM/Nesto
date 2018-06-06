@@ -1,9 +1,14 @@
 ﻿using Microsoft.Practices.Prism.Commands;
 using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
+using Microsoft.Practices.Prism.PubSubEvents;
 using Microsoft.Practices.Prism.Regions;
 using Nesto.Contratos;
 using Nesto.Modules.Producto;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace Nesto.Modulos.Producto
@@ -13,17 +18,27 @@ namespace Nesto.Modulos.Producto
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
         private IProductoService Servicio { get; }
+        private IEventAggregator EventAggregator { get; }
 
+        private string _filtroNombre;
+        private string _filtroFamilia;
+        private string _filtroSubgrupo;
         private ProductoModel _productoActual;
+        private ProductoModel _productoResultadoSeleccionado;
+        private ObservableCollection<ProductoModel> _productosResultadoBusqueda;
         private string _referenciaBuscar;
 
-        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio)
+
+        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IEventAggregator eventAggregator)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
             Servicio = servicio;
+            EventAggregator = eventAggregator;
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
+            BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
+            SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
 
             Titulo = "Producto";
             NotificationRequest = new InteractionRequest<INotification>();
@@ -50,11 +65,56 @@ namespace Nesto.Modulos.Producto
         #endregion
 
         #region "Propiedades Nesto"
+        public string FiltroFamilia
+        {
+            get { return _filtroFamilia; }
+            set {
+                SetProperty(ref _filtroFamilia, value);
+                BuscarProductoCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        public string FiltroNombre
+        {
+            get { return _filtroNombre; }
+            set {
+                SetProperty(ref _filtroNombre, value);
+                BuscarProductoCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        public string FiltroSubgrupo
+        {
+            get { return _filtroSubgrupo; }
+            set {
+                SetProperty(ref _filtroSubgrupo, value);
+                BuscarProductoCommand.RaiseCanExecuteChanged();
+            }
+        }
+
         public ProductoModel ProductoActual {
             get { return _productoActual; }
             set { SetProperty(ref _productoActual, value); }
         }
 
+        public ProductoModel ProductoResultadoSeleccionado
+        {
+            get { return _productoResultadoSeleccionado; }
+            set {
+                SetProperty(ref _productoResultadoSeleccionado, value);
+                if (ProductoResultadoSeleccionado!= null)
+                {
+                    ReferenciaBuscar = ProductoResultadoSeleccionado.Producto;
+                }
+            }
+        }
+
+        public ObservableCollection<ProductoModel> ProductosResultadoBusqueda
+        {
+            get { return _productosResultadoBusqueda; }
+            set { SetProperty(ref _productosResultadoBusqueda, value); }
+        }
+        
         public string ReferenciaBuscar
         {
             get { return _referenciaBuscar; }
@@ -75,6 +135,49 @@ namespace Nesto.Modulos.Producto
         {
             RegionManager.RequestNavigate("MainRegion", "ProductoView");
         }
+
+        public DelegateCommand BuscarProductoCommand { get; private set; }
+        private bool CanBuscarProducto()
+        {
+            return (FiltroNombre != null && FiltroNombre.Trim() != "") || (FiltroFamilia != null && FiltroFamilia.Trim() != "") || (FiltroSubgrupo != null && FiltroSubgrupo.Trim()!="");
+        }
+        private async void OnBuscarProducto()
+        {
+            ICollection<ProductoModel> resultadoBusqueda = await Servicio.BuscarProductos(FiltroNombre, FiltroFamilia, FiltroSubgrupo);
+            ProductosResultadoBusqueda = new ObservableCollection<ProductoModel>();
+            foreach (var producto in resultadoBusqueda)
+            {
+                ProductosResultadoBusqueda.Add(producto);
+            }
+        }
+
+
+        public ICommand SeleccionarProductoCommand { get; private set; }
+        private bool CanSeleccionarProducto()
+        {
+            return true;
+        }
+        private void OnSeleccionarProducto()
+        {
+            if (ProductoResultadoSeleccionado != null)
+            {
+                EventAggregator.GetEvent<ProductoSeleccionadoEvent>().Publish(ProductoResultadoSeleccionado.Producto);
+                try
+                {
+                    ProductoView view = (ProductoView)RegionManager.Regions["MainRegion"].ActiveViews.FirstOrDefault();
+                    Grid grid = (Grid)view.Content;
+                    ProductoViewModel vm = (ProductoViewModel)grid.DataContext;
+                    if (vm.Titulo == this.Titulo)
+                    {
+                        RegionManager.Regions["MainRegion"].Remove(view);
+                    }
+                } finally
+                {
+
+                }
+            }
+        }
+
         #endregion
 
         public new void OnNavigatedTo(NavigationContext navigationContext)

@@ -97,6 +97,7 @@
   <ItemGroup>
     <Compile Include="Eventos\PedidoCreadoEvent.vb" />
     <Compile Include="Eventos\PedidoModificadoEvent.vb" />
+    <Compile Include="Eventos\ProductoSeleccionadoEvent.vb" />
     <Compile Include="Eventos\SacarPickingEvent.vb" />
     <Compile Include="ICanalesExternos.vb" />
     <Compile Include="ICarteraPagos.vb" />

@@ -40,6 +40,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
         cmdCargarPlazosPago = New DelegateCommand(Of Object)(AddressOf OnCargarPlazosPago, AddressOf CanCargarPlazosPago)
+        CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
         cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
@@ -906,6 +907,24 @@ Public Class PlantillaVentaViewModel
 
         End Using
 
+    End Sub
+
+    Private _cargarProductoCommand As DelegateCommand(Of Object)
+    Public Property CargarProductoCommand As DelegateCommand(Of Object)
+        Get
+            Return _cargarProductoCommand
+        End Get
+        Private Set(value As DelegateCommand(Of Object))
+            SetProperty(_cargarProductoCommand, value)
+        End Set
+    End Property
+    Private Function CanCargarProducto(arg As Object) As Boolean
+        Return True
+    End Function
+    Private Sub OnCargarProducto(arg As Object)
+        Dim parameters As NavigationParameters = New NavigationParameters()
+        parameters.Add("numeroProductoParameter", productoSeleccionado.producto)
+        regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
     Private _cmdCargarProductosPlantilla As DelegateCommand(Of Object)

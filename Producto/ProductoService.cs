@@ -20,6 +20,40 @@ namespace Nesto.Modules.Producto
             this.configuracion = configuracion;
         }
 
+        public async Task<ICollection<ProductoModel>> BuscarProductos(string filtroNombre, string filtroFamilia, string filtroSubgrupo)
+        {
+            ICollection<ProductoModel> productos;
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = "Productos?empresa=" + EmpresaDefecto + "&filtroNombre=" + filtroNombre + "&filtroFamilia=" + filtroFamilia + "&filtroSubgrupo=" + filtroSubgrupo;
+
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        productos = JsonConvert.DeserializeObject<ICollection<ProductoModel>>(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception("El resultado de la búsqueda no se ha podido cargar correctamente");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return productos;
+        }
+
         public async Task<ProductoModel> LeerProducto(string producto)
         {
             ProductoModel productoActual;
@@ -53,9 +87,9 @@ namespace Nesto.Modules.Producto
                 {
                     throw ex;
                 }
-
-                return productoActual;
             }
+
+            return productoActual;
         }
     }
 }
