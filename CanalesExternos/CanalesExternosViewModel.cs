@@ -2,10 +2,12 @@
 using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
 using Microsoft.Practices.Prism.Regions;
 using Nesto.Contratos;
+using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using static Nesto.Models.PedidoVenta;
@@ -89,7 +91,10 @@ namespace Nesto.Modulos.CanalesExternos
         public ICommand AbrirModuloCommand { get; private set; }
         private bool CanAbrirModulo()
         {
-            return Environment.UserName.ToLower() == "carlos" || Environment.UserName.ToLower() == "laura";
+            return Environment.UserName.ToLower() == "carlos" 
+                || Environment.UserName.ToLower() == "laura"
+                || Environment.UserName.ToLower() == "manuel"
+                || Environment.UserName.ToLower() == "iñaki";
         }
         private void OnAbrirModulo()
         {
@@ -136,7 +141,8 @@ namespace Nesto.Modulos.CanalesExternos
                 EstaOcupado = false;
             }            
         }
-#endregion
+
+        #endregion
 
         private async Task CrearComandosAsync()
         {
@@ -146,7 +152,7 @@ namespace Nesto.Modulos.CanalesExternos
             CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
             CrearPedidoCommand = new DelegateCommand<PedidoVentaDTO>(OnCrearPedidoAsync, CanCrearPedido);
         }
-
+        
         async void OnCanalSeleccionadoHaCambiadoAsync(object sender, EventArgs e)
         {
             try

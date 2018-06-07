@@ -438,6 +438,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _productoPedidoSeleccionado As LineaPlantillaJson
+    Public Property productoPedidoSeleccionado As LineaPlantillaJson
+        Get
+            Return _productoPedidoSeleccionado
+        End Get
+        Set(ByVal value As LineaPlantillaJson)
+            SetProperty(_productoPedidoSeleccionado, value)
+        End Set
+    End Property
+
     Private _productoSeleccionado As LineaPlantillaJson
     Public Property productoSeleccionado As LineaPlantillaJson
         Get
@@ -922,8 +932,11 @@ Public Class PlantillaVentaViewModel
         Return True
     End Function
     Private Sub OnCargarProducto(arg As Object)
+        If IsNothing(productoPedidoSeleccionado) Then
+            Return
+        End If
         Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("numeroProductoParameter", productoSeleccionado.producto)
+        parameters.Add("numeroProductoParameter", productoPedidoSeleccionado.producto)
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 

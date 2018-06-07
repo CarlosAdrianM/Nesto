@@ -132,11 +132,6 @@
                             </StackPanel>
                         </Grid>
                         <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <i:Interaction.Triggers>
-                                <i:EventTrigger EventName="MouseDoubleClick">
-                                    <i:InvokeCommandAction Command="{Binding Path=DataContext.CargarProductoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                                </i:EventTrigger>
-                            </i:Interaction.Triggers>
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel Height="110" Margin="6" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Hidden">
@@ -226,7 +221,12 @@
                                     </DataGridTextColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
-                            <DataGrid Name="grdListaProductos" DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsSynchronizedWithCurrentItem="True">
+                            <DataGrid Name="grdListaProductos" DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsSynchronizedWithCurrentItem="True" SelectedItem="{Binding productoPedidoSeleccionado}">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="MouseDoubleClick">
+                                        <i:InvokeCommandAction Command="{Binding Path=DataContext.CargarProductoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
                                 <DataGrid.Resources>
                                     <Style TargetType="{x:Type DataGridCell}" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                         <Style.Triggers>
