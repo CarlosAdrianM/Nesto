@@ -115,7 +115,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaNesto.precio = lineaNesto.precio / (decimal)1.21;
+                    lineaNesto.precio = Math.Round(lineaNesto.precio / (decimal)1.21, 4);
                 }
 
                 pedidoSalida.LineasPedido.Add(lineaNesto);
