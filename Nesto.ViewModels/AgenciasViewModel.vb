@@ -2873,6 +2873,8 @@ Public Class AgenciaASM
             agencia.listaServicios.Add(agencia.servicioActual)
             agencia.listaServicios.Add(New tipoIdDescripcion(37, "Economy"))
             agencia.listaServicios.Add(New tipoIdDescripcion(54, "EuroEstándar"))
+            agencia.listaServicios.Add(New tipoIdDescripcion(74, "EuroBusiness Parcel"))
+            agencia.listaServicios.Add(New tipoIdDescripcion(76, "EuroBusiness Small Parcel"))
             agencia.listaHorarios = New ObservableCollection(Of tipoIdDescripcion)
             agencia.horarioActual = New tipoIdDescripcion(3, "ASM24")
             agencia.listaHorarios.Add(agencia.horarioActual)
