@@ -93,9 +93,9 @@
 
                     <Grid HorizontalAlignment="Stretch">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
-                            <RowDefinition Height="7*"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -120,6 +120,7 @@
                                 <TextBlock Text="{Binding clienteSeleccionado.cliente}"></TextBlock>
                                 <TextBlock Text="{Binding clienteSeleccionado.nombre}"></TextBlock>
                                 <TextBlock Text="{Binding clienteSeleccionado.direccion}"></TextBlock>
+                                <TextBlock Text="{Binding clienteSeleccionado.telefono}"></TextBlock>
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="{Binding clienteSeleccionado.vendedor}"></TextBlock>
