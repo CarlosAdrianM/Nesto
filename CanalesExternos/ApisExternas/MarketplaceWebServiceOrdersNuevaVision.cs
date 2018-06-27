@@ -272,7 +272,7 @@ namespace MarketplaceWebServiceOrders {
             //request.BuyerEmail = buyerEmail;
             //string sellerOrderId = "example";
             //request.SellerOrderId = sellerOrderId;
-            decimal maxResultsPerPage = 10;
+            decimal maxResultsPerPage = 100;
             request.MaxResultsPerPage = maxResultsPerPage;
             List<string> tfmShipmentStatus = new List<string>();
             //request.TFMShipmentStatus = tfmShipmentStatus;
