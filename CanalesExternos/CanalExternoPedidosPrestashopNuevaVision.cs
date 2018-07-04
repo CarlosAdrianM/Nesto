@@ -13,7 +13,8 @@ namespace Nesto.Modulos.CanalesExternos
     public class CanalExternoPedidosPrestashopNuevaVision : ICanalExternoPedidos
     {
         private IConfiguracion configuracion;
-        const string EMPRESA_DEFECTO = "1";
+        private const string EMPRESA_DEFECTO = "1";
+        private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
         Clientes CLIENTE_TIENDA_ONLINE = new Clientes {
             Nº_Cliente = "31517",
             Contacto = "0",
@@ -71,11 +72,13 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.comentarios += "TOTAL PEDIDO: " + totalPagado.ToString("c");
 
             pedidoSalida.fecha = Convert.ToDateTime(pedidoEntrada.Pedido.Element("date_add")?.Value);
-            
+
+            string formaPago = pedidoEntrada.Pedido.Element("payment")?.Value;
             decimal totalPedido = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products_wt")?.Value) / 1000000, 4);
             decimal totalPortes = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000, 4);
             decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
-            if (totalPagado < totalPedido + totalPortes - totalDescuentos)
+            decimal totalAPagar = totalPedido + totalPortes - totalDescuentos;
+            if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO || totalPagado < totalAPagar)
             {
                 pedidoSalida.formaPago = "EFC";
                 pedidoSalida.plazosPago = "CONTADO";
