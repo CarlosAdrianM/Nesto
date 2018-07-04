@@ -549,7 +549,8 @@ Public Class PlantillaVentaViewModel
                     })
                 End If
 
-                Await cmdComprobarCondicionesPrecio.Execute(arg)
+                'Carlos 04/07/18: desactivo porque lo controlamos con las ofertas permitidas
+                'Await cmdComprobarCondicionesPrecio.Execute(arg)
 
                 OnPropertyChanged("listaProductosPedido")
                 OnPropertyChanged("baseImponiblePedido")
