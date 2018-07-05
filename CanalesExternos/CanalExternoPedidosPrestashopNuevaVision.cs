@@ -78,10 +78,14 @@ namespace Nesto.Modulos.CanalesExternos
             decimal totalPortes = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000, 4);
             decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
             decimal totalAPagar = totalPedido + totalPortes - totalDescuentos;
-            if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO || totalPagado < totalAPagar)
+            if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO)
             {
                 pedidoSalida.formaPago = "EFC";
                 pedidoSalida.plazosPago = "CONTADO";
+            } else if (formaPago == "PayPal")
+            {
+                pedidoSalida.formaPago = "TAR";
+                pedidoSalida.plazosPago = "PRE";
             } else
             {
                 pedidoSalida.formaPago = "TRN";
