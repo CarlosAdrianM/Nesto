@@ -65,8 +65,6 @@ Public Class PlantillaVentaView
                     linea.descuento = linea.descuento / 100
                 End If
             End If
-
-            DataContext.cmdComprobarCondicionesPrecio.Execute(linea)
         End If
     End Sub
 
