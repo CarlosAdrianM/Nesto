@@ -364,9 +364,6 @@
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                     <StackPanel>
-                        <TextBlock>Una vez creado el pedido entre a Nesto 4 y seleccione "Clientes -> Pedidos -> Abrir" para ver el pedido que acaba de crear.</TextBlock>
-                        <TextBlock>¡Atención! Si tiene una ventana de pedidos abierta, ciérrela antes de pulsar el botón "Finalizar" para evitar perder el nº del pedido recién creado.</TextBlock>
-                        <TextBlock></TextBlock>
                         <TextBlock>Seleccione la forma de venta del pedido:</TextBlock>
                         <RadioButton Content="Directa" IsChecked="{Binding formaVentaDirecta,Mode=TwoWay}"/>
                         <RadioButton Content="Teléfono" IsChecked="{Binding formaVentaTelefono,Mode=TwoWay}"/>
@@ -379,6 +376,10 @@
                         <TextBlock>Seleccione la forma de pago y los plazos:</TextBlock>
                         <ComboBox MinWidth="300" ItemsSource="{Binding listaFormasPago}" SelectedItem="{Binding formaPagoSeleccionada}" DisplayMemberPath="descripcion"></ComboBox>
                         <ComboBox MinWidth="300" ItemsSource="{Binding listaPlazosPago}" SelectedItem="{Binding plazoPagoSeleccionado}" DisplayMemberPath="descripcion"></ComboBox>
+
+                        <TextBlock></TextBlock>
+                        <CheckBox IsChecked="{Binding EsPresupuesto}">¿Crear como Presupuesto?</CheckBox>
+
                     </StackPanel>
 
                 </xctk:WizardPage>

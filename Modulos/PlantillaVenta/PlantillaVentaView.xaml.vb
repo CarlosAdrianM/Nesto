@@ -10,7 +10,7 @@ Public Class PlantillaVentaView
     End Sub
 
     Private Sub Wizard_Finish(sender As Object, e As RoutedEventArgs)
-        Me.DataContext.cmdCrearPedido.Execute(Nothing)
+        Me.DataContext.cmdCrearPedido.Execute
     End Sub
 
     Private Sub SeleccionCliente_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionCliente.Enter

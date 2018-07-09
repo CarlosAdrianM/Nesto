@@ -8,11 +8,9 @@ Imports Newtonsoft.Json
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports System.Text
 Imports Nesto.Contratos
-Imports System.Globalization
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
-Imports System.Dynamic
 Imports Newtonsoft.Json.Linq
 
 Public Class PlantillaVentaViewModel
@@ -21,6 +19,10 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
+
+    Private Const ESTADO_LINEA_CURSO As Integer = 1
+    Private Const ESTADO_LINEA_PRESUPUESTO As Integer = -3
+
 
     Dim formaVentaPedido, delegacionUsuario, almacenRutaUsuario, vendedorUsuario As String
 
@@ -45,7 +47,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
         cmdComprobarPendientes = New DelegateCommand(Of Object)(AddressOf OnComprobarPendientes, AddressOf CanComprobarPendientes)
-        cmdCrearPedido = New DelegateCommand(Of Object)(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
+        cmdCrearPedido = New DelegateCommand(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
 
@@ -149,6 +151,16 @@ Public Class PlantillaVentaViewModel
             If fechaMinimaEntrega < fechaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If
+        End Set
+    End Property
+
+    Private _esPresupuesto As Boolean
+    Public Property EsPresupuesto As Boolean
+        Get
+            Return _esPresupuesto
+        End Get
+        Set(value As Boolean)
+            SetProperty(_esPresupuesto, value)
         End Set
     End Property
 
@@ -1170,19 +1182,19 @@ Public Class PlantillaVentaViewModel
 
 
 
-    Private _cmdCrearPedido As DelegateCommand(Of Object)
-    Public Property cmdCrearPedido As DelegateCommand(Of Object)
+    Private _cmdCrearPedido As DelegateCommand
+    Public Property cmdCrearPedido As DelegateCommand
         Get
             Return _cmdCrearPedido
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdCrearPedido, value)
         End Set
     End Property
-    Private Function CanCrearPedido(arg As Object) As Boolean
+    Private Function CanCrearPedido() As Boolean
         Return Not IsNothing(formaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado)
     End Function
-    Private Async Sub OnCrearPedido(arg As Object)
+    Private Async Sub OnCrearPedido()
 
         If IsNothing(formaPagoSeleccionada) OrElse IsNothing(plazoPagoSeleccionado) OrElse IsNothing(clienteSeleccionado) Then
             NotificationRequest.Raise(New Notification() With {
@@ -1225,6 +1237,7 @@ Public Class PlantillaVentaViewModel
                 .empresa = clienteSeleccionado.empresa,
                 .cliente = clienteSeleccionado.cliente,
                 .contacto = direccionEntregaSeleccionada.contacto,
+                .EsPresupuesto = EsPresupuesto,
                 .fecha = Today,
                 .formaPago = formaPagoSeleccionada.formaPago,
                 .plazosPago = plazoPagoSeleccionado.plazoPago,
@@ -1255,23 +1268,23 @@ Public Class PlantillaVentaViewModel
                     ofertaLinea = Nothing
                 End If
 
-                If linea.descuento = linea.descuentoProducto Then
-                    linea.descuento = 0
-                Else
-                    linea.aplicarDescuento = False
-                End If
+                'If linea.descuento = linea.descuentoProducto Then
+                '    linea.descuento = 0
+                'Else
+                '    linea.aplicarDescuento = False
+                'End If
 
                 lineaPedido = New LineaPedidoVentaDTO With {
-                    .estado = 1, 'ojo, de parámetro. ¿Pongo 0 para tener que validar?
+                    .estado = IIf(EsPresupuesto, ESTADO_LINEA_CURSO, ESTADO_LINEA_PRESUPUESTO), '¿Pongo 0 para tener que validar?
                     .tipoLinea = 1, ' Producto
                     .producto = linea.producto,
                     .texto = linea.texto,
                     .cantidad = linea.cantidad,
                     .fechaEntrega = fechaEntrega,
                     .precio = linea.precio,
-                    .descuento = linea.descuento,
-                    .descuentoProducto = linea.descuentoProducto,
-                    .aplicarDescuento = linea.aplicarDescuento,
+                    .descuento = IIf(linea.descuento = linea.descuentoProducto, 0, linea.descuento),
+                    .descuentoProducto = IIf(linea.descuento = linea.descuentoProducto, linea.descuentoProducto, 0),
+                    .aplicarDescuento = IIf(linea.descuento = linea.descuentoProducto, linea.aplicarDescuento, False),
                     .vistoBueno = 0, 'calcular
                     .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,
                     .almacen = almacenRutaUsuario,

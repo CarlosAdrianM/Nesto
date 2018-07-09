@@ -1,14 +1,13 @@
 ﻿Imports System.Collections.ObjectModel
-Imports System.Collections.Specialized
 Imports System.ComponentModel
 Imports System.Runtime.CompilerServices
 
 Public Class PedidoVenta
+
     Public Class LineaPedidoVentaDTO
         Implements INotifyPropertyChanged
 
         Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
-
 
         Public Property almacen() As String
         Private _aplicarDescuento As Boolean
@@ -57,6 +56,7 @@ Public Class PedidoVenta
                 OnPropertyChanged("total")
             End Set
         End Property
+        Public Property EsPresupuesto As Boolean
         Public Property estado() As Short = 1
         Private _fechaEntrega As System.DateTime
         Public Property fechaEntrega() As System.DateTime
@@ -217,6 +217,7 @@ Public Class PedidoVenta
         Public Property vistoBuenoPlazosPago() As Boolean
         Public Property mantenerJunto() As Boolean
         Public Property servirJunto() As Boolean
+        Public Property EsPresupuesto() As Boolean
         Public Property usuario() As String
 
         Public ReadOnly Property baseImponible As Decimal
