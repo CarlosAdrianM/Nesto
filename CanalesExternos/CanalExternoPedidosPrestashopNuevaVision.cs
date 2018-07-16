@@ -191,7 +191,11 @@ namespace Nesto.Modulos.CanalesExternos
 
             using (NestoEntities db = new NestoEntities())
             {
-                Clientes clienteEncontrado = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Contains(dniCliente)).SingleOrDefault();
+                Clientes clienteEncontrado = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Equals(dniCliente)).SingleOrDefault();
+                if (clienteEncontrado == null)
+                {
+                    clienteEncontrado = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Contains(dniCliente)).FirstOrDefault();
+                }
                 if (clienteEncontrado != null)
                 {
                     return clienteEncontrado;

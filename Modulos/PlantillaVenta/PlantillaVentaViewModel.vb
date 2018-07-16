@@ -1275,7 +1275,7 @@ Public Class PlantillaVentaViewModel
                 'End If
 
                 lineaPedido = New LineaPedidoVentaDTO With {
-                    .estado = IIf(EsPresupuesto, ESTADO_LINEA_CURSO, ESTADO_LINEA_PRESUPUESTO), '¿Pongo 0 para tener que validar?
+                    .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO), '¿Pongo 0 para tener que validar?
                     .tipoLinea = 1, ' Producto
                     .producto = linea.producto,
                     .texto = linea.texto,
