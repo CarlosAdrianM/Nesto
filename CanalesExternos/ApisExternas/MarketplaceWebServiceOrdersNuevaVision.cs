@@ -74,6 +74,11 @@ namespace MarketplaceWebServiceOrders {
 
                 ListOrdersResponse respuesta = (ListOrdersResponse)response;
 
+                // Añadimos los FBA
+                //response = sample.InvokeListOrdersFBA();
+                //ListOrdersResponse respuestaFBA = (ListOrdersResponse)response;
+                //respuesta.ListOrdersResult.Orders.AddRange(respuestaFBA.ListOrdersResult.Orders);
+
                 return respuesta.ListOrdersResult.Orders;
 
                 /*
@@ -266,6 +271,50 @@ namespace MarketplaceWebServiceOrders {
             request.MarketplaceId = marketplaceId;
             List<string> fulfillmentChannel = new List<string>();
             //request.FulfillmentChannel = fulfillmentChannel;
+            List<string> paymentMethod = new List<string>();
+            //request.PaymentMethod = paymentMethod;
+            //string buyerEmail = "example";
+            //request.BuyerEmail = buyerEmail;
+            //string sellerOrderId = "example";
+            //request.SellerOrderId = sellerOrderId;
+            decimal maxResultsPerPage = 100;
+            request.MaxResultsPerPage = maxResultsPerPage;
+            List<string> tfmShipmentStatus = new List<string>();
+            //request.TFMShipmentStatus = tfmShipmentStatus;
+            return this.client.ListOrders(request);
+        }
+
+        public ListOrdersResponse InvokeListOrdersFBA()
+        {
+            // Create a request.
+            ListOrdersRequest request = new ListOrdersRequest();
+            string sellerId = "A302IUJ673AU08";
+            request.SellerId = sellerId;
+            //string mwsAuthToken = "example";
+            //request.MWSAuthToken = mwsAuthToken;
+            DateTime createdAfter = DateTime.Now.AddDays(-10);
+            request.CreatedAfter = createdAfter;
+            /*
+            DateTime createdBefore = new DateTime();
+            request.CreatedBefore = createdBefore;
+            DateTime lastUpdatedAfter = new DateTime();
+            request.LastUpdatedAfter = lastUpdatedAfter;
+            DateTime lastUpdatedBefore = new DateTime();
+            request.LastUpdatedBefore = lastUpdatedBefore;
+            */
+            List<string> orderStatus = new List<string>();
+            orderStatus.Add("Shipped");
+            request.OrderStatus = orderStatus;
+            List<string> marketplaceId = new List<string>();
+            marketplaceId.Add("A1F83G8C2ARO7P"); // Amazon.co.uk
+            marketplaceId.Add("A1PA6795UKMFR9"); // Amazon.de
+            marketplaceId.Add("A1RKKUPIHCS9HS"); // Amazon.es
+            marketplaceId.Add("A13V1IB3VIYZZH"); // Amazon.fr
+            marketplaceId.Add("APJ6JRA9NG5V4");  // Amazon.it
+            request.MarketplaceId = marketplaceId;
+            List<string> fulfillmentChannel = new List<string>();
+            fulfillmentChannel.Add("AFN");
+            request.FulfillmentChannel = fulfillmentChannel;
             List<string> paymentMethod = new List<string>();
             //request.PaymentMethod = paymentMethod;
             //string buyerEmail = "example";

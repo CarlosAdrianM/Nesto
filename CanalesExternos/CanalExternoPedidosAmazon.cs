@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Nesto.Models;
 using MarketplaceWebServiceOrders;
 using MarketplaceWebServiceOrders.Model;
 using static Nesto.Models.PedidoVenta;
@@ -14,12 +11,15 @@ namespace Nesto.Modulos.CanalesExternos
 {
     public class CanalExternoPedidosAmazon : ICanalExternoPedidos
     {
-        private const string CLIENTE_AMAZON = "31482";
+        private const string CLIENTE_AMAZON = "32624";
         private const string CONTACTO_AMAZON = "0";
         private const string FORMA_VENTA_AMAZON = "STK";
-        private const string ALMACEN_AMAZON = "ALG";
+        private const string ALMACEN_NV = "ALG";
+        private const string ALMACEN_AMAZON = "AMZ";
         private const string DELEGACION_AMAZON = "ALG";
         private const string VENDEDOR_AMAZON = "NV";
+        private const string IVA_GENERAL = "G21";
+        private const decimal PORCENTAJE_IVA = 1.21M;
 
         private IConfiguracion configuracion;
 
@@ -39,7 +39,7 @@ namespace Nesto.Modulos.CanalesExternos
                 {
                     PedidoVentaDTO pedido = TrasformarPedido(order);
                     List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
-                    pedido.LineasPedido = TrasformarLineas(lineasAmazon);
+                    pedido.LineasPedido = TrasformarLineas(lineasAmazon, order.FulfillmentChannel);
                     listaNesto.Add(pedido);
                 }
             });
@@ -63,7 +63,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.contactoCobro = CONTACTO_AMAZON;
             pedidoSalida.vendedor = VENDEDOR_AMAZON;
 
-            pedidoSalida.iva = null;
+            pedidoSalida.iva = IVA_GENERAL;
             pedidoSalida.comentarios = order.AmazonOrderId + " \r\n";
             pedidoSalida.comentarios += order.ShippingAddress?.Name.ToString().ToUpper() + "\r\n";
             pedidoSalida.comentarios += order.BuyerEmail?.ToString() + "\r\n";
@@ -75,6 +75,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.comentarios += order.ShippingAddress?.StateOrRegion?.ToString().ToUpper() + ")\r\n";
             
             pedidoSalida.comentarios += order.ShippingAddress?.Phone != null ? order.ShippingAddress?.Phone?.ToString().ToUpper() + "\r\n" : "";
+            pedidoSalida.comentarios += "Cumplimiento por " + (order.FulfillmentChannel == "AFN" ? "Amazon" : "Nueva Visión") + "\r\n";
             pedidoSalida.comentarios += "TOTAL PEDIDO: " + order.OrderTotal?.Amount.ToString();
             
             pedidoSalida.fecha = order.PurchaseDate;
@@ -90,22 +91,23 @@ namespace Nesto.Modulos.CanalesExternos
             return pedidoSalida;
         }
 
-        private ObservableCollection<LineaPedidoVentaDTO> TrasformarLineas(List<OrderItem> lineasAmazon)
+        private ObservableCollection<LineaPedidoVentaDTO> TrasformarLineas(List<OrderItem> lineasAmazon, string canalCumplimiento)
         {
             ObservableCollection<LineaPedidoVentaDTO> lineasNesto = new ObservableCollection<LineaPedidoVentaDTO>();
             foreach (OrderItem orderItem in lineasAmazon)
             {
+                decimal baseImponible = Convert.ToDecimal(orderItem.ItemPrice?.Amount) / 100 / PORCENTAJE_IVA;
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
-                    almacen = ALMACEN_AMAZON,
+                    almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
                     aplicarDescuento = false,
                     cantidad = (short)orderItem.QuantityOrdered,
                     delegacion = DELEGACION_AMAZON,
                     formaVenta = FORMA_VENTA_AMAZON,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
-                    iva = "G21", // TODO: LEER DEL PRODUCTO
-                    precio = Convert.ToDecimal(orderItem.ItemPrice?.Amount)/100/orderItem.QuantityOrdered,
+                    iva = IVA_GENERAL, 
+                    precio = baseImponible/orderItem.QuantityOrdered,
                     producto = orderItem.SellerSKU,
                     texto = orderItem.Title.ToUpper(),
                     tipoLinea = 1, // producto
@@ -115,17 +117,18 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (Convert.ToDecimal(orderItem.ShippingPrice?.Amount) != 0)
                 {
+                    decimal baseImponiblePortes = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / PORCENTAJE_IVA;
                     LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                     {
-                        almacen = ALMACEN_AMAZON,
+                        almacen = ALMACEN_NV,
                         aplicarDescuento = false,
                         cantidad = (short)1,
                         delegacion = DELEGACION_AMAZON,
                         formaVenta = FORMA_VENTA_AMAZON,
                         estado = 1,
                         fechaEntrega = DateTime.Today,
-                        iva = "G21", // TODO: LEER DEL PRODUCTO
-                        precio = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100,
+                        iva = IVA_GENERAL, 
+                        precio = baseImponiblePortes,
                         producto = "62400003",
                         texto = "PORTES " + orderItem.Title.ToUpper(),
                         tipoLinea = 2, // cuenta contable
