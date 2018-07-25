@@ -223,9 +223,9 @@ Public Class ClientesViewModel
 
                 clienteServidor = JsonConvert.DeserializeObject(Of ClienteJson)(respuesta)
                 If Not IsNothing(clienteServidor) AndAlso Not IsNothing(clienteServidor.VendedoresGrupoProducto) AndAlso clienteServidor.VendedoresGrupoProducto.Count > 0 Then
-                    vendedorPorGrupo = clienteServidor.VendedoresGrupoProducto.ElementAt(0)
+                    vendedorPorGrupo = clienteServidor.VendedoresGrupoProducto.ElementAt(0).vendedor
                 Else
-                    vendedorPorGrupo = New VendedorGrupoProductoDTO
+                    vendedorPorGrupo = Nothing
                 End If
 
 
@@ -335,13 +335,14 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private _vendedorPorGrupo As VendedorGrupoProductoDTO
-    Public Property vendedorPorGrupo As VendedorGrupoProductoDTO
+    Private _vendedorPorGrupo As String
+    Public Property vendedorPorGrupo As String
         Get
             Return _vendedorPorGrupo
         End Get
-        Set(value As VendedorGrupoProductoDTO)
+        Set(value As String)
             _vendedorPorGrupo = value
+            clienteServidor.VendedoresGrupoProducto.ElementAt(0).vendedor = value
             OnPropertyChanged("vendedorPorGrupo")
         End Set
     End Property
@@ -720,6 +721,7 @@ Public Class ClientesViewModel
     End Function
     Private Sub GuardarVendedores(ByVal param As Object)
         Try
+
             ' PUT de clienteServidor
             Using client As New HttpClient
                 client.BaseAddress = New Uri(configuracion.servidorAPI)

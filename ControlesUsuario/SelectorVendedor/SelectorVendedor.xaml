@@ -8,7 +8,7 @@
     
     <StackPanel Name="GridPrincipal" HorizontalAlignment="Stretch">
         <TextBlock Text="{Binding Etiqueta}" Visibility="{Binding visibilidad}"></TextBlock>
-        <ComboBox MinWidth="30" ItemsSource="{Binding listaVendedores}" SelectedItem="{Binding vendedorSeleccionado}" DisplayMemberPath="nombre"></ComboBox>
+        <ComboBox MinWidth="30" ItemsSource="{Binding listaVendedores}" SelectedItem="{Binding vendedorSeleccionado, Mode=TwoWay}" DisplayMemberPath="nombre"></ComboBox>
     </StackPanel>
     
 </UserControl>

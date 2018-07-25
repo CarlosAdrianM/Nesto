@@ -121,7 +121,7 @@ Public Class PedidoVenta
 
         Public ReadOnly Property bruto As Decimal
             Get
-                Return cantidad * precio
+                Return (cantidad * (Decimal.Truncate(precio * 10000) / 10000))
             End Get
         End Property
 

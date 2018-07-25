@@ -178,6 +178,22 @@
                     </DataGrid>                    
 
                     <xctk:PropertyGrid Grid.Column="1" x:Name="_propertyGrid" AutoGenerateProperties="False" SelectedObject="{Binding lineaActual}" IsReadOnly="True">
+                        <xctk:PropertyGrid.EditorDefinitions>
+                            <xctk:EditorTemplateDefinition TargetProperties="descuento,descuentoProducto">
+                                <xctk:EditorTemplateDefinition.EditingTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Value, StringFormat=p}" />
+                                    </DataTemplate>
+                                </xctk:EditorTemplateDefinition.EditingTemplate>
+                            </xctk:EditorTemplateDefinition>
+                            <xctk:EditorTemplateDefinition TargetProperties="bruto,precio">
+                                <xctk:EditorTemplateDefinition.EditingTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Value, StringFormat=c}" />
+                                    </DataTemplate>
+                                </xctk:EditorTemplateDefinition.EditingTemplate>
+                            </xctk:EditorTemplateDefinition>
+                        </xctk:PropertyGrid.EditorDefinitions>
                         <xctk:PropertyGrid.PropertyDefinitions>
                             <xctk:PropertyDefinition TargetProperties="almacen" DisplayName="Almacén"/>
                             <xctk:PropertyDefinition TargetProperties="aplicarDescuento" DisplayName="Aplicar Descuento" />
