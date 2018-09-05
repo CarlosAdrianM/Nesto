@@ -263,6 +263,7 @@ Public Class DetallePedidoViewModel
                 pedido.VendedoresGrupoProducto.Add(vendedorPorGrupo)
             End If
             OnPropertyChanged("mostrarAceptarPresupuesto")
+            AceptarPresupuestoCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -330,7 +331,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Function CanAceptarPresupuesto() As Boolean
-        Return pedido.EsPresupuesto
+        Return (Not IsNothing(pedido)) AndAlso pedido.EsPresupuesto
     End Function
     Private Sub OnAceptarPresupuesto()
         pedido.EsPresupuesto = False
