@@ -57,7 +57,16 @@ Public Class PedidoVenta
             End Set
         End Property
         Public Property EsPresupuesto As Boolean
-        Public Property estado() As Short = 1
+        Private _estado As Short = 1
+        Public Property estado() As Short
+            Get
+                Return _estado
+            End Get
+            Set(value As Short)
+                _estado = value
+                OnPropertyChanged("estado")
+            End Set
+        End Property
         Private _fechaEntrega As System.DateTime
         Public Property fechaEntrega() As System.DateTime
             Get
@@ -217,7 +226,7 @@ Public Class PedidoVenta
         Public Property vistoBuenoPlazosPago() As Boolean
         Public Property mantenerJunto() As Boolean
         Public Property servirJunto() As Boolean
-        Public Property EsPresupuesto() As Boolean
+        Public Property EsPresupuesto() As Boolean = False
         Public Property usuario() As String
 
         Public ReadOnly Property baseImponible As Decimal

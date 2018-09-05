@@ -19,7 +19,7 @@ Public Class PedidoVentaService
         Me.configuracion = configuracion
     End Sub
 
-    Private Async Function cargarListaPedidos(vendedor As String, verTodosLosVendedores As Boolean) As Task(Of ObservableCollection(Of ResumenPedido)) Implements IPedidoVentaService.cargarListaPedidos
+    Private Async Function cargarListaPedidos(vendedor As String, verTodosLosVendedores As Boolean, mostrarPresupuestos As Boolean) As Task(Of ObservableCollection(Of ResumenPedido)) Implements IPedidoVentaService.cargarListaPedidos
 
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
@@ -34,6 +34,10 @@ Public Class PedidoVentaService
             Try
                 Dim urlConsulta As String = "PedidosVenta"
                 urlConsulta += "?vendedor=" + vendedorConsulta
+
+                If mostrarPresupuestos Then
+                    urlConsulta += "&estado=-3"
+                End If
 
                 response = Await client.GetAsync(urlConsulta)
 

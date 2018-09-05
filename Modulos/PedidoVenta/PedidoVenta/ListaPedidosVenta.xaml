@@ -14,10 +14,16 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
     
-    <DockPanel>
-        <controles:SelectorEmpresa DockPanel.Dock="Top" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
-        <xctk:WatermarkTextBox Name="txtFiltro" DockPanel.Dock="Top" Text="{Binding filtroPedidos}" Watermark="Buscar Pedidos..."></xctk:WatermarkTextBox>
-        <xctk:BusyIndicator DockPanel.Dock="Bottom" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos...">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
+        <xctk:WatermarkTextBox Name="txtFiltro" Grid.Row="1" Text="{Binding filtroPedidos}" Watermark="Buscar Pedidos..."></xctk:WatermarkTextBox>
+        <xctk:BusyIndicator Grid.Row="2" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos...">
             <ListView ItemsSource="{Binding listaPedidos}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
                 <ListView.ItemTemplate>
                     <DataTemplate>
@@ -38,6 +44,7 @@
                                     <TextBlock Background="Green" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePicking, Converter={StaticResource BooleanToVisibilityConverter} }">Picking</TextBlock>
                                     <TextBlock Background="Blue" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneFechasFuturas, Converter={StaticResource BooleanToVisibilityConverter} }">En Espera</TextBlock>
                                     <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
+                                    <TextBlock Background="DarkGoldenrod" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePresupuesto, Converter={StaticResource BooleanToVisibilityConverter} }">Presupuesto</TextBlock>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -45,6 +52,7 @@
                 </ListView.ItemTemplate>
             </ListView>
         </xctk:BusyIndicator>
-    </DockPanel>
+        <CheckBox Grid.Row="3" IsChecked="{Binding mostrarPresupuestos}">Mostrar Presupuestos</CheckBox>
+    </Grid>
 
 </UserControl>

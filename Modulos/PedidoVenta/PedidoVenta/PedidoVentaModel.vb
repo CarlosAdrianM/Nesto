@@ -19,6 +19,7 @@
         Public Property tienePendientes As Boolean
         Public Property tienePicking As Boolean
         Public Property tieneFechasFuturas As Boolean
+        Public Property tienePresupuesto As Boolean
         Public Property baseImponible As Decimal
         Public Property total As Decimal
         Public Property vendedor As String

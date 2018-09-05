@@ -152,6 +152,19 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
+    Private _mostrarPresupuestos As Boolean = False
+    Public Property mostrarPresupuestos As Boolean
+        Get
+            Return _mostrarPresupuestos
+        End Get
+        Set(value As Boolean)
+            If value <> _mostrarPresupuestos Then
+                SetProperty(_mostrarPresupuestos, value)
+                Task.Run(Function() cmdCargarListaPedidos.Execute(Nothing))
+            End If
+        End Set
+    End Property
+
     Private _resumenSeleccionado As ResumenPedido
     Public Property resumenSeleccionado() As ResumenPedido
         Get
@@ -198,7 +211,7 @@ Public Class ListaPedidosVentaViewModel
                     vendedor = ""
                 End If
             End If
-            listaPedidos = Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores)
+            listaPedidos = Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores, mostrarPresupuestos)
             listaPedidosOriginal = listaPedidos
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
@@ -224,7 +237,7 @@ Public Class ListaPedidosVentaViewModel
 
     Private Sub CargarResumenSeleccionado()
         Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("numeroPedidoParameter", resumenSeleccionado)
+        parameters.Add("resumenPedidoParameter", resumenSeleccionado)
         scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
         If Not IsNothing(resumenSeleccionado) Then
             empresaSeleccionada = resumenSeleccionado.empresa
