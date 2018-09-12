@@ -7,14 +7,11 @@ Imports System.IO
 Imports Microsoft.Win32
 Imports System.Windows.Data
 Imports System.Globalization
-Imports System.Xml.Linq
-Imports Microsoft.Practices.Prism
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports System.Net.Http
 Imports Newtonsoft.Json
 Imports System.Text
-Imports System.Threading.Tasks
 
 'Imports Nesto.Models.Nesto.Models.EF
 
@@ -342,6 +339,17 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _vendedorPorGrupo = value
+            If IsNothing(clienteServidor) OrElse IsNothing(clienteServidor.VendedoresGrupoProducto) Then
+                Return
+            End If
+            If clienteServidor.VendedoresGrupoProducto.Count = 0 Then
+                clienteServidor.VendedoresGrupoProducto.Add(New VendedorGrupoProductoDTO With
+                                       {
+                                       .grupoProducto = "PEL",
+                                       .vendedor = "NV"
+                                       }
+                )
+            End If
             clienteServidor.VendedoresGrupoProducto.ElementAt(0).vendedor = value
             OnPropertyChanged("vendedorPorGrupo")
         End Set
@@ -354,6 +362,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of ClienteJson))
             _listaClientesVendedor = value
+            'clienteActivoDTO = _listaClientesVendedor.FirstOrDefault
             OnPropertyChanged("listaClientesVendedor")
         End Set
     End Property

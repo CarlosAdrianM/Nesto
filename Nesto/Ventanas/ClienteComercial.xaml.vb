@@ -18,6 +18,7 @@ Public Class ClienteComercial
             DataContext.filtro = txtFiltro.Text
             DataContext.actualizarFiltro(txtFiltro.Text)
             txtFiltro.SelectAll()
+            listaIzda.Focus()
         End If
     End Sub
 
