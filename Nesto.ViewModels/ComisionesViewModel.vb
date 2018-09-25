@@ -6,12 +6,11 @@ Imports System.Globalization
 Imports Microsoft.Practices.Prism.Commands
 Imports Nesto.Modulos.PedidoVenta
 Imports Microsoft.Practices.Unity
-Imports Nesto.ViewModels
 Imports System.Threading.Tasks
 Imports System.Net.Http
 Imports Nesto.Contratos
 Imports Newtonsoft.Json
-Imports Microsoft.Practices.Prism.Regions
+Imports System.Windows.Media
 
 Public Class ComisionesViewModel
     Inherits Nesto.Contratos.ViewModelBase
@@ -347,7 +346,20 @@ Public Class ComisionesViewModel
         Public Property Etiquetas As Collection(Of EtiquetaComision)
         Public Property GeneralProyeccion As Decimal
         Public Property GeneralFaltaParaSalto As Decimal
+        Public Property GeneralInicioTramo As Decimal
+        Public Property GeneralFinalTramo As Decimal
+        Public Property GeneralBajaSaltoMesSiguiente As Boolean
         Public Property TotalComisiones As Decimal
+
+        Public ReadOnly Property ColorProgreso As Brush
+            Get
+                If GeneralBajaSaltoMesSiguiente Then
+                    Return Brushes.Red
+                Else
+                    Return Brushes.Green
+                End If
+            End Get
+        End Property
     End Class
 
     Public Class EtiquetaComision
