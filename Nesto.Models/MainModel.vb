@@ -3,7 +3,7 @@ Imports System.Data.SqlClient
 Imports System.Collections.ObjectModel
 
 Module Publico
-    Public Const strConexion As String = "Data Source=SBS2K8;Initial Catalog=NV;Integrated Security=True"
+    Public Const strConexion As String = "Data Source=DC2016;Initial Catalog=NV;Integrated Security=True"
     Public Const strConexionOdbc As String = "Dsn=Nesto"
     Public Const strEmpresa As String = "1"
 End Module
@@ -17,10 +17,9 @@ Public Class MainModel
         Public Shared Function CargarRatiosDeuda() As RatioDeuda
             Dim ratioCollection As New RatioDeuda
 
-
-
-            Dim dllparametros As New Global.dllParametros.dllParametros
-            Dim strVendedor As String = dllparametros.LeerParámetro(strConexionOdbc, "1", "Vendedor")
+            'Dim dllparametros As New Global.dllParametros.dllParametros
+            'Dim strVendedor As String = dllParametros.LeerParámetro(strConexionOdbc, "1", "Vendedor")
+            Dim strVendedor As String = "NV"
 
             Dim cnn As New SqlConnection(strConexion)
             Dim cmd As New SqlCommand("prdRatiosDeuda", cnn)
@@ -255,8 +254,9 @@ Public Class MainModel
 
 
 
-            Dim dllparametros As New Global.dllParametros.dllParametros
-            Dim strVendedor As String = dllparametros.LeerParámetro(strConexionOdbc, "1", "Vendedor")
+            'Dim dllparametros As New Global.dllParametros.dllParametros
+            'Dim strVendedor As String = dllparametros.LeerParámetro(strConexionOdbc, "1", "Vendedor")
+            Dim strVendedor As String = "NV"
 
             Dim cnn As New SqlConnection(strConexion)
             Dim cmd As New SqlCommand("prdRatioVentas", cnn)
@@ -338,18 +338,30 @@ Public Class MainModel
         'Inherits RatioVentas.RatioVentaDataTable
 
         Public Shared Function CargarVendedor() As String
+            'Throw New NotImplementedException("Parte del programa no implementada")
 
-            Dim dllparametros As New Global.dllParametros.dllParametros
-            Dim strVendedor As String = dllparametros.LeerParámetro(strConexionOdbc, "1", "Vendedor")
-            Return strVendedor
+            'Dim dllparametros As New Global.dllParametros.dllParametros
+            'Dim strVendedor As String = dllparametros.LeerParámetro(strConexionOdbc, "1", "Vendedor")
+            'Return strVendedor
+
+            Return "NV"
 
         End Function
 
     End Class
 
     Public Function leerParametro(empresa As String, clave As String) As String
-        Dim dllparametros As New Global.dllParametros.dllParametros
-        Return dllparametros.LeerParámetro(strConexionOdbc, empresa, clave)
+        'Throw New NotImplementedException("Parte del programa no implementada")
+        'Dim dllparametros As New Global.dllParametros.dllParametros
+        'Return dllparametros.LeerParámetro(strConexionOdbc, empresa, clave)
+        If clave = "EmpresaPorDefecto" Then
+            Return "1"
+        ElseIf clave = "UltNumCliente" Then
+            Return "992"
+        ElseIf clave = "RutaMandatos" Then
+            Return "F:\DATOS2\Mandatos\"
+        End If
+        Return "parte del programa no implementada"
     End Function
 
 End Class

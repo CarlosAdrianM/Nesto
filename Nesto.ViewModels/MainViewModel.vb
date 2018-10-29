@@ -9,6 +9,9 @@ Imports System.Windows.Media.Imaging
 Imports Microsoft.Practices.Unity
 Imports Microsoft.Practices.Prism.Mvvm
 Imports Microsoft.Practices.Prism.Regions
+Imports System.Net.Http
+Imports System.Threading.Tasks
+Imports Newtonsoft.Json
 
 Public Class ViewModelBase
     Implements INotifyPropertyChanged
@@ -220,6 +223,30 @@ Public Class MainViewModel
     '    End If
     'End Sub
 #End Region
+
+    Public Async Function leerParametro(empresa As String, clave As String) As Task(Of String)
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri("http://api.nuevavision.es/api/")
+            Dim response As HttpResponseMessage
+
+            Try
+                response = Await client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=" + System.Environment.UserName + "&clave=" + clave)
+
+                If response.IsSuccessStatusCode Then
+                    Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    respuesta = JsonConvert.DeserializeObject(Of String)(respuesta)
+                    Return respuesta.Trim
+                Else
+                    Throw New Exception("No se puede leer el parámetro")
+                End If
+            Catch ex As Exception
+                Throw New Exception("No se puede leer el parámetro")
+            End Try
+
+        End Using
+
+    End Function
 
 End Class
 Public Class RatioDataTemplateSelector

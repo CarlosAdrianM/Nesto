@@ -5,6 +5,7 @@ Imports Microsoft.Practices.Unity
 Imports System.Windows.Controls
 Imports Nesto.Models
 Imports System.ComponentModel
+Imports Nesto.Contratos
 
 <TestClass()>
 Public Class AgenciaViewModelTests
@@ -18,6 +19,7 @@ Public Class AgenciaViewModelTests
     Private regionManager As IRegionManager
     Private servicio As IAgenciaService
     Private context As NestoEntities
+    Private configuracion As IConfiguracion
 
 #Region "Atributos de prueba adicionales"
     '
@@ -42,6 +44,7 @@ Public Class AgenciaViewModelTests
 #End Region
     <TestInitialize()>
     Public Sub Initialize()
+        configuracion = A.Fake(Of IConfiguracion)
         container = A.Fake(Of IUnityContainer)
         regionManager = A.Fake(Of RegionManager)
         servicio = A.Fake(Of IAgenciaService)
@@ -52,7 +55,7 @@ Public Class AgenciaViewModelTests
     <TestMethod()>
     Public Sub AgenciaViewModel_AlCalcularElDigitoDeControl_DevuelveElDigitoControlCorrecto()
         'arrange
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         'act
 
@@ -64,14 +67,14 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_AlSeleccionarTabPendientes_ListaPendientesNoPuedeSerNulo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         Assert.IsNotNull(viewModel.listaPendientes)
     End Sub
 
     <TestMethod>
     Public Sub AgenciaViewModel_AlSeleccionarTabPendientes_ElContextoPendientesNoPuedeSerNulo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
 
         viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
@@ -105,7 +108,7 @@ Public Class AgenciaViewModelTests
             envio
         }
         A.CallTo(Function() servicio.CargarListaPendientes(context)).Returns(lista)
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
 
         Assert.AreEqual(0, viewModel.listaPendientes.Count)
@@ -115,7 +118,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiNoHayEnvioSeleccionado_ElBotonGuardarEstaInactivo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.EnvioPendienteSeleccionado = Nothing
 
@@ -124,7 +127,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiHayEnvioSeleccionado_ElBotonGuardarEstaActivo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.EnvioPendienteSeleccionado = A.Fake(Of EnviosAgencia)
 
@@ -178,7 +181,7 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(2, viewModel.listaPendientes.Count)
     End Sub
 
-    <TestMethod>
+    <TestMethod()>
     Public Sub AgenciaViewModel_AlInsertar_ElNuevoEnvioEstaEnPendientes()
         CrearViewModelConUnEnvioEnLaLista()
         viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
@@ -205,7 +208,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_CuandoNoHayEnvioPendienteSeleccionado_LosCamposDeLaTabPendientesEstanInactivos()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
 
@@ -216,7 +219,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_CuandoCambiaEnvioPendienteSeleccionado_SeActualizaHayUnEnvioPendienteSeleccionado()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         Dim ejecutado As Boolean = False
         Dim seHaEjecutado = Sub(s, e)
@@ -297,7 +300,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiHayBorrarEnvioPendienteNoQuedanMas_EnvioPendienteSeleccionadoTieneQueSerNulo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.PestañaSeleccionada = New TabItem With {.Name = "tabPendientes"}
 
@@ -329,7 +332,7 @@ Public Class AgenciaViewModelTests
             envio
         }
         A.CallTo(Function() servicio.CargarListaPendientes(A(Of NestoEntities).Ignored)).Returns(lista)
-        viewModel = New AgenciasViewModel(container, regionManager, servicio)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
     End Sub
 

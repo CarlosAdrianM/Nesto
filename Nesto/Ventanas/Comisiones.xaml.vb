@@ -37,4 +37,12 @@ Public Class Comisiones
             DataContext.cmdAbrirPedido.Execute(dgrPendientesEntregar.SelectedItem)
         End If
     End Sub
+
+    Private Async Sub Comisiones_Loaded(sender As Object, e As RoutedEventArgs) Handles MyBase.Loaded, MyBase.Loaded
+        Dim viewModel As ComisionesViewModel = CType(Me.DataContext, ComisionesViewModel)
+        ' Ponemos e IF para que no entre cada vez que coja el foco
+        If IsNothing(viewModel.vendedorActual) AndAlso IsNothing(viewModel.listaVendedores) Then
+            Await viewModel.CargarDatos()
+        End If
+    End Sub
 End Class

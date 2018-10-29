@@ -21,7 +21,7 @@ namespace PedidoVentaTests
             var container = A.Fake<IUnityContainer>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             var pedido = A.Fake<ResumenPedido>();
-            A.CallTo(() => servicio.cargarListaPedidos("", false)).Returns(new ObservableCollection<ResumenPedido> { pedido });
+            A.CallTo(() => servicio.cargarListaPedidos("", false, false)).Returns(new ObservableCollection<ResumenPedido> { pedido });
             var vm = new ListaPedidosVentaViewModel(configuracion, servicio, container, eventAggregator);
 
             vm.cmdCargarListaPedidos.Execute(null);

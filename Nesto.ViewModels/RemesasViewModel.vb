@@ -7,6 +7,7 @@ Imports Microsoft.Win32
 Imports Microsoft.Office.Interop
 Imports System.Windows.Controls
 Imports System.Threading.Tasks
+Imports Nesto.Contratos
 
 Public Class RemesasViewModel
     Inherits ViewModelBase
@@ -14,12 +15,12 @@ Public Class RemesasViewModel
     Const numRemesas = 100
 
     Private Shared DbContext As NestoEntities
-    Dim mainModel As New Nesto.Models.MainModel
-    Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
+    Dim mainViewModel As New MainViewModel
+    Dim empresaDefecto As String = "1" 'mainModel.leerParametro("1", "EmpresaPorDefecto")
     Dim blnPuedeVerTodasLasRemesas As Boolean = True
 
     Public Structure tipoRemesa
-        Public Sub New( _
+        Public Sub New(
        ByVal _id As String,
        ByVal _descripcion As String
        )
@@ -39,11 +40,11 @@ Public Class RemesasViewModel
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
         listaRemesas = New ObservableCollection(Of Remesas)(From c In DbContext.Remesas Where c.Empresa = empresaActual Order By c.Número Descending Take numRemesas)
-        remesaActual = listaRemesas.First
+        remesaActual = listaRemesas.FirstOrDefault
         listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
-        impagadoActual = listaImpagados.First
+        impagadoActual = listaImpagados.FirstOrDefault
         'usuarioTareas = mainModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto")
-        usuarioTareas = mainModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto")
+        usuarioTareas = "carmengarcia@nuevavision.es" 'mainViewModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto").Result
         listaTiposRemesa = New ObservableCollection(Of tipoRemesa)
         tipoRemesaActual = New tipoRemesa("B2B", "Profesionales (B2B)")
         listaTiposRemesa.Add(tipoRemesaActual)
@@ -264,7 +265,7 @@ Public Class RemesasViewModel
         Dim listaContenido As List(Of String)
         Dim codigo As String
         codigo = tipoRemesaActual.id
-        Dim nombreFichero As String = mainModel.leerParametro(empresaActual, "PathNorma19") + CStr(remesaActual.Número) + ".xml"
+        Dim nombreFichero As String = mainViewModel.leerParametro(empresaActual, "PathNorma19").Result + CStr(remesaActual.Número) + ".xml"
         'Dim nombreFichero As String = "c:\banco\prueba.xml"
         Try
             mensajeError = "Generando fichero..."
@@ -311,7 +312,7 @@ Public Class RemesasViewModel
         elegirFichero.Filter = "xml files (*.xml)|*.xml|All files (*.*)|*.*"
         elegirFichero.FilterIndex = 1
         elegirFichero.RestoreDirectory = True
-        elegirFichero.InitialDirectory = mainModel.leerParametro(empresaActual, "PathDefectoImpagados")
+        elegirFichero.InitialDirectory = Await mainViewModel.leerParametro(empresaActual, "PathDefectoImpagados")
 
         If elegirFichero.ShowDialog() Then
             Try
@@ -368,42 +369,42 @@ Public Class RemesasViewModel
         Return Not impagadoActual Is Nothing
     End Function
     Private Sub CrearTareasOutlook(ByVal param As Object)
-        Dim objOL As Outlook.Application
-        objOL = New Outlook.Application
-        Dim newTask As Outlook.TaskItem
-        Dim ruta As New Rutas
-        Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
+        'Dim objOL As Outlook.Application
+        'objOL = New Outlook.Application
+        'Dim newTask As Outlook.TaskItem
+        'Dim ruta As New Rutas
+        'Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
 
-        Try
-            For Each impagado In impagados
-                newTask = objOL.CreateItem(Outlook.OlItemType.olTaskItem)
-                If Not IsNothing(newTask) Then
-                    ruta = (From r In DbContext.Rutas Where r.Empresa = impagado.c.Empresa And r.Número = impagado.c.Ruta).FirstOrDefault
-                    newTask.Subject = ruta.Descripción.Trim + " - Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
-                        ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim
-                    newTask.Body = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
-                        "Motivo: " + impagado.e.Concepto + vbCrLf +
-                        "Ruta: " + impagado.c.Ruta + vbCrLf +
-                        "Empresa: " + impagado.c.Empresas.Nombre.Trim
-                    newTask.Assign()
-                    'If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
-                    '    usuarioTareas = "laura@nuevavision.es"
-                    'Else
-                    '    usuarioTareas = "aidarubio@nuevavision.es"
-                    'End If
-                    newTask.Recipients.Add(usuarioTareas)
-                    newTask.Recipients.ResolveAll()
-                    newTask.Send()
-                End If
-            Next
-            mensajeError = "Tareas del asiento " + CStr(impagadoActual.asiento) + " creadas correctamente"
-        Catch ex As Exception
-            If IsNothing(ex.InnerException) Then
-                mensajeError = ex.Message
-            Else
-                mensajeError = ex.InnerException.Message
-            End If
-        End Try
+        'Try
+        '    For Each impagado In impagados
+        '        newTask = objOL.CreateItem(Outlook.OlItemType.olTaskItem)
+        '        If Not IsNothing(newTask) Then
+        '            ruta = (From r In DbContext.Rutas Where r.Empresa = impagado.c.Empresa And r.Número = impagado.c.Ruta).FirstOrDefault
+        '            newTask.Subject = ruta.Descripción.Trim + " - Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
+        '                ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim
+        '            newTask.Body = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
+        '                "Motivo: " + impagado.e.Concepto + vbCrLf +
+        '                "Ruta: " + impagado.c.Ruta + vbCrLf +
+        '                "Empresa: " + impagado.c.Empresas.Nombre.Trim
+        '            newTask.Assign()
+        '            'If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
+        '            '    usuarioTareas = "laura@nuevavision.es"
+        '            'Else
+        '            '    usuarioTareas = "aidarubio@nuevavision.es"
+        '            'End If
+        '            newTask.Recipients.Add(usuarioTareas)
+        '            newTask.Recipients.ResolveAll()
+        '            newTask.Send()
+        '        End If
+        '    Next
+        '    mensajeError = "Tareas del asiento " + CStr(impagadoActual.asiento) + " creadas correctamente"
+        'Catch ex As Exception
+        '    If IsNothing(ex.InnerException) Then
+        '        mensajeError = ex.Message
+        '    Else
+        '        mensajeError = ex.InnerException.Message
+        '    End If
+        'End Try
     End Sub
 
 #End Region

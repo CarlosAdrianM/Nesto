@@ -19,6 +19,7 @@ Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks
 Imports Nesto.ViewModels
+Imports Nesto.Contratos
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -41,6 +42,7 @@ Public Class AgenciasViewModel
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IAgenciaService
+    Private ReadOnly configuracion As IConfiguracion
     Private Shared DbContext As NestoEntities
     Public contextPendientes As NestoEntities
     Dim mainModel As New Nesto.Models.MainModel
@@ -54,7 +56,7 @@ Public Class AgenciasViewModel
 
     'End Sub
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, servicio As IAgenciaService)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
@@ -62,6 +64,7 @@ Public Class AgenciasViewModel
         Me.container = container
         Me.regionManager = regionManager
         Me.servicio = servicio
+        Me.configuracion = configuracion
 
         DbContext = New NestoEntities
         contextPendientes = New NestoEntities
@@ -1394,7 +1397,7 @@ Public Class AgenciasViewModel
                                        listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                                    End If
                                    envioActual = listaEnvios.LastOrDefault
-                                   numeroPedido = mainModel.leerParametro(empresaDefecto, "UltNumPedidoVta")
+                                   numeroPedido = configuracion.leerParametro(empresaDefecto, "UltNumPedidoVta").Result
 
                                    listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                                    'listaReembolsos = New ObservableCollection(Of EnviosAgencia)

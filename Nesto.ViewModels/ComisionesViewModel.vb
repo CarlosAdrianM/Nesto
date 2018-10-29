@@ -19,8 +19,8 @@ Public Class ComisionesViewModel
     Private container As IUnityContainer
     Private configuracion As IConfiguracion
 
-    Dim mainModel As New Nesto.Models.MainModel
-    Private vendedor As String = mainModel.leerParametro("1", "Vendedor")
+    Private vendedor As String
+    Private datosCargados As Boolean = False
 
     Public Sub New(container As IUnityContainer, configuracion As IConfiguracion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
@@ -28,12 +28,6 @@ Public Class ComisionesViewModel
         End If
         Me.container = container
         Me.configuracion = configuracion
-        DbContext = New NestoEntities
-        If vendedor = "" Then
-            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2))
-        Else
-            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2) And c.Número.Trim = vendedor)
-        End If
 
         colMeses = New Collection(Of String)
         For i = 12 To 1 Step -1
@@ -41,12 +35,28 @@ Public Class ComisionesViewModel
         Next
 
         mesActual = colMeses(0)
-        vendedorActual = listaVendedores.FirstOrDefault
 
         Titulo = "Comisiones"
 
         cmdAbrirPedido = New DelegateCommand(Of Object)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
     End Sub
+
+    Async Function CargarDatos() As Task
+        If datosCargados Then
+            Return
+        End If
+        datosCargados = True
+        Dim mainViewModel As New MainViewModel
+        vendedor = Await mainViewModel.leerParametro("1", "Vendedor")
+
+        DbContext = New NestoEntities
+        If vendedor = "" Then
+            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2))
+        Else
+            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2) And c.Número.Trim = vendedor)
+        End If
+        vendedorActual = listaVendedores.FirstOrDefault
+    End Function
 
     Private _listaVendedores As ObservableCollection(Of Vendedores)
     Public Property listaVendedores As ObservableCollection(Of Vendedores)
@@ -65,8 +75,12 @@ Public Class ComisionesViewModel
             Return _vendedorActual
         End Get
         Set(value As Vendedores)
+
             _vendedorActual = value
             OnPropertyChanged("vendedorActual")
+            If IsNothing(value) Then
+                Return
+            End If
 
             MostrarPanelAntiguo = vendedorActual.Número = "SC " OrElse vendedorActual.Número = "PI "
 
@@ -257,8 +271,10 @@ Public Class ComisionesViewModel
             Return _incluirAlbaranes
         End Get
         Set(ByVal value As Boolean)
-            SetProperty(_incluirAlbaranes, value)
-            CalcularComisionAsync()
+            If _incluirAlbaranes <> value Then
+                SetProperty(_incluirAlbaranes, value)
+                CalcularComisionAsync()
+            End If
         End Set
     End Property
 
