@@ -151,27 +151,26 @@ Public Class RapportViewModel
         Return Not IsNothing(rapport)
     End Function
     Private Async Sub OnCrearCita(arg As Object)
-        Throw New NotImplementedException("Parte del programa no implementada")
-        'Dim objOL As Outlook.Application
-        'Dim nuevaCita As Outlook.AppointmentItem
+        Dim objOL As Outlook.Application
+        Dim nuevaCita As Outlook.AppointmentItem
 
-        'If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
-        '    NotificationRequest.Raise(New Notification() With {
-        '        .Title = "Error",
-        '        .Content = "No se puede crear el aviso si no se especifica un cliente y un contacto"
-        '    })
-        'End If
-        'Await Task.Run(Sub()
-        '                   objOL = New Outlook.Application
-        '                   nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
-        '                   nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
-        '                   nuevaCita.Body = rapport.Comentarios
-        '                   nuevaCita.Start = fechaAviso
-        '                   nuevaCita.End = fechaAviso.AddMinutes(15)
-        '                   nuevaCita.ReminderSet = True
-        '                   nuevaCita.ReminderMinutesBeforeStart = 0
-        '                   nuevaCita.Save()
-        '               End Sub)
+        If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
+            NotificationRequest.Raise(New Notification() With {
+                .Title = "Error",
+                .Content = "No se puede crear el aviso si no se especifica un cliente y un contacto"
+            })
+        End If
+        Await Task.Run(Sub()
+                           objOL = New Outlook.Application
+                           nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
+                           nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
+                           nuevaCita.Body = rapport.Comentarios
+                           nuevaCita.Start = fechaAviso
+                           nuevaCita.End = fechaAviso.AddMinutes(15)
+                           nuevaCita.ReminderSet = True
+                           nuevaCita.ReminderMinutesBeforeStart = 0
+                           nuevaCita.Save()
+                       End Sub)
     End Sub
 
 

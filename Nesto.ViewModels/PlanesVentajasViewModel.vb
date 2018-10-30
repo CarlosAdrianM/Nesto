@@ -449,34 +449,34 @@ Public Class PlanesVentajasViewModel
         Return Not planActual Is Nothing
     End Function
     Private Sub CrearCitasOutlook(ByVal param As Object)
-        'Dim objOL As Outlook.Application
-        'objOL = New Outlook.Application
-        'Dim newTask As Outlook.AppointmentItem
+        Dim objOL As Outlook.Application
+        objOL = New Outlook.Application
+        Dim newTask As Outlook.AppointmentItem
 
-        'Try
-        '    newTask = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
-        '    If Not IsNothing(newTask) Then
-        '        newTask.Subject = "Finaliza el Plan de Ventajas " + planActual.Numero.ToString.Trim
-        '        newTask.Body = "El día " + planActual.FechaFin.ToShortDateString + " finaliza el Plan de Ventajas nº " + planActual.Numero.ToString.Trim + "." + vbCrLf +
-        '            "Importe Compromiso: " + FormatCurrency(planActual.Importe) + vbCrLf
-        '        For Each cliente In planActual.PlanVentajasCliente
-        '            newTask.Body = newTask.Body + "Cliente " + cliente.Cliente.ToString.Trim + vbCrLf
-        '        Next
-        '        newTask.Start = planActual.FechaFin
-        '        newTask.AllDayEvent = True
-        '        newTask.ReminderSet = True
-        '        newTask.ReminderMinutesBeforeStart = 15 * 24 * 60 '15 días antes
-        '        newTask.Save()
-        '    End If
+        Try
+            newTask = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
+            If Not IsNothing(newTask) Then
+                newTask.Subject = "Finaliza el Plan de Ventajas " + planActual.Numero.ToString.Trim
+                newTask.Body = "El día " + planActual.FechaFin.ToShortDateString + " finaliza el Plan de Ventajas nº " + planActual.Numero.ToString.Trim + "." + vbCrLf +
+                    "Importe Compromiso: " + FormatCurrency(planActual.Importe) + vbCrLf
+                For Each cliente In planActual.PlanVentajasCliente
+                    newTask.Body = newTask.Body + "Cliente " + cliente.Cliente.ToString.Trim + vbCrLf
+                Next
+                newTask.Start = planActual.FechaFin
+                newTask.AllDayEvent = True
+                newTask.ReminderSet = True
+                newTask.ReminderMinutesBeforeStart = 15 * 24 * 60 '15 días antes
+                newTask.Save()
+            End If
 
-        '    mensajeError = "Cita del plan " + CStr(planActual.Numero) + " creada correctamente"
-        'Catch ex As Exception
-        '    If IsNothing(ex.InnerException) Then
-        '        mensajeError = ex.Message
-        '    Else
-        '        mensajeError = ex.InnerException.Message
-        '    End If
-        'End Try
+            mensajeError = "Cita del plan " + CStr(planActual.Numero) + " creada correctamente"
+        Catch ex As Exception
+            If IsNothing(ex.InnerException) Then
+                mensajeError = ex.Message
+            Else
+                mensajeError = ex.InnerException.Message
+            End If
+        End Try
     End Sub
 
 

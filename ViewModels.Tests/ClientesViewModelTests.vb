@@ -45,28 +45,28 @@ Public Class CuandoCargamosUnCliente
     '
 #End Region
 
-    <TestMethod()>
-    Public Sub ElNombreDebeCoincidir()
-        'arrange
-        clienteVM.empresaActual = "1"
-        clienteVM.clienteActual = "15191"
-        clienteVM.contactoActual = "0"
-        'act
+    '<TestMethod()>
+    'Public Sub ElNombreDebeCoincidir()
+    '    'arrange
+    '    clienteVM.empresaActual = "1"
+    '    clienteVM.clienteActual = "15191"
+    '    clienteVM.contactoActual = "0"
+    '    'act
 
-        'assert
-        Assert.IsTrue(clienteVM.nombre.Trim = "CENTRO DE ESTÉTICA EL EDÉN, S.L.U.")
-    End Sub
+    '    'assert
+    '    Assert.IsTrue(clienteVM.nombre.Trim = "CENTRO DE ESTÉTICA EL EDÉN, S.L.U.")
+    'End Sub
 
-    <TestMethod()>
-    Public Sub LaCuentaDebeCoincidir()
-        'arrange
-        clienteVM.empresaActual = "1"
-        clienteVM.clienteActual = "15191"
-        clienteVM.contactoActual = "0"
-        'act
-        'assert
-        Assert.IsTrue(clienteVM.cuentaActiva.Nº_Cuenta = "0200080296")
-    End Sub
+    '<TestMethod()>
+    'Public Sub LaCuentaDebeCoincidir()
+    '    'arrange
+    '    clienteVM.empresaActual = "1"
+    '    clienteVM.clienteActual = "15191"
+    '    clienteVM.contactoActual = "0"
+    '    'act
+    '    'assert
+    '    Assert.IsTrue(clienteVM.cuentaActiva.Nº_Cuenta = "0200080296")
+    'End Sub
 
     '<TestMethod()>
     'Public Sub DebeTenerTresCuentasBanco()
@@ -93,16 +93,16 @@ Public Class CuandoCargamosUnCliente
 
 End Class
 
-<TestClass()>
-Public Class CuandoCargamosLasEmpresas
-    Dim clienteVM As New ClientesViewModel
+'<TestClass()>
+'Public Class CuandoCargamosLasEmpresas
+'    Dim clienteVM As New ClientesViewModel
 
-    <TestMethod()>
-    Public Sub DebeHaberSeis()
-        'arrange
-        'act
-        'assert
-        Assert.IsTrue(clienteVM.listaEmpresas.Count = 6)
-    End Sub
+'    <TestMethod()>
+'    Public Sub DebeHaberSeis()
+'        'arrange
+'        'act
+'        'assert
+'        Assert.IsTrue(clienteVM.listaEmpresas.Count = 6)
+'    End Sub
 
-End Class
+'End Class
