@@ -265,7 +265,7 @@ Public Class RemesasViewModel
         Dim listaContenido As List(Of String)
         Dim codigo As String
         codigo = tipoRemesaActual.id
-        Dim nombreFichero As String = mainViewModel.leerParametro(empresaActual, "PathNorma19").Result + CStr(remesaActual.Número) + ".xml"
+        Dim nombreFichero As String = Await mainViewModel.leerParametro(empresaActual, Parametros.Claves.PathNorma19) + CStr(remesaActual.Número) + ".xml"
         'Dim nombreFichero As String = "c:\banco\prueba.xml"
         Try
             mensajeError = "Generando fichero..."

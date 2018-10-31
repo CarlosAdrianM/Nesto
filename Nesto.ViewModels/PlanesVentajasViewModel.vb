@@ -6,25 +6,30 @@ Imports System.Windows.Input
 Imports Microsoft.Win32
 Imports System.Windows.Controls
 Imports Microsoft.Office.Interop
+Imports System.Threading.Tasks
+Imports Nesto.Contratos
 
 Public Class PlanesVentajasViewModel
     Inherits ViewModelBase
 
     Private Shared DbContext As NestoEntities
-    Dim mainModel As New Nesto.Models.MainModel
-    Private ruta As String = mainModel.leerParametro(empresaActual, "RutaPlanVentajas")
+    Dim configuracion As IConfiguracion
+    Private ruta As String
     Private Const ESTADO_PLAN_CANCELADO = 6
 
-    Public Sub New()
+    Public Sub New(configuracion As IConfiguracion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
+        Me.configuracion = configuracion
         DbContext = New NestoEntities
         Titulo = "Planes de Ventajas"
+    End Sub
 
-        'Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
-        Dim empresaDefecto As String = "1"
-        vendedor = mainModel.leerParametro(empresaDefecto, "Vendedor")
+    Async Function CargarDatos() As Task
+        Dim empresaDefecto As String = Await configuracion.leerParametro("1", "EmpresaPorDefecto")
+        ruta = Await configuracion.leerParametro(empresaDefecto, "RutaPlanVentajas")
+        vendedor = Await configuracion.leerParametro(empresaDefecto, "Vendedor")
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         listaEstados = New ObservableCollection(Of EstadosPlanVentajas)(From c In DbContext.EstadosPlanVentajas)
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
@@ -32,7 +37,7 @@ Public Class PlanesVentajasViewModel
         gaugeGrafico = New ObservableCollection(Of datosGrafico)
         ActualizarListaPlanes()
         planActual = listaPlanes.LastOrDefault
-    End Sub
+    End Function
 
     Private Property _empresaActual As String
     Public Property empresaActual As String

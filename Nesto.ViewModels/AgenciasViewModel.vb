@@ -45,8 +45,8 @@ Public Class AgenciasViewModel
     Private ReadOnly configuracion As IConfiguracion
     Private Shared DbContext As NestoEntities
     Public contextPendientes As NestoEntities
-    Dim mainModel As New Nesto.Models.MainModel
-    Dim empresaDefecto As String = String.Format("{0,-3}", mainModel.leerParametro("1", "EmpresaPorDefecto"))
+
+    Dim empresaDefecto As String
 
     Dim factory As New Dictionary(Of String, Func(Of IAgencia))
 
@@ -1380,7 +1380,7 @@ Public Class AgenciasViewModel
 
 
         Try
-
+            empresaDefecto = String.Format("{0,-3}", Await configuracion.leerParametro("1", "EmpresaPorDefecto"))
             listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
             empresaSeleccionada = (From e In listaEmpresas Where e.Número = empresaDefecto).SingleOrDefault
 

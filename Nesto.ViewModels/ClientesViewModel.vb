@@ -12,6 +12,7 @@ Imports Nesto.Models.PedidoVenta
 Imports System.Net.Http
 Imports Newtonsoft.Json
 Imports System.Text
+Imports System.Threading.Tasks
 
 'Imports Nesto.Models.Nesto.Models.EF
 
@@ -29,8 +30,8 @@ Public Class ClientesViewModel
     Private Shared DbContext As NestoEntities
     Public Property configuracion As IConfiguracion
 
-    Dim mainModel As New Nesto.Models.MainModel
-    Private ruta As String = mainModel.leerParametro(empresaActual, "RutaMandatos")
+    'Dim mainModel As New Nesto.Models.MainModel
+    Private ruta As String
     Private esVendedorDeFamilias As Boolean = False
 
 
@@ -70,13 +71,19 @@ Public Class ClientesViewModel
             _empresaActual = value
             listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             If IsNothing(contactoActual) Then
-                clienteActual = mainModel.leerParametro(empresaActual, "UltNumCliente")
+                CargarClienteActualEmpresa()
                 listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             End If
             actualizarCliente(_empresaActual, clienteActual, contactoActual)
             OnPropertyChanged("empresaActual")
         End Set
     End Property
+
+    Private Async Function CargarClienteActualEmpresa() As Task
+        Dim mainViewModel = New MainViewModel()
+        clienteActual = Await mainViewModel.leerParametro(empresaActual, "UltNumCliente")
+    End Function
+
 
     Private _clienteActual As String
     Public Property clienteActual As String
@@ -811,18 +818,19 @@ Public Class ClientesViewModel
         End Using
 
     End Sub
-    Private Sub cargarDatos()
+    Private Async Sub cargarDatos()
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
         DbContext = New NestoEntities
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
 
-        Dim mainModel As New Nesto.Models.MainModel
-        Dim empresaDefecto As String = mainModel.leerParametro("1", "EmpresaPorDefecto")
-        Dim clienteDefecto As String = mainModel.leerParametro(empresaDefecto, "UltNumCliente")
+        Dim mainViewModel As New MainViewModel
+        Dim empresaDefecto As String = Await mainViewModel.leerParametro("1", "EmpresaPorDefecto")
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
-        vendedor = mainModel.leerParametro(empresaDefecto, "Vendedor")
+        ruta = Await mainViewModel.leerParametro(empresaActual, "RutaMandatos")
+        Dim clienteDefecto As String = Await mainViewModel.leerParametro(empresaActual, "UltNumCliente")
+        vendedor = Await mainViewModel.leerParametro(empresaDefecto, "Vendedor")
 
 
         clienteActual = clienteDefecto

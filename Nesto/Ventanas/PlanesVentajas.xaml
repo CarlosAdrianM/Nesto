@@ -5,9 +5,11 @@
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels"
     xmlns:chart="clr-namespace:De.TorstenMandelkow.MetroChart;assembly=De.TorstenMandelkow.MetroChart">
 
+    <!--
     <UserControl.DataContext>
         <vm:PlanesVentajasViewModel/>
     </UserControl.DataContext>
+    -->
     
     <Grid>
         <Grid.ColumnDefinitions>

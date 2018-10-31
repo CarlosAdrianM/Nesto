@@ -86,6 +86,10 @@ Public Class CarteraPagosViewModel
 
 #End Region
 
+    Async Function CargarDatos() As Task
+        empresa = Await configuracion.leerParametro("1", Parametros.Claves.EmpresaPorDefecto)
+    End Function
+
 #Region "Comandos"
 
     Private _cmdAbrirCarteraPagos As DelegateCommand(Of Object)

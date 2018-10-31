@@ -351,17 +351,17 @@ Public Class MainModel
     End Class
 
     Public Function leerParametro(empresa As String, clave As String) As String
-        'Throw New NotImplementedException("Parte del programa no implementada")
+        Throw New NotImplementedException("Parte del programa no implementada")
         'Dim dllparametros As New Global.dllParametros.dllParametros
         'Return dllparametros.LeerParámetro(strConexionOdbc, empresa, clave)
-        If clave = "EmpresaPorDefecto" Then
-            Return "1"
-        ElseIf clave = "UltNumCliente" Then
-            Return "992"
-        ElseIf clave = "RutaMandatos" Then
-            Return "F:\DATOS2\Mandatos\"
-        End If
-        Return "parte del programa no implementada"
+        'If clave = "EmpresaPorDefecto" Then
+        '    Return "1"
+        'ElseIf clave = "UltNumCliente" Then
+        '    Return "992"
+        'ElseIf clave = "RutaMandatos" Then
+        '    Return "F:\DATOS2\Mandatos\"
+        'End If
+        'Return "parte del programa no implementada"
     End Function
 
 End Class

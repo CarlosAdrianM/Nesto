@@ -12,6 +12,7 @@ Public Class Configuracion
                 Return "http://api.nuevavision.es/api/"
                 'Return "http://localhost:53364/api/"
             End If
+            'Return "http://localhost:53364/api/"
             Return "http://api.nuevavision.es/api/"
         End Get
     End Property
