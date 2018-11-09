@@ -3221,8 +3221,8 @@ Public Class AgenciaASM
             Throw New Exception("El envío debe tener un código de barras asignada para poder imprimir la etiqueta")
         End If
 
-        Dim mainModel As New Nesto.Models.MainModel
-        Dim puerto As String = mainModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
+        Dim mainViewModel As New MainViewModel
+        Dim puerto As String = mainViewModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas").Result
 
         Dim objFSO
         Dim objStream
@@ -3541,9 +3541,9 @@ Public Class AgenciaOnTime
         agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
         agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
     End Sub
-    Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
-        Dim mainModel As New Nesto.Models.MainModel
-        Dim puerto As String = mainModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
+    Public Async Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
+        Dim mainViewModel As New MainViewModel
+        Dim puerto As String = Await mainViewModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
