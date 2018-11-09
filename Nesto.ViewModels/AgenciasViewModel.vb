@@ -3216,13 +3216,13 @@ Public Class AgenciaASM
         'Debug.Print(XMLdeEntrada.ToString)
 
     End Sub
-    Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
+    Public Async Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
         If IsNothing(agenciaVM.envioActual.CodigoBarras) OrElse agenciaVM.envioActual.CodigoBarras.Trim = "" Then
             Throw New Exception("El envío debe tener un código de barras asignada para poder imprimir la etiqueta")
         End If
 
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = mainViewModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas").Result
+        Dim puerto As String = Await mainViewModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
