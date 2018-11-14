@@ -94,6 +94,16 @@ Public Class RapportViewModel
         End Set
     End Property
 
+    Private _sePuedeCrearRapport As Boolean = True
+    Public Property SePuedeCrearRapport As Boolean
+        Get
+            Return _sePuedeCrearRapport
+        End Get
+        Set(value As Boolean)
+            SetProperty(_sePuedeCrearRapport, value)
+        End Set
+    End Property
+
     Private _fechaAviso As DateTime = DateTime.Now.AddDays(1)
     Public Property fechaAviso As DateTime
         Get
@@ -160,6 +170,7 @@ Public Class RapportViewModel
                 .Content = "No se puede crear el aviso si no se especifica un cliente y un contacto"
             })
         End If
+        SePuedeCrearRapport = False
         Await Task.Run(Sub()
                            objOL = New Outlook.Application
                            nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
@@ -171,6 +182,7 @@ Public Class RapportViewModel
                            nuevaCita.ReminderMinutesBeforeStart = 0
                            nuevaCita.Save()
                        End Sub)
+        SePuedeCrearRapport = True
     End Sub
 
 
