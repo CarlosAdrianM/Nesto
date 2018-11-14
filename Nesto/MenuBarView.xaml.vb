@@ -361,7 +361,7 @@ Public Class MenuBarView
         '       End Try
     End Sub
     Private Sub btnVentasEmpresas_Loaded(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnVentasEmpresas.Loaded
-        If (System.Environment.UserName = "Alfredo") Or (System.Environment.UserName = "Administrador") Or (System.Environment.UserName = "Carlos") Or (System.Environment.UserName = "Manuel") Then
+        If (System.Environment.UserName.ToLower = "alfredo") Or (System.Environment.UserName.ToLower = "administrador") Or (System.Environment.UserName.ToLower = "carlos") Or (System.Environment.UserName.ToLower = "manuel") Then
             btnVentasEmpresas.Visibility = Windows.Visibility.Visible
         End If
     End Sub
