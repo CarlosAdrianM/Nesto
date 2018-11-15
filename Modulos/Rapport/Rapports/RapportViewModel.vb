@@ -40,7 +40,7 @@ Public Class RapportViewModel
                               .id = TiposCentro.EsteticaYPeluqueria,
                               .descripcion = "Estética y Peluquería"})
 
-        cmdCrearCita = New DelegateCommand(Of Object)(AddressOf OnCrearCita, AddressOf CanCrearCita)
+        cmdCrearCita = New DelegateCommand(AddressOf OnCrearCita, AddressOf CanCrearCita)
         cmdGuardarCambios = New DelegateCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
 
         NotificationRequest = New InteractionRequest(Of INotification)
@@ -148,41 +148,30 @@ Public Class RapportViewModel
     Private ReadOnly servicio As IRapportService
 
 
-    Private _cmdCrearCita As DelegateCommand(Of Object)
-    Public Property cmdCrearCita As DelegateCommand(Of Object)
+    Private _cmdCrearCita As DelegateCommand
+    Public Property cmdCrearCita As DelegateCommand
         Get
             Return _cmdCrearCita
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdCrearCita, value)
         End Set
     End Property
-    Private Function CanCrearCita(arg As Object) As Boolean
+    Private Function CanCrearCita() As Boolean
         Return Not IsNothing(rapport)
     End Function
-    Private Async Sub OnCrearCita(arg As Object)
-        Dim objOL As Outlook.Application
-        Dim nuevaCita As Outlook.AppointmentItem
-
-        If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
-            NotificationRequest.Raise(New Notification() With {
-                .Title = "Error",
-                .Content = "No se puede crear el aviso si no se especifica un cliente y un contacto"
-            })
-        End If
+    Private Async Sub OnCrearCita()
         SePuedeCrearRapport = False
-        Await Task.Run(Sub()
-                           objOL = New Outlook.Application
-                           nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
-                           nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
-                           nuevaCita.Body = rapport.Comentarios
-                           nuevaCita.Start = fechaAviso
-                           nuevaCita.End = fechaAviso.AddMinutes(15)
-                           nuevaCita.ReminderSet = True
-                           nuevaCita.ReminderMinutesBeforeStart = 0
-                           nuevaCita.Save()
-                       End Sub)
-        SePuedeCrearRapport = True
+        Try
+            Await servicio.CrearCita(rapport, fechaAviso)
+            SePuedeCrearRapport = True
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
+                        .Title = "Error",
+                        .Content = ex.Message
+                    })
+            SePuedeCrearRapport = True
+        End Try
     End Sub
 
 

@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
 Imports System.Text
+Imports Microsoft.Office.Interop
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports
@@ -88,6 +89,28 @@ Public Class RapportService
             End Try
 
         End Using
+    End Function
+
+    Public Async Function CrearCita(rapport As SeguimientoClienteDTO, fechaAviso As Date) As Task(Of String) Implements IRapportService.CrearCita
+        Dim objOL As Outlook.Application
+        Dim nuevaCita As Outlook.AppointmentItem
+
+        If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
+            Return "No se puede crear el aviso si no se especifica un cliente y un contacto"
+        End If
+
+        Await Task.Run(Sub()
+                           objOL = New Outlook.Application
+                           nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
+                           nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
+                           nuevaCita.Body = rapport.Comentarios
+                           nuevaCita.Start = fechaAviso
+                           nuevaCita.End = fechaAviso.AddMinutes(15)
+                           nuevaCita.ReminderSet = True
+                           nuevaCita.ReminderMinutesBeforeStart = 0
+                           nuevaCita.Save()
+                       End Sub)
+        Return "Cita creada correctamente"
     End Function
 
     Private Async Function cargarListaRapports(empresa As String, cliente As String, contacto As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
