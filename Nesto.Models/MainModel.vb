@@ -333,35 +333,4 @@ Public Class MainModel
         End Function
     End Class
 
-
-    Public Class Vendedor
-        'Inherits RatioVentas.RatioVentaDataTable
-
-        Public Shared Function CargarVendedor() As String
-            'Throw New NotImplementedException("Parte del programa no implementada")
-
-            'Dim dllparametros As New Global.dllParametros.dllParametros
-            'Dim strVendedor As String = dllparametros.LeerParámetro(strConexionOdbc, "1", "Vendedor")
-            'Return strVendedor
-
-            Return "NV"
-
-        End Function
-
-    End Class
-
-    Public Function leerParametro(empresa As String, clave As String) As String
-        Throw New NotImplementedException("Parte del programa no implementada")
-        'Dim dllparametros As New Global.dllParametros.dllParametros
-        'Return dllparametros.LeerParámetro(strConexionOdbc, empresa, clave)
-        'If clave = "EmpresaPorDefecto" Then
-        '    Return "1"
-        'ElseIf clave = "UltNumCliente" Then
-        '    Return "992"
-        'ElseIf clave = "RutaMandatos" Then
-        '    Return "F:\DATOS2\Mandatos\"
-        'End If
-        'Return "parte del programa no implementada"
-    End Function
-
 End Class

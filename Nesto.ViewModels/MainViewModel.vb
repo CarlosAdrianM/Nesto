@@ -12,6 +12,7 @@ Imports Microsoft.Practices.Prism.Regions
 Imports System.Net.Http
 Imports System.Threading.Tasks
 Imports Newtonsoft.Json
+Imports Nesto.Contratos
 
 Public Class ViewModelBase
     Implements INotifyPropertyChanged
@@ -149,12 +150,17 @@ Public Class MainViewModel
 
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
         'Me._RatiosVenta = RatioVenta.CargarRatiosVenta
-        Me._Vendedor = MainModel.Vendedor.CargarVendedor
+        Dim parametros = New Parametros
+        CargarVendedor()
         Me.container = container
         Me.regionManager = regionManager
         'cmdCerrarVentana = New DelegateCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
         Titulo = "Sin Título"
     End Sub
+
+    Private Async Function CargarVendedor() As Task
+        Vendedor = Await leerParametro("1", Parametros.Claves.Vendedor)
+    End Function
 
     Private _Vendedor As String
     Public Property Vendedor As String

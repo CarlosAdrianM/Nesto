@@ -16,7 +16,7 @@ Public Class AlquileresViewModel
     Inherits BindableBase
 
     Private Shared DbContext As NestoEntities
-    Dim mainModel As New Nesto.Models.MainModel
+    Dim mainViewModel As New MainViewModel
 
     Public Sub New()
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
@@ -327,9 +327,9 @@ Public Class AlquileresViewModel
     Private Function canImprimirEtiquetaMaquina(ByVal param As Object) As Boolean
         Return LineaSeleccionada IsNot Nothing
     End Function
-    Private Sub ImprimirEtiquetaMaquina(ByVal param As Object)
+    Private Async Sub ImprimirEtiquetaMaquina(ByVal param As Object)
 
-        Dim puerto As String = mainModel.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await mainViewModel.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
@@ -372,9 +372,9 @@ Public Class AlquileresViewModel
     Private Function canImprimirEtiquetaPedido(ByVal param As Object) As Boolean
         Return LineaSeleccionada IsNot Nothing AndAlso LineaSeleccionada.CabPedidoVta IsNot Nothing
     End Function
-    Private Sub ImprimirEtiquetaPedido(ByVal param As Object)
+    Private Async Sub ImprimirEtiquetaPedido(ByVal param As Object)
 
-        Dim puerto As String = mainModel.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await mainViewModel.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
