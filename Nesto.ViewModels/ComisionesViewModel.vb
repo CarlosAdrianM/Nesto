@@ -78,11 +78,11 @@ Public Class ComisionesViewModel
 
             _vendedorActual = value
             OnPropertyChanged("vendedorActual")
+            OnPropertyChanged("MostrarPanelAntiguo")
+            OnPropertyChanged("MostrarPanelComisionAnual")
             If IsNothing(value) Then
                 Return
             End If
-
-            MostrarPanelAntiguo = vendedorActual.Número = "SC " OrElse vendedorActual.Número = "PI "
 
             If MostrarPanelAntiguo Then
                 comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
@@ -153,6 +153,8 @@ Public Class ComisionesViewModel
         End Get
         Set(value As String)
             SetProperty(_mesActual, value)
+            OnPropertyChanged("MostrarPanelAntiguo")
+            OnPropertyChanged("MostrarPanelComisionAnual")
             fechaDesde = DateSerial(Year(Now), DateTime.ParseExact(value, "MMMM", CultureInfo.CurrentCulture).Month, 1)
             If fechaDesde > Now Then
                 fechaDesde = fechaDesde.AddYears(-1)
@@ -242,15 +244,21 @@ Public Class ComisionesViewModel
         End Set
     End Property
 
-    Private _mostrarPanelAntiguo As Boolean
-    Public Property MostrarPanelAntiguo() As Boolean
+    'Private _mostrarPanelAntiguo As Boolean
+    'Public Property MostrarPanelAntiguo() As Boolean
+    '    Get
+    '        Return _mostrarPanelAntiguo
+    '    End Get
+    '    Set(ByVal value As Boolean)
+    '        SetProperty(_mostrarPanelAntiguo, value)
+    '        OnPropertyChanged("MostrarPanelComisionAnual")
+    '    End Set
+    'End Property
+
+    Public ReadOnly Property MostrarPanelAntiguo() As Boolean
         Get
-            Return _mostrarPanelAntiguo
+            Return Not IsNothing(vendedorActual) AndAlso (((vendedorActual.Número = "JE " OrElse vendedorActual.Número = "DV ") AndAlso fechaDesde >= New Date(2019, 1, 1)) OrElse vendedorActual.Número = "SC " OrElse vendedorActual.Número = "PI ")
         End Get
-        Set(ByVal value As Boolean)
-            SetProperty(_mostrarPanelAntiguo, value)
-            OnPropertyChanged("MostrarPanelComisionAnual")
-        End Set
     End Property
 
 
@@ -273,6 +281,8 @@ Public Class ComisionesViewModel
         Set(ByVal value As Boolean)
             If _incluirAlbaranes <> value Then
                 SetProperty(_incluirAlbaranes, value)
+                OnPropertyChanged("MostrarPanelAntiguo")
+                OnPropertyChanged("MostrarPanelComisionAnual")
                 CalcularComisionAsync()
             End If
         End Set
