@@ -111,10 +111,11 @@ Public Class MenuBarView
         End Select
 
     End Sub
-    Private Sub GenerarInformeComisiones9(FechaDesde As Date, FechaHasta As Date, Resumen As Boolean, SoloFacturas As Boolean)
+    Private Async Sub GenerarInformeComisiones9(FechaDesde As Date, FechaHasta As Date, Resumen As Boolean, SoloFacturas As Boolean)
 
 
         Dim vm = New MainViewModel(container, regionManager)
+        Await vm.CargarVendedor()
         Dim strVendedor As String = vm.Vendedor
 
         'Dim Ventana As New frmInforme

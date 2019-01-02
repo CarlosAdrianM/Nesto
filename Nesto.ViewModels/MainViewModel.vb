@@ -158,7 +158,7 @@ Public Class MainViewModel
         Titulo = "Sin Título"
     End Sub
 
-    Private Async Function CargarVendedor() As Task
+    Public Async Function CargarVendedor() As Task
         Vendedor = Await leerParametro("1", Parametros.Claves.Vendedor)
     End Function
 

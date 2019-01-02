@@ -50,8 +50,8 @@
             <ComboBox Grid.Column="1" ItemsSource="{Binding Path=colMeses}" SelectedValue="{Binding mesActual}" VerticalAlignment="Center" Margin="3"/>
             <CheckBox Grid.Column="2" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" IsChecked="{Binding IncluirAlbaranes}" VerticalAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding EsMesEnCurso}">Incluir Albaranes</CheckBox>
             <ProgressBar Grid.Column="3" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Minimum="{Binding ComisionAnualResumenActual.GeneralInicioTramo}" Maximum="{Binding ComisionAnualResumenActual.GeneralFinalTramo}" Value="{Binding ComisionAnualResumenActual.GeneralProyeccion}" Foreground="{Binding ComisionAnualResumenActual.ColorProgreso}"></ProgressBar>
-            <TextBlock Grid.Column="3" Text="{Binding ComisionAnualResumenActual.GeneralInicioTramo, StringFormat=c}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,5" Foreground="White"></TextBlock>
-            <TextBlock Grid.Column="3" Text="{Binding ComisionAnualResumenActual.GeneralFinalTramo, StringFormat=c}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,5"></TextBlock>
+            <TextBlock Grid.Column="3" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Text="{Binding ComisionAnualResumenActual.GeneralInicioTramo, StringFormat=c}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,5" Foreground="White"></TextBlock>
+            <TextBlock Grid.Column="3" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Text="{Binding ComisionAnualResumenActual.GeneralFinalTramo, StringFormat=c}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,5"></TextBlock>
         </Grid>
         <DockPanel Grid.Row="1">
             <Grid DockPanel.Dock="Top"  Visibility="{Binding Path=MostrarPanelAntiguo, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
