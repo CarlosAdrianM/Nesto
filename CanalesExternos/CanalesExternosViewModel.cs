@@ -93,8 +93,9 @@ namespace Nesto.Modulos.CanalesExternos
         {
             return Environment.UserName.ToLower() == "carlos" 
                 || Environment.UserName.ToLower() == "laura"
+                || Environment.UserName.ToLower() == "administrador"
                 || Environment.UserName.ToLower() == "manuel"
-                || Environment.UserName.ToLower() == "iñaki";
+                || Environment.UserName.ToLower() == "inaki";
         }
         private void OnAbrirModulo()
         {

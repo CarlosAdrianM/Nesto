@@ -15,14 +15,6 @@ namespace Nesto.Modulos.CanalesExternos
         private IConfiguracion configuracion;
         private const string EMPRESA_DEFECTO = "1";
         private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
-        Clientes CLIENTE_TIENDA_ONLINE = new Clientes {
-            Nº_Cliente = "31517",
-            Contacto = "0",
-            ContactoDefecto = "0",
-            ContactoCobro = "0",
-            Vendedor = "NV",
-            IVA = null
-        };
 
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)
         {
@@ -183,6 +175,16 @@ namespace Nesto.Modulos.CanalesExternos
 
         private Clientes BuscarCliente(string dniCliente)
         {
+            Clientes CLIENTE_TIENDA_ONLINE = new Clientes
+            {
+                Nº_Cliente = "31517",
+                Contacto = "0",
+                ContactoDefecto = "0",
+                ContactoCobro = "0",
+                Vendedor = "NV",
+                IVA = "G21"
+            };
+
             dniCliente = LimpiarDni(dniCliente);
             if (dniCliente == null || dniCliente.Trim() == "")
             {

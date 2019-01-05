@@ -120,7 +120,7 @@ namespace Nesto.Modulos.CanalesExternos
                     decimal baseImponiblePortes = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / PORCENTAJE_IVA;
                     LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                     {
-                        almacen = ALMACEN_NV,
+                        almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
                         aplicarDescuento = false,
                         cantidad = (short)1,
                         delegacion = DELEGACION_AMAZON,
