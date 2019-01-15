@@ -130,6 +130,7 @@
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Base Imponible para Portes"></TextBlock>
                                 <TextBlock Text="{Binding baseImponibleParaPortes, StringFormat=c}"></TextBlock>
+                                <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="descripcion" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
                             </StackPanel>
                         </Grid>
                         <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">

@@ -58,6 +58,12 @@ Public Class PlantillaVentaViewModel
         ' De momento dejamos que aquí todos los usuarios vean a todos los clientes, 
         ' y en la plantilla de NestoWeb haremos que cada vendedor vea sólo los suyos.
         todosLosVendedores = True
+
+        listaAlmacenes = New ObservableCollection(Of tipoAlmacen)
+        almacenSeleccionado = New tipoAlmacen("ALG", "Algete")
+        listaAlmacenes.Add(almacenSeleccionado)
+        listaAlmacenes.Add(New tipoAlmacen("REI", "Reina"))
+
     End Sub
 
 #Region "Propiedades"
@@ -96,6 +102,16 @@ Public Class PlantillaVentaViewModel
     '*** Propiedades de Nesto
     Private vendedor As String = "NV"
     Private ultimaOferta As Integer = 0
+
+    Private _almacenSeleccionado As tipoAlmacen
+    Public Property almacenSeleccionado As tipoAlmacen
+        Get
+            Return _almacenSeleccionado
+        End Get
+        Set(value As tipoAlmacen)
+            SetProperty(_almacenSeleccionado, value)
+        End Set
+    End Property
 
     Public ReadOnly Property baseImponiblePedido As Decimal
         Get
@@ -320,6 +336,16 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    Private _listaAlmacenes As ObservableCollection(Of tipoAlmacen)
+    Public Property listaAlmacenes As ObservableCollection(Of tipoAlmacen)
+        Get
+            Return _listaAlmacenes
+        End Get
+        Set(value As ObservableCollection(Of tipoAlmacen))
+            SetProperty(_listaAlmacenes, value)
+        End Set
+    End Property
+
     Private _listaClientes As ObservableCollection(Of ClienteJson)
     Public Property listaClientes As ObservableCollection(Of ClienteJson)
         Get
@@ -436,6 +462,12 @@ Public Class PlantillaVentaViewModel
         Set(value As ObservableCollection(Of UltimasVentasProductoClienteDTO))
             SetProperty(_listaUltimasVentas, value)
         End Set
+    End Property
+
+    Public ReadOnly Property NoHayProductosEnElPedido
+        Get
+            Return Not hayProductosEnElPedido
+        End Get
     End Property
 
     Private _plazoPagoSeleccionado As PlazoPagoDTO
@@ -606,6 +638,7 @@ Public Class PlantillaVentaViewModel
             cmdCargarStockProducto.Execute(arg)
         End If
         OnPropertyChanged("hayProductosEnElPedido")
+        OnPropertyChanged("NoHayProductosEnElPedido")
         If IsNothing(productoSeleccionado) OrElse productoSeleccionado.producto <> arg.producto Then
             productoSeleccionado = arg
         End If
@@ -1037,7 +1070,7 @@ Public Class PlantillaVentaViewModel
             Dim datosStock As StockProductoDTO
 
             Try
-                response = Await client.GetAsync("PlantillaVentas/CargarStocks?empresa=" + clienteSeleccionado.empresa + "&almacen=ALG&productoStock=" + arg.producto)
+                response = Await client.GetAsync("PlantillaVentas/CargarStocks?empresa=" + clienteSeleccionado.empresa + "&almacen=" + almacenSeleccionado.id + "&productoStock=" + arg.producto)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
@@ -1205,7 +1238,8 @@ Public Class PlantillaVentaViewModel
         End If
 
         delegacionUsuario = Await leerParametro("DelegaciónDefecto")
-        almacenRutaUsuario = Await leerParametro("AlmacénRuta")
+        almacenRutaUsuario = almacenSeleccionado.id
+        'Await leerParametro("AlmacénRuta")
 
         If formaVentaSeleccionada = 1 Then
             formaVentaPedido = "DIR"
@@ -1443,6 +1477,18 @@ Public Class PlantillaVentaViewModel
 
 
 #End Region
+
+    Public Structure tipoAlmacen
+        Public Sub New(
+       ByVal _id As String,
+       ByVal _descripcion As String
+       )
+            id = _id
+            descripcion = _descripcion
+        End Sub
+        Property id As String
+        Property descripcion As String
+    End Structure
 
 End Class
 
