@@ -12,6 +12,7 @@ Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json.Linq
+Imports Nesto.Modulos.PlantillaVenta
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase
@@ -50,6 +51,7 @@ Public Class PlantillaVentaViewModel
         cmdCrearPedido = New DelegateCommand(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
+        cmdCalcularSePuedeServirPorGlovo = New DelegateCommand(AddressOf OnCalcularSePuedeServirPorGlovo)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -166,6 +168,29 @@ Public Class PlantillaVentaViewModel
             ' menor a la que nos permite el datapicker
             If fechaMinimaEntrega < fechaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
+            End If
+        End Set
+    End Property
+
+    Private _direccionGoogleMaps As String
+    Public Property DireccionGoogleMaps As String
+        Get
+            Return _direccionGoogleMaps
+        End Get
+        Set(value As String)
+            SetProperty(_direccionGoogleMaps, value)
+        End Set
+    End Property
+
+    Private _enviarPorGlovo As Boolean
+    Public Property EnviarPorGlovo As Boolean
+        Get
+            Return _enviarPorGlovo
+        End Get
+        Set(value As Boolean)
+            SetProperty(_enviarPorGlovo, value)
+            If _enviarPorGlovo Then
+                almacenSeleccionado = listaAlmacenes.Single(Function(a) a.id = "REI")
             End If
         End Set
     End Property
@@ -478,6 +503,9 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As PlazoPagoDTO)
             SetProperty(_plazoPagoSeleccionado, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
+            If (Not IsNothing(_plazoPagoSeleccionado)) Then
+                cmdCalcularSePuedeServirPorGlovo.Execute()
+            End If
         End Set
     End Property
 
@@ -499,6 +527,29 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As LineaPlantillaJson)
             SetProperty(_productoSeleccionado, value)
             cmdCargarUltimasVentas.Execute(productoSeleccionado)
+        End Set
+    End Property
+
+    Private _respuestaGlovo As RespuestaAgencia
+    Public Property RespuestaGlovo As RespuestaAgencia
+        Get
+            Return _respuestaGlovo
+        End Get
+        Set(value As RespuestaAgencia)
+            SetProperty(_respuestaGlovo, value)
+        End Set
+    End Property
+
+    Private _sePuedeServirConGlovo As Boolean = False
+    Public Property SePuedeServirConGlovo As Boolean
+        Get
+            Return _sePuedeServirConGlovo
+        End Get
+        Set(value As Boolean)
+            SetProperty(_sePuedeServirConGlovo, value)
+            If Not _sePuedeServirConGlovo Then
+                EnviarPorGlovo = False
+            End If
         End Set
     End Property
 
@@ -1212,9 +1263,6 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-
-
-
     Private _cmdCrearPedido As DelegateCommand
     Public Property cmdCrearPedido As DelegateCommand
         Get
@@ -1238,8 +1286,6 @@ Public Class PlantillaVentaViewModel
         End If
 
         delegacionUsuario = Await leerParametro("DelegaciónDefecto")
-        almacenRutaUsuario = almacenSeleccionado.id
-        'Await leerParametro("AlmacénRuta")
 
         If formaVentaSeleccionada = 1 Then
             formaVentaPedido = "DIR"
@@ -1267,79 +1313,7 @@ Public Class PlantillaVentaViewModel
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
-            Dim pedido As New PedidoVentaDTO With {
-                .empresa = clienteSeleccionado.empresa,
-                .cliente = clienteSeleccionado.cliente,
-                .contacto = direccionEntregaSeleccionada.contacto,
-                .EsPresupuesto = EsPresupuesto,
-                .fecha = Today,
-                .formaPago = formaPagoSeleccionada.formaPago,
-                .plazosPago = plazoPagoSeleccionado.plazoPago,
-                .primerVencimiento = Today, 'se calcula en la API
-                .iva = clienteSeleccionado.iva,
-                .vendedor = direccionEntregaSeleccionada.vendedor,
-                .periodoFacturacion = direccionEntregaSeleccionada.periodoFacturacion,
-                .ruta = direccionEntregaSeleccionada.ruta,
-                .serie = "NV", 'calcular
-                .ccc = IIf(formaPagoSeleccionada.cccObligatorio, direccionEntregaSeleccionada.ccc, Nothing),
-                .origen = clienteSeleccionado.empresa,
-                .contactoCobro = clienteSeleccionado.contacto, 'calcular
-                .noComisiona = direccionEntregaSeleccionada.noComisiona,
-                .mantenerJunto = direccionEntregaSeleccionada.mantenerJunto,
-                .servirJunto = direccionEntregaSeleccionada.servirJunto,
-                .comentarioPicking = clienteSeleccionado.comentarioPicking,
-                .comentarios = direccionEntregaSeleccionada.comentarioRuta,
-                .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
-            }
-
-            Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
-            Dim ofertaLinea As Integer?
-
-            For Each linea In listaProductosPedido
-                If linea.cantidadOferta <> 0 Then
-                    ofertaLinea = cogerSiguienteOferta()
-                Else
-                    ofertaLinea = Nothing
-                End If
-
-                'If linea.descuento = linea.descuentoProducto Then
-                '    linea.descuento = 0
-                'Else
-                '    linea.aplicarDescuento = False
-                'End If
-
-                lineaPedido = New LineaPedidoVentaDTO With {
-                    .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO), '¿Pongo 0 para tener que validar?
-                    .tipoLinea = 1, ' Producto
-                    .producto = linea.producto,
-                    .texto = linea.texto,
-                    .cantidad = linea.cantidad,
-                    .fechaEntrega = fechaEntrega,
-                    .precio = linea.precio,
-                    .descuento = IIf(linea.descuento = linea.descuentoProducto, 0, linea.descuento),
-                    .descuentoProducto = IIf(linea.descuento = linea.descuentoProducto, linea.descuentoProducto, 0),
-                    .aplicarDescuento = IIf(linea.descuento = linea.descuentoProducto, linea.aplicarDescuento, False),
-                    .vistoBueno = 0, 'calcular
-                    .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,
-                    .almacen = almacenRutaUsuario,
-                    .iva = linea.iva,
-                    .delegacion = delegacionUsuario, 'pedir al usuario en alguna parte
-                    .formaVenta = formaVentaPedido,
-                    .oferta = ofertaLinea
-                }
-                If linea.cantidad <> 0 Then
-                    pedido.LineasPedido.Add(lineaPedido)
-                End If
-
-                If linea.cantidadOferta <> 0 Then
-                    lineaPedidoOferta = lineaPedido.ShallowCopy
-                    lineaPedidoOferta.cantidad = linea.cantidadOferta
-                    lineaPedidoOferta.precio = 0
-                    lineaPedidoOferta.oferta = lineaPedido.oferta
-                    pedido.LineasPedido.Add(lineaPedidoOferta)
-                End If
-
-            Next
+            Dim pedido As PedidoVentaDTO = PrepararPedido()
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
@@ -1394,6 +1368,94 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
+    Private Function PrepararPedido() As PedidoVentaDTO
+        If IsNothing(formaPagoSeleccionada) Then
+            If IsNothing(listaFormasPago) Then
+                formaPagoSeleccionada = New FormaPagoDTO With {.formaPago = "RCB", .cccObligatorio = True}
+            Else
+                formaPagoSeleccionada = listaFormasPago.First
+            End If
+        End If
+
+        almacenRutaUsuario = almacenSeleccionado.id
+
+        Dim pedido As New PedidoVentaDTO With {
+                        .empresa = clienteSeleccionado.empresa,
+                        .cliente = clienteSeleccionado.cliente,
+                        .contacto = direccionEntregaSeleccionada.contacto,
+                        .EsPresupuesto = EsPresupuesto,
+                        .fecha = Today,
+                        .formaPago = formaPagoSeleccionada.formaPago,
+                        .plazosPago = plazoPagoSeleccionado.plazoPago,
+                        .primerVencimiento = Today, 'se calcula en la API
+                        .iva = clienteSeleccionado.iva,
+                        .vendedor = direccionEntregaSeleccionada.vendedor,
+                        .periodoFacturacion = direccionEntregaSeleccionada.periodoFacturacion,
+                        .ruta = IIf(EnviarPorGlovo, "GLV", direccionEntregaSeleccionada.ruta),
+                        .serie = "NV", 'calcular
+                        .ccc = IIf(formaPagoSeleccionada.cccObligatorio, direccionEntregaSeleccionada.ccc, Nothing),
+                        .origen = clienteSeleccionado.empresa,
+                        .contactoCobro = clienteSeleccionado.contacto, 'calcular
+                        .noComisiona = direccionEntregaSeleccionada.noComisiona,
+                        .mantenerJunto = direccionEntregaSeleccionada.mantenerJunto,
+                        .servirJunto = direccionEntregaSeleccionada.servirJunto,
+                        .comentarioPicking = clienteSeleccionado.comentarioPicking,
+                        .comentarios = direccionEntregaSeleccionada.comentarioRuta,
+                        .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+                    }
+
+        Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
+        Dim ofertaLinea As Integer?
+
+        For Each linea In listaProductosPedido
+            If linea.cantidadOferta <> 0 Then
+                ofertaLinea = cogerSiguienteOferta()
+            Else
+                ofertaLinea = Nothing
+            End If
+
+            'If linea.descuento = linea.descuentoProducto Then
+            '    linea.descuento = 0
+            'Else
+            '    linea.aplicarDescuento = False
+            'End If
+
+            lineaPedido = New LineaPedidoVentaDTO With {
+                .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO), '¿Pongo 0 para tener que validar?
+                .tipoLinea = 1, ' Producto
+                .producto = linea.producto,
+                .texto = linea.texto,
+                .cantidad = linea.cantidad,
+                .fechaEntrega = fechaEntrega,
+                .precio = linea.precio,
+                .descuento = IIf(linea.descuento = linea.descuentoProducto, 0, linea.descuento),
+                .descuentoProducto = IIf(linea.descuento = linea.descuentoProducto, linea.descuentoProducto, 0),
+                .aplicarDescuento = IIf(linea.descuento = linea.descuentoProducto, linea.aplicarDescuento, False),
+                .vistoBueno = 0, 'calcular
+                .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,
+                .almacen = almacenRutaUsuario,
+                .iva = linea.iva,
+                .delegacion = delegacionUsuario, 'pedir al usuario en alguna parte
+                .formaVenta = formaVentaPedido,
+                .oferta = ofertaLinea
+            }
+            If linea.cantidad <> 0 Then
+                pedido.LineasPedido.Add(lineaPedido)
+            End If
+
+            If linea.cantidadOferta <> 0 Then
+                lineaPedidoOferta = lineaPedido.ShallowCopy
+                lineaPedidoOferta.cantidad = linea.cantidadOferta
+                lineaPedidoOferta.precio = 0
+                lineaPedidoOferta.oferta = lineaPedido.oferta
+                pedido.LineasPedido.Add(lineaPedidoOferta)
+            End If
+
+        Next
+
+        Return pedido
+    End Function
+
     Private _cmdFijarFiltroProductos As DelegateCommand(Of Object)
     Public Property cmdFijarFiltroProductos As DelegateCommand(Of Object)
         Get
@@ -1438,6 +1500,67 @@ Public Class PlantillaVentaViewModel
         OnPropertyChanged("baseImponiblePedido")
         OnPropertyChanged("listaProductos")
         OnPropertyChanged("listaProductosOriginal")
+    End Sub
+
+    Private _cmdCalcularSePuedeServirPorGlovo As DelegateCommand
+    Public Property cmdCalcularSePuedeServirPorGlovo As DelegateCommand
+        Get
+            Return _cmdCalcularSePuedeServirPorGlovo
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_cmdCalcularSePuedeServirPorGlovo, value)
+        End Set
+    End Property
+    Private Async Sub OnCalcularSePuedeServirPorGlovo()
+        Using client As New HttpClient
+            estaOcupado = True
+
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Dim pedido As PedidoVentaDTO = PrepararPedido()
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+
+            Try
+                response = Await client.PostAsync("PedidosVenta/SePuedeServirPorAgencia", content)
+
+
+                If response.IsSuccessStatusCode Then
+                    Dim respuestaString As String = Await response.Content.ReadAsStringAsync()
+                    RespuestaGlovo = JsonConvert.DeserializeObject(Of RespuestaAgencia)(respuestaString)
+                    If Not IsNothing(RespuestaGlovo) Then
+                        SePuedeServirConGlovo = True
+                        DireccionGoogleMaps = RespuestaGlovo.DireccionFormateada
+                    Else
+                        SePuedeServirConGlovo = False
+                        DireccionGoogleMaps = ""
+                    End If
+                Else
+                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+
+                    NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = contenido
+                })
+                End If
+            Catch ex As Exception
+                NotificationRequest.Raise(New Notification() With {
+                    .Title = "Error",
+                    .Content = ex.Message
+                })
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
     End Sub
 
 #End Region
@@ -1490,5 +1613,11 @@ Public Class PlantillaVentaViewModel
         Property descripcion As String
     End Structure
 
+    Public Class RespuestaAgencia
+        Public Property DireccionFormateada As String
+        Public Property Longitud As Double
+        Public Property Latitud As Double
+        Public Property Coste As Decimal
+    End Class
 End Class
 

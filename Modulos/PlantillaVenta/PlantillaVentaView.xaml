@@ -12,6 +12,7 @@
 
     <UserControl.Resources>
         <local:PercentageConverter x:Key="porcentajeConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
     <i:Interaction.Triggers>
@@ -359,8 +360,8 @@
                                        CanFinish="True">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="Enter">
-                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasVenta, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
                             <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasVenta, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
                             <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarPlazosPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
@@ -381,6 +382,28 @@
                         <TextBlock></TextBlock>
                         <CheckBox IsChecked="{Binding EsPresupuesto}">¿Crear como Presupuesto?</CheckBox>
 
+                        <TextBlock></TextBlock>
+                        <TextBlock></TextBlock>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0"  Orientation="Horizontal" Visibility="{Binding SePuedeServirConGlovo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Image Source="Images/logo_glovo.png"/>
+                            </StackPanel>
+                            <CheckBox Grid.Row="1" IsChecked="{Binding EnviarPorGlovo}" Visibility="{Binding SePuedeServirConGlovo, Converter={StaticResource BooleanToVisibilityConverter}}">Enviar por Glovo</CheckBox>
+                            <StackPanel Grid.Row="3" Visibility="{Binding EnviarPorGlovo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock>Dirección a tramitar:</TextBlock>
+                                    <TextBox IsEnabled="False" Text="{Binding DireccionGoogleMaps}"></TextBox>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
                     </StackPanel>
 
                 </xctk:WizardPage>

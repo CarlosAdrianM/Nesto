@@ -93,6 +93,7 @@ Public Class AgenciasViewModel
 
         factory.Add("ASM", Function() New AgenciaASM(Me))
         factory.Add("OnTime", Function() New AgenciaOnTime(Me))
+        factory.Add("Glovo", Function() New AgenciaGlovo(Me))
     End Sub
 
 
@@ -2264,7 +2265,9 @@ Public Class AgenciasViewModel
 
         ' Carlos 22/09/15. Para que se puedan meter reembolsos
         If IsNothing(agenciaNueva) Then
-            agenciaNueva = DbContext.AgenciasTransporte.OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Empresa = pedidoSeleccionado.Empresa)
+            Dim cliente = DbContext.Clientes.Single(Function(c) c.Empresa = pedidoSeleccionado.Empresa AndAlso c.Nº_Cliente = pedidoSeleccionado.Nº_Cliente AndAlso c.Contacto = pedidoSeleccionado.Contacto)
+            agenciaNueva = DbContext.AgenciasTransporte.OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Ruta = cliente.Ruta)
+            'agenciaNueva = DbContext.AgenciasTransporte.OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Empresa = pedidoSeleccionado.Empresa)
         End If
 
         If Not IsNothing(agenciaNueva) AndAlso (IsNothing(agenciaConfigurar) OrElse (agenciaConfigurar.Numero <> agenciaNueva.Numero Or agenciaConfigurar.Empresa <> agenciaNueva.Empresa)) Then
@@ -3477,9 +3480,9 @@ Public Class AgenciaOnTime
     ' Funciones
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
 
-        NotificationRequest.Raise(New Notification() With { _
-             .Title = "Error", _
-            .Content = "OnTime no permite integración. Consulte el estado en la página web de OnTime." _
+        NotificationRequest.Raise(New Notification() With {
+             .Title = "Error",
+            .Content = "OnTime no permite integración. Consulte el estado en la página web de OnTime."
         })
         Return Nothing
 
@@ -3643,4 +3646,153 @@ Public Class AgenciaOnTime
         Dim referencia As String = WebUtility.UrlEncode(envio.Cliente.Trim() + "-" + envio.Pedido.ToString())
         Return "https://ontimegts.alertran.net/gts/pub/clielocserv.seam?cliente=02890107&referencia=" + referencia
     End Function
+End Class
+Public Class AgenciaGlovo
+    Implements IAgencia
+
+    ' Propiedades de Prism
+    Private _NotificationRequest As InteractionRequest(Of INotification)
+    Public Property NotificationRequest As InteractionRequest(Of INotification)
+        Get
+            Return _NotificationRequest
+        End Get
+        Private Set(value As InteractionRequest(Of INotification))
+            _NotificationRequest = value
+        End Set
+    End Property
+
+    'Private agenciaSeleccionada As AgenciasTransporte
+    Private agenciaVM As AgenciasViewModel
+
+    Public Sub New(agencia As AgenciasViewModel)
+        If Not IsNothing(agencia) Then
+
+            NotificationRequest = New InteractionRequest(Of INotification)
+            'ConfirmationRequest = New InteractionRequest(Of IConfirmation)
+
+            agencia.listaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.retornoActual = New tipoIdDescripcion(0, "NO")
+            agencia.listaTiposRetorno.Add(agencia.retornoActual)
+            agencia.listaServicios = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.servicioActual = New tipoIdDescripcion(0, "Business")
+            agencia.listaServicios.Add(agencia.servicioActual)
+            agencia.listaHorarios = New ObservableCollection(Of tipoIdDescripcion)
+            agencia.horarioActual = New tipoIdDescripcion(0, "Urgente")
+            agencia.listaHorarios.Add(agencia.horarioActual)
+
+            rellenarPaises(agencia)
+
+            'agenciaSeleccionada = agencia.agenciaSeleccionada
+            agenciaVM = agencia
+        End If
+
+    End Sub
+
+    Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir
+        Get
+            Return Visibility.Hidden
+        End Get
+    End Property
+
+    Public ReadOnly Property retornoSoloCobros As Integer Implements IAgencia.retornoSoloCobros
+        Get
+            Return 0 ' No
+        End Get
+    End Property
+
+    Public ReadOnly Property servicioSoloCobros As Integer Implements IAgencia.servicioSoloCobros
+        Get
+            Return 0 ' business
+        End Get
+    End Property
+
+    Public ReadOnly Property horarioSoloCobros As Integer Implements IAgencia.horarioSoloCobros
+        Get
+            Return 0 'urgente
+        End Get
+    End Property
+
+    Public ReadOnly Property retornoSinRetorno As Integer Implements IAgencia.retornoSinRetorno
+        Get
+            Return 0 'no
+        End Get
+    End Property
+
+    Public ReadOnly Property retornoObligatorio As Integer Implements IAgencia.retornoObligatorio
+        Get
+            Return 0 ' no
+        End Get
+    End Property
+
+    Public ReadOnly Property paisDefecto As Integer Implements IAgencia.paisDefecto
+        Get
+            Return 34 ' España
+        End Get
+    End Property
+
+    Public Sub calcularPlaza(codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+        Throw New NotImplementedException()
+    End Sub
+
+    Public Sub llamadaWebService(DBContext As NestoEntities) Implements IAgencia.llamadaWebService
+        Dim success As Boolean = False
+
+        Using transaction As New TransactionScope()
+
+            Dim asiento As Integer = 0
+
+            Dim envioEncontrado = DBContext.EnviosAgencia.Where(Function(e) e.Numero = agenciaVM.envioActual.Numero).Single
+
+            envioEncontrado.Estado = AgenciasViewModel.ESTADO_TRAMITADO_ENVIO 'Enviado
+            envioEncontrado.Fecha = Today
+            envioEncontrado.FechaEntrega = Today.AddDays(1) 'Se sirve al día siguiente
+            success = DBContext.SaveChanges()
+
+            'Await cambiarEstadoAsync(agenciaVM.envioActual)
+
+            'If success AndAlso agenciaVM.envioActual.Reembolso <> 0 Then
+            '    asiento = agenciaVM.contabilizarReembolso(envioEncontrado)
+            '    If asiento <= 0 Then
+            '        success = False
+            '    End If
+            'End If
+
+            If success Then
+                transaction.Complete()
+                DBContext.AcceptAllChanges()
+                agenciaVM.mensajeError = "Envío del pedido " + agenciaVM.envioActual.Pedido.ToString + " tramitado correctamente."
+            Else
+                transaction.Dispose()
+                agenciaVM.mensajeError = "Error al tramitar pedido " + agenciaVM.envioActual.Pedido.ToString + "."
+            End If
+        End Using ' Cerramos la transaccion
+        agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DBContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
+        agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
+    End Sub
+
+    Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
+        Throw New NotImplementedException()
+    End Sub
+
+    Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio Implements IAgencia.transformarXMLdeEstado
+        Throw New NotImplementedException()
+    End Function
+
+    Public Function calcularCodigoBarras() As String Implements IAgencia.calcularCodigoBarras
+        Return agenciaVM.envioActual.Numero.ToString("D7")
+    End Function
+
+    Public Function EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
+        Return ""
+    End Function
+
+    Private Sub rellenarPaises(agencia As AgenciasViewModel)
+        agencia.listaPaises = New ObservableCollection(Of tipoIdIntDescripcion)
+        agencia.paisActual = New tipoIdIntDescripcion(34, "ESPAÑA")
+        agencia.listaPaises.Add(agencia.paisActual)
+    End Sub
 End Class
