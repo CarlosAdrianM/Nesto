@@ -54,8 +54,8 @@
     <xctk:BusyIndicator IsBusy="{Binding estaBloqueado}" BusyContent="{Binding textoBusyIndicator}">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="8*"/>
-                <RowDefinition/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TabControl Grid.Row="0">
                 <TabItem Header="Cabecera">

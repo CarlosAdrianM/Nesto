@@ -27,8 +27,8 @@
                 <TabItem Name="tabRemesas" Header="Remesas">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="11*"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -97,8 +97,8 @@
                 <TabItem Name="tabImpagados" Header="Impagados">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="11*"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

@@ -189,7 +189,7 @@ Public Class AgenciasViewModel
                     OnPropertyChanged("retornoActual")
                     OnPropertyChanged("paisActual")
                     'listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Estado = ESTADO_INICIAL_ENVIO)
-                    listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
+                    listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                     Using ContextoBreve As New NestoEntities
                         listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
                         listaRetornos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado >= ESTADO_TRAMITADO_ENVIO And e.Retorno <> agenciaEspecifica.retornoSinRetorno And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
@@ -250,7 +250,7 @@ Public Class AgenciasViewModel
                     agenciaSeleccionada = listaAgencias.FirstOrDefault
                 End If
                 If Not IsNothing(agenciaSeleccionada) Then
-                    listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
+                    listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                     Using ContextoBreve As New NestoEntities
                         listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                         listaReembolsos = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
@@ -325,10 +325,11 @@ Public Class AgenciasViewModel
                 End Try
 
             Else
-                NotificationRequest.Raise(New Notification() With {
-                 .Title = "Error",
-                .Content = "El pedido seleccionado no existe"
-                })
+                'NotificationRequest.Raise(New Notification() With {
+                ' .Title = "Error",
+                '.Content = "El pedido seleccionado no existe"
+                '})
+                numeroPedido = 36
             End If
         End Set
     End Property
@@ -1395,7 +1396,7 @@ Public Class AgenciasViewModel
                                    fechaFiltro = Today
 
                                    If Not IsNothing(agenciaSeleccionada) Then
-                                       listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
+                                       listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In ContextoBreve.EnviosAgencia Where e.Agencia = agenciaSeleccionada.Numero And e.Estado = ESTADO_INICIAL_ENVIO Order By e.Numero)
                                    End If
                                    envioActual = listaEnvios.LastOrDefault
                                    numeroPedido = configuracion.leerParametro(empresaDefecto, "UltNumPedidoVta").Result
@@ -3213,7 +3214,7 @@ Public Class AgenciaASM
                     agenciaVM.mensajeError = "Error al tramitar pedido " + agenciaVM.envioActual.Pedido.ToString + "."
                 End If
             End Using ' Cerramos la transaccion
-            agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
+            agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
             agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
         End If
 
@@ -3543,7 +3544,7 @@ Public Class AgenciaOnTime
                 agenciaVM.mensajeError = "Error al tramitar pedido " + agenciaVM.envioActual.Pedido.ToString + "."
             End If
         End Using ' Cerramos la transaccion
-        agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
+        agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
         agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
     End Sub
     Public Async Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
@@ -3766,7 +3767,7 @@ Public Class AgenciaGlovo
                 agenciaVM.mensajeError = "Error al tramitar pedido " + agenciaVM.envioActual.Pedido.ToString + "."
             End If
         End Using ' Cerramos la transaccion
-        agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DBContext.EnviosAgencia Where e.Empresa = agenciaVM.empresaSeleccionada.Número And e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
+        agenciaVM.listaEnvios = New ObservableCollection(Of EnviosAgencia)(From e In DBContext.EnviosAgencia Where e.Agencia = agenciaVM.agenciaSeleccionada.Numero And e.Estado = AgenciasViewModel.ESTADO_INICIAL_ENVIO Order By e.Numero)
         agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
     End Sub
 
