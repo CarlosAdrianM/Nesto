@@ -402,6 +402,10 @@
                                     <TextBlock>Dirección a tramitar:</TextBlock>
                                     <TextBox IsEnabled="False" Text="{Binding DireccionGoogleMaps}"></TextBox>
                                 </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock>Portes:</TextBlock>
+                                    <TextBox IsEnabled="False" Text="{Binding PortesGlovo, StringFormat=c}"></TextBox>
+                                </StackPanel>
                             </StackPanel>
                         </Grid>
                     </StackPanel>

@@ -509,6 +509,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _portesGlovo As Decimal
+    Public Property PortesGlovo As Decimal
+        Get
+            Return _portesGlovo
+        End Get
+        Set(value As Decimal)
+            SetProperty(_portesGlovo, value)
+        End Set
+    End Property
+
     Private _productoPedidoSeleccionado As LineaPlantillaJson
     Public Property productoPedidoSeleccionado As LineaPlantillaJson
         Get
@@ -1532,9 +1542,11 @@ Public Class PlantillaVentaViewModel
                     If Not IsNothing(RespuestaGlovo) Then
                         SePuedeServirConGlovo = True
                         DireccionGoogleMaps = RespuestaGlovo.DireccionFormateada
+                        PortesGlovo = RespuestaGlovo.Coste
                     Else
                         SePuedeServirConGlovo = False
                         DireccionGoogleMaps = ""
+                        PortesGlovo = 0
                     End If
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
