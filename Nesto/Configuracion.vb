@@ -8,8 +8,8 @@ Public Class Configuracion
 
     Public ReadOnly Property servidorAPI As String Implements IConfiguracion.servidorAPI
         Get
-            Return "http://localhost:53364/api/"
-            'Return "http://api.nuevavision.es/api/"
+            'Return "http://localhost:53364/api/"
+            Return "http://api.nuevavision.es/api/"
         End Get
     End Property
 

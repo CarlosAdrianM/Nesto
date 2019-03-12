@@ -2036,6 +2036,7 @@ Public Class AgenciasViewModel
             Try
                 If estabaPendiente Then
                     envioActual.Estado = ESTADO_INICIAL_ENVIO
+                    envioActual.Bultos = bultos
                 Else
                     With envioActual
                         .Empresa = agenciaSeleccionada.Empresa
