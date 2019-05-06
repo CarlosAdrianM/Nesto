@@ -160,3 +160,5 @@ $RECYCLE.BIN/
 /.vs/Nesto/v15/sqlite3/db.lock
 /.vs/Nesto/v15/sqlite3/storage.ide-shm
 /.vs/Nesto/v15/sqlite3/storage.ide-wal
+/.vs/Nesto/v16/Server/sqlite3/db.lock
+/.vs/Nesto/v16/Server/sqlite3

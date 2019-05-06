@@ -75,9 +75,9 @@ namespace MarketplaceWebServiceOrders {
                 ListOrdersResponse respuesta = (ListOrdersResponse)response;
 
                 // Añadimos los FBA
-                //response = sample.InvokeListOrdersFBA();
-                //ListOrdersResponse respuestaFBA = (ListOrdersResponse)response;
-                //respuesta.ListOrdersResult.Orders.AddRange(respuestaFBA.ListOrdersResult.Orders);
+                response = sample.InvokeListOrdersFBA();
+                ListOrdersResponse respuestaFBA = (ListOrdersResponse)response;
+                respuesta.ListOrdersResult.Orders.AddRange(respuestaFBA.ListOrdersResult.Orders);
 
                 return respuesta.ListOrdersResult.Orders;
 
@@ -292,7 +292,7 @@ namespace MarketplaceWebServiceOrders {
             request.SellerId = sellerId;
             //string mwsAuthToken = "example";
             //request.MWSAuthToken = mwsAuthToken;
-            DateTime createdAfter = DateTime.Now.AddDays(-10);
+            DateTime createdAfter = DateTime.Now.AddDays(-5);
             request.CreatedAfter = createdAfter;
             /*
             DateTime createdBefore = new DateTime();
