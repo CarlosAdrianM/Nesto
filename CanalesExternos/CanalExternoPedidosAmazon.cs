@@ -64,7 +64,12 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.vendedor = VENDEDOR_AMAZON;
 
             pedidoSalida.iva = IVA_GENERAL;
-            pedidoSalida.comentarios = order.AmazonOrderId + " \r\n";
+            string numeroOrderAmazon = order.AmazonOrderId;
+            if (order.FulfillmentChannel == "AFN")
+            {
+                numeroOrderAmazon = "FBA " + numeroOrderAmazon;
+            }
+            pedidoSalida.comentarios = numeroOrderAmazon + " \r\n";
             pedidoSalida.comentarios += order.ShippingAddress?.Name.ToString().ToUpper() + "\r\n";
             pedidoSalida.comentarios += order.BuyerEmail?.ToString() + "\r\n";
             pedidoSalida.comentarios += order.ShippingAddress?.AddressLine1?.ToString().ToUpper() + "\r\n";
@@ -108,9 +113,10 @@ namespace Nesto.Modulos.CanalesExternos
                     fechaEntrega = DateTime.Today,
                     iva = IVA_GENERAL, 
                     precio = baseImponible/orderItem.QuantityOrdered,
-                    producto = orderItem.SellerSKU,
+                    producto = orderItem.SellerSKU.EndsWith("FBA") ? orderItem.SellerSKU.Substring(0, orderItem.SellerSKU.Length-3) : orderItem.SellerSKU,
                     texto = orderItem.Title.ToUpper(),
                     tipoLinea = 1, // producto
+                    vistoBueno = true,
                     usuario = configuracion.usuario
                 };
                 lineasNesto.Add(lineaNesto);
@@ -132,6 +138,7 @@ namespace Nesto.Modulos.CanalesExternos
                         producto = "62400003",
                         texto = "PORTES " + orderItem.Title.ToUpper(),
                         tipoLinea = 2, // cuenta contable
+                        vistoBueno = true,
                         usuario = configuracion.usuario
                     };
                     lineasNesto.Add(lineaPortes);
