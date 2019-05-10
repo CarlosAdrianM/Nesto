@@ -165,6 +165,24 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
+    Private _mostrarSoloPendientes As Boolean = False
+    Public Property mostrarSoloPendientes As Boolean
+        Get
+            Return _mostrarSoloPendientes
+        End Get
+        Set(value As Boolean)
+            If value <> _mostrarSoloPendientes Then
+                SetProperty(_mostrarSoloPendientes, value)
+                If value Then
+                    listaPedidos = New ObservableCollection(Of ResumenPedido)(listaPedidos.Where(Function(l) l.tienePendientes))
+                Else
+                    listaPedidos = listaPedidosOriginal
+                End If
+
+            End If
+        End Set
+    End Property
+
     Private _resumenSeleccionado As ResumenPedido
     Public Property resumenSeleccionado() As ResumenPedido
         Get
