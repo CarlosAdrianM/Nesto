@@ -62,6 +62,9 @@ Public Class Bootstrapper
 
         ' Producto - 29/05/18
         moduleCatalog.AddModule(GetType(IProducto))
+
+        ' Cliente - 29/05/19
+        moduleCatalog.AddModule(GetType(ICliente))
     End Sub
 
     Protected Overrides Sub ConfigureContainer()
@@ -82,6 +85,7 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(IAgenciaService), GetType(AgenciaService), False)
         RegisterTypeIfMissing(GetType(IProducto), GetType(Nesto.Modulos.Producto.Producto), False)
         RegisterTypeIfMissing(GetType(IProductoService), GetType(ProductoService), False)
+        RegisterTypeIfMissing(GetType(ICliente), GetType(Nesto.Modulos.Cliente.Cliente), False)
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings

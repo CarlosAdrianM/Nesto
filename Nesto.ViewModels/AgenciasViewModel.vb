@@ -2506,7 +2506,7 @@ Public Class AgenciasViewModel
                             .Nº_Documento = envio.Pedido
                             .Delegación = empresaEnvio.DelegaciónVarios
                             .FormaVenta = empresaEnvio.FormaVentaVarios
-                            If Not IsNothing(movimientoLiq) Then
+                            If Not IsNothing(movimientoLiq) AndAlso movimientoLiq.ImportePdte > 0 Then
                                 .Liquidado = movimientoLiq.Nº_Orden
                             End If
                         End With

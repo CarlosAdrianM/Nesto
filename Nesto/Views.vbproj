@@ -25,7 +25,7 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <InstallUrl>\\rds2016\Unidad_F\dev\Nesto\</InstallUrl>
-    <ApplicationRevision>7</ApplicationRevision>
+    <ApplicationRevision>8</ApplicationRevision>
     <ApplicationVersion>1.5.1.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -543,6 +543,10 @@
     <ProjectReference Include="..\Modulos\CarteraPagos\CarteraPagos\CarteraPagos.vbproj">
       <Project>{0a78f73c-a593-4296-843e-49634234b955}</Project>
       <Name>CarteraPagos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Modulos\Cliente\Cliente.csproj">
+      <Project>{50929425-20ab-441d-bd99-52179b491af9}</Project>
+      <Name>Cliente</Name>
     </ProjectReference>
     <ProjectReference Include="..\Modulos\Inventario\Inventario\Inventario.vbproj">
       <Project>{fc02d1b6-1dbb-4a32-a0d4-d7bbcfb7f283}</Project>

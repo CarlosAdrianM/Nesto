@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2005
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28922.388
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Views", "Nesto\Views.vbproj", "{F9C51E8E-BB41-4EE0-A54C-0A7E6ACB4037}"
 EndProject
@@ -44,6 +44,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CanalesExternosTests", "CanalesExternosTests\CanalesExternosTests.csproj", "{F3B74930-204E-4FD4-ABD4-0EF627564C2F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Producto", "Producto\Producto.csproj", "{6BAD5DF5-B47E-4F88-98AD-E58A1BE33119}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cliente", "Modulos\Cliente\Cliente.csproj", "{50929425-20AB-441D-BD99-52179B491AF9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClienteTests", "Modulos\Cliente\ClienteTests\ClienteTests\ClienteTests.csproj", "{EE9C18B8-2CA1-4B67-9BDC-415763386A31}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -241,6 +245,30 @@ Global
 		{6BAD5DF5-B47E-4F88-98AD-E58A1BE33119}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{6BAD5DF5-B47E-4F88-98AD-E58A1BE33119}.Release|x86.ActiveCfg = Release|Any CPU
 		{6BAD5DF5-B47E-4F88-98AD-E58A1BE33119}.Release|x86.Build.0 = Release|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Debug|x86.Build.0 = Debug|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Release|x86.ActiveCfg = Release|Any CPU
+		{50929425-20AB-441D-BD99-52179B491AF9}.Release|x86.Build.0 = Release|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Debug|x86.Build.0 = Debug|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Release|x86.ActiveCfg = Release|Any CPU
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -256,6 +284,8 @@ Global
 		{C7C073B3-9808-40AE-B522-3F613922B5AA} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
 		{F3B74930-204E-4FD4-ABD4-0EF627564C2F} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
 		{6BAD5DF5-B47E-4F88-98AD-E58A1BE33119} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
+		{50929425-20AB-441D-BD99-52179B491AF9} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
+		{EE9C18B8-2CA1-4B67-9BDC-415763386A31} = {8B87F1E0-1A7D-4147-9211-F53A09C4105D}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7B708E67-2805-45F7-A979-1A1556062606}

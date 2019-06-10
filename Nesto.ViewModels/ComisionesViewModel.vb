@@ -31,7 +31,8 @@ Public Class ComisionesViewModel
 
         colMeses = New Collection(Of String)
         For i = 12 To 1 Step -1
-            _colMeses.Add(Now.AddMonths(i).ToString("MMMM"))
+            Dim nombreMes = Now.AddMonths(i).ToString("MMMM")
+            _colMeses.Add(nombreMes)
         Next
 
         mesActual = colMeses(0)

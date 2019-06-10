@@ -101,6 +101,7 @@
     <Compile Include="Eventos\SacarPickingEvent.vb" />
     <Compile Include="ICanalesExternos.vb" />
     <Compile Include="ICarteraPagos.vb" />
+    <Compile Include="ICliente.vb" />
     <Compile Include="IConfiguracion.vb" />
     <Compile Include="IInventario.vb" />
     <Compile Include="IMainWindow.vb" />
