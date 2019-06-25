@@ -74,12 +74,18 @@
     <Reference Include="Microsoft.Practices.Unity.RegistrationByConvention, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Unity.3.5.1404.0\lib\net45\Microsoft.Practices.Unity.RegistrationByConvention.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="Prism.RibbonRegionAdapter, Version=0.20.0.1, Culture=neutral, PublicKeyToken=3ddef0a054eea43a, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Prism.RibbonRegionAdapter.0.20.0.1\lib\net45\Prism.RibbonRegionAdapter.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Windows.Controls.Ribbon" />
+    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Expression.Blend.Sdk.1.0.2\lib\net45\System.Windows.Interactivity.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -132,12 +138,15 @@
     <Compile Include="ClienteMenuBar.xaml.cs">
       <DependentUpon>ClienteMenuBar.xaml</DependentUpon>
     </Compile>
+    <Compile Include="ClienteModel.cs" />
+    <Compile Include="ClienteService.cs" />
     <Compile Include="CrearClienteView.xaml.cs">
       <DependentUpon>CrearClienteView.xaml</DependentUpon>
     </Compile>
     <Compile Include="CrearClienteViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IClienteService.cs" />
     <Compile Include="Models\ClienteCrear.cs" />
     <Compile Include="Models\PersonaContactoDTO.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -168,13 +177,17 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Contratos\Contratos.vbproj">
-      <Project>{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}</Project>
-      <Name>Contratos</Name>
-    </ProjectReference>
+    <Resource Include="Images\crear_cliente.png" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\crear_cliente.png" />
+    <ProjectReference Include="..\..\Contratos\Contratos.vbproj">
+      <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
+      <Name>Contratos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Nesto.Models\Models.vbproj">
+      <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>
+      <Name>Models</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

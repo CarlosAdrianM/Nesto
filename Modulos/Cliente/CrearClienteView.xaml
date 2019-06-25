@@ -5,14 +5,22 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Nesto.Modulos.Cliente"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+             xmlns:prism="http://www.codeplex.com/prism"
              mc:Ignorable="d"  Loaded="UserControl_Loaded"
              d:DesignHeight="450" d:DesignWidth="800">
     
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
-    
-    <Grid>
+
+    <i:Interaction.Triggers>
+        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
+            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
+        </prism:InteractionRequestTrigger>
+    </i:Interaction.Triggers>
+
+    <Grid FocusManager.FocusedElement="{Binding ElementName=txtNif}">
         <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Cargando datos...">
             <Grid>
                 <xctk:Wizard Name="WizardCrearCliente" 
@@ -24,11 +32,16 @@
                          BackButtonContent="&lt; Anterior"
                          NextButtonContent="Siguiente &gt;"
                          FinishButtonContent="Finalizar">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Finish">
+                            <i:InvokeCommandAction Command="{Binding CrearClienteCommand}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
                     <xctk:WizardPage x:Name="DatosFiscales" 
                                        Title="Datos Identificación Fiscal"
                                        Description="Introduzca los datos fiscales del cliente para poder comprobar su validez contra el servidor de Hacienda"
                                        CanSelectNextPage="{Binding SePuedeAvanzarADatosGenerales}"
-                                     BackButtonVisibility="Hidden">
+                                     BackButtonVisibility="Hidden" Enter="DatosFiscales_Enter">
 
                         <Grid>
                             <Grid.RowDefinitions>
@@ -48,13 +61,15 @@
                             <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right">NIF</TextBlock>
                             <TextBox Name="txtNif" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteNif, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding NifSinValidar}" KeyUp="TxtNif_KeyUp" GotFocus="TxtNif_GotFocus" PreviewMouseUp="TxtNif_PreviewMouseUp"></TextBox>
                             <TextBlock Grid.Column="1" Grid.Row="3" Visibility="{Binding NombreIsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" TextAlignment="Right">Nombre Fiscal</TextBlock>
-                            <TextBox Name="txtNombre" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteNombre, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding NombreIsEnabled}" Visibility="{Binding NombreIsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" KeyUp="TxtNombre_KeyUp" GotFocus="TxtNombre_GotFocus" PreviewMouseUp="TxtNombre_PreviewMouseUp"></TextBox>
+                            <TextBox Name="txtNombre" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteNombre, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding NombreIsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" KeyUp="TxtNombre_KeyUp" GotFocus="TxtNombre_GotFocus" PreviewMouseUp="TxtNombre_PreviewMouseUp"></TextBox>
                         </Grid>
                     </xctk:WizardPage>
                     <xctk:WizardPage x:Name="DatosGenerales" 
                                        Title="Datos Generales"
                                        Description="Introduzca los datos básicos de dirección, código postal y teléfono para poder localizar el centro"
-                                       CanSelectNextPage="True">
+                                     CanSelectPreviousPage="True"  
+                                     CanSelectNextPage="True"
+                                      FocusManager.FocusedElement="{Binding ElementName=txtDireccion}" Enter="DatosGenerales_Enter">
 
                         <Grid>
                             <Grid.RowDefinitions>
@@ -75,16 +90,25 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right">Dirección</TextBlock>
-                            <TextBox Name="txtDireccion" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteDireccion, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                            <TextBox Name="txtDireccion" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteDireccion, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtDireccion_KeyUp"></TextBox>
                             <TextBlock Grid.Column="1" Grid.Row="3" TextAlignment="Right">Código Postal</TextBlock>
-                            <TextBox Name="txtCodigoPostal" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteCodigoPostal, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                            <TextBox Name="txtCodigoPostal" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteCodigoPostal, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtCodigoPostal_KeyUp"></TextBox>
                             <TextBlock Grid.Column="1" Grid.Row="5" TextAlignment="Right">Teléfono</TextBlock>
-                            <TextBox Name="txtTelefono" Grid.Column="3" Grid.Row="5" Text="{Binding ClienteTelefono, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-                            <Border Grid.Column="5" Grid.Row="0" BorderBrush="LightGreen" BorderThickness="3">
+                            <TextBox Name="txtTelefono" Grid.Column="3" Grid.Row="5" Text="{Binding ClienteTelefono, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtTelefono_KeyUp"></TextBox>
+                            <TextBlock Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="6" Text="{Binding ClienteNumero,StringFormat='Ya existe el cliente {0}'}"  FontSize="24" Visibility="{Binding ClienteEsContacto,Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Center" Foreground="Red"></TextBlock>
+                            <Border Grid.Column="5" Grid.Row="0" BorderBrush="LightGreen" BorderThickness="3" CornerRadius="15" Padding="5">
                                 <StackPanel>
                                     <TextBlock Text="{Binding ClienteNombre}" FontWeight="ExtraBold"></TextBlock>
                                     <TextBlock Text="{Binding ClienteDireccion}"></TextBlock>
-                                    <TextBlock Text="{Binding ClienteCodigoPostal}"></TextBlock>
+                                    <TextBlock>
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0} {1} ({2})">
+                                                <Binding Path="ClienteCodigoPostal"/>
+                                                <Binding Path="ClientePoblacion"/>
+                                                <Binding Path="ClienteProvincia"/>                                                
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="📞 "></TextBlock>
                                         <TextBlock Text="{Binding ClienteTelefono}"></TextBlock>
@@ -98,6 +122,60 @@
                     <xctk:WizardPage x:Name="DatosComisiones" 
                                        Title="Datos Generales"
                                        Description="Dependiendo del tipo de centro que sea, se le asignará vendedor de estética, de peluquería o ambos"
+                                     CanSelectPreviousPage="True"
+                                       CanSelectNextPage="{Binding SePuedeAvanzarADatosPago}">
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="2*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="3"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding ClienteVendedorEstetica}" Visibility="{Binding ClienteTieneEstetica,Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="Green" HorizontalAlignment="Right"></TextBlock>
+                            <CheckBox Name="chkTieneEstetica" Grid.Column="3" Grid.Row="1" IsChecked="{Binding ClienteTieneEstetica}">¿Tiene Estética?</CheckBox>
+                            <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding VendedorPeluqueriaMostrar}" Visibility="{Binding ClienteTienePeluqueria,Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="Green" HorizontalAlignment="Right"></TextBlock>
+                            <CheckBox Name="chkTienePeluqueria" Grid.Column="3" Grid.Row="3" IsChecked="{Binding ClienteTienePeluqueria}">¿Tiene Peluquería?</CheckBox>
+
+                            <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3" CornerRadius="15" Padding="5">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding ClienteNombre}" FontWeight="ExtraBold"></TextBlock>
+                                    <TextBlock Text="{Binding ClienteDireccion}"></TextBlock>
+                                    <TextBlock>
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0} {1} ({2})">
+                                                <Binding Path="ClienteCodigoPostal"/>
+                                                <Binding Path="ClientePoblacion"/>
+                                                <Binding Path="ClienteProvincia"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📞 "></TextBlock>
+                                        <TextBlock Text="{Binding ClienteTelefono}"></TextBlock>
+                                    </StackPanel>
+                                    <TextBlock></TextBlock>
+                                    <TextBlock Text="{Binding ClienteNif}"></TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </xctk:WizardPage>
+                    <xctk:WizardPage x:Name="DatosPago" 
+                                       Title="Datos de Pago"
+                                       Description="Aquí especificamos las formas de pago por defecto e informos el IBAN en caso de tenerlo."
+                                       CanSelectPreviousPage="True"
                                        CanSelectNextPage="True">
 
                         <Grid>
@@ -119,16 +197,100 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Cliente.VendedorEstetica}" Visibility="{Binding ClienteTieneEstetica,Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="Green"></TextBlock>
-                            <CheckBox Name="chkTieneEstetica" Grid.Column="3" Grid.Row="1" IsChecked="{Binding ClienteTieneEstetica}">¿Tiene Estética?</CheckBox>
-                            <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding Cliente.VendedorPeluqueria}" Visibility="{Binding ClienteTienePeluqueria,Converter={StaticResource BooleanToVisibilityConverter}}" Foreground="Green"></TextBlock>
-                            <CheckBox Name="chkTienePeluqueria" Grid.Column="3" Grid.Row="3" IsChecked="{Binding ClienteTienePeluqueria}">¿Tiene Peluquería?</CheckBox>
 
-                            <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3">
+                            <RadioButton Name="optEfectivo" Grid.Row="1" Grid.Column="3" IsChecked="{Binding FormaPagoEfectivo}">Efectivo</RadioButton>
+                            <RadioButton Name="optRecibo" Grid.Row="3" Grid.Column="3" IsChecked="{Binding FormaPagoRecibo}" Checked="OptRecibo_Checked">Recibo banco</RadioButton>
+                            <TextBox Name="txtIban" Grid.Row="5" Grid.Column="3" Text="{Binding ClienteIban}" Visibility="{Binding FormaPagoRecibo, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
+                            
+                            
+                            <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3" CornerRadius="15" Padding="5">
                                 <StackPanel>
                                     <TextBlock Text="{Binding ClienteNombre}" FontWeight="ExtraBold"></TextBlock>
                                     <TextBlock Text="{Binding ClienteDireccion}"></TextBlock>
-                                    <TextBlock Text="{Binding ClienteCodigoPostal}"></TextBlock>
+                                    <TextBlock>
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0} {1} ({2})">
+                                                <Binding Path="ClienteCodigoPostal"/>
+                                                <Binding Path="ClientePoblacion"/>
+                                                <Binding Path="ClienteProvincia"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="📞 "></TextBlock>
+                                        <TextBlock Text="{Binding ClienteTelefono}"></TextBlock>
+                                    </StackPanel>
+                                    <TextBlock></TextBlock>
+                                    <TextBlock Text="{Binding ClienteNif}"></TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </xctk:WizardPage>
+                    <xctk:WizardPage x:Name="DatosContacto" 
+                                       Title="Datos de Contacto"
+                                       Description="Aquí especificamos las personas de contacto."
+                                       CanSelectPreviousPage="True"
+                                       CanSelectNextPage="True">
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="2*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="3"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <ListBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3" HorizontalContentAlignment="Stretch" ItemsSource="{Binding PersonasContacto}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid HorizontalAlignment="Stretch">
+
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Margin="3,0" VerticalAlignment="Center">Nombre:</TextBlock>
+                                            <TextBox Grid.Column="1" VerticalContentAlignment="Center"></TextBox>
+                                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="3,0">Correo-e:</TextBlock>
+                                            <TextBox Grid.Column="3" VerticalContentAlignment="Center"></TextBox>
+                                            <Button Grid.Column="4" Margin="3" Command="{Binding RelativeSource={RelativeSource FindAncestor, 
+                                                    AncestorType={x:Type UserControl}}, Path=DataContext.BorrarPersonaContactoCommand}" 
+                                                    CommandParameter="{Binding}"
+                                                    VerticalAlignment="Center">🗑</Button>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Button Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="3" Command="{Binding AnnadirPersonaContactoCommand}">Añadir Nueva Persona de Contacto</Button>
+
+
+                            <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3" CornerRadius="15" Padding="5">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding ClienteNombre}" FontWeight="ExtraBold"></TextBlock>
+                                    <TextBlock Text="{Binding ClienteDireccion}"></TextBlock>
+                                    <TextBlock>
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0} {1} ({2})">
+                                                <Binding Path="ClienteCodigoPostal"/>
+                                                <Binding Path="ClientePoblacion"/>
+                                                <Binding Path="ClienteProvincia"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="📞 "></TextBlock>
                                         <TextBlock Text="{Binding ClienteTelefono}"></TextBlock>

@@ -14,16 +14,18 @@ namespace ClienteTests
     {
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
+        private IClienteService Servicio { get; }
         public CrearClienteViewModelTests()
         {
             RegionManager = A.Fake<IRegionManager>();
             Configuracion = A.Fake<IConfiguracion>();
+            Servicio = A.Fake<IClienteService>();
         }
 
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_BloqueaElNombreSiEsUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
 
             vm.ClienteNif = "B111";
 
@@ -33,7 +35,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_NoBloqueaElNombreSiNoEsUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
 
             vm.ClienteNif = "530021-A";
 
@@ -43,7 +45,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_NoBloqueaElNombreSiEsUnNie()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
 
             vm.ClienteNif = "X/78787";
 
@@ -53,7 +55,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_SeActualizaNombreIsEnabled()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -71,7 +73,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_SeActualizaSePuedeAvanzarADatosGenerales()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -89,7 +91,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNombre_SeActualizaSePuedeAvanzarADatosGenerales()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {

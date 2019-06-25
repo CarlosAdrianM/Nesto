@@ -44,7 +44,6 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Expression.Interactions, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.Practices.Prism.Composition, Version=5.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Prism.Composition.5.0.0\lib\NET45\Microsoft.Practices.Prism.Composition.dll</HintPath>
     </Reference>
@@ -76,7 +75,10 @@
       <HintPath>..\packages\Unity.3.5.1404.0\lib\net45\Microsoft.Practices.Unity.RegistrationByConvention.dll</HintPath>
     </Reference>
     <Reference Include="MWSClientCsRuntime-1.0, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MWSClientCsRuntime.1.0.0\lib\net20\MWSClientCsRuntime-1.0.dll</HintPath>
+      <HintPath>..\packages\MWSOrdersCSharpClientLibrary.2018.8.1\lib\net20\MWSClientCsRuntime-1.0.dll</HintPath>
+    </Reference>
+    <Reference Include="MWSOrders_2013-09-01_v2018-08-01, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MWSOrdersCSharpClientLibrary.2018.8.1\lib\net20\MWSOrders_2013-09-01_v2018-08-01.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -89,7 +91,9 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Data.Entity" />
     <Reference Include="System.Windows.Controls.Ribbon" />
-    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Expression.Blend.Sdk.1.0.2\lib\net45\System.Windows.Interactivity.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -136,59 +140,7 @@
     </Page>
     <Compile Include="ApisExternas\GuapaliaModel.cs" />
     <Compile Include="ApisExternas\GuapaliaService.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\AbstractMwsObject.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsCall.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsObject.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsReader.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsRequestType.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\IMwsWriter.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsAQCall.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsConnection.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsException.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsResponseHeaderMetadata.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsResponseMetadata.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsUtil.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsXmlBuilder.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsXmlReader.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\runtime-src\MwsXmlWriter.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\MarketplaceWebServiceOrders.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\MarketplaceWebServiceOrdersClient.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\MarketplaceWebServiceOrdersConfig.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\MarketplaceWebServiceOrdersException.cs" />
     <Compile Include="ApisExternas\MarketplaceWebServiceOrdersNuevaVision.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrdersMock.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\Address.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\BuyerCustomizedInfoDetail.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\BuyerTaxInfo.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetOrderRequest.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetOrderResponse.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetOrderResult.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetServiceStatusRequest.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetServiceStatusResponse.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\GetServiceStatusResult.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\IMWSResponse.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\InvoiceData.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsByNextTokenRequest.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsByNextTokenResponse.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsByNextTokenResult.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsRequest.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsResponse.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrderItemsResult.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersByNextTokenRequest.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersByNextTokenResponse.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersByNextTokenResult.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersRequest.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersResponse.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ListOrdersResult.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\Message.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\Money.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\Order.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\OrderItem.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\PaymentExecutionDetailItem.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\PointsGrantedDetail.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ResponseHeaderMetadata.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\ResponseMetadata.cs" />
-    <Compile Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Model\TaxClassification.cs" />
     <Compile Include="ApisExternas\PrestashopService.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
@@ -254,18 +206,6 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\CanalesExternos.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\dist\MWSClientCsRuntime-1.0.dll" />
-    <Content Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\dist\MWSOrders_2013-09-01_v2017-02-22.dll" />
-    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\LICENSE.txt" />
-    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\NOTICE.txt" />
-    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.GetOrderResponse.xml" />
-    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.GetServiceStatusResponse.xml" />
-    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.ListOrderItemsByNextTokenResponse.xml" />
-    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.ListOrderItemsResponse.xml" />
-    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.ListOrdersByNextTokenResponse.xml" />
-    <Resource Include="ApisExternas\MWSOrdersCSharpClientLibrary-2013-09-01._V533357708_\src\MarketplaceWebServiceOrders\Mock\MarketplaceWebServiceOrders.Model.ListOrdersResponse.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

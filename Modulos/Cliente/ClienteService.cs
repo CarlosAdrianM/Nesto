@@ -1,0 +1,165 @@
+﻿using Nesto.Contratos;
+using Nesto.Models;
+using Newtonsoft.Json;
+using System;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Nesto.Modulos.Cliente
+{
+    public class ClienteService : IClienteService
+    {
+        private readonly IConfiguracion configuracion;
+
+        public ClienteService(IConfiguracion configuracion)
+        {
+            this.configuracion = configuracion;
+        }
+
+        public async Task<Clientes> CrearCliente(ClienteCrear cliente)
+        {
+            Clientes respuesta;
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = "Clientes";
+
+                    HttpContent content = new StringContent(JsonConvert.SerializeObject(cliente), Encoding.UTF8, "application/json");
+                    response = await client.PostAsync(urlConsulta, content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        respuesta = JsonConvert.DeserializeObject<Clientes>(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido crear el cliente " + cliente.Nombre);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return respuesta;
+        }
+
+        public async Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono)
+        {
+            RespuestaDatosGeneralesClientes respuesta;
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = "Clientes/ComprobarDatosGenerales?direccion=" + direccion
+                        + "&codigoPostal=" + codigoPostal
+                        + "&telefono="+telefono;
+
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        respuesta = JsonConvert.DeserializeObject<RespuestaDatosGeneralesClientes>(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido validar la dirección en el código postal " + codigoPostal);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return respuesta;
+        }
+
+        public async Task<RespuestaDatosBancoCliente> ValidarDatosPago(string formaPago, string plazosPago, string iban)
+        {
+            RespuestaDatosBancoCliente respuesta;
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = "Clientes/ComprobarDatosBanco?formaPago=" + formaPago + 
+                        "&plazosPago=" + plazosPago +
+                        "&iban="+ iban;
+
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        respuesta = JsonConvert.DeserializeObject<RespuestaDatosBancoCliente>(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido validar la forma de pago " + formaPago);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return respuesta;
+        }
+
+        public async Task<RespuestaNifNombreCliente> ValidarNif(string nif, string nombre)
+        {
+            RespuestaNifNombreCliente respuesta;
+            
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = "Clientes/ComprobarNifNombre?nif="+nif+"&nombre="+nombre;
+
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        respuesta = JsonConvert.DeserializeObject<RespuestaNifNombreCliente>(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido validar el NIF " + nif);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return respuesta;
+        }
+        
+    }
+}

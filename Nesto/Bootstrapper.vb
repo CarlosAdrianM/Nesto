@@ -11,6 +11,7 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.Rapports
 Imports Nesto.ViewModels
 Imports Nesto.Modules.Producto
+Imports Nesto.Modulos.Cliente
 
 Public Class Bootstrapper
     Inherits UnityBootstrapper
@@ -86,6 +87,7 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(IProducto), GetType(Nesto.Modulos.Producto.Producto), False)
         RegisterTypeIfMissing(GetType(IProductoService), GetType(ProductoService), False)
         RegisterTypeIfMissing(GetType(ICliente), GetType(Nesto.Modulos.Cliente.Cliente), False)
+        RegisterTypeIfMissing(GetType(IClienteService), GetType(ClienteService), False)
     End Sub
 
     Protected Overrides Function ConfigureRegionAdapterMappings() As RegionAdapterMappings
