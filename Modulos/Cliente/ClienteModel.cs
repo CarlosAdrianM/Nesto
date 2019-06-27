@@ -4,6 +4,7 @@ namespace Nesto.Modulos.Cliente
 {
     public class ClienteCrear
     {
+        public string Cliente { get; set; }
         public string CodigoPostal { get; set; }
         public string Direccion { get; set; }
         public bool EsContacto { get; set; }

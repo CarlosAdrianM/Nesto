@@ -293,6 +293,7 @@ namespace Nesto.Modulos.Cliente
         {
             ClienteCrear cliente = new ClienteCrear
             {
+                Cliente = ClienteNumero,
                 CodigoPostal = ClienteCodigoPostal,
                 Direccion = ClienteDireccion,
                 EsContacto = ClienteEsContacto,
