@@ -183,6 +183,24 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
+    Private _mostrarSoloPicking As Boolean = False
+    Public Property mostrarSoloPicking As Boolean
+        Get
+            Return _mostrarSoloPicking
+        End Get
+        Set(value As Boolean)
+            If value <> _mostrarSoloPicking Then
+                SetProperty(_mostrarSoloPicking, value)
+                If value Then
+                    listaPedidos = New ObservableCollection(Of ResumenPedido)(listaPedidos.Where(Function(l) l.tienePicking))
+                Else
+                    listaPedidos = listaPedidosOriginal
+                End If
+
+            End If
+        End Set
+    End Property
+
     Private _resumenSeleccionado As ResumenPedido
     Public Property resumenSeleccionado() As ResumenPedido
         Get
