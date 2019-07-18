@@ -1,7 +1,9 @@
 ﻿using Nesto.Contratos;
 using Nesto.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,7 +42,22 @@ namespace Nesto.Modulos.Cliente
                     }
                     else
                     {
-                        throw new Exception("No se ha podido crear el cliente " + cliente.Nombre);
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+
+                        string errorMostrar = "No se ha podido crear el cliente " + cliente.Nombre + "\n";
+                        if (requestException["exceptionMessage"]!=null)
+                        {
+                            errorMostrar += requestException["exceptionMessage"];
+                        }
+                        if (requestException["ModelState"]!=null)
+                        {
+                            var firstError = requestException["ModelState"];
+                            var nodoError = firstError.LastOrDefault();
+                            errorMostrar += nodoError.FirstOrDefault()[0];
+                        }
+                        throw new Exception(errorMostrar);
+                                
                     }
                 }
                 catch (Exception ex)
@@ -77,7 +94,10 @@ namespace Nesto.Modulos.Cliente
                     }
                     else
                     {
-                        throw new Exception("No se ha podido validar la dirección en el código postal " + codigoPostal);
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        dynamic requestException = JsonConvert.DeserializeObject<dynamic>(textoError);
+                        throw new Exception("No se ha podido validar la dirección en el código postal " + codigoPostal + "\n" +
+                            requestException["exceptionMessage"]);
                     }
                 }
                 catch (Exception ex)
