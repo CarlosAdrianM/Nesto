@@ -151,7 +151,7 @@ namespace Nesto.Modulos.CanalesExternos
             // Añadir cupones de descuento
             if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl").Value) != 0)
             {
-                LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
+                LineaPedidoVentaDTO lineaCupon = new LineaPedidoVentaDTO
                 {
                     almacen = "ALG",
                     aplicarDescuento = false,
@@ -167,7 +167,13 @@ namespace Nesto.Modulos.CanalesExternos
                     tipoLinea = 2, // cuenta contable
                     usuario = configuracion.usuario
                 };
-                pedidoSalida.LineasPedido.Add(lineaPortes);
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaCupon.precio = lineaCupon.precio / (decimal)1.21;
+                }
+
+                pedidoSalida.LineasPedido.Add(lineaCupon);
             }
             
             return pedidoSalida;

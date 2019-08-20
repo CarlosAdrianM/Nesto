@@ -48,7 +48,7 @@ namespace Nesto.Modulos.Cliente
                         string errorMostrar = "No se ha podido crear el cliente " + cliente.Nombre + "\n";
                         if (requestException["exceptionMessage"]!=null)
                         {
-                            errorMostrar += requestException["exceptionMessage"];
+                            errorMostrar += requestException["exceptionMessage"] + "\n";
                         }
                         if (requestException["ModelState"]!=null)
                         {
