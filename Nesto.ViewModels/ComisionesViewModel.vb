@@ -163,6 +163,7 @@ Public Class ComisionesViewModel
             fechaHasta = (fechaDesde.AddMonths(1)).AddDays(-1)
 
             IncluirAlbaranes = EsMesEnCurso
+            IncluirPicking = IncluirPicking AndAlso EsMesEnCurso
 
             If vendedorActual IsNot Nothing Then
                 If MostrarPanelAntiguo Then
@@ -289,6 +290,21 @@ Public Class ComisionesViewModel
         End Set
     End Property
 
+    Private _incluirPicking As Boolean
+    Public Property IncluirPicking As Boolean
+        Get
+            Return _incluirPicking
+        End Get
+        Set(value As Boolean)
+            If _incluirPicking <> value Then
+                SetProperty(_incluirPicking, value)
+                OnPropertyChanged("MostrarPanelAntiguo")
+                OnPropertyChanged("MostrarPanelComisionAnual")
+                CalcularComisionAsync()
+            End If
+        End Set
+    End Property
+
     Public ReadOnly Property MostrarPanelComisionAnual As Boolean
         Get
             Return Not MostrarPanelAntiguo
@@ -324,11 +340,11 @@ Public Class ComisionesViewModel
 #End Region
 
     Private Async Function CalcularComisionAsync() As Task
-        ComisionAnualResumenActual = Await CalcularComisionAnual(vendedorActual.Número, fechaDesde.Year, fechaDesde.Month, IncluirAlbaranes)
+        ComisionAnualResumenActual = Await CalcularComisionAnual(vendedorActual.Número, fechaDesde.Year, fechaDesde.Month, IncluirAlbaranes, IncluirPicking)
     End Function
 
 
-    Private Async Function CalcularComisionAnual(vendedor As String, anno As Integer, mes As Integer, incluirAlbaranes As Boolean) As Task(Of ComisionAnualResumen)
+    Private Async Function CalcularComisionAnual(vendedor As String, anno As Integer, mes As Integer, incluirAlbaranes As Boolean, incluirPicking As Boolean) As Task(Of ComisionAnualResumen)
 
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
@@ -342,6 +358,7 @@ Public Class ComisionesViewModel
                 urlConsulta += "&anno=" + anno.ToString
                 urlConsulta += "&mes=" + mes.ToString
                 urlConsulta += "&incluirAlbaranes=" + incluirAlbaranes.ToString
+                urlConsulta += "&incluirPicking=" + incluirPicking.ToString
 
                 response = Await client.GetAsync(urlConsulta)
 

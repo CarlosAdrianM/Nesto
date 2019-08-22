@@ -48,7 +48,10 @@
             </Grid.ColumnDefinitions>
             <ComboBox Grid.Column="0" Name="vendedor" ItemsSource="{Binding Path=listaVendedores}" DisplayMemberPath="Descripción" SelectedValuePath="Número" SelectedValue="{Binding Path=vendedorActual}" VerticalAlignment="Center" SelectedItem="{Binding vendedorActual}" Margin="3"/>
             <ComboBox Grid.Column="1" ItemsSource="{Binding Path=colMeses}" SelectedValue="{Binding mesActual}" VerticalAlignment="Center" Margin="3"/>
-            <CheckBox Grid.Column="2" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" IsChecked="{Binding IncluirAlbaranes}" VerticalAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding EsMesEnCurso}">Incluir Albaranes</CheckBox>
+            <StackPanel Grid.Column="2" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Orientation="Horizontal">
+                <CheckBox  IsChecked="{Binding IncluirAlbaranes}" VerticalAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding EsMesEnCurso}" Margin="0,0,15,0">Incluir Albaranes</CheckBox>
+                <CheckBox  IsChecked="{Binding IncluirPicking}" VerticalAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding EsMesEnCurso}">Incluir Picking</CheckBox>
+            </StackPanel>
             <ProgressBar Grid.Column="3" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Minimum="{Binding ComisionAnualResumenActual.GeneralInicioTramo}" Maximum="{Binding ComisionAnualResumenActual.GeneralFinalTramo}" Value="{Binding ComisionAnualResumenActual.GeneralProyeccion}" Foreground="{Binding ComisionAnualResumenActual.ColorProgreso}"></ProgressBar>
             <TextBlock Grid.Column="3" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Text="{Binding ComisionAnualResumenActual.GeneralInicioTramo, StringFormat=c}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,5" Foreground="White"></TextBlock>
             <TextBlock Grid.Column="3" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Text="{Binding ComisionAnualResumenActual.GeneralFinalTramo, StringFormat=c}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,5"></TextBlock>
