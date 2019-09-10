@@ -3,6 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:Nesto.Views"
     xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"    
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
 
@@ -11,122 +12,155 @@
         <vm:datosBancoConverter x:Key="bancoConverter" />
     </UserControl.Resources>
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="4*"/>
-        </Grid.ColumnDefinitions>
-        <DockPanel Grid.Column="0" HorizontalAlignment="Stretch" >
-            <Border DockPanel.Dock="Top" HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
-                <DockPanel HorizontalAlignment="Stretch">
-                    <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎" />
-                    <TextBox Name="txtFiltro" DockPanel.Dock="Left" Text="{Binding filtro}" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0"/>
-                </DockPanel>
-            </Border>
-            <ListView Name="listaIzda" DockPanel.Dock="Bottom" ItemsSource="{Binding Path=listaClientesVendedor}" SelectedItem="{Binding clienteActivoDTO,Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Border VerticalAlignment="Top" BorderBrush="Black" BorderThickness="2" HorizontalAlignment="Stretch" Width="Auto" Padding="3">
-                            <StackPanel>
-                                <TextBlock Text="{Binding nombre, Converter={StaticResource trimConverter}}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding direccion, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
-                                <WrapPanel>
-                                    <TextBlock Text="{Binding codigoPostal, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Text=" "/>
-                                    <TextBlock Text="{Binding poblacion, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
-                                </WrapPanel>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-        </DockPanel>
-        <Grid Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="2*"/>
-            </Grid.RowDefinitions>
-            <Grid Grid.Row="0"> <!-- Datos generales, personas de contacto y comentarios -->
+    <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Espere, por favor...">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="4*"/>
+            </Grid.ColumnDefinitions>
+            <DockPanel Grid.Column="0" HorizontalAlignment="Stretch" >
+                <Border DockPanel.Dock="Top" HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
+                    <DockPanel HorizontalAlignment="Stretch">
+                        <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎" />
+                        <TextBox Name="txtFiltro" DockPanel.Dock="Left" Text="{Binding filtro}" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0"/>
+                    </DockPanel>
+                </Border>
+                <ListView Name="listaIzda" DockPanel.Dock="Bottom" ItemsSource="{Binding Path=listaClientesVendedor}" SelectedItem="{Binding clienteActivoDTO,Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Border VerticalAlignment="Top" BorderBrush="Black" BorderThickness="2" HorizontalAlignment="Stretch" Width="Auto" Padding="3">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding nombre, Converter={StaticResource trimConverter}}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding direccion, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
+                                    <WrapPanel>
+                                        <TextBlock Text="{Binding codigoPostal, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text=" "/>
+                                        <TextBlock Text="{Binding poblacion, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </DockPanel>
+            <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="3*"/>
+                    <RowDefinition Height="2*"/>
                 </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0">Nº Cliente:</TextBlock>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding clienteActivo.Nº_Cliente}" />
-                <TextBlock Grid.Row="1" Grid.Column="0">Teléfono:</TextBlock>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding clienteActivo.Teléfono}" />
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding clienteActivo.CCC, Converter={StaticResource bancoConverter}}" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding clienteActivo.CCC2.EstadosCCC.Descripción}" />
-                <TextBlock Grid.Row="2" Grid.Column="2">Deuda vencida:</TextBlock>
-                <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding deudaVencida, StringFormat=c}" Foreground="Red"/>
-                <TextBlock Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor en Ficha:</TextBlock>
-                <controles:SelectorVendedor Grid.Row="0" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding clienteServidor.vendedor, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
-                <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor Peluquería:</TextBlock>
-                <controles:SelectorVendedor Grid.Row="1" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding vendedorPorGrupo, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
-                <Button Grid.Row="2" Grid.Column="4" Command="{Binding cmdGuardarVendedores}" Margin="2">Guardar Vendedores</Button>
-                <DataGrid Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContactoCliente}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
-                        <DataGridTextColumn Header="Cargo" Binding="{Binding Cargos.Descripción}" />
-                        <DataGridTextColumn Header="Teléfono" Binding="{Binding Teléfono}" />
-                        <DataGridTextColumn Header="Correo" Binding="{Binding CorreoElectrónico}" Width="2*" />
-                        <DataGridCheckBoxColumn Header="¿Enviar Boletín?" Binding="{Binding EnviarBoletin}" />
-                        <DataGridTextColumn Header="Saludo" Binding="{Binding Saludo}" />
-                        <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
-                        <DataGridTextColumn Header="Comentarios" Binding="{Binding Comentarios}" />
-                    </DataGrid.Columns>
-                </DataGrid>
-
-                <TextBlock Grid.Column="5" Grid.RowSpan="4" Text="{Binding clienteActivo.Comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
-            </Grid>
-            <DataGrid Grid.Row="1" ItemsSource="{Binding seguimientosOrdenados}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
-                <!-- Seguimientos -->
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="2*" />
-                    <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" />
-                    <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}" />
-                    <DataGridTemplateColumn Header="Comentarios" Width="20*">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock TextWrapping="Wrap" Text="{Binding Comentarios}" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="4*"/>                    
-                </DataGrid.Columns>
-            </DataGrid>
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <DockPanel Grid.Column="0" >
-                    <ComboBox DockPanel.Dock="Bottom" SelectedValue="{Binding rangoFechasVenta}">
-                        <ComboBoxItem Tag="Anyo" IsSelected="True">Ventas del último año</ComboBoxItem>
-                        <ComboBoxItem Tag="Siempre">Ventas de siempre</ComboBoxItem>
-                    </ComboBox>
-                    <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaVentas}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                <Grid Grid.Row="0">
+                    <!-- Datos generales, personas de contacto y comentarios -->
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="3*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0">Nº Cliente:</TextBlock>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding clienteActivo.Nº_Cliente}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0">Teléfono:</TextBlock>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding clienteActivo.Teléfono}" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding clienteActivo.CCC, Converter={StaticResource bancoConverter}}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding clienteActivo.CCC2.EstadosCCC.Descripción}" />
+                    <TextBlock Grid.Row="2" Grid.Column="2">Deuda vencida:</TextBlock>
+                    <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding deudaVencida, StringFormat=c}" Foreground="Red"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor en Ficha:</TextBlock>
+                    <controles:SelectorVendedor Grid.Row="0" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding clienteServidor.vendedor, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
+                    <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor Peluquería:</TextBlock>
+                    <controles:SelectorVendedor Grid.Row="1" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding vendedorPorGrupo, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
+                    <Button Grid.Row="2" Grid.Column="4" Command="{Binding cmdGuardarVendedores}" Margin="2">Guardar Vendedores</Button>
+                    <DataGrid Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContactoCliente}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Producto" Binding="{Binding producto}" Width="*" />
-                            <DataGridTextColumn Header="Nombre" Binding="{Binding nombre}" Width="7*" />
-                            <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" Width="*" />
-                            <DataGridTextColumn Header="Subgrupo" Binding="{Binding subGrupo}" Width="6*" />
-                            <DataGridTextColumn Header="Última Venta" Binding="{Binding fechaUltVenta, StringFormat=d}" Width="2*" />
+                            <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                            <DataGridTextColumn Header="Cargo" Binding="{Binding Cargos.Descripción}" />
+                            <DataGridTextColumn Header="Teléfono" Binding="{Binding Teléfono}" />
+                            <DataGridTextColumn Header="Correo" Binding="{Binding CorreoElectrónico}" Width="2*" />
+                            <DataGridCheckBoxColumn Header="¿Enviar Boletín?" Binding="{Binding EnviarBoletin}" />
+                            <DataGridTextColumn Header="Saludo" Binding="{Binding Saludo}" />
+                            <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
+                            <DataGridTextColumn Header="Comentarios" Binding="{Binding Comentarios}" />
                         </DataGrid.Columns>
                     </DataGrid>
-                </DockPanel>                
+
+                    <TextBlock Grid.Column="5" Grid.RowSpan="4" Text="{Binding clienteActivo.Comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
+                </Grid>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding seguimientosOrdenados}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                    <!-- Seguimientos -->
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="2*" />
+                        <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}" />
+                        <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}" />
+                        <DataGridTemplateColumn Header="Comentarios" Width="20*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock TextWrapping="Wrap" Text="{Binding Comentarios}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="4*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TabControl Grid.Column="0" Margin="0,3,0,0" SelectedIndex="{Binding IndiceSeleccionado}">
+                        <TabItem Header="Ventas">
+                            <DockPanel>
+                                <ComboBox DockPanel.Dock="Bottom" SelectedValue="{Binding rangoFechasVenta}">
+                                    <ComboBoxItem Tag="Anyo" IsSelected="True">Ventas del último año</ComboBoxItem>
+                                    <ComboBoxItem Tag="Siempre">Ventas de siempre</ComboBoxItem>
+                                </ComboBox>
+                                <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaVentas}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Producto" Binding="{Binding producto}" Width="*" />
+                                        <DataGridTextColumn Header="Nombre" Binding="{Binding nombre}" Width="7*" />
+                                        <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" Width="*" />
+                                        <DataGridTextColumn Header="Subgrupo" Binding="{Binding subGrupo}" Width="6*" />
+                                        <DataGridTextColumn Header="Última Venta" Binding="{Binding fechaUltVenta, StringFormat=d}" Width="2*" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </TabItem>
+                        <TabItem Header="Facturas">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <DataGrid Grid.Row="0" ItemsSource="{Binding ListaFacturas}" AutoGenerateColumns="False" CanUserAddRows="False">
+                                    <DataGrid.Columns>
+                                        <DataGridCheckBoxColumn Header="Seleccionada" Binding="{Binding Seleccionada, UpdateSourceTrigger=PropertyChanged}" />
+                                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                                        <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
+                                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="4*"/>
+                                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">
+                                            <DataGridTextColumn.CellStyle>
+                                                <Style>
+                                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                </Style>
+                                            </DataGridTextColumn.CellStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="CCC" Binding="{Binding CCC}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Button Grid.Row="1" Command="{Binding DescargarFacturasCommand}">Descargar</Button>
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
             </Grid>
         </Grid>
-    </Grid>
+    </xctk:BusyIndicator>
 </UserControl>

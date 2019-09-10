@@ -13,6 +13,7 @@ Imports System.Net.Http
 Imports Newtonsoft.Json
 Imports System.Text
 Imports System.Threading.Tasks
+Imports System.Runtime.InteropServices
 
 'Imports Nesto.Models.Nesto.Models.EF
 
@@ -245,6 +246,7 @@ Public Class ClientesViewModel
         Set(value As Clientes)
             Dim fechaDesde As Date
             _clienteActivo = value
+
             If Not IsNothing(listaClientesVendedor) Then
                 If Not IsNothing(clienteActivoDTO) Then
                     cargarVendedoresPorGrupo()
@@ -264,6 +266,12 @@ Public Class ClientesViewModel
                 seguimientosOrdenados = Nothing
                 listaVentas = Nothing
                 deudaVencida = 0
+            End If
+
+            If IndiceSeleccionado = 1 Then
+                CargarFacturas()
+            Else
+                ListaFacturas = Nothing
             End If
 
             OnPropertyChanged("clienteActivo")
@@ -575,6 +583,33 @@ Public Class ClientesViewModel
         End Get
     End Property
 
+    Private _listaFacturas As ObservableCollection(Of ExtractoClienteDTO)
+    Public Property ListaFacturas As ObservableCollection(Of ExtractoClienteDTO)
+        Get
+            Return _listaFacturas
+        End Get
+        Set(value As ObservableCollection(Of ExtractoClienteDTO))
+            _listaFacturas = value
+            OnPropertyChanged("ListaFacturas")
+        End Set
+    End Property
+
+    Private _indiceSeleccionado As Integer
+    Public Property IndiceSeleccionado As Integer
+        Get
+            Return _indiceSeleccionado
+        End Get
+        Set(value As Integer)
+            _indiceSeleccionado = value
+            If _indiceSeleccionado = 1 Then ' Facturas
+                CargarFacturas()
+            End If
+            OnPropertyChanged("IndiceSeleccionado")
+        End Set
+    End Property
+
+
+
 #End Region
 #Region "Comandos"
     Private _cmdGuardar As ICommand
@@ -768,6 +803,131 @@ Public Class ClientesViewModel
     End Sub
 
 
+
+
+
+    Private _descargarFacturasCommand As ICommand
+    Public ReadOnly Property DescargarFacturasCommand() As ICommand
+        Get
+            If _descargarFacturasCommand Is Nothing Then
+                _descargarFacturasCommand = New RelayCommand(AddressOf DescargarFacturas, AddressOf CanDescargarFacturas)
+            End If
+            Return _descargarFacturasCommand
+        End Get
+    End Property
+    Private Function CanDescargarFacturas(ByVal param As Object) As Boolean
+        Return ListaFacturas IsNot Nothing AndAlso ListaFacturas.Where(Function(f) f.Seleccionada).FirstOrDefault IsNot Nothing
+    End Function
+    Private Async Sub DescargarFacturas(ByVal param As Object)
+        estaOcupado = True
+        Try
+            Dim np As IntPtr
+            SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
+            Dim path As String = Marshal.PtrToStringUni(np)
+            Marshal.FreeCoTaskMem(np)
+
+            For Each fra In ListaFacturas.Where(Function(f) f.Seleccionada)
+                Dim factura As Byte() = Await CargarFactura(fra.Empresa, fra.Documento)
+                Dim ms As New MemoryStream(factura)
+                'write to file
+                Dim file As New FileStream(path + "\Cliente_" + fra.Cliente + "_" + fra.Documento + ".pdf", FileMode.Create, FileAccess.Write)
+                ms.WriteTo(file)
+                file.Close()
+                ms.Close()
+            Next
+
+            ' Abrimos la carpeta de descargas
+            Process.Start(path)
+        Catch ex As Exception
+            If IsNothing(ex.InnerException) Then
+                mensajeError = ex.Message
+            Else
+                mensajeError = ex.InnerException.Message
+            End If
+        Finally
+            estaOcupado = False
+        End Try
+
+
+    End Sub
+
+    Private Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
+        If IsNothing(clienteActivo) Then
+            Return Nothing
+        End If
+
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As Byte()
+
+            Try
+                Dim urlConsulta As String = "Facturas"
+                urlConsulta += "?empresa=" + empresa
+                urlConsulta += "&numeroFactura=" + numeroFactura
+
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsByteArrayAsync()
+                Else
+                    respuesta = Nothing
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
+            Finally
+
+            End Try
+
+            Return respuesta
+        End Using
+
+
+    End Function
+
+    Private Async Sub CargarFacturas()
+        If IsNothing(clienteActivo) Then
+            Return
+        End If
+
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                Dim urlConsulta As String = "ExtractosCliente"
+                urlConsulta += "?empresa=" + clienteActivo.Empresa
+                urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
+                urlConsulta += "&tipoApunte=1"
+                urlConsulta += "&fechaDesde=" + DateTime.Today.AddMonths(-6).ToString("s")
+                urlConsulta += "&fechaHasta=" + DateTime.Today.ToString("s")
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = ""
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
+            Finally
+
+            End Try
+
+            ListaFacturas = JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta)
+        End Using
+
+
+    End Sub
+
+
 #End Region
 
 #Region "Funciones"
@@ -856,6 +1016,8 @@ Public Class ClientesViewModel
 
         Titulo = "Clientes"
     End Sub
+    <DllImport("shell32")>
+    Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInt32, ByVal hToken As IntPtr, ByRef np As IntPtr) As Int32 : End Function
 #End Region
 End Class
 
@@ -950,4 +1112,27 @@ Public Class cabeceraPedidoAgrupada
     Public Property Numero As Integer
     Public Property Fecha As Date
     Public Property CCC As String
+End Class
+
+Public Class ExtractoClienteDTO
+    Public Property Id As Integer
+    Public Property Empresa As String
+    Public Property Asiento As Integer
+    Public Property Cliente As String
+    Public Property Contacto As String
+    Public Property Fecha As DateTime
+    Public Property Tipo As String
+    Public Property Documento As String
+    Public Property Efecto As String
+    Public Property Concepto As String
+    Public Property Importe As Decimal
+    Public Property ImportePendiente As Decimal
+    Public Property Vendedor As String
+    Public Property Vencimiento As DateTime
+    Public Property CCC As String
+    Public Property Ruta As String
+    Public Property Estado As String
+
+    Public Property Seleccionada As Boolean
+
 End Class
