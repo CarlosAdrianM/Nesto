@@ -266,6 +266,7 @@ Public Class ClientesViewModel
                 seguimientosOrdenados = Nothing
                 listaVentas = Nothing
                 deudaVencida = 0
+                ListaFacturas = Nothing
             End If
 
             If IndiceSeleccionado = 1 Then
@@ -889,7 +890,7 @@ Public Class ClientesViewModel
     End Function
 
     Private Async Sub CargarFacturas()
-        If IsNothing(clienteActivo) Then
+        If IsNothing(clienteActivo) OrElse (ListaFacturas IsNot Nothing AndAlso clienteActivo.Nº_Cliente?.Trim() = ListaFacturas.FirstOrDefault()?.Cliente) Then
             Return
         End If
 
@@ -1002,7 +1003,12 @@ Public Class ClientesViewModel
         rangosFechas.Add("Ventas del Último Año")
         rangosFechas.Add("Ventas de Siempre")
 
-        deudaVencida = (Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?)))
+        If clienteActivo IsNot Nothing Then
+            deudaVencida = (Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?)))
+        Else
+            deudaVencida = 0
+        End If
+
 
         listaSecuencias = New ObservableCollection(Of tipoIdDescripcion)
         listaSecuencias.Add(New tipoIdDescripcion("FRST", "Primer adeudo recurrente"))

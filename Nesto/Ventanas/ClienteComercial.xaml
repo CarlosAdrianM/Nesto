@@ -141,7 +141,13 @@
 
                                 <DataGrid Grid.Row="0" ItemsSource="{Binding ListaFacturas}" AutoGenerateColumns="False" CanUserAddRows="False">
                                     <DataGrid.Columns>
-                                        <DataGridCheckBoxColumn Header="Seleccionada" Binding="{Binding Seleccionada, UpdateSourceTrigger=PropertyChanged}" />
+                                        <DataGridTemplateColumn Header="Seleccionada">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox HorizontalAlignment="Center" IsChecked="{Binding Seleccionada, UpdateSourceTrigger=PropertyChanged}"  />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
                                         <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
                                         <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="4*"/>
