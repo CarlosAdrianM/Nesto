@@ -41,8 +41,8 @@
                     
                     <Grid>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
-                            <RowDefinition Height="8*"/>
                         </Grid.RowDefinitions>
 
 
@@ -59,27 +59,29 @@
                                 </DockPanel>
                             </Border>
                         </StackPanel>
-                        <ListView Name="listViewClientes" Grid.Row="1" ItemsSource="{Binding listaClientes}" SelectedItem="{Binding clienteSeleccionado}">
+                        <ListView Name="listViewClientes" Grid.Row="1" ItemsSource="{Binding listaClientes}" SelectedItem="{Binding clienteSeleccionado}" HorizontalContentAlignment="Stretch">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Height="110" Margin="6" >
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
+                                    <Border BorderThickness="2" BorderBrush="{Binding colorEstado}" CornerRadius="5">
+                                        <Grid Height="110" Margin="6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
 
-                                        <StackPanel Grid.Column="0" Width="110" Height="110" >
-                                            <Image Source="{Binding rutaLogo}"/>
-                                        </StackPanel>
+                                            <StackPanel Grid.Column="0" Width="110" Height="110">
+                                                <Image Source="{Binding rutaLogo}"/>
+                                            </StackPanel>
 
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0" >
-                                            <TextBlock Text="{Binding nombre}" FontWeight="Bold" TextWrapping="NoWrap"/>
-                                            <TextBlock Text="{Binding direccion}" TextWrapping="NoWrap"/>
-                                            <TextBlock Text="{Binding poblacion}" MaxHeight="60"/>
-                                            <TextBlock Text="{Binding cliente}" FontStyle="Italic"/>
-                                            <TextBlock Text="{Binding comentarios}" MaxHeight="60"/>
-                                        </StackPanel>
-                                    </Grid>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0">
+                                                <TextBlock Text="{Binding nombre}" FontWeight="Bold" TextWrapping="NoWrap"/>
+                                                <TextBlock Text="{Binding direccion}" TextWrapping="NoWrap"/>
+                                                <TextBlock Text="{Binding poblacion}" MaxHeight="60"/>
+                                                <TextBlock Text="{Binding cliente}" FontStyle="Italic"/>
+                                                <TextBlock Text="{Binding comentarios}" MaxHeight="60"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>

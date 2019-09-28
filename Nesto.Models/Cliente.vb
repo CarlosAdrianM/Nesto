@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
-Imports System.Drawing
 Imports Nesto.Models.PedidoVenta
+Imports System.Windows.Media
+
 
 Public Class ClienteJson
     Public Property empresa() As String
@@ -48,13 +49,15 @@ Public Class ClienteJson
     Public ReadOnly Property colorEstado As Brush
         Get
             If estado = -1 Then
+                Return Brushes.DarkRed
+            ElseIf estado = 5 Then
                 Return Brushes.Red
             ElseIf estado = 7 Then
-                Return Brushes.Orange
+                Return Brushes.GreenYellow
             ElseIf estado = 0 OrElse estado = 9 Then
                 Return Brushes.Green
             Else
-                Return Brushes.Black
+                Return Brushes.Transparent
             End If
         End Get
     End Property

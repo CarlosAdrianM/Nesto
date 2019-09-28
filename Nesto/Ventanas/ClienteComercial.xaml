@@ -28,7 +28,7 @@
                 <ListView Name="listaIzda" DockPanel.Dock="Bottom" ItemsSource="{Binding Path=listaClientesVendedor}" SelectedItem="{Binding clienteActivoDTO,Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Border VerticalAlignment="Top" BorderBrush="Black" BorderThickness="2" HorizontalAlignment="Stretch" Width="Auto" Padding="3">
+                            <Border VerticalAlignment="Top" BorderBrush="{Binding colorEstado}" BorderThickness="2" HorizontalAlignment="Stretch" Width="Auto" Padding="3">
                                 <StackPanel>
                                     <TextBlock Text="{Binding nombre, Converter={StaticResource trimConverter}}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock Text="{Binding direccion, Converter={StaticResource trimConverter}}" TextTrimming="CharacterEllipsis"/>
@@ -45,17 +45,17 @@
             </DockPanel>
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="2*"/>
                 </Grid.RowDefinitions>
                 <Grid Grid.Row="0">
                     <!-- Datos generales, personas de contacto y comentarios -->
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="3*"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
