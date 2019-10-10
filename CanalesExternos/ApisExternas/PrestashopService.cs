@@ -41,6 +41,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 try
                 {
                     string resultado = await content.ReadAsStringAsync();
+                    resultado = resultado.TrimStart('\n');
                     //resultado = string.Format(resultado);
                     var xml = XDocument.Parse(resultado);
 
@@ -79,6 +80,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 try
                 {
                     string resultado = await content.ReadAsStringAsync();
+                    resultado = resultado.TrimStart('\n');
                     xmlPedido = XDocument.Parse(resultado).Element("prestashop").Element("order");
                 }
                 catch (Exception ex)
@@ -98,6 +100,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 try
                 {
                     string resultado = await content.ReadAsStringAsync();
+                    resultado = resultado.TrimStart('\n');
                     xmlDireccion = XDocument.Parse(resultado).Element("prestashop").Element("address");
                 }
                 catch (Exception ex)
@@ -117,6 +120,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 try
                 {
                     string resultado = await content.ReadAsStringAsync();
+                    resultado = resultado.TrimStart('\n');
                     xmlCliente = XDocument.Parse(resultado).Element("prestashop").Element("customer");
                 }
                 catch (Exception ex)

@@ -120,7 +120,7 @@
                         </Grid>
                     </xctk:WizardPage>
                     <xctk:WizardPage x:Name="DatosComisiones" 
-                                       Title="Datos Generales"
+                                       Title="Datos Comisiones"
                                        Description="Dependiendo del tipo de centro que sea, se le asignará vendedor de estética, de peluquería o ambos"
                                      CanSelectPreviousPage="True"
                                        CanSelectNextPage="{Binding SePuedeAvanzarADatosPago}">

@@ -1,5 +1,6 @@
 ﻿Imports System.Globalization
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
+Imports Xceed.Wpf.Toolkit
 
 Public Class PlantillaVentaView
     Public Sub New(viewModel As PlantillaVentaViewModel)
@@ -74,4 +75,8 @@ Public Class PlantillaVentaView
         End If
 
     End Sub
+
+
+
 End Class
+

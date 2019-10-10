@@ -15,7 +15,7 @@ using Xceed.Wpf.Toolkit;
 
 namespace Nesto.Modulos.Cliente
 {
-    public class CrearClienteViewModel: ViewModelBase
+    public class CrearClienteViewModel: ViewModelBase, INavigationAware
     {
         private const string DATOS_FISCALES = "DatosFiscales";
         private const string DATOS_GENERALES = "DatosGenerales";
@@ -56,6 +56,7 @@ namespace Nesto.Modulos.Cliente
             get { return clienteCodigoPostal; }
             set { SetProperty(ref clienteCodigoPostal, value); }
         }
+        public string ClienteContacto { get; set; }
         public bool ClienteDatosPagoValidados { get; set; }
         private string clienteDireccion;
         public string ClienteDireccion {
@@ -67,6 +68,7 @@ namespace Nesto.Modulos.Cliente
             get { return clienteDireccionValidada; }
             set { SetProperty(ref clienteDireccionValidada, value); }
         }
+        public string ClienteEmpresa { get; set; }
         private bool clienteEsContacto;
         public bool ClienteEsContacto {
             get { return clienteEsContacto; }
@@ -296,6 +298,7 @@ namespace Nesto.Modulos.Cliente
                 Cliente = ClienteNumero,
                 CodigoPostal = ClienteCodigoPostal,
                 Direccion = ClienteDireccion,
+                Empresa = ClienteEmpresa,
                 EsContacto = ClienteEsContacto,
                 Estado = ClienteEstado,
                 Estetica = ClienteTieneEstetica,
@@ -317,8 +320,17 @@ namespace Nesto.Modulos.Cliente
 
             try
             {
-                Clientes clienteCreado = await Servicio.CrearCliente(cliente);
-                NotificationRequest.Raise(new Notification { Content = "Se ha creado correctamente el cliente "+clienteCreado.Nº_Cliente+"/"+clienteCreado.Contacto, Title = "Cliente Creado" });
+                if (cliente.Cliente != null)
+                {
+                    cliente.Contacto = ClienteContacto;
+                    Clientes clienteCreado = await Servicio.ModificarCliente(cliente);
+                    NotificationRequest.Raise(new Notification { Content = "Se ha modificado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim(), Title = "Cliente Modificado" });
+                } else
+                {
+                    Clientes clienteCreado = await Servicio.CrearCliente(cliente);
+                    NotificationRequest.Raise(new Notification { Content = "Se ha creado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim(), Title = "Cliente Creado" });
+                }
+                
                 var view = RegionManager.Regions["MainRegion"].ActiveViews.FirstOrDefault();
                 if (view != null)
                 {
@@ -332,6 +344,43 @@ namespace Nesto.Modulos.Cliente
         }
         #endregion
 
+
+        public async new void OnNavigatedTo(NavigationContext navigationContext)
+        {
+            if (navigationContext.Parameters.Count() == 0)
+            {
+                return;
+            }
+            string empresa = navigationContext.Parameters["empresaParameter"].ToString();
+            string cliente = navigationContext.Parameters["clienteParameter"].ToString();
+            string contacto = navigationContext.Parameters["contactoParameter"].ToString();
+
+            ClienteCrear clienteCrear = await Servicio.LeerClienteCrear(empresa, cliente, contacto);
+
+            Titulo = String.Format("Editar Cliente {1}/{2}", empresa, cliente, contacto);
+
+            ClienteEmpresa = clienteCrear.Empresa;
+            ClienteNumero = clienteCrear.Cliente;
+            ClienteContacto = clienteCrear.Contacto;
+
+            ClienteNif = clienteCrear.Nif;
+            ClienteNombre = clienteCrear.Nombre;
+            ClienteDireccion = clienteCrear.Direccion;
+            ClienteCodigoPostal = clienteCrear.CodigoPostal;
+            ClienteTelefono = clienteCrear.Telefono;
+            ClienteVendedorEstetica = clienteCrear.VendedorEstetica;
+            ClienteVendedorPeluqueria = clienteCrear.VendedorPeluqueria;
+            ClienteTieneEstetica = clienteCrear.Estetica;
+            ClienteTienePeluqueria = clienteCrear.Peluqueria;
+            ClienteFormaPago = clienteCrear.FormaPago;
+            ClientePlazosPago = clienteCrear.PlazosPago;
+            ClienteIban = clienteCrear.Iban;
+            PersonasContacto = new ObservableCollection<PersonaContactoDTO>();
+            foreach (var persona in clienteCrear.PersonasContacto)
+            {
+                PersonasContacto.Add(persona);
+            }
+        }
 
         private async Task GoToDatosComisiones()
         {
@@ -391,7 +440,13 @@ namespace Nesto.Modulos.Cliente
                 ClienteEsContacto = respuesta.ExisteElCliente;
                 if (respuesta.ExisteElCliente)
                 {
+                    ClienteEmpresa = respuesta.Empresa;
                     ClienteNumero = respuesta.NumeroCliente;
+                    ClienteContacto = respuesta.Contacto;
+                    if (respuesta.EstadoCliente < 0)
+                    {
+                        ClienteEstado = 0;
+                    }
                 }
                 ClienteEstado = respuesta.EstadoCliente;
                 NifValidado = respuesta.NifValidado;

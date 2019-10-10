@@ -66,3 +66,4 @@ Public Class PercentageConverter
     'End Function
 
 End Class
+

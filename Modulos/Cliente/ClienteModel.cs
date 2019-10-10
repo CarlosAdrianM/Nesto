@@ -6,7 +6,9 @@ namespace Nesto.Modulos.Cliente
     {
         public string Cliente { get; set; }
         public string CodigoPostal { get; set; }
+        public string Contacto { get; set; }
         public string Direccion { get; set; }
+        public string Empresa { get; set; }
         public bool EsContacto { get; set; }
         public short? Estado { get; set; }
         public bool Estetica { get; set; }
@@ -30,6 +32,7 @@ namespace Nesto.Modulos.Cliente
     }
     public class PersonaContactoDTO
     {
+        public int Numero { get; set; }
         public string Nombre { get; set; }
         public string CorreoElectronico { get; set; }
     }
@@ -41,6 +44,8 @@ namespace Nesto.Modulos.Cliente
         public bool ExisteElCliente { get; set; }
         public string NumeroCliente { get; set; }
         public short? EstadoCliente { get; set; }
+        public string Empresa { get; set; }
+        public string Contacto { get; set; }
     }
     public class RespuestaDatosGeneralesClientes
     {

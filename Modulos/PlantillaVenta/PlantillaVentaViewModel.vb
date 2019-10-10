@@ -13,6 +13,7 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json.Linq
 Imports Nesto.Modulos.PlantillaVenta
+Imports Xceed.Wpf.Toolkit
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase
@@ -20,6 +21,7 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly servicio As IPlantillaVentaService
 
     Private Const ESTADO_LINEA_CURSO As Integer = 1
     Private Const ESTADO_LINEA_PRESUPUESTO As Integer = -3
@@ -27,10 +29,11 @@ Public Class PlantillaVentaViewModel
 
     Dim formaVentaPedido, delegacionUsuario, almacenRutaUsuario, vendedorUsuario As String
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService)
         Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
+        Me.servicio = servicio
 
         Titulo = "Plantilla Ventas"
 
@@ -38,7 +41,7 @@ Public Class PlantillaVentaViewModel
         cmdActualizarPrecioProducto = New DelegateCommand(Of Object)(AddressOf OnActualizarPrecioProducto, AddressOf CanActualizarPrecioProducto)
         cmdActualizarProductosPedido = New DelegateCommand(Of Object)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
         cmdBuscarEnTodosLosProductos = New DelegateCommand(Of Object)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
-        cmdCargarClientesVendedor = New DelegateCommand(Of Object)(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
+        cmdCargarClientesVendedor = New DelegateCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
         cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
@@ -148,6 +151,14 @@ Public Class PlantillaVentaViewModel
                 Titulo = String.Format("Plantilla Ventas ({0})", clienteSeleccionado.cliente)
                 cmdCargarProductosPlantilla.Execute(Nothing)
                 cmdComprobarPendientes.Execute(Nothing)
+            End If
+            If Not IsNothing(value) AndAlso value.estado = 5 Then
+                Dim parameters As NavigationParameters = New NavigationParameters()
+                parameters.Add("empresaParameter", value.empresa)
+                parameters.Add("clienteParameter", value.cliente)
+                parameters.Add("contactoParameter", value.contacto)
+                regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters)
+                Return
             End If
         End Set
     End Property
@@ -579,6 +590,13 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    Enum PaginasWizard
+        SeleccionCliente
+        SeleccionProductos
+        SeleccionEntrega
+        Finalizar
+    End Enum
+
 #End Region
 
 #Region "Comandos"
@@ -765,19 +783,19 @@ Public Class PlantillaVentaViewModel
         End Using
     End Sub
 
-    Private _cmdCargarClientesVendedor As DelegateCommand(Of Object)
-    Public Property cmdCargarClientesVendedor As DelegateCommand(Of Object)
+    Private _cmdCargarClientesVendedor As DelegateCommand
+    Public Property cmdCargarClientesVendedor As DelegateCommand
         Get
             Return _cmdCargarClientesVendedor
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdCargarClientesVendedor, value)
         End Set
     End Property
-    Private Function CanCargarClientesVendedor(arg As Object) As Boolean
+    Private Function CanCargarClientesVendedor() As Boolean
         Return filtroCliente.Length = 0 OrElse IsNothing(listaClientes) OrElse listaClientes.Count = 0
     End Function
-    Private Async Sub OnCargarClientesVendedor(arg As Object)
+    Private Async Sub OnCargarClientesVendedor()
 
         ' No se puede filtrar por menos de 4 caracteres
         If IsNothing(filtroCliente) OrElse (filtroCliente.Length < 4 AndAlso Not IsNumeric(filtroCliente)) Then
@@ -785,38 +803,17 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
-
-
-            Try
-                estaOcupado = True
-                If todosLosVendedores Then
-                    response = Await client.GetAsync("Clientes?empresa=1&filtro=" + filtroCliente)
-                Else
-                    response = Await client.GetAsync("Clientes?empresa=1&vendedor=" + vendedor + "&filtro=" + filtroCliente)
-                End If
-
-
-                If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    listaClientesOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson)
-                Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar los clientes"
-                    })
-                End If
-            Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
+        Try
+            estaOcupado = True
+            listaClientesOriginal = Await servicio.CargarClientesVendedor(filtroCliente, vendedor, todosLosVendedores)
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
                     .Content = ex.Message
                 })
-            Finally
-                estaOcupado = False
-            End Try
-        End Using
+        Finally
+            estaOcupado = False
+        End Try
 
     End Sub
 

@@ -780,7 +780,7 @@ Public Class ClientesViewModel
                 Dim response As HttpResponseMessage
                 Dim respuesta As String = ""
 
-                Dim urlConsulta As String = "Clientes"
+                Dim urlConsulta As String = "Clientes/ClienteComercial"
                 Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(clienteServidor), Encoding.UTF8, "application/json")
 
                 response = client.PutAsync(urlConsulta, content).Result

@@ -75,6 +75,7 @@ Public Class Bootstrapper
         RegisterTypeIfMissing(GetType(IMenuBar), GetType(MenuBarView), True)
         RegisterTypeIfMissing(GetType(IConfiguracion), GetType(Configuracion), True)
         RegisterTypeIfMissing(GetType(IPlantillaVenta), GetType(PlantillaVenta), False)
+        RegisterTypeIfMissing(GetType(IPlantillaVentaService), GetType(PlantillaVentaService), False)
         RegisterTypeIfMissing(GetType(IInventario), GetType(Inventario), False)
         RegisterTypeIfMissing(GetType(ICarteraPagosService), GetType(CarteraPagosService), False)
         RegisterTypeIfMissing(GetType(ICarteraPagos), GetType(CarteraPagos), False)

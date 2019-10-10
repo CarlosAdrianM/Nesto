@@ -69,6 +69,91 @@ namespace Nesto.Modulos.Cliente
             return respuesta;
         }
 
+        public async Task<ClienteCrear> LeerClienteCrear(string empresa, string cliente, string contacto)
+        {
+            ClienteCrear respuesta;
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = "Clientes/GetClienteCrear?empresa=" + empresa + 
+                        "&cliente=" + cliente + "&contacto=" + contacto;
+                    
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        respuesta = JsonConvert.DeserializeObject<ClienteCrear>(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception(String.Format("No existe el cliente {0}/{1}/{2}", empresa, cliente, contacto));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return respuesta;
+        }
+
+        public async Task<Clientes> ModificarCliente(ClienteCrear cliente)
+        {
+            Clientes respuesta;
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = "Clientes";
+
+                    HttpContent content = new StringContent(JsonConvert.SerializeObject(cliente), Encoding.UTF8, "application/json");
+                    response = await client.PutAsync(urlConsulta, content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        respuesta = JsonConvert.DeserializeObject<Clientes>(resultado);
+                    }
+                    else
+                    {
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+
+                        string errorMostrar = "No se ha podido modificar el cliente " + cliente.Nombre + "\n";
+                        if (requestException["exceptionMessage"] != null)
+                        {
+                            errorMostrar += requestException["exceptionMessage"] + "\n";
+                        }
+                        if (requestException["ModelState"] != null)
+                        {
+                            var firstError = requestException["ModelState"];
+                            var nodoError = firstError.LastOrDefault();
+                            errorMostrar += nodoError.FirstOrDefault()[0];
+                        }
+                        throw new Exception(errorMostrar);
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return respuesta;
+        }
+
         public async Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono)
         {
             RespuestaDatosGeneralesClientes respuesta;

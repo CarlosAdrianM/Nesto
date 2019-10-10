@@ -164,8 +164,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="IPlantillaVentaService.vb" />
     <Compile Include="PlantillaVenta.vb" />
     <Compile Include="PlantillaVentaModel.vb" />
+    <Compile Include="PlantillaVentaService.vb" />
     <Compile Include="PlantillaVentaView.xaml.vb">
       <DependentUpon>PlantillaVentaView.xaml</DependentUpon>
     </Compile>

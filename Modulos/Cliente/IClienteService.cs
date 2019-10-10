@@ -9,5 +9,7 @@ namespace Nesto.Modulos.Cliente
         Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono);
         Task<RespuestaDatosBancoCliente> ValidarDatosPago(string formaPago, string plazosPago, string iban);
         Task<Clientes> CrearCliente(ClienteCrear cliente);
+        Task<Clientes> ModificarCliente(ClienteCrear cliente);
+        Task<ClienteCrear> LeerClienteCrear(string empresa, string cliente, string contacto);
     }
 }
