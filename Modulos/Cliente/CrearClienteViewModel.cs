@@ -168,6 +168,7 @@ namespace Nesto.Modulos.Cliente
             }
         }
         public bool EstaOcupado { get; set; }
+        private bool EsUnaModificacion { get; set; } = false;
         private bool formaPagoEfectivo = true;
         public bool FormaPagoEfectivo
         {
@@ -320,7 +321,7 @@ namespace Nesto.Modulos.Cliente
 
             try
             {
-                if (cliente.Cliente != null)
+                if (EsUnaModificacion)
                 {
                     cliente.Contacto = ClienteContacto;
                     Clientes clienteCreado = await Servicio.ModificarCliente(cliente);
@@ -358,6 +359,8 @@ namespace Nesto.Modulos.Cliente
             ClienteCrear clienteCrear = await Servicio.LeerClienteCrear(empresa, cliente, contacto);
 
             Titulo = String.Format("Editar Cliente {1}/{2}", empresa, cliente, contacto);
+
+            EsUnaModificacion = true;
 
             ClienteEmpresa = clienteCrear.Empresa;
             ClienteNumero = clienteCrear.Cliente;
