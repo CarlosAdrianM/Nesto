@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using FakeItEasy;
+using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
 using Microsoft.Practices.Prism.Regions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 

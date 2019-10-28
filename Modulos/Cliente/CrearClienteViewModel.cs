@@ -453,6 +453,10 @@ namespace Nesto.Modulos.Cliente
                 }
                 ClienteEstado = respuesta.EstadoCliente;
                 NifValidado = respuesta.NifValidado;
+                if (!NifValidado)
+                {
+                    NotificationRequest.Raise(new Notification { Content = "El NIF "+ClienteNif+ " no es válido (o no corresponde a " + ClienteNombre + ")" , Title = "Error" });
+                }
             }
             catch (Exception ex)
             {

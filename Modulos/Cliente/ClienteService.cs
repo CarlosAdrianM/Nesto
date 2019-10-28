@@ -56,6 +56,12 @@ namespace Nesto.Modulos.Cliente
                             var nodoError = firstError.LastOrDefault();
                             errorMostrar += nodoError.FirstOrDefault()[0];
                         }
+                        var innerException = requestException["InnerException"];
+                        while (innerException!=null)
+                        {
+                            errorMostrar += "\n" + innerException["ExceptionMessage"];
+                            innerException = innerException["InnerException"];
+                        }
                         throw new Exception(errorMostrar);
                                 
                     }
