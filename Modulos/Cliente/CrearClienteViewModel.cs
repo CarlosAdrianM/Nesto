@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using System.Windows.Markup;
 using Xceed.Wpf.Toolkit;
 
 namespace Nesto.Modulos.Cliente
@@ -18,8 +19,8 @@ namespace Nesto.Modulos.Cliente
     public class CrearClienteViewModel: ViewModelBase, INavigationAware
     {
         private const string DATOS_FISCALES = "DatosFiscales";
-        private const string DATOS_GENERALES = "DatosGenerales";
-        private const string DATOS_COMISIONES = "DatosComisiones";
+        public const string DATOS_GENERALES = "DatosGenerales";
+        public const string DATOS_COMISIONES = "DatosComisiones";
         private const string DATOS_PAGO = "DatosPago";
         private const string DATOS_CONTACTO = "DatosContacto";
         private IRegionManager RegionManager { get; }
@@ -44,10 +45,12 @@ namespace Nesto.Modulos.Cliente
             };
 
             NotificationRequest = new InteractionRequest<INotification>();
+            ClienteTelefonoRequest = new InteractionRequest<INotification>();
         }
 
         #region "Propiedades Prism"
         public InteractionRequest<INotification> NotificationRequest { get; private set; }
+        public InteractionRequest<INotification> ClienteTelefonoRequest { get; private set; }
         #endregion
 
         #region "Propiedades"
@@ -395,6 +398,11 @@ namespace Nesto.Modulos.Cliente
             try
             {
                 RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccion, ClienteCodigoPostal, ClienteTelefono);
+                if (respuesta.ClientesMismoTelefono.Count > 0)
+                {
+                    ClienteTelefonoRequest.Raise(new Notification { Content = respuesta.ClientesMismoTelefono, Title = "Clientes con el mismo teléfono:" });
+                }
+
                 if (!ClienteDireccionValidada)
                 {
                     ClienteDireccion = respuesta.DireccionFormateada;

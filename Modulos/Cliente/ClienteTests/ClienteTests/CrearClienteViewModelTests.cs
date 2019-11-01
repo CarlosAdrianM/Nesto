@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using FakeItEasy;
 using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
@@ -7,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Nesto.Contratos;
 using Nesto.Modulos.Cliente;
+using Xceed.Wpf.Toolkit;
 
 namespace ClienteTests
 {
@@ -103,6 +105,38 @@ namespace ClienteTests
             };
 
             vm.ClienteNombre = "X";
+
+            Assert.AreEqual(1, vecesSeHaLlamado);
+        }
+
+
+        [TestMethod]
+        public void CrearClienteViewModel_PasarADatosComision_SiOtroClienteTieneEseMovilSeNotifica()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
+            RespuestaDatosGeneralesClientes respuestaFake = A.Fake<RespuestaDatosGeneralesClientes>();
+            ClienteTelefonoLookup clienteFake = new ClienteTelefonoLookup
+            {
+                Empresa = "1",
+                Cliente = "12345",
+                Contacto = "1",
+                Nombre = "Prueba"
+            };
+            respuestaFake.ClientesMismoTelefono = new List<ClienteTelefonoLookup> { clienteFake };
+            A.CallTo(() => Servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored)).Returns(respuestaFake);
+            int vecesSeHaLlamado = 0;
+            vm.ClienteTelefonoRequest.Raised += delegate (object sender, InteractionRequestedEventArgs e)
+            {
+                vecesSeHaLlamado++;
+            };
+            WizardPage paginaActual = A.Fake<WizardPage>();
+            paginaActual.Name = CrearClienteViewModel.DATOS_GENERALES;
+            WizardPage paginaSiguiente = A.Fake<WizardPage>();
+            paginaSiguiente.Name = CrearClienteViewModel.DATOS_COMISIONES;
+            vm.PaginaActual = paginaActual;
+
+            // ACT
+            vm.PaginaActual = paginaSiguiente;
 
             Assert.AreEqual(1, vecesSeHaLlamado);
         }

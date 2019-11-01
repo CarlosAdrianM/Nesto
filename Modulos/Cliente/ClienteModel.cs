@@ -57,6 +57,15 @@ namespace Nesto.Modulos.Cliente
         public string TelefonoFormateado { get; set; }
         public string VendedorEstetica { get; set; }
         public string VendedorPeluqueria { get; set; }
+        public List<ClienteTelefonoLookup> ClientesMismoTelefono { get; set; }
+    }
+
+    public class ClienteTelefonoLookup
+    {
+        public string Empresa { get; set; }
+        public string Cliente { get; set; }
+        public string Contacto { get; set; }
+        public string Nombre { get; set; }
     }
     public class RespuestaDatosBancoCliente
     {

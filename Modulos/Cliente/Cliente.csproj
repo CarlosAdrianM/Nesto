@@ -74,8 +74,8 @@
     <Reference Include="Microsoft.Practices.Unity.RegistrationByConvention, Version=3.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Unity.3.5.1404.0\lib\net45\Microsoft.Practices.Unity.RegistrationByConvention.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=11.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Prism.RibbonRegionAdapter, Version=0.20.0.1, Culture=neutral, PublicKeyToken=3ddef0a054eea43a, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Prism.RibbonRegionAdapter.0.20.0.1\lib\net45\Prism.RibbonRegionAdapter.dll</HintPath>
@@ -144,11 +144,18 @@
       <DependentUpon>CrearClienteView.xaml</DependentUpon>
     </Compile>
     <Compile Include="CrearClienteViewModel.cs" />
+    <Page Include="NotificacionTelefono.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IClienteService.cs" />
     <Compile Include="Models\ClienteCrear.cs" />
     <Compile Include="Models\PersonaContactoDTO.cs" />
+    <Compile Include="NotificacionTelefono.xaml.cs">
+      <DependentUpon>NotificacionTelefono.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
