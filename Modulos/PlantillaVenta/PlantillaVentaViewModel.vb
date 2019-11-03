@@ -14,6 +14,7 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json.Linq
 Imports Nesto.Modulos.PlantillaVenta
 Imports Xceed.Wpf.Toolkit
+Imports Microsoft.Practices.Prism.PubSubEvents
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase
@@ -22,18 +23,27 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IPlantillaVentaService
+    Private ReadOnly eventAggregator As IEventAggregator
+
 
     Private Const ESTADO_LINEA_CURSO As Integer = 1
     Private Const ESTADO_LINEA_PRESUPUESTO As Integer = -3
 
+    Private Const PAGINA_SELECCION_CLIENTE As String = "SeleccionCliente"
+    Private Const PAGINA_SELECCION_PRODUCTOS As String = "SeleccionProductos"
+    Private Const PAGINA_SELECCION_ENTREGA As String = "SeleccionEntrega"
+    Private Const PAGINA_FINALIZAR As String = "Finalizar"
 
-    Dim formaVentaPedido, delegacionUsuario, almacenRutaUsuario, vendedorUsuario As String
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService)
+    Dim formaVentaPedido, delegacionUsuario, almacenRutaUsuario, iva, vendedorUsuario As String
+    Dim ultimoClienteAbierto As String = ""
+
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator)
         Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
         Me.servicio = servicio
+        Me.eventAggregator = eventAggregator
 
         Titulo = "Plantilla Ventas"
 
@@ -55,6 +65,7 @@ Public Class PlantillaVentaViewModel
         cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
         cmdCalcularSePuedeServirPorGlovo = New DelegateCommand(AddressOf OnCalcularSePuedeServirPorGlovo)
+        CambiarIvaCommand = New DelegateCommand(AddressOf OnCambiarIva)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -69,7 +80,21 @@ Public Class PlantillaVentaViewModel
         listaAlmacenes.Add(almacenSeleccionado)
         listaAlmacenes.Add(New tipoAlmacen("REI", "Reina"))
 
+        eventAggregator.GetEvent(Of ClienteModificadoEvent).Subscribe(AddressOf ActualizarCliente)
     End Sub
+
+    Private Sub ActualizarCliente(cliente As Clientes)
+        Dim clienteEncontrado As ClienteJson = listaClientes.SingleOrDefault(Function(c) c.empresa = cliente.Empresa.Trim() AndAlso c.cliente = cliente.Nº_Cliente.Trim() AndAlso c.contacto = cliente.Contacto.Trim())
+        If Not IsNothing(clienteEncontrado) Then
+            clienteEncontrado.nombre = cliente.Nombre
+            clienteEncontrado.direccion = cliente.Dirección
+            clienteEncontrado.poblacion = cliente.Población
+            clienteEncontrado.comentarios = cliente.Comentarios
+            clienteEncontrado.estado = cliente.Estado
+            clienteEncontrado.cifNif = cliente.CIF_NIF
+        End If
+    End Sub
+
 
 #Region "Propiedades"
     '*** Propiedades de Prism 
@@ -145,23 +170,52 @@ Public Class PlantillaVentaViewModel
             Return _clienteSeleccionado
         End Get
         Set(ByVal value As ClienteJson)
-            SetProperty(_clienteSeleccionado, value)
-            OnPropertyChanged("hayUnClienteSeleccionado")
-            If Not IsNothing(clienteSeleccionado) Then
-                Titulo = String.Format("Plantilla Ventas ({0})", clienteSeleccionado.cliente)
-                cmdCargarProductosPlantilla.Execute(Nothing)
-                cmdComprobarPendientes.Execute(Nothing)
+            If Not IsNothing(value) AndAlso String.IsNullOrWhiteSpace(value.cifNif) Then
+                If ultimoClienteAbierto = value.cliente Then
+                    Dim mensajeError As String = String.Format("A este cliente le faltan datos. Si continua es{0}posible que no pueda finalizar el pedido. Elija entre rellenar los{0}datos que faltan (Cancel) o continuar con el pedido (OK)", Environment.NewLine)
+                    Me.ConfirmationRequest.Raise(
+                        New Confirmation() With {
+                            .Content = mensajeError,
+                            .Title = "Faltan datos en el cliente"
+                        },
+                        Sub(c)
+                            InteractionResultMessage = If(c.Confirmed, "OK", "KO")
+                        End Sub
+                    )
+                    If InteractionResultMessage = "OK" Then
+                        SeleccionarElCliente(value)
+                    Else
+                        NavegarAClienteCrear(value)
+                    End If
+                Else
+                    ultimoClienteAbierto = value.cliente
+                    NavegarAClienteCrear(value)
+                End If
+            ElseIf Not IsNothing(value) Then
+                SeleccionarElCliente(value)
             End If
-            If Not IsNothing(value) AndAlso value.estado = 5 Then
-                Dim parameters As NavigationParameters = New NavigationParameters()
-                parameters.Add("empresaParameter", value.empresa)
-                parameters.Add("clienteParameter", value.cliente)
-                parameters.Add("contactoParameter", value.contacto)
-                regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters)
-                Return
-            End If
+            OnPropertyChanged(Function() SePuedeFinalizar)
         End Set
     End Property
+
+    Private Sub SeleccionarElCliente(value As ClienteJson)
+        SetProperty(_clienteSeleccionado, value)
+        OnPropertyChanged("hayUnClienteSeleccionado")
+        Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
+        cmdCargarProductosPlantilla.Execute(Nothing)
+        cmdComprobarPendientes.Execute(Nothing)
+        iva = clienteSeleccionado.iva
+        PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
+        OnPropertyChanged(Function() clienteSeleccionado)
+    End Sub
+
+    Private Sub NavegarAClienteCrear(value As ClienteJson)
+        Dim parameters As NavigationParameters = New NavigationParameters()
+        parameters.Add("empresaParameter", value.empresa)
+        parameters.Add("clienteParameter", value.cliente)
+        parameters.Add("contactoParameter", value.contacto)
+        regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters)
+    End Sub
 
     Private _direccionEntregaSeleccionada As DireccionesEntregaJson
     Public Property direccionEntregaSeleccionada As DireccionesEntregaJson
@@ -304,6 +358,7 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As FormaPagoDTO)
             SetProperty(_formaPagoSeleccionada, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
+            OnPropertyChanged(Function() SePuedeFinalizar)
         End Set
     End Property
 
@@ -506,6 +561,26 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    Private _paginaActual As WizardPage
+    Public Property PaginaActual As WizardPage
+        Get
+            Return _paginaActual
+        End Get
+        Set(value As WizardPage)
+            SetProperty(_paginaActual, value)
+        End Set
+    End Property
+
+    Private _paginasWizard As List(Of WizardPage) = New List(Of WizardPage)
+    Public Property PaginasWizard As List(Of WizardPage)
+        Get
+            Return _paginasWizard
+        End Get
+        Set(value As List(Of WizardPage))
+            SetProperty(_paginasWizard, value)
+        End Set
+    End Property
+
     Private _plazoPagoSeleccionado As PlazoPagoDTO
     Public Property plazoPagoSeleccionado As PlazoPagoDTO
         Get
@@ -514,6 +589,7 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As PlazoPagoDTO)
             SetProperty(_plazoPagoSeleccionado, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
+            OnPropertyChanged(Function() SePuedeFinalizar)
             If (Not IsNothing(_plazoPagoSeleccionado)) Then
                 cmdCalcularSePuedeServirPorGlovo.Execute()
             End If
@@ -561,6 +637,12 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Public ReadOnly Property SePuedeFinalizar As Boolean
+        Get
+            Return CanCrearPedido()
+        End Get
+    End Property
+
     Private _sePuedeServirConGlovo As Boolean = False
     Public Property SePuedeServirConGlovo As Boolean
         Get
@@ -586,16 +668,19 @@ Public Class PlantillaVentaViewModel
 
     Public ReadOnly Property totalPedido As Decimal
         Get
-            Return baseImponiblePedido * 1.21
+            If IsNothing(clienteSeleccionado) Then
+                Return 0
+            End If
+            Return IIf(Not IsNothing(clienteSeleccionado.iva), baseImponiblePedido * 1.21, baseImponiblePedido)
         End Get
     End Property
 
-    Enum PaginasWizard
-        SeleccionCliente
-        SeleccionProductos
-        SeleccionEntrega
-        Finalizar
-    End Enum
+    'Enum PaginasWizard
+    '    SeleccionCliente
+    '    SeleccionProductos
+    '    SeleccionEntrega
+    '    Finalizar
+    'End Enum
 
 #End Region
 
@@ -781,6 +866,24 @@ Public Class PlantillaVentaViewModel
             End Try
 
         End Using
+    End Sub
+
+
+    Private _cambiarIvaCommand As DelegateCommand
+    Public Property CambiarIvaCommand As DelegateCommand
+        Get
+            Return _cambiarIvaCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_cambiarIvaCommand, value)
+        End Set
+    End Property
+    Private Sub OnCambiarIva()
+        'this.direccionSeleccionada.iva = this.direccionSeleccionada.iva ? undefined : this.iva;
+        clienteSeleccionado.iva = IIf(Not String.IsNullOrWhiteSpace(clienteSeleccionado.iva), Nothing, iva)
+        OnPropertyChanged(Function() clienteSeleccionado)
+        OnPropertyChanged(Function() totalPedido)
+        OnPropertyChanged(Function() SePuedeFinalizar)
     End Sub
 
     Private _cmdCargarClientesVendedor As DelegateCommand
@@ -1280,7 +1383,8 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Function CanCrearPedido() As Boolean
-        Return Not IsNothing(formaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado)
+        Return Not IsNothing(formaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
+            (Not String.IsNullOrEmpty(clienteSeleccionado.cifNif) OrElse String.IsNullOrEmpty(clienteSeleccionado.iva))
     End Function
     Private Async Sub OnCrearPedido()
 

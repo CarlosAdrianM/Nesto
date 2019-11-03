@@ -10,15 +10,12 @@ Public Class PlantillaVentaView
         Me.DataContext = viewModel
     End Sub
 
-    Private Sub Wizard_Finish(sender As Object, e As RoutedEventArgs)
-        Me.DataContext.cmdCrearPedido.Execute
-    End Sub
-
     Private Sub SeleccionCliente_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionCliente.Enter
         Keyboard.Focus(txtFiltroCliente)
     End Sub
 
-    Private Sub SeleccionProductos_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionProductos.Enter
+    Private Async Sub SeleccionProductos_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionProductos.Enter
+        Await Task.Delay(500)
         Keyboard.Focus(txtFiltroProducto)
     End Sub
 
@@ -26,14 +23,45 @@ Public Class PlantillaVentaView
         If e.Key = System.Windows.Input.Key.Enter Then
             txtFiltroProducto.SelectAll()
         End If
+        If e.Key = Key.D1 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 0 Then
+            lstProductos.SelectedItem = lstProductos.Items(0)
+        End If
+        If e.Key = Key.D2 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 1 Then
+            lstProductos.SelectedItem = lstProductos.Items(1)
+        End If
+        If e.Key = Key.D3 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 2 Then
+            lstProductos.SelectedItem = lstProductos.Items(2)
+        End If
+        If e.Key = Key.OemPlus AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then
+            If IsNothing(lstProductos.SelectedItem) Then
+                lstProductos.SelectedItem = lstProductos.Items(0)
+            End If
+            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            linea.cantidad += 1
+        End If
+        If e.Key = Key.OemPlus AndAlso e.KeyboardDevice.Modifiers = (ModifierKeys.Control Or ModifierKeys.Shift) Then
+            If IsNothing(lstProductos.SelectedItem) Then
+                lstProductos.SelectedItem = lstProductos.Items(0)
+            End If
+            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            If linea.aplicarDescuentoFicha Then
+                linea.cantidadOferta += 1
+            End If
+        End If
+        If e.Key = Key.D6 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then
+            If IsNothing(lstProductos.SelectedItem) Then
+                lstProductos.SelectedItem = lstProductos.Items(0)
+            End If
+            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            If linea.aplicarDescuentoFicha Then
+                linea.cantidad = 6
+                linea.cantidadOferta = 1
+            End If
+        End If
     End Sub
 
     Private Sub txtFiltroProducto_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtFiltroProducto.GotFocus
         txtFiltroProducto.SelectAll()
-    End Sub
-
-    Private Sub listViewClientes_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles listViewClientes.SelectionChanged
-        WizardPlantilla.CurrentPage = SeleccionProductos
     End Sub
 
     Private Sub txtFiltroProducto_MouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtFiltroProducto.MouseUp
@@ -76,7 +104,20 @@ Public Class PlantillaVentaView
 
     End Sub
 
+    Private Sub Plantilla_Loaded(sender As Object, e As RoutedEventArgs) Handles Plantilla.Loaded
+        Dim vm As PlantillaVentaViewModel = DataContext
+        vm.PaginaActual = SeleccionCliente
+        If vm.PaginasWizard.Count = 0 Then
+            vm.PaginasWizard.Add(SeleccionCliente)
+            vm.PaginasWizard.Add(SeleccionProductos)
+            vm.PaginasWizard.Add(SeleccionEntrega)
+            vm.PaginasWizard.Add(Finalizar)
+        End If
+    End Sub
 
-
+    Private Async Sub btnBuscar_Click(sender As Object, e As RoutedEventArgs) Handles btnBuscar.Click
+        Await Task.Delay(500)
+        Keyboard.Focus(txtFiltroProducto)
+    End Sub
 End Class
 

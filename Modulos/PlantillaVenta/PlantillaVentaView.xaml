@@ -26,7 +26,8 @@
 
     <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
         <Grid>
-            <xctk:Wizard Finish="Wizard_Finish" Name="WizardPlantilla" 
+            <xctk:Wizard Name="WizardPlantilla" 
+                         CurrentPage="{Binding PaginaActual, Mode=TwoWay}"
                          CancelButtonVisibility="Hidden"
                          HelpButtonVisibility="Hidden"
                          CancelButtonClosesWindow="False"
@@ -34,6 +35,11 @@
                          BackButtonContent="&lt; Anterior"
                          NextButtonContent="Siguiente &gt;"
                          FinishButtonContent="Finalizar">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="Finish">
+                        <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCrearPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
                 <xctk:WizardPage x:Name="SeleccionCliente" 
                                        Title="Selección del cliente"
                                        Description="Lo primero que debemos hacer es seleccionar el cliente al que vamos a enviar el pedido. Escriba las primeras letras del nombre, dirección, teléfono o población y pulse la tecla Enter. A continuación seleccione un cliente entre los que aparezcan y se cargará su plantilla para ayudarle a realizar el pedido."
@@ -111,7 +117,9 @@
                                     <KeyBinding Command="{Binding cmdFijarFiltroProductos}" Key="Enter" />
                                 </TextBox.InputBindings>
                             </TextBox>
-                            <Button Command="{Binding cmdBuscarEnTodosLosProductos}">Buscar en todos los productos</Button>
+                            <Button Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}">
+                                <AccessText>_Buscar en todos los productos</AccessText>
+                            </Button>
                         </StackPanel>
                         <Grid  Grid.Row="0" Grid.Column="1" Margin="3,0">
                             <Grid.ColumnDefinitions>
@@ -129,6 +137,13 @@
                                 <TextBlock Text="{Binding clienteSeleccionado.vendedor}"></TextBlock>
                                 <TextBlock Text="{Binding baseImponiblePedido, StringFormat=c}"></TextBlock>
                                 <TextBlock Text="{Binding totalPedido, StringFormat=c}"></TextBlock>
+                                <TextBox Text="{Binding clienteSeleccionado.iva}" IsReadOnly="True" Background="Transparent" BorderThickness="0">
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="MouseDoubleClick" >
+                                            <i:InvokeCommandAction Command="{Binding CambiarIvaCommand}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                </TextBox>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Base Imponible para Portes"></TextBlock>
@@ -136,7 +151,7 @@
                                 <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="descripcion" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
                             </StackPanel>
                         </Grid>
-                        <ListView Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListView x:Name="lstProductos" Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel Height="110" Margin="6" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Hidden">
@@ -357,9 +372,10 @@
                     </Grid>
                 </xctk:WizardPage>
                 <xctk:WizardPage x:Name="Finalizar" PageType="Interior"
-                                       Title="Finalizar"
-                                       Description="Ya tenemos toda la información necesaria. Pulse el botón finalizar para crear el pedido en Nesto."
-                                       CanFinish="True">
+                                 Title="Finalizar"
+                                 NextButtonVisibility="Hidden"
+                                 Description="Ya tenemos toda la información necesaria. Pulse el botón finalizar para crear el pedido en Nesto."
+                                 CanFinish="{Binding SePuedeFinalizar}">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="Enter">
                             <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />

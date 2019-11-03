@@ -1,5 +1,6 @@
 ﻿using Microsoft.Practices.Prism.Commands;
 using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
+using Microsoft.Practices.Prism.PubSubEvents;
 using Microsoft.Practices.Prism.Regions;
 using Nesto.Contratos;
 using Nesto.Models;
@@ -27,11 +28,14 @@ namespace Nesto.Modulos.Cliente
         public IConfiguracion Configuracion { get; set; }
         private IClienteService Servicio { get; }
 
-        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio)
+        private IEventAggregator EventAggregator { get; }
+
+        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio, IEventAggregator eventAggregator)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
             Servicio = servicio;
+            EventAggregator = eventAggregator;
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo);
             AnnadirPersonaContactoCommand = new DelegateCommand(OnAnnadirPersonaContacto);
@@ -329,6 +333,7 @@ namespace Nesto.Modulos.Cliente
                     cliente.Contacto = ClienteContacto;
                     Clientes clienteCreado = await Servicio.ModificarCliente(cliente);
                     NotificationRequest.Raise(new Notification { Content = "Se ha modificado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim(), Title = "Cliente Modificado" });
+                    EventAggregator.GetEvent<ClienteModificadoEvent>().Publish(clienteCreado);
                 } else
                 {
                     Clientes clienteCreado = await Servicio.CrearCliente(cliente);
@@ -398,6 +403,7 @@ namespace Nesto.Modulos.Cliente
             try
             {
                 RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccion, ClienteCodigoPostal, ClienteTelefono);
+                respuesta.ClientesMismoTelefono = respuesta.ClientesMismoTelefono.Where(c => c.Cliente != ClienteNumero).ToList();
                 if (respuesta.ClientesMismoTelefono.Count > 0)
                 {
                     ClienteTelefonoRequest.Raise(new Notification { Content = respuesta.ClientesMismoTelefono, Title = "Clientes con el mismo teléfono:" });
