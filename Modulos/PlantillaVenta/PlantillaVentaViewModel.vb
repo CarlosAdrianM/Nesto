@@ -1384,7 +1384,7 @@ Public Class PlantillaVentaViewModel
     End Property
     Private Function CanCrearPedido() As Boolean
         Return Not IsNothing(formaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
-            (Not String.IsNullOrEmpty(clienteSeleccionado.cifNif) OrElse String.IsNullOrEmpty(clienteSeleccionado.iva))
+            (Not String.IsNullOrEmpty(clienteSeleccionado.cifNif) OrElse String.IsNullOrEmpty(clienteSeleccionado.iva) OrElse EsPresupuesto)
     End Function
     Private Async Sub OnCrearPedido()
 
