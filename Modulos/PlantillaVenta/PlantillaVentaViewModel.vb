@@ -267,6 +267,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As Boolean)
             SetProperty(_esPresupuesto, value)
+            OnPropertyChanged(Function() SePuedeFinalizar)
         End Set
     End Property
 

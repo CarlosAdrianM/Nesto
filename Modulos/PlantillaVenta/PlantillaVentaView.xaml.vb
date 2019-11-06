@@ -106,8 +106,8 @@ Public Class PlantillaVentaView
 
     Private Sub Plantilla_Loaded(sender As Object, e As RoutedEventArgs) Handles Plantilla.Loaded
         Dim vm As PlantillaVentaViewModel = DataContext
-        vm.PaginaActual = SeleccionCliente
         If vm.PaginasWizard.Count = 0 Then
+            vm.PaginaActual = SeleccionCliente
             vm.PaginasWizard.Add(SeleccionCliente)
             vm.PaginasWizard.Add(SeleccionProductos)
             vm.PaginasWizard.Add(SeleccionEntrega)
