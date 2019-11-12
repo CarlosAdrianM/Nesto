@@ -332,6 +332,7 @@ Public Class PedidoVenta
             End Set
         End Property
         Public Property grupoProducto As String
+        Public Property usuario As String
         Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
             RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
         End Sub

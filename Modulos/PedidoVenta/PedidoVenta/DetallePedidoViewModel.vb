@@ -1,4 +1,7 @@
 ﻿Imports System.Globalization
+Imports System.IO
+Imports System.Net.Http
+Imports System.Runtime.InteropServices
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.PubSubEvents
@@ -30,6 +33,7 @@ Public Class DetallePedidoViewModel
 
         cmdAbrirPicking = New DelegateCommand(Of Object)(AddressOf OnAbrirPicking, AddressOf CanAbrirPicking)
         AceptarPresupuestoCommand = New DelegateCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
+        DescargarPresupuestoCommand = New DelegateCommand(AddressOf OnDescargarPresupuesto, AddressOf CanDescargarPresupuesto)
         cmdActualizarTotales = New DelegateCommand(Of Object)(AddressOf OnActualizarTotales, AddressOf CanActualizarTotales)
         cmdCambiarFechaEntrega = New DelegateCommand(Of Object)(AddressOf OnCambiarFechaEntrega, AddressOf CanCambiarFechaEntrega)
         cmdCambiarIva = New DelegateCommand(Of Object)(AddressOf OnCambiarIva, AddressOf CanCambiarIva)
@@ -264,6 +268,7 @@ Public Class DetallePedidoViewModel
             End If
             OnPropertyChanged("mostrarAceptarPresupuesto")
             AceptarPresupuestoCommand.RaiseCanExecuteChanged()
+            DescargarPresupuestoCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -502,6 +507,96 @@ Public Class DetallePedidoViewModel
         End If
     End Function
 
+    Private _descargarPresupuestoCommand As DelegateCommand
+    Public Property DescargarPresupuestoCommand As DelegateCommand
+        Get
+            Return _descargarPresupuestoCommand
+        End Get
+        Set(value As DelegateCommand)
+            SetProperty(_descargarPresupuestoCommand, value)
+        End Set
+    End Property
+    Private Function CanDescargarPresupuesto() As Boolean
+        Return (Not IsNothing(pedido)) AndAlso pedido.EsPresupuesto
+    End Function
+    Private Async Sub OnDescargarPresupuesto()
+        textoBusyIndicator = "Generando proforma..."
+        estaBloqueado = True
+
+        Try
+            Dim np As IntPtr
+            SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
+            Dim path As String = Marshal.PtrToStringUni(np)
+            Marshal.FreeCoTaskMem(np)
+
+
+            Dim factura As Byte() = Await CargarFactura(pedido.empresa, pedido.numero)
+            Dim ms As New MemoryStream(factura)
+            'write to file
+            Dim file As New FileStream(path + "\Cliente_" + pedido.cliente + "_" + pedido.numero.ToString + ".pdf", FileMode.Create, FileAccess.Write)
+            ms.WriteTo(file)
+            file.Close()
+            ms.Close()
+
+
+            ' Abrimos la carpeta de descargas
+            Process.Start(path)
+        Catch ex As Exception
+            Dim mensajeError As String
+            If IsNothing(ex.InnerException) Then
+                mensajeError = ex.Message
+            Else
+                mensajeError = ex.InnerException.Message
+            End If
+            NotificationRequest.Raise(New Notification() With {
+                .Title = "Error",
+                .Content = mensajeError
+            })
+        Finally
+            estaBloqueado = False
+            textoBusyIndicator = String.Empty
+        End Try
+    End Sub
+
+    Private Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
+        If IsNothing(pedido) Then
+            Return Nothing
+        End If
+
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As Byte()
+
+            Try
+                Dim urlConsulta As String = "Facturas"
+                urlConsulta += "?empresa=" + empresa
+                urlConsulta += "&numeroFactura=" + numeroFactura
+
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsByteArrayAsync()
+                Else
+                    respuesta = Nothing
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
+            Finally
+
+            End Try
+
+            Return respuesta
+        End Using
+
+
+    End Function
+
+
+
     Private _cmdModificarPedido As DelegateCommand
     Public Property cmdModificarPedido As DelegateCommand
         Get
@@ -654,6 +749,9 @@ Public Class DetallePedidoViewModel
 
 
 #End Region
+
+    <DllImport("shell32")>
+    Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInt32, ByVal hToken As IntPtr, ByRef np As IntPtr) As Int32 : End Function
 
     Public Overloads Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
         Dim resumen = navigationContext.Parameters("resumenPedidoParameter")

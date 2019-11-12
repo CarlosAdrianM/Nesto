@@ -362,7 +362,8 @@ Public Class ClientesViewModel
                 clienteServidor.VendedoresGrupoProducto.Add(New VendedorGrupoProductoDTO With
                                        {
                                        .grupoProducto = "PEL",
-                                       .vendedor = "NV"
+                                       .vendedor = "NV",
+                                       .usuario = configuracion.usuario
                                        }
                 )
             End If

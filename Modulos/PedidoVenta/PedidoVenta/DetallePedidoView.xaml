@@ -78,7 +78,14 @@
 
                             <TextBlock></TextBlock>
                             <Button Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
-                            <Button Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
+                            <Grid Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Command="{Binding AceptarPresupuestoCommand}">Aceptar Presupuesto</Button>
+                                <Button Grid.Column="1" Command="{Binding DescargarPresupuestoCommand}">Descargar Presupuesto</Button>
+                            </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>
                         <DataGrid Name="grdLineasCabecera" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.LineasPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}" CanUserAddRows="False" IsReadOnly="True">
