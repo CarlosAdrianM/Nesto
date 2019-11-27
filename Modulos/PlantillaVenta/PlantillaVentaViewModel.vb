@@ -70,10 +70,8 @@ Public Class PlantillaVentaViewModel
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
-        ' Esto habrá que leerlo de un parámetro de usuario si queremos que algunos usuarios puedan y otros no.
-        ' De momento dejamos que aquí todos los usuarios vean a todos los clientes, 
-        ' y en la plantilla de NestoWeb haremos que cada vendedor vea sólo los suyos.
-        todosLosVendedores = True
+        ' Al leer los clientes lo lee del parámetro PermitirVerClientesTodosLosVendedores
+        todosLosVendedores = False
 
         listaAlmacenes = New ObservableCollection(Of tipoAlmacen)
         almacenSeleccionado = New tipoAlmacen("ALG", "Algete")
@@ -130,7 +128,7 @@ Public Class PlantillaVentaViewModel
     End Property
 
     '*** Propiedades de Nesto
-    Private vendedor As String = "NV"
+    Private vendedor As String
     Private ultimaOferta As Integer = 0
 
     Private _almacenSeleccionado As tipoAlmacen
@@ -909,6 +907,9 @@ Public Class PlantillaVentaViewModel
 
         Try
             estaOcupado = True
+            vendedor = Await leerParametro("Vendedor")
+            Dim parametroClientesTodosVendedores As String = Await leerParametro("PermitirVerClientesTodosLosVendedores")
+            todosLosVendedores = IIf(parametroClientesTodosVendedores.Trim = "1", True, False)
             listaClientesOriginal = Await servicio.CargarClientesVendedor(filtroCliente, vendedor, todosLosVendedores)
         Catch ex As Exception
             NotificationRequest.Raise(New Notification() With {
@@ -1687,11 +1688,12 @@ Public Class PlantillaVentaViewModel
     End Function
 
     Private Async Function leerParametro(v As String) As Task(Of String)
-        If IsNothing(clienteSeleccionado) Then
-            Return ""
+        Dim empresa As String = "1"
+        If Not IsNothing(clienteSeleccionado) Then
+            empresa = clienteSeleccionado.empresa
         End If
 
-        Return Await configuracion.leerParametro(clienteSeleccionado.empresa, v)
+        Return Await configuracion.leerParametro(empresa, v)
     End Function
 
     Private Function nombreVista(region As Region, nombre As String) As String
