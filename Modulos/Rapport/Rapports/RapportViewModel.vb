@@ -11,6 +11,11 @@ Public Class RapportViewModel
     Inherits ViewModelBase
     Implements INavigationAware
 
+    Public Property configuracion As IConfiguracion
+    Private Const empresaPorDefecto As String = "1"
+    Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly servicio As IRapportService
+
     Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager)
         Me.configuracion = configuracion
         Me.servicio = servicio
@@ -80,10 +85,7 @@ Public Class RapportViewModel
     End Property
 #End Region
 
-    Public Property configuracion As IConfiguracion
-    Private Const empresaPorDefecto As String = "1"
-    Private ReadOnly regionManager As IRegionManager
-
+#Region "Propiedades de Nesto"
     Private _clienteCompleto As Object
     Public Property ClienteCompleto As Object
         Get
@@ -91,17 +93,20 @@ Public Class RapportViewModel
         End Get
         Set(value As Object)
             SetProperty(_clienteCompleto, value)
+            VendedorEstetica = _clienteCompleto.vendedor?.Trim()
+            If _clienteCompleto.VendedoresGrupoProducto IsNot Nothing AndAlso _clienteCompleto.VendedoresGrupoProducto.Count > 0 Then
+                VendedorPeluqueria = _clienteCompleto.VendedoresGrupoProducto(0).Vendedor?.Trim()
+            Else
+                VendedorPeluqueria = String.Empty
+            End If
+            OnPropertyChanged(Function() EstaVisibleTipoCentro)
         End Set
     End Property
 
-    Private _sePuedeCrearRapport As Boolean = True
-    Public Property SePuedeCrearRapport As Boolean
+    Public ReadOnly Property EstaVisibleTipoCentro As Boolean
         Get
-            Return _sePuedeCrearRapport
+            Return rapport IsNot Nothing AndAlso rapport.Id = 0 AndAlso VendedorEstetica = VendedorPeluqueria AndAlso VendedorEstetica = VendedorUsuario
         End Get
-        Set(value As Boolean)
-            SetProperty(_sePuedeCrearRapport, value)
-        End Set
     End Property
 
     Private _fechaAviso As DateTime = DateTime.Now.AddDays(1)
@@ -141,13 +146,55 @@ Public Class RapportViewModel
         End Get
         Set(value As SeguimientoClienteDTO)
             SetProperty(_rapport, value)
-            cmdCrearCita.RaiseCanExecuteChanged
+            cmdCrearCita.RaiseCanExecuteChanged()
         End Set
     End Property
 
-    Private ReadOnly servicio As IRapportService
+    Private _sePuedeCrearRapport As Boolean = True
+    Public Property SePuedeCrearRapport As Boolean
+        Get
+            Return _sePuedeCrearRapport
+        End Get
+        Set(value As Boolean)
+            SetProperty(_sePuedeCrearRapport, value)
+        End Set
+    End Property
+
+    Private _vendedorEstetica As String
+    Public Property VendedorEstetica As String
+        Get
+            Return _vendedorEstetica
+        End Get
+        Set(value As String)
+            SetProperty(_vendedorEstetica, value)
+        End Set
+    End Property
+
+    Private _vendedorPeluqueria As String
+    Public Property VendedorPeluqueria As String
+        Get
+            Return _vendedorPeluqueria
+        End Get
+        Set(value As String)
+            SetProperty(_vendedorPeluqueria, value)
+        End Set
+    End Property
 
 
+    Private _vendedorUsuario As String
+    Public Property VendedorUsuario As String
+        Get
+            Return _vendedorUsuario
+        End Get
+        Set(value As String)
+            SetProperty(_vendedorUsuario, value)
+        End Set
+    End Property
+
+#End Region
+
+
+#Region "Comandos"
     Private _cmdCrearCita As DelegateCommand
     Public Property cmdCrearCita As DelegateCommand
         Get
@@ -188,6 +235,9 @@ Public Class RapportViewModel
         Return Not IsNothing(rapport) AndAlso rapport.Usuario = configuracion.usuario
     End Function
     Private Async Sub OnGuardarCambios(arg As Object)
+        If Not EstaVisibleTipoCentro Then
+            rapport.TipoCentro = TiposCentro.NoSeSabe
+        End If
         Dim texto As String
         Try
             texto = Await servicio.crearRapport(rapport)
@@ -203,11 +253,14 @@ Public Class RapportViewModel
 
         End Try
     End Sub
+#End Region
 
 
-
-    Public Overloads Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
+    Public Overloads Async Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
         rapport = navigationContext.Parameters("rapportParameter")
+        If VendedorUsuario Is Nothing Then
+            VendedorUsuario = Await configuracion.leerParametro("1", "Vendedor")
+        End If
     End Sub
 
     Public Structure idDescripcion

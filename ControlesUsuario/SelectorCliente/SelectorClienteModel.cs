@@ -39,6 +39,9 @@ namespace ControlesUsuario.Models
         public string poblacion { get; set; }
         public string telefono { get; set; }
         public string comentarios { get; set; }
+        public int estado { get; set; }
+        public string vendedor { get; set; }
+        public List<VendedorGrupoProductoDTO> VendedoresGrupoProducto { get; set; }
 
         private void OnPropertyChanged([CallerMemberName] String propertyName = "")
         {
@@ -48,5 +51,11 @@ namespace ControlesUsuario.Models
             }
         }
 
+    }
+
+    public class VendedorGrupoProductoDTO
+    {
+        public string GrupoProducto { get; set; }
+        public string Vendedor { get; set; }
     }
 }

@@ -10,7 +10,11 @@
 
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300" Margin="3">
-
+    
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+    
     <i:Interaction.Triggers>
         <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
             <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="False"/>
@@ -115,7 +119,7 @@
             <TextBlock Text="Usuario: "></TextBlock>
             <TextBlock Text="{Binding rapport.Usuario}"></TextBlock>
         </StackPanel>
-        <StackPanel Grid.Row="12" HorizontalAlignment="Stretch">
+        <StackPanel Grid.Row="12" HorizontalAlignment="Stretch" Visibility="{Binding EstaVisibleTipoCentro, Converter={StaticResource BooleanToVisibilityConverter}}">
             <TextBlock Text="Tipo de Centro:"></TextBlock>
             <ComboBox Name="cmbTiposCentro" ItemsSource="{Binding listaTiposCentros}" SelectedValue="{Binding rapport.TipoCentro}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
         </StackPanel>
