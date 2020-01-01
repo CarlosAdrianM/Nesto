@@ -259,7 +259,7 @@ Public Class ComisionesViewModel
 
     Public ReadOnly Property MostrarPanelAntiguo() As Boolean
         Get
-            Return Not IsNothing(vendedorActual) AndAlso (((vendedorActual.Número = "JE " OrElse vendedorActual.Número = "DV ") AndAlso fechaDesde >= New Date(2019, 1, 1)) OrElse vendedorActual.Número = "SC " OrElse vendedorActual.Número = "PI ")
+            Return Not IsNothing(vendedorActual) AndAlso (((vendedorActual.Número = "JE " OrElse vendedorActual.Número = "DV ") AndAlso fechaDesde >= New Date(2019, 1, 1)))
         End Get
     End Property
 
