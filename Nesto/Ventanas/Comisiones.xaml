@@ -310,7 +310,7 @@
                     </Border>
                 </Grid>
 
-                <Grid Grid.Column="3" Visibility="{Binding MostrarColumnaTres, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
+                <Grid Grid.Column="3" Visibility="{Binding MostrarColumnaCuatro, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
                     <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
                         <Grid ToolTip="Otros Aparatos">
                             <Grid.ColumnDefinitions>

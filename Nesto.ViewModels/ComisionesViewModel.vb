@@ -134,6 +134,7 @@ Public Class ComisionesViewModel
         Set(ByVal value As ComisionAnualResumen)
             SetProperty(_comisionAnualResumenActual, value)
             OnPropertyChanged("MostrarColumnaTres")
+            OnPropertyChanged("MostrarColumnaCuatro")
         End Set
     End Property
 
@@ -269,6 +270,16 @@ Public Class ComisionesViewModel
             Return Not IsNothing(ComisionAnualResumenActual) AndAlso
                 Not IsNothing(ComisionAnualResumenActual.Etiquetas) AndAlso
                 ComisionAnualResumenActual.Etiquetas.Count >= 3 AndAlso
+                Not IsNothing(ComisionAnualResumenActual.Etiquetas(2)) AndAlso
+                Not IsNothing(ComisionAnualResumenActual.Etiquetas(2).Nombre) AndAlso
+                ComisionAnualResumenActual.Etiquetas(2).Nombre.Trim <> ""
+        End Get
+    End Property
+    Public ReadOnly Property MostrarColumnaCuatro() As Boolean
+        Get
+            Return Not IsNothing(ComisionAnualResumenActual) AndAlso
+                Not IsNothing(ComisionAnualResumenActual.Etiquetas) AndAlso
+                ComisionAnualResumenActual.Etiquetas.Count >= 4 AndAlso
                 Not IsNothing(ComisionAnualResumenActual.Etiquetas(3)) AndAlso
                 Not IsNothing(ComisionAnualResumenActual.Etiquetas(3).Nombre) AndAlso
                 ComisionAnualResumenActual.Etiquetas(3).Nombre.Trim <> ""

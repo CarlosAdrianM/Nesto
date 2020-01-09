@@ -121,17 +121,27 @@ Public Class CarteraPagosViewModel
         Return numeroRemesa <> 0 AndAlso empresa.Trim <> ""
     End Function
     Private Async Sub OnCrearFicheroRemesa(arg As Object)
-        Dim respuesta As String = Await servicio.crearFichero(empresa, numeroRemesa)
+        Dim respuesta As String = ""
+        Try
+            respuesta = Await servicio.crearFichero(empresa, numeroRemesa)
+            If respuesta = "" Then
+                NotificationRequest.Raise(New Notification() With {
+                .Title = "Error",
+                .Content = "No se ha podido crear el fichero"
+            })
+            End If
+
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
+            .Title = "Error",
+            .Content = ex.Message
+        })
+        End Try
 
         If respuesta <> "" Then
             NotificationRequest.Raise(New Notification() With {
                 .Title = "Fichero Creado",
                 .Content = "Se ha creado correctamente el fichero: " + vbCrLf + respuesta
-            })
-        Else
-            NotificationRequest.Raise(New Notification() With {
-                .Title = "Error",
-                .Content = "No se ha podido crear el fichero"
             })
         End If
     End Sub

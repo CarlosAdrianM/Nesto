@@ -1,6 +1,8 @@
 ﻿Imports System.Net.Http
 Imports Nesto.Contratos
 Imports Nesto.Modulos.CarteraPagos
+Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
 
 Public Class CarteraPagosService
     Implements ICarteraPagosService
@@ -26,11 +28,19 @@ Public Class CarteraPagosService
                 If response.IsSuccessStatusCode Then
                     respuesta = Await response.Content.ReadAsStringAsync()
                 Else
-                    respuesta = ""
+                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+                    Throw New Exception(contenido)
                 End If
 
             Catch ex As Exception
-                Throw New Exception("No se ha podido crear el fichero de la remesa")
+                Throw New Exception("No se ha podido crear el fichero de la remesa." + vbCrLf + ex.Message)
             Finally
 
             End Try
