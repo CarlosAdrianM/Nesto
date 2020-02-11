@@ -49,6 +49,9 @@ Public Class Agencias
         ' Ponemos e IF para que no entre cada vez que coja el foco
         If IsNothing(viewModel.numeroPedido) OrElse viewModel.numeroPedido.Trim = "" Then
             Await viewModel.cmdCargarDatos.Execute()
+            Await Task.Delay(2000)
+            txtPedidosNumero.Focus()
+            txtPedidosNumero.SelectAll()
         End If
     End Sub
 
@@ -62,5 +65,19 @@ Public Class Agencias
             Dim Binding = sender.GetBindingExpression(TextBox.TextProperty)
             Binding.UpdateSource()
         End If
+    End Sub
+
+    Private Sub txtPedidosNumero_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtPedidosNumero.GotFocus
+        txtPedidosNumero.SelectAll()
+    End Sub
+
+    Private Sub txtPedidosNumero_KeyUp(sender As Object, e As KeyEventArgs) Handles txtPedidosNumero.KeyUp
+        If e.Key = Key.Return Then
+            e.OriginalSource.MoveFocus(New TraversalRequest(FocusNavigationDirection.Next))
+        End If
+    End Sub
+
+    Private Sub EnvioPendientePedidoTextBox_GotFocus(sender As Object, e As RoutedEventArgs) Handles EnvioPendientePedidoTextBox.GotFocus
+        EnvioPendientePedidoTextBox.SelectAll()
     End Sub
 End Class

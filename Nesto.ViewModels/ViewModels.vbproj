@@ -138,6 +138,9 @@
     <Import Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Agencias\AgenciaASM.vb" />
+    <Compile Include="Agencias\AgenciaGlovo.vb" />
+    <Compile Include="Agencias\AgenciaOnTime.vb" />
     <Compile Include="AgenciasViewModel.vb" />
     <Compile Include="AlquileresViewModel.vb">
       <CustomToolNamespace>Nesto.ViewModels</CustomToolNamespace>
@@ -145,6 +148,8 @@
     <Compile Include="ClientesViewModel.vb" />
     <Compile Include="ComisionesViewModel.vb" />
     <Compile Include="DeudaViewModel.vb" />
+    <Compile Include="Agencias\IAgencia.vb" />
+    <Compile Include="EnvioAgenciaWrapper.vb" />
     <Compile Include="MainViewModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">

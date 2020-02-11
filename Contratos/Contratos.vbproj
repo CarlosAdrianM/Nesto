@@ -95,6 +95,7 @@
     <Import Include="System.Threading.Tasks" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Constantes.vb" />
     <Compile Include="Eventos\ClienteModificadoEvent.vb" />
     <Compile Include="Eventos\PedidoCreadoEvent.vb" />
     <Compile Include="Eventos\PedidoModificadoEvent.vb" />

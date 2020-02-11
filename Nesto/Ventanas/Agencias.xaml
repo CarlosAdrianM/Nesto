@@ -66,7 +66,7 @@
             <TabItem Name="tabPedidos" Header="Pedidos">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="3*"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="2*"/>
                         <RowDefinition Height="4*"/>
                     </Grid.RowDefinitions>
@@ -110,7 +110,7 @@
                         <TextBlock Grid.Column="5" Grid.Row="0" Text="Email:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso:" Style="{StaticResource etiquetaTexto}"/>
 
-                        <TextBox Grid.Column="1" Grid.Row="0" Text="{Binding numeroPedido}" Style="{StaticResource campoTexto}" />
+                        <TextBox Name="txtPedidosNumero" Grid.Column="1" Grid.Row="0" Text="{Binding numeroPedido}" Style="{StaticResource campoTexto}" />
                         <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding pedidoSeleccionado.Nº_Cliente}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
                         <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding pedidoSeleccionado.Contacto}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
                         <DatePicker Grid.Column="1" Grid.Row="3" Text="{Binding fechaEnvio}" Margin="3"/>
@@ -266,7 +266,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" />
                                 <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
-                                <DataGridTextColumn Header="Cliente" Binding="{Binding Direccion}"/>
+                                <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}"/>
                                 <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
@@ -283,8 +283,8 @@
             <TabItem Name="tabCurso" Header="En Curso">
                 <Grid>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
-                        <RowDefinition Height="2*"/>
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0">
                         <Grid.RowDefinitions>
@@ -353,7 +353,7 @@
                         <TextBox Grid.Column="6" Grid.Row="4" Text="{Binding envioActual.EmailPlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
 
                         <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Borrar Envío" Command = "{Binding cmdBorrar}"/>
-                        <Button Grid.Column="5" Grid.Row="7" MinWidth="80" Margin="3" Content="Guardar Cambios" Command = "{Binding cmdGuardar}"/>
+                        <Button Grid.Column="5" Grid.Row="7" MinWidth="80" Margin="3" Content="Modificar Envío" Command = "{Binding cmdModificar}"/>
                         <Button Grid.Column="6" Grid.Row="6" MinWidth="80" Margin="3" Content="Tramitar Envío" Command = "{Binding cmdTramitar}"/>
                         <Button Grid.Column="6" Grid.Row="7" MinWidth="80" Margin="3" Content="Tramitar Todos" Command = "{Binding cmdTramitarTodos}"/>
                         
@@ -383,9 +383,9 @@
             <TabItem Name="tabTramitados" Header="Tramitados">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="5*"/>
-                        <RowDefinition Height="16*"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <DockPanel Grid.Row="0">
                         <StackPanel DockPanel.Dock="Left" HorizontalAlignment="Stretch">

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using FakeItEasy;
 using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
+using Microsoft.Practices.Prism.PubSubEvents;
 using Microsoft.Practices.Prism.Regions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -18,17 +19,19 @@ namespace ClienteTests
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
         private IClienteService Servicio { get; }
+        private IEventAggregator EventAggregator { get; }
         public CrearClienteViewModelTests()
         {
             RegionManager = A.Fake<IRegionManager>();
             Configuracion = A.Fake<IConfiguracion>();
             Servicio = A.Fake<IClienteService>();
+            EventAggregator = A.Fake<IEventAggregator>();
         }
 
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_BloqueaElNombreSiEsUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
 
             vm.ClienteNif = "B111";
 
@@ -38,7 +41,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_NoBloqueaElNombreSiNoEsUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
 
             vm.ClienteNif = "530021-A";
 
@@ -48,7 +51,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_NoBloqueaElNombreSiEsUnNie()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
 
             vm.ClienteNif = "X/78787";
 
@@ -58,7 +61,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_SeActualizaNombreIsEnabled()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -76,7 +79,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_SeActualizaSePuedeAvanzarADatosGenerales()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -94,7 +97,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNombre_SeActualizaSePuedeAvanzarADatosGenerales()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -113,7 +116,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_PasarADatosComision_SiOtroClienteTieneEseMovilSeNotifica()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
             RespuestaDatosGeneralesClientes respuestaFake = A.Fake<RespuestaDatosGeneralesClientes>();
             ClienteTelefonoLookup clienteFake = new ClienteTelefonoLookup
             {
