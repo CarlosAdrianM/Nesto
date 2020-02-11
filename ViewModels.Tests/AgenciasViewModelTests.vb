@@ -458,15 +458,6 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(0, viewModel.listaEnviosPedido.Count)
     End Sub
 
-    <TestMethod>
-    Public Sub AgenciaViewModel_AlTramitarEnvio_SeAgregaAListaDeTramitados()
-        CrearViewModelConUnEnvioEnLaListaDePedidos()
-        viewModel.envioActual = viewModel.listaEnviosPedido.Single
-
-        viewModel.cmdTramitar.Execute(Nothing)
-
-        Assert.AreEqual(1, viewModel.listaEnviosTramitados.Count)
-    End Sub
 
     '<TestMethod>
     'Public Sub AgenciaViewModel_AlCambiarDeAgencia_ActualizaElPais()

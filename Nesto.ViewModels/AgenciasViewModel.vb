@@ -1151,8 +1151,6 @@ Public Class AgenciasViewModel
         agenciaEspecifica.llamadaWebService(servicio)
         OnPropertyChanged("listaReembolsos")
         OnPropertyChanged("mensajeError")
-        listaEnviosTramitados.Add(envioActual)
-        'mensajeError = "Pedido " + envioActual.Pedido.ToString.Trim + " tramitado correctamente"
     End Sub
 
     Private _cmdTramitarTodos As ICommand
