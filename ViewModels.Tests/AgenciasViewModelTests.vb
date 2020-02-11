@@ -458,6 +458,15 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(0, viewModel.listaEnviosPedido.Count)
     End Sub
 
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlTramitarEnvio_SeAgregaAListaDeTramitados()
+        CrearViewModelConUnEnvioEnLaListaDePedidos()
+        viewModel.envioActual = viewModel.listaEnviosPedido.Single
+
+        viewModel.cmdTramitar.Execute(Nothing)
+
+        Assert.AreEqual(1, viewModel.listaEnviosTramitados.Count)
+    End Sub
 
     '<TestMethod>
     'Public Sub AgenciaViewModel_AlCambiarDeAgencia_ActualizaElPais()
@@ -587,6 +596,7 @@ Public Class AgenciaViewModelTests
         agencia.Nombre = "OnTime"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
+        A.CallTo(Function() servicio.CargarListaEnviosTramitadosPorFecha(A(Of String).Ignored, A(Of Date).Ignored)).Returns(New ObservableCollection(Of EnviosAgencia))
 
         viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
