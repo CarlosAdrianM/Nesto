@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Data.Objects
 Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 
 Public Interface IAgenciaService
     Function CargarListaPendientes() As IEnumerable(Of EnvioAgenciaWrapper)

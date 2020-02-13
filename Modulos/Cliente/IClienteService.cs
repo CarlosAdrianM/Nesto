@@ -1,4 +1,5 @@
 ﻿using Nesto.Models;
+using Nesto.Models.Nesto.Models;
 using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cliente

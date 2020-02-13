@@ -8,6 +8,7 @@ Imports System.Windows.Controls
 Imports Microsoft.Office.Interop
 Imports System.Threading.Tasks
 Imports Nesto.Contratos
+Imports Nesto.Models.Nesto.Models
 
 Public Class PlanesVentajasViewModel
     Inherits ViewModelBase
@@ -408,7 +409,7 @@ Public Class PlanesVentajasViewModel
         nuevo.Empresa = empresaActual
         nuevo.FechaInicio = Today
         nuevo.FechaFin = Today
-        DbContext.AddToPlanesVentajas(nuevo)
+        DbContext.PlanesVentajas.Add(nuevo)
         listaPlanes.Add(nuevo)
         planActual = listaPlanes.LastOrDefault
     End Sub
@@ -423,13 +424,7 @@ Public Class PlanesVentajasViewModel
         End Get
     End Property
     Private Function CanGuardar(ByVal param As Object) As Boolean
-
-        Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified Or System.Data.EntityState.Deleted)
-
-        Return changes.Any
-
-
-
+        Return True 'DbContext.ChangeTracker.HasChanges()
     End Function
     Private Sub Guardar(ByVal param As Object)
         Try

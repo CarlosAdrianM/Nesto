@@ -107,6 +107,7 @@
           <Property Name="ServirJunto" Type="bit" Nullable="false" />
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" />
           <Property Name="Fecha Modificación" Type="datetime" Nullable="false" />
+          <Property Name="RowVersion" Type="timestamp" StoreGeneratedPattern="Computed" Nullable="false" />
         </EntityType>
         <EntityType Name="Cargos">
           <Key>
@@ -335,7 +336,7 @@
           <Property Name="Atencion" Type="varchar" MaxLength="80" />
           <Property Name="Reembolso" Type="money" Nullable="false" />
           <Property Name="FechaPagoReembolso" Type="date" />
-          <Property Name="CodigoBarras" Type="nvarchar" MaxLength="14" />
+          <Property Name="CodigoBarras" Type="nvarchar" MaxLength="30" />
           <Property Name="NombrePlaza" Type="varchar" MaxLength="80" />
           <Property Name="Nemonico" Type="varchar" MaxLength="3" />
           <Property Name="TelefonoPlaza" Type="varchar" MaxLength="27" />
@@ -629,6 +630,7 @@
           <Property Name="NumSerie" Type="char" MaxLength="30" />
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" />
           <Property Name="Fecha Modificación" Type="datetime" Nullable="false" />
+          <Property Name="RowVersion" Type="timestamp" StoreGeneratedPattern="Computed" Nullable="false" />
         </EntityType>
         <EntityType Name="MultiUsuarios">
           <Key>
@@ -881,11 +883,11 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaComisiones' no tiene d
           <Key>
             <PropertyRef Name="Nº Orden" />
             <PropertyRef Name="Empresa" />
-            <PropertyRef Name="Vendedor" />
             <PropertyRef Name="Número" />
             <PropertyRef Name="Fecha Entrega" />
             <PropertyRef Name="Estado" />
             <PropertyRef Name="Base Imponible" />
+            <PropertyRef Name="Vendedor" />
           </Key>
           <Property Name="Nº Orden" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
           <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
@@ -912,6 +914,8 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaComisiones' no tiene d
           <Property Name="Nº Factura" Type="char" MaxLength="10" />
           <Property Name="Grupo" Type="char" MaxLength="50" />
           <Property Name="SubGrupo" Type="char" MaxLength="50" />
+          <Property Name="EstadoFamilia" Type="smallint" />
+          <Property Name="PrecioTarifa" Type="money" />
         </EntityType>
         <!--Errores durante la generación:
 advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene definida ninguna clave principal. Se ha inferido la clave y la definición se creado como una vista o tabla de solo lectura.-->
@@ -1263,6 +1267,18 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
           </ReferentialConstraint>
         </Association>
         <Association Name="FK_EnviosAgencia_AgenciasTransporte">
+          <End Role="AgenciasTransporte" Type="Self.AgenciasTransporte" Multiplicity="1" />
+          <End Role="EnviosAgencia" Type="Self.EnviosAgencia" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AgenciasTransporte">
+              <PropertyRef Name="Numero" />
+            </Principal>
+            <Dependent Role="EnviosAgencia">
+              <PropertyRef Name="Agencia" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_EnviosAgencia_AgenciasTransporte1">
           <End Role="AgenciasTransporte" Type="Self.AgenciasTransporte" Multiplicity="1" />
           <End Role="EnviosAgencia" Type="Self.EnviosAgencia" Multiplicity="*" />
           <ReferentialConstraint>
@@ -1974,7 +1990,9 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
 [vstLinPedidoVtaComisiones].[Fecha Factura] AS [Fecha Factura], 
 [vstLinPedidoVtaComisiones].[Nº Factura] AS [Nº Factura], 
 [vstLinPedidoVtaComisiones].[Grupo] AS [Grupo], 
-[vstLinPedidoVtaComisiones].[SubGrupo] AS [SubGrupo]
+[vstLinPedidoVtaComisiones].[SubGrupo] AS [SubGrupo], 
+[vstLinPedidoVtaComisiones].[EstadoFamilia] AS [EstadoFamilia], 
+[vstLinPedidoVtaComisiones].[PrecioTarifa] AS [PrecioTarifa]
 FROM [dbo].[vstLinPedidoVtaComisiones] AS [vstLinPedidoVtaComisiones]</DefiningQuery>
           </EntitySet>
           <EntitySet Name="vstLinPedidoVtaConVendedor" EntityType="Self.vstLinPedidoVtaConVendedor" store:Type="Views" store:Schema="dbo">
@@ -2089,6 +2107,10 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
             <End Role="Empresas" EntitySet="Empresas" />
           </AssociationSet>
           <AssociationSet Name="FK_EnviosAgencia_AgenciasTransporte" Association="Self.FK_EnviosAgencia_AgenciasTransporte">
+            <End Role="AgenciasTransporte" EntitySet="AgenciasTransporte" />
+            <End Role="EnviosAgencia" EntitySet="EnviosAgencia" />
+          </AssociationSet>
+          <AssociationSet Name="FK_EnviosAgencia_AgenciasTransporte1" Association="Self.FK_EnviosAgencia_AgenciasTransporte1">
             <End Role="AgenciasTransporte" EntitySet="AgenciasTransporte" />
             <End Role="EnviosAgencia" EntitySet="EnviosAgencia" />
           </AssociationSet>
@@ -2899,6 +2921,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <NavigationProperty Name="Clientes" Relationship="Nesto.Models.EF.FK_LinPedidoVta_Clientes" FromRole="LinPedidoVta" ToRole="Clientes" />
           <NavigationProperty Name="Empresas" Relationship="Nesto.Models.EF.FK_LinPedidoVta_Empresas" FromRole="LinPedidoVta" ToRole="Empresas" />
           <NavigationProperty Name="SubGruposProducto" Relationship="Nesto.Models.EF.FK_LinPedidoVta_SubGruposProducto" FromRole="LinPedidoVta" ToRole="SubGruposProducto" />
+          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" annotation:StoreGeneratedPattern="Computed" />
         </EntityType>
         <EntityType Name="CabFacturaVta">
           <Key>
@@ -2970,6 +2993,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <NavigationProperty Name="CabAlquileres" Relationship="Nesto.Models.EF.FK_CabAlquileres_CabPedidoVta" FromRole="CabPedidoVta" ToRole="CabAlquileres" />
           <NavigationProperty Name="LinPedidoVta" Relationship="Nesto.Models.EF.FK_LinPedidoVta_CabPedidoVta" FromRole="CabPedidoVta" ToRole="LinPedidoVta" />
           <NavigationProperty Name="Clientes" Relationship="Nesto.Models.EF.FK_CabPedidoVta_Clientes" FromRole="CabPedidoVta" ToRole="Clientes" />
+          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" annotation:StoreGeneratedPattern="Computed" />
         </EntityType>
         <Association Name="FK_CabAlquileres_CabPedidoVta">
           <End Type="Nesto.Models.EF.CabPedidoVta" Role="CabPedidoVta" Multiplicity="0..1" />
@@ -4275,7 +4299,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="Observaciones" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Atencion" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Reembolso" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
-          <Property Name="CodigoBarras" Type="String" MaxLength="14" FixedLength="false" Unicode="true" />
+          <Property Name="CodigoBarras" Type="String" MaxLength="30" FixedLength="false" Unicode="true" />
           <Property Name="NombrePlaza" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Nemonico" Type="String" MaxLength="3" FixedLength="false" Unicode="false" />
           <Property Name="TelefonoPlaza" Type="String" MaxLength="27" FixedLength="false" Unicode="false" />
@@ -4697,6 +4721,8 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="Nº_Factura" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Name="Grupo" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
           <Property Name="SubGrupo" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
+          <Property Name="EstadoFamilia" Type="Int16" />
+          <Property Name="PrecioTarifa" Type="Decimal" Precision="19" Scale="4" />
         </EntityType>
         </Schema>
     </edmx:ConceptualModels>
@@ -4832,6 +4858,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <EntitySetMapping Name="LinPedidoVta">
             <EntityTypeMapping TypeName="Nesto.Models.EF.LinPedidoVta">
               <MappingFragment StoreEntitySet="LinPedidoVta">
+                <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
                 <ScalarProperty Name="Fecha_Modificación" ColumnName="Fecha Modificación" />
                 <ScalarProperty Name="Usuario" ColumnName="Usuario" />
                 <ScalarProperty Name="NumSerie" ColumnName="NumSerie" />
@@ -4920,6 +4947,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <EntitySetMapping Name="CabPedidoVta">
             <EntityTypeMapping TypeName="Nesto.Models.EF.CabPedidoVta">
               <MappingFragment StoreEntitySet="CabPedidoVta">
+                <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
                 <ScalarProperty Name="Fecha_Modificación" ColumnName="Fecha Modificación" />
                 <ScalarProperty Name="Usuario" ColumnName="Usuario" />
                 <ScalarProperty Name="ServirJunto" ColumnName="ServirJunto" />
@@ -5666,6 +5694,8 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <EntitySetMapping Name="vstLinPedidoVtaComisiones">
             <EntityTypeMapping TypeName="Nesto.Models.EF.vstLinPedidoVtaComisiones">
               <MappingFragment StoreEntitySet="vstLinPedidoVtaComisiones">
+                <ScalarProperty Name="PrecioTarifa" ColumnName="PrecioTarifa" />
+                <ScalarProperty Name="EstadoFamilia" ColumnName="EstadoFamilia" />
                 <ScalarProperty Name="SubGrupo" ColumnName="SubGrupo" />
                 <ScalarProperty Name="Grupo" ColumnName="Grupo" />
                 <ScalarProperty Name="Nº_Factura" ColumnName="Nº Factura" />
@@ -5711,6 +5741,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
         <DesignerProperty Name="EnablePluralization" Value="False" />
         <DesignerProperty Name="IncludeForeignKeysInModel" Value="True" />
         <DesignerProperty Name="UseLegacyProvider" Value="True" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="Ninguno" />
       </DesignerInfoPropertySet>
     </Options>
     <!-- Diagram content (shape and connector positions) -->

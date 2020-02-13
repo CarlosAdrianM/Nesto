@@ -6,6 +6,7 @@ Imports System.Data.Objects
 Imports System.Collections.ObjectModel
 'Imports Nesto.Models.Nesto.Models.EF
 Imports System.Windows.Controls
+Imports Nesto.Models.Nesto.Models
 
 Public Class PrestashopViewModel
     Inherits ViewModelBase
@@ -81,8 +82,7 @@ Public Class PrestashopViewModel
         End Get
     End Property
     Private Function CanGuardarCambios(ByVal param As Object) As Boolean
-        Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified Or System.Data.EntityState.Deleted)
-        Return changes.Any
+        Return True 'DbContext.ChangeTracker.HasChanges()
     End Function
     Private Sub GuardarCambios(ByVal param As Object)
         DbContext.SaveChanges()
@@ -124,7 +124,7 @@ Public Class PrestashopViewModel
         psprod.Empresa = "1"
         psprod.Número = productoBuscar
         psprod.VistoBueno = (System.Environment.UserName = "Laura") Or (System.Environment.UserName = "Carlos")
-        DbContext.AddToPrestashopProductos(psprod)
+        DbContext.PrestashopProductos.Add(psprod)
         Producto.Add(psprod)
         LineaSeleccionada = Producto.Where(Function(f) f.Número.Contains(productoBuscar)).FirstOrDefault
     End Sub

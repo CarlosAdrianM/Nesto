@@ -14,6 +14,7 @@ Imports Newtonsoft.Json
 Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Runtime.InteropServices
+Imports Nesto.Models.Nesto.Models
 
 'Imports Nesto.Models.Nesto.Models.EF
 
@@ -624,12 +625,11 @@ Public Class ClientesViewModel
         End Get
     End Property
     Private Function CanGuardar(ByVal param As Object) As Boolean
-        Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified Or System.Data.EntityState.Deleted)
-        Return changes.Any
+        Return True 'DbContext.ChangeTracker.HasChanges()
     End Function
     Private Sub Guardar(ByVal param As Object)
         Try
-            Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified)
+            'Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified)
 
             extractoCCC = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual AndAlso e.Número = clienteActual AndAlso e.Contacto = contactoActual AndAlso e.ImportePdte <> 0 AndAlso e.CCC <> cuentaActiva.Número)
             pedidosCCC = New ObservableCollection(Of cabeceraPedidoAgrupada)((From p In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On p.Empresa Equals l.Empresa And p.Número Equals l.Número Where p.Empresa = empresaActual AndAlso p.Nº_Cliente = clienteActual AndAlso (p.CCC <> cuentaActiva.Número Or p.CCC Is Nothing) AndAlso l.Estado >= -1 AndAlso l.Estado <= 1 Select New cabeceraPedidoAgrupada With {.CCC = p.CCC,
@@ -706,9 +706,16 @@ Public Class ClientesViewModel
                 siguienteNumero = CInt(cuentasBanco.Where(Function(x) x.Cliente.Trim = clienteActual).OrderBy(Function(x) x.Número).LastOrDefault.Número) + 1
             End If
             'End If
-            cuentaActiva = CCC.CreateCCC(empresaActual, clienteActual, contactoActual, siguienteNumero, "", "", "", "", 0, Nothing, Nothing, "FRST")
+            cuentaActiva = New CCC With {
+                .Empresa = empresaActual,
+                .Cliente = clienteActual,
+                .Contacto = contactoActual,
+                .Número = siguienteNumero,
+                .Estado = 0,
+                .Secuencia = "FRST"
+            }
             cuentasBanco.Add(cuentaActiva)
-            DbContext.AddToCCC(cuentaActiva)
+            DbContext.CCC.Add(cuentaActiva)
             mensajeError = ""
 
         Catch ex As Exception

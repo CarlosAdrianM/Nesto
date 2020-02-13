@@ -8,6 +8,7 @@ Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks
 Imports Nesto.Contratos
+Imports Nesto.Models.Nesto.Models
 
 Public Class AgenciaOnTime
     Implements IAgencia
@@ -168,9 +169,9 @@ Public Class AgenciaOnTime
             Return 34 'España
         End Get
     End Property
-    Private Function rellenarPaises() As ObservableCollection(Of tipoIdIntDescripcion)
-        Return New ObservableCollection(Of tipoIdIntDescripcion) From {
-            New tipoIdIntDescripcion(34, "ESPAÑA")
+    Private Function rellenarPaises() As ObservableCollection(Of Pais)
+        Return New ObservableCollection(Of Pais) From {
+            New Pais(34, "ESPAÑA")
         }
     End Function
     Private Async Function cambiarEstadoAsync(enviosAgencia As EnviosAgencia) As Task(Of HttpResponseMessage)
@@ -193,7 +194,7 @@ Public Class AgenciaOnTime
         Return "https://ontimegts.alertran.net/gts/pub/clielocserv.seam?cliente=02890107&referencia=" + referencia
     End Function
 
-    Public ReadOnly Property ListaPaises As ObservableCollection(Of tipoIdIntDescripcion) Implements IAgencia.ListaPaises
+    Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
     Public ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaTiposRetorno
     Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios

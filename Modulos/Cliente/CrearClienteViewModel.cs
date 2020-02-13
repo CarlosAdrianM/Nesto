@@ -4,6 +4,7 @@ using Microsoft.Practices.Prism.PubSubEvents;
 using Microsoft.Practices.Prism.Regions;
 using Nesto.Contratos;
 using Nesto.Models;
+using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.Cliente.Models;
 using System;
 using System.Collections.Generic;

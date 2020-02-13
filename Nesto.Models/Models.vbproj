@@ -15,6 +15,8 @@
     <MyType>Windows</MyType>
     <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -53,11 +55,15 @@
     <Reference Include="CrystalDecisions.CrystalReports.Engine, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
     <Reference Include="CrystalDecisions.ReportSource, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
     <Reference Include="CrystalDecisions.Shared, Version=13.0.3500.0, Culture=neutral, PublicKeyToken=692fbea5521e1304, processorArchitecture=MSIL" />
+    <Reference Include="EntityFramework, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.5.0.0\lib\net45\EntityFramework.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Practices.Prism.Interactivity, Version=5.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Prism.Interactivity.5.0.0\lib\NET45\Microsoft.Practices.Prism.Interactivity.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Data" />
     <Reference Include="System.Data.Entity" />
     <Reference Include="System.Drawing" />
@@ -81,7 +87,34 @@
     <Import Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AgenciasTransporte.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="CabAlquileres.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="CabFacturaVta.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="CabPedidoVta.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Cargos.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="CCC.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
     <Compile Include="Cliente.vb" />
+    <Compile Include="Clientes.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Comisiones_Result.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Contabilidad.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
     <Compile Include="DataSets\ControlPedidos.Designer.vb">
       <DependentUpon>ControlPedidos.xsd</DependentUpon>
       <AutoGen>True</AutoGen>
@@ -124,12 +157,64 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
     </Compile>
+    <Compile Include="Empresas.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="EnviosAgencia.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="EnviosHistoria.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="EstadosCCC.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="EstadosPlanVentajas.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="EtiquetasPicking.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="ExtractoCliente.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="ExtractoInmovilizado.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="ExtractoRuta.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="FamiliasVendedor.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Inmovilizados.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="LinPedidoCmp.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="LinPedidoVta.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
     <Compile Include="MainModel.vb" />
     <Compile Include="Microsoft\Practices\Prism\Mvvm.vb" />
+    <Compile Include="ModelNesto.Context.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ModelNesto.Context.tt</DependentUpon>
+    </Compile>
     <Compile Include="ModelNesto.Designer.vb">
       <DependentUpon>ModelNesto.edmx</DependentUpon>
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="ModelNesto.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="MultiUsuarios.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
     </Compile>
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
@@ -147,6 +232,48 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
     <Compile Include="PedidoVenta.vb" />
+    <Compile Include="PersonasContactoCliente.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="PlanesVentajas.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="PlanVentajasCliente.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="prdProductosAlquiler.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="PreContabilidad.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="PrestashopProductos.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Productos.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Remesas.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Rutas.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="SeguimientoCliente.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="SubGruposProducto.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Vendedores.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="vstLinPedidoVtaComisiones.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
+    <Compile Include="vstLinPedidoVtaConVendedor.vb">
+      <DependentUpon>ModelNesto.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">
@@ -241,7 +368,20 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
     <Service Include="{C0C07587-41A7-46C8-8FBD-3F9C8EBE2DDC}" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ModelNesto.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ModelNesto.Context.vb</LastGenOutput>
+      <DependentUpon>ModelNesto.edmx</DependentUpon>
+    </Content>
+    <Content Include="ModelNesto.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ModelNesto.vb</LastGenOutput>
+      <DependentUpon>ModelNesto.edmx</DependentUpon>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

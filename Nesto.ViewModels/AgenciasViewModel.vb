@@ -1,6 +1,6 @@
 ﻿Imports System.Windows.Input
 Imports System.Collections.ObjectModel
-Imports Nesto.Models
+Imports Nesto.Models.EF
 Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Controls
@@ -13,8 +13,9 @@ Imports Microsoft.Practices.Prism.Regions
 Imports Microsoft.Practices.Unity
 Imports System.Transactions
 Imports System.Threading.Tasks
-Imports Nesto.ViewModels
 Imports Nesto.Contratos
+Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -77,6 +78,7 @@ Public Class AgenciasViewModel
         factory.Add("ASM", Function() New AgenciaASM(Me))
         factory.Add("OnTime", Function() New AgenciaOnTime(Me))
         factory.Add("Glovo", Function() New AgenciaGlovo(Me))
+        factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
     End Sub
 
 
@@ -173,7 +175,7 @@ Public Class AgenciasViewModel
                     OnPropertyChanged("paisActual")
                     agenciaEspecifica = factory(agenciaSeleccionada.Nombre).Invoke
                     listaPaises = agenciaEspecifica.ListaPaises()
-                    paisActual = listaPaises.Single(Function(p) p.id = agenciaEspecifica.paisDefecto)
+                    paisActual = listaPaises.Single(Function(p) p.Id = agenciaEspecifica.paisDefecto)
                     listaTiposRetorno = agenciaEspecifica.ListaTiposRetorno
                     retornoActual = listaTiposRetorno.Single(Function(r) r.id = agenciaEspecifica.retornoSinRetorno)
                     listaServicios = agenciaEspecifica.ListaServicios
@@ -391,22 +393,22 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private _listaPaises As ObservableCollection(Of tipoIdIntDescripcion)
-    Public Property listaPaises() As ObservableCollection(Of tipoIdIntDescripcion)
+    Private _listaPaises As ObservableCollection(Of Pais)
+    Public Property listaPaises() As ObservableCollection(Of Pais)
         Get
             Return _listaPaises
         End Get
-        Set(ByVal value As ObservableCollection(Of tipoIdIntDescripcion))
+        Set(ByVal value As ObservableCollection(Of Pais))
             SetProperty(_listaPaises, value)
         End Set
     End Property
 
-    Private _paisActual As tipoIdIntDescripcion
-    Public Property paisActual() As tipoIdIntDescripcion
+    Private _paisActual As Pais
+    Public Property paisActual() As Pais
         Get
             Return _paisActual
         End Get
-        Set(ByVal value As tipoIdIntDescripcion)
+        Set(ByVal value As Pais)
             SetProperty(_paisActual, value)
         End Set
     End Property
@@ -695,7 +697,7 @@ Public Class AgenciasViewModel
                     retornoActual = (From s In listaTiposRetorno Where s.id = agenciaEspecifica.retornoSoloCobros).FirstOrDefault
                     servicioActual = (From s In listaServicios Where s.id = agenciaEspecifica.servicioSoloCobros).FirstOrDefault
                     horarioActual = (From s In listaHorarios Where s.id = agenciaEspecifica.horarioSoloCobros).FirstOrDefault
-                    paisActual = (From s In listaPaises Where s.id = agenciaEspecifica.paisDefecto).SingleOrDefault
+                    paisActual = (From s In listaPaises Where s.Id = agenciaEspecifica.paisDefecto).SingleOrDefault
                     bultos = 0
                     SetProperty(_numeroPedido, pedidoSeleccionado.Número.ToString)
                 End If
@@ -1453,7 +1455,7 @@ Public Class AgenciasViewModel
                     If Not MODO_CUADRE Then
                         For Each linea In listaReembolsosSeleccionados
                             Dim agencia As AgenciasTransporte = DbContext.AgenciasTransporte.Where(Function(a) a.Numero = linea.Agencia).SingleOrDefault
-                            DbContext.PreContabilidad.AddObject(New PreContabilidad With {
+                            DbContext.PreContabilidad.Add(New PreContabilidad With {
                             .Empresa = empresaSeleccionada.Número,
                             .Diario = "_PagoReemb",
                             .Asiento = 1,
@@ -1469,7 +1471,7 @@ Public Class AgenciasViewModel
                             .FormaVenta = "VAR"
                         })
                         Next
-                        DbContext.PreContabilidad.AddObject(New PreContabilidad With {
+                        DbContext.PreContabilidad.Add(New PreContabilidad With {
                             .Empresa = empresaSeleccionada.Número,
                             .Diario = "_PagoReemb",
                             .Asiento = 1,
@@ -1524,7 +1526,7 @@ Public Class AgenciasViewModel
                     ' Comprobamos que las transacciones sean correctas
                     If success Then
                         ' Reset the context since the operation succeeded. 
-                        DbContext.AcceptAllChanges()
+                        DbContext.SaveChanges()
                         NotificationRequest.Raise(New Notification() With {
                          .Title = "Contabilizado Correctamente",
                         .Content = "Nº Asiento: " + asiento.ToString
@@ -2055,7 +2057,7 @@ Public Class AgenciasViewModel
                         .CodPostal = codPostalEnvio
                         .Poblacion = poblacionEnvio
                         .Provincia = provinciaEnvio
-                        .Pais = paisActual.id
+                        .Pais = paisActual.Id
                         .Telefono = telefonoEnvio
                         .Movil = movilEnvio
                         .Email = correoEnvio
@@ -2194,7 +2196,7 @@ Public Class AgenciasViewModel
                         historia.ValorAnterior = envio.Reembolso.ToString("C")
                         'reembolsoAnterior = envio.Reembolso
                         envioEncontrado.Reembolso = reembolso
-                        DbContext.EnviosHistoria.AddObject(historia)
+                        DbContext.EnviosHistoria.Add(historia)
                         modificado = True
                     End If
                     If envio.Retorno <> retorno.id Then
@@ -2203,7 +2205,7 @@ Public Class AgenciasViewModel
                         Dim tipoEnvioAnterior As Byte = envio.Retorno
                         historia.ValorAnterior = (From l In listaTiposRetorno Where l.id = tipoEnvioAnterior Select l.descripcion).FirstOrDefault
                         envioEncontrado.Retorno = retorno.id
-                        DbContext.EnviosHistoria.AddObject(historia)
+                        DbContext.EnviosHistoria.Add(historia)
                         modificado = True
                     End If
                     If envio.Estado <> estado Then
@@ -2211,7 +2213,7 @@ Public Class AgenciasViewModel
                         historia.Campo = "Estado"
                         historia.ValorAnterior = envio.Estado
                         envioEncontrado.Estado = estado
-                        DbContext.EnviosHistoria.AddObject(historia)
+                        DbContext.EnviosHistoria.Add(historia)
                         modificado = True
                     End If
                     If envio.FechaEntrega <> fechaEntrega Then
@@ -2219,7 +2221,7 @@ Public Class AgenciasViewModel
                         historia.Campo = "FechaEntrega"
                         historia.ValorAnterior = envio.FechaEntrega.ToString
                         envioEncontrado.FechaEntrega = fechaEntrega
-                        DbContext.EnviosHistoria.AddObject(historia)
+                        DbContext.EnviosHistoria.Add(historia)
                         modificado = True
                     End If
 
@@ -2273,7 +2275,7 @@ Public Class AgenciasViewModel
                 ' Comprobamos que las transacciones sean correctas
                 If success Then
                     ' Reset the context since the operation succeeded. 
-                    DbContext.AcceptAllChanges()
+                    DbContext.SaveChanges()
                     envio = envioEncontrado
                     OnPropertyChanged("listaEnviosTramitados")
                 Else
@@ -2375,10 +2377,10 @@ Public Class AgenciasViewModel
 
 
                     If importeAnterior <> 0 Then
-                        DbContext.AddToPreContabilidad(lineaDeshago)
+                        DbContext.PreContabilidad.Add(lineaDeshago)
                     End If
                     If importeNuevo <> 0 Then
-                        DbContext.AddToPreContabilidad(lineaRehago)
+                        DbContext.PreContabilidad.Add(lineaRehago)
                     End If
                     'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                     If DbContext.SaveChanges() Then
@@ -2402,7 +2404,7 @@ Public Class AgenciasViewModel
                 ' Comprobamos que las transacciones sean correctas
                 If success Then
                     ' Reset the context since the operation succeeded. 
-                    DbContext.AcceptAllChanges()
+                    DbContext.SaveChanges()
                 Else
                     NotificationRequest.Raise(New Notification() With {
                      .Title = "¡Error!",
@@ -2669,6 +2671,23 @@ Public Class expedicion
         End Set
     End Property
 
+
 End Class
 
+Public Class Pais
+    Public Sub New(id As Integer, nombre As String)
+        Me.Id = id
+        Me.Nombre = nombre
+    End Sub
+
+    Public Sub New(id As Integer, nombre As String, codigoAlfa As String)
+        Me.Id = id
+        Me.Nombre = nombre
+        Me.CodigoAlfa = codigoAlfa
+    End Sub
+
+    Public ReadOnly Property Id As Integer
+    Public ReadOnly Property Nombre As String
+    Public ReadOnly Property CodigoAlfa As String
+End Class
 #End Region

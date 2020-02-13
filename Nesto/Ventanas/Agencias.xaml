@@ -126,7 +126,7 @@
                         <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="5" Text="{Binding telefonoEnvio}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="6" Text="{Binding movilEnvio}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="7" Text="{Binding attEnvio}" Style="{StaticResource campoTexto}"/>
-                        <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedItem="{Binding paisActual}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"/>
+                        <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedItem="{Binding paisActual}" DisplayMemberPath="Nombre" SelectedValuePath="Id" Style="{StaticResource listaCombo}"/>
                         <TextBox Grid.Column="6" Grid.Row="0" Text="{Binding correoEnvio}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="6" Grid.Row="1" Text="{Binding reembolso, StringFormat=c}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
 

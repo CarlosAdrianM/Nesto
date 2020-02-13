@@ -4,6 +4,7 @@ Imports System.Windows
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports System.Transactions
 Imports Nesto.Contratos
+Imports Nesto.Models.Nesto.Models
 
 Public Class AgenciaGlovo
     Implements IAgencia
@@ -116,12 +117,12 @@ Public Class AgenciaGlovo
     Public Function EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
         Return ""
     End Function
-    Private Function rellenarPaises() As ObservableCollection(Of tipoIdIntDescripcion)
-        Return New ObservableCollection(Of tipoIdIntDescripcion) From {
-            New tipoIdIntDescripcion(34, "ESPAÑA")
+    Private Function rellenarPaises() As ObservableCollection(Of Pais)
+        Return New ObservableCollection(Of Pais) From {
+            New Pais(34, "ESPAÑA")
         }
     End Function
-    Public ReadOnly Property ListaPaises As ObservableCollection(Of tipoIdIntDescripcion) Implements IAgencia.ListaPaises
+    Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
     Public ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaTiposRetorno
     Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios

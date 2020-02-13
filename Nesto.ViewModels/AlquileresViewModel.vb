@@ -10,7 +10,7 @@ Imports System.Windows.Controls
 Imports Microsoft.Practices.Prism.Mvvm
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-
+Imports Nesto.Models.Nesto.Models
 
 Public Class AlquileresViewModel
     Inherits BindableBase
@@ -232,20 +232,8 @@ Public Class AlquileresViewModel
         End Get
     End Property
     Private Function CanGuardar(ByVal param As Object) As Boolean
-
-        'For Each alquiler In DbContext.CabAlquileres
-        '    If alquiler.EntityState <> EntityState.Unchanged Then
-        '        Return True
-        '    End If
-        'Next
-        'Return False
-
-        Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified Or System.Data.EntityState.Deleted)
-
-        Return changes.Any
-
-
-
+        'Return DbContext.ChangeTracker.HasChanges()
+        Return True
     End Function
     Private Sub Guardar(ByVal param As Object)
         Try
@@ -278,7 +266,7 @@ Public Class AlquileresViewModel
         ElseIf LineaSeleccionada IsNot Nothing Then
             alqui.Producto = LineaSeleccionada.Producto
         End If
-        DbContext.AddToCabAlquileres(alqui)
+        DbContext.CabAlquileres.Add(alqui)
         AlquileresCollection.Add(alqui)
     End Sub
 
@@ -295,7 +283,7 @@ Public Class AlquileresViewModel
         Return LineaSeleccionada IsNot Nothing
     End Function
     Private Sub Borrar(ByVal param As Object)
-        DbContext.CabAlquileres.DeleteObject(LineaSeleccionada)
+        DbContext.CabAlquileres.Remove(LineaSeleccionada)
         AlquileresCollection.Remove(LineaSeleccionada)
     End Sub
 

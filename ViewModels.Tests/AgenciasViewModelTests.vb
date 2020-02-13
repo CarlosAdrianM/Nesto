@@ -7,6 +7,7 @@ Imports Nesto.Models
 Imports System.ComponentModel
 Imports Nesto.Contratos
 Imports System.Collections.ObjectModel
+Imports Nesto.Models.Nesto.Models
 
 <TestClass()>
 Public Class AgenciaViewModelTests

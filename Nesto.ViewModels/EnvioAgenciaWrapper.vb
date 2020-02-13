@@ -1,5 +1,6 @@
 ﻿Imports Microsoft.Practices.Prism.Mvvm
 Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 
 Public Class EnvioAgenciaWrapper
     Inherits BindableBase

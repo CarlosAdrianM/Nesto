@@ -8,6 +8,7 @@ Imports Microsoft.Office.Interop
 Imports System.Windows.Controls
 Imports System.Threading.Tasks
 Imports Nesto.Contratos
+Imports Nesto.Models.Nesto.Models
 
 Public Class RemesasViewModel
     Inherits ViewModelBase
@@ -269,12 +270,12 @@ Public Class RemesasViewModel
         'Dim nombreFichero As String = "c:\banco\prueba.xml"
         Try
             mensajeError = "Generando fichero..."
-            DbContext.CommandTimeout = 6000
+            'DbContext.Database.CommandTimeout = 6000
 
             estaOcupado = True
             Await Task.Run(Sub()
                                listaContenido = crearFicheroRemesa(remesaActual.Número, codigo, fechaCobro)
-                               DbContext.CommandTimeout = 180
+                               'DbContext.Database.CommandTimeout = 180
                                strContenido = ""
                                For Each linea In listaContenido
                                    strContenido = strContenido + linea

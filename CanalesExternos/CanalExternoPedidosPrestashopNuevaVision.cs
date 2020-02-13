@@ -7,6 +7,7 @@ using static Nesto.Models.PedidoVenta;
 using Nesto.Contratos;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using Nesto.Models.Nesto.Models;
 
 namespace Nesto.Modulos.CanalesExternos
 {

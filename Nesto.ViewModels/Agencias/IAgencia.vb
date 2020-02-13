@@ -1,4 +1,5 @@
 ﻿Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 Imports System.Collections.ObjectModel
 Imports System.Windows
 
@@ -19,7 +20,7 @@ Public Interface IAgencia
     ReadOnly Property retornoObligatorio As Integer ' Forma de retorno = SI (obligatorio)
     ReadOnly Property paisDefecto As Integer
     Function EnlaceSeguimiento(envio As EnviosAgencia) As String
-    ReadOnly Property ListaPaises As ObservableCollection(Of tipoIdIntDescripcion)
+    ReadOnly Property ListaPaises As ObservableCollection(Of Pais)
     ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion)
     ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion)
     ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion)

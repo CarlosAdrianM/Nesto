@@ -15,6 +15,7 @@ Imports Newtonsoft.Json.Linq
 Imports Nesto.Modulos.PlantillaVenta
 Imports Xceed.Wpf.Toolkit
 Imports Microsoft.Practices.Prism.PubSubEvents
+Imports Nesto.Models.Nesto.Models
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase

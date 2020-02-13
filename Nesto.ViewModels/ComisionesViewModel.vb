@@ -11,6 +11,7 @@ Imports System.Net.Http
 Imports Nesto.Contratos
 Imports Newtonsoft.Json
 Imports System.Windows.Media
+Imports Nesto.Models.Nesto.Models
 
 Public Class ComisionesViewModel
     Inherits Nesto.Contratos.ViewModelBase

@@ -3,14 +3,15 @@ Imports System.Data.Objects
 Imports System.Transactions
 Imports Nesto.Contratos
 Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 
 Public Class AgenciaService
     Implements IAgenciaService
 
     Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
         Using context As New NestoEntities
-            context.Attach(envio)
-            context.ObjectStateManager.ChangeObjectState(envio, EntityState.Modified)
+            context.EnviosAgencia.Attach(envio)
+            context.Entry(envio).State = EntityState.Modified
             context.SaveChanges()
         End Using
     End Sub
@@ -19,10 +20,10 @@ Public Class AgenciaService
         Using DbContext As New NestoEntities
             Dim historias As List(Of EnviosHistoria) = (From h In DbContext.EnviosHistoria Where h.NumeroEnvio = Id).ToList
             For Each historia In historias
-                DbContext.EnviosHistoria.DeleteObject(historia)
+                DbContext.EnviosHistoria.Remove(historia)
             Next
             Dim envioActual = DbContext.EnviosAgencia.Single(Function(e) e.Numero = Id)
-            DbContext.EnviosAgencia.DeleteObject(envioActual)
+            DbContext.EnviosAgencia.Remove(envioActual)
             DbContext.SaveChanges()
         End Using
     End Sub
@@ -46,9 +47,9 @@ Public Class AgenciaService
 
     Public Function Insertar(envio As EnviosAgencia) As EnviosAgencia Implements IAgenciaService.Insertar
         Using contexto As New NestoEntities
-            contexto.EnviosAgencia.AddObject(envio)
+            contexto.EnviosAgencia.Add(envio)
             contexto.SaveChanges()
-            envio.AgenciasTransporteReference.Load()
+            contexto.Entry(envio).Reference(Function(e) e.AgenciasTransporte).Load()
         End Using
     End Function
 
@@ -290,7 +291,7 @@ Public Class AgenciaService
 
                 If success Then
                     transaction.Complete()
-                    DbContext.AcceptAllChanges()
+                    DbContext.SaveChanges()
                     Return "Envío del pedido " + envio.Pedido.ToString + " tramitado correctamente."
                 Else
                     transaction.Dispose()
@@ -350,7 +351,7 @@ Public Class AgenciaService
                 Dim success As Boolean
 
                 Try
-                    DbContext.AddToPreContabilidad(lineaInsertar)
+                    DbContext.PreContabilidad.Add(lineaInsertar)
                     DbContext.SaveChanges()
                     asiento = DbContext.prdContabilizar(lineaInsertar.Empresa, Constantes.DiariosContables.DIARIO_REEMBOLSOS)
                     transaction.Complete()
@@ -363,7 +364,7 @@ Public Class AgenciaService
                 ' Comprobamos que las transacciones sean correctas
                 If success Then
                     ' Reset the context since the operation succeeded. 
-                    DbContext.AcceptAllChanges()
+                    DbContext.SaveChanges()
                 Else
                     Throw New Exception("Se ha producido un error y no se grabado los datos")
                 End If
