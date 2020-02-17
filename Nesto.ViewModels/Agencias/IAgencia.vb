@@ -1,6 +1,7 @@
 ﻿Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports System.Collections.ObjectModel
+Imports System.Threading.Tasks
 Imports System.Windows
 
 Public Interface IAgencia
@@ -9,9 +10,9 @@ Public Interface IAgencia
     'Function calcularMensajeError(numeroError As Integer) As String
     Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String
     Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
-    'Function construirXMLdeSalida() As XDocument
-    Sub llamadaWebService(servicio As IAgenciaService)
-    Sub imprimirEtiqueta()
+    ' Carlos 14/02/2020: el parámetro servicio de LlamadaWebService hay que quitarlo cuando EF solucione el error de Numero y Número (solo se usa para coger la empresa)
+    Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) ' Devuelve "OK" en caso de que no haya error o el texto del error
+    Sub imprimirEtiqueta(envio As EnviosAgencia)
     ReadOnly Property visibilidadSoloImprimir As Visibility
     ReadOnly Property retornoSoloCobros As Integer
     ReadOnly Property servicioSoloCobros As Integer

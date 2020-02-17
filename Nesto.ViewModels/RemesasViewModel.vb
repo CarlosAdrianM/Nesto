@@ -270,12 +270,12 @@ Public Class RemesasViewModel
         'Dim nombreFichero As String = "c:\banco\prueba.xml"
         Try
             mensajeError = "Generando fichero..."
-            'DbContext.Database.CommandTimeout = 6000
+            DbContext.Database.CommandTimeout = 6000
 
             estaOcupado = True
             Await Task.Run(Sub()
                                listaContenido = crearFicheroRemesa(remesaActual.Número, codigo, fechaCobro)
-                               'DbContext.Database.CommandTimeout = 180
+                               DbContext.Database.CommandTimeout = 180
                                strContenido = ""
                                For Each linea In listaContenido
                                    strContenido = strContenido + linea

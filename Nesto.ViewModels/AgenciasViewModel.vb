@@ -1,10 +1,9 @@
 ﻿Imports System.Windows.Input
 Imports System.Collections.ObjectModel
-Imports Nesto.Models.EF
 Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Controls
-Imports System.Data.Objects
+Imports System.Data.Entity.Core.Objects
 Imports Microsoft.Practices.Prism.Mvvm
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
@@ -78,7 +77,7 @@ Public Class AgenciasViewModel
         factory.Add("ASM", Function() New AgenciaASM(Me))
         factory.Add("OnTime", Function() New AgenciaOnTime(Me))
         factory.Add("Glovo", Function() New AgenciaGlovo(Me))
-        factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
+        'factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
     End Sub
 
 
@@ -164,28 +163,37 @@ Public Class AgenciasViewModel
             Return _agenciaSeleccionada
         End Get
         Set(value As AgenciasTransporte)
-
-            SetProperty(_agenciaSeleccionada, value)
-
             Try
-                If Not IsNothing(agenciaSeleccionada) Then
+                If Not IsNothing(value) Then
+                    agenciaEspecifica = factory(value.Nombre).Invoke
+                    If PestañaSeleccionada.Name = Pestannas.PEDIDOS OrElse PestañaSeleccionada.Name = Pestannas.PENDIENTES OrElse PestañaSeleccionada.Name = Pestannas.EN_CURSO Then
+                        listaPaises = agenciaEspecifica.ListaPaises()
+                        paisActual = listaPaises.Single(Function(p) p.Id = agenciaEspecifica.paisDefecto)
+                        listaTiposRetorno = agenciaEspecifica.ListaTiposRetorno
+                        retornoActual = listaTiposRetorno.Single(Function(r) r.id = agenciaEspecifica.retornoSinRetorno)
+                        listaServicios = agenciaEspecifica.ListaServicios
+                        servicioActual = listaServicios.Single(Function(s) s.id = agenciaEspecifica.ServicioDefecto)
+                        listaHorarios = agenciaEspecifica.ListaHorarios
+                        horarioActual = listaHorarios.Single(Function(h) h.id = agenciaEspecifica.HorarioDefecto)
+                    End If
+                    If PestañaSeleccionada.Name = Pestannas.EN_CURSO Then
+                        listaEnvios = servicio.CargarListaEnvios(value.Numero)
+                    End If
+                    If PestañaSeleccionada.Name = Pestannas.REEMBOLSOS Then
+                        listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, value.Numero)
+                    End If
+                    If PestañaSeleccionada.Name = Pestannas.RETORNOS Then
+                        listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, value.Numero, agenciaEspecifica.retornoSinRetorno)
+                    End If
+                    If PestañaSeleccionada.Name = Pestannas.TRAMITADOS Then
+                        listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, value.Numero, fechaFiltro)
+                    End If
+
+                    SetProperty(_agenciaSeleccionada, value)
                     OnPropertyChanged("servicioActual")
                     OnPropertyChanged("horarioActual")
                     OnPropertyChanged("retornoActual")
                     OnPropertyChanged("paisActual")
-                    agenciaEspecifica = factory(agenciaSeleccionada.Nombre).Invoke
-                    listaPaises = agenciaEspecifica.ListaPaises()
-                    paisActual = listaPaises.Single(Function(p) p.Id = agenciaEspecifica.paisDefecto)
-                    listaTiposRetorno = agenciaEspecifica.ListaTiposRetorno
-                    retornoActual = listaTiposRetorno.Single(Function(r) r.id = agenciaEspecifica.retornoSinRetorno)
-                    listaServicios = agenciaEspecifica.ListaServicios
-                    servicioActual = listaServicios.Single(Function(s) s.id = agenciaEspecifica.ServicioDefecto)
-                    listaHorarios = agenciaEspecifica.ListaHorarios
-                    horarioActual = listaHorarios.Single(Function(h) h.id = agenciaEspecifica.HorarioDefecto)
-                    listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
-                    listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, agenciaSeleccionada.Numero)
-                    listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro, agenciaEspecifica.retornoSinRetorno)
-                    listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
                     OnPropertyChanged("sumaContabilidad")
                     OnPropertyChanged("descuadreContabilidad")
                     OnPropertyChanged("visibilidadSoloImprimir")
@@ -194,8 +202,9 @@ Public Class AgenciasViewModel
             Catch ex As Exception
                 NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
-                    .Content = "No se encuentra la implementación de la agencia " + agenciaSeleccionada.Nombre
+                    .Content = "No se encuentra la implementación de la agencia " + value.Nombre
                 })
+                OnPropertyChanged("agenciaSeleccionada")
             End Try
 
         End Set
@@ -205,26 +214,6 @@ Public Class AgenciasViewModel
         Get
             Return Not IsNothing(EnvioPendienteSeleccionado)
         End Get
-    End Property
-
-    Private _XMLdeSalida As XDocument
-    Public Property XMLdeSalida As XDocument
-        Get
-            Return _XMLdeSalida
-        End Get
-        Set(value As XDocument)
-            SetProperty(_XMLdeSalida, value)
-        End Set
-    End Property
-
-    Private _XMLdeEntrada As XDocument
-    Public Property XMLdeEntrada As XDocument
-        Get
-            Return _XMLdeEntrada
-        End Get
-        Set(value As XDocument)
-            SetProperty(_XMLdeEntrada, value)
-        End Set
     End Property
 
     Private _empresaSeleccionada As Empresas
@@ -240,10 +229,18 @@ Public Class AgenciasViewModel
                     agenciaSeleccionada = listaAgencias.FirstOrDefault
                 End If
                 If Not IsNothing(agenciaSeleccionada) Then
-                    listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
-                    listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, agenciaSeleccionada.Numero)
-                    listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro, agenciaEspecifica.retornoSinRetorno)
-                    listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+                    If PestañaSeleccionada.Name = Pestannas.EN_CURSO Then
+                        listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
+                    End If
+                    If PestañaSeleccionada.Name = Pestannas.REEMBOLSOS Then
+                        listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, agenciaSeleccionada.Numero)
+                    End If
+                    If PestañaSeleccionada.Name = Pestannas.RETORNOS Then
+                        listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, agenciaEspecifica.retornoSinRetorno)
+                    End If
+                    If PestañaSeleccionada.Name = Pestannas.TRAMITADOS Then
+                        listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+                    End If
                 Else
                     listaEnvios = New ObservableCollection(Of EnviosAgencia)
                     listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)
@@ -277,18 +274,19 @@ Public Class AgenciasViewModel
             End If
 
             configurarAgenciaPedido(agenciaSeleccionada)
-            If Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(pedidoSeleccionado.Clientes) Then
+            If Not IsNothing(pedidoSeleccionado) Then
                 Try
+                    Dim cliente = servicio.CargarPedido(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número).Clientes
                     reembolso = importeReembolso(pedidoSeleccionado)
                     bultos = 1
-                    nombreEnvio = If(pedidoSeleccionado.Clientes.Nombre IsNot Nothing, pedidoSeleccionado.Clientes.Nombre.Trim, "")
-                    direccionEnvio = If(pedidoSeleccionado.Clientes.Dirección IsNot Nothing, pedidoSeleccionado.Clientes.Dirección.Trim, "")
-                    poblacionEnvio = If(pedidoSeleccionado.Clientes.Población IsNot Nothing, pedidoSeleccionado.Clientes.Población.Trim, "")
-                    provinciaEnvio = If(pedidoSeleccionado.Clientes.Provincia IsNot Nothing, pedidoSeleccionado.Clientes.Provincia.Trim, "")
-                    codPostalEnvio = If(pedidoSeleccionado.Clientes.CodPostal IsNot Nothing, pedidoSeleccionado.Clientes.CodPostal.Trim, "")
-                    If pedidoSeleccionado.Clientes.Teléfono IsNot Nothing Then
-                        telefonoEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "F")
-                        movilEnvio = telefonoUnico(pedidoSeleccionado.Clientes.Teléfono.Trim, "M")
+                    nombreEnvio = If(cliente.Nombre IsNot Nothing, cliente.Nombre.Trim, "")
+                    direccionEnvio = If(cliente.Dirección IsNot Nothing, cliente.Dirección.Trim, "")
+                    poblacionEnvio = If(cliente.Población IsNot Nothing, cliente.Población.Trim, "")
+                    provinciaEnvio = If(cliente.Provincia IsNot Nothing, cliente.Provincia.Trim, "")
+                    codPostalEnvio = If(cliente.CodPostal IsNot Nothing, cliente.CodPostal.Trim, "")
+                    If cliente.Teléfono IsNot Nothing Then
+                        telefonoEnvio = telefonoUnico(cliente.Teléfono.Trim, "F")
+                        movilEnvio = telefonoUnico(cliente.Teléfono.Trim, "M")
                     Else
                         telefonoEnvio = ""
                         movilEnvio = ""
@@ -296,12 +294,12 @@ Public Class AgenciasViewModel
                     correoEnvio = correoUnico()
                     observacionesEnvio = pedidoSeleccionado.Comentarios
                     attEnvio = nombreEnvio
-                    If IsNothing(empresaSeleccionada.FechaPicking) Then
+                    If IsNothing(empresaSeleccionada) OrElse IsNothing(empresaSeleccionada.FechaPicking) Then
                         fechaEnvio = Today
                     Else
                         fechaEnvio = empresaSeleccionada.FechaPicking
                     End If
-                    listaEnviosPedido = servicio.CargarListaEnviosPedido(empresaSeleccionada.Número, pedidoSeleccionado.Número)
+                    listaEnviosPedido = servicio.CargarListaEnviosPedido(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
                     envioActual = listaEnviosPedido.LastOrDefault
                 Catch ex As Exception
                     If Not IsNothing(NotificationRequest) Then
@@ -568,7 +566,6 @@ Public Class AgenciasViewModel
                 Dim agenciaEnvio As AgenciasTransporte = Nothing
                 If Not IsNothing(envioActual) AndAlso Not IsNothing(envioActual.Agencia) Then
                     agenciaEnvio = servicio.CargarAgencia(envioActual.Agencia)
-                    'DbContext.AgenciasTransporte.Where(Function(a) a.Numero = envioActual.Agencia).SingleOrDefault
                 End If
 
                 If IsNothing(clienteFiltro) AndAlso Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaEnvio) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Numero <> agenciaEnvio.Numero Then
@@ -604,7 +601,7 @@ Public Class AgenciasViewModel
             Catch ex As Exception
                 Return
             End Try
-
+            cmdModificar.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -614,6 +611,11 @@ Public Class AgenciasViewModel
             Return _envioPendienteSeleccionado
         End Get
         Set(ByVal value As EnvioAgenciaWrapper)
+
+            If Not IsNothing(value) AndAlso value.Agencia <> agenciaSeleccionada.Numero Then
+                empresaSeleccionada = listaEmpresas.Single(Function(e) e.Número = value.Empresa)
+                agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = value.Agencia)
+            End If
             SetProperty(_envioPendienteSeleccionado, value)
             OnPropertyChanged(NameOf(HayUnEnvioPendienteSeleccionado))
             ActualizarEstadoComandos()
@@ -761,15 +763,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As TabItem)
             SetProperty(_PestañaSeleccionada, value)
-            If PestañaSeleccionada.Name = "tabReembolsos" And IsNothing(listaReembolsos) Then
-                listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, agenciaSeleccionada.Numero)
-            End If
-
-            If PestañaSeleccionada.Name = "tabRetornos" And IsNothing(listaRetornos) Then
-                listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro, agenciaEspecifica.retornoSinRetorno)
-            End If
-
-            If PestañaSeleccionada.Name = "tabPendientes" Then
+            If PestañaSeleccionada.Name = Pestannas.PENDIENTES Then
                 Dim listaNueva As IEnumerable(Of EnvioAgenciaWrapper) = servicio.CargarListaPendientes()
                 If Not IsNothing(listaPendientes) Then
                     listaPendientes.Clear()
@@ -784,6 +778,17 @@ Public Class AgenciasViewModel
                 If listaPendientes.Count > 0 And IsNothing(EnvioPendienteSeleccionado) Then
                     EnvioPendienteSeleccionado = listaPendientes.FirstOrDefault
                 End If
+            End If
+            If PestañaSeleccionada.Name = Pestannas.EN_CURSO Then
+                listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
+            End If
+
+            If PestañaSeleccionada.Name = Pestannas.REEMBOLSOS AndAlso Not IsNothing(empresaSeleccionada) Then
+                listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, agenciaSeleccionada.Numero)
+            End If
+
+            If PestañaSeleccionada.Name = Pestannas.RETORNOS AndAlso Not IsNothing(empresaSeleccionada) Then
+                listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, agenciaEspecifica.retornoSinRetorno)
             End If
         End Set
     End Property
@@ -882,6 +887,7 @@ Public Class AgenciasViewModel
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaReembolsos, value)
             OnPropertyChanged("sumaReembolsos")
+            OnPropertyChanged("descuadreContabilidad")
         End Set
     End Property
 
@@ -1146,11 +1152,22 @@ Public Class AgenciasViewModel
     Private Function CanTramitar(ByVal param As Object) As Boolean
         Return Not IsNothing(envioActual) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
     End Function
-    Private Sub Tramitar(ByVal param As Object)
+    Private Async Sub Tramitar(ByVal param As Object)
         If envioActual.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
             Throw New Exception("No se puede tramitar un pedido ya tramitado")
         End If
-        agenciaEspecifica.llamadaWebService(servicio)
+        Try
+            Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioActual, servicio)
+            If respuesta = "OK" Then
+                mensajeError = servicio.TramitarEnvio(envioActual)
+                listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
+                envioActual = listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
+            Else
+                mensajeError = respuesta
+            End If
+        Catch ex As Exception
+            mensajeError = ex.Message
+        End Try
         OnPropertyChanged("listaReembolsos")
         OnPropertyChanged("mensajeError")
     End Sub
@@ -1192,7 +1209,7 @@ Public Class AgenciasViewModel
         Return Not IsNothing(envioActual)
     End Function
     Private Sub ImprimirEtiquetaPedido(ByVal param As Object)
-        agenciaEspecifica.imprimirEtiqueta()
+        agenciaEspecifica.imprimirEtiqueta(envioActual)
     End Sub
 
     Private _cmdBorrar As ICommand
@@ -1225,8 +1242,9 @@ Public Class AgenciasViewModel
             Return
         End If
         servicio.Borrar(envioActual.Numero)
-        listaEnvios.Remove(envioActual)
-        listaEnviosPedido.Remove(envioActual)
+        Dim copiaEnvio = envioActual
+        listaEnviosPedido.Remove(copiaEnvio)
+        listaEnvios.Remove(copiaEnvio)
         envioActual = listaEnvios.LastOrDefault
         OnPropertyChanged("listaEnvios")
     End Sub
@@ -1332,12 +1350,15 @@ Public Class AgenciasViewModel
                 listaEmpresas = servicio.CargarListaEmpresas()
             End If
 
+            numeroPedido = Await configuracion.leerParametro(empresaDefecto, "UltNumPedidoVta")
+
             If IsNothing(empresaSeleccionada) Then
                 empresaSeleccionada = (From e In listaEmpresas Where e.Número.Trim() = empresaDefecto).SingleOrDefault
             End If
 
-            numeroPedido = Await configuracion.leerParametro(empresaDefecto, "UltNumPedidoVta")
-
+            If IsNothing(listaEnvios) Then
+                listaEnvios = New ObservableCollection(Of EnviosAgencia)
+            End If
             listaPendientes = New ObservableCollection(Of EnvioAgenciaWrapper)
 
             'listaAgencias = servicio.CargarListaAgencias(empresaSeleccionada.Número)
@@ -1351,10 +1372,12 @@ Public Class AgenciasViewModel
             'If Not IsNothing(agenciaSeleccionada) Then
             '    listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
             'End If
-            envioActual = listaEnvios.LastOrDefault
+            If IsNothing(envioActual) Then
+                envioActual = listaEnvios.LastOrDefault
+            End If
 
-            listaEnviosTramitados = servicio.CargarListaEnviosTramitadosPorFecha(empresaSeleccionada.Número, fechaFiltro)
-            listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
+            'listaEnviosTramitados = servicio.CargarListaEnviosTramitadosPorFecha(empresaSeleccionada.Número, fechaFiltro)
+            'listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
         Catch ex As Exception
             Throw ex
         End Try
@@ -1591,7 +1614,7 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanModificar(arg As Object) As Boolean
-        Return True
+        Return Not IsNothing(envioActual)
     End Function
     Private Sub OnModificar(arg As Object)
         Dim mensajeMostrar = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
@@ -1927,47 +1950,7 @@ Public Class AgenciasViewModel
         Return importeFinal
 
     End Function
-    Public Function calcularDigitoControl(ByVal number As String) As Integer
 
-        If (number.Length <> 17) Then
-            number = ""
-            Throw New System.ArgumentException
-        Else
-            Dim ch As Char
-            For Each ch In number
-                If (Not Char.IsNumber(ch)) Then
-                    number = ""
-                    Throw New System.ArgumentException
-                End If
-            Next
-        End If
-
-        Dim x, digito, sumaCod As Integer
-
-        ' Extraigo el valor del dígito, y voy
-        ' sumando los valores resultantes.
-        For x = 1 To number.Length
-            digito = CInt(number.Substring(x - 1, 1))
-            If (x Mod 2) <> 0 Then
-                ' Las posiciones impares se multiplican por 3
-                sumaCod += (digito * 3)
-            Else
-                ' Las posiciones pares se multiplican por 1
-                sumaCod += (digito * 1)
-            End If
-        Next
-
-        ' Calculo la decena superior
-        digito = (sumaCod Mod 10)
-
-        ' Calculo el dígito de control
-        If digito <> 0 Then
-            digito = 10 - digito
-        End If
-        ' Devuelvo el dígito de control
-        Return digito
-
-    End Function
     Public Sub InsertarRegistro()
         Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
         Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
@@ -2515,9 +2498,6 @@ Public Class AgenciasViewModel
 
 #End Region
 
-
-
-
 End Class
 
 Public Structure tipoIdDescripcion
@@ -2691,3 +2671,13 @@ Public Class Pais
     Public ReadOnly Property CodigoAlfa As String
 End Class
 #End Region
+
+Public Class Pestannas
+    Public Const PEDIDOS As String = "tabPedidos"
+    Public Const PENDIENTES As String = "tabPendientes"
+    Public Const EN_CURSO As String = "tabCurso"
+    Public Const TRAMITADOS As String = "tabTramitados"
+    Public Const REEMBOLSOS As String = "tabReembolsos"
+    Public Const RETORNOS As String = "tabRetornos"
+    Public Const ETIQUETAS As String = "tabEtiquetas"
+End Class

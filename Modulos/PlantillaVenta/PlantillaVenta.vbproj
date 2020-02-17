@@ -14,7 +14,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>Nesto.Modulos.PlantillaVenta</RootNamespace>
     <AssemblyName>PlantillaVenta</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <MyType>Custom</MyType>
     <TargetFrameworkProfile />
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

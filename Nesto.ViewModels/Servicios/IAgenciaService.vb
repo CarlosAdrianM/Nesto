@@ -11,7 +11,7 @@ Public Interface IAgenciaService
     Sub Borrar(Id As Integer)
     Function CargarPedido(empresa As String, numeroPedido As Integer?) As CabPedidoVta
     Function CargarListaReembolsos(empresa As String, agencia As Integer) As ObservableCollection(Of EnviosAgencia)
-    Function CargarListaRetornos(empresa As String, agencia As Integer, fechaFiltro As Date, tipoDeRetorno As Integer) As ObservableCollection(Of EnviosAgencia)
+    Function CargarListaRetornos(empresa As String, agencia As Integer, tipoDeRetorno As Integer) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnviosTramitados(empresa As String, agencia As Integer, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnvios(agencia As Integer) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnviosTramitadosPorFecha(empresa As String, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia)

@@ -80,4 +80,8 @@ Public Class Agencias
     Private Sub EnvioPendientePedidoTextBox_GotFocus(sender As Object, e As RoutedEventArgs) Handles EnvioPendientePedidoTextBox.GotFocus
         EnvioPendientePedidoTextBox.SelectAll()
     End Sub
+
+    Private Sub txtPedidosNumero_PreviewMouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtPedidosNumero.PreviewMouseUp
+        txtPedidosNumero.SelectAll()
+    End Sub
 End Class

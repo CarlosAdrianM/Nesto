@@ -25,9 +25,6 @@ Public Class AgenciaOnTime
         End Set
     End Property
 
-    'Private agenciaSeleccionada As AgenciasTransporte
-    Private agenciaVM As AgenciasViewModel
-
     Public Sub New(agencia As AgenciasViewModel)
         If Not IsNothing(agencia) Then
 
@@ -48,8 +45,6 @@ Public Class AgenciaOnTime
             }
 
             ListaPaises = rellenarPaises()
-
-            agenciaVM = agencia
         End If
 
 
@@ -89,14 +84,12 @@ Public Class AgenciaOnTime
         telefonoPlaza = "902112820"
         emailPlaza = "traficodistribucion@ontimelogistica.com"
     End Sub
-    Public Sub llamadaWebService(servicio As IAgenciaService) Implements IAgencia.llamadaWebService
-        agenciaVM.mensajeError = servicio.TramitarEnvio(agenciaVM.envioActual)
-        agenciaVM.listaEnvios = servicio.CargarListaEnvios(agenciaVM.agenciaSeleccionada.Numero)
-        agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
-    End Sub
-    Public Async Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
+    Public Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) Implements IAgencia.LlamadaWebService
+        Return Task.FromResult(Of String)("OK")
+    End Function
+    Public Async Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = Await mainViewModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
@@ -107,27 +100,26 @@ Public Class AgenciaOnTime
 
 
         Try
-            For i = 1 To agenciaVM.bultos
+            For i = 1 To envio.Bultos
                 objStream.Writeline("I8,A,034")
                 objStream.Writeline("N")
-                objStream.Writeline("A40,10,0,4,1,1,N,""" + agenciaVM.envioActual.Nombre + """")
-                objStream.Writeline("A40,50,0,4,1,1,N,""" + agenciaVM.envioActual.Direccion + """")
-                objStream.Writeline("A40,90,0,4,1,1,N,""" + agenciaVM.envioActual.CodPostal + " " + agenciaVM.envioActual.Poblacion + """")
-                objStream.Writeline("A40,130,0,4,1,1,N,""" + agenciaVM.envioActual.Provincia + """")
-                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + agenciaVM.bultos.ToString _
-                                    + ". Cliente: " + agenciaVM.envioActual.Cliente.Trim + ". Fecha: " + agenciaVM.envioActual.Fecha + """")
-                'objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + agenciaVM.envioActual.CodigoBarras + i.ToString("D3") + """")
-                objStream.Writeline("A40,450,0,4,1,2,N,""" + agenciaVM.envioActual.Nemonico + " " + agenciaVM.envioActual.NombrePlaza + """")
-                objStream.Writeline("A40,510,0,4,1,2,N,""" + agenciaVM.listaHorarios.Where(Function(x) x.id = agenciaVM.envioActual.Horario).FirstOrDefault.descripcion + """")
-                objStream.Writeline("A590,265,0,5,2,2,N,""" + agenciaVM.envioActual.Nemonico + """")
+                objStream.Writeline("A40,10,0,4,1,1,N,""" + envio.Nombre + """")
+                objStream.Writeline("A40,50,0,4,1,1,N,""" + envio.Direccion + """")
+                objStream.Writeline("A40,90,0,4,1,1,N,""" + envio.CodPostal + " " + envio.Poblacion + """")
+                objStream.Writeline("A40,130,0,4,1,1,N,""" + envio.Provincia + """")
+                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + envio.Bultos.ToString _
+                                    + ". Cliente: " + envio.Cliente.Trim + ". Fecha: " + envio.Fecha + """")
+                objStream.Writeline("A40,450,0,4,1,2,N,""" + envio.Nemonico + " " + envio.NombrePlaza + """")
+                objStream.Writeline("A40,510,0,4,1,2,N,""" + ListaHorarios.Where(Function(x) x.id = envio.Horario).FirstOrDefault.descripcion + """")
+                objStream.Writeline("A590,265,0,5,2,2,N,""" + envio.Nemonico + """")
                 objStream.Writeline("P1")
                 objStream.Writeline("")
             Next
-
-
-
         Catch ex As Exception
-            agenciaVM.mensajeError = ex.InnerException.Message
+            NotificationRequest.Raise(New Notification() With {
+                    .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
+                .Content = ex.InnerException.Message
+            })
         Finally
             objStream.Close()
             objFSO = Nothing

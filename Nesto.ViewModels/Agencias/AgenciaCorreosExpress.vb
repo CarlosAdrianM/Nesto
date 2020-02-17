@@ -1,8 +1,16 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.ComponentModel.DataAnnotations
+Imports System.Configuration
+Imports System.Net
+Imports System.Net.Http
+Imports System.Text
+Imports System.Threading.Tasks
 Imports System.Windows
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
+Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Serialization
 
 Public Class AgenciaCorreosExpress
     Implements IAgencia
@@ -99,15 +107,170 @@ Public Class AgenciaCorreosExpress
     End Property
 
     Public Sub calcularPlaza(codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
-        Throw New NotImplementedException()
+        nemonico = "CE"
+        nombrePlaza = "Correos Express"
+        telefonoPlaza = "916602444"
+        emailPlaza = "am-cabelloandres@correosexpress.com"
     End Sub
 
-    Public Sub llamadaWebService(servicio As IAgenciaService) Implements IAgencia.llamadaWebService
-        Throw New NotImplementedException()
-    End Sub
+    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) Implements IAgencia.LlamadaWebService
+        Dim empresa = servicio.CargarListaEmpresas().Single(Function(e) e.Número = envio.Empresa)
+        '.Ref = envio.Cliente.Trim + "/" + envio.Pedido.ToString,
 
-    Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
-        Throw New NotImplementedException()
+        Dim envioCEX As New EnvioCEX With {
+            .Solicitante = "I" + envio.AgenciasTransporte.Identificador,
+            .NumEnvio = envio.CodigoBarras,
+            .Fecha = envio.Fecha.ToString("ddMMyyyy"),
+            .CodRte = envio.AgenciasTransporte.Identificador,
+            .NomRte = empresa.Nombre.ToUpper.Trim,
+            .NifRte = empresa.NIF.ToUpper.Trim,
+            .DirRte = empresa.Dirección.ToUpper.Trim,
+            .PobRte = empresa.Población.ToUpper.Trim,
+            .CodPosNacRte = empresa.CodPostal.ToUpper.Trim,
+            .TelefRte = empresa.Teléfono.Trim,
+            .EmailRte = empresa.Email.Trim,
+            .NomDest = envio.Nombre.ToUpper.Trim,
+            .DirDest = envio.Direccion.ToUpper.Trim,
+            .PobDest = envio.Poblacion.ToUpper.Trim,
+            .CodPosNacDest = envio.CodPostal.Trim,
+            .ContacDest = envio.Atencion.ToUpper.Trim,
+            .TelefDest = envio.Telefono.Trim,
+            .EmailDest = envio.Email.Trim,
+            .Observac = envio.Observaciones.Substring(0, Math.Min(80, envio.Observaciones.Length)),
+            .NumBultos = envio.Bultos.ToString("D2"),
+            .Kilos = "00000.00",
+            .Producto = envio.Servicio.ToString("D2"),
+            .Portes = "P",
+            .Reembolso = Replace(envio.Reembolso.ToString("0.##"), ",", "."),
+            .ListaBultos = New List(Of Bulto)
+        }
+        For i = 1 To envio.Bultos
+            envioCEX.ListaBultos.Add(New Bulto With {.Orden = i.ToString("D2")})
+        Next
+
+        Dim usuario As String = ConfigurationManager.AppSettings("CorreosExpressUsuario")
+        Dim password As String = ConfigurationManager.AppSettings("CorreosExpressPassword")
+
+        Dim credenciales As New NetworkCredential(usuario, password)
+        Dim handler As New HttpClientHandler With {.Credentials = credenciales}
+
+        Using client As New HttpClient(handler)
+            client.BaseAddress = New Uri("https://www.correosexpress.com/wpsc/apiRestGrabacionEnvio/")
+            'https://www.correosexpress.com/wpsc/apiRestGrabacionEnvio/json/grabacionEnvio
+            'https://test.correosexpress.com/wspsc/apiRestGrabacionEnvio/json/grabacionEnvio
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                Dim urlConsulta As String = "json/grabacionEnvio"
+                Dim settings As New JsonSerializerSettings
+                settings.ContractResolver = New CamelCasePropertyNamesContractResolver
+                Dim cadenaJson As String = JsonConvert.SerializeObject(envioCEX, Formatting.Indented, settings)
+                Dim content As HttpContent = New StringContent(cadenaJson, Encoding.UTF8, "application/json")
+                response = Await client.PostAsync(urlConsulta, content)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = ""
+                End If
+
+            Catch ex As Exception
+                Return ex.Message
+            Finally
+
+            End Try
+
+            Return "ERROR"
+        End Using
+
+    End Function
+
+    Public Async Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta
+        If IsNothing(envio.CodigoBarras) OrElse envio.CodigoBarras.Trim = "" Then
+            Throw New Exception("El envío debe tener un código de barras asignada para poder imprimir la etiqueta")
+        End If
+
+        Dim mainViewModel As New MainViewModel
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
+
+        Dim objFSO
+        Dim objStream
+        objFSO = CreateObject("Scripting.FileSystemObject")
+        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+        Dim i As Integer
+
+
+
+        Try
+            For i = 1 To envio.Bultos
+                Const ANCHO_OBSERVACIONES As Integer = 46
+                Dim codigoBarrasBulto = CalcularCodigoBarrasBulto(envio.CodigoBarras, i, envio.CodPostal)
+                Dim observaciones = envio.Observaciones.Substring(0, Math.Min(envio.Observaciones.Length, ANCHO_OBSERVACIONES * 2))
+                objStream.Writeline("N")
+                objStream.Writeline("OD")
+                objStream.Writeline("q816")
+                'objStream.Writeline("I8,1")
+                objStream.Writeline("I8,A,034")
+                objStream.Writeline("Q1583,24+0")
+                objStream.Writeline("S4")
+                objStream.Writeline("D13")
+                objStream.Writeline("ZT")
+                objStream.Writeline("LO5,540,467,4")
+                objStream.Writeline("LO93,330,120,4")
+                objStream.Writeline("LO93,170,120,4")
+                objStream.Writeline("LO352,5,4,535")
+                objStream.Writeline("LO150,5,4,535")
+                objStream.Writeline("LO210,5,4,535")
+                objStream.Writeline("LO90,5,4,1100")
+                objStream.Writeline("LO468,540,4,660")
+                objStream.Writeline("A25,1100,3,1,2,1,N,""" + envio.Empresas.Nombre.ToUpper.Trim() + """")
+                objStream.Writeline("A55,1100,3,1,1,1,N,""" + envio.Empresas.Dirección.ToUpper.Trim() + """")
+                objStream.Writeline("A75,1100,3,1,1,1,N,""" + envio.Empresas.Población.ToUpper.Trim() + """")
+                objStream.Writeline("A75,830,3,1,1,1,N,""Telf.:  " + envio.Empresas.Teléfono.Trim() + """")
+                objStream.Writeline("A270,520,3,3,2,1,N,""COD.BULTO: " + codigoBarrasBulto + """")
+                objStream.Writeline("B770,410,1,1,4,2,256,N,""" + codigoBarrasBulto + """")
+                objStream.Writeline("A100,1100,3,3,2,1,N,""" + envio.Nombre.ToUpper.Trim + """")
+                objStream.Writeline("A435,1150,3,1,2,1,N,""ATT: " + envio.Atencion.ToUpper.Trim + """")
+                objStream.Writeline("A435,800,3,1,2,1,N,""TELF.: " + envio.Telefono.ToUpper.Trim + """")
+                objStream.Writeline("A140,1100,3,2,2,1,N,""" + envio.Direccion.ToUpper.Trim + """")
+                objStream.Writeline("A250,1100,3,5,2,2,N,""" + envio.CodPostal.ToUpper.Trim + """")
+                objStream.Writeline("A390,1150,3,3,2,1,N,""" + envio.Poblacion.ToUpper.Trim + """")
+                objStream.Writeline("A220,520,3,3,2,1,N,""REF: " + envio.Cliente.Trim() + "/" + envio.Pedido.ToString.Trim() + """")
+                objStream.Writeline("A350,1150,3,3,2,3,N,""  """) ' << DESTINO >>
+                objStream.Writeline("A350,1150,3,3,2,3,N,""" + ListaPaises.Single(Function(p) p.Id = envio.Pais).Nombre.ToUpper.Trim + """")
+                objStream.Writeline("A20,530,3,2,3,2,N,""EXP:" + envio.CodigoBarras + """")
+                objStream.Writeline("A158,320,3,2,1,1,N,""PESO: """)
+                objStream.Writeline("A175,320,3,2,2,1,N,"" """) '<< KILOS >> Kgs.
+                objStream.Writeline("A98,320,3,2,1,1,N,""BULTOS: """)
+                objStream.Writeline("A115,320,3,2,2,1,N,""" + i.ToString + " DE " + envio.Bultos.ToString + """")
+                objStream.Writeline("A98,520,3,2,1,1,N,""REEMBOLSO: """)
+                objStream.Writeline("A115,520,3,2,2,1,N,""" + envio.Reembolso.ToString("C") + """")
+                objStream.Writeline("A158,520,3,2,1,1,N,""TIPO DE PORTES:""")
+                objStream.Writeline("A175,520,3,2,2,1,N,""PAGADOS""")
+                objStream.Writeline("A70,450,3,1,1,1,N,""Envio retorno: """) ' << RETORNO >> 
+                objStream.Writeline("A400,520,3,3,2,2,N,""" + envio.Servicio.ToString + " " + ListaServicios.Single(Function(s) s.id = envio.Servicio).descripcion.ToUpper.Trim + """")
+                objStream.Writeline("A180,1100,3,2,2,1,N,""" + observaciones.Substring(0, Math.Min(observaciones.Length, ANCHO_OBSERVACIONES)) + """")
+                If observaciones.Length > 46 Then
+                    objStream.Writeline("A220,1100,3,2,2,1,N,""" + observaciones.Substring(ANCHO_OBSERVACIONES, Math.Min(observaciones.Length - ANCHO_OBSERVACIONES, ANCHO_OBSERVACIONES)) + """")
+                End If
+                objStream.Writeline("A115,160,3,2,2,1,N,""" + envio.Fecha.ToString("dd/MM/yyyy") + """")
+                objStream.Writeline("A98,160,3,2,1,1,N,""FECHA: """)
+                'objStream.Writeline("b760,340,P,800,600,s1,c0,f0,x2,y5,l5,t0,o2," << PDF417 >> "")
+                objStream.Writeline("P1")
+                objStream.Writeline("N")
+
+            Next
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
+                    .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
+                .Content = ex.InnerException.Message
+            })
+        Finally
+            objStream.Close()
+            objFSO = Nothing
+            objStream = Nothing
+        End Try
     End Sub
 
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
@@ -119,13 +282,70 @@ Public Class AgenciaCorreosExpress
     End Function
 
     Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
-        Throw New NotImplementedException()
+        Dim posiciones(14) As Integer
+        Dim numeroEnvioString As String = agenciaVM.envioActual.Numero.ToString("D9")
+
+        ' Posiciones 1 y 2: código del producto (servicio)
+        posiciones(0) = agenciaVM.envioActual.Servicio / 10
+        posiciones(1) = agenciaVM.envioActual.Servicio Mod 10
+        ' Posiciones 3 a 6: código de cliente etiquetador (lo da Correos Express)
+        posiciones(2) = Val(agenciaVM.envioActual.AgenciasTransporte.PrefijoCodigoBarras(0))
+        posiciones(3) = Val(agenciaVM.envioActual.AgenciasTransporte.PrefijoCodigoBarras(1))
+        posiciones(4) = Val(agenciaVM.envioActual.AgenciasTransporte.PrefijoCodigoBarras(2))
+        posiciones(5) = Val(agenciaVM.envioActual.AgenciasTransporte.PrefijoCodigoBarras(3))
+        ' Posiciones 7 a 15: rango de expediciones (Id de EnviosAgencia)
+        posiciones(6) = Val(numeroEnvioString(0))
+        posiciones(7) = Val(numeroEnvioString(1))
+        posiciones(8) = Val(numeroEnvioString(2))
+        posiciones(9) = Val(numeroEnvioString(3))
+        posiciones(10) = Val(numeroEnvioString(4))
+        posiciones(11) = Val(numeroEnvioString(5))
+        posiciones(12) = Val(numeroEnvioString(6))
+        posiciones(13) = Val(numeroEnvioString(7))
+        posiciones(14) = Val(numeroEnvioString(8))
+        ' Posición 16: dígito de control
+        Dim digitoControl As Integer = CalcularDigitoControl(posiciones)
+
+        Dim codigoBarras As String = String.Empty
+        For Each posicion In posiciones
+            codigoBarras += posicion.ToString
+        Next
+        Return codigoBarras + digitoControl.ToString("D1")
+    End Function
+
+    Public Function CalcularCodigoBarrasBulto(codigoBarrasEnvio As String, bulto As Integer, codigoPostal As String) As String
+        Dim codigoBarrasString As String = String.Empty
+        codigoBarrasString = codigoBarrasEnvio.Substring(0, codigoBarrasEnvio.Length - 1)
+        codigoBarrasString += bulto.ToString("D2")
+        codigoBarrasString += codigoPostal
+        Dim posiciones(21) As Integer
+        For i = 0 To codigoBarrasString.Length - 1
+            posiciones(i) = Val(codigoBarrasString(i))
+        Next
+        Dim digitoControl = CalcularDigitoControl(posiciones)
+
+        Return codigoBarrasString + digitoControl.ToString("D1")
+    End Function
+
+    Public Function CalcularDigitoControl(posiciones() As Integer) As Integer
+        Dim sumaAcumulada As Integer = 0
+        For i = 0 To posiciones.Length - 1
+            If (i + posiciones.Length) Mod 2 = 0 Then
+                sumaAcumulada += posiciones(i)
+            Else
+                sumaAcumulada += posiciones(i) * 3
+            End If
+        Next
+        Dim superior As Integer = (sumaAcumulada - (sumaAcumulada Mod 10))
+        If superior <> sumaAcumulada Then
+            superior += 10
+        End If
+        Return superior - sumaAcumulada
     End Function
 
     Public Function EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
-        Throw New NotImplementedException()
+        Return "(Enlace de seguimiento no disponible)"
     End Function
-
 
     Private Function rellenarPaises() As ObservableCollection(Of Pais)
         Return New ObservableCollection(Of Pais) From {
@@ -375,5 +595,64 @@ Public Class AgenciaCorreosExpress
             New Pais(716, "ZIMBABUE", "ZW")
         }
     End Function
+
+    Public Class EnvioCEX
+        <MaxLength(100)>
+        Public Property Solicitante As String
+        <MaxLength(16)>
+        Public Property NumEnvio As String
+        <MaxLength(20)>
+        Public Property Ref As String
+        Public Property Fecha As String
+        Public Property CodRte As String
+        <MaxLength(40)>
+        Public Property NomRte As String
+        <MaxLength(20)>
+        Public Property NifRte As String
+        <MaxLength(300)>
+        Public Property DirRte As String
+        <MaxLength(40)>
+        Public Property PobRte As String
+        <MaxLength(5)>
+        Public Property CodPosNacRte As String
+        <MaxLength(15)>
+        Public Property TelefRte As String
+        <MaxLength(75)>
+        Public Property EmailRte As String
+        <MaxLength(40)>
+        Public Property NomDest As String
+        <MaxLength(300)>
+        Public Property DirDest As String
+        <MaxLength(40)>
+        Public Property PobDest As String
+        <MaxLength(5)>
+        Public Property CodPosNacDest As String
+        <MaxLength(40)>
+        Public Property ContacDest As String
+        <MaxLength(15)>
+        Public Property TelefDest As String
+        <MaxLength(75)>
+        Public Property EmailDest As String
+        <MaxLength(80)>
+        Public Property Observac As String
+        <MaxLength(2)>
+        Public Property NumBultos As String
+        <MaxLength(8)>
+        Public Property Kilos As String
+        <MaxLength(2)>
+        Public Property Producto As String
+        <MaxLength(1)>
+        Public Property Portes As String
+        <MaxLength(7)>
+        Public Property Reembolso As String
+        Public Property ListaBultos As List(Of Bulto)
+
+    End Class
+
+    Public Class Bulto
+        <MaxLength(2)>
+        Public Property Orden As String
+    End Class
+
 
 End Class

@@ -41,7 +41,7 @@ Public Class AgenciaService
 
     Public Function GetEnvioById(Id As Integer) As EnviosAgencia Implements IAgenciaService.GetEnvioById
         Using contexto = New NestoEntities
-            Return contexto.EnviosAgencia.Single(Function(e) e.Numero = Id)
+            Return contexto.EnviosAgencia.Include("Empresas").Single(Function(e) e.Numero = Id)
         End Using
     End Function
 
@@ -50,6 +50,7 @@ Public Class AgenciaService
             contexto.EnviosAgencia.Add(envio)
             contexto.SaveChanges()
             contexto.Entry(envio).Reference(Function(e) e.AgenciasTransporte).Load()
+            contexto.Entry(envio).Reference(Function(e) e.Empresas).Load()
         End Using
     End Function
 
@@ -65,7 +66,7 @@ Public Class AgenciaService
         End Using
     End Function
 
-    Public Function CargarListaRetornos(empresa As String, agencia As Integer, fechaFiltro As Date, tipoDeRetornoExcluido As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaRetornos
+    Public Function CargarListaRetornos(empresa As String, agencia As Integer, tipoDeRetornoExcluido As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaRetornos
         Using contexto = New NestoEntities
             Return New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia Where e.Empresa = empresa And e.Agencia = agencia And e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO And e.Retorno <> tipoDeRetornoExcluido And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
         End Using
@@ -154,7 +155,9 @@ Public Class AgenciaService
 
     Public Function CargarPedidoPorFactura(numeroPedido As String) As CabPedidoVta Implements IAgenciaService.CargarPedidoPorFactura
         Using contexto = New NestoEntities
-            Return (From c In contexto.CabPedidoVta Join l In contexto.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
+            'Return (From c In contexto.CabPedidoVta Join l In contexto.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
+            Dim pedido = contexto.LinPedidoVta.Where(Function(l) l.Nº_Factura = numeroPedido).Select(Function(l) l.Número).FirstOrDefault
+            Return contexto.CabPedidoVta.Include("Clientes").Include("Clientes.PersonasContactoCliente").Where(Function(c) c.Número = pedido).FirstOrDefault
         End Using
     End Function
 
@@ -251,7 +254,7 @@ Public Class AgenciaService
 
     Public Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia Implements IAgenciaService.CargarEnvioPorClienteYDireccion
         Using contexto = New NestoEntities
-            Return (From e In contexto.EnviosAgencia Where e.Cliente = cliente And e.Contacto = contacto And e.Direccion = direccion And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO).FirstOrDefault
+            Return (From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Cliente = cliente And e.Contacto = contacto And e.Direccion = direccion And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO).FirstOrDefault
         End Using
     End Function
 

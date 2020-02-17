@@ -8,6 +8,7 @@ Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports System.Transactions
 Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
+Imports System.Threading.Tasks
 
 Public Class AgenciaASM
     Implements IAgencia
@@ -25,7 +26,6 @@ Public Class AgenciaASM
         End Set
     End Property
 
-    'Private agenciaSeleccionada As AgenciasTransporte
     Private agenciaVM As AgenciasViewModel
 
     Public Sub New(agencia As AgenciasViewModel)
@@ -73,7 +73,7 @@ Public Class AgenciaASM
             })
             Return Nothing
         End If
-        Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + agenciaVM.agenciaSeleccionada.Identificador)
+        Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + envio.AgenciasTransporte.Identificador)
         If myUri.Scheme = Uri.UriSchemeHttp Then
             'Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
             Dim myRequest As HttpWebRequest = CType(WebRequest.Create(myUri), HttpWebRequest)
@@ -214,28 +214,28 @@ Public Class AgenciaASM
             emailPlaza = elementoXML.Element("Mail").Value
         End If
     End Sub
-    Private Function construirXMLdeSalida(servicio As IAgenciaService) As XDocument 'Implements IAgencia.construirXMLdeSalida
-        Dim empresa = servicio.CargarListaEmpresas().Single(Function(e) e.Número = agenciaVM.envioActual.Empresa)
+    Private Function construirXMLdeSalida(envio As EnviosAgencia, servicio As IAgenciaService) As XDocument 'Implements IAgencia.construirXMLdeSalida
+        Dim empresa = servicio.CargarListaEmpresas().Single(Function(e) e.Número = envio.Empresa)
         Dim xml As New XDocument
         'xml = XDocument.Load("C:\Users\Carlos.NUEVAVISION\Desktop\ASM\webservice\XML-IN-B.xml")
         'xml.Descendants("Servicios").FirstOrDefault().Add(New XElement("Servicios", New XAttribute("uidcliente", ""), New XAttribute("xmlns", "http://www.asmred.com/")))
 
         ' Si no hay envioActual devolvemos el xml vacío
-        If IsNothing(agenciaVM.envioActual) Then
+        If IsNothing(envio) Then
             Return xml
         End If
 
         'Añadimos el nodo raíz (Servicios)
         xml.AddFirst(
-            <Servicios uidcliente=<%= agenciaVM.envioActual.AgenciasTransporte.Identificador %> xmlns="http://www.asmred.com/">
-                <Envio codbarras=<%= agenciaVM.envioActual.CodigoBarras %>>
-                    <Fecha><%= agenciaVM.envioActual.Fecha.ToShortDateString %></Fecha>
+            <Servicios uidcliente=<%= envio.AgenciasTransporte.Identificador %> xmlns="http://www.asmred.com/">
+                <Envio codbarras=<%= envio.CodigoBarras %>>
+                    <Fecha><%= envio.Fecha.ToShortDateString %></Fecha>
                     <Portes>P</Portes>
-                    <Servicio><%= agenciaVM.envioActual.Servicio %></Servicio>
-                    <Horario><%= agenciaVM.envioActual.Horario %></Horario>
-                    <Bultos><%= agenciaVM.envioActual.Bultos %></Bultos>
+                    <Servicio><%= envio.Servicio %></Servicio>
+                    <Horario><%= envio.Horario %></Horario>
+                    <Bultos><%= envio.Bultos %></Bultos>
                     <Peso>1</Peso>
-                    <Retorno><%= agenciaVM.envioActual.Retorno %></Retorno>
+                    <Retorno><%= envio.Retorno %></Retorno>
                     <Pod>N</Pod>
                     <Remite>
                         <Plaza></Plaza>
@@ -253,24 +253,24 @@ Public Class AgenciaASM
                     <Destinatario>
                         <Codigo></Codigo>
                         <Plaza></Plaza>
-                        <Nombre><%= agenciaVM.envioActual.Nombre.Normalize %></Nombre>
-                        <Direccion><%= agenciaVM.envioActual.Direccion %></Direccion>
-                        <Poblacion><%= agenciaVM.envioActual.Poblacion %></Poblacion>
-                        <Provincia><%= agenciaVM.envioActual.Provincia %></Provincia>
-                        <Pais><%= agenciaVM.envioActual.Pais %></Pais>
-                        <CP><%= agenciaVM.envioActual.CodPostal %></CP>
-                        <Telefono><%= agenciaVM.envioActual.Telefono %></Telefono>
-                        <Movil><%= agenciaVM.envioActual.Movil %></Movil>
-                        <Email><%= agenciaVM.envioActual.Email %></Email>
-                        <Observaciones><%= agenciaVM.envioActual.Observaciones %></Observaciones>
-                        <ATT><%= agenciaVM.envioActual.Atencion %></ATT>
+                        <Nombre><%= envio.Nombre.Normalize %></Nombre>
+                        <Direccion><%= envio.Direccion %></Direccion>
+                        <Poblacion><%= envio.Poblacion %></Poblacion>
+                        <Provincia><%= envio.Provincia %></Provincia>
+                        <Pais><%= envio.Pais %></Pais>
+                        <CP><%= envio.CodPostal %></CP>
+                        <Telefono><%= envio.Telefono %></Telefono>
+                        <Movil><%= envio.Movil %></Movil>
+                        <Email><%= envio.Email %></Email>
+                        <Observaciones><%= envio.Observaciones %></Observaciones>
+                        <ATT><%= envio.Atencion %></ATT>
                     </Destinatario>
                     <Referencias><!-- cualquier numero, siempre distinto a cada prueba-->
-                        <Referencia tipo="C"><%= agenciaVM.envioActual.Cliente.Trim %>/<%= agenciaVM.envioActual.Pedido %></Referencia>
+                        <Referencia tipo="C"><%= envio.Cliente.Trim %>/<%= envio.Pedido %></Referencia>
                     </Referencias>
                     <Importes>
                         <Debidos>0</Debidos>
-                        <Reembolso><%= agenciaVM.envioActual.Reembolso %></Reembolso>
+                        <Reembolso><%= envio.Reembolso %></Reembolso>
                     </Importes>
                     <Seguro tipo="">
                         <Descripcion></Descripcion>
@@ -283,12 +283,10 @@ Public Class AgenciaASM
             </Servicios>
         )
 
-        'xml.Root.Attribute("xmlns").Value = "http://www.asmred.com/"
-        'Debug.Print(xml.ToString)
         Return xml
     End Function
-    Public Sub llamadaWebService(servicio As IAgenciaService) Implements IAgencia.llamadaWebService
-        agenciaVM.XMLdeSalida = construirXMLdeSalida(servicio)
+    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) Implements IAgencia.LlamadaWebService
+        XMLdeSalida = construirXMLdeSalida(envio, servicio)
 
         'Comenzamos la llamada
         Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" &
@@ -297,7 +295,7 @@ Public Class AgenciaASM
               "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" &
               "<soap:Body>" &
                     "<GrabaServicios xmlns=""http://www.asmred.com/"">" &
-                        "<docIn>" & agenciaVM.XMLdeSalida.ToString & "</docIn>" &
+                        "<docIn>" & XMLdeSalida.ToString & "</docIn>" &
                     "</GrabaServicios>" &
                 "</soap:Body>" &
              "</soap:Envelope>"
@@ -309,7 +307,7 @@ Public Class AgenciaASM
         req.Method = "POST"
 
         Try
-            Using stm As Stream = req.GetRequestStream()
+            Using stm As Stream = Await req.GetRequestStreamAsync()
                 Using stmw As StreamWriter = New StreamWriter(stm)
                     stmw.Write(soap)
                 End Using
@@ -318,42 +316,35 @@ Public Class AgenciaASM
             Dim response As WebResponse = req.GetResponse()
             Dim responseStream As New StreamReader(response.GetResponseStream())
             soap = responseStream.ReadToEnd
-            agenciaVM.XMLdeEntrada = XDocument.Parse(soap)
+            XMLdeEntrada = XDocument.Parse(soap)
         Catch ex As Exception
-            agenciaVM.mensajeError = "El servidor de la agencia no está respondiendo"
-            Return
+            Return "El servidor de la agencia no está respondiendo"
         End Try
 
 
         Dim elementoXML As XElement
         Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
-        elementoXML = agenciaVM.XMLdeEntrada.Descendants(Xns + "GrabaServiciosResult").First().FirstNode
-        agenciaVM.XMLdeEntrada = New XDocument
-        agenciaVM.XMLdeEntrada.AddFirst(elementoXML)
+        elementoXML = XMLdeEntrada.Descendants(Xns + "GrabaServiciosResult").First().FirstNode
+        XMLdeEntrada = New XDocument
+        XMLdeEntrada.AddFirst(elementoXML)
 
         If elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value <> "0" Then
             If elementoXML.Element("Envio").Element("Errores").HasElements Then
-                agenciaVM.mensajeError = elementoXML.Element("Envio").Element("Errores").Element("Error").Value
+                Return elementoXML.Element("Envio").Element("Errores").Element("Error").Value
             Else
-                agenciaVM.mensajeError = calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
+                Return calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
             End If
         Else
-            agenciaVM.mensajeError = servicio.TramitarEnvio(agenciaVM.envioActual)
-            agenciaVM.listaEnvios = servicio.CargarListaEnvios(agenciaVM.agenciaSeleccionada.Numero)
-            agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
+            Return "OK"
         End If
-
-
-        'Debug.Print(XMLdeEntrada.ToString)
-
-    End Sub
-    Public Async Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
-        If IsNothing(agenciaVM.envioActual.CodigoBarras) OrElse agenciaVM.envioActual.CodigoBarras.Trim = "" Then
+    End Function
+    Public Async Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta
+        If IsNothing(envio.CodigoBarras) OrElse envio.CodigoBarras.Trim = "" Then
             Throw New Exception("El envío debe tener un código de barras asignada para poder imprimir la etiqueta")
         End If
 
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = Await mainViewModel.leerParametro(agenciaVM.envioActual.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
@@ -364,19 +355,19 @@ Public Class AgenciaASM
 
 
         Try
-            For i = 1 To agenciaVM.bultos
+            For i = 1 To envio.Bultos
                 objStream.Writeline("I8,A,034")
                 objStream.Writeline("N")
-                objStream.Writeline("A40,10,0,4,1,1,N,""" + agenciaVM.envioActual.Nombre + """")
-                objStream.Writeline("A40,50,0,4,1,1,N,""" + agenciaVM.envioActual.Direccion + """")
-                objStream.Writeline("A40,90,0,4,1,1,N,""" + agenciaVM.envioActual.CodPostal + " " + agenciaVM.envioActual.Poblacion + """")
-                objStream.Writeline("A40,130,0,4,1,1,N,""" + agenciaVM.envioActual.Provincia + """")
-                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + agenciaVM.bultos.ToString _
-                                    + ". Cliente: " + agenciaVM.envioActual.Cliente.Trim + ". Fecha: " + agenciaVM.envioActual.Fecha + """")
-                objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + agenciaVM.envioActual.CodigoBarras + i.ToString("D3") + """")
-                objStream.Writeline("A40,450,0,4,1,2,N,""" + agenciaVM.envioActual.Nemonico + " " + agenciaVM.envioActual.NombrePlaza + """")
-                objStream.Writeline("A40,510,0,4,1,2,N,""" + agenciaVM.listaHorarios.Where(Function(x) x.id = agenciaVM.envioActual.Horario).FirstOrDefault.descripcion + """")
-                objStream.Writeline("A590,265,0,5,2,2,N,""" + agenciaVM.envioActual.Nemonico + """")
+                objStream.Writeline("A40,10,0,4,1,1,N,""" + envio.Nombre + """")
+                objStream.Writeline("A40,50,0,4,1,1,N,""" + envio.Direccion + """")
+                objStream.Writeline("A40,90,0,4,1,1,N,""" + envio.CodPostal + " " + envio.Poblacion + """")
+                objStream.Writeline("A40,130,0,4,1,1,N,""" + envio.Provincia + """")
+                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + envio.Bultos.ToString _
+                                    + ". Cliente: " + envio.Cliente.Trim + ". Fecha: " + envio.Fecha + """")
+                objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + envio.CodigoBarras + i.ToString("D3") + """")
+                objStream.Writeline("A40,450,0,4,1,2,N,""" + envio.Nemonico + " " + envio.NombrePlaza + """")
+                objStream.Writeline("A40,510,0,4,1,2,N,""" + ListaHorarios.Where(Function(x) x.id = envio.Horario).FirstOrDefault.descripcion + """")
+                objStream.Writeline("A590,265,0,5,2,2,N,""" + envio.Nemonico + """")
                 objStream.Writeline("P1")
                 objStream.Writeline("")
             Next
@@ -395,7 +386,10 @@ Public Class AgenciaASM
 
 
         Catch ex As Exception
-            agenciaVM.mensajeError = ex.InnerException.Message
+            NotificationRequest.Raise(New Notification() With {
+                    .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
+                .Content = ex.InnerException.Message
+            })
         Finally
             objStream.Close()
             objFSO = Nothing
@@ -566,5 +560,27 @@ Public Class AgenciaASM
         Get
             Return 3 ' ASM24
         End Get
+    End Property
+
+
+
+    Private _XMLdeSalida As XDocument
+    Public Property XMLdeSalida As XDocument
+        Get
+            Return _XMLdeSalida
+        End Get
+        Set(value As XDocument)
+            _XMLdeSalida = value
+        End Set
+    End Property
+
+    Private _XMLdeEntrada As XDocument
+    Public Property XMLdeEntrada As XDocument
+        Get
+            Return _XMLdeEntrada
+        End Get
+        Set(value As XDocument)
+            _XMLdeEntrada = value
+        End Set
     End Property
 End Class

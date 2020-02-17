@@ -424,7 +424,7 @@ Public Class PlanesVentajasViewModel
         End Get
     End Property
     Private Function CanGuardar(ByVal param As Object) As Boolean
-        Return True 'DbContext.ChangeTracker.HasChanges()
+        Return DbContext.ChangeTracker.HasChanges()
     End Function
     Private Sub Guardar(ByVal param As Object)
         Try

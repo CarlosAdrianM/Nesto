@@ -10,7 +10,8 @@
 Imports System
 Imports System.Data.Entity
 Imports System.Data.Entity.Infrastructure
-Imports System.Data.Objects
+'Imports System.Data.Objects
+Imports System.Data.Entity.Core.Objects
 Imports System.Data.Objects.DataClasses
 Imports System.Linq
 

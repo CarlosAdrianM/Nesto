@@ -82,7 +82,7 @@ Public Class PrestashopViewModel
         End Get
     End Property
     Private Function CanGuardarCambios(ByVal param As Object) As Boolean
-        Return True 'DbContext.ChangeTracker.HasChanges()
+        Return DbContext.ChangeTracker.HasChanges()
     End Function
     Private Sub GuardarCambios(ByVal param As Object)
         DbContext.SaveChanges()

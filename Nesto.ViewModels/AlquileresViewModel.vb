@@ -232,8 +232,7 @@ Public Class AlquileresViewModel
         End Get
     End Property
     Private Function CanGuardar(ByVal param As Object) As Boolean
-        'Return DbContext.ChangeTracker.HasChanges()
-        Return True
+        Return DbContext.ChangeTracker.HasChanges()
     End Function
     Private Sub Guardar(ByVal param As Object)
         Try

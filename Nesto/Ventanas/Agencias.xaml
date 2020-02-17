@@ -251,7 +251,7 @@
                         <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="5" Text="{Binding EnvioPendienteSeleccionado.Telefono}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="6" Text="{Binding EnvioPendienteSeleccionado.Movil}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="7" Text="{Binding EnvioPendienteSeleccionado.Atencion}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
-                        <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedValue="{Binding EnvioPendienteSeleccionado.Pais, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
+                        <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedValue="{Binding EnvioPendienteSeleccionado.Pais, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Nombre" SelectedValuePath="Id" Style="{StaticResource listaCombo}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <TextBox Grid.Column="6" Grid.Row="0" Text="{Binding EnvioPendienteSeleccionado.Email}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <TextBox Grid.Column="6" Grid.Row="1" Text="{Binding EnvioPendienteSeleccionado.Reembolso, StringFormat=c}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
 
@@ -342,7 +342,7 @@
                         <TextBox Grid.Column="3" Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding envioActual.CodPostal}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
                         <TextBox Grid.Column="3" Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding envioActual.Poblacion}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
                         <TextBox Grid.Column="3" Grid.Row="4" Text="{Binding envioActual.Provincia}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
-                        <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedValue="{Binding envioActual.Pais, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"/>
+                        <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedValue="{Binding envioActual.Pais, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Nombre" SelectedValuePath="Id" Style="{StaticResource listaCombo}"/>
                         <TextBox Grid.Column="3" Grid.Row="5" Grid.ColumnSpan="2" Text="{Binding envioActual.Telefono, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.Row="6" Grid.ColumnSpan="2" Text="{Binding envioActual.Movil, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.Row="7" Grid.ColumnSpan="2" Text="{Binding envioActual.Atencion, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}"/>
@@ -598,10 +598,9 @@
 
                     <Button Name="btnInsertarImprimir" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" FontSize="50" MinWidth="80" Margin="3" Content="Insertar e Imprimir" Command = "{Binding cmdImprimirEInsertar}"/>
 
-                    
+
                 </Grid>
             </TabItem>
-
         </TabControl>
     </Grid>
 </UserControl>

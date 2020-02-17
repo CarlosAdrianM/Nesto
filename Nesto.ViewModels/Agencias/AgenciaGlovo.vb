@@ -5,6 +5,7 @@ Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports System.Transactions
 Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
+Imports System.Threading.Tasks
 
 Public Class AgenciaGlovo
     Implements IAgencia
@@ -19,9 +20,6 @@ Public Class AgenciaGlovo
             _NotificationRequest = value
         End Set
     End Property
-
-    'Private agenciaSeleccionada As AgenciasTransporte
-    Private agenciaVM As AgenciasViewModel
 
     Public Sub New(agencia As AgenciasViewModel)
         If Not IsNothing(agencia) Then
@@ -39,9 +37,6 @@ Public Class AgenciaGlovo
                 New tipoIdDescripcion(0, "Urgente")
             }
             ListaPaises = rellenarPaises()
-
-            'agenciaSeleccionada = agencia.agenciaSeleccionada
-            agenciaVM = agencia
         End If
 
     End Sub
@@ -92,13 +87,11 @@ Public Class AgenciaGlovo
         Throw New NotImplementedException()
     End Sub
 
-    Public Sub llamadaWebService(servicio As IAgenciaService) Implements IAgencia.llamadaWebService
-        agenciaVM.mensajeError = servicio.TramitarEnvio(agenciaVM.envioActual)
-        agenciaVM.listaEnvios = servicio.CargarListaEnvios(agenciaVM.agenciaSeleccionada.Numero)
-        agenciaVM.envioActual = agenciaVM.listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
-    End Sub
+    Public Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) Implements IAgencia.LlamadaWebService
+        Return Task.FromResult(Of String)("OK")
+    End Function
 
-    Public Sub imprimirEtiqueta() Implements IAgencia.imprimirEtiqueta
+    Public Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta
         Throw New NotImplementedException()
     End Sub
 
