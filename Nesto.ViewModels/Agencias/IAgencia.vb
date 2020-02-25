@@ -27,4 +27,6 @@ Public Interface IAgencia
     ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion)
     ReadOnly Property ServicioDefecto As Integer
     ReadOnly Property HorarioDefecto As Integer
+    ReadOnly Property ServicioAuxiliar As Integer ' este servicio se ignorará y no se mostrará en los tramitados
+    ReadOnly Property ServicioCreaEtiquetaRetorno As Integer ' el servicio que imprimie etiqueta de retorno
 End Interface

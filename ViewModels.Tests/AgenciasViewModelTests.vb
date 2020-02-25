@@ -108,9 +108,11 @@ Public Class AgenciaViewModelTests
         agencia.Empresa = "1  "
         agencia.Numero = 2
         agencia.Ruta = "XXX"
+        agencia.Nombre = "OnTime"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta(A(Of String).Ignored, A(Of String).Ignored)).Returns(agencia)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
         viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
 
         'act
         viewModel.cmdCargarDatos.Execute()
@@ -462,7 +464,7 @@ Public Class AgenciaViewModelTests
         Dim agencia1 = A.Fake(Of AgenciasTransporte)
         agencia1.Empresa = "1"
         agencia1.Numero = 1
-        agencia1.Nombre = "ASM"
+        agencia1.Nombre = "OnTime"
         agencia1.Ruta = "YYY"
         Dim agencia2 = A.Fake(Of AgenciasTransporte)
         agencia2.Empresa = "1"
@@ -484,6 +486,230 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(724, viewModel.paisActual.Id)
     End Sub
 
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlCambiarDeAgenciaEnPestannaEnCurso_CambiaElEnvioActual()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1")
+        A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("12345     ")
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1"
+        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
+            empresa
+        }
+        Dim pedido = New CabPedidoVta With {
+            .Empresa = "1",
+            .Número = 12345,
+            .Ruta = "XXX",
+            .Nº_Cliente = "1",
+            .Contacto = "0"
+        }
+
+        Dim cliente = New Clientes() With {
+            .Empresa = "1",
+            .Nº_Cliente = "1",
+            .Contacto = "0",
+            .Nombre = "Nombre cliente",
+            .Dirección = "Dirección cliente",
+            .Población = "Población cliente",
+            .Provincia = "Provincia cliente",
+            .CodPostal = "28001",
+            .Teléfono = "911234567"
+        }
+        pedido.Clientes = cliente
+        A.CallTo(Function() servicio.CargarPedidoPorNumero(12345, False)).Returns(pedido)
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
+        Dim agencia1 = A.Fake(Of AgenciasTransporte)
+        agencia1.Empresa = "1"
+        agencia1.Numero = 1
+        agencia1.Nombre = "OnTime"
+        agencia1.Ruta = "YYY"
+        Dim agencia2 = A.Fake(Of AgenciasTransporte)
+        agencia2.Empresa = "1"
+        agencia2.Numero = 2
+        agencia2.Nombre = "Correos Express"
+        agencia2.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia2)
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
+        Dim envio1 = A.Fake(Of EnviosAgencia)
+        envio1.Pais = 34 ' España
+        Dim envio2 = A.Fake(Of EnviosAgencia)
+        envio2.Pais = 724 ' España
+        A.CallTo(Function() servicio.CargarListaEnvios(1)).Returns(New ObservableCollection(Of EnviosAgencia) From {envio1})
+        A.CallTo(Function() servicio.CargarListaEnvios(2)).Returns(New ObservableCollection(Of EnviosAgencia) From {envio2})
+
+        A.CallTo(Function() servicio.CargarListaEnviosPedido("1", 12345)).Returns(New ObservableCollection(Of EnviosAgencia) From {envio1})
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.agenciaSeleccionada = agencia1
+        Assert.IsNotNull(viewModel.paisActual)
+        Assert.AreEqual(viewModel.envioActual.Pais, viewModel.paisActual.Id)
+
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.EN_CURSO}
+
+        viewModel.agenciaSeleccionada = agencia2
+        Assert.IsNotNull(viewModel.paisActual)
+        Assert.AreEqual(viewModel.envioActual.Pais, viewModel.paisActual.Id)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_ConfigurarAgencia_CogeLaAgenciaQueCoincidaLaRuta()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("36")
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1"
+        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
+            empresa
+        }
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
+        Dim agencia1 = A.Fake(Of AgenciasTransporte)
+        agencia1.Empresa = "1"
+        agencia1.Numero = 1
+        agencia1.Nombre = "OnTime"
+        agencia1.Ruta = "YYY"
+        Dim agencia2 = A.Fake(Of AgenciasTransporte)
+        agencia2.Empresa = "1"
+        agencia2.Numero = 2
+        agencia2.Nombre = "ASM"
+        agencia2.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia2)
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
+        Dim pedido = A.Fake(Of CabPedidoVta)
+        pedido.Empresa = "1"
+        pedido.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.numeroPedido = 123456
+
+        Assert.IsNotNull(viewModel.agenciaSeleccionada)
+        Assert.AreEqual(2, viewModel.agenciaSeleccionada.Numero)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_ConfigurarAgencia_SiTieneReembolsoCogeLaAgenciaDeReembolso()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("36")
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1"
+        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
+            empresa
+        }
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
+        Dim agencia1 = A.Fake(Of AgenciasTransporte)
+        agencia1.Empresa = "1"
+        agencia1.Numero = 1
+        agencia1.Nombre = "OnTime"
+        agencia1.Ruta = "YYY"
+        Dim agencia2 = A.Fake(Of AgenciasTransporte)
+        agencia2.Empresa = "1"
+        agencia2.Numero = 2
+        agencia2.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS
+        agencia2.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "YYY")).Returns(agencia1)
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
+        Dim pedido = A.Fake(Of CabPedidoVta)
+        pedido.Empresa = "1"
+        pedido.Número = 123456
+        pedido.Ruta = "YYY"
+        pedido.IVA = "G21"
+        A.CallTo(Function() servicio.CargarLineasPedidoSinPicking(123456)).Returns(New List(Of LinPedidoVta) From {New LinPedidoVta With {.Total = 1}})
+        A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.numeroPedido = 123456
+
+        Assert.IsNotNull(viewModel.agenciaSeleccionada)
+        Assert.AreEqual(Constantes.Agencias.AGENCIA_REEMBOLSOS, viewModel.agenciaSeleccionada.Nombre)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_ConfigurarAgencia_SiTieneReembolsoCogeLaAgenciaInternacional()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("36")
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1"
+        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
+            empresa
+        }
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
+        Dim agencia1 = A.Fake(Of AgenciasTransporte)
+        agencia1.Empresa = "1"
+        agencia1.Numero = 1
+        agencia1.Nombre = "OnTime"
+        agencia1.Ruta = "YYY"
+        Dim agencia2 = A.Fake(Of AgenciasTransporte)
+        agencia2.Empresa = "1"
+        agencia2.Numero = 2
+        agencia2.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL
+        agencia2.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "YYY")).Returns(agencia1)
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
+        Dim pedido = A.Fake(Of CabPedidoVta)
+        pedido.Empresa = "1"
+        pedido.Número = 123456
+        pedido.Ruta = "YYY"
+        pedido.IVA = "G21"
+        'A.CallTo(Function() servicio.CargarLineasPedidoSinPicking(123456)).Returns(New List(Of LinPedidoVta) From {New LinPedidoVta With {.Total = 1}})
+        A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.numeroPedido = 123456
+        viewModel.paisActual = New Pais(99, "NARNIA")
+
+        Assert.IsNotNull(viewModel.agenciaSeleccionada)
+        Assert.AreEqual(Constantes.Agencias.AGENCIA_REEMBOLSOS, viewModel.agenciaSeleccionada.Nombre)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_ConfigurarAgencia_CogeLaAgenciaDeLaEmpresaCorrecta()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("36")
+        Dim empresa1 = A.Fake(Of Empresas)
+        empresa1.Número = "1"
+        Dim empresa2 = A.Fake(Of Empresas)
+        empresa2.Número = "2"
+        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
+            empresa1, empresa2
+        }
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
+        Dim agencia1 = A.Fake(Of AgenciasTransporte)
+        agencia1.Empresa = "1"
+        agencia1.Numero = 1
+        agencia1.Nombre = "ASM"
+        agencia1.Ruta = "XXX"
+        Dim agencia2 = A.Fake(Of AgenciasTransporte)
+        agencia2.Empresa = "2"
+        agencia2.Numero = 2
+        agencia2.Nombre = "ASM"
+        agencia2.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia1)
+        A.CallTo(Function() servicio.CargarAgenciaPorRuta("2", "XXX")).Returns(agencia2)
+        A.CallTo(Function() servicio.CargarListaAgencias("1")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1})
+        A.CallTo(Function() servicio.CargarListaAgencias("2")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia2})
+        Dim pedido = A.Fake(Of CabPedidoVta)
+        pedido.Empresa = "2"
+        pedido.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.numeroPedido = 123456
+
+        Assert.IsNotNull(viewModel.empresaSeleccionada)
+        Assert.AreEqual("2", viewModel.empresaSeleccionada.Número)
+        Assert.IsNotNull(viewModel.agenciaSeleccionada)
+        Assert.AreEqual(2, viewModel.agenciaSeleccionada.Numero)
+    End Sub
+
+
     Private Sub CrearViewModelConUnEnvioEnLaListaDePendientes()
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
         A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("12345     ")
@@ -495,7 +721,9 @@ Public Class AgenciaViewModelTests
         }
         A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
         Dim envio = New EnvioAgenciaWrapper With {
-            .Numero = 123
+            .Numero = 123,
+            .Empresa = "1",
+            .Agencia = 2
         }
         Dim listaEnvios = New List(Of EnvioAgenciaWrapper) From {
             envio
@@ -524,14 +752,18 @@ Public Class AgenciaViewModelTests
         pedido.Clientes = cliente
         A.CallTo(Function() servicio.CargarPedidoPorNumero(12345, False)).Returns(pedido)
 
-        Dim agencia = A.Fake(Of AgenciasTransporte)
-        agencia.Empresa = "1"
-        agencia.Numero = 2
-        agencia.Ruta = "XXX"
+        Dim agencia = New AgenciasTransporte With {
+            .Empresa = "1",
+            .Numero = 2,
+            .Ruta = "XXX",
+            .Nombre = "OnTime"
+        }
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia)
-        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
+        Dim listaAgencias = New ObservableCollection(Of AgenciasTransporte) From {agencia}
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(listaAgencias)
 
         viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
     End Sub
 
@@ -631,6 +863,16 @@ Public Class AgenciaViewModelTests
         Dim codigoBarrasBulto = correosExpress.CalcularCodigoBarrasBulto(codigoBarrasEnvio, 1, "15001")
 
         Assert.AreEqual("61018013092616301150019", codigoBarrasBulto)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaCorreosExpress_CalcularCodigoBarrasRetorno_CalculaBien()
+        Dim correosExpress = New AgenciaCorreosExpress
+        Dim codigoBarrasEnvio = "5408522919307535"
+
+        Dim codigoBarrasRetorno = correosExpress.CalcularCodigoBarrasRetorno(codigoBarrasEnvio)
+
+        Assert.AreEqual("5208522919307544", codigoBarrasRetorno)
     End Sub
 
 End Class

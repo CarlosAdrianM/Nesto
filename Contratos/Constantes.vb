@@ -1,5 +1,7 @@
 ﻿Public Class Constantes
     Public Class Agencias
+        Public Const AGENCIA_INTERNACIONAL As String = "Correos Express" ' String.Empty para no usar ninguna
+        Public Const AGENCIA_REEMBOLSOS As String = "Correos Express" ' String.Empty para no usar ninguna
         Public Const ESTADO_INICIAL_ENVIO = 0
         Public Const ESTADO_TRAMITADO_ENVIO = 1
         Public Const ESTADO_PENDIENTE_ENVIO As Int16 = -1 ' Etiqueta pendiente de envío

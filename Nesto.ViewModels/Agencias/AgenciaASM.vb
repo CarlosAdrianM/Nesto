@@ -583,4 +583,16 @@ Public Class AgenciaASM
             _XMLdeEntrada = value
         End Set
     End Property
+
+    Public ReadOnly Property ServicioAuxiliar As Integer Implements IAgencia.ServicioAuxiliar
+        Get
+            Return Integer.MaxValue ' no existe servicio auxiliar
+        End Get
+    End Property
+
+    Public ReadOnly Property ServicioCreaEtiquetaRetorno As Integer Implements IAgencia.ServicioCreaEtiquetaRetorno
+        Get
+            Return Integer.MaxValue ' ningún servicio imprime etiqueta de retorno
+        End Get
+    End Property
 End Class

@@ -259,12 +259,12 @@ Public Class EnvioAgenciaWrapper
         End Set
     End Property
 
-    Private _pais As String
-    Public Property Pais As String
+    Private _pais As Integer
+    Public Property Pais As Integer
         Get
             Return _pais
         End Get
-        Set(value As String)
+        Set(value As Integer)
             SetProperty(_pais, value)
         End Set
     End Property

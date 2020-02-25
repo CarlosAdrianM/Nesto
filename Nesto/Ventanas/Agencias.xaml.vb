@@ -49,7 +49,7 @@ Public Class Agencias
         ' Ponemos e IF para que no entre cada vez que coja el foco
         If IsNothing(viewModel.numeroPedido) OrElse viewModel.numeroPedido.Trim = "" Then
             Await viewModel.cmdCargarDatos.Execute()
-            Await Task.Delay(2000)
+            Await Task.Delay(1000)
             txtPedidosNumero.Focus()
             txtPedidosNumero.SelectAll()
         End If
@@ -83,5 +83,13 @@ Public Class Agencias
 
     Private Sub txtPedidosNumero_PreviewMouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtPedidosNumero.PreviewMouseUp
         txtPedidosNumero.SelectAll()
+    End Sub
+
+    Private Sub txtNumeroPedido_PreviewMouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtNumeroPedido.PreviewMouseUp
+        txtNumeroPedido.SelectAll()
+    End Sub
+
+    Private Sub txtNumeroBultos_PreviewMouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtNumeroBultos.PreviewMouseUp
+        txtNumeroBultos.SelectAll()
     End Sub
 End Class
