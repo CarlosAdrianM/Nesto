@@ -403,7 +403,7 @@
                             </StackPanel>
                             <TextBlock></TextBlock>
                             <TextBlock>
-                                <Hyperlink Command="{Binding AbrirEnlaceSeguimientoCommand}">
+                                <Hyperlink Name="txtEnlaceSeguimiento" Command="{Binding AbrirEnlaceSeguimientoCommand}" ToolTip="Clic con el botón derecho para copiar al portapapeles">
                                     <Run Text="{Binding EnlaceSeguimientoEnvio}"/>
                                 </Hyperlink>
                             </TextBlock>

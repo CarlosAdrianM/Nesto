@@ -471,7 +471,7 @@ Public Class AgenciaCorreosExpress
     End Function
 
     Public Function EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
-        Return "(Enlace de seguimiento no disponible)"
+        Return "https://s.correosexpress.com/c?n=" + envio.CodigoBarras
     End Function
 
     Private Function rellenarPaises() As ObservableCollection(Of Pais)

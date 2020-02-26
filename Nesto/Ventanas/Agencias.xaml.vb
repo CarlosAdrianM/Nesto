@@ -92,4 +92,9 @@ Public Class Agencias
     Private Sub txtNumeroBultos_PreviewMouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtNumeroBultos.PreviewMouseUp
         txtNumeroBultos.SelectAll()
     End Sub
+
+    Private Sub txtEnlaceSeguimiento_MouseRightButtonUp(sender As Object, e As MouseButtonEventArgs) Handles txtEnlaceSeguimiento.MouseRightButtonUp
+        Dim vm As AgenciasViewModel = DataContext
+        Clipboard.SetText(vm.EnlaceSeguimientoEnvio)
+    End Sub
 End Class

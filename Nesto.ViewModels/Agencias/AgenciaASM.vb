@@ -542,7 +542,7 @@ Public Class AgenciaASM
     End Function
 
     Private Function IAgencia_EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
-        Return "http://m.asmred.com/e/" + envio.CodigoBarras + "/" + envio.CodPostal
+        Return "http://m.gls-spain.es/e/" + envio.CodigoBarras + "/" + envio.CodPostal
     End Function
 
     Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
