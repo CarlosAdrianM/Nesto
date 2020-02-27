@@ -168,7 +168,7 @@ Public Class AgenciasViewModel
                 SetProperty(_agenciaSeleccionada, value)
                 If Not IsNothing(value) Then
                     agenciaEspecifica = factory(value.Nombre).Invoke
-                    If PestañaSeleccionada.Name = Pestannas.PEDIDOS OrElse PestañaSeleccionada.Name = Pestannas.EN_CURSO Then
+                    If PestañaSeleccionada.Name = Pestannas.PEDIDOS OrElse PestañaSeleccionada.Name = Pestannas.EN_CURSO OrElse PestañaSeleccionada.Name = Pestannas.ETIQUETAS Then
                         ActualizarListas()
                         Dim nombrePais As String = paisActual?.Nombre
                         If Not IsNothing(nombrePais) AndAlso value.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL Then

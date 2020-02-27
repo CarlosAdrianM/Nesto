@@ -40,7 +40,8 @@ Public Class AgenciaCorreosExpress
             New tipoIdDescripcion(90, "Internacional Estándar (monobulto)"),
             New tipoIdDescripcion(91, "Internacional Express (multibulto)"),
             New tipoIdDescripcion(54, "EntregaPlus (entrega+recogida)"),
-            New tipoIdDescripcion(92, "Paq Empresa 14")
+            New tipoIdDescripcion(92, "Paq Empresa 14"),
+            New tipoIdDescripcion(93, "EPaq 24")
         }
         ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(0, "No disponible")
@@ -132,7 +133,7 @@ Public Class AgenciaCorreosExpress
             .Solicitante = "I" + envio.AgenciasTransporte.Identificador,
             .NumEnvio = envio.CodigoBarras,
             .Ref = envio.Cliente.Trim + "/" + envio.Pedido.ToString,
-            .Fecha = envio.Fecha.ToString("ddMMyyyy"),
+            .Fecha = Today.ToString("ddMMyyyy"),
             .CodRte = envio.AgenciasTransporte.Identificador,
             .NomRte = empresa.Nombre.ToUpper.Trim,
             .NifRte = empresa.NIF.ToUpper.Trim,
