@@ -163,6 +163,8 @@ Public Class AgenciaCorreosExpress
             Dim codigoPostal As String = envio.CodPostal
             If envio.Servicio = 63 AndAlso envio.Pais = 620 Then ' Portugal
                 codigoPostal = "8" + envio.CodPostal.Substring(0, 4)
+            ElseIf envio.Servicio = 90 OrElse envio.Servicio = 91 Then 'Internacional
+                codigoPostal = "99999"
             Else
                 codigoPostal = envio.CodPostal.Trim
             End If

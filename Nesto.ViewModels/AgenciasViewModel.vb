@@ -816,6 +816,8 @@ Public Class AgenciasViewModel
                 Next
                 If listaPendientes.Count > 0 And IsNothing(EnvioPendienteSeleccionado) Then
                     EnvioPendienteSeleccionado = listaPendientes.FirstOrDefault
+                Else
+                    ActualizarEstadoComandos()
                 End If
             End If
             If PestañaSeleccionada.Name = Pestannas.EN_CURSO AndAlso Not IsNothing(agenciaSeleccionada) Then
@@ -1193,7 +1195,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function CanTramitar(ByVal param As Object) As Boolean
-        Return Not IsNothing(envioActual) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
+        Return Not IsNothing(envioActual) AndAlso Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
     End Function
     Private Async Sub Tramitar(ByVal param As Object)
         If envioActual.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
@@ -1265,7 +1267,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function canBorrar(ByVal param As Object) As Boolean
-        Return envioActual IsNot Nothing AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
+        Return envioActual IsNot Nothing AndAlso Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
     End Function
     Private Sub Borrar(ByVal param As Object)
         If envioActual.Estado > 0 Then
@@ -2185,11 +2187,11 @@ Public Class AgenciasViewModel
     End Function
     Private Function ConfigurarAgenciaPedido() As AgenciasTransporte
         ' agenciaConfigurar es agenciaSeleccionada. Lo pongo por si se busca agenciaSeleccionada.
-        If IsNothing(pedidoSeleccionado) OrElse IsNothing(pedidoSeleccionado.Empresa) Then
+        If IsNothing(pedidoSeleccionado) OrElse IsNothing(pedidoSeleccionado.Empresa) OrElse IsNothing(listaAgencias) Then
             Return agenciaSeleccionada
         End If
 
-        If (reembolso <> 0 AndAlso Not IsNothing(pedidoSeleccionado.IVA) AndAlso pedidoSeleccionado.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO AndAlso Constantes.Agencias.AGENCIA_REEMBOLSOS <> String.Empty) Then
+        If reembolso <> 0 AndAlso Not IsNothing(pedidoSeleccionado.IVA) AndAlso pedidoSeleccionado.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO AndAlso Constantes.Agencias.AGENCIA_REEMBOLSOS <> String.Empty Then
             Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
         End If
 
