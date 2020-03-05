@@ -24,10 +24,18 @@
     </i:Interaction.Triggers>
 
     <StackPanel>
-        <TextBlock>Empresa: </TextBlock>
-        <TextBox Name="txtEmpresa" Text="{Binding empresa, UpdateSourceTrigger=PropertyChanged}"></TextBox>
         <TextBlock>Remesa: </TextBlock>
         <TextBox Name="txtRemesa" Text="{Binding numeroRemesa, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+        <TextBlock></TextBlock>
+        <TextBlock></TextBlock>
+        <!--
+        <TextBlock>Banco:</TextBlock>
+        <TextBox Name="txtBanco" Text="{Binding banco, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True"></TextBox>
+        -->
+        <TextBlock>Nº Orden:</TextBlock>
+        <TextBox Name="txtNumOrden" Text="{Binding numeroOrdenExtracto, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+        <TextBlock></TextBlock>
+        <TextBlock></TextBlock>
         <TextBlock></TextBlock>
         <Button Name="btnCrearFichero" Command="{Binding cmdCrearFicheroRemesa}">Crear Fichero de la Remesa</Button>
     </StackPanel>

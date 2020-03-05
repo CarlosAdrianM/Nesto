@@ -62,13 +62,27 @@ Public Class CarteraPagosViewModel
 #End Region
 
 #Region "Propiedades de Nesto"
-    Private _empresa As String
-    Public Property empresa As String
+    Private _banco As String = 5
+    Public Property banco As String
         Get
-            Return _empresa
+            Return _banco
         End Get
         Set(ByVal value As String)
-            SetProperty(_empresa, value)
+            SetProperty(_banco, value)
+            cmdCrearFicheroRemesa.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+
+    Private _numeroOrdenExtracto As Integer
+    Public Property numeroOrdenExtracto As Integer
+        Get
+            Return _numeroOrdenExtracto
+        End Get
+        Set(ByVal value As Integer)
+            SetProperty(_numeroOrdenExtracto, value)
+            numeroRemesa = 0
+            OnPropertyChanged(Function() numeroRemesa)
             cmdCrearFicheroRemesa.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -85,10 +99,6 @@ Public Class CarteraPagosViewModel
     End Property
 
 #End Region
-
-    Async Function CargarDatos() As Task
-        empresa = Await configuracion.leerParametro("1", Parametros.Claves.EmpresaPorDefecto)
-    End Function
 
 #Region "Comandos"
 
@@ -118,12 +128,18 @@ Public Class CarteraPagosViewModel
         End Set
     End Property
     Private Function CanCrearFicheroRemesa(arg As Object) As Boolean
-        Return numeroRemesa <> 0 AndAlso empresa.Trim <> ""
+        Return numeroRemesa <> 0 OrElse
+            (numeroRemesa = 0 AndAlso Not IsNothing(banco) AndAlso banco <> String.Empty AndAlso Not IsNothing(numeroOrdenExtracto) AndAlso numeroOrdenExtracto <> 0)
     End Function
     Private Async Sub OnCrearFicheroRemesa(arg As Object)
         Dim respuesta As String = ""
         Try
-            respuesta = Await servicio.crearFichero(empresa, numeroRemesa)
+            If (numeroRemesa <> 0) Then
+                respuesta = Await servicio.CrearFichero(numeroRemesa)
+            Else
+                respuesta = Await servicio.CrearFichero(numeroOrdenExtracto, banco)
+            End If
+
             If respuesta = "" Then
                 NotificationRequest.Raise(New Notification() With {
                 .Title = "Error",

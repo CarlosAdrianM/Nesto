@@ -218,7 +218,9 @@ Public Class AgenciaService
 
     Public Function CargarEnvio(empresa As String, pedido As Integer) As EnviosAgencia Implements IAgenciaService.CargarEnvio
         Using contexto = New NestoEntities
-            Return contexto.EnviosAgencia.FirstOrDefault(Function(e) e.Estado < Constantes.Agencias.ESTADO_INICIAL_ENVIO AndAlso e.Empresa = empresa AndAlso e.Pedido = pedido)
+            Dim respuesta As EnviosAgencia = contexto.EnviosAgencia.Include("AgenciasTransporte").FirstOrDefault(Function(e) e.Estado < Constantes.Agencias.ESTADO_INICIAL_ENVIO AndAlso e.Empresa = empresa AndAlso e.Pedido = pedido)
+            contexto.Entry(respuesta).Reference(Function(e) e.Empresas).Load()
+            Return respuesta
         End Using
     End Function
 
