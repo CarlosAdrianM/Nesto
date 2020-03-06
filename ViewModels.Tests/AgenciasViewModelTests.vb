@@ -444,6 +444,24 @@ Public Class AgenciaViewModelTests
     End Sub
 
     <TestMethod>
+    Public Sub AgenciaViewModel_SiHayUnEnvioPendienteSeleccionadoCreandose_AlCambiarDeAgenciaCambiaLaDelEnvio()
+        CrearViewModelConUnEnvioEnLaListaDePendientes()
+        Dim agencia2 = New AgenciasTransporte With {
+            .Empresa = "1",
+            .Numero = 8,
+            .Ruta = "XXX",
+            .Nombre = "Correos Express"
+        }
+        viewModel.listaAgencias.Add(agencia2)
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PENDIENTES}
+        viewModel.InsertarEnvioPendienteCommand.Execute()
+
+        viewModel.agenciaSeleccionada = agencia2
+
+        Assert.AreEqual(8, viewModel.EnvioPendienteSeleccionado.Agencia)
+    End Sub
+
+    <TestMethod>
     Public Sub AgenciaViewModel_AlBorrarEnvio_SeEliminaDeListaEnviosPedido()
         CrearViewModelConUnEnvioEnLaListaDePedidos()
         viewModel.envioActual = viewModel.listaEnviosPedido.Single

@@ -188,6 +188,11 @@ Public Class AgenciasViewModel
                             EnvioPendienteSeleccionado.Servicio = agenciaEspecifica.ServicioDefecto
                             EnvioPendienteSeleccionado.Horario = agenciaEspecifica.HorarioDefecto
                         End If
+                        Dim envioCreandose = listaPendientes.SingleOrDefault(Function(e) e.Numero = 0)
+                        If Not IsNothing(envioCreandose) Then
+                            envioCreandose.Empresa = empresaSeleccionada.Número
+                            envioCreandose.Agencia = agenciaSeleccionada.Numero
+                        End If
                     End If
                     If PestañaSeleccionada.Name = Pestannas.PEDIDOS AndAlso Not IsNothing(empresaSeleccionada) Then
                         listaEnviosPedido = servicio.CargarListaEnviosPedido(empresaSeleccionada.Número, pedidoSeleccionado.Número)
@@ -1533,7 +1538,7 @@ Public Class AgenciasViewModel
                             .Nº_Cuenta = agencia.CuentaReembolsos,
                             .Concepto = "Pago reembolso " + linea.Cliente,
                             .Haber = linea.Reembolso,
-                            .Nº_Documento = agencia.Nombre,
+                            .Nº_Documento = agencia.Nombre.Substring(0, 10),
                             .Delegación = "ALG",
                             .FormaVenta = "VAR"
                         })
@@ -1550,7 +1555,7 @@ Public Class AgenciasViewModel
                             .Contacto = "0",
                             .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
                             .Debe = sumaSeleccionadas,
-                            .Nº_Documento = agenciaSeleccionada.Nombre,
+                            .Nº_Documento = agenciaSeleccionada.Nombre.Substring(0, 10),
                             .Delegación = "ALG",
                             .FormaVenta = "VAR",
                             .FormaPago = empresaSeleccionada.FormaPagoEfectivo,

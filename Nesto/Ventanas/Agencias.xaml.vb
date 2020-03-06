@@ -97,4 +97,10 @@ Public Class Agencias
         Dim vm As AgenciasViewModel = DataContext
         Clipboard.SetText(vm.EnlaceSeguimientoEnvio)
     End Sub
+
+    Private Sub txtNumClienteContabilizar_KeyUp(sender As Object, e As KeyEventArgs) Handles txtNumClienteContabilizar.KeyUp
+        If e.Key = Key.Return Then
+            btnContabilizarReembolso.Focus()
+        End If
+    End Sub
 End Class

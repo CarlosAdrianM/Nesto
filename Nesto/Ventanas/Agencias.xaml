@@ -239,7 +239,7 @@
                         <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding EnvioPendienteSeleccionado.Cliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" IsReadOnly="True" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding EnvioPendienteSeleccionado.Contacto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" IsReadOnly="True" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <DatePicker Grid.Column="1" Grid.Row="3" Text="{Binding EnvioPendienteSeleccionado.Fecha, UpdateSourceTrigger=PropertyChanged}" Margin="3" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
-                        <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding listaServicios}" SelectedValue="{Binding EnvioPendienteSeleccionado.Servicio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
+                        <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding listaServicios}" SelectedValue="{Binding EnvioPendienteSeleccionado.Servicio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}" ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Self}}"/>
                         <ComboBox Grid.Column="1" Grid.Row="5" ItemsSource="{Binding listaHorarios}" SelectedValue="{Binding EnvioPendienteSeleccionado.Horario, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id"  Style="{StaticResource listaCombo}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding EnvioPendienteSeleccionado.Bultos}" Style="{StaticResource campoTexto}"  IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding listaTiposRetorno}" SelectedValue="{Binding EnvioPendienteSeleccionado.Retorno, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"  IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
@@ -546,10 +546,10 @@
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock>Nº Cliente:</TextBlock>
-                            <TextBox MinWidth="50" Text="{Binding numClienteContabilizar}"/>
+                            <TextBox Name="txtNumClienteContabilizar" MinWidth="50" Text="{Binding numClienteContabilizar, UpdateSourceTrigger=PropertyChanged}"/>
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Command="{Binding cmdContabilizarReembolso}">Contabilizar</Button>
+                            <Button Name="btnContabilizarReembolso" Command="{Binding cmdContabilizarReembolso}">Contabilizar</Button>
                         </StackPanel>
                     </Grid>                    
                 </Grid>

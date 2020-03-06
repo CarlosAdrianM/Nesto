@@ -85,12 +85,12 @@ Public Class EnvioAgenciaWrapper
         End Set
     End Property
 
-    Private _servicio As Integer
-    Public Property Servicio As Integer
+    Private _servicio As Byte
+    Public Property Servicio As Byte
         Get
             Return _servicio
         End Get
-        Set(value As Integer)
+        Set(value As Byte)
             SetProperty(_servicio, value)
         End Set
     End Property
