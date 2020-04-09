@@ -412,6 +412,7 @@ Public Class RemesasViewModel
 
 #Region "Funciones Auxiliares"
     Private Sub contabilizarImpagados(contenidoFichero As String)
+        DbContext.Database.CommandTimeout = 6000
         DbContext.prdContabilizarImpagadosSepa(contenidoFichero)
     End Sub
 

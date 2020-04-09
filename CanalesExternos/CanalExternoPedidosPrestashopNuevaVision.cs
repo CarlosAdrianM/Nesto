@@ -21,7 +21,7 @@ namespace Nesto.Modulos.CanalesExternos
         {
             this.configuracion = configuracion;
         }
-        public async Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync()
+        public async Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
         {
             var servicio = new PrestashopService();
             var listaNesto = new ObservableCollection<PedidoVentaDTO>();

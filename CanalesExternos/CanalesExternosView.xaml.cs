@@ -28,7 +28,8 @@ namespace Nesto.Modulos.CanalesExternos
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            ((CanalesExternosViewModel)DataContext).CargarPedidosCommand.Execute(null);
+            
+            ((CanalesExternosViewModel)DataContext).CanalSeleccionado = ((CanalesExternosViewModel)DataContext).Factory.First().Value;
         }
     }
 }

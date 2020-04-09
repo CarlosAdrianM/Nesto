@@ -28,9 +28,9 @@ namespace Nesto.Modulos.CanalesExternos
             this.configuracion = configuracion;
         }
 
-        public async Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync()
+        public async Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
         {
-            List<Order> listaAmazon = MarketplaceWebServiceOrdersNuevaVision.Ejecutar();
+            List<Order> listaAmazon = MarketplaceWebServiceOrdersNuevaVision.Ejecutar(fechaDesde, numeroMaxPedidos);
 
 
             ObservableCollection<PedidoVentaDTO> listaNesto = new ObservableCollection<PedidoVentaDTO>();

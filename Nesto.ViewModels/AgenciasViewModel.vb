@@ -1527,6 +1527,12 @@ Public Class AgenciasViewModel
                     If Not MODO_CUADRE Then
                         For Each linea In listaReembolsosSeleccionados
                             Dim agencia As AgenciasTransporte = DbContext.AgenciasTransporte.Where(Function(a) a.Numero = linea.Agencia).SingleOrDefault
+                            Dim numDocAgencia As String
+                            If agencia.Nombre.Length > 10 Then
+                                numDocAgencia = agencia.Nombre.Substring(0, 10)
+                            Else
+                                numDocAgencia = agencia.Nombre
+                            End If
                             DbContext.PreContabilidad.Add(New PreContabilidad With {
                             .Empresa = empresaSeleccionada.Número,
                             .Diario = "_PagoReemb",
@@ -1538,11 +1544,17 @@ Public Class AgenciasViewModel
                             .Nº_Cuenta = agencia.CuentaReembolsos,
                             .Concepto = "Pago reembolso " + linea.Cliente,
                             .Haber = linea.Reembolso,
-                            .Nº_Documento = agencia.Nombre.Substring(0, 10),
+                            .Nº_Documento = numDocAgencia,
                             .Delegación = "ALG",
                             .FormaVenta = "VAR"
                         })
                         Next
+                        Dim numDoc As String
+                        If agenciaSeleccionada.Nombre.Length > 10 Then
+                            numDoc = agenciaSeleccionada.Nombre.Substring(0, 10)
+                        Else
+                            numDoc = agenciaSeleccionada.Nombre
+                        End If
                         DbContext.PreContabilidad.Add(New PreContabilidad With {
                             .Empresa = empresaSeleccionada.Número,
                             .Diario = "_PagoReemb",
@@ -1555,7 +1567,7 @@ Public Class AgenciasViewModel
                             .Contacto = "0",
                             .Concepto = "Pago reembolso " + agenciaSeleccionada.Nombre,
                             .Debe = sumaSeleccionadas,
-                            .Nº_Documento = agenciaSeleccionada.Nombre.Substring(0, 10),
+                            .Nº_Documento = numDoc,
                             .Delegación = "ALG",
                             .FormaVenta = "VAR",
                             .FormaPago = empresaSeleccionada.FormaPagoEfectivo,

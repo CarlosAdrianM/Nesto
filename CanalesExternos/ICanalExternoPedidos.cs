@@ -10,7 +10,8 @@ namespace Nesto.Modulos.CanalesExternos
 {
     public interface ICanalExternoPedidos
     {
-        Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync();
+        //Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync();
+        Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos);
         PedidoVentaDTO GetPedido(int Id);
     }
 }

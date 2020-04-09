@@ -71,6 +71,20 @@ namespace Nesto.Modulos.CanalesExternos
             set => SetProperty(ref _factory, value);
         }
 
+        private DateTime _fechaDesde = DateTime.Today.AddDays(-7);
+        public DateTime FechaDesde
+        {
+            get { return _fechaDesde; }
+            set { SetProperty(ref _fechaDesde, value); }
+        }
+
+        private int _numeroMaxPedidos = 20;
+        public int NumeroMaxPedidos
+        {
+            get { return _numeroMaxPedidos; }
+            set { SetProperty(ref _numeroMaxPedidos, value); }
+        }
+
         public ObservableCollection<PedidoVentaDTO> ListaPedidos
         {
             get { return _listaPedidos; }
@@ -82,6 +96,10 @@ namespace Nesto.Modulos.CanalesExternos
             get { return _pedidoSeleccionado; }
             set {
                 SetProperty(ref _pedidoSeleccionado, value);
+                if (PedidoSeleccionado?.fecha != null && !(bool)PedidoSeleccionado?.comentarios.StartsWith("FBA"))
+                {
+                    FechaDesde = (DateTime)PedidoSeleccionado.fecha;
+                }
             }
         }
 
@@ -112,7 +130,7 @@ namespace Nesto.Modulos.CanalesExternos
             try
             {
                 EstaOcupado = true;
-                ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync();
+                ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos);
             } catch (Exception ex)
             {
                 NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
@@ -159,7 +177,7 @@ namespace Nesto.Modulos.CanalesExternos
             try
             {
                 EstaOcupado = true;
-                ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync();
+                ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos);
             } catch (Exception ex)
             {
                 NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });

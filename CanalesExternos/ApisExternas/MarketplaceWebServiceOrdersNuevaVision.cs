@@ -30,7 +30,7 @@ namespace MarketplaceWebServiceOrders {
     /// </summary>
     public class MarketplaceWebServiceOrdersNuevaVision
     {
-        public static List<Order> Ejecutar()
+        public static List<Order> Ejecutar(DateTime fechaDesde, int numeroMaxPedidos)
         {
             // TODO: Set the below configuration variables before attempting to run
 
@@ -69,16 +69,15 @@ namespace MarketplaceWebServiceOrders {
                 // response = sample.InvokeGetServiceStatus();
                 // response = sample.InvokeListOrderItems();
                 // response = sample.InvokeListOrderItemsByNextToken();
-                response = sample.InvokeListOrders();
+                response = sample.InvokeListOrders(fechaDesde, numeroMaxPedidos);
                 // response = sample.InvokeListOrdersByNextToken();
 
                 ListOrdersResponse respuesta = (ListOrdersResponse)response;
 
                 // Añadimos los FBA
-                response = sample.InvokeListOrdersFBA();
+                response = sample.InvokeListOrdersFBA(fechaDesde, numeroMaxPedidos);
                 ListOrdersResponse respuestaFBA = (ListOrdersResponse)response;
                 respuesta.ListOrdersResult.Orders.AddRange(respuestaFBA.ListOrdersResult.Orders);
-
                 return respuesta.ListOrdersResult.Orders;
 
                 /*
@@ -239,8 +238,14 @@ namespace MarketplaceWebServiceOrders {
             request.NextToken = nextToken;
             return this.client.ListOrderItemsByNextToken(request);
         }
-
+        /*
         public ListOrdersResponse InvokeListOrders()
+        {
+            DateTime fechaDesde = DateTime.Now.AddYears(-1);
+            return InvokeListOrders(fechaDesde, new DateTime());
+        }
+        */
+        public ListOrdersResponse InvokeListOrders(DateTime fechaDesde, int numeroMaxPedidos)
         {
             // Create a request.
             ListOrdersRequest request = new ListOrdersRequest();
@@ -248,14 +253,14 @@ namespace MarketplaceWebServiceOrders {
             request.SellerId = sellerId;
             //string mwsAuthToken = "example";
             //request.MWSAuthToken = mwsAuthToken;
-            DateTime createdAfter = DateTime.Now.AddYears(-1);
+            DateTime createdAfter = fechaDesde;
             request.CreatedAfter = createdAfter;
             /*
-            DateTime createdBefore = new DateTime();
+            DateTime createdBefore = fechaHasta;
             request.CreatedBefore = createdBefore;
-            DateTime lastUpdatedAfter = new DateTime();
+            DateTime lastUpdatedAfter = fechaDesde;
             request.LastUpdatedAfter = lastUpdatedAfter;
-            DateTime lastUpdatedBefore = new DateTime();
+            DateTime lastUpdatedBefore = fechaHasta;
             request.LastUpdatedBefore = lastUpdatedBefore;
             */
             List<string> orderStatus = new List<string>();
@@ -277,14 +282,14 @@ namespace MarketplaceWebServiceOrders {
             //request.BuyerEmail = buyerEmail;
             //string sellerOrderId = "example";
             //request.SellerOrderId = sellerOrderId;
-            decimal maxResultsPerPage = 100;
+            decimal maxResultsPerPage = numeroMaxPedidos;
             request.MaxResultsPerPage = maxResultsPerPage;
             List<string> tfmShipmentStatus = new List<string>();
             //request.TFMShipmentStatus = tfmShipmentStatus;
             return this.client.ListOrders(request);
         }
 
-        public ListOrdersResponse InvokeListOrdersFBA()
+        public ListOrdersResponse InvokeListOrdersFBA(DateTime fechaDesde, int numeroMaxPedidos)
         {
             // Create a request.
             ListOrdersRequest request = new ListOrdersRequest();
@@ -292,7 +297,7 @@ namespace MarketplaceWebServiceOrders {
             request.SellerId = sellerId;
             //string mwsAuthToken = "example";
             //request.MWSAuthToken = mwsAuthToken;
-            DateTime createdAfter = DateTime.Now.AddDays(-5);
+            DateTime createdAfter = fechaDesde;
             request.CreatedAfter = createdAfter;
             /*
             DateTime createdBefore = new DateTime();
@@ -321,7 +326,7 @@ namespace MarketplaceWebServiceOrders {
             //request.BuyerEmail = buyerEmail;
             //string sellerOrderId = "example";
             //request.SellerOrderId = sellerOrderId;
-            decimal maxResultsPerPage = 100;
+            decimal maxResultsPerPage = numeroMaxPedidos;
             request.MaxResultsPerPage = maxResultsPerPage;
             List<string> tfmShipmentStatus = new List<string>();
             //request.TFMShipmentStatus = tfmShipmentStatus;
