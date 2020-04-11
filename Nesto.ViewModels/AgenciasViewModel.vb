@@ -28,7 +28,7 @@ Public Class AgenciasViewModel
 
     Const CARGO_AGENCIA = 26
 
-    Private ReadOnly container As IUnityContainer
+    'Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IAgenciaService
     Private ReadOnly configuracion As IConfiguracion
@@ -40,12 +40,12 @@ Public Class AgenciasViewModel
 
     Private imprimirEtiqueta As Boolean
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion)
+    Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
 
-        Me.container = container
+        'Me.container = container
         Me.regionManager = regionManager
         Me.servicio = servicio
         Me.configuracion = configuracion
@@ -124,6 +124,38 @@ Public Class AgenciasViewModel
             Me.OnPropertyChanged("InteractionResultMessage")
         End Set
     End Property
+
+    Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion)
+        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(), configuracion)
+        agenciasVM.InsertarEnvioPendienteCommand.Execute()
+        agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL)
+        agenciasVM.EnvioPendienteSeleccionado.Pedido = etiqueta.Pedido
+        agenciasVM.EnvioPendienteSeleccionado.Agencia = agenciasVM.listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL).Numero
+        agenciasVM.EnvioPendienteSeleccionado.Nombre = etiqueta.Nombre
+        agenciasVM.EnvioPendienteSeleccionado.Direccion = etiqueta.Direccion
+        agenciasVM.EnvioPendienteSeleccionado.CodPostal = etiqueta.CodPostal
+        agenciasVM.EnvioPendienteSeleccionado.Poblacion = etiqueta.Poblacion
+        agenciasVM.EnvioPendienteSeleccionado.Provincia = etiqueta.Provincia
+        agenciasVM.EnvioPendienteSeleccionado.Telefono = Left(etiqueta.Telefono, 9)
+        agenciasVM.EnvioPendienteSeleccionado.Movil = Left(etiqueta.Movil, 9)
+        agenciasVM.EnvioPendienteSeleccionado.Email = etiqueta.Email
+        agenciasVM.EnvioPendienteSeleccionado.Atencion = etiqueta.Nombre
+        agenciasVM.EnvioPendienteSeleccionado.Observaciones = Left(etiqueta.Observaciones, 80)
+        Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = etiqueta.PaisISO)
+        If Not IsNothing(pais) Then
+            agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
+        End If
+        agenciasVM.EnvioPendienteSeleccionado.Horario = 0
+        If etiqueta.PaisISO = "ES" Then
+            agenciasVM.EnvioPendienteSeleccionado.Servicio = 93 ' Epaq 24
+        ElseIf etiqueta.PaisISO = "PT" Then
+            agenciasVM.EnvioPendienteSeleccionado.Servicio = 63 ' Paq24
+        Else
+            agenciasVM.EnvioPendienteSeleccionado.Servicio = 90 ' Internacional monobulto
+        End If
+
+        agenciasVM.GuardarEnvioPendienteCommand.Execute()
+    End Sub
 
     Private _titulo As String
     Public Property Titulo As String
@@ -1853,6 +1885,24 @@ Public Class AgenciasViewModel
         Return Not IsNothing(empresaSeleccionada) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso Not HayCambiosSinGuardarEnPendientes()
     End Function
     Private Sub OnInsertarEnvioPendiente()
+        ' Preparamos si se llama desde fuera
+        If IsNothing(listaEmpresas) Then
+            listaEmpresas = servicio.CargarListaEmpresas
+        End If
+        If IsNothing(listaPendientes) Then
+            listaPendientes = New ObservableCollection(Of EnvioAgenciaWrapper)
+        End If
+        If IsNothing(PestañaSeleccionada) Then
+            PestañaSeleccionada = New TabItem With {.Name = Pestannas.PENDIENTES}
+        End If
+        If IsNothing(empresaSeleccionada) AndAlso Not IsNothing(listaEmpresas) Then
+            empresaSeleccionada = listaEmpresas.FirstOrDefault
+        End If
+        If IsNothing(agenciaSeleccionada) AndAlso Not IsNothing(listaAgencias) Then
+            agenciaSeleccionada = listaAgencias.LastOrDefault
+        End If
+
+        ' Comenzamos a ejecutar
         Dim envioNuevo As EnvioAgenciaWrapper = New EnvioAgenciaWrapper With {
             .Agencia = agenciaSeleccionada.Numero,
             .Empresa = empresaSeleccionada.Número,

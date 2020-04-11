@@ -64,7 +64,7 @@ Public Class AgenciaCorreosExpress
 
     Public ReadOnly Property servicioSoloCobros As Integer Implements IAgencia.servicioSoloCobros
         Get
-            Throw New NotImplementedException()
+            Return 93 'NO EXISTE EL SERVICIO SOLO DE COBROS
         End Get
     End Property
 
@@ -139,13 +139,13 @@ Public Class AgenciaCorreosExpress
             .NifRte = empresa.NIF.ToUpper.Trim,
             .DirRte = empresa.Dirección.ToUpper.Trim,
             .PobRte = empresa.Población.ToUpper.Trim,
-            .CodPosNacRte = empresa.CodPostal.ToUpper.Trim,
+            .CodPosNacRte = Left(empresa.CodPostal.ToUpper.Trim, 5),
             .TelefRte = empresa.Teléfono.Trim,
             .EmailRte = empresa.Email.Trim,
             .NomDest = envio.Nombre.ToUpper.Trim,
             .DirDest = envio.Direccion.ToUpper.Trim,
             .PobDest = envio.Poblacion.ToUpper.Trim,
-            .CodPosNacDest = envio.CodPostal.Trim,
+            .CodPosNacDest = Left(envio.CodPostal.Trim, 5),
             .ContacDest = envio.Atencion.ToUpper.Trim,
             .TelefDest = IIf(envio.Telefono.Trim <> "", envio.Telefono.Trim, envio.Movil.Trim),
             .EmailDest = envio.Email.Trim,
@@ -178,7 +178,7 @@ Public Class AgenciaCorreosExpress
 
         If (envio.Servicio = 90 OrElse envio.Servicio = 91) OrElse (envio.Servicio = 63 AndAlso envio.Pais = 620) Then ' internacional o Portugal
             envioCEX.PaisISODest = ListaPaises.Single(Function(c) c.Id = envio.Pais).CodigoAlfa
-            envioCEX.CodPosIntDest = envio.CodPostal
+            envioCEX.CodPosIntDest = Left(envio.CodPostal, 7)
             envioCEX.CodPosIntDest = envioCEX.CodPosIntDest.Replace("-", "")
             envioCEX.CodPosIntDest = envioCEX.CodPosIntDest.Replace(" ", "")
             envioCEX.CodPosIntDest = envioCEX.CodPosIntDest.Replace(".", "")

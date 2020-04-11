@@ -78,7 +78,7 @@ Public Class AgenciaViewModelTests
         agencia.Numero = 2
         agencia.Ruta = "XXX"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta(A(Of String).Ignored, A(Of String).Ignored)).Returns(agencia)
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
 
         'act
         viewModel.cmdCargarDatos.Execute()
@@ -111,7 +111,7 @@ Public Class AgenciaViewModelTests
         agencia.Nombre = "OnTime"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta(A(Of String).Ignored, A(Of String).Ignored)).Returns(agencia)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
 
         'act
@@ -146,7 +146,7 @@ Public Class AgenciaViewModelTests
         }
         A.CallTo(Function() servicio.CargarPedidoPorNumero(A(Of Integer).Ignored)).Returns(pedido)
         A.CallTo(Function() servicio.CargarAgenciaPorRuta(A(Of String).Ignored, A(Of String).Ignored)).Returns(agencia)
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
 
         'act
         viewModel.cmdCargarDatos.Execute()
@@ -164,7 +164,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_AlSeleccionarTabPendientes_ListaPendientesNoPuedeSerNulo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
 
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PENDIENTES}
@@ -194,7 +194,7 @@ Public Class AgenciaViewModelTests
     Public Sub AgenciaViewModel_SiHayEtiquetasPendientesAntesDeSeleccionarLaTabPendientes_ListaPendientesEstaVacia()
         CrearViewModelConUnEnvioEnLaListaDePendientes()
 
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
 
         Assert.IsNotNull(viewModel.listaPendientes)
@@ -217,7 +217,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiNoHayEnvioPendienteSeleccionado_ElBotonBorrarEstaInactivo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.EnvioPendienteSeleccionado = Nothing
 
@@ -226,7 +226,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiHayEnvioPendienteSeleccionado_ElBotonBorrarrEstaActivo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.EnvioPendienteSeleccionado = A.Fake(Of EnvioAgenciaWrapper)
 
@@ -325,10 +325,43 @@ Public Class AgenciaViewModelTests
         Assert.IsTrue(ejecutado)
     End Sub
 
+    <TestMethod()>
+    Public Sub AgenciaViewModel_AlInsertar_SiNoHayAgenciaNiEmpresaLasCoge()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1"
+        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
+            empresa
+        }
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
+        Dim envio = New EnvioAgenciaWrapper With {
+            .Numero = 123,
+            .Empresa = "1",
+            .Agencia = 2
+        }
+
+        Dim agencia = New AgenciasTransporte With {
+            .Empresa = "1",
+            .Numero = 2,
+            .Ruta = "XXX",
+            .Nombre = "OnTime"
+        }
+        A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia)
+        Dim listaAgencias = New ObservableCollection(Of AgenciasTransporte) From {agencia}
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(listaAgencias)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
+
+        viewModel.InsertarEnvioPendienteCommand.Execute()
+
+        Assert.IsNotNull(viewModel.empresaSeleccionada)
+        Assert.IsNotNull(viewModel.agenciaSeleccionada)
+    End Sub
+
+
     <TestMethod>
     Public Sub AgenciaViewModel_CuandoNoHayEnvioPendienteSeleccionado_LosCamposDeLaTabPendientesEstanInactivos()
         CrearViewModelConUnEnvioEnLaListaDePendientes()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PENDIENTES}
 
@@ -339,7 +372,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_CuandoCambiaEnvioPendienteSeleccionado_SeActualizaHayUnEnvioPendienteSeleccionado()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         Dim vecesEjecutado As Integer = 0
         Dim seHaEjecutado = Sub(s, e)
@@ -419,7 +452,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaViewModel_SiHayBorrarEnvioPendienteNoQuedanMas_EnvioPendienteSeleccionadoTieneQueSerNulo()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PENDIENTES}
 
@@ -491,7 +524,7 @@ Public Class AgenciaViewModelTests
         agencia2.Ruta = "XXX"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia2)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
 
@@ -555,7 +588,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarListaEnvios(2)).Returns(New ObservableCollection(Of EnviosAgencia) From {envio2})
 
         A.CallTo(Function() servicio.CargarListaEnviosPedido("1", 12345)).Returns(New ObservableCollection(Of EnviosAgencia) From {envio1})
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
 
@@ -596,7 +629,7 @@ Public Class AgenciaViewModelTests
         pedido.Empresa = "1"
         pedido.Ruta = "XXX"
         A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
 
@@ -635,7 +668,7 @@ Public Class AgenciaViewModelTests
         pedido.IVA = "G21"
         A.CallTo(Function() servicio.CargarLineasPedidoSinPicking(123456)).Returns(New List(Of LinPedidoVta) From {New LinPedidoVta With {.Total = 1}})
         A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
 
@@ -674,7 +707,7 @@ Public Class AgenciaViewModelTests
         pedido.IVA = "G21"
         'A.CallTo(Function() servicio.CargarLineasPedidoSinPicking(123456)).Returns(New List(Of LinPedidoVta) From {New LinPedidoVta With {.Total = 1}})
         A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
 
@@ -715,7 +748,7 @@ Public Class AgenciaViewModelTests
         pedido.Empresa = "2"
         pedido.Ruta = "XXX"
         A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
 
@@ -780,7 +813,7 @@ Public Class AgenciaViewModelTests
         Dim listaAgencias = New ObservableCollection(Of AgenciasTransporte) From {agencia}
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(listaAgencias)
 
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
     End Sub
@@ -834,7 +867,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
         A.CallTo(Function() servicio.CargarListaEnviosTramitadosPorFecha(A(Of String).Ignored, A(Of Date).Ignored)).Returns(New ObservableCollection(Of EnviosAgencia))
 
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
     End Sub
 
@@ -860,7 +893,7 @@ Public Class AgenciaViewModelTests
 
     <TestMethod>
     Public Sub AgenciaCorreosExpress_CalcularCodigoBarras_CalculaBien()
-        viewModel = New AgenciasViewModel(container, regionManager, servicio, configuracion)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.envioActual = New EnviosAgencia
         viewModel.envioActual.Servicio = 63
         viewModel.envioActual.AgenciasTransporte = New AgenciasTransporte

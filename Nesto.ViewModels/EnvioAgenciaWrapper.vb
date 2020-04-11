@@ -269,6 +269,8 @@ Public Class EnvioAgenciaWrapper
         End Set
     End Property
 
+    Public Property PaisISO As String
+
     Private _codigoBarras As String
     Public Property CodigoBarras As String
         Get

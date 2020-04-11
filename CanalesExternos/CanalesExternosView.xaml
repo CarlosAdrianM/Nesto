@@ -33,23 +33,33 @@
                 <ComboBox Grid.Row="0" ItemsSource="{Binding Factory}" DisplayMemberPath="Key" SelectedValuePath="Value" SelectedValue="{Binding CanalSeleccionado}"></ComboBox>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding ListaPedidos}" SelectedItem="{Binding PedidoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Fecha" Binding="{Binding fecha}" IsReadOnly="True" />
-                        <DataGridTextColumn Header="Comentarios" Binding="{Binding comentarios}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Pedido.fecha}" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Comentarios" Binding="{Binding Pedido.comentarios}" IsReadOnly="True" Width="*"/>
                         <DataGridTemplateColumn>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Command="{Binding Path=DataContext.CrearPedidoCommand,RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" CommandParameter="{Binding}" Content="Crear Pedido"/>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Bottom" Command="{Binding Path=DataContext.CrearEtiquetaCommand,RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" CommandParameter="{Binding}" Content="Crear Etiqueta"/>
+                                        <Button DockPanel.Dock="Top" Command="{Binding Path=DataContext.CrearPedidoCommand,RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" CommandParameter="{Binding}" Content="Crear Pedido"/>
+                                    </DockPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
-                <xctk:DateTimePicker Grid.Row="2" Value="{Binding FechaDesde}"></xctk:DateTimePicker>
-                <xctk:IntegerUpDown Grid.Row="3" Value="{Binding NumeroMaxPedidos}"></xctk:IntegerUpDown>
+                <DockPanel Grid.Row="2">
+                    <TextBlock DockPanel.Dock="Left" Text="Fecha desde:"></TextBlock>
+                    <xctk:DateTimePicker DockPanel.Dock="Right" Value="{Binding FechaDesde}"></xctk:DateTimePicker>
+                </DockPanel>
+
+                <DockPanel Grid.Row="3">
+                    <TextBlock DockPanel.Dock="Left" Text="Nº Máximo de pedidos:"></TextBlock>
+                    <xctk:IntegerUpDown DockPanel.Dock="Right" Value="{Binding NumeroMaxPedidos}"></xctk:IntegerUpDown>
+                </DockPanel>
                 <Button Grid.Row="4" Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
             </Grid>
         </xctk:BusyIndicator>
-        <DataGrid Grid.Column="1" ItemsSource="{Binding PedidoSeleccionado.LineasPedido}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+        <DataGrid Grid.Column="1" ItemsSource="{Binding PedidoSeleccionado.Pedido.LineasPedido}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Producto" Binding="{Binding producto}"/>
                 <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>

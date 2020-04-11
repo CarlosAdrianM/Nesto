@@ -28,32 +28,33 @@ namespace Nesto.Modulos.CanalesExternos
             this.configuracion = configuracion;
         }
 
-        public async Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
+        public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
         {
             List<Order> listaAmazon = MarketplaceWebServiceOrdersNuevaVision.Ejecutar(fechaDesde, numeroMaxPedidos);
 
 
-            ObservableCollection<PedidoVentaDTO> listaNesto = new ObservableCollection<PedidoVentaDTO>();
+            ObservableCollection<PedidoCanalExterno> listaNesto = new ObservableCollection<PedidoCanalExterno>();
             await Task.Run(() => { 
                 foreach (Order order in listaAmazon)
                 {
-                    PedidoVentaDTO pedido = TrasformarPedido(order);
+                    PedidoCanalExterno pedidoExterno = TrasformarPedido(order);
                     List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
-                    pedido.LineasPedido = TrasformarLineas(lineasAmazon, order.FulfillmentChannel);
-                    listaNesto.Add(pedido);
+                    pedidoExterno.Pedido.LineasPedido = TrasformarLineas(lineasAmazon, order.FulfillmentChannel);
+                    listaNesto.Add(pedidoExterno);
                 }
             });
             
             return listaNesto;
         }
 
-        public PedidoVentaDTO GetPedido(int Id)
+        public PedidoCanalExterno GetPedido(int Id)
         {
             throw new NotImplementedException();
         }
 
-        private PedidoVentaDTO TrasformarPedido(Order order)
+        private PedidoCanalExterno TrasformarPedido(Order order)
         {
+            PedidoCanalExterno pedidoExterno = new PedidoCanalExterno();
             PedidoVentaDTO pedidoSalida = new PedidoVentaDTO();
 
             pedidoSalida.empresa = "1";
@@ -91,9 +92,22 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.periodoFacturacion = "NRM";
 
             pedidoSalida.usuario = configuracion.usuario;
-            
 
-            return pedidoSalida;
+            pedidoExterno.Pedido = pedidoSalida;
+            pedidoExterno.PedidoCanalId = numeroOrderAmazon;
+            pedidoExterno.Nombre = order.ShippingAddress?.Name.ToString().ToUpper();
+            pedidoExterno.CorreoElectronico = order.BuyerEmail?.ToString();
+            pedidoExterno.Direccion = order.ShippingAddress?.AddressLine1?.ToString().ToUpper();
+            pedidoExterno.Direccion += order.ShippingAddress?.AddressLine2 != null ? " " + order.ShippingAddress?.AddressLine2?.ToString().ToUpper() : "";
+            pedidoExterno.Direccion += order.ShippingAddress?.AddressLine3 != null ? " " + order.ShippingAddress?.AddressLine3?.ToString().ToUpper() : "";
+            pedidoExterno.CodigoPostal = order.ShippingAddress?.PostalCode?.ToString().ToUpper();
+            pedidoExterno.Poblacion = order.ShippingAddress?.City?.ToString().ToUpper();
+            pedidoExterno.Provincia = order.ShippingAddress?.StateOrRegion?.ToString().ToUpper();
+            pedidoExterno.TelefonoFijo = order.ShippingAddress?.Phone?.ToString().ToUpper();
+            pedidoExterno.PaisISO = order.ShippingAddress?.CountryCode?.ToString().ToUpper();
+
+
+            return pedidoExterno;
         }
 
         private ObservableCollection<LineaPedidoVentaDTO> TrasformarLineas(List<OrderItem> lineasAmazon, string canalCumplimiento)

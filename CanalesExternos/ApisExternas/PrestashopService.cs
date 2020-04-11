@@ -67,6 +67,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
             XElement xmlPedido;
             XElement xmlDireccion;
             XElement xmlCliente;
+            XElement xmlPais;
 
             PedidoPrestashop pedidoPrestashop = new PedidoPrestashop();
 
@@ -109,6 +110,26 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 }
             }
 
+            // Cargamos el pais
+            XElement paisXML = xmlDireccion.Element("id_country");
+            string urlPais = (string)paisXML.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
+            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
+            using (HttpClient client = new HttpClient(handler))
+            using (HttpResponseMessage response = await client.GetAsync(urlPais))
+            using (HttpContent content = response.Content)
+            {
+                try
+                {
+                    string resultado = await content.ReadAsStringAsync();
+                    resultado = resultado.TrimStart('\n');
+                    xmlPais = XDocument.Parse(resultado).Element("prestashop").Element("country");
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
             // Cargamos el cliente
             XElement clienteXML = xmlPedido.Element("id_customer");
             string urlCliente = (string)clienteXML.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
@@ -132,6 +153,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
             pedidoPrestashop.Pedido = xmlPedido;
             pedidoPrestashop.Direccion = xmlDireccion;
             pedidoPrestashop.Cliente = xmlCliente;
+            pedidoPrestashop.Pais = xmlPais;
 
             return pedidoPrestashop;
         }
@@ -142,5 +164,6 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
         public XElement Pedido { get; set; }
         public XElement Direccion { get; set; }
         public XElement Cliente { get; set; }
+        public XElement Pais { get; set; }
     }
 }

@@ -21,10 +21,10 @@ namespace Nesto.Modulos.CanalesExternos
         {
             this.configuracion = configuracion;
         }
-        public async Task<ObservableCollection<PedidoVentaDTO>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
+        public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
         {
             var servicio = new PrestashopService();
-            var listaNesto = new ObservableCollection<PedidoVentaDTO>();
+            var listaNesto = new ObservableCollection<PedidoCanalExterno>();
 
             var listaPrestashop = await servicio.CargarListaPedidosAsync();
 
@@ -37,8 +37,9 @@ namespace Nesto.Modulos.CanalesExternos
             return listaNesto;
         }
 
-        private PedidoVentaDTO TransformarPedido(PedidoPrestashop pedidoEntrada)
+        private PedidoCanalExterno TransformarPedido(PedidoPrestashop pedidoEntrada)
         {
+            PedidoCanalExterno pedidoExterno = new PedidoCanalExterno();
             PedidoVentaDTO pedidoSalida = new PedidoVentaDTO();
 
             pedidoSalida.empresa = EMPRESA_DEFECTO;
@@ -176,8 +177,21 @@ namespace Nesto.Modulos.CanalesExternos
 
                 pedidoSalida.LineasPedido.Add(lineaCupon);
             }
-            
-            return pedidoSalida;
+
+            pedidoExterno.Pedido = pedidoSalida;
+            pedidoExterno.PedidoCanalId = pedidoEntrada.Pedido.Element("reference").Value;
+            pedidoExterno.Nombre = pedidoEntrada.Direccion.Element("firstname").Value.ToString().ToUpper() + " ";
+            pedidoExterno.Nombre += pedidoEntrada.Direccion.Element("lastname").Value.ToString().ToUpper();
+            pedidoExterno.Direccion = pedidoEntrada.Direccion.Element("address1")?.Value.ToString().ToUpper();
+            pedidoExterno.Direccion += pedidoEntrada.Direccion.Element("address2")?.Value != "" ? " " + pedidoEntrada.Direccion.Element("address2")?.Value.ToString().ToUpper() : "";
+            pedidoExterno.CodigoPostal = pedidoEntrada.Direccion.Element("postcode")?.Value.ToString().ToUpper();
+            pedidoExterno.Poblacion = pedidoEntrada.Direccion.Element("city")?.Value.ToString().ToUpper();
+            pedidoExterno.TelefonoFijo = pedidoEntrada.Direccion.Element("phone")?.Value.ToString().ToUpper();
+            pedidoExterno.TelefonoMovil = pedidoEntrada.Direccion.Element("phone_mobile")?.Value.ToString().ToUpper();
+            pedidoExterno.CorreoElectronico = pedidoEntrada.Cliente.Element("email")?.Value.ToString();
+            pedidoExterno.PaisISO = pedidoEntrada.Pais.Element("iso_code")?.Value.ToString();
+
+            return pedidoExterno;
         }
 
         private Clientes BuscarCliente(string dniCliente)
@@ -226,7 +240,7 @@ namespace Nesto.Modulos.CanalesExternos
             return dniCliente;
         }
 
-        public PedidoVentaDTO GetPedido(int Id)
+        public PedidoCanalExterno GetPedido(int Id)
         {
             throw new NotImplementedException();
         }

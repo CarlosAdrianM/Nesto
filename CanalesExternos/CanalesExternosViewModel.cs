@@ -1,9 +1,11 @@
 ﻿using Microsoft.Practices.Prism.Commands;
 using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
 using Microsoft.Practices.Prism.Regions;
+using Microsoft.Practices.Unity;
 using Nesto.Contratos;
 using Nesto.Models;
 using Nesto.Modulos.PedidoVenta;
+using Nesto.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,7 +16,7 @@ using static Nesto.Models.PedidoVenta;
 
 namespace Nesto.Modulos.CanalesExternos
 {
-    public class CanalesExternosViewModel : ViewModelBase
+    public class CanalesExternosViewModel : Contratos.ViewModelBase
     {
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
@@ -22,8 +24,8 @@ namespace Nesto.Modulos.CanalesExternos
         public event EventHandler CanalSeleccionadoHaCambiado;
 
         private ICanalExternoPedidos _canalSeleccionado;
-        private ObservableCollection<PedidoVentaDTO> _listaPedidos;
-        private PedidoVentaDTO _pedidoSeleccionado;
+        private ObservableCollection<PedidoCanalExterno> _listaPedidos;
+        private PedidoCanalExterno _pedidoSeleccionado;
 
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
         
@@ -34,7 +36,6 @@ namespace Nesto.Modulos.CanalesExternos
 
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
-            Factory.Add("Guapalia", new CanalExternoPedidosGuapalia(configuracion));
 
             CrearComandosAsync();
 
@@ -85,20 +86,20 @@ namespace Nesto.Modulos.CanalesExternos
             set { SetProperty(ref _numeroMaxPedidos, value); }
         }
 
-        public ObservableCollection<PedidoVentaDTO> ListaPedidos
+        public ObservableCollection<PedidoCanalExterno> ListaPedidos
         {
             get { return _listaPedidos; }
             set { SetProperty(ref _listaPedidos, value); }
         }
         
-        public PedidoVentaDTO PedidoSeleccionado
+        public PedidoCanalExterno PedidoSeleccionado
         {
             get { return _pedidoSeleccionado; }
             set {
                 SetProperty(ref _pedidoSeleccionado, value);
-                if (PedidoSeleccionado?.fecha != null && !(bool)PedidoSeleccionado?.comentarios.StartsWith("FBA"))
+                if (PedidoSeleccionado?.Pedido.fecha != null && !(bool)PedidoSeleccionado?.Pedido.comentarios.StartsWith("FBA"))
                 {
-                    FechaDesde = (DateTime)PedidoSeleccionado.fecha;
+                    FechaDesde = (DateTime)PedidoSeleccionado.Pedido.fecha;
                 }
             }
         }
@@ -142,20 +143,67 @@ namespace Nesto.Modulos.CanalesExternos
             
         }
 
-        public ICommand CrearPedidoCommand { get; private set; }
-        private bool CanCrearPedido(PedidoVentaDTO pedido)
+        public DelegateCommand<PedidoCanalExterno> CrearEtiquetaCommand { get; private set; }
+        private bool CanCrearEtiqueta(PedidoCanalExterno pedido)
         {
-            return true;
+            return pedido != null && pedido.PedidoNestoId != 0;
         }
-        private async void OnCrearPedidoAsync(PedidoVentaDTO pedido)
+        private async void OnCrearEtiquetaAsync(PedidoCanalExterno pedido)
         {
             try
             {
                 EstaOcupado = true;
+                EnvioAgenciaWrapper etiqueta = new EnvioAgenciaWrapper
+                {
+                    Pedido = pedido.PedidoNestoId,
+                    Nombre = pedido.Nombre,
+                    Direccion = pedido.Direccion,
+                    Poblacion = pedido.Poblacion,
+                    Provincia = pedido.Provincia,
+                    CodPostal = pedido.CodigoPostal,
+                    Email = pedido.CorreoElectronico,
+                    Telefono = pedido.TelefonoFijo,
+                    Movil = pedido.TelefonoMovil,
+                    PaisISO = pedido.PaisISO
+                };
+
+                etiqueta.Observaciones = "Phone:";
+                etiqueta.Observaciones += !string.IsNullOrEmpty(pedido.TelefonoFijo) ? " " + pedido.TelefonoFijo : "";
+                etiqueta.Observaciones += !string.IsNullOrEmpty(pedido.TelefonoMovil) ? " " + pedido.TelefonoMovil : "";
+                etiqueta.Observaciones += " " + pedido.PedidoCanalId;
+
+                AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion);
+
+                EstaOcupado = false;
+                NotificationRequest.Raise(new Notification { Content = "Etiqueta creada", Title = "Crear Etiqueta" });
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        public ICommand CrearPedidoCommand { get; private set; }
+        private bool CanCrearPedido(PedidoCanalExterno pedidoExterno)
+        {
+            return true;
+        }
+        private async void OnCrearPedidoAsync(PedidoCanalExterno pedidoExterno)
+        {
+            try
+            {
+                EstaOcupado = true;
+                PedidoVentaDTO pedido = pedidoExterno.Pedido;
                 string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
                 EstaOcupado = false;
                 NotificationRequest.Raise(new Notification { Content = resultado, Title = "Crear Pedido" });
-            } finally
+                PedidoSeleccionado.PedidoNestoId = Int32.Parse(resultado.Split(' ')[1]);
+                CrearEtiquetaCommand.RaiseCanExecuteChanged();
+            } catch(Exception ex)
+            {
+                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error al crear pedido" });
+            }
+            finally
             {
                 EstaOcupado = false;
             }            
@@ -169,7 +217,8 @@ namespace Nesto.Modulos.CanalesExternos
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
             CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
-            CrearPedidoCommand = new DelegateCommand<PedidoVentaDTO>(OnCrearPedidoAsync, CanCrearPedido);
+            CrearEtiquetaCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearEtiquetaAsync, CanCrearEtiqueta);
+            CrearPedidoCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearPedidoAsync, CanCrearPedido);
         }
         
         async void OnCanalSeleccionadoHaCambiadoAsync(object sender, EventArgs e)
