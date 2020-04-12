@@ -281,35 +281,8 @@ Public Class EnvioAgenciaWrapper
         End Set
     End Property
 
-    'Private _nombrePlaza As String
-    'Public Property NombrePlaza As String
-    '    Get
-    '        Return _nombrePlaza
-    '    End Get
-    '    Set(value As String)
-    '        SetProperty(_nombrePlaza, value)
-    '    End Set
-    'End Property
+    Public Property RowVersion As Byte()
 
-    'Private _nemonico As String
-    'Public Property Nemonico As String
-    '    Get
-    '        Return _nemonico
-    '    End Get
-    '    Set(value As String)
-    '        SetProperty(_nemonico, value)
-    '    End Set
-    'End Property
-
-    'Private _telefonoPlaza As String
-    'Public Property TelefonoPlaza As String
-    '    Get
-    '        Return _telefonoPlaza
-    '    End Get
-    '    Set(value As String)
-    '        SetProperty(_telefonoPlaza, value)
-    '    End Set
-    'End Property
 
     Public Function ToEnvioAgencia() As EnviosAgencia
         Return New EnviosAgencia With {
@@ -338,7 +311,8 @@ Public Class EnvioAgenciaWrapper
             .Reembolso = Reembolso,
             .Retorno = Retorno,
             .Servicio = Servicio,
-            .Telefono = Telefono
+            .Telefono = Telefono,
+            .RowVersion = RowVersion
         }
     End Function
 
@@ -370,7 +344,8 @@ Public Class EnvioAgenciaWrapper
             .Reembolso = envio.Reembolso,
             .Retorno = envio.Retorno,
             .Servicio = envio.Servicio,
-            .Telefono = envio.Telefono
+            .Telefono = envio.Telefono,
+            .RowVersion = envio.RowVersion
         }
     End Function
 

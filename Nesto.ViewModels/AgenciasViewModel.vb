@@ -1919,16 +1919,23 @@ Public Class AgenciasViewModel
         Return HayCambiosSinGuardarEnPendientes()
     End Function
     Private Sub OnGuardarEnvioPendiente()
-        Dim envio = EnvioPendienteSeleccionado.ToEnvioAgencia
-        If EnvioPendienteSeleccionado.Numero = 0 Then
-            servicio.Insertar(envio)
-        Else
-            servicio.Modificar(envio)
-        End If
-        listaPendientes.Remove(EnvioPendienteSeleccionado)
-        EnvioPendienteSeleccionado = EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)
-        EnvioPendienteSeleccionado.TieneCambios = False
-        listaPendientes.Add(EnvioPendienteSeleccionado)
+        Try
+            Dim envio = EnvioPendienteSeleccionado.ToEnvioAgencia
+            If EnvioPendienteSeleccionado.Numero = 0 Then
+                servicio.Insertar(envio)
+            Else
+                servicio.Modificar(envio)
+            End If
+            listaPendientes.Remove(EnvioPendienteSeleccionado)
+            EnvioPendienteSeleccionado = EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)
+            EnvioPendienteSeleccionado.TieneCambios = False
+            listaPendientes.Add(EnvioPendienteSeleccionado)
+        Catch ex As Exception
+            NotificationRequest.Raise(New Notification() With {
+                 .Title = "Error al modificar envío",
+                .Content = ex.Message
+            })
+        End Try
     End Sub
 
     Public Property AbrirEnlaceSeguimientoCommand As DelegateCommand
