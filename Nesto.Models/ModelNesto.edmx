@@ -191,18 +191,6 @@
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" />
           <Property Name="Fecha Modificación" Type="datetime" Nullable="false" />
         </EntityType>
-        <EntityType Name="CódigosPostales">
-          <Key>
-            <PropertyRef Name="Empresa" />
-            <PropertyRef Name="Número" />
-          </Key>
-          <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
-          <Property Name="Número" Type="char" MaxLength="15" Nullable="false" />
-          <Property Name="Descripción" Type="char" MaxLength="50" />
-          <Property Name="Provincia" Type="char" MaxLength="30" Nullable="false" />
-          <Property Name="Ruta" Type="char" MaxLength="3" Nullable="false" />
-          <Property Name="Vendedor" Type="char" MaxLength="3" Nullable="false" />
-        </EntityType>
         <EntityType Name="Contabilidad">
           <Key>
             <PropertyRef Name="Empresa" />
@@ -1226,20 +1214,6 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK_Clientes_CódigosPostales">
-          <End Role="CódigosPostales" Type="Self.CódigosPostales" Multiplicity="0..1" />
-          <End Role="Clientes" Type="Self.Clientes" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="Clientes">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="CodPostal" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK_Clientes_Empresas">
           <End Role="Empresas" Type="Self.Empresas" Multiplicity="1" />
           <End Role="Clientes" Type="Self.Clientes" Multiplicity="*" />
@@ -1263,32 +1237,6 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
             <Dependent Role="Clientes">
               <PropertyRef Name="Empresa" />
               <PropertyRef Name="Vendedor" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_CódigosPostales_Empresas">
-          <End Role="Empresas" Type="Self.Empresas" Multiplicity="1" />
-          <End Role="CódigosPostales" Type="Self.CódigosPostales" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="Empresas">
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_Empresas_CódigosPostales">
-          <End Role="CódigosPostales" Type="Self.CódigosPostales" Multiplicity="0..1" />
-          <End Role="Empresas" Type="Self.Empresas" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="Empresas">
-              <PropertyRef Name="Número" />
-              <PropertyRef Name="CodPostal" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -1548,20 +1496,6 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK_ExtractoRuta_CódigosPostales">
-          <End Role="CódigosPostales" Type="Self.CódigosPostales" Multiplicity="0..1" />
-          <End Role="ExtractoRuta" Type="Self.ExtractoRuta" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="ExtractoRuta">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="CodPostal" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK_ExtractoRuta_Empresas">
           <End Role="Empresas" Type="Self.Empresas" Multiplicity="1" />
           <End Role="ExtractoRuta" Type="Self.ExtractoRuta" Multiplicity="*" />
@@ -1599,20 +1533,6 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
             <Dependent Role="ExtractoRuta">
               <PropertyRef Name="Empresa" />
               <PropertyRef Name="Vendedor" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_FamiliasVendedor_CódigosPostales">
-          <End Role="CódigosPostales" Type="Self.CódigosPostales" Multiplicity="1" />
-          <End Role="FamiliasVendedor" Type="Self.FamiliasVendedor" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="FamiliasVendedor">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="CodigoPostal" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -2018,7 +1938,6 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
           <EntitySet Name="Cargos" EntityType="Self.Cargos" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="CCC" EntityType="Self.CCC" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Clientes" EntityType="Self.Clientes" Schema="dbo" store:Type="Tables" />
-          <EntitySet Name="CódigosPostales" EntityType="Self.CódigosPostales" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Contabilidad" EntityType="Self.Contabilidad" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Empresas" EntityType="Self.Empresas" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="EnviosAgencia" EntityType="Self.EnviosAgencia" Schema="dbo" store:Type="Tables" />
@@ -2171,10 +2090,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
             <End Role="Clientes" EntitySet="Clientes" />
             <End Role="Clientes1" EntitySet="Clientes" />
           </AssociationSet>
-          <AssociationSet Name="FK_Clientes_CódigosPostales" Association="Self.FK_Clientes_CódigosPostales">
-            <End Role="CódigosPostales" EntitySet="CódigosPostales" />
-            <End Role="Clientes" EntitySet="Clientes" />
-          </AssociationSet>
           <AssociationSet Name="FK_Clientes_Empresas" Association="Self.FK_Clientes_Empresas">
             <End Role="Empresas" EntitySet="Empresas" />
             <End Role="Clientes" EntitySet="Clientes" />
@@ -2182,14 +2097,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <AssociationSet Name="FK_Clientes_Vendedores" Association="Self.FK_Clientes_Vendedores">
             <End Role="Vendedores" EntitySet="Vendedores" />
             <End Role="Clientes" EntitySet="Clientes" />
-          </AssociationSet>
-          <AssociationSet Name="FK_CódigosPostales_Empresas" Association="Self.FK_CódigosPostales_Empresas">
-            <End Role="Empresas" EntitySet="Empresas" />
-            <End Role="CódigosPostales" EntitySet="CódigosPostales" />
-          </AssociationSet>
-          <AssociationSet Name="FK_Empresas_CódigosPostales" Association="Self.FK_Empresas_CódigosPostales">
-            <End Role="CódigosPostales" EntitySet="CódigosPostales" />
-            <End Role="Empresas" EntitySet="Empresas" />
           </AssociationSet>
           <AssociationSet Name="FK_Empresas_Empresas" Association="Self.FK_Empresas_Empresas">
             <End Role="Empresas" EntitySet="Empresas" />
@@ -2267,10 +2174,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
             <End Role="Inmovilizados" EntitySet="Inmovilizados" />
             <End Role="ExtractoInmovilizado" EntitySet="ExtractoInmovilizado" />
           </AssociationSet>
-          <AssociationSet Name="FK_ExtractoRuta_CódigosPostales" Association="Self.FK_ExtractoRuta_CódigosPostales">
-            <End Role="CódigosPostales" EntitySet="CódigosPostales" />
-            <End Role="ExtractoRuta" EntitySet="ExtractoRuta" />
-          </AssociationSet>
           <AssociationSet Name="FK_ExtractoRuta_Empresas" Association="Self.FK_ExtractoRuta_Empresas">
             <End Role="Empresas" EntitySet="Empresas" />
             <End Role="ExtractoRuta" EntitySet="ExtractoRuta" />
@@ -2282,10 +2185,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <AssociationSet Name="FK_ExtractoRuta_Vendedores" Association="Self.FK_ExtractoRuta_Vendedores">
             <End Role="Vendedores" EntitySet="Vendedores" />
             <End Role="ExtractoRuta" EntitySet="ExtractoRuta" />
-          </AssociationSet>
-          <AssociationSet Name="FK_FamiliasVendedor_CódigosPostales" Association="Self.FK_FamiliasVendedor_CódigosPostales">
-            <End Role="CódigosPostales" EntitySet="CódigosPostales" />
-            <End Role="FamiliasVendedor" EntitySet="FamiliasVendedor" />
           </AssociationSet>
           <AssociationSet Name="FK_FamiliasVendedor_Vendedores" Association="Self.FK_FamiliasVendedor_Vendedores">
             <End Role="Vendedores" EntitySet="Vendedores" />
@@ -2744,27 +2643,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           </FunctionImport>
           <EntitySet Name="vstLinPedidoVtaConVendedor" EntityType="Nesto.Models.EF.vstLinPedidoVtaConVendedor" />
           <EntitySet Name="vstLinPedidoVtaComisiones" EntityType="Nesto.Models.EF.vstLinPedidoVtaComisiones" />
-          <EntitySet Name="CodigosPostales" EntityType="Nesto.Models.EF.CodigoPostal" />
-          <AssociationSet Name="FK_Clientes_CódigosPostales" Association="Nesto.Models.EF.FK_Clientes_CódigosPostales">
-            <End Role="CódigosPostales" EntitySet="CodigosPostales" />
-            <End Role="Clientes" EntitySet="Clientes" />
-          </AssociationSet>
-          <AssociationSet Name="FK_CódigosPostales_Empresas" Association="Nesto.Models.EF.FK_CódigosPostales_Empresas">
-            <End Role="Empresas" EntitySet="Empresas" />
-            <End Role="CódigosPostales" EntitySet="CodigosPostales" />
-          </AssociationSet>
-          <AssociationSet Name="FK_Empresas_CódigosPostales" Association="Nesto.Models.EF.FK_Empresas_CódigosPostales">
-            <End Role="CódigosPostales" EntitySet="CodigosPostales" />
-            <End Role="Empresas" EntitySet="Empresas" />
-          </AssociationSet>
-          <AssociationSet Name="FK_ExtractoRuta_CódigosPostales" Association="Nesto.Models.EF.FK_ExtractoRuta_CódigosPostales">
-            <End Role="CódigosPostales" EntitySet="CodigosPostales" />
-            <End Role="ExtractoRuta" EntitySet="ExtractoRuta" />
-          </AssociationSet>
-          <AssociationSet Name="FK_FamiliasVendedor_CódigosPostales" Association="Nesto.Models.EF.FK_FamiliasVendedor_CódigosPostales">
-            <End Role="CódigosPostales" EntitySet="CodigosPostales" />
-            <End Role="FamiliasVendedor" EntitySet="FamiliasVendedor" />
-          </AssociationSet>
           </EntityContainer>
         <EntityType Name="Productos">
           <Key>
@@ -3419,7 +3297,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <NavigationProperty Name="SeguimientoCliente" Relationship="Nesto.Models.EF.FK_SeguimientoCliente_Clientes" FromRole="Clientes" ToRole="SeguimientoCliente" />
           <NavigationProperty Name="CabPedidoVta" Relationship="Nesto.Models.EF.FK_CabPedidoVta_Clientes" FromRole="Clientes" ToRole="CabPedidoVta" />
           <NavigationProperty Name="EnviosAgencia" Relationship="Nesto.Models.EF.FK_EnviosAgencia_Clientes" FromRole="Clientes" ToRole="EnviosAgencia" />
-          <NavigationProperty Name="CódigosPostales" Relationship="Nesto.Models.EF.FK_Clientes_CódigosPostales" FromRole="Clientes" ToRole="CódigosPostales" />
         </EntityType>
         <Association Name="FK_CabAlquileres_Clientes">
           <End Type="Nesto.Models.EF.Clientes" Role="Clientes" Multiplicity="0..1" />
@@ -3695,8 +3572,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <NavigationProperty Name="Rutas" Relationship="Nesto.Models.EF.FK_Rutas_Empresas" FromRole="Empresas" ToRole="Rutas" />
           <NavigationProperty Name="MultiUsuarios" Relationship="Nesto.Models.EF.FK_MultiUsuarios_Empresas" FromRole="Empresas" ToRole="MultiUsuarios" />
           <NavigationProperty Name="EtiquetasPicking" Relationship="Nesto.Models.EF.FK_EtiquetasPicking_Empresas" FromRole="Empresas" ToRole="EtiquetasPicking" />
-          <NavigationProperty Name="CódigosPostales" Relationship="Nesto.Models.EF.FK_CódigosPostales_Empresas" FromRole="Empresas" ToRole="CódigosPostales" />
-          <NavigationProperty Name="CódigosPostales1" Relationship="Nesto.Models.EF.FK_Empresas_CódigosPostales" FromRole="Empresas" ToRole="CódigosPostales" />
         </EntityType>
         <Association Name="FK_CabFacturaVta_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
@@ -4337,7 +4212,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <NavigationProperty Name="Empresas" Relationship="Nesto.Models.EF.FK_ExtractoRuta_Empresas" FromRole="ExtractoRuta" ToRole="Empresas" />
           <NavigationProperty Name="Vendedores" Relationship="Nesto.Models.EF.FK_ExtractoRuta_Vendedores" FromRole="ExtractoRuta" ToRole="Vendedores" />
           <NavigationProperty Name="Rutas" Relationship="Nesto.Models.EF.FK_ExtractoRuta_Rutas1" FromRole="ExtractoRuta" ToRole="Rutas" />
-          <NavigationProperty Name="CódigosPostales" Relationship="Nesto.Models.EF.FK_ExtractoRuta_CódigosPostales" FromRole="ExtractoRuta" ToRole="CódigosPostales" />
         </EntityType>
         <Association Name="FK_ExtractoRuta_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
@@ -4672,7 +4546,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="FechaModificacion" Type="DateTime" Nullable="false" Precision="3" />
           <Property Name="Usuario" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
           <NavigationProperty Name="Vendedores" Relationship="Nesto.Models.EF.FK_FamiliasVendedor_Vendedores" FromRole="FamiliasVendedor" ToRole="Vendedores" />
-          <NavigationProperty Name="CódigosPostales" Relationship="Nesto.Models.EF.FK_FamiliasVendedor_CódigosPostales" FromRole="FamiliasVendedor" ToRole="CódigosPostales" />
         </EntityType>
         <Association Name="FK_FamiliasVendedor_Vendedores">
           <End Type="Nesto.Models.EF.Vendedores" Role="Vendedores" Multiplicity="1" />
@@ -4851,91 +4724,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="EstadoFamilia" Type="Int16" />
           <Property Name="PrecioTarifa" Type="Decimal" Precision="19" Scale="4" />
         </EntityType>
-        <EntityType Name="CodigoPostal">
-          <Key>
-            <PropertyRef Name="Empresa" />
-            <PropertyRef Name="Número" />
-          </Key>
-          <Property Name="Empresa" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
-          <Property Name="Número" Type="String" Nullable="false" MaxLength="15" FixedLength="true" Unicode="false" />
-          <Property Name="Descripción" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
-          <Property Name="Provincia" Type="String" Nullable="false" MaxLength="30" FixedLength="true" Unicode="false" />
-          <Property Name="Ruta" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
-          <Property Name="Vendedor" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
-          <NavigationProperty Name="Clientes" Relationship="Nesto.Models.EF.FK_Clientes_CódigosPostales" FromRole="CódigosPostales" ToRole="Clientes" />
-          <NavigationProperty Name="Empresa1" Relationship="Nesto.Models.EF.FK_CódigosPostales_Empresas" FromRole="CódigosPostales" ToRole="Empresas" />
-          <NavigationProperty Name="Empresas" Relationship="Nesto.Models.EF.FK_Empresas_CódigosPostales" FromRole="CódigosPostales" ToRole="Empresas" />
-          <NavigationProperty Name="ExtractoRutas" Relationship="Nesto.Models.EF.FK_ExtractoRuta_CódigosPostales" FromRole="CódigosPostales" ToRole="ExtractoRuta" />
-          <NavigationProperty Name="FamiliasVendedors" Relationship="Nesto.Models.EF.FK_FamiliasVendedor_CódigosPostales" FromRole="CódigosPostales" ToRole="FamiliasVendedor" />
-        </EntityType>
-        <Association Name="FK_Clientes_CódigosPostales">
-          <End Type="Nesto.Models.EF.CodigoPostal" Role="CódigosPostales" Multiplicity="0..1" />
-          <End Type="Nesto.Models.EF.Clientes" Role="Clientes" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="Clientes">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="CodPostal" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_CódigosPostales_Empresas">
-          <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
-          <End Type="Nesto.Models.EF.CodigoPostal" Role="CódigosPostales" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="Empresas">
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_Empresas_CódigosPostales">
-          <End Type="Nesto.Models.EF.CodigoPostal" Role="CódigosPostales" Multiplicity="0..1" />
-          <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="Empresas">
-              <PropertyRef Name="Número" />
-              <PropertyRef Name="CodPostal" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_ExtractoRuta_CódigosPostales">
-          <End Type="Nesto.Models.EF.CodigoPostal" Role="CódigosPostales" Multiplicity="0..1" />
-          <End Type="Nesto.Models.EF.ExtractoRuta" Role="ExtractoRuta" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="ExtractoRuta">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="CodPostal" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_FamiliasVendedor_CódigosPostales">
-          <End Type="Nesto.Models.EF.CodigoPostal" Role="CódigosPostales" Multiplicity="1" />
-          <End Type="Nesto.Models.EF.FamiliasVendedor" Role="FamiliasVendedor" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CódigosPostales">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="Número" />
-            </Principal>
-            <Dependent Role="FamiliasVendedor">
-              <PropertyRef Name="Empresa" />
-              <PropertyRef Name="CodigoPostal" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -5936,18 +5724,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
-          <EntitySetMapping Name="CodigosPostales">
-            <EntityTypeMapping TypeName="Nesto.Models.EF.CodigoPostal">
-              <MappingFragment StoreEntitySet="CódigosPostales">
-                <ScalarProperty Name="Vendedor" ColumnName="Vendedor" />
-                <ScalarProperty Name="Ruta" ColumnName="Ruta" />
-                <ScalarProperty Name="Provincia" ColumnName="Provincia" />
-                <ScalarProperty Name="Descripción" ColumnName="Descripción" />
-                <ScalarProperty Name="Número" ColumnName="Número" />
-                <ScalarProperty Name="Empresa" ColumnName="Empresa" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
@@ -5962,7 +5738,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
     <Options>
       <DesignerInfoPropertySet>
         <DesignerProperty Name="ValidateOnBuild" Value="true" />
-        <DesignerProperty Name="EnablePluralization" Value="True" />
+        <DesignerProperty Name="EnablePluralization" Value="False" />
         <DesignerProperty Name="IncludeForeignKeysInModel" Value="True" />
         <DesignerProperty Name="UseLegacyProvider" Value="True" />
         <DesignerProperty Name="CodeGenerationStrategy" Value="Ninguno" />
@@ -6305,12 +6081,6 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
         <AssociationConnector Association="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" />
         <EntityTypeShape EntityType="Nesto.Models.EF.vstLinPedidoVtaConVendedor" Width="1.5" PointX="21.375" PointY="1.25" />
         <EntityTypeShape EntityType="Nesto.Models.EF.vstLinPedidoVtaComisiones" Width="1.5" PointX="21.75" PointY="7.25" />
-        <EntityTypeShape EntityType="Nesto.Models.EF.CodigoPostal" Width="1.5" PointX="4.125" PointY="19.125" />
-        <AssociationConnector Association="Nesto.Models.EF.FK_Clientes_CódigosPostales" />
-        <AssociationConnector Association="Nesto.Models.EF.FK_CódigosPostales_Empresas" />
-        <AssociationConnector Association="Nesto.Models.EF.FK_Empresas_CódigosPostales" />
-        <AssociationConnector Association="Nesto.Models.EF.FK_ExtractoRuta_CódigosPostales" />
-        <AssociationConnector Association="Nesto.Models.EF.FK_FamiliasVendedor_CódigosPostales" />
         </Diagram>
     </Diagrams>
   </Designer>

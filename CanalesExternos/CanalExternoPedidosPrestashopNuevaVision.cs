@@ -190,6 +190,13 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoExterno.TelefonoMovil = pedidoEntrada.Direccion.Element("phone_mobile")?.Value.ToString().ToUpper();
             pedidoExterno.CorreoElectronico = pedidoEntrada.Cliente.Element("email")?.Value.ToString();
             pedidoExterno.PaisISO = pedidoEntrada.Pais.Element("iso_code")?.Value.ToString();
+            if (pedidoEntrada.Provincia != null)
+            {
+                pedidoExterno.Provincia = pedidoEntrada.Provincia.Element("name")?.Value.ToString().ToUpper();
+            } else
+            {
+                pedidoExterno.Provincia = string.Empty;
+            }
 
             return pedidoExterno;
         }

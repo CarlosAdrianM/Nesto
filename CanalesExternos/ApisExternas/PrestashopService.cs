@@ -68,6 +68,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
             XElement xmlDireccion;
             XElement xmlCliente;
             XElement xmlPais;
+            XElement xmlProvincia = null;
 
             PedidoPrestashop pedidoPrestashop = new PedidoPrestashop();
 
@@ -107,6 +108,29 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 catch (Exception ex)
                 {
                     throw ex;
+                }
+            }
+
+            // Cargamos la provicina
+            XElement provinciaXML = xmlDireccion.Element("id_state");
+            string urlProvincia = (string)provinciaXML.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
+            if (urlProvincia != null)
+            {
+                using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
+                using (HttpClient client = new HttpClient(handler))
+                using (HttpResponseMessage response = await client.GetAsync(urlProvincia))
+                using (HttpContent content = response.Content)
+                {
+                    try
+                    {
+                        string resultado = await content.ReadAsStringAsync();
+                        resultado = resultado.TrimStart('\n');
+                        xmlProvincia = XDocument.Parse(resultado).Element("prestashop").Element("state");
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
                 }
             }
 
@@ -154,6 +178,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
             pedidoPrestashop.Direccion = xmlDireccion;
             pedidoPrestashop.Cliente = xmlCliente;
             pedidoPrestashop.Pais = xmlPais;
+            pedidoPrestashop.Provincia = xmlProvincia;
 
             return pedidoPrestashop;
         }
@@ -165,5 +190,6 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
         public XElement Direccion { get; set; }
         public XElement Cliente { get; set; }
         public XElement Pais { get; set; }
+        public XElement Provincia { get; set; }
     }
 }
