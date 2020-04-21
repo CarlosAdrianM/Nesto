@@ -329,9 +329,9 @@
           <Property Name="Poblacion" Type="varchar" MaxLength="80" />
           <Property Name="Provincia" Type="varchar" MaxLength="80" />
           <Property Name="Pais" Type="int" Nullable="false" />
-          <Property Name="Telefono" Type="varchar" MaxLength="9" />
-          <Property Name="Movil" Type="varchar" MaxLength="9" />
-          <Property Name="Email" Type="varchar" MaxLength="200" />
+          <Property Name="Telefono" Type="varchar" MaxLength="15" />
+          <Property Name="Movil" Type="varchar" MaxLength="15" />
+          <Property Name="Email" Type="nvarchar" MaxLength="254" />
           <Property Name="Observaciones" Type="varchar" MaxLength="80" />
           <Property Name="Atencion" Type="varchar" MaxLength="80" />
           <Property Name="Reembolso" Type="money" Nullable="false" />
@@ -4293,9 +4293,9 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="CodPostal" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
           <Property Name="Poblacion" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Provincia" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
-          <Property Name="Telefono" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
-          <Property Name="Movil" Type="String" MaxLength="9" FixedLength="false" Unicode="false" />
-          <Property Name="Email" Type="String" MaxLength="200" FixedLength="false" Unicode="false" />
+          <Property Name="Telefono" Type="String" MaxLength="15" FixedLength="false" Unicode="false" />
+          <Property Name="Movil" Type="String" MaxLength="15" FixedLength="false" Unicode="false" />
+          <Property Name="Email" Type="String" MaxLength="254" FixedLength="false" Unicode="true" />
           <Property Name="Observaciones" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Atencion" Type="String" MaxLength="80" FixedLength="false" Unicode="false" />
           <Property Name="Reembolso" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
@@ -5746,7 +5746,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
     </Options>
     <!-- Diagram content (shape and connector positions) -->
     <Diagrams>
-      <Diagram Name="ModelNesto" ZoomLevel="65">
+      <Diagram Name="ModelNesto" ZoomLevel="53">
         <EntityTypeShape EntityType="Nesto.Models.EF.Productos" Width="1.5" PointX="0.75" PointY="16.5" Height="8.3262337239583317" />
         <AssociationConnector Association="Nesto.Models.EF.FK_Productos_Productos">
           <ConnectorPoint PointX="1.2819230769230767" PointY="25.210836588541667" />

@@ -27,6 +27,7 @@ Public Class AgenciasViewModel
     Const MODO_CUADRE = False
 
     Const CARGO_AGENCIA = 26
+    Const LONGITUD_TELEFONO = 15
 
     'Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
@@ -136,8 +137,8 @@ Public Class AgenciasViewModel
         agenciasVM.EnvioPendienteSeleccionado.CodPostal = etiqueta.CodPostal
         agenciasVM.EnvioPendienteSeleccionado.Poblacion = etiqueta.Poblacion
         agenciasVM.EnvioPendienteSeleccionado.Provincia = etiqueta.Provincia
-        agenciasVM.EnvioPendienteSeleccionado.Telefono = Left(etiqueta.Telefono, 9)
-        agenciasVM.EnvioPendienteSeleccionado.Movil = Left(etiqueta.Movil, 9)
+        agenciasVM.EnvioPendienteSeleccionado.Telefono = Left(etiqueta.Telefono, LONGITUD_TELEFONO)
+        agenciasVM.EnvioPendienteSeleccionado.Movil = Left(etiqueta.Movil, LONGITUD_TELEFONO)
         agenciasVM.EnvioPendienteSeleccionado.Email = etiqueta.Email
         agenciasVM.EnvioPendienteSeleccionado.Atencion = etiqueta.Nombre
         agenciasVM.EnvioPendienteSeleccionado.Observaciones = Left(etiqueta.Observaciones, 80)
@@ -200,6 +201,9 @@ Public Class AgenciasViewModel
                 SetProperty(_agenciaSeleccionada, value)
                 If Not IsNothing(value) Then
                     agenciaEspecifica = factory(value.Nombre).Invoke
+                    If IsNothing(PestañaSeleccionada) Then
+                        Return
+                    End If
                     If PestañaSeleccionada.Name = Pestannas.PEDIDOS OrElse PestañaSeleccionada.Name = Pestannas.EN_CURSO OrElse PestañaSeleccionada.Name = Pestannas.ETIQUETAS Then
                         ActualizarListas()
                         Dim nombrePais As String = paisActual?.Nombre
