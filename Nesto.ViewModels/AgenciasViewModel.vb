@@ -186,6 +186,11 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of AgenciasTransporte))
             SetProperty(_listaAgencias, value)
+            Dim agenciaConfigurar = ConfigurarAgenciaPedido()
+            ' Lo hacemos así porque si no sale en blanco
+            If Not IsNothing(agenciaConfigurar) Then
+                agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = agenciaConfigurar.Numero)
+            End If
         End Set
     End Property
 
@@ -366,7 +371,7 @@ Public Class AgenciasViewModel
                     If Not IsNothing(agenciaConfigurar) AndAlso (IsNothing(empresaSeleccionada) OrElse agenciaConfigurar.Empresa <> empresaSeleccionada.Número) AndAlso Not IsNothing(listaEmpresas) Then
                         empresaSeleccionada = listaEmpresas.Single(Function(e) e.Número = agenciaConfigurar.Empresa)
                     End If
-                    If Not IsNothing(listaAgencias) Then
+                    If Not IsNothing(listaAgencias) AndAlso Not IsNothing(agenciaConfigurar) Then
                         agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = agenciaConfigurar.Numero)
                     End If
                 Catch ex As Exception
@@ -789,6 +794,11 @@ Public Class AgenciasViewModel
                     SetProperty(_numeroPedido, pedidoAnterior.Número.ToString)
                 End If
             End If
+
+            If Not IsNothing(pedidoAnterior) AndAlso Not IsNothing(pedidoSeleccionado) AndAlso pedidoSeleccionado.Empresa <> pedidoAnterior.Empresa Then
+                empresaSeleccionada = listaEmpresas.Single(Function(e) e.Número = pedidoSeleccionado.Empresa)
+            End If
+
             'Dim agenciaNueva As AgenciasTransporte = (From a In DbContext.AgenciasTransporte Where a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
             OnPropertyChanged("empresaSeleccionada")
             OnPropertyChanged("agenciaSeleccionada")
@@ -1244,7 +1254,7 @@ Public Class AgenciasViewModel
         End If
         Try
             Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioActual, servicio)
-            If respuesta = "OK" Then
+            If respuesta = "OK" OrElse respuesta.StartsWith("ENVIO DUPLICADO") Then
                 mensajeError = servicio.TramitarEnvio(envioActual)
                 listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
                 envioActual = listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
@@ -2269,13 +2279,15 @@ Public Class AgenciasViewModel
             Return agenciaSeleccionada
         End If
 
+        'Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+
         If reembolso <> 0 AndAlso Not IsNothing(pedidoSeleccionado.IVA) AndAlso pedidoSeleccionado.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO AndAlso Constantes.Agencias.AGENCIA_REEMBOLSOS <> String.Empty Then
             Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
         End If
 
         Dim agenciaNueva As AgenciasTransporte
 
-        If IsNothing(pedidoSeleccionado.Ruta) Then
+        If IsNothing(pedidoSeleccionado.Ruta) AndAlso Not IsNothing(agenciaSeleccionada) Then
             pedidoSeleccionado.Ruta = agenciaSeleccionada.Ruta
         End If
 
@@ -2296,6 +2308,10 @@ Public Class AgenciasViewModel
             Return agenciaNueva
             'empresaSeleccionada = listaEmpresas.Where(Function(e) e.Número = agenciaNueva.Empresa).Single()
             'agenciaConfigurar = listaAgencias.Single(Function(a) a.Numero = agenciaNueva.Numero)
+        End If
+
+        If (IsNothing(agenciaSeleccionada) AndAlso IsNothing(agenciaNueva)) OrElse agenciaSeleccionada.Empresa <> pedidoSeleccionado.Empresa Then
+            Return listaAgencias.LastOrDefault()
         End If
 
         Return agenciaSeleccionada
