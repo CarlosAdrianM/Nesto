@@ -2586,7 +2586,13 @@ Public Class AgenciasViewModel
         Return asiento
     End Function
     Private Function buscarPedidoAmpliacion(pedido As CabPedidoVta) As EnviosAgencia
-        Dim pedidoEncontrado As EnviosAgencia = servicio.CargarEnvioPorClienteYDireccion(pedido.Nº_Cliente, pedido.Contacto, pedido.Clientes.Dirección)
+        Dim direccion As String
+        If Not String.IsNullOrWhiteSpace(direccionEnvio) Then
+            direccion = direccionEnvio
+        Else
+            direccion = pedido.Clientes.Dirección
+        End If
+        Dim pedidoEncontrado As EnviosAgencia = servicio.CargarEnvioPorClienteYDireccion(pedido.Nº_Cliente, pedido.Contacto, direccion)
         If IsNothing(pedidoEncontrado) Then
             ' Si no es ampliación devolvemos un envío nuevo
             Return New EnviosAgencia
