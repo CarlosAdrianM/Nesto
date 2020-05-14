@@ -1241,6 +1241,7 @@ Public Class PlantillaVentaViewModel
                     datosStock = JsonConvert.DeserializeObject(Of StockProductoDTO)(cadenaJson)
                     arg.stock = datosStock.stock
                     arg.cantidadDisponible = datosStock.cantidadDisponible
+                    arg.cantidadPendienteRecibir = datosStock.cantidadPendienteRecibir
                     arg.urlImagen = datosStock.urlImagen
                     arg.stockActualizado = True
                     arg.fechaInsercion = Now

@@ -61,12 +61,24 @@
                 <TabItem Header="Cabecera">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top">
-                            <TextBlock Text="Pedido: "></TextBlock>
-                            <TextBlock Text="{Binding pedido.numero}"></TextBlock>
-                            <TextBlock Text="Cliente: "></TextBlock>
-                            <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
-                            <TextBlock Text="Fecha pedido:"></TextBlock>
-                            <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Pedido: "></TextBlock>
+                                    <TextBlock Text="{Binding pedido.numero}"></TextBlock>
+                                    <TextBlock Text="Cliente: "></TextBlock>
+                                    <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
+                                    <TextBlock Text="Fecha pedido:"></TextBlock>
+                                    <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
+                                </StackPanel>
+                                <DockPanel Grid.Column="1">
+                                    <TextBox DockPanel.Dock="Top" Text="{Binding pedido.comentarios}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
+                                    <TextBox DockPanel.Dock="Bottom" Text="{Binding pedido.comentarioPicking}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
+                                </DockPanel>
+                            </Grid>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
@@ -88,6 +100,7 @@
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>
+                        
                         <DataGrid Name="grdLineasCabecera" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.LineasPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}" CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />

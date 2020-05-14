@@ -268,13 +268,15 @@
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Margin="3,0" VerticalAlignment="Center">Nombre:</TextBlock>
                                             <TextBox Grid.Column="1" VerticalContentAlignment="Center" Text="{Binding Nombre}"></TextBox>
                                             <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="3,0">Correo-e:</TextBlock>
                                             <TextBox Grid.Column="3" VerticalContentAlignment="Center" Text="{Binding CorreoElectronico}"></TextBox>
-                                            <Button Grid.Column="4" Margin="3" Command="{Binding RelativeSource={RelativeSource FindAncestor, 
+                                            <CheckBox Grid.Column="4" VerticalContentAlignment="Center" IsChecked="{Binding FacturacionElectronica}">Facturación Electrónica</CheckBox>
+                                            <Button Grid.Column="5" Margin="3" Command="{Binding RelativeSource={RelativeSource FindAncestor, 
                                                     AncestorType={x:Type UserControl}}, Path=DataContext.BorrarPersonaContactoCommand}" 
                                                     CommandParameter="{Binding}"
                                                     VerticalAlignment="Center">🗑</Button>

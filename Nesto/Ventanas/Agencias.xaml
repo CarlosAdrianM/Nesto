@@ -583,6 +583,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
@@ -598,6 +599,8 @@
 
                     <Button Name="btnInsertarImprimir" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" FontSize="50" MinWidth="80" Margin="3" Content="Insertar e Imprimir" Command = "{Binding cmdImprimirEInsertar}"/>
 
+                    <TextBox Grid.Row="3" Grid.Column="0" Text="{Binding pedidoSeleccionado.Comentarios}" IsReadOnly="True" FontWeight="ExtraBold" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
+                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding pedidoSeleccionado.ComentarioPicking}" IsReadOnly="True" FontWeight="ExtraBold" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
 
                 </Grid>
             </TabItem>

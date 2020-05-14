@@ -101,6 +101,7 @@ Public Class PlantillaVentaModel
         Public Property aplicarDescuentoFicha() As Boolean?
         Public Property stock As Integer
         Public Property cantidadDisponible As Integer
+        Public Property cantidadPendienteRecibir As Integer
         Public Property stockActualizado As Boolean
         Public Property fechaInsercion As DateTime = DateTime.MaxValue
         Public Property descuento As Decimal
@@ -180,6 +181,8 @@ Public Class PlantillaVentaModel
                     Return Brushes.Gray
                 ElseIf cantidadDisponible >= cantidad + cantidadOferta Then
                     Return Brushes.Green
+                ElseIf cantidadDisponible + cantidadPendienteRecibir >= cantidad + cantidadOferta Then
+                    Return Brushes.Blue
                 ElseIf stock >= cantidad + cantidadOferta Then
                     Return Brushes.DarkOrange
                 Else
@@ -252,6 +255,7 @@ Public Class PlantillaVentaModel
     Public Class StockProductoDTO
         Public Property stock() As Integer
         Public Property cantidadDisponible() As Integer
+        Public Property cantidadPendienteRecibir As Integer
         Public Property urlImagen() As String
     End Class
     Public Class UltimasVentasProductoClienteDTO

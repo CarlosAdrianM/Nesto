@@ -35,6 +35,7 @@ namespace Nesto.Modulos.Cliente
         public int Numero { get; set; }
         public string Nombre { get; set; }
         public string CorreoElectronico { get; set; }
+        public bool FacturacionElectronica { get; set; }
     }
     public class RespuestaNifNombreCliente
     {

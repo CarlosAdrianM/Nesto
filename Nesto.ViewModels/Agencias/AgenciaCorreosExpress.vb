@@ -135,7 +135,7 @@ Public Class AgenciaCorreosExpress
             .Ref = envio.Cliente.Trim + "/" + envio.Pedido.ToString,
             .Fecha = Today.ToString("ddMMyyyy"),
             .CodRte = envio.AgenciasTransporte.Identificador,
-            .NomRte = empresa.Nombre.ToUpper.Trim,
+            .NomRte = Left(empresa.Nombre.ToUpper.Trim, 40),
             .NifRte = empresa.NIF.ToUpper.Trim,
             .DirRte = empresa.Dirección.ToUpper.Trim,
             .PobRte = empresa.Población.ToUpper.Trim,
