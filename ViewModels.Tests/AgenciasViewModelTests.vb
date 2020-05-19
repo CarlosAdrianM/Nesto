@@ -127,6 +127,13 @@ Public Class AgenciaViewModelTests
     Public Sub AgenciaViewModel_AlCargarDatos_ConfiguraLaAgencia()
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
         A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("36")
+        Dim pedido = New CabPedidoVta With {
+            .Empresa = "1",
+            .Número = 36,
+            .Clientes = New Clientes(),
+            .Ruta = "XXX"
+        }
+        A.CallTo(Function() servicio.CargarPedidoPorNumero(A(Of Integer).Ignored)).Returns(pedido)
         Dim empresa1 = A.Fake(Of Empresas)
         empresa1.Número = "1"
         Dim empresa2 = A.Fake(Of Empresas)
@@ -147,7 +154,6 @@ Public Class AgenciaViewModelTests
         agencia2.Ruta = "YYY"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia2)
         A.CallTo(Function() servicio.CargarListaAgencias("1")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
-        Dim pedido = A.Fake(Of CabPedidoVta)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()

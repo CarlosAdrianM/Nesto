@@ -1,12 +1,22 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Data.Objects
+Imports System.Net.Http
+Imports System.Text
+Imports System.Threading.Tasks
 Imports System.Transactions
 Imports Nesto.Contratos
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
+Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
 
 Public Class AgenciaService
     Implements IAgenciaService
+
+    Private ReadOnly configuracion As IConfiguracion
+    Public Sub New(configuracion As IConfiguracion)
+        Me.configuracion = configuracion
+    End Sub
 
     Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
         Using context As New NestoEntities
@@ -420,5 +430,19 @@ Public Class AgenciaService
     Private Function GenerarConcepto(envio As EnviosAgencia) As String Implements IAgenciaService.GenerarConcepto
         Dim agenciaEnvio As AgenciasTransporte = CargarAgencia(envio.Agencia)
         Return Left("S/Pago pedido " + envio.Pedido.ToString + " a " + agenciaEnvio.Nombre.Trim + " c/" + envio.Cliente.Trim, 50)
+    End Function
+
+    Public Async Function EnviarCorreoEntregaAgencia(envioActual As EnvioAgenciaWrapper) As Task Implements IAgenciaService.EnviarCorreoEntregaAgencia
+        Using client As New HttpClient
+            Try
+                client.BaseAddress = New Uri(configuracion.servidorAPI)
+                Dim response As HttpResponseMessage
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(envioActual), Encoding.UTF8, "application/json")
+                response = Await client.PostAsync("EnviosAgencias/EnviarCorreoEntregaAgencia", content)
+
+            Catch ex As Exception
+                Throw ex
+            End Try
+        End Using
     End Function
 End Class

@@ -1,5 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Data.Objects
+Imports System.Threading.Tasks
+Imports Nesto.Contratos
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 
@@ -45,4 +47,5 @@ Public Interface IAgenciaService
     Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente
     Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente
     Function GenerarConcepto(envio As EnviosAgencia) As String
+    Function EnviarCorreoEntregaAgencia(envioActual As EnvioAgenciaWrapper) As Task
 End Interface

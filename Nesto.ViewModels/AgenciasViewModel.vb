@@ -127,7 +127,7 @@ Public Class AgenciasViewModel
     End Property
 
     Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion)
-        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(), configuracion)
+        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion), configuracion)
         agenciasVM.InsertarEnvioPendienteCommand.Execute()
         agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL)
         agenciasVM.EnvioPendienteSeleccionado.Pedido = etiqueta.Pedido
@@ -2250,6 +2250,8 @@ Public Class AgenciasViewModel
                          .Title = "¡Error!",
                         .Content = "Se ha producido un error y no se ha creado la etiqueta correctamente"
                     })
+            Else
+                servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
             End If
 
         End Using ' finaliza la transacción
