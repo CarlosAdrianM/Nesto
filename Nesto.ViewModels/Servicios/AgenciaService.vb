@@ -439,7 +439,6 @@ Public Class AgenciaService
                 Dim response As HttpResponseMessage
                 Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(envioActual), Encoding.UTF8, "application/json")
                 response = Await client.PostAsync("EnviosAgencias/EnviarCorreoEntregaAgencia", content)
-
             Catch ex As Exception
                 Throw ex
             End Try

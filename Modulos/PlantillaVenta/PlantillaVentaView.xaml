@@ -359,9 +359,14 @@
                             <TextBlock TextWrapping="Wrap" Margin="3,0">Este comentario lo leerá la agencia y también el cliente, porque aparecerá en la factura:</TextBlock>
                             <TextBox TextWrapping="Wrap" Text="{Binding direccionEntregaSeleccionada.comentarioRuta}" Margin="3,0"/>
                             <CheckBox Content="Servir Junto" IsChecked="{Binding direccionEntregaSeleccionada.servirJunto}" Margin="3,0"/>
+                            <CheckBox Content="Mantener Junto" IsChecked="{Binding direccionEntregaSeleccionada.mantenerJunto}" Margin="3,0"/>
+                            <TextBlock Margin="3,0">
+                                <Run Text="Periodo de Facturación:"></Run>
+                                <Run Text="{Binding direccionEntregaSeleccionada.periodoFacturacion}"></Run>
+                            </TextBlock>
                             <TextBlock></TextBlock>
-                            <TextBlock>Fecha de entrega:</TextBlock>
-                            <Grid>
+                            <TextBlock Margin="3,0">Fecha de entrega:</TextBlock>
+                            <Grid Margin="3,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
                                     <ColumnDefinition Width="3*"/>
