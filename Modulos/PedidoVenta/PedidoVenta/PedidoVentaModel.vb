@@ -20,9 +20,16 @@
         Public Property tienePicking As Boolean
         Public Property tieneFechasFuturas As Boolean
         Public Property tienePresupuesto As Boolean
+        Public ReadOnly Property tieneSeguimiento As Boolean
+            Get
+                Return Not String.IsNullOrEmpty(ultimoSeguimiento)
+            End Get
+        End Property
+
         Public Property baseImponible As Decimal
         Public Property total As Decimal
         Public Property vendedor As String
+        Public Property ultimoSeguimiento As String
     End Class
 
     Public Class Producto

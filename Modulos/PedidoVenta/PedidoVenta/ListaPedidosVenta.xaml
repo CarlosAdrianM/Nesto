@@ -47,6 +47,7 @@
                                     <TextBlock Background="Blue" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneFechasFuturas, Converter={StaticResource BooleanToVisibilityConverter} }">En Espera</TextBlock>
                                     <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
                                     <TextBlock Background="DarkGoldenrod" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePresupuesto, Converter={StaticResource BooleanToVisibilityConverter} }">Presupuesto</TextBlock>
+                                    <TextBlock Background="BlueViolet" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneSeguimiento, Converter={StaticResource BooleanToVisibilityConverter} }" Text="{Binding ultimoSeguimiento}"></TextBlock>
                                 </StackPanel>
                             </StackPanel>
                         </Border>

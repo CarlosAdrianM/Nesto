@@ -2251,7 +2251,9 @@ Public Class AgenciasViewModel
                         .Content = "Se ha producido un error y no se ha creado la etiqueta correctamente"
                     })
             Else
-                servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
+                If Not pedidoSeleccionado.LinPedidoVta.All(Function(l) Constantes.FormasVenta.FORMAS_ONLINE.Contains(l.Forma_Venta)) Then
+                    servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
+                End If
             End If
 
         End Using ' finaliza la transacción

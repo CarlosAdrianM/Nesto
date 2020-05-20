@@ -9,6 +9,7 @@ using Nesto.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -153,6 +154,7 @@ namespace Nesto.Modulos.CanalesExternos
             try
             {
                 EstaOcupado = true;
+
                 EnvioAgenciaWrapper etiqueta = new EnvioAgenciaWrapper
                 {
                     Pedido = pedido.PedidoNestoId,
@@ -166,6 +168,11 @@ namespace Nesto.Modulos.CanalesExternos
                     Movil = pedido.TelefonoMovil,
                     PaisISO = pedido.PaisISO
                 };
+                
+                if (pedido.Pedido.formaPago == Constantes.FormasPago.EFECTIVO)
+                {
+                    etiqueta.Reembolso = pedido.Pedido.total;
+                }
 
                 etiqueta.Observaciones = "Phone:";
                 etiqueta.Observaciones += !string.IsNullOrEmpty(pedido.TelefonoFijo) ? " " + pedido.TelefonoFijo : "";
