@@ -251,7 +251,7 @@ Public Class PedidoVenta
                 For Each linea In LineasPedido
                     totalParcial += calcularTotalLinea(linea)
                 Next
-                Return totalParcial
+                Return Math.Round(totalParcial, 2, MidpointRounding.AwayFromZero)
             End Get
         End Property
 

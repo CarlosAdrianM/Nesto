@@ -142,6 +142,7 @@ Public Class AgenciasViewModel
         agenciasVM.EnvioPendienteSeleccionado.Email = etiqueta.Email
         agenciasVM.EnvioPendienteSeleccionado.Atencion = etiqueta.Nombre
         agenciasVM.EnvioPendienteSeleccionado.Observaciones = Left(etiqueta.Observaciones, 80)
+        agenciasVM.EnvioPendienteSeleccionado.Reembolso = etiqueta.Reembolso
         Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = etiqueta.PaisISO)
         If Not IsNothing(pais) Then
             agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
@@ -2071,7 +2072,7 @@ Public Class AgenciasViewModel
         Dim importeFinal As Double = Math.Round(
             (Aggregate l In lineas
             Select l.Total Into Sum()) _
-            + importeDeuda, 2)
+            + importeDeuda, 2, MidpointRounding.AwayFromZero)
 
         ' Evitamos los reembolsos negativos
         If importeFinal < 0 Then
@@ -2094,7 +2095,7 @@ Public Class AgenciasViewModel
 
         Dim textoConfirmar As String
         Dim esAmpliacion As Boolean = Not IsNothing(envioActual.Pedido) 'AndAlso envioActual.Pedido <> pedidoSeleccionado.Número
-        If esAmpliacion Then
+        If esAmpliacion And Not estabaPendiente Then
             If envioActual.Bultos = bultos Then
                 textoConfirmar = "Si el nº total de bultos sigue siendo " + envioActual.Bultos.ToString
                 imprimirEtiqueta = False
@@ -2250,14 +2251,13 @@ Public Class AgenciasViewModel
                          .Title = "¡Error!",
                         .Content = "Se ha producido un error y no se ha creado la etiqueta correctamente"
                     })
-            Else
-                If Not pedidoSeleccionado.LinPedidoVta.All(Function(l) Constantes.FormasVenta.FORMAS_ONLINE.Contains(l.Forma_Venta)) Then
-                    servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
-                End If
             End If
 
         End Using ' finaliza la transacción
 
+        If success AndAlso Not servicio.EsTodoElPedidoOnline(envioActual.Empresa, envioActual.Pedido) Then
+            servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
+        End If
     End Sub
 
     Private Function buscarEnvioPendiente(pedidoSeleccionado As CabPedidoVta) As EnviosAgencia
@@ -2616,7 +2616,7 @@ Public Class AgenciasViewModel
         Return Math.Round(
             (Aggregate l In deudas
             Select l.ImportePdte Into Sum()) _
-            , 2)
+            , 2, MidpointRounding.AwayFromZero)
     End Function
     'Private Function EstamosEditandoEnvioPendiente() As Boolean
     '    ' Hay que cambiar el nombre a la función, porqeu ya no existe contextPendientes

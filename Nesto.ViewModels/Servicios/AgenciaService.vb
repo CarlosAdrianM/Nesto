@@ -444,4 +444,12 @@ Public Class AgenciaService
             End Try
         End Using
     End Function
+
+    Public Function EsTodoElPedidoOnline(empresa As String, pedido As Integer) As Boolean Implements IAgenciaService.EsTodoElPedidoOnline
+        Using contexto = New NestoEntities
+            Dim lineas = contexto.LinPedidoVta.Where(Function(l) l.Empresa = empresa AndAlso l.Número = pedido)
+            Dim todoOnline = lineas.All(Function(l) Constantes.FormasVenta.FORMAS_ONLINE.Contains(l.Forma_Venta))
+            Return todoOnline
+        End Using
+    End Function
 End Class

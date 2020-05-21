@@ -48,4 +48,5 @@ Public Interface IAgenciaService
     Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente
     Function GenerarConcepto(envio As EnviosAgencia) As String
     Function EnviarCorreoEntregaAgencia(envioActual As EnvioAgenciaWrapper) As Task
+    Function EsTodoElPedidoOnline(empresa As String, pedido As Integer) As Boolean
 End Interface
