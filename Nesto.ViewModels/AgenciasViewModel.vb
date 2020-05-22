@@ -1233,6 +1233,11 @@ Public Class AgenciasViewModel
             End If
         End Get
     End Property
+    Public ReadOnly Property NoEstaInsertandoPendiente As Boolean
+        Get
+            Return Not HayCambiosSinGuardarEnPendientes()
+        End Get
+    End Property
 
 #End Region
 
@@ -2168,8 +2173,8 @@ Public Class AgenciasViewModel
                         .Horario = horarioActual.id
                         .Bultos = bultos
                         .Retorno = retornoActual.id
-                        .Nombre = nombreEnvio
-                        .Direccion = direccionEnvio
+                        .Nombre = nombreEnvio?.Replace("""", String.Empty)
+                        .Direccion = direccionEnvio?.Replace("""", String.Empty)
                         .CodPostal = codPostalEnvio
                         .Poblacion = poblacionEnvio
                         .Provincia = provinciaEnvio
@@ -2177,7 +2182,7 @@ Public Class AgenciasViewModel
                         .Telefono = telefonoEnvio
                         .Movil = movilEnvio
                         .Email = correoEnvio
-                        .Observaciones = Left(observacionesEnvio, 80)
+                        .Observaciones = Left(observacionesEnvio?.Replace("""", String.Empty), 80)
                         .Atencion = attEnvio
                         .Reembolso = IIf(pedidoSeleccionado.Número = envioActual.Pedido, reembolso, envioActual.Reembolso + reembolso) ' por si es ampliación
                         '.CodigoBarras = calcularCodigoBarras()
@@ -2212,8 +2217,8 @@ Public Class AgenciasViewModel
                         .Horario = envioActual.Horario,
                         .Bultos = 1,
                         .Retorno = envioActual.Retorno,
-                        .Nombre = envioActual.Nombre,
-                        .Direccion = envioActual.Direccion,
+                        .Nombre = envioActual.Nombre?.Replace("""", String.Empty),
+                        .Direccion = envioActual.Direccion?.Replace("""", String.Empty),
                         .CodPostal = envioActual.CodPostal,
                         .Poblacion = envioActual.Poblacion,
                         .Provincia = envioActual.Provincia,
@@ -2221,7 +2226,7 @@ Public Class AgenciasViewModel
                         .Telefono = envioActual.Telefono,
                         .Movil = envioActual.Movil,
                         .Email = envioActual.Email,
-                        .Observaciones = envioActual.Observaciones,
+                        .Observaciones = envioActual.Observaciones?.Replace("""", String.Empty),
                         .Atencion = envioActual.Atencion,
                         .Reembolso = 0,
                         .Vendedor = envioActual.Vendedor
@@ -2255,7 +2260,7 @@ Public Class AgenciasViewModel
 
         End Using ' finaliza la transacción
 
-        If success AndAlso Not servicio.EsTodoElPedidoOnline(envioActual.Empresa, envioActual.Pedido) Then
+        If success AndAlso Not esAmpliacion AndAlso Not servicio.EsTodoElPedidoOnline(envioActual.Empresa, envioActual.Pedido) Then
             servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
         End If
     End Sub
@@ -2634,6 +2639,7 @@ Public Class AgenciasViewModel
         InsertarEnvioPendienteCommand.RaiseCanExecuteChanged()
         BorrarEnvioPendienteCommand.RaiseCanExecuteChanged()
         GuardarEnvioPendienteCommand.RaiseCanExecuteChanged()
+        OnPropertyChanged("NoEstaInsertandoPendiente")
     End Sub
     Public Sub EnvioPendienteSeleccionadoPropertyChangedEventHandler(sender As Object, e As PropertyChangedEventArgs)
         Dim envio = CType(sender, EnvioAgenciaWrapper)
@@ -2651,6 +2657,14 @@ Public Class AgenciasViewModel
         If IsNothing(numeroPedido) Then
             Return
         End If
+
+        Dim pedidoExistente = listaPendientes.SingleOrDefault(Function(p) p.Pedido = numeroPedido AndAlso Not p.Equals(EnvioPendienteSeleccionado))
+        If Not IsNothing(pedidoExistente) Then
+            listaPendientes.Remove(EnvioPendienteSeleccionado)
+            EnvioPendienteSeleccionado = pedidoExistente
+            Return
+        End If
+
         Dim pedido As CabPedidoVta = servicio.CargarPedido(empresaSeleccionada.Número, numeroPedido)
 
         If IsNothing(pedido) Then
@@ -2687,6 +2701,7 @@ Public Class AgenciasViewModel
             .Servicio = agenciaEspecifica.servicioSoloCobros ' comprobar
             .Horario = agenciaEspecifica.horarioSoloCobros ' comprobar
         End With
+        Return
     End Sub
 
 #End Region

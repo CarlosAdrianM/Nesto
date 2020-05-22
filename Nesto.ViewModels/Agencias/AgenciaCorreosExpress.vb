@@ -150,7 +150,7 @@ Public Class AgenciaCorreosExpress
             .TelefDest = IIf(envio.Telefono.Trim <> "", envio.Telefono.Trim, envio.Movil.Trim),
             .EmailDest = envio.Email.Trim,
             .TelefOtrs = IIf(envio.Telefono.Trim <> "", envio.Movil.Trim, ""),
-            .Observac = envio.Observaciones.Substring(0, Math.Min(80, envio.Observaciones.Length)),
+            .Observac = envio.Observaciones?.Substring(0, Math.Min(80, envio.Observaciones.Length)),
             .NumBultos = envio.Bultos.ToString("D2"),
             .Kilos = "00000.00",
             .Producto = envio.Servicio.ToString("D2"),
@@ -259,7 +259,10 @@ Public Class AgenciaCorreosExpress
         Try
             For i = 1 To envio.Bultos
                 Dim codigoBarrasBulto = CalcularCodigoBarrasBulto(envio.CodigoBarras, i, codigoPostal)
-                Dim observaciones = envio.Observaciones.Substring(0, Math.Min(envio.Observaciones.Length, ANCHO_OBSERVACIONES * 2))
+                Dim observaciones = envio.Observaciones?.Substring(0, Math.Min(envio.Observaciones.Length, ANCHO_OBSERVACIONES * 2))
+                If IsNothing(observaciones) Then
+                    observaciones = String.Empty
+                End If
                 Dim textoServicio = envio.Servicio.ToString + " " + ListaServicios.Single(Function(s) s.id = envio.Servicio).descripcion.ToUpper.Trim
                 If textoServicio.Length > 18 Then
                     textoServicio = textoServicio.Substring(0, 18)

@@ -256,9 +256,9 @@ Public Class AgenciaService
 
     Public Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte Implements IAgenciaService.CargarAgenciaPorRuta
         Using contexto = New NestoEntities
-            'Return contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Ruta = ruta)
+            Return contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Ruta = ruta)
             ' Carlos 30/04/20: forzamos que coja siempre la agencia de reembolsos
-            Return contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+            'Return contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
         End Using
     End Function
 
@@ -270,7 +270,11 @@ Public Class AgenciaService
 
     Public Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia Implements IAgenciaService.CargarEnvioPorClienteYDireccion
         Using contexto = New NestoEntities
-            Return (From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Cliente = cliente And e.Contacto = contacto And e.Direccion = direccion And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO).FirstOrDefault
+            Dim respuesta = (From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Cliente = cliente And e.Contacto = contacto And e.Direccion = direccion And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO).FirstOrDefault
+            If Not IsNothing(respuesta) Then
+                contexto.Entry(respuesta).Reference(Function(e) e.Empresas).Load()
+            End If
+            Return respuesta
         End Using
     End Function
 
