@@ -42,4 +42,10 @@
         Public Property CantidadDisponible() As Integer
         Public Property descuento() As Decimal
     End Class
+
+    Public Class EnvioAgenciaDTO
+        Public Property Fecha As DateTime
+        Public Property AgenciaNombre As String
+        Public Property EnlaceSeguimiento As String
+    End Class
 End Class

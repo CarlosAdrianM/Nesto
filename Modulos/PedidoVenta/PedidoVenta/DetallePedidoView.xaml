@@ -140,6 +140,23 @@
                             <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>
                             <CheckBox IsChecked="{Binding pedido.servirJunto}">Servir Junto</CheckBox>
                             <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
+                            <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
+                                    <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciaNombre}" Width="Auto"/>
+                                    <DataGridTemplateColumn Header="Enlace">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                <Hyperlink Command="{Binding DataContext.AbrirEnlaceSeguimientoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" CommandParameter="{Binding EnlaceSeguimiento}">
+                                                    <Run Text="{Binding EnlaceSeguimiento}"/>
+                                                </Hyperlink>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
                         </StackPanel>
                     </Grid>
                 </TabItem>

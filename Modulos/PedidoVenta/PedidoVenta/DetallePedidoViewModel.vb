@@ -43,6 +43,7 @@ Public Class DetallePedidoViewModel
         cmdModificarPedido = New DelegateCommand(AddressOf OnModificarPedido, AddressOf CanModificarPedido)
         cmdPonerDescuentoPedido = New DelegateCommand(Of Object)(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         cmdSacarPicking = New DelegateCommand(Of Object)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
+        AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -215,6 +216,17 @@ Public Class DetallePedidoViewModel
             OnPropertyChanged("pedido")
         End Set
     End Property
+
+    Private _listaEnlacesSeguimiento As List(Of EnvioAgenciaDTO)
+    Public Property ListaEnlacesSeguimiento As List(Of EnvioAgenciaDTO)
+        Get
+            Return _listaEnlacesSeguimiento
+        End Get
+        Set(value As List(Of EnvioAgenciaDTO))
+            SetProperty(_listaEnlacesSeguimiento, value)
+        End Set
+    End Property
+
 
     Public ReadOnly Property mostrarAceptarPresupuesto()
         Get
@@ -419,6 +431,7 @@ Public Class DetallePedidoViewModel
         If Not IsNothing(resumen) AndAlso Not IsNothing(resumen.numero) Then
             Me.Titulo = "Pedido Venta (" + resumen.numero.ToString + ")"
             pedido = Await servicio.cargarPedido(resumen.empresa, resumen.numero)
+            ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(resumen.empresa, resumen.numero)
             If Not IsNothing(pedido) Then
                 ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
             End If
@@ -746,7 +759,10 @@ Public Class DetallePedidoViewModel
         End Try
     End Sub
 
-
+    Public Property AbrirEnlaceSeguimientoCommand As DelegateCommand(Of String)
+    Private Sub OnAbrirEnlaceSeguimientoCommand(enlace As String)
+        System.Diagnostics.Process.Start(enlace)
+    End Sub
 
 #End Region
 

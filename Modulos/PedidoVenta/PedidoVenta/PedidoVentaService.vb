@@ -240,4 +240,44 @@ Public Class PedidoVentaService
 
         End Using
     End Sub
+
+    Public Async Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO)) Implements IPedidoVentaService.CargarEnlacesSeguimiento
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                Dim urlConsulta As String = "EnviosAgencias"
+                urlConsulta += "?empresa=" + empresa
+                urlConsulta += "&pedido=" + numero.ToString
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = ""
+                    Dim objetoRespuesta As JObject
+                    objetoRespuesta = JsonConvert.DeserializeObject(respuesta)
+                    If Not IsNothing(objetoRespuesta("ExceptionMessage")) Then
+                        Dim textoError As String = objetoRespuesta("ExceptionMessage")
+                        Throw New Exception(textoError)
+                    Else
+                        Throw New Exception(respuesta)
+                    End If
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se han podido recuperar los seguimientos del pedido " + numero.ToString + vbCr + vbCr + ex.Message)
+            Finally
+
+            End Try
+
+            Dim seguimientos As List(Of EnvioAgenciaDTO) = JsonConvert.DeserializeObject(Of List(Of EnvioAgenciaDTO))(respuesta)
+
+            Return seguimientos
+
+        End Using
+    End Function
 End Class

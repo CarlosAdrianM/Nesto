@@ -10,4 +10,5 @@ Public Interface IPedidoVentaService
     Sub sacarPickingPedido(empresa As String, numero As Integer)
     Sub sacarPickingPedido(cliente As String)
     Sub sacarPickingPedido()
+    Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO))
 End Interface
