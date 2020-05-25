@@ -96,33 +96,33 @@ Public Class EnvioAgenciaWrapper
     End Property
 
 
-    Private _horario As Integer
-    Public Property Horario As Integer
+    Private _horario As Byte
+    Public Property Horario As Byte
         Get
             Return _horario
         End Get
-        Set(value As Integer)
+        Set(value As Byte)
             SetProperty(_horario, value)
         End Set
     End Property
 
 
-    Private _bultos As Integer
-    Public Property Bultos As Integer
+    Private _bultos As Byte
+    Public Property Bultos As Byte
         Get
             Return _bultos
         End Get
-        Set(value As Integer)
+        Set(value As Byte)
             SetProperty(_bultos, value)
         End Set
     End Property
 
-    Private _retorno As Integer
-    Public Property Retorno As Integer
+    Private _retorno As Byte
+    Public Property Retorno As Byte
         Get
             Return _retorno
         End Get
-        Set(value As Integer)
+        Set(value As Byte)
             SetProperty(_retorno, value)
         End Set
     End Property
