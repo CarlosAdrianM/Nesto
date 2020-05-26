@@ -4,7 +4,7 @@
     xmlns:local="clr-namespace:Nesto.Views"
     xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"    
-    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
+    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels" xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity">
 
 
     <UserControl.Resources>
@@ -162,6 +162,35 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <Button Grid.Row="1" Command="{Binding DescargarFacturasCommand}">Descargar</Button>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Pedidos">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <DataGrid Grid.Row="0" ItemsSource="{Binding ListaPedidos}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="MouseDoubleClick">
+                                            <i:InvokeCommandAction Command="{Binding Path=DataContext.CargarPedidoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding Path=SelectedItem, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=DataGrid}}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Fecha" Binding="{Binding fecha, StringFormat=d}" Width="Auto" />
+                                        <DataGridTextColumn Header="Pedido" Binding="{Binding numero}" Width="Auto" />
+                                        <DataGridTextColumn Header="Dirección" Binding="{Binding direccion}" Width="*"/>
+                                        <DataGridTextColumn Header="Población" Binding="{Binding poblacion}" Width="*"/>
+                                        <DataGridTextColumn Header="Seguimiento" Binding="{Binding ultimoSeguimiento}" Width="Auto" />
+                                        <DataGridTextColumn Header="Base Imponible" Binding="{Binding baseImponible,StringFormat=c}" Width="Auto">
+                                            <DataGridTextColumn.CellStyle>
+                                                <Style>
+                                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                </Style>
+                                            </DataGridTextColumn.CellStyle>
+                                        </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
                             </Grid>
                         </TabItem>
                     </TabControl>

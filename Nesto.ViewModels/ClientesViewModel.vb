@@ -15,6 +15,9 @@ Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Runtime.InteropServices
 Imports Nesto.Models.Nesto.Models
+Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Nesto.Modulos.PedidoVenta
+Imports Microsoft.Practices.Unity
 
 'Imports Nesto.Models.Nesto.Models.EF
 
@@ -31,6 +34,7 @@ Public Class ClientesViewModel
 
     Private Shared DbContext As NestoEntities
     Public Property configuracion As IConfiguracion
+    Private ReadOnly Property contenedor As IUnityContainer
 
     'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
@@ -56,8 +60,9 @@ Public Class ClientesViewModel
         cargarDatos()
     End Sub
 
-    Public Sub New(configuracion As IConfiguracion)
+    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer)
         Me.configuracion = configuracion
+        Me.contenedor = contenedor
         cargarDatos()
         clienteActivo = Nothing
         'inicializarListaClientesVendedor()
@@ -268,12 +273,16 @@ Public Class ClientesViewModel
                 listaVentas = Nothing
                 deudaVencida = 0
                 ListaFacturas = Nothing
+                ListaPedidos = Nothing
             End If
 
             If IndiceSeleccionado = 1 Then
                 CargarFacturas()
+            ElseIf IndiceSeleccionado = 2 Then
+                CargarPedidos()
             Else
                 ListaFacturas = Nothing
+                ListaPedidos = Nothing
             End If
 
             OnPropertyChanged("clienteActivo")
@@ -597,6 +606,17 @@ Public Class ClientesViewModel
         End Set
     End Property
 
+    Private _listaPedidos As ObservableCollection(Of ResumenPedido)
+    Public Property ListaPedidos As ObservableCollection(Of ResumenPedido)
+        Get
+            Return _listaPedidos
+        End Get
+        Set(value As ObservableCollection(Of ResumenPedido))
+            _listaPedidos = value
+            OnPropertyChanged("ListaPedidos")
+        End Set
+    End Property
+
     Private _indiceSeleccionado As Integer
     Public Property IndiceSeleccionado As Integer
         Get
@@ -606,6 +626,8 @@ Public Class ClientesViewModel
             _indiceSeleccionado = value
             If _indiceSeleccionado = 1 Then ' Facturas
                 CargarFacturas()
+            ElseIf _indiceSeleccionado = 2 Then 'Pedidos
+                CargarPedidos()
             End If
             OnPropertyChanged("IndiceSeleccionado")
         End Set
@@ -811,10 +833,6 @@ Public Class ClientesViewModel
 
     End Sub
 
-
-
-
-
     Private _descargarFacturasCommand As ICommand
     Public ReadOnly Property DescargarFacturasCommand() As ICommand
         Get
@@ -859,6 +877,23 @@ Public Class ClientesViewModel
 
 
     End Sub
+
+    Private _cargarPedidoCommand As ICommand
+    Public ReadOnly Property CargarPedidoCommand() As ICommand
+        Get
+            If _cargarPedidoCommand Is Nothing Then
+                _cargarPedidoCommand = New RelayCommand(AddressOf CargarPedido, AddressOf CanCargarPedido)
+            End If
+            Return _cargarPedidoCommand
+        End Get
+    End Property
+    Private Function CanCargarPedido(ByVal param As Object) As Boolean
+        Return ListaPedidos IsNot Nothing
+    End Function
+    Private Sub CargarPedido(ByVal param As Object)
+        PedidoVentaViewModel.cargarPedido(empresaActual, param.numero, contenedor)
+    End Sub
+
 
     Private Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
         If IsNothing(clienteActivo) Then
@@ -936,6 +971,42 @@ Public Class ClientesViewModel
 
     End Sub
 
+    Private Async Sub CargarPedidos()
+        If IsNothing(clienteActivo) OrElse (ListaPedidos IsNot Nothing AndAlso clienteActivo.Nº_Cliente?.Trim() = ListaPedidos.FirstOrDefault()?.cliente) Then
+            Return
+        End If
+
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                Dim urlConsulta As String = "PedidosVenta"
+                Dim mainViewModel As New MainViewModel
+                urlConsulta += "?vendedor=" + Await mainViewModel.leerParametro(empresaActual, "Vendedor")
+                urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = String.Empty
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido cargar la lista de pedidos desde el servidor")
+            Finally
+
+            End Try
+
+            ListaPedidos = JsonConvert.DeserializeObject(Of ObservableCollection(Of ResumenPedido))(respuesta)
+        End Using
+
+
+    End Sub
 
 #End Region
 
