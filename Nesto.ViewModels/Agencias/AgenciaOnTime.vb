@@ -1,13 +1,10 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Nesto.Models
 Imports System.Windows
 Imports System.Net
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports System.Transactions
 Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks
-Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
 
 Public Class AgenciaOnTime
@@ -131,27 +128,27 @@ Public Class AgenciaOnTime
             Return Visibility.Visible
         End Get
     End Property
-    Public ReadOnly Property retornoSoloCobros As Integer Implements IAgencia.retornoSoloCobros
+    Public ReadOnly Property retornoSoloCobros As Byte Implements IAgencia.retornoSoloCobros
         Get
             Return 0 'NO
         End Get
     End Property
-    Public ReadOnly Property servicioSoloCobros As Integer Implements IAgencia.servicioSoloCobros
+    Public ReadOnly Property servicioSoloCobros As Byte Implements IAgencia.servicioSoloCobros
         Get
             Return 1 ' Normal
         End Get
     End Property
-    Public ReadOnly Property horarioSoloCobros As Integer Implements IAgencia.horarioSoloCobros
+    Public ReadOnly Property horarioSoloCobros As Byte Implements IAgencia.horarioSoloCobros
         Get
             Return 2 ' 14 horas
         End Get
     End Property
-    Public ReadOnly Property retornoSinRetorno As Integer Implements IAgencia.retornoSinRetorno
+    Public ReadOnly Property retornoSinRetorno As Byte Implements IAgencia.retornoSinRetorno
         Get
             Return 0 ' NO
         End Get
     End Property
-    Public ReadOnly Property retornoObligatorio As Integer Implements IAgencia.retornoObligatorio
+    Public ReadOnly Property retornoObligatorio As Byte Implements IAgencia.retornoObligatorio
         Get
             Return 1 ' Retorno obligatorio
         End Get
@@ -182,6 +179,9 @@ Public Class AgenciaOnTime
     End Function
 
     Private Function IAgencia_EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
+        If IsNothing(envio) OrElse IsNothing(envio.Cliente) OrElse IsNothing(envio.Pedido) Then
+            Return String.Empty
+        End If
         Dim referencia As String = WebUtility.UrlEncode(envio.Cliente.Trim() + "-" + envio.Pedido.ToString())
         Return "https://ontimegts.alertran.net/gts/pub/clielocserv.seam?cliente=02890107&referencia=" + referencia
     End Function
@@ -191,27 +191,27 @@ Public Class AgenciaOnTime
     Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
 
-    Public ReadOnly Property ServicioDefecto As Integer Implements IAgencia.ServicioDefecto
+    Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
         Get
             Return 1 'Normal
         End Get
     End Property
 
-    Public ReadOnly Property HorarioDefecto As Integer Implements IAgencia.HorarioDefecto
+    Public ReadOnly Property HorarioDefecto As Byte Implements IAgencia.HorarioDefecto
         Get
             Return 0 ' en blanco
         End Get
     End Property
 
-    Public ReadOnly Property ServicioAuxiliar As Integer Implements IAgencia.ServicioAuxiliar
+    Public ReadOnly Property ServicioAuxiliar As Byte Implements IAgencia.ServicioAuxiliar
         Get
-            Return Integer.MaxValue ' no existe servicio auxiliar
+            Return Byte.MaxValue ' no existe servicio auxiliar
         End Get
     End Property
 
-    Public ReadOnly Property ServicioCreaEtiquetaRetorno As Integer Implements IAgencia.ServicioCreaEtiquetaRetorno
+    Public ReadOnly Property ServicioCreaEtiquetaRetorno As Byte Implements IAgencia.ServicioCreaEtiquetaRetorno
         Get
-            Return Integer.MaxValue ' ningún servicio imprime etiqueta de retorno
+            Return Byte.MaxValue ' ningún servicio imprime etiqueta de retorno
         End Get
     End Property
 End Class

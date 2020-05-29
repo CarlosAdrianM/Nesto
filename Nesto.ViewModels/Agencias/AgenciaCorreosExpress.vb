@@ -56,31 +56,31 @@ Public Class AgenciaCorreosExpress
         End Get
     End Property
 
-    Public ReadOnly Property retornoSoloCobros As Integer Implements IAgencia.retornoSoloCobros
+    Public ReadOnly Property retornoSoloCobros As Byte Implements IAgencia.retornoSoloCobros
         Get
             Return 0 ' No disponible
         End Get
     End Property
 
-    Public ReadOnly Property servicioSoloCobros As Integer Implements IAgencia.servicioSoloCobros
+    Public ReadOnly Property servicioSoloCobros As Byte Implements IAgencia.servicioSoloCobros
         Get
             Return 93 'NO EXISTE EL SERVICIO SOLO DE COBROS
         End Get
     End Property
 
-    Public ReadOnly Property horarioSoloCobros As Integer Implements IAgencia.horarioSoloCobros
+    Public ReadOnly Property horarioSoloCobros As Byte Implements IAgencia.horarioSoloCobros
         Get
             Return 0 'No disponible
         End Get
     End Property
 
-    Public ReadOnly Property retornoSinRetorno As Integer Implements IAgencia.retornoSinRetorno
+    Public ReadOnly Property retornoSinRetorno As Byte Implements IAgencia.retornoSinRetorno
         Get
             Return 0 'No disponible
         End Get
     End Property
 
-    Public ReadOnly Property retornoObligatorio As Integer Implements IAgencia.retornoObligatorio
+    Public ReadOnly Property retornoObligatorio As Byte Implements IAgencia.retornoObligatorio
         Get
             Return 0 'No disponible
         End Get
@@ -96,25 +96,25 @@ Public Class AgenciaCorreosExpress
     Public ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaTiposRetorno
     Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
-    Public ReadOnly Property ServicioDefecto As Integer Implements IAgencia.ServicioDefecto
+    Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
         Get
             Return 92 ' Paq Empresa 14
         End Get
     End Property
 
-    Public ReadOnly Property HorarioDefecto As Integer Implements IAgencia.HorarioDefecto
+    Public ReadOnly Property HorarioDefecto As Byte Implements IAgencia.HorarioDefecto
         Get
             Return 0 'No disponible
         End Get
     End Property
 
-    Public ReadOnly Property ServicioAuxiliar As Integer Implements IAgencia.ServicioAuxiliar
+    Public ReadOnly Property ServicioAuxiliar As Byte Implements IAgencia.ServicioAuxiliar
         Get
             Return 52 ' Código especial para las recogidas de EntregaPlus
         End Get
     End Property
 
-    Public ReadOnly Property ServicioCreaEtiquetaRetorno As Integer Implements IAgencia.ServicioCreaEtiquetaRetorno
+    Public ReadOnly Property ServicioCreaEtiquetaRetorno As Byte Implements IAgencia.ServicioCreaEtiquetaRetorno
         Get
             Return 54 ' EntregaPlus
         End Get

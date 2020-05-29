@@ -401,22 +401,22 @@ Public Class AgenciaASM
             Return Visibility.Hidden
         End Get
     End Property
-    Public ReadOnly Property retornoSoloCobros As Integer Implements IAgencia.retornoSoloCobros
+    Public ReadOnly Property retornoSoloCobros As Byte Implements IAgencia.retornoSoloCobros
         Get
             Return 0 ' Sin retorno
         End Get
     End Property
-    Public ReadOnly Property servicioSoloCobros As Integer Implements IAgencia.servicioSoloCobros
+    Public ReadOnly Property servicioSoloCobros As Byte Implements IAgencia.servicioSoloCobros
         Get
             Return 1 ' Courier
         End Get
     End Property
-    Public ReadOnly Property horarioSoloCobros As Integer Implements IAgencia.horarioSoloCobros
+    Public ReadOnly Property horarioSoloCobros As Byte Implements IAgencia.horarioSoloCobros
         Get
             Return 3 ' ASM24
         End Get
     End Property
-    Public ReadOnly Property retornoSinRetorno As Integer Implements IAgencia.retornoSinRetorno
+    Public ReadOnly Property retornoSinRetorno As Byte Implements IAgencia.retornoSinRetorno
         Get
             Return 0 ' Sin Retorno
         End Get
@@ -426,7 +426,7 @@ Public Class AgenciaASM
             Return 34
         End Get
     End Property
-    Public ReadOnly Property retornoObligatorio As Integer Implements IAgencia.retornoObligatorio
+    Public ReadOnly Property retornoObligatorio As Byte Implements IAgencia.retornoObligatorio
         Get
             Return 1 ' Retorno obligatorio
         End Get
@@ -550,13 +550,13 @@ Public Class AgenciaASM
     Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
 
-    Public ReadOnly Property ServicioDefecto As Integer Implements IAgencia.ServicioDefecto
+    Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
         Get
             Return 1 ' Courier
         End Get
     End Property
 
-    Public ReadOnly Property HorarioDefecto As Integer Implements IAgencia.HorarioDefecto
+    Public ReadOnly Property HorarioDefecto As Byte Implements IAgencia.HorarioDefecto
         Get
             Return 3 ' ASM24
         End Get
@@ -584,15 +584,15 @@ Public Class AgenciaASM
         End Set
     End Property
 
-    Public ReadOnly Property ServicioAuxiliar As Integer Implements IAgencia.ServicioAuxiliar
+    Public ReadOnly Property ServicioAuxiliar As Byte Implements IAgencia.ServicioAuxiliar
         Get
-            Return Integer.MaxValue ' no existe servicio auxiliar
+            Return Byte.MaxValue ' no existe servicio auxiliar
         End Get
     End Property
 
-    Public ReadOnly Property ServicioCreaEtiquetaRetorno As Integer Implements IAgencia.ServicioCreaEtiquetaRetorno
+    Public ReadOnly Property ServicioCreaEtiquetaRetorno As Byte Implements IAgencia.ServicioCreaEtiquetaRetorno
         Get
-            Return Integer.MaxValue ' ningún servicio imprime etiqueta de retorno
+            Return Byte.MaxValue ' ningún servicio imprime etiqueta de retorno
         End Get
     End Property
 End Class

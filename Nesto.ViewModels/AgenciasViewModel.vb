@@ -2648,8 +2648,7 @@ Public Class AgenciasViewModel
         End If
         If e.PropertyName <> "TieneCambios" Then
             envio.TieneCambios = True
-            GuardarEnvioPendienteCommand.RaiseCanExecuteChanged()
-            BorrarEnvioPendienteCommand.RaiseCanExecuteChanged()
+            ActualizarEstadoComandos()
         End If
     End Sub
 
@@ -2698,8 +2697,8 @@ Public Class AgenciasViewModel
             .Reembolso = importeReembolso(pedido)
             .Pais = agenciaEspecifica.paisDefecto
             .Retorno = agenciaEspecifica.retornoSinRetorno
-            .Servicio = agenciaEspecifica.servicioSoloCobros ' comprobar
-            .Horario = agenciaEspecifica.horarioSoloCobros ' comprobar
+            .Servicio = agenciaEspecifica.ServicioDefecto
+            .Horario = agenciaEspecifica.HorarioDefecto
         End With
         Return
     End Sub

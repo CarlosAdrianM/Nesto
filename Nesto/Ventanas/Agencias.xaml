@@ -438,26 +438,28 @@
                     <DockPanel Grid.Row="1">
                         <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaEnviosTramitados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="2*"/>
-                                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="2*"/>
-                                <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="2*"/>
-                                <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" />
-                                <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="2*"/>
-                                <DataGridTextColumn Header="Servicio" Binding="{Binding Servicio}" />
-                                <DataGridTextColumn Header="Horario" Binding="{Binding Horario}" />
-                                <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}" Width="2*" >
+                                <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
+                                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
+                                <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
+                                <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="Auto"/>
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="Auto"/>
+                                <DataGridTextColumn Header="Servicio" Binding="{Binding Servicio}" Width="Auto"/>
+                                <DataGridTextColumn Header="Horario" Binding="{Binding Horario}" Width="Auto"/>
+                                <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}" Width="Auto">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Bultos" Binding="{Binding Bultos}" />
-                                <DataGridTextColumn Header="Retorno" Binding="{Binding Retorno}" />
-                                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="5*"/>
-                                <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="5*"/>
-                                <DataGridTextColumn Header="Cód. Postal" Binding="{Binding CodPostal}" Width="2*"/>
-                                <DataGridTextColumn Header="Fecha Pago" Binding="{Binding FechaPagoReembolso, StringFormat=d}" Width="2*"/>
+                                <DataGridTextColumn Header="Bultos" Binding="{Binding Bultos}" Width="Auto"/>
+                                <DataGridTextColumn Header="Retorno" Binding="{Binding Retorno}" Width="Auto"/>
+                                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                                <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="*"/>
+                                <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="Auto"/>
+                                <DataGridTextColumn Header="Móvil" Binding="{Binding Movil}" Width="Auto"/>
+                                <DataGridTextColumn Header="C.P." Binding="{Binding CodPostal}" Width="Auto"/>
+                                <DataGridTextColumn Header="Fecha Pago" Binding="{Binding FechaPagoReembolso, StringFormat=d}" Width="Auto"/>
                             </DataGrid.Columns>
                         </DataGrid>
 

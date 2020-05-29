@@ -400,6 +400,17 @@ Public Class AgenciaViewModelTests
         Assert.IsNotNull(viewModel.agenciaSeleccionada)
     End Sub
 
+    <TestMethod()>
+    Public Sub AgenciaViewModel_AlInsertar_CogeLosValoresPorDefecto()
+        CrearViewModelConUnEnvioEnLaListaDePendientes()
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PENDIENTES}
+
+        viewModel.InsertarEnvioPendienteCommand.Execute()
+
+        Assert.AreEqual(New AgenciaOnTime(viewModel).ServicioDefecto(), viewModel.servicioActual.id)
+        Assert.AreEqual(New AgenciaOnTime(viewModel).HorarioDefecto, viewModel.horarioActual.id)
+        Assert.AreEqual(New AgenciaOnTime(viewModel).paisDefecto, viewModel.paisActual.Id)
+    End Sub
 
     <TestMethod>
     Public Sub AgenciaViewModel_CuandoNoHayEnvioPendienteSeleccionado_LosCamposDeLaTabPendientesEstanInactivos()
