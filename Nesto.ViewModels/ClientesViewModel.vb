@@ -39,6 +39,7 @@ Public Class ClientesViewModel
     'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
     Private esVendedorDeFamilias As Boolean = False
+    Private EsUsuarioAdministracion As Boolean
 
 
     Public Structure tipoIdDescripcion
@@ -948,7 +949,11 @@ Public Class ClientesViewModel
                 urlConsulta += "?empresa=" + clienteActivo.Empresa
                 urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
                 urlConsulta += "&tipoApunte=1"
-                urlConsulta += "&fechaDesde=" + DateTime.Today.AddMonths(-6).ToString("s")
+                If EsUsuarioAdministracion Then
+                    urlConsulta += "&fechaDesde=" + DateTime.Today.AddMonths(-72).ToString("s")
+                Else
+                    urlConsulta += "&fechaDesde=" + DateTime.Today.AddMonths(-6).ToString("s")
+                End If
                 urlConsulta += "&fechaHasta=" + DateTime.Today.ToString("s")
 
                 response = Await client.GetAsync(urlConsulta)
@@ -1071,7 +1076,7 @@ Public Class ClientesViewModel
         ruta = Await mainViewModel.leerParametro(empresaActual, "RutaMandatos")
         Dim clienteDefecto As String = Await mainViewModel.leerParametro(empresaActual, "UltNumCliente")
         vendedor = Await mainViewModel.leerParametro(empresaDefecto, "Vendedor")
-
+        EsUsuarioAdministracion = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
 
         clienteActual = clienteDefecto
         'contactoActual = "0  " 'esto hay que cambiarlo por el ClientePrincipal

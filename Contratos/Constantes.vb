@@ -21,6 +21,9 @@
     Public Class FormasVenta
         Public Shared ReadOnly FORMAS_ONLINE As New List(Of String) From {"QRU", "WEB", "STK", "BLT"}
     End Class
+    Public Class GruposSeguridad
+        Public Const ADMINISTRACION As String = "Administración"
+    End Class
     Public Class LineasPedido
         Public Const ESTADO_SIN_FACTURAR = 1
         Public Const ESTADO_LINEA_PENDIENTE = -1

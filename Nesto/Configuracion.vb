@@ -2,6 +2,8 @@
 Imports System.Threading.Tasks
 Imports Nesto.Contratos
 Imports Newtonsoft.Json
+Imports System.DirectoryServices.AccountManagement
+Imports System.Linq
 
 Public Class Configuracion
     Implements IConfiguracion
@@ -47,4 +49,16 @@ Public Class Configuracion
         End Using
 
     End Function
+
+    Public Function UsuarioEnGrupo(grupo As String) As Boolean Implements IConfiguracion.UsuarioEnGrupo
+        Dim yourDomain As String = System.Environment.UserDomainName
+        Using ctx As New PrincipalContext(ContextType.Domain, yourDomain)
+            Using grp = GroupPrincipal.FindByIdentity(ctx, IdentityType.Name, grupo)
+                Dim isInRole As Boolean = Not IsNothing(grp) AndAlso grp.GetMembers(True).Any(Function(m) m.SamAccountName = usuario.Replace(yourDomain + "\", String.Empty))
+                Return isInRole
+            End Using
+        End Using
+    End Function
+
+
 End Class
