@@ -39,7 +39,7 @@ Public Class ClientesViewModel
     'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
     Private esVendedorDeFamilias As Boolean = False
-    Private EsUsuarioAdministracion As Boolean
+    Private EsUsuarioAdministracion As Boolean = False
 
 
     Public Structure tipoIdDescripcion
@@ -1076,7 +1076,9 @@ Public Class ClientesViewModel
         ruta = Await mainViewModel.leerParametro(empresaActual, "RutaMandatos")
         Dim clienteDefecto As String = Await mainViewModel.leerParametro(empresaActual, "UltNumCliente")
         vendedor = Await mainViewModel.leerParametro(empresaDefecto, "Vendedor")
-        EsUsuarioAdministracion = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+        If Not IsNothing(configuracion) Then
+            EsUsuarioAdministracion = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+        End If
 
         clienteActual = clienteDefecto
         'contactoActual = "0  " 'esto hay que cambiarlo por el ClientePrincipal
