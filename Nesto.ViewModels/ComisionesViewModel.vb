@@ -52,7 +52,7 @@ Public Class ComisionesViewModel
         vendedor = Await mainViewModel.leerParametro("1", "Vendedor")
 
         DbContext = New NestoEntities
-        If vendedor = "" Then
+        If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
             listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2))
         Else
             listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2) And c.Número.Trim = vendedor)

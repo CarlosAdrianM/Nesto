@@ -388,27 +388,30 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <DockPanel Grid.Row="0">
-                        <StackPanel DockPanel.Dock="Left" HorizontalAlignment="Stretch">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock>Fecha: </TextBlock>
-                                <DatePicker Grid.Row="1" Grid.Column="1" Text="{Binding fechaFiltro, Mode=TwoWay}" Margin="3"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" >
-                                <TextBlock>Cliente: </TextBlock>
-                                <TextBox Text="{Binding clienteFiltro}" MinWidth="50"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
-                                <TextBlock>Nombre:</TextBlock>
-                                <TextBox Name="txtNombreFiltro" Text="{Binding nombreFiltro}" MinWidth="50" HorizontalAlignment="Stretch"/>
-                            </StackPanel>
-                            <TextBlock></TextBlock>
-                            <TextBlock>
+                        <Grid DockPanel.Dock="Left" >
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center">Fecha:</TextBlock>
+                            <DatePicker Grid.Row="0" Grid.Column="1" Text="{Binding fechaFiltro, Mode=TwoWay}" Margin="3"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center">Cliente:</TextBlock>
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtClienteFiltro" Text="{Binding clienteFiltro}" MinWidth="50" Margin="3"/>
+                            <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center">Nombre:</TextBlock>
+                            <TextBox Grid.Row="2" Grid.Column="1" Name="txtNombreFiltro" Text="{Binding nombreFiltro}" MinWidth="50" Margin="3"/>
+                            <TextBlock Grid.Row="4" Grid.ColumnSpan="2" VerticalAlignment="Center">
                                 <Hyperlink Name="txtEnlaceSeguimiento" Command="{Binding AbrirEnlaceSeguimientoCommand}" ToolTip="Clic con el botón derecho para copiar al portapapeles">
                                     <Run Text="{Binding EnlaceSeguimientoEnvio}"/>
                                 </Hyperlink>
                             </TextBlock>
-                            <!--Button Margin="3" Content="Imprimir" Command="{Binding cmdImprimirManifiesto}"/-->
-                        </StackPanel>
+                        </Grid>
                         <Grid DockPanel.Dock="Right">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>

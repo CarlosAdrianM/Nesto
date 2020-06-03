@@ -251,7 +251,7 @@ Public Class AgenciasViewModel
                     If PestañaSeleccionada.Name = Pestannas.RETORNOS Then
                         listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, value.Numero, agenciaEspecifica.retornoSinRetorno)
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.TRAMITADOS Then
+                    If PestañaSeleccionada.Name = Pestannas.TRAMITADOS AndAlso String.IsNullOrEmpty(nombreFiltro) Then
                         listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, value.Numero, fechaFiltro)
                     End If
 
@@ -750,7 +750,11 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             SetProperty(_nombreFiltro, value)
-            listaEnviosTramitados = servicio.CargarListaEnviosTramitadosPorNombre(empresaSeleccionada.Número, nombreFiltro)
+            If String.IsNullOrEmpty(nombreFiltro) Then
+                listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+            Else
+                listaEnviosTramitados = servicio.CargarListaEnviosTramitadosPorNombre(empresaSeleccionada.Número, nombreFiltro)
+            End If
             envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
     End Property

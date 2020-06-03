@@ -73,6 +73,7 @@
                                     <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
                                     <TextBlock Text="Fecha pedido:"></TextBlock>
                                     <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
+                                    <CheckBox IsChecked="{Binding pedido.notaEntrega}" IsEnabled="False">Nota de Entrega</CheckBox>
                                 </StackPanel>
                                 <DockPanel Grid.Column="1">
                                     <TextBox DockPanel.Dock="Top" Text="{Binding pedido.comentarios}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>

@@ -122,7 +122,6 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(2, viewModel.agenciaSeleccionada.Numero)
     End Sub
 
-
     <TestMethod>
     Public Sub AgenciaViewModel_AlCargarDatos_ConfiguraLaAgencia()
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
@@ -815,6 +814,40 @@ Public Class AgenciaViewModelTests
         Assert.IsNotNull(viewModel.agenciaSeleccionada)
         Assert.AreEqual(2, viewModel.agenciaSeleccionada.Numero)
     End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_FiltrarTramitados_SiSeBuscaPorNombreLoEncuentra()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1")
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
+        Dim empresa1 = A.Fake(Of Empresas)
+        empresa1.Número = "1"
+        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
+            empresa1
+        }
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
+        Dim agencia1 = A.Fake(Of AgenciasTransporte)
+        agencia1.Empresa = "1"
+        agencia1.Numero = 1
+        agencia1.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS
+        agencia1.Ruta = "XXX"
+        Dim agencia2 = A.Fake(Of AgenciasTransporte)
+        agencia2.Empresa = "1"
+        agencia2.Numero = 2
+        agencia2.Nombre = "ASM"
+        agencia2.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarListaAgencias("1")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
+        Dim envio = A.Fake(Of EnviosAgencia)
+        envio.Agencia = 2
+        A.CallTo(Function() servicio.CargarListaEnviosTramitadosPorNombre("1", "Carlos")).Returns(New ObservableCollection(Of EnviosAgencia) From {envio})
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.TRAMITADOS}
+        A.CallTo(Function() servicio.CargarAgencia(2)).Returns(agencia2)
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.nombreFiltro = "Carlos"
+
+        Assert.AreEqual(1, viewModel.listaEnviosTramitados.Count)
+    End Sub
+
 
 
     Private Sub CrearViewModelConUnEnvioEnLaListaDePendientes()

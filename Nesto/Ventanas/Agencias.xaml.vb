@@ -103,4 +103,28 @@ Public Class Agencias
             btnContabilizarReembolso.Focus()
         End If
     End Sub
+
+    Private Sub txtNombreFiltro_PreviewMouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtNombreFiltro.PreviewMouseUp
+        txtNombreFiltro.SelectAll()
+    End Sub
+
+    Private Sub txtNombreFiltro_KeyUp(sender As Object, e As KeyEventArgs) Handles txtNombreFiltro.KeyUp
+        If e.Key = Key.Return Then
+            txtClienteFiltro.Focus()
+        End If
+    End Sub
+
+    Private Sub txtClienteFiltro_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtClienteFiltro.GotFocus
+        txtClienteFiltro.SelectAll()
+    End Sub
+
+    Private Sub txtClienteFiltro_KeyUp(sender As Object, e As KeyEventArgs) Handles txtClienteFiltro.KeyUp
+        If e.Key = Key.Return Then
+            txtNombreFiltro.Focus()
+        End If
+    End Sub
+
+    Private Sub txtClienteFiltro_PreviewMouseDown(sender As Object, e As MouseButtonEventArgs) Handles txtClienteFiltro.PreviewMouseDown
+        txtClienteFiltro.SelectAll()
+    End Sub
 End Class

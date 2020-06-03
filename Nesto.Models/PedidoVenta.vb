@@ -227,6 +227,7 @@ Public Class PedidoVenta
         Public Property mantenerJunto() As Boolean
         Public Property servirJunto() As Boolean
         Public Property EsPresupuesto() As Boolean = False
+        Public Property notaEntrega As Boolean
         Public Property usuario() As String
 
         Public ReadOnly Property baseImponible As Decimal

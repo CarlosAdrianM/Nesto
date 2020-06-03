@@ -23,6 +23,7 @@
     End Class
     Public Class GruposSeguridad
         Public Const ADMINISTRACION As String = "Administración"
+        Public Const DIRECCION As String = "Dirección"
     End Class
     Public Class LineasPedido
         Public Const ESTADO_SIN_FACTURAR = 1

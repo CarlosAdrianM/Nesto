@@ -13,8 +13,9 @@ Public Class MenuBarView
     Implements IModule, IMenuBar
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
+    Private ReadOnly configuracion As IConfiguracion
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion)
 
 
         ' Llamada necesaria para el diseñador.
@@ -23,6 +24,7 @@ Public Class MenuBarView
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.container = container
         Me.regionManager = regionManager
+        Me.configuracion = configuracion
         Me.DataContext = New MainViewModel(container, regionManager)
         DataContext.Titulo = "Sin Título"
 
@@ -362,7 +364,7 @@ Public Class MenuBarView
         '       End Try
     End Sub
     Private Sub btnVentasEmpresas_Loaded(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnVentasEmpresas.Loaded
-        If (System.Environment.UserName.ToLower = "alfredo") Or (System.Environment.UserName.ToLower = "administrador") Or (System.Environment.UserName.ToLower = "carlos") Or (System.Environment.UserName.ToLower = "manuel") Then
+        If (System.Environment.UserName.ToLower = "alfredo") OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
             btnVentasEmpresas.Visibility = Windows.Visibility.Visible
         End If
     End Sub
