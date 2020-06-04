@@ -118,7 +118,7 @@ Public Class AgenciaService
     Public Function CargarListaEnviosTramitadosPorNombre(empresa As String, nombreFiltro As String) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosTramitadosPorNombre
         Using contexto = New NestoEntities
             Dim respuestaGenerica = CargarListaEnviosTramitadosGenerica(contexto, empresa)
-            Dim respuesta = New ObservableCollection(Of EnviosAgencia)(From e In respuestaGenerica Where e.Nombre.Contains(nombreFiltro))
+            Dim respuesta = New ObservableCollection(Of EnviosAgencia)(From e In respuestaGenerica Where e.Nombre.Contains(nombreFiltro) OrElse e.Direccion.Contains(nombreFiltro) OrElse e.Telefono.Contains(nombreFiltro) OrElse e.Movil.Contains(nombreFiltro))
             Return respuesta
         End Using
     End Function

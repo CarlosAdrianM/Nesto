@@ -54,6 +54,7 @@ Public Class AgenciasViewModel
         'DbContext = New NestoEntities
 
         Titulo = "Agencias"
+        PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS, .Header = "Temporal"}
 
         ' Prism
         cmdCargarDatos = New DelegateCommand(AddressOf OnCargarDatos)
@@ -855,6 +856,9 @@ Public Class AgenciasViewModel
         End Get
         Set(value As TabItem)
             SetProperty(_PestañaSeleccionada, value)
+            If PestañaSeleccionada.Header = "Temporal" Then
+                Return
+            End If
             If PestañaSeleccionada.Name = Pestannas.PEDIDOS Then
                 numeroPedido = numeroPedido 'para que ejecute el código
             End If
@@ -1328,7 +1332,8 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function canBorrar(ByVal param As Object) As Boolean
-        Return envioActual IsNot Nothing AndAlso Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0
+        Return envioActual IsNot Nothing AndAlso Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0 AndAlso
+        (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION))
     End Function
     Private Sub Borrar(ByVal param As Object)
         If envioActual.Estado > 0 Then
@@ -1874,7 +1879,8 @@ Public Class AgenciasViewModel
 
     Public Property BorrarEnvioPendienteCommand() As DelegateCommand
     Private Function CanBorrarEnvioPendiente() As Boolean
-        Return Not IsNothing(EnvioPendienteSeleccionado)
+        Return Not IsNothing(EnvioPendienteSeleccionado) AndAlso
+            (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION))
     End Function
     Private Sub OnBorrarEnvioPendiente()
         Dim mensajeMostrar = String.Format("¿Confirma que desea borrar el envío pendiente del cliente {1}?{0}{0}{2}", Environment.NewLine, EnvioPendienteSeleccionado.Cliente?.Trim, EnvioPendienteSeleccionado.Direccion)

@@ -404,7 +404,7 @@
                             <DatePicker Grid.Row="0" Grid.Column="1" Text="{Binding fechaFiltro, Mode=TwoWay}" Margin="3"/>
                             <TextBlock Grid.Row="1" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center">Cliente:</TextBlock>
                             <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtClienteFiltro" Text="{Binding clienteFiltro}" MinWidth="50" Margin="3"/>
-                            <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center">Nombre:</TextBlock>
+                            <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center">Filtro:</TextBlock>
                             <TextBox Grid.Row="2" Grid.Column="1" Name="txtNombreFiltro" Text="{Binding nombreFiltro}" MinWidth="50" Margin="3"/>
                             <TextBlock Grid.Row="4" Grid.ColumnSpan="2" VerticalAlignment="Center">
                                 <Hyperlink Name="txtEnlaceSeguimiento" Command="{Binding AbrirEnlaceSeguimientoCommand}" ToolTip="Clic con el botón derecho para copiar al portapapeles">

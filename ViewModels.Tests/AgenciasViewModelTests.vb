@@ -267,8 +267,9 @@ Public Class AgenciaViewModelTests
     End Sub
 
     <TestMethod>
-    Public Sub AgenciaViewModel_SiHayEnvioPendienteSeleccionado_ElBotonBorrarrEstaActivo()
+    Public Sub AgenciaViewModel_SiHayEnvioPendienteSeleccionado_ElBotonBorrarEstaActivo()
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
+        A.CallTo(Function() configuracion.UsuarioEnGrupo(A(Of String).Ignored)).Returns(True)
         viewModel.cmdCargarDatos.Execute()
         viewModel.EnvioPendienteSeleccionado = A.Fake(Of EnvioAgenciaWrapper)
 
@@ -853,6 +854,7 @@ Public Class AgenciaViewModelTests
     Private Sub CrearViewModelConUnEnvioEnLaListaDePendientes()
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
         A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("12345     ")
+        A.CallTo(Function() configuracion.UsuarioEnGrupo(A(Of String).Ignored)).Returns(True)
 
         Dim empresa = A.Fake(Of Empresas)
         empresa.Número = "1"
