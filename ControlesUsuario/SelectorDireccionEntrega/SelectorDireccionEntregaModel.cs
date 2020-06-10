@@ -37,5 +37,7 @@ namespace ControlesUsuario.Models
                 return String.Format("{0} {1} ({2})", codigoPostal, poblacion, provincia);
             }
         }
+        public bool tieneCorreoElectronico { get; set; }
+        public bool tieneFacturacionElectronica { get; set; }
     }
 }

@@ -86,6 +86,8 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="3"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="2*"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
@@ -96,13 +98,15 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right">Dirección</TextBlock>
+                            <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right">Dirección (solo calle y número)</TextBlock>
                             <TextBox Name="txtDireccion" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteDireccion, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtDireccion_KeyUp"></TextBox>
-                            <TextBlock Grid.Column="1" Grid.Row="3" TextAlignment="Right">Código Postal</TextBlock>
-                            <TextBox Name="txtCodigoPostal" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteCodigoPostal, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtCodigoPostal_KeyUp"></TextBox>
-                            <TextBlock Grid.Column="1" Grid.Row="5" TextAlignment="Right">Teléfono</TextBlock>
-                            <TextBox Name="txtTelefono" Grid.Column="3" Grid.Row="5" Text="{Binding ClienteTelefono, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtTelefono_KeyUp"></TextBox>
-                            <TextBlock Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="6" Text="{Binding ClienteNumero,StringFormat='Ya existe el cliente {0}'}"  FontSize="24" Visibility="{Binding ClienteEsContacto,Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Center" Foreground="Red"></TextBlock>
+                            <TextBlock Grid.Column="1" Grid.Row="3" TextAlignment="Right">Dirección (resto de información)</TextBlock>
+                            <TextBox Name="txtDireccionAdicional" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteDireccionAdicional, UpdateSourceTrigger=PropertyChanged}" GotFocus="txtDireccionAdicional_GotFocus" KeyUp="txtDireccionAdicional_KeyUp"></TextBox>
+                            <TextBlock Grid.Column="1" Grid.Row="5" TextAlignment="Right">Código Postal</TextBlock>
+                            <TextBox Name="txtCodigoPostal" Grid.Column="3" Grid.Row="5" Text="{Binding ClienteCodigoPostal, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtCodigoPostal_KeyUp"></TextBox>
+                            <TextBlock Grid.Column="1" Grid.Row="7" TextAlignment="Right">Teléfono</TextBlock>
+                            <TextBox Name="txtTelefono" Grid.Column="3" Grid.Row="7" Text="{Binding ClienteTelefono, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtTelefono_KeyUp"></TextBox>
+                            <TextBlock Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="8" Text="{Binding ClienteNumero,StringFormat='Ya existe el cliente {0}'}"  FontSize="24" Visibility="{Binding ClienteEsContacto,Converter={StaticResource BooleanToVisibilityConverter}}" HorizontalAlignment="Center" Foreground="Red"></TextBlock>
                             <Border Grid.Column="5" Grid.Row="0" BorderBrush="LightGreen" BorderThickness="3" CornerRadius="15" Padding="5">
                                 <StackPanel>
                                     <TextBlock Text="{Binding ClienteNombre}" FontWeight="ExtraBold"></TextBlock>

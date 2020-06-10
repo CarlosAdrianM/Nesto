@@ -373,6 +373,9 @@
                                 </Grid.ColumnDefinitions>
                                 <xctk:DateTimePicker Grid.Column="0" Minimum="{Binding fechaMinimaEntrega}" Format="ShortDate" AutoCloseCalendar="True" TimePickerVisibility="Hidden"  Value="{Binding fechaEntrega}"></xctk:DateTimePicker>
                             </Grid>
+                            <TextBlock></TextBlock>
+                            <TextBlock></TextBlock>
+                            <TextBlock Text="{Binding textoFacturacionElectronica}" Margin="3,0"></TextBlock>
                         </StackPanel>
                     </Grid>
                 </xctk:WizardPage>

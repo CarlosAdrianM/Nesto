@@ -71,6 +71,11 @@ namespace Nesto.Modulos.Cliente
             get { return clienteDireccion; }
             set { SetProperty(ref clienteDireccion, value); }
         }
+        private string clienteDireccionAdicional;
+        public string ClienteDireccionAdicional {
+            get { return clienteDireccionAdicional; }
+            set { SetProperty(ref clienteDireccionAdicional, value); }
+        }
         private bool clienteDireccionValidada;
         public bool ClienteDireccionValidada {
             get { return clienteDireccionValidada; }
@@ -412,7 +417,8 @@ namespace Nesto.Modulos.Cliente
 
                 if (!ClienteDireccionValidada)
                 {
-                    ClienteDireccion = respuesta.DireccionFormateada;
+                    ClienteDireccion = respuesta.DireccionFormateada + " - " +ClienteDireccionAdicional.ToUpper();
+                    ClienteDireccionAdicional = string.Empty;
                 }
                 ClientePoblacion = respuesta.Poblacion;
                 ClienteProvincia = respuesta.Provincia;

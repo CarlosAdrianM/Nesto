@@ -226,6 +226,7 @@ Public Class PlantillaVentaViewModel
             If fechaMinimaEntrega > fechaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If
+            OnPropertyChanged(Function() textoFacturacionElectronica)
             OnPropertyChanged("fechaMinimaEntrega")
             ' Se hace así para que coja la fecha de hoy cuando se pueda
             ' Si lo hacemos en otro orden, da error porque ponemos una fecha
@@ -654,6 +655,21 @@ Public Class PlantillaVentaViewModel
                 EnviarPorGlovo = False
             End If
         End Set
+    End Property
+
+    Public ReadOnly Property textoFacturacionElectronica As String
+        Get
+            If IsNothing(direccionEntregaSeleccionada) Then
+                Return String.Empty
+            End If
+            If direccionEntregaSeleccionada.tieneFacturacionElectronica Then
+                Return "Este contacto tiene la facturación electrónica activada"
+            End If
+            If direccionEntregaSeleccionada.tieneCorreoElectronico Then
+                Return "Este contacto tiene correo electrónico, pero NO tiene la facturación electrónica activada"
+            End If
+            Return "Recuerde pedir un correo electrónico al cliente para poder activar la facturación electrónica"
+        End Get
     End Property
 
     Private _todosLosVendedores As Boolean

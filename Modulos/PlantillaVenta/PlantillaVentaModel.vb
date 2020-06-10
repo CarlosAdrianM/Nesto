@@ -25,6 +25,8 @@ Public Class PlantillaVentaModel
         Public Property ruta() As String
         Public Property formaPago() As String
         Public Property plazosPago() As String
+        Public Property tieneCorreoElectronico As Boolean
+        Public Property tieneFacturacionElectronica As Boolean
 
         Public ReadOnly Property textoPoblacion As String
             Get

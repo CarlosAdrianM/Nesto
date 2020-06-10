@@ -130,5 +130,19 @@ namespace Nesto.Modulos.Cliente
         {
             Keyboard.Focus(txtIban);
         }
+
+        private void txtDireccionAdicional_GotFocus(object sender, RoutedEventArgs e)
+        {
+            txtDireccionAdicional.SelectAll();
+        }
+
+        private void txtDireccionAdicional_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && e.OriginalSource is UIElement uiElement)
+            {
+                e.Handled = true;
+                uiElement.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+            }
+        }
     }
 }
