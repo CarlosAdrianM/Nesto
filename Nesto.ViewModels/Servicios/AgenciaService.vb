@@ -406,6 +406,10 @@ Public Class AgenciaService
         Dim movimientos As ObservableCollection(Of ExtractoCliente)
         Dim movimientosConImporte As ObservableCollection(Of ExtractoCliente)
 
+        If env.Cliente = Constantes.Clientes.Especiales.AMAZON OrElse env.Cliente = Constantes.Clientes.Especiales.TIENDA_ONLINE Then
+            Return Nothing
+        End If
+
         If reembolsoAnterior > 0 Then
             movimientos = CargarExtractoCliente(env.Empresa, env.Cliente, True)
         Else
@@ -425,9 +429,9 @@ Public Class AgenciaService
             End If
 
             If movimientosConImporte.Count = 0 Then
-                Return movimientos.FirstOrDefault
+                Return movimientos.LastOrDefault
             Else
-                Return movimientosConImporte.FirstOrDefault
+                Return movimientosConImporte.LastOrDefault
             End If
         End If
     End Function

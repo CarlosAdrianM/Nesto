@@ -8,6 +8,10 @@
     End Class
     Public Class Clientes
         Public Const ESTADO_NORMAL = 0
+        Public Class Especiales
+            Public Const TIENDA_ONLINE As String = "31517"
+            Public Const AMAZON As String = "32624"
+        End Class
     End Class
     Public Class DiariosContables
         Public Const DIARIO_REEMBOLSOS As String = "_Reembolso"
