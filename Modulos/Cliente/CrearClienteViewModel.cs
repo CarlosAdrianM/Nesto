@@ -76,6 +76,12 @@ namespace Nesto.Modulos.Cliente
             get { return clienteDireccionAdicional; }
             set { SetProperty(ref clienteDireccionAdicional, value); }
         }
+        private string clienteDireccionCalleNumero;
+        public string ClienteDireccionCalleNumero
+        {
+            get { return clienteDireccionCalleNumero; }
+            set { SetProperty(ref clienteDireccionCalleNumero, value); }
+        }
         private bool clienteDireccionValidada;
         public bool ClienteDireccionValidada {
             get { return clienteDireccionValidada; }
@@ -408,17 +414,18 @@ namespace Nesto.Modulos.Cliente
 
             try
             {
-                RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccion, ClienteCodigoPostal, ClienteTelefono);
+                RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono);
                 respuesta.ClientesMismoTelefono = respuesta.ClientesMismoTelefono.Where(c => c.Cliente != ClienteNumero).ToList();
                 if (respuesta.ClientesMismoTelefono.Count > 0)
                 {
                     ClienteTelefonoRequest.Raise(new Notification { Content = respuesta.ClientesMismoTelefono, Title = "Clientes con el mismo teléfono:" });
                 }
 
-                if (!ClienteDireccionValidada)
+                ClienteDireccion = respuesta.DireccionFormateada;
+
+                if (!string.IsNullOrEmpty(ClienteDireccionAdicional))
                 {
-                    ClienteDireccion = respuesta.DireccionFormateada + " - " +ClienteDireccionAdicional.ToUpper();
-                    ClienteDireccionAdicional = string.Empty;
+                    ClienteDireccion += ", " + ClienteDireccionAdicional.ToUpper();
                 }
                 ClientePoblacion = respuesta.Poblacion;
                 ClienteProvincia = respuesta.Provincia;
