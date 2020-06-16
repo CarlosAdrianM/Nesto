@@ -139,6 +139,11 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As tipoAlmacen)
             SetProperty(_almacenSeleccionado, value)
+            If Not IsNothing(listaProductos) Then
+                For Each prod In listaProductos
+                    prod.stockActualizado = False
+                Next
+            End If
         End Set
     End Property
 
