@@ -2,6 +2,7 @@
 using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
 using Microsoft.Practices.Prism.PubSubEvents;
 using Microsoft.Practices.Prism.Regions;
+using Microsoft.VisualBasic;
 using Nesto.Contratos;
 using Nesto.Models;
 using Nesto.Models.Nesto.Models;
@@ -427,6 +428,7 @@ namespace Nesto.Modulos.Cliente
                 {
                     ClienteDireccion += ", " + ClienteDireccionAdicional.ToUpper();
                 }
+                ClienteDireccion = Strings.Left(ClienteDireccion, 50);
                 ClientePoblacion = respuesta.Poblacion;
                 ClienteProvincia = respuesta.Provincia;
                 ClienteRuta = respuesta.Ruta;

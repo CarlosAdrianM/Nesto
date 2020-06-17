@@ -164,7 +164,7 @@
                             <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3" CornerRadius="15" Padding="5">
                                 <StackPanel>
                                     <TextBlock Text="{Binding ClienteNombre}" FontWeight="ExtraBold"></TextBlock>
-                                    <TextBlock Text="{Binding ClienteDireccion}"></TextBlock>
+                                    <TextBlock Text="{Binding ClienteDireccion}" TextWrapping="Wrap"></TextBlock>
                                     <TextBlock>
                                         <TextBlock.Text>
                                             <MultiBinding StringFormat="{}{0} {1} ({2})">
@@ -218,7 +218,7 @@
                             <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3" CornerRadius="15" Padding="5">
                                 <StackPanel>
                                     <TextBlock Text="{Binding ClienteNombre}" FontWeight="ExtraBold"></TextBlock>
-                                    <TextBlock Text="{Binding ClienteDireccion}"></TextBlock>
+                                    <TextBlock Text="{Binding ClienteDireccion}"  TextWrapping="Wrap"></TextBlock>
                                     <TextBlock>
                                         <TextBlock.Text>
                                             <MultiBinding StringFormat="{}{0} {1} ({2})">
@@ -295,7 +295,7 @@
                             <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3" CornerRadius="15" Padding="5">
                                 <StackPanel>
                                     <TextBlock Text="{Binding ClienteNombre}" FontWeight="ExtraBold"></TextBlock>
-                                    <TextBlock Text="{Binding ClienteDireccion}"></TextBlock>
+                                    <TextBlock Text="{Binding ClienteDireccion}"  TextWrapping="Wrap"></TextBlock>
                                     <TextBlock>
                                         <TextBlock.Text>
                                             <MultiBinding StringFormat="{}{0} {1} ({2})">
