@@ -103,7 +103,13 @@ Public Class AgenciaService
 
     Public Function CargarListaEnvios(agencia As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnvios
         Using contexto = New NestoEntities
-            Return New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Agencia = agencia And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO Order By e.Numero)
+            Dim respuesta As ObservableCollection(Of EnviosAgencia) = New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Agencia = agencia And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO Order By e.Numero)
+            If Not IsNothing(respuesta) Then
+                For Each envio In respuesta
+                    contexto.Entry(envio).Reference(Function(e) e.Empresas).Load()
+                Next
+            End If
+            Return respuesta
         End Using
     End Function
 

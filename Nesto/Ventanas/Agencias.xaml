@@ -143,7 +143,6 @@
 
                         <Button Grid.Column="5" Grid.Row="7" MinWidth="80" Margin="3" Content="Cargar Estado" Command = "{Binding cmdCargarEstado}"/>
                         <Button Grid.Column="6" Grid.Row="7" MinWidth="80" Margin="3" Content="Insertar e Imprimir" Command = "{Binding cmdImprimirEInsertar}"/>
-                        <!--Button Grid.Column="4" Grid.Row="6" MinWidth="80" Margin="3" Content="Imprimir Etiqueta" Command = "{Binding cmdImprimirEtiquetaPedido}"/>-->
                         <Button Grid.Column="6" Grid.Row="6" MinWidth="80" Margin="3" Content="Insertar Envío" Command = "{Binding cmdInsertar}" Visibility="{Binding visibilidadSoloImprimir}"/>
                         <TextBox Grid.Column="7" Grid.RowSpan="8" Text="{Binding Path=observacionesEnvio}" Style="{StaticResource campoComentarios}" />
                     </Grid>
@@ -352,6 +351,7 @@
                         <TextBox Grid.Column="6" Grid.Row="3" Text="{Binding envioActual.TelefonoPlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
                         <TextBox Grid.Column="6" Grid.Row="4" Text="{Binding envioActual.EmailPlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
 
+                        <Button Grid.Column="5" Grid.Row="5" MinWidth="80" Margin="3" Content="Imprimir Etiqueta" Command = "{Binding cmdImprimirEtiquetaPedido}"/>
                         <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Borrar Envío" Command = "{Binding cmdBorrar}"/>
                         <Button Grid.Column="5" Grid.Row="7" MinWidth="80" Margin="3" Content="Modificar Envío" Command = "{Binding cmdModificar}"/>
                         <Button Grid.Column="6" Grid.Row="6" MinWidth="80" Margin="3" Content="Tramitar Envío" Command = "{Binding cmdTramitar}"/>

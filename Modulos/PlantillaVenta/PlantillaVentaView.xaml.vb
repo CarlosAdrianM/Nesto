@@ -38,6 +38,7 @@ Public Class PlantillaVentaView
             End If
             Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
             linea.cantidad += 1
+            txtFiltroProducto.SelectAll()
         End If
         If e.Key = Key.OemPlus AndAlso e.KeyboardDevice.Modifiers = (ModifierKeys.Control Or ModifierKeys.Shift) Then
             If IsNothing(lstProductos.SelectedItem) Then
@@ -46,6 +47,7 @@ Public Class PlantillaVentaView
             Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
             If linea.aplicarDescuentoFicha Then
                 linea.cantidadOferta += 1
+                txtFiltroProducto.SelectAll()
             End If
         End If
         If e.Key = Key.D6 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then

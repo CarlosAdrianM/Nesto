@@ -1316,7 +1316,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function canImprimirEtiquetaPedido(ByVal param As Object) As Boolean
-        Return Not IsNothing(envioActual)
+        Return Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso envioActual.Agencia = agenciaSeleccionada.Numero
     End Function
     Private Sub ImprimirEtiquetaPedido(ByVal param As Object)
         agenciaEspecifica.imprimirEtiqueta(envioActual)
