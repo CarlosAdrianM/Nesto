@@ -21,7 +21,7 @@ Public Class Configuracion
     Public ReadOnly Property usuario As String Implements IConfiguracion.usuario
         Get
             Return System.Environment.UserDomainName + "\" + System.Environment.UserName
-            'Return System.Environment.UserDomainName + "\Roberto"
+            'Return System.Environment.UserDomainName + "\manuel"
         End Get
     End Property
 
@@ -54,7 +54,7 @@ Public Class Configuracion
         Dim yourDomain As String = System.Environment.UserDomainName
         Using ctx As New PrincipalContext(ContextType.Domain, yourDomain)
             Using grp = GroupPrincipal.FindByIdentity(ctx, IdentityType.Name, grupo)
-                Dim isInRole As Boolean = Not IsNothing(grp) AndAlso grp.GetMembers(True).Any(Function(m) m.SamAccountName = usuario.Replace(yourDomain + "\", String.Empty))
+                Dim isInRole As Boolean = Not IsNothing(grp) AndAlso grp.GetMembers(True).Any(Function(m) m.SamAccountName.ToLower = usuario.ToLower.Replace(yourDomain.ToLower + "\", String.Empty))
                 Return isInRole
             End Using
         End Using
