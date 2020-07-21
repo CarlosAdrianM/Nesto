@@ -412,7 +412,7 @@ Public Class AgenciaService
         Dim movimientos As ObservableCollection(Of ExtractoCliente)
         Dim movimientosConImporte As ObservableCollection(Of ExtractoCliente)
 
-        If env.Cliente = Constantes.Clientes.Especiales.AMAZON OrElse env.Cliente = Constantes.Clientes.Especiales.TIENDA_ONLINE Then
+        If env.Cliente.Trim = Constantes.Clientes.Especiales.AMAZON OrElse env.Cliente.Trim = Constantes.Clientes.Especiales.TIENDA_ONLINE Then
             Return Nothing
         End If
 
