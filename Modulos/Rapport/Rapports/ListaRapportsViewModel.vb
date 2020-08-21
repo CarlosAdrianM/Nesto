@@ -30,6 +30,7 @@ Public Class ListaRapportsViewModel
 
         cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
         cmdCargarListaRapports = New DelegateCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
+        cmdCargarListaRapportsFiltrada = New DelegateCommand(AddressOf OnCargarListaRapportsFiltrada, AddressOf CanCargarListaRapportsFiltrada)
         cmdCrearRapport = New DelegateCommand(Of Object)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
 
         NotificationRequest = New InteractionRequest(Of INotification)
@@ -93,6 +94,16 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
+    Private _estaOcupado As Boolean
+    Public Property EstaOcupado As Boolean
+        Get
+            Return _estaOcupado
+        End Get
+        Set(value As Boolean)
+            SetProperty(_estaOcupado, value)
+        End Set
+    End Property
+
     Private empresaPorDefecto As String = "1"
 
     Private _fechaSeleccionada As Date = DateTime.Today
@@ -102,6 +113,17 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As Date)
             SetProperty(_fechaSeleccionada, value)
+        End Set
+    End Property
+
+    Private _filtro As String
+    Public Property Filtro As String
+        Get
+            Return _filtro
+        End Get
+        Set(value As String)
+            SetProperty(_filtro, value)
+            cmdCargarListaRapportsFiltrada.Execute()
         End Set
     End Property
 
@@ -180,6 +202,33 @@ Public Class ListaRapportsViewModel
             parametroVendedor = IIf(esUsuarioElVendedor, configuracion.usuario, vendedor)
             listaRapports = Await servicio.cargarListaRapports(parametroVendedor, fechaSeleccionada)
         End If
+    End Sub
+
+    Private _cmdCargarListaRapportsFiltrada As DelegateCommand
+    Public Property cmdCargarListaRapportsFiltrada As DelegateCommand
+        Get
+            Return _cmdCargarListaRapportsFiltrada
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_cmdCargarListaRapportsFiltrada, value)
+        End Set
+    End Property
+    Private Function CanCargarListaRapportsFiltrada() As Boolean
+        Return Not IsNothing(Filtro)
+    End Function
+    Private Async Sub OnCargarListaRapportsFiltrada()
+        If IsNothing(vendedor) Then
+            vendedor = Await configuracion.leerParametro(empresaPorDefecto, "Vendedor")
+        End If
+        Try
+            EstaOcupado = True
+            listaRapports = Await servicio.cargarListaRapportsFiltrada(vendedor, Filtro)
+        Catch ex As Exception
+            Throw ex
+        Finally
+            EstaOcupado = False
+        End Try
+
     End Sub
 
     Private _cmdCrearRapport As DelegateCommand(Of Object)

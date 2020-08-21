@@ -87,7 +87,7 @@ namespace PedidoVentaTests
             lineaFake.descuentoProducto = (decimal).3;
 
             // Assert
-            A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "descuentoProducto"))).MustHaveHappened(Repeated.Exactly.Once);
+            A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "descuentoProducto"))).MustHaveHappenedOnceExactly();
         }
     }
 }

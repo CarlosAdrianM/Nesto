@@ -1,4 +1,5 @@
-﻿Imports System.IO
+﻿Imports System.Collections.Specialized
+Imports System.IO
 Imports Microsoft.Practices.Prism.Commands
 Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Microsoft.Practices.Prism.Regions
@@ -155,6 +156,17 @@ Public Class CarteraPagosViewModel
         End Try
 
         If respuesta <> "" Then
+            respuesta = respuesta.Replace("\\", "\")
+            respuesta = respuesta.Replace("""", "")
+            Dim listaClipboard As StringCollection
+            If Clipboard.ContainsFileDropList Then
+                listaClipboard = Clipboard.GetFileDropList()
+            Else
+                listaClipboard = New StringCollection
+            End If
+
+            listaClipboard.Add(respuesta)
+            Clipboard.SetFileDropList(listaClipboard)
             NotificationRequest.Raise(New Notification() With {
                 .Title = "Fichero Creado",
                 .Content = "Se ha creado correctamente el fichero: " + vbCrLf + respuesta

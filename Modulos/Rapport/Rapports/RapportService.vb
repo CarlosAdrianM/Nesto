@@ -113,6 +113,39 @@ Public Class RapportService
         Return "Cita creada correctamente"
     End Function
 
+    Public Async Function cargarListaRapportsFiltrada(vendedor As String, filtro As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapportsFiltrada
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+
+            Try
+                Dim urlConsulta As String = "SeguimientosClientes"
+                urlConsulta += "?vendedor=" + vendedor
+                urlConsulta += "&filtro=" + filtro
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = ""
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido recuperar la lista de rapports filtrados por " + filtro)
+            Finally
+
+            End Try
+
+            Dim listaRapports As ObservableCollection(Of SeguimientoClienteDTO) = JsonConvert.DeserializeObject(Of ObservableCollection(Of SeguimientoClienteDTO))(respuesta)
+
+            Return listaRapports
+
+        End Using
+    End Function
+
     Private Async Function cargarListaRapports(empresa As String, cliente As String, contacto As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
 
         Using client As New HttpClient

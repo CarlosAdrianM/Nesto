@@ -27,7 +27,7 @@ namespace PedidoVentaTests
             vm.cmdCargarListaPedidos.Execute(null);
 
 
-            A.CallTo(() => configuracion.leerParametro("1", "Vendedor")).MustHaveHappened(Repeated.Exactly.Once);
+            A.CallTo(() => configuracion.leerParametro("1", "Vendedor")).MustHaveHappenedOnceExactly();
             Assert.AreEqual(1, vm.listaPedidosOriginal.Count);
         }
 

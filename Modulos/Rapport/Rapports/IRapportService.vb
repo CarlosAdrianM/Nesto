@@ -7,4 +7,5 @@ Public Interface IRapportService
     Function cargarListaRapports(vendedor As String, fecha As Date) As Task(Of ObservableCollection(Of RapportsModel.SeguimientoClienteDTO))
     Function crearRapport(rapport As SeguimientoClienteDTO) As Task(Of String)
     Function CrearCita(rapport As SeguimientoClienteDTO, fechaAviso As Date) As Task(Of String)
+    Function cargarListaRapportsFiltrada(vendedor As String, filtro As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO))
 End Interface
