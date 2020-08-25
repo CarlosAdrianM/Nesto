@@ -82,6 +82,10 @@ namespace Nesto.Modulos.CanalesExternos
             
             pedidoSalida.comentarios += order.ShippingAddress?.Phone != null ? order.ShippingAddress?.Phone?.ToString().ToUpper() + "\r\n" : "";
             pedidoSalida.comentarios += "Cumplimiento por " + (order.FulfillmentChannel == "AFN" ? "Amazon" : "Nueva Visión") + "\r\n";
+            if (!string.IsNullOrWhiteSpace(order.SellerOrderId) && order.SellerOrderId != order.AmazonOrderId)
+            {
+                pedidoSalida.comentarios += "N/ Pedido: " + order.SellerOrderId + "\r\n";
+            }
             pedidoSalida.comentarios += "TOTAL PEDIDO: " + order.OrderTotal?.Amount.ToString();
             
             pedidoSalida.fecha = order.PurchaseDate;

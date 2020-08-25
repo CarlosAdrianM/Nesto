@@ -16,6 +16,8 @@ namespace Nesto.Modulos.CanalesExternos
         private IConfiguracion configuracion;
         private const string EMPRESA_DEFECTO = "1";
         private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
+        private const string FORMA_PAGO_PAYPAL = "PayPal";
+        private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
 
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)
         {
@@ -76,7 +78,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 pedidoSalida.formaPago = "EFC";
                 pedidoSalida.plazosPago = "CONTADO";
-            } else if (formaPago == "PayPal")
+            } else if (formaPago == FORMA_PAGO_PAYPAL || formaPago == FORMA_PAGO_REDSYS)
             {
                 pedidoSalida.formaPago = "TAR";
                 pedidoSalida.plazosPago = "PRE";
