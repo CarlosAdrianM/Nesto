@@ -133,6 +133,7 @@
     </Compile>
     <Compile Include="IProductoService.cs" />
     <Compile Include="Producto.cs" />
+    <Compile Include="ProductoClienteModel.cs" />
     <Compile Include="ProductoMenuBar.xaml.cs">
       <DependentUpon>ProductoMenuBar.xaml</DependentUpon>
     </Compile>

@@ -23,8 +23,10 @@ namespace Nesto.Modulos.Producto
         private string _filtroNombre;
         private string _filtroFamilia;
         private string _filtroSubgrupo;
+        private TabItem _pestannaSeleccionada;
         private ProductoModel _productoActual;
         private ProductoModel _productoResultadoSeleccionado;
+        private ObservableCollection<ProductoClienteModel> _clientesResultadoBusqueda;
         private ObservableCollection<ProductoModel> _productosResultadoBusqueda;
         private string _referenciaBuscar;
 
@@ -38,6 +40,7 @@ namespace Nesto.Modulos.Producto
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
             BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
+            BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
             SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
 
             Titulo = "Producto";
@@ -65,6 +68,11 @@ namespace Nesto.Modulos.Producto
         #endregion
 
         #region "Propiedades Nesto"
+        public ObservableCollection<ProductoClienteModel> ClientesResultadoBusqueda
+        {
+            get { return _clientesResultadoBusqueda; }
+            set { SetProperty(ref _clientesResultadoBusqueda, value); }
+        }
         public string FiltroFamilia
         {
             get { return _filtroFamilia; }
@@ -92,9 +100,26 @@ namespace Nesto.Modulos.Producto
             }
         }
 
+        public TabItem PestannaSeleccionada
+        {
+            get { return _pestannaSeleccionada; }
+            set { 
+                SetProperty(ref _pestannaSeleccionada, value); 
+                if (PestannaSeleccionada?.Header?.ToString() == "Clientes") {
+                    BuscarClientesCommand.Execute();
+                }
+            }
+        }
+
         public ProductoModel ProductoActual {
             get { return _productoActual; }
-            set { SetProperty(ref _productoActual, value); }
+            set { 
+                SetProperty(ref _productoActual, value);
+                if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
+                {
+                    BuscarClientesCommand.Execute();
+                }
+            }
         }
 
         public ProductoModel ProductoResultadoSeleccionado
@@ -134,6 +159,21 @@ namespace Nesto.Modulos.Producto
         private void OnAbrirModulo()
         {
             RegionManager.RequestNavigate("MainRegion", "ProductoView");
+        }
+
+        public DelegateCommand BuscarClientesCommand { get; private set; }
+        private bool CanBuscarClientes()
+        {
+            return ProductoActual != null && !string.IsNullOrEmpty(ProductoActual.Producto);
+        }
+        private async void OnBuscarClientes()
+        {
+            ICollection<ProductoClienteModel> resultadoBusqueda = await Servicio.BuscarClientes(ProductoActual.Producto);
+            ClientesResultadoBusqueda = new ObservableCollection<ProductoClienteModel>();
+            foreach (var cliente in resultadoBusqueda)
+            {
+                ClientesResultadoBusqueda.Add(cliente);
+            }
         }
 
         public DelegateCommand BuscarProductoCommand { get; private set; }

@@ -20,6 +20,41 @@ namespace Nesto.Modules.Producto
             this.configuracion = configuracion;
         }
 
+        public async Task<ICollection<ProductoClienteModel>> BuscarClientes(string producto)
+        {
+            ICollection<ProductoClienteModel> clientes;
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string vendedor = await configuracion.leerParametro(EmpresaDefecto, "Vendedor");
+                    string urlConsulta = "Productos?empresa=" + EmpresaDefecto + "&id=" + producto + "&vendedor=" + vendedor;
+
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        clientes = JsonConvert.DeserializeObject<ICollection<ProductoClienteModel>>(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception("No se han podido cargar los clientes que han comprado el producto "+ producto);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return clientes;
+        }
+
         public async Task<ICollection<ProductoModel>> BuscarProductos(string filtroNombre, string filtroFamilia, string filtroSubgrupo)
         {
             ICollection<ProductoModel> productos;
