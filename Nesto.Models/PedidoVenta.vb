@@ -182,6 +182,7 @@ Public Class PedidoVenta
         Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
         Public Sub New()
             Me.LineasPedido = New ObservableCollection(Of LineaPedidoVentaDTO)()
+            Me.Prepagos = New ObservableCollection(Of PrepagoDTO)
         End Sub
 
         Public Property empresa() As String
@@ -309,6 +310,7 @@ Public Class PedidoVenta
         End Function
 
         Public Overridable Property LineasPedido() As ObservableCollection(Of LineaPedidoVentaDTO)
+        Public Overridable Property Prepagos() As ObservableCollection(Of PrepagoDTO)
         Public Overridable Property VendedoresGrupoProducto As ObservableCollection(Of VendedorGrupoProductoDTO)
 
         Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
@@ -317,26 +319,33 @@ Public Class PedidoVenta
 
     End Class
 
-    Public Class VendedorGrupoProductoDTO
-        Implements INotifyPropertyChanged
-
-        Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
-
-        Private _vendedor As String
-        Public Property vendedor As String
-            Get
-                Return _vendedor
-            End Get
-            Set(value As String)
-                _vendedor = value
-                OnPropertyChanged("vendedor")
-            End Set
-        End Property
-        Public Property grupoProducto As String
-        Public Property usuario As String
-        Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
-            RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
-        End Sub
+    Public Class PrepagoDTO
+        Public Property Importe As Decimal
+        Public Property Estado As Byte
+        Public Property CuentaContable As String
+        Public Property ConceptoAdicional As String
     End Class
 
-End Class
+    Public Class VendedorGrupoProductoDTO
+            Implements INotifyPropertyChanged
+
+            Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
+
+            Private _vendedor As String
+            Public Property vendedor As String
+                Get
+                    Return _vendedor
+                End Get
+                Set(value As String)
+                    _vendedor = value
+                    OnPropertyChanged("vendedor")
+                End Set
+            End Property
+            Public Property grupoProducto As String
+            Public Property usuario As String
+            Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
+                RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
+            End Sub
+        End Class
+
+    End Class

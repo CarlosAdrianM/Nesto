@@ -8,6 +8,7 @@ using Nesto.Contratos;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using Nesto.Models.Nesto.Models;
+using System.Collections.Generic;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -18,6 +19,7 @@ namespace Nesto.Modulos.CanalesExternos
         private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
         private const string FORMA_PAGO_PAYPAL = "PayPal";
         private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
+        private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay - Login and Pay with Amazon";
 
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)
         {
@@ -198,6 +200,29 @@ namespace Nesto.Modulos.CanalesExternos
             } else
             {
                 pedidoExterno.Provincia = string.Empty;
+            }
+
+            Dictionary<string, string> cuentasFormaPago = new Dictionary<string, string>();
+            cuentasFormaPago.Add(FORMA_PAGO_PAYPAL, "57200020"); 
+            cuentasFormaPago.Add(FORMA_PAGO_REDSYS, "57200013"); 
+            cuentasFormaPago.Add(FORMA_PAGO_AMAZON_PAY, "57200022"); 
+
+            if (cuentasFormaPago.ContainsKey(formaPago))
+            {
+                PrepagoDTO prepago = new PrepagoDTO
+                {
+                    Importe = totalPagado,
+                    Estado = 0,
+                    CuentaContable = cuentasFormaPago[formaPago],
+                    ConceptoAdicional = string.Format("Tienda Online {0}", formaPago)
+                };
+
+                if (prepago.ConceptoAdicional.Length > 50)
+                {
+                    prepago.ConceptoAdicional = prepago.ConceptoAdicional.Substring(0, 50);
+                }
+
+                pedidoExterno.Pedido.Prepagos.Add(prepago);
             }
 
             return pedidoExterno;

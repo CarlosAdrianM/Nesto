@@ -110,6 +110,32 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoExterno.TelefonoFijo = order.ShippingAddress?.Phone?.ToString().ToUpper();
             pedidoExterno.PaisISO = order.ShippingAddress?.CountryCode?.ToString().ToUpper();
 
+            Dictionary<string, string> cuentasMarkets = new Dictionary<string, string>();
+            cuentasMarkets.Add("A1F83G8C2ARO7P", "55500049"); // Amazon.co.uk
+            cuentasMarkets.Add("A1PA6795UKMFR9", "55500046"); // Amazon.de
+            cuentasMarkets.Add("A1RKKUPIHCS9HS", "55500047"); // Amazon.es
+            cuentasMarkets.Add("A13V1IB3VIYZZH", "55500045"); // Amazon.fr
+            cuentasMarkets.Add("APJ6JRA9NG5V4", "55500048");  // Amazon.it
+            //cuentasMarkets.Add("A302IUJ673AU08");  // Amazon.nl
+
+            Dictionary<string, string> nombresMarkets = new Dictionary<string, string>();
+            nombresMarkets.Add("A1F83G8C2ARO7P", "Amazon.co.uk"); 
+            nombresMarkets.Add("A1PA6795UKMFR9", "Amazon.de");
+            nombresMarkets.Add("A1RKKUPIHCS9HS", "Amazon.es");
+            nombresMarkets.Add("A13V1IB3VIYZZH", "Amazon.fr");
+            nombresMarkets.Add("APJ6JRA9NG5V4", "Amazon.it");
+            //nombresMarkets.Add("A302IUJ673AU08");  // Amazon.nl
+
+            PrepagoDTO prepago = new PrepagoDTO
+            {
+                Importe = Convert.ToDecimal(order.OrderTotal?.Amount)/100,
+                Estado = 0,
+                CuentaContable = cuentasMarkets[order.MarketplaceId], 
+                ConceptoAdicional = string.Format("{0} {1}", nombresMarkets[order.MarketplaceId], numeroOrderAmazon)
+            };
+
+            pedidoExterno.Pedido.Prepagos.Add(prepago);
+            
 
             return pedidoExterno;
         }
