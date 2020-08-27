@@ -212,7 +212,6 @@ namespace Nesto.Modulos.CanalesExternos
                 PrepagoDTO prepago = new PrepagoDTO
                 {
                     Importe = totalPagado,
-                    Estado = 0,
                     CuentaContable = cuentasFormaPago[formaPago],
                     ConceptoAdicional = string.Format("Tienda Online {0}", formaPago)
                 };

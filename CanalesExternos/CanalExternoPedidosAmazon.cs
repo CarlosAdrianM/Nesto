@@ -129,10 +129,14 @@ namespace Nesto.Modulos.CanalesExternos
             PrepagoDTO prepago = new PrepagoDTO
             {
                 Importe = Convert.ToDecimal(order.OrderTotal?.Amount)/100,
-                Estado = 0,
                 CuentaContable = cuentasMarkets[order.MarketplaceId], 
                 ConceptoAdicional = string.Format("{0} {1}", nombresMarkets[order.MarketplaceId], numeroOrderAmazon)
             };
+
+            if (prepago.ConceptoAdicional.Length > 50)
+            {
+                prepago.ConceptoAdicional = prepago.ConceptoAdicional.Substring(0, 50);
+            }
 
             pedidoExterno.Pedido.Prepagos.Add(prepago);
             

@@ -321,7 +321,7 @@ Public Class PedidoVenta
 
     Public Class PrepagoDTO
         Public Property Importe As Decimal
-        Public Property Estado As Byte
+        Public Property Factura As String
         Public Property CuentaContable As String
         Public Property ConceptoAdicional As String
     End Class
