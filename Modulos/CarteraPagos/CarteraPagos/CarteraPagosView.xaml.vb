@@ -50,4 +50,5 @@ Class CarteraPagosView
             btnCrearFichero.Focus()
         End If
     End Sub
+
 End Class

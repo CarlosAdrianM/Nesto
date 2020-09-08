@@ -16,20 +16,19 @@ using System.Windows.Shapes;
 namespace Nesto.Modulos.CanalesExternos
 {
     /// <summary>
-    /// Lógica de interacción para MainWindow.xaml
+    /// Lógica de interacción para CanalesExternosPagosView.xaml
     /// </summary>
-    public partial class CanalesExternosView : UserControl
+    public partial class CanalesExternosPagosView : UserControl
     {
-        public CanalesExternosView(CanalesExternosViewModel viewModel)
+        public CanalesExternosPagosView(CanalesExternosPagosViewModel viewModel)
         {
             InitializeComponent();
             DataContext = viewModel;
         }
 
-        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        private void DataGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
-            
-            ((CanalesExternosViewModel)DataContext).CanalSeleccionado = ((CanalesExternosViewModel)DataContext).Factory.First().Value;
+
         }
     }
 }

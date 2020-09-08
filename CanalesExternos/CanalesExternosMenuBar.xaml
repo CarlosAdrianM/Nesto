@@ -11,7 +11,8 @@
                             Header="Herramientas">
             <RibbonGroup x:Name="grpCanalesExternos"
                                 Header="Canales Externos">
-                <RibbonButton Label="Pedidos" LargeImageSource="Images/CanalesExternos.png" Command="{Binding AbrirModuloCommand}" />
+                <RibbonButton Label="Pedidos" LargeImageSource="Images/CanalesExternos.png" Command="{Binding AbrirModuloPedidosCommand}" />
+                <RibbonButton Label="Pagos" LargeImageSource="Images/CanalesExternosPagos.png" Command="{Binding AbrirModuloPagosCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

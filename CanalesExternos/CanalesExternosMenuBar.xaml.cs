@@ -12,7 +12,7 @@ namespace Nesto.Modulos.CanalesExternos
             InitializeComponent();
         }
 
-        public CanalesExternosMenuBar(CanalesExternosViewModel viewModel)
+        public CanalesExternosMenuBar(CanalesExternosMenuBarViewModel viewModel)
         {
             InitializeComponent();
             DataContext = viewModel;

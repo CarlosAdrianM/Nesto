@@ -347,6 +347,8 @@ namespace MarketplaceWebServiceOrders {
             return this.client.ListOrdersByNextToken(request);
         }
 
+        // CAMBIO LIBRAS GBP A EUROS
+        // https://api.cambio.today/v1/quotes/GBP/EUR/json?quantity=1&key=4894|GMDw0jJ78NXw_GdVnEADMS*XuFQ11Cw9
 
     }
 }

@@ -17,7 +17,7 @@ using static Nesto.Models.PedidoVenta;
 
 namespace Nesto.Modulos.CanalesExternos
 {
-    public class CanalesExternosViewModel : Contratos.ViewModelBase
+    public class CanalesExternosPedidosViewModel : Contratos.ViewModelBase
     {
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
@@ -30,7 +30,7 @@ namespace Nesto.Modulos.CanalesExternos
 
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
         
-        public CanalesExternosViewModel(IRegionManager regionManager, IConfiguracion configuracion)
+        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
@@ -40,7 +40,7 @@ namespace Nesto.Modulos.CanalesExternos
 
             CrearComandosAsync();
 
-            Titulo = "Canales Externos";
+            Titulo = "Canales Externos Pedidos";
             NotificationRequest = new InteractionRequest<INotification>();
         }
 
@@ -108,19 +108,7 @@ namespace Nesto.Modulos.CanalesExternos
         #endregion
 
         #region "Comandos"
-        public ICommand AbrirModuloCommand { get; private set; }
-        private bool CanAbrirModulo()
-        {
-            return Environment.UserName.ToLower() == "carlos" 
-                || Environment.UserName.ToLower() == "laura"
-                || Environment.UserName.ToLower() == "administrador"
-                || Environment.UserName.ToLower() == "manuel"
-                || Environment.UserName.ToLower() == "inaki";
-        }
-        private void OnAbrirModulo()
-        {
-            RegionManager.RequestNavigate("MainRegion", "CanalesExternosView");
-        }
+
 
         public ICommand CargarPedidosCommand { get; private set; }
         private async void OnCargarPedidos()
@@ -222,7 +210,6 @@ namespace Nesto.Modulos.CanalesExternos
         {
             CanalSeleccionadoHaCambiado += OnCanalSeleccionadoHaCambiadoAsync;
 
-            AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
             CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
             CrearEtiquetaCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearEtiquetaAsync, CanCrearEtiqueta);
             CrearPedidoCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearPedidoAsync, CanCrearPedido);

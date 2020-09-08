@@ -6,6 +6,7 @@ using MarketplaceWebServiceOrders.Model;
 using static Nesto.Models.PedidoVenta;
 using System.Collections.ObjectModel;
 using Nesto.Contratos;
+using Nesto.Modulos.CanalesExternos.Models;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -37,9 +38,9 @@ namespace Nesto.Modulos.CanalesExternos
             await Task.Run(() => { 
                 foreach (Order order in listaAmazon)
                 {
-                    PedidoCanalExterno pedidoExterno = TrasformarPedido(order);
+                    PedidoCanalExterno pedidoExterno = TransformarPedido(order);
                     List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
-                    pedidoExterno.Pedido.LineasPedido = TrasformarLineas(lineasAmazon, order.FulfillmentChannel);
+                    pedidoExterno.Pedido.LineasPedido = TransformarLineas(lineasAmazon, order.FulfillmentChannel);
                     listaNesto.Add(pedidoExterno);
                 }
             });
@@ -52,8 +53,9 @@ namespace Nesto.Modulos.CanalesExternos
             throw new NotImplementedException();
         }
 
-        private PedidoCanalExterno TrasformarPedido(Order order)
+        private PedidoCanalExterno TransformarPedido(Order order)
         {
+            decimal orderTotal = Convert.ToDecimal(order.OrderTotal?.Amount) /100 * CambioDivisas;
             PedidoCanalExterno pedidoExterno = new PedidoCanalExterno();
             PedidoVentaDTO pedidoSalida = new PedidoVentaDTO();
 
@@ -86,7 +88,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 pedidoSalida.comentarios += "N/ Pedido: " + order.SellerOrderId + "\r\n";
             }
-            pedidoSalida.comentarios += "TOTAL PEDIDO: " + order.OrderTotal?.Amount.ToString();
+            pedidoSalida.comentarios += "TOTAL PEDIDO: " + orderTotal.ToString("C");
             
             pedidoSalida.fecha = order.PurchaseDate;
             pedidoSalida.formaPago = "TRN";
@@ -110,27 +112,13 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoExterno.TelefonoFijo = order.ShippingAddress?.Phone?.ToString().ToUpper();
             pedidoExterno.PaisISO = order.ShippingAddress?.CountryCode?.ToString().ToUpper();
 
-            Dictionary<string, string> cuentasMarkets = new Dictionary<string, string>();
-            cuentasMarkets.Add("A1F83G8C2ARO7P", "55500049"); // Amazon.co.uk
-            cuentasMarkets.Add("A1PA6795UKMFR9", "55500046"); // Amazon.de
-            cuentasMarkets.Add("A1RKKUPIHCS9HS", "55500047"); // Amazon.es
-            cuentasMarkets.Add("A13V1IB3VIYZZH", "55500045"); // Amazon.fr
-            cuentasMarkets.Add("APJ6JRA9NG5V4", "55500048");  // Amazon.it
-            //cuentasMarkets.Add("A302IUJ673AU08");  // Amazon.nl
-
-            Dictionary<string, string> nombresMarkets = new Dictionary<string, string>();
-            nombresMarkets.Add("A1F83G8C2ARO7P", "Amazon.co.uk"); 
-            nombresMarkets.Add("A1PA6795UKMFR9", "Amazon.de");
-            nombresMarkets.Add("A1RKKUPIHCS9HS", "Amazon.es");
-            nombresMarkets.Add("A13V1IB3VIYZZH", "Amazon.fr");
-            nombresMarkets.Add("APJ6JRA9NG5V4", "Amazon.it");
-            //nombresMarkets.Add("A302IUJ673AU08");  // Amazon.nl
+            
 
             PrepagoDTO prepago = new PrepagoDTO
             {
-                Importe = Convert.ToDecimal(order.OrderTotal?.Amount)/100,
-                CuentaContable = cuentasMarkets[order.MarketplaceId], 
-                ConceptoAdicional = string.Format("{0} {1}", nombresMarkets[order.MarketplaceId], numeroOrderAmazon)
+                Importe = orderTotal,
+                CuentaContable = DatosMarkets.CuentaContablePago[order.MarketplaceId], 
+                ConceptoAdicional = string.Format("{0} {1}", DatosMarkets.NombreMarket[order.MarketplaceId], numeroOrderAmazon)
             };
 
             if (prepago.ConceptoAdicional.Length > 50)
@@ -144,12 +132,12 @@ namespace Nesto.Modulos.CanalesExternos
             return pedidoExterno;
         }
 
-        private ObservableCollection<LineaPedidoVentaDTO> TrasformarLineas(List<OrderItem> lineasAmazon, string canalCumplimiento)
+        private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, string canalCumplimiento)
         {
             ObservableCollection<LineaPedidoVentaDTO> lineasNesto = new ObservableCollection<LineaPedidoVentaDTO>();
             foreach (OrderItem orderItem in lineasAmazon)
             {
-                decimal baseImponible = Convert.ToDecimal(orderItem.ItemPrice?.Amount) / 100 / PORCENTAJE_IVA;
+                decimal baseImponible = Convert.ToDecimal(orderItem.ItemPrice?.Amount) / 100 / PORCENTAJE_IVA * CambioDivisas;
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
                     almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
@@ -171,7 +159,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (Convert.ToDecimal(orderItem.ShippingPrice?.Amount) != 0)
                 {
-                    decimal baseImponiblePortes = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / PORCENTAJE_IVA;
+                    decimal baseImponiblePortes = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / PORCENTAJE_IVA * CambioDivisas;
                     LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                     {
                         almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
@@ -195,5 +183,7 @@ namespace Nesto.Modulos.CanalesExternos
 
             return lineasNesto;
         }
+
+        private decimal CambioDivisas { get; set; } = 1;
     }
 }
