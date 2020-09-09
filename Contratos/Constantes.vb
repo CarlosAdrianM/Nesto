@@ -8,6 +8,7 @@
     End Class
     Public Class Clientes
         Public Const ESTADO_NORMAL = 0
+        Public Const ESTADO_DISTRIBUIDOR = 6
         Public Class Especiales
             Public Const TIENDA_ONLINE As String = "31517"
             Public Const AMAZON As String = "32624"
@@ -23,6 +24,9 @@
         Public Const DELEGACION_DEFECTO As String = "ALG"
         Public Const FORMA_VENTA_DEFECTO As String = "VAR"
         Public Const MONEDA_CONTABILIDAD As String = "EUR"
+    End Class
+    Public Class Familias
+        Public Const UNION_LASER_NOMBRE As String = "Unión Láser"
     End Class
     Public Class FormasPago
         Public Const EFECTIVO As String = "EFC"
@@ -40,6 +44,10 @@
     Public Class LineasPedido
         Public Const ESTADO_SIN_FACTURAR = 1
         Public Const ESTADO_LINEA_PENDIENTE = -1
+    End Class
+    Public Class Series
+        Public Const SERIE_DEFECTO As String = "NV"
+        Public Const UNION_LASER As String = "UL"
     End Class
     Public Class TiposApunte
         Public Const PASO_A_CARTERA = "0"

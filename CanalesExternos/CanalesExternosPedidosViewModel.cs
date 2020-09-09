@@ -102,6 +102,46 @@ namespace Nesto.Modulos.CanalesExternos
                 {
                     FechaDesde = (DateTime)PedidoSeleccionado.Pedido.fecha;
                 }
+                OnPropertyChanged(() => PedidoSeleccionadoDireccion);
+                OnPropertyChanged(() => PedidoSeleccionadoNombre);
+                OnPropertyChanged(() => PedidoSeleccionadoTelefonoFijo);
+                OnPropertyChanged(() => PedidoSeleccionadoTelefonoMovil);
+            }
+        }
+        public string PedidoSeleccionadoDireccion
+        {
+            get { return PedidoSeleccionado?.Direccion; }
+            set
+            {
+                PedidoSeleccionado.Direccion = value;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
+            }
+        }
+        public string PedidoSeleccionadoNombre
+        {
+            get { return PedidoSeleccionado?.Nombre; }
+            set
+            {
+                PedidoSeleccionado.Nombre = value;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
+            }
+        }
+        public string PedidoSeleccionadoTelefonoFijo
+        {
+            get { return PedidoSeleccionado?.TelefonoFijo; }
+            set
+            {
+                PedidoSeleccionado.TelefonoFijo = value;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
+            }
+        }
+        public string PedidoSeleccionadoTelefonoMovil
+        {
+            get { return PedidoSeleccionado?.TelefonoMovil; }
+            set
+            {
+                PedidoSeleccionado.TelefonoMovil = value;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
             }
         }
 
@@ -178,10 +218,11 @@ namespace Nesto.Modulos.CanalesExternos
             }
         }
 
-        public ICommand CrearPedidoCommand { get; private set; }
+        public DelegateCommand<PedidoCanalExterno> CrearPedidoCommand { get; private set; }
         private bool CanCrearPedido(PedidoCanalExterno pedidoExterno)
         {
-            return true;
+            return pedidoExterno != null && !string.IsNullOrEmpty(pedidoExterno.Nombre) && !string.IsNullOrEmpty(pedidoExterno.Direccion) && 
+                (!string.IsNullOrWhiteSpace(pedidoExterno.TelefonoFijo) || !string.IsNullOrWhiteSpace(pedidoExterno.TelefonoMovil));
         }
         private async void OnCrearPedidoAsync(PedidoCanalExterno pedidoExterno)
         {

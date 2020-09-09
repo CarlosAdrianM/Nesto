@@ -1528,7 +1528,7 @@ Public Class PlantillaVentaViewModel
                         .vendedor = direccionEntregaSeleccionada.vendedor,
                         .periodoFacturacion = direccionEntregaSeleccionada.periodoFacturacion,
                         .ruta = IIf(EnviarPorGlovo, "GLV", direccionEntregaSeleccionada.ruta),
-                        .serie = "NV", 'calcular
+                        .serie = CalcularSerie(),
                         .ccc = IIf(formaPagoSeleccionada.cccObligatorio, direccionEntregaSeleccionada.ccc, Nothing),
                         .origen = clienteSeleccionado.empresa,
                         .contactoCobro = clienteSeleccionado.contacto, 'calcular
@@ -1590,6 +1590,14 @@ Public Class PlantillaVentaViewModel
         Next
 
         Return pedido
+    End Function
+
+    Private Function CalcularSerie() As String
+        If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.All(Function(l) l.familia = Constantes.Familias.UNION_LASER_NOMBRE) Then
+            Return Constantes.Series.UNION_LASER
+        End If
+
+        Return Constantes.Series.SERIE_DEFECTO
     End Function
 
     Private _cmdFijarFiltroProductos As DelegateCommand(Of Object)

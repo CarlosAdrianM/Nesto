@@ -14,17 +14,18 @@ namespace Nesto.Modulos.CanalesExternos.Models
             {"A1PA6795UKMFR9", "55500046"}, // Amazon.de
             {"A1RKKUPIHCS9HS", "55500047"}, // Amazon.es
             {"A13V1IB3VIYZZH", "55500045"}, // Amazon.fr
-            {"APJ6JRA9NG5V4", "55500048"}   // Amazon.it
+            {"APJ6JRA9NG5V4", "55500048"},   // Amazon.it
+            {"A302IUJ673AU08", "55500050"}   // Amazon.nl
         };
-        //cuentasMarkets.Add("A302IUJ673AU08");  // Amazon.nl
-
+        
         public static Dictionary<string, string> CuentaContableComision = new Dictionary<string, string>()
         {
             {"A1F83G8C2ARO7P", "55500066"}, // Amazon.co.uk
             {"A1PA6795UKMFR9", "55500065"}, // Amazon.de
             {"A1RKKUPIHCS9HS", "55500062"}, // Amazon.es
             {"A13V1IB3VIYZZH", "55500064"}, // Amazon.fr
-            {"APJ6JRA9NG5V4", "55500063"}   // Amazon.it
+            {"APJ6JRA9NG5V4", "55500063"},   // Amazon.it
+            {"A302IUJ673AU08", "55500069"}   // Amazon.nl
         };
 
         public static Dictionary<string, string> MarketCuentaPago = new Dictionary<string, string>()
@@ -33,9 +34,9 @@ namespace Nesto.Modulos.CanalesExternos.Models
             {"55500046", "A1PA6795UKMFR9"}, // Amazon.de
             {"55500047", "A1RKKUPIHCS9HS"}, // Amazon.es
             {"55500045", "A13V1IB3VIYZZH"}, // Amazon.fr
-            {"55500048", "APJ6JRA9NG5V4"}   // Amazon.it
+            {"55500048", "APJ6JRA9NG5V4"},   // Amazon.it
+            {"55500050", "A302IUJ673AU08"}   // Amazon.nl
         };
-        //cuentasMarkets.Add("A302IUJ673AU08");  // Amazon.nl
 
         public static Dictionary<string, string> NombreMarket = new Dictionary<string, string>()
         {

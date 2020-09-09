@@ -59,28 +59,52 @@
                 <Button Grid.Row="4" Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
             </Grid>
         </xctk:BusyIndicator>
-        <DataGrid Grid.Column="1" ItemsSource="{Binding PedidoSeleccionado.Pedido.LineasPedido}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Producto" Binding="{Binding producto}"/>
-                <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>
-                <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}"/>
-                <DataGridTextColumn Header="Precio" Binding="{Binding precio, StringFormat=c}">
-                    <DataGridTextColumn.CellStyle>
-                        <Style>
-                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                        </Style>
-                    </DataGridTextColumn.CellStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Bruto" Binding="{Binding bruto, StringFormat=c}">
-                    <DataGridTextColumn.CellStyle>
-                        <Style>
-                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                        </Style>
-                    </DataGridTextColumn.CellStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Picking" Binding="{Binding picking}"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <Grid Grid.Column="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <DataGrid Grid.Column="0" ItemsSource="{Binding PedidoSeleccionado.Pedido.LineasPedido}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding producto}"/>
+                    <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>
+                    <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}"/>
+                    <DataGridTextColumn Header="Precio" Binding="{Binding precio, StringFormat=c}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Bruto" Binding="{Binding bruto, StringFormat=c}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Picking" Binding="{Binding picking}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <StackPanel Grid.Column="1" Margin="3,0">
+                <TextBlock>Nombre:</TextBlock>
+                <TextBox Name="txtNombre" Text="{Binding PedidoSeleccionadoNombre, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <TextBlock/>
+                <TextBlock>Dirección:</TextBlock>
+                <TextBox Name="txtDireccion" Text="{Binding PedidoSeleccionadoDireccion, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <TextBlock/>
+                <TextBlock>Teléfono Fijo:</TextBlock>
+                <TextBox Name="txtTelefonoFijo" Text="{Binding PedidoSeleccionadoTelefonoFijo, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <TextBlock/>
+                <TextBlock>Teléfono Móvil:</TextBlock>
+                <TextBox Name="txtTelefonoMovil" Text="{Binding PedidoSeleccionadoTelefonoMovil, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <TextBlock/>
+                <TextBlock>Población:</TextBlock>
+                <TextBox Name="txtPoblacion" Text="{Binding PedidoSeleccionado.Poblacion}"></TextBox>
+                <TextBlock/>
+            </StackPanel>
+        </Grid>
+        
     </Grid>
 
 </UserControl>

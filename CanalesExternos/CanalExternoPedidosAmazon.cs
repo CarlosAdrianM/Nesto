@@ -7,6 +7,7 @@ using static Nesto.Models.PedidoVenta;
 using System.Collections.ObjectModel;
 using Nesto.Contratos;
 using Nesto.Modulos.CanalesExternos.Models;
+using System.Linq;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -35,9 +36,16 @@ namespace Nesto.Modulos.CanalesExternos
 
 
             ObservableCollection<PedidoCanalExterno> listaNesto = new ObservableCollection<PedidoCanalExterno>();
-            await Task.Run(() => { 
+            await Task.Run(async () => {
                 foreach (Order order in listaAmazon)
                 {
+                    if (order.OrderTotal.CurrencyCode != Constantes.Empresas.MONEDA_CONTABILIDAD)
+                    {
+                        CambioDivisas = await MarketplaceWebServiceOrdersNuevaVision.CalculaDivisa(order.OrderTotal.CurrencyCode, Constantes.Empresas.MONEDA_CONTABILIDAD);
+                    } else
+                    {
+                        CambioDivisas = 1;
+                    }
                     PedidoCanalExterno pedidoExterno = TransformarPedido(order);
                     List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
                     pedidoExterno.Pedido.LineasPedido = TransformarLineas(lineasAmazon, order.FulfillmentChannel);
@@ -73,7 +81,7 @@ namespace Nesto.Modulos.CanalesExternos
                 numeroOrderAmazon = "FBA " + numeroOrderAmazon;
             }
             pedidoSalida.comentarios = numeroOrderAmazon + " \r\n";
-            pedidoSalida.comentarios += order.ShippingAddress?.Name.ToString().ToUpper() + "\r\n";
+            pedidoSalida.comentarios += order.ShippingAddress?.Name?.ToString().ToUpper() + "\r\n";
             pedidoSalida.comentarios += order.BuyerEmail?.ToString() + "\r\n";
             pedidoSalida.comentarios += order.ShippingAddress?.AddressLine1?.ToString().ToUpper() + "\r\n";
             pedidoSalida.comentarios += order.ShippingAddress?.AddressLine2 != null ? order.ShippingAddress?.AddressLine2?.ToString().ToUpper() + "\r\n" : "";
@@ -88,8 +96,12 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 pedidoSalida.comentarios += "N/ Pedido: " + order.SellerOrderId + "\r\n";
             }
+            if (order.OrderTotal.CurrencyCode != Constantes.Empresas.MONEDA_CONTABILIDAD)
+            {
+                pedidoSalida.comentarios += string.Format("Importe original: {0} {1} (cambio {2})", order.OrderTotal.Amount.ToString(), order.OrderTotal.CurrencyCode, CambioDivisas.ToString()) + "\r\n";
+            }
             pedidoSalida.comentarios += "TOTAL PEDIDO: " + orderTotal.ToString("C");
-            
+                        
             pedidoSalida.fecha = order.PurchaseDate;
             pedidoSalida.formaPago = "TRN";
             pedidoSalida.plazosPago = "PRE";
@@ -101,7 +113,7 @@ namespace Nesto.Modulos.CanalesExternos
 
             pedidoExterno.Pedido = pedidoSalida;
             pedidoExterno.PedidoCanalId = numeroOrderAmazon;
-            pedidoExterno.Nombre = order.ShippingAddress?.Name.ToString().ToUpper();
+            pedidoExterno.Nombre = order.ShippingAddress?.Name?.ToString().ToUpper();
             pedidoExterno.CorreoElectronico = order.BuyerEmail?.ToString();
             pedidoExterno.Direccion = order.ShippingAddress?.AddressLine1?.ToString().ToUpper();
             pedidoExterno.Direccion += order.ShippingAddress?.AddressLine2 != null ? " " + order.ShippingAddress?.AddressLine2?.ToString().ToUpper() : "";

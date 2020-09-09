@@ -15,9 +15,12 @@
  */
 
 using MarketplaceWebServiceOrders.Model;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace MarketplaceWebServiceOrders {
 
@@ -317,6 +320,7 @@ namespace MarketplaceWebServiceOrders {
             marketplaceId.Add("A1RKKUPIHCS9HS"); // Amazon.es
             marketplaceId.Add("A13V1IB3VIYZZH"); // Amazon.fr
             marketplaceId.Add("APJ6JRA9NG5V4");  // Amazon.it
+            marketplaceId.Add("A302IUJ673AU08");  // Amazon.nl
             request.MarketplaceId = marketplaceId;
             List<string> fulfillmentChannel = new List<string>();
             fulfillmentChannel.Add("AFN");
@@ -346,8 +350,41 @@ namespace MarketplaceWebServiceOrders {
             request.NextToken = nextToken;
             return this.client.ListOrdersByNextToken(request);
         }
+                
+        public static async Task<decimal> CalculaDivisa(string monedaOrigen, string monedaDestino)
+        {
+            string apiKey = "4894|GMDw0jJ78NXw_GdVnEADMS*XuFQ11Cw9";
+            JObject obj;
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri("https://api.cambio.today/v1/quotes/");
+                HttpResponseMessage response;
 
-        // CAMBIO LIBRAS GBP A EUROS
+                try
+                {
+                    string urlConsulta = string.Format("{0}/{1}/json?quantity=1&key={2}",monedaOrigen, monedaDestino, apiKey);
+
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        obj = JObject.Parse(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido calcular el cambio del día");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            return Decimal.Parse(obj["result"]["amount"].ToString());
+        }
         // https://api.cambio.today/v1/quotes/GBP/EUR/json?quantity=1&key=4894|GMDw0jJ78NXw_GdVnEADMS*XuFQ11Cw9
 
     }
