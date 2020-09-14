@@ -146,7 +146,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Bootstrapper.vb" />
     <Compile Include="CloseTabAction.vb" />
     <Compile Include="Configuracion.vb" />
     <Compile Include="Informes\ImpresoUbicaciones_Inventario.vb">

@@ -17,7 +17,6 @@ Imports Nesto.Modules.Producto
 Imports Nesto.Modulos.Cliente
 Imports Prism.Regions
 Imports Unity
-Imports CommonServiceLocator
 
 Partial Public Class Application
     Inherits PrismApplication
