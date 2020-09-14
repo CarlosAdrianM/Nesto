@@ -2,32 +2,28 @@
 Imports System.Globalization
 Imports System.Net.Http
 Imports System.Text
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports Microsoft.Practices.Prism.Mvvm
-Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Unity
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
+Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Inventario.InventarioModel
 Imports Newtonsoft.Json
 
 Public Class InventarioViewModel
     Inherits ViewModelBase
-    'Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly configuracion As IConfiguracion
 
     Const EMPRESA_DEFECTO As String = "1"
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion)
-        'Me.container = container
         Me.regionManager = regionManager
         Me.configuracion = configuracion
 
         cmdAbrirInventario = New DelegateCommand(Of Object)(AddressOf OnAbrirInventario, AddressOf CanAbrirInventario)
         cmdActualizarLineaInventario = New DelegateCommand(Of Object)(AddressOf OnActualizarLineaInventario, AddressOf CanActualizarLineaInventario)
         cmdActualizarMovimientos = New DelegateCommand(Of Object)(AddressOf OnActualizarMovimientos, AddressOf CanActualizarMovimientos)
-        cmdCrearLineaInventario = New DelegateCommand(Of Object)(AddressOf OnCrearLineaInventario, AddressOf CanCrearLineaInventario)
+        cmdCrearLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnCrearLineaInventario, AddressOf CanCrearLineaInventario)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
 
         NotificationRequest = New InteractionRequest(Of INotification)
@@ -325,20 +321,20 @@ Public Class InventarioViewModel
                 .StockCalculado = 0,
                 .StockReal = cantidad
             }
-            Await cmdCrearLineaInventario.Execute(linea)
+            cmdCrearLineaInventario.Execute(linea) ' AWAIT
         Else
             linea.StockReal += cantidad
-            Await cmdActualizarLineaInventario.Execute(linea)
+            cmdActualizarLineaInventario.Execute(linea) ' AWAIT
         End If
         OnPropertyChanged("movimientosDia")
     End Sub
 
-    Private _cmdCrearLineaInventario As DelegateCommand(Of Object)
-    Public Property cmdCrearLineaInventario As DelegateCommand(Of Object)
+    Private _cmdCrearLineaInventario As DelegateCommand(Of InventarioDTO)
+    Public Property cmdCrearLineaInventario As DelegateCommand(Of InventarioDTO)
         Get
             Return _cmdCrearLineaInventario
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand(Of InventarioDTO))
             SetProperty(_cmdCrearLineaInventario, value)
         End Set
     End Property

@@ -17,7 +17,8 @@ Imports System.Runtime.InteropServices
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PedidoVenta
-Imports Microsoft.Practices.Unity
+Imports Prism.Ioc
+Imports Unity
 
 'Imports Nesto.Models.Nesto.Models.EF
 

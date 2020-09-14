@@ -1,20 +1,15 @@
-﻿using Microsoft.Practices.Prism.Commands;
-using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
-using Microsoft.Practices.Prism.PubSubEvents;
-using Microsoft.Practices.Prism.Regions;
+﻿using Prism.Commands;
+using Prism.Interactivity.InteractionRequest;
+using Prism.Events;
+using Prism.Regions;
 using Microsoft.VisualBasic;
 using Nesto.Contratos;
-using Nesto.Models;
 using Nesto.Models.Nesto.Models;
-using Nesto.Modulos.Cliente.Models;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using System.Windows.Markup;
 using Xceed.Wpf.Toolkit;
 
 namespace Nesto.Modulos.Cliente

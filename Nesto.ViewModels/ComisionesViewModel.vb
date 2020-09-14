@@ -1,17 +1,17 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Nesto.Models
 Imports System.ComponentModel
 Imports System.Windows
 Imports System.Globalization
-Imports Microsoft.Practices.Prism.Commands
+Imports Prism.Commands
 Imports Nesto.Modulos.PedidoVenta
-Imports Microsoft.Practices.Unity
 Imports System.Threading.Tasks
 Imports System.Net.Http
 Imports Nesto.Contratos
 Imports Newtonsoft.Json
 Imports System.Windows.Media
 Imports Nesto.Models.Nesto.Models
+Imports Prism.Ioc
+Imports Unity
 
 Public Class ComisionesViewModel
     Inherits Nesto.Contratos.ViewModelBase

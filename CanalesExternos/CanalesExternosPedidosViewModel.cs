@@ -1,19 +1,14 @@
-﻿using Microsoft.Practices.Prism.Commands;
-using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
-using Microsoft.Practices.Prism.Regions;
-using Microsoft.Practices.Unity;
+﻿using Prism.Commands;
+using Prism.Interactivity.InteractionRequest;
+using Prism.Regions;
 using Nesto.Contratos;
-using Nesto.Models;
-using Nesto.Modulos.PedidoVenta;
-using Nesto.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using static Nesto.Models.PedidoVenta;
+using Nesto.ViewModels;
+using Nesto.Modulos.PedidoVenta;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -38,7 +33,7 @@ namespace Nesto.Modulos.CanalesExternos
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
 
-            CrearComandosAsync();
+            CrearComandos();
 
             Titulo = "Canales Externos Pedidos";
             NotificationRequest = new InteractionRequest<INotification>();
@@ -247,7 +242,7 @@ namespace Nesto.Modulos.CanalesExternos
 
         #endregion
 
-        private async Task CrearComandosAsync()
+        private void CrearComandos()
         {
             CanalSeleccionadoHaCambiado += OnCanalSeleccionadoHaCambiadoAsync;
 

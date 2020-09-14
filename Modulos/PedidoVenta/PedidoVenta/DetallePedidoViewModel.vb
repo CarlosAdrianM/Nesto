@@ -2,10 +2,10 @@
 Imports System.IO
 Imports System.Net.Http
 Imports System.Runtime.InteropServices
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports Microsoft.Practices.Prism.PubSubEvents
-Imports Microsoft.Practices.Prism.Regions
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
+Imports Prism.Events
+Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
@@ -499,7 +499,7 @@ Public Class DetallePedidoViewModel
             End If
         End If
         If arg.Column.Header = "Aplicar Dto." Then
-            Await cmdActualizarTotales.Execute(Nothing)
+            cmdActualizarTotales.Execute(Nothing) ' Await 
         End If
     End Sub
 
@@ -774,4 +774,11 @@ Public Class DetallePedidoViewModel
         cmdCargarPedido.Execute(resumen)
     End Sub
 
+    Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
+
+    End Function
+
+    Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
+
+    End Sub
 End Class

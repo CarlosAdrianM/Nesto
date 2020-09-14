@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using FakeItEasy;
-using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
-using Microsoft.Practices.Prism.PubSubEvents;
-using Microsoft.Practices.Prism.Regions;
+using Prism.Interactivity.InteractionRequest;
+using Prism.Events;
+using Prism.Regions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Nesto.Contratos;

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Nesto.Modulos.Inventario"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
-        xmlns:prism="http://www.codeplex.com/prism"
+        xmlns:prism="http://prismlibrary.com/"
         xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d">

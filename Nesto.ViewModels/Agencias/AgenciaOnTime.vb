@@ -1,7 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Windows
 Imports System.Net
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
+Imports Prism.Interactivity.InteractionRequest
 Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks

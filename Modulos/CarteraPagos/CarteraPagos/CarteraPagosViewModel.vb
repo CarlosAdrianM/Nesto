@@ -1,8 +1,8 @@
 ﻿Imports System.Collections.Specialized
 Imports System.IO
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports Microsoft.Practices.Prism.Regions
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
+Imports Prism.Regions
 Imports Nesto.Contratos
 
 Public Class CarteraPagosViewModel

@@ -1,5 +1,5 @@
-﻿using Microsoft.Practices.Prism.Commands;
-using Microsoft.Practices.Prism.Regions;
+﻿using Prism.Commands;
+using Prism.Regions;
 using Nesto.Contratos;
 using System.Windows.Input;
 

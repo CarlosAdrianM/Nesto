@@ -1,22 +1,19 @@
-﻿Imports Microsoft.Practices.Unity
-Imports Microsoft.Practices.Prism.Regions
+﻿Imports Prism.Regions
 Imports Nesto.Contratos
 Imports System.Deployment.Application
 
 Class MainWindow
     Implements IMainWindow
 
-    Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly tituloVentana As String
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager)
+    Public Sub New(regionManager As IRegionManager)
 
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
 
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-        Me.container = container
         Me.regionManager = regionManager
         'Me.DataContext = New MainViewModel(container, regionManager)
         Try

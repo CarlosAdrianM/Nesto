@@ -6,8 +6,7 @@ Imports System.Net.Http
 Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Windows
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports Nesto.Models
+Imports Prism.Interactivity.InteractionRequest
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Serialization

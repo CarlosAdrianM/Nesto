@@ -1,7 +1,7 @@
-﻿using Microsoft.Practices.Prism.Commands;
-using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
-using Microsoft.Practices.Prism.PubSubEvents;
-using Microsoft.Practices.Prism.Regions;
+﻿using Prism.Commands;
+using Prism.Interactivity.InteractionRequest;
+using Prism.Events;
+using Prism.Regions;
 using Nesto.Contratos;
 using Nesto.Modules.Producto;
 using System;

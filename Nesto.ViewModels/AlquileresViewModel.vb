@@ -1,15 +1,11 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Nesto.Models
-Imports System.Data.Metadata.Edm
-Imports System.Data.Objects
 Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Input
 Imports System.Windows.Controls
-
-Imports Microsoft.Practices.Prism.Mvvm
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
+Imports Prism.Mvvm
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
 Imports Nesto.Models.Nesto.Models
 
 Public Class AlquileresViewModel

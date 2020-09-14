@@ -1,11 +1,9 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Unity
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
+Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
-Imports Nesto.ViewModels
 
 Public Class ListaRapportsViewModel
     Inherits Contratos.ViewModelBase

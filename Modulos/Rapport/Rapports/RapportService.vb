@@ -2,9 +2,7 @@
 Imports System.Net.Http
 Imports System.Text
 Imports Microsoft.Office.Interop
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
 Imports Nesto.Contratos
-Imports Nesto.Modulos.Rapports
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Newtonsoft.Json
 

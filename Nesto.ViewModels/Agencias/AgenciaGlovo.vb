@@ -1,9 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Nesto.Models
 Imports System.Windows
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports System.Transactions
-Imports Nesto.Contratos
+Imports Prism.Interactivity.InteractionRequest
 Imports Nesto.Models.Nesto.Models
 Imports System.Threading.Tasks
 

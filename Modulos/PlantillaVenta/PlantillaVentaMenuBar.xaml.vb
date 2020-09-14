@@ -1,6 +1,4 @@
-﻿Imports Microsoft.Practices.Prism.Regions
-
-Class PlantillaVentaMenuBar
+﻿Class PlantillaVentaMenuBar
 
     Public Sub New()
         ' Llamada necesaria para el diseñador.

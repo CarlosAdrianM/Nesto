@@ -1,5 +1,4 @@
-﻿Imports Microsoft.Practices.Prism.Mvvm
-Imports Nesto.Models
+﻿Imports Prism.Mvvm
 Imports Nesto.Models.Nesto.Models
 
 Public Class EnvioAgenciaWrapper

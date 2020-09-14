@@ -1,13 +1,11 @@
 ﻿Imports Nesto.ViewModels
-Imports Microsoft.Practices.Prism.Regions
+Imports Prism.Regions
 Imports FakeItEasy
-Imports Microsoft.Practices.Unity
 Imports System.Windows.Controls
-Imports Nesto.Models
-Imports System.ComponentModel
 Imports Nesto.Contratos
 Imports System.Collections.ObjectModel
 Imports Nesto.Models.Nesto.Models
+Imports Prism.Ioc
 
 <TestClass()>
 Public Class AgenciaViewModelTests
@@ -17,7 +15,7 @@ Public Class AgenciaViewModelTests
     '''Obtiene o establece el contexto de las pruebas que proporciona
     '''información y funcionalidad para la serie de pruebas actual.
     '''</summary>
-    Private container As IUnityContainer
+    Private container As IContainerProvider
     Private regionManager As IRegionManager
     Private servicio As IAgenciaService
     Private configuracion As IConfiguracion
@@ -46,7 +44,7 @@ Public Class AgenciaViewModelTests
     <TestInitialize()>
     Public Sub Initialize()
         configuracion = A.Fake(Of IConfiguracion)
-        container = A.Fake(Of IUnityContainer)
+        container = A.Fake(Of IContainerProvider)
         regionManager = A.Fake(Of RegionManager)
         servicio = A.Fake(Of IAgenciaService)
         viewModel = Nothing
@@ -475,7 +473,7 @@ Public Class AgenciaViewModelTests
         Dim handler = A.Fake(Of EventHandler)
         AddHandler viewModel.InsertarEnvioPendienteCommand.CanExecuteChanged, handler
 
-        viewModel.BorrarEnvioPendienteCommand.Execute()
+        viewModel.InsertarEnvioPendienteCommand.Execute()
 
         A.CallTo(Sub() handler.Invoke(A(Of Object).Ignored, A(Of EventArgs).Ignored)).MustHaveHappenedOnceExactly()
     End Sub
@@ -505,7 +503,26 @@ Public Class AgenciaViewModelTests
     ' al imprimir etiqueta busca si hay etiqueta pendiente antes de crear una nueva
 
     <TestMethod>
-    Public Sub AgenciaViewModel_SiHayBorrarEnvioPendienteNoQuedanMas_EnvioPendienteSeleccionadoTieneQueSerNulo()
+    Public Sub AgenciaViewModel_SiAlBorrarEnvioPendienteNoQuedanMas_EnvioPendienteSeleccionadoTieneQueSerNulo()
+        'arrange
+        Dim agencia = New AgenciasTransporte With {
+            .Empresa = "1  ",
+            .Numero = 2,
+            .Ruta = "XXX"
+        }
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1  "
+        Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
+            empresa
+        }
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
+        Dim pedido = New CabPedidoVta With {
+            .Empresa = "1  ",
+            .Número = 1,
+            .Clientes = New Clientes()
+        }
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion)
         viewModel.cmdCargarDatos.Execute()
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PENDIENTES}

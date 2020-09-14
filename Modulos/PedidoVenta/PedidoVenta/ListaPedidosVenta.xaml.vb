@@ -1,4 +1,4 @@
-﻿Imports Microsoft.Practices.Prism.Regions
+﻿Imports Prism.Regions
 
 Public Class ListaPedidosVenta
     Public Sub New(viewModel As ListaPedidosVentaViewModel)

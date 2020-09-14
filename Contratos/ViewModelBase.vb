@@ -1,5 +1,5 @@
-﻿Imports Microsoft.Practices.Prism.Mvvm
-Imports Microsoft.Practices.Prism.Regions
+﻿Imports Prism.Mvvm
+Imports Prism.Regions
 
 Public Class ViewModelBase
     Inherits BindableBase

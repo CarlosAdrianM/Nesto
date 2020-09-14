@@ -1,30 +1,26 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports Microsoft.Practices.Prism.PubSubEvents
-Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Unity
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
+Imports Prism.Events
+Imports Prism.Regions
 Imports Nesto.Contratos
-Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Prism.Ioc
+Imports Unity
 
 Public Class ListaPedidosVentaViewModel
     Inherits ViewModelBase
 
 
     Public Property configuracion As IConfiguracion
-    Private ReadOnly container As IUnityContainer
     Private ReadOnly servicio As IPedidoVentaService
-    Private ReadOnly eventAggregator As IEventAggregator
 
     Private vendedor As String
     Private verTodosLosVendedores As Boolean = False
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer, eventAggregator As IEventAggregator)
+    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator)
         Me.configuracion = configuracion
         Me.servicio = servicio
-        Me.container = container
-        Me.eventAggregator = eventAggregator
 
         cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
 
@@ -160,7 +156,8 @@ Public Class ListaPedidosVentaViewModel
         Set(value As Boolean)
             If value <> _mostrarPresupuestos Then
                 SetProperty(_mostrarPresupuestos, value)
-                Task.Run(Function() cmdCargarListaPedidos.Execute(Nothing))
+                'Task.Run(Function() cmdCargarListaPedidos.Execute(Nothing))
+                cmdCargarListaPedidos.Execute(Nothing)
             End If
         End Set
     End Property

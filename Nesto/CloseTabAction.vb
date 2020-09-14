@@ -1,5 +1,5 @@
 ﻿Imports System.Windows.Interactivity
-Imports Microsoft.Practices.Prism.Regions
+Imports Prism.Regions
 
 Public Class CloseTabAction
     Inherits TriggerAction(Of Button)

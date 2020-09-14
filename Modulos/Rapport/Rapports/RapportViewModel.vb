@@ -1,8 +1,8 @@
 ﻿Imports ControlesUsuario.Models
 Imports Microsoft.Office.Interop
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports Microsoft.Practices.Prism.Regions
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
+Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO

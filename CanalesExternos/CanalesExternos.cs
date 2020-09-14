@@ -1,34 +1,30 @@
-﻿using Microsoft.Practices.Prism.Modularity;
-using Microsoft.Practices.Prism.Regions;
-using Microsoft.Practices.Unity;
+﻿using Prism.Modularity;
+using Prism.Regions;
 using Nesto.Contratos;
 using Prism.RibbonRegionAdapter;
+using Prism.Ioc;
 
 namespace Nesto.Modulos.CanalesExternos
 {
     public class CanalesExternos : IModule, ICanalesExternos
-    {
-        private IUnityContainer Container { get; }
-
-        public CanalesExternos(IUnityContainer container)
+    {        
+        public void OnInitialized(IContainerProvider containerProvider)
         {
-            this.Container = container;
-
-        }
-        public void Initialize()
-        {
-            Container.RegisterType<object, CanalesExternosPedidosView>("CanalesExternosPedidosView");
-            Container.RegisterType<object, CanalesExternosPagosView>("CanalesExternosPagosView");
-
-            var view = Container.Resolve<CanalesExternosMenuBar>();
+            var view = containerProvider.Resolve<CanalesExternosMenuBar>();
             if (view != null)
             {
-                var regionAdapter = Container.Resolve<RibbonRegionAdapter>();
-                var mainWindow = Container.Resolve<IMainWindow>();
+                var regionAdapter = containerProvider.Resolve<RibbonRegionAdapter>();
+                var mainWindow = containerProvider.Resolve<IMainWindow>();
                 var region = regionAdapter.Initialize(mainWindow.mainRibbon, "CanalesExternos");
 
                 region.Add(view, "MenuBar");
             }
+        }
+
+        public void RegisterTypes(IContainerRegistry containerRegistry)
+        {
+            containerRegistry.Register<object, CanalesExternosPedidosView>("CanalesExternosPedidosView");
+            containerRegistry.Register<object, CanalesExternosPagosView>("CanalesExternosPagosView");
         }
     }
 }

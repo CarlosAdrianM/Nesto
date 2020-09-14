@@ -1,12 +1,13 @@
 ﻿Imports System.Net.Http
 Imports System.Text
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Unity
+Imports Prism.Commands
+Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
+Imports Prism.Ioc
+Imports Unity
 
 Public Class PedidoVentaViewModel
     Inherits ViewModelBase

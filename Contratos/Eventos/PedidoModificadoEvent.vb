@@ -1,4 +1,4 @@
-﻿Imports Microsoft.Practices.Prism.PubSubEvents
+﻿Imports Prism.Events
 Imports Nesto.Models.PedidoVenta
 
 Public Class PedidoModificadoEvent

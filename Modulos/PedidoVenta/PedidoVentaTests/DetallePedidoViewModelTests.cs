@@ -1,13 +1,11 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FakeItEasy;
 using Nesto.Modulos.PedidoVenta;
 using static Nesto.Models.PedidoVenta;
-using Microsoft.Practices.Prism.Regions;
+using Prism.Regions;
 using Nesto.Contratos;
 using System.ComponentModel;
-using System.Windows.Controls;
-using Microsoft.Practices.Prism.PubSubEvents;
+using Prism.Events;
 
 namespace PedidoVentaTests
 {

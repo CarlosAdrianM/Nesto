@@ -1,18 +1,18 @@
 ﻿Imports System.ComponentModel
 Imports Nesto.Models.MainModel
-Imports Nesto.Models
 Imports System.Windows.Input
 Imports System.Windows.Controls
 Imports System.Windows
 Imports System.Windows.Data
 Imports System.Windows.Media.Imaging
-Imports Microsoft.Practices.Unity
-Imports Microsoft.Practices.Prism.Mvvm
-Imports Microsoft.Practices.Prism.Regions
+Imports Prism.Mvvm
+Imports Prism.Regions
 Imports System.Net.Http
 Imports System.Threading.Tasks
 Imports Newtonsoft.Json
 Imports Nesto.Contratos
+Imports Prism.Ioc
+Imports Unity
 
 Public Class ViewModelBase
     Implements INotifyPropertyChanged

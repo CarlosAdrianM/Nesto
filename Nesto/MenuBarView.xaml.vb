@@ -2,60 +2,35 @@
 Imports CrystalDecisions.Shared
 Imports System.Data
 Imports Nesto.ViewModels
-Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Prism.Modularity
+Imports Prism.Regions
+Imports Prism.Modularity
 Imports Prism.RibbonRegionAdapter
 Imports Nesto.Contratos
-Imports Microsoft.Practices.Unity
+Imports Prism.Ioc
+Imports Prism.Unity
+Imports Unity
 
 <[Module](ModuleName:="MenuBarView")>
 Public Class MenuBarView
     Implements IModule, IMenuBar
-    Private ReadOnly container As IUnityContainer
-    Private ReadOnly regionManager As IRegionManager
-    Private ReadOnly configuracion As IConfiguracion
+    Private container As IUnityContainer
+    Private regionManager As IRegionManager
+    Private configuracion As IConfiguracion
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion)
-
-
-        ' Llamada necesaria para el diseñador.
-        InitializeComponent()
-
-        ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-        Me.container = container
-        Me.regionManager = regionManager
-        Me.configuracion = configuracion
-        Me.DataContext = New MainViewModel(container, regionManager)
-        DataContext.Titulo = "Sin Título"
-
-    End Sub
-
-    Public Sub Initialize() Implements IModule.Initialize
-        'container.RegisterType(Of Object, frmCRInforme)("frmCRInforme")
+    'Public Sub New(regionManager As IRegionManager, container As IContainerProvider, configuracion As IConfiguracion)
 
 
-        'regionManager.RegisterViewWithRegion("MainMenu", Function() Me.container.Resolve(Of MenuBarView)())
-        'regionManager.AddToRegion("MainMenu", Me)
-        'regionManager.RequestNavigate("MainMenu", New Uri("MenuBarView", UriKind.Relative))
+    '    ' Llamada necesaria para el diseñador.
+    '    InitializeComponent()
 
-        'Dim mainMenuRegion As IRegion = regionManager.Regions("MainMenu")
-        'AddHandler regionManager.Regions("MainMenu").Views.CollectionChanged, AddressOf OnColeccionCambiada
-        'mainMenuRegion.Add(Me, "MenuBar")
+    '    ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
+    '    Me.container = container
+    '    Me.regionManager = regionManager
+    '    Me.configuracion = configuracion
+    '    Me.DataContext = New MainViewModel(container, regionManager)
+    '    DataContext.Titulo = "Sin Título"
 
-
-
-        Dim view = Me
-        If Not IsNothing(view) Then
-
-            'Dim regionAdapter = New RibbonRegionAdapter(Me.container.Resolve(GetType(RegionBehaviorFactory)))
-            Dim regionAdapter = Me.container.Resolve(Of RibbonRegionAdapter)()
-            Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
-            Dim region = regionAdapter.Initialize(mainWindow.mainRibbon, "NewMainMenu")
-            region.Add(view, "MenuBar")
-        End If
-
-    End Sub
-
+    'End Sub
 
     Private Sub Button1_Click(sender As System.Object, e As RoutedEventArgs) Handles btnInforme.Click
         'Dim w2 As New frmInforme
@@ -687,4 +662,26 @@ Public Class MenuBarView
 
     End Sub
 
+    Public Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
+
+    End Sub
+
+    Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized
+        Me.container = containerProvider.GetContainer()
+        Me.regionManager = container.Resolve(Of IRegionManager)
+        Me.configuracion = container.Resolve(Of Configuracion)
+        Me.DataContext = New MainViewModel(container, regionManager)
+        DataContext.Titulo = "Sin Título"
+
+
+        Dim view = Me
+        If Not IsNothing(view) Then
+
+            'Dim regionAdapter = New RibbonRegionAdapter(Me.container.Resolve(GetType(RegionBehaviorFactory)))
+            Dim regionAdapter = containerProvider.Resolve(Of RibbonRegionAdapter)()
+            Dim mainWindow = containerProvider.Resolve(Of IMainWindow)()
+            Dim region = regionAdapter.Initialize(mainWindow.mainRibbon, "NewMainMenu")
+            region.Add(view, "MenuBar")
+        End If
+    End Sub
 End Class

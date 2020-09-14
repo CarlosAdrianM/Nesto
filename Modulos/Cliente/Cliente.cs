@@ -1,30 +1,24 @@
-﻿using Microsoft.Practices.Prism.Modularity;
-using Microsoft.Practices.Prism.Regions;
-using Microsoft.Practices.Unity;
+﻿using Prism.Modularity;
 using Nesto.Contratos;
 using Prism.RibbonRegionAdapter;
+using Prism.Ioc;
 
 namespace Nesto.Modulos.Cliente
 {
     public class Cliente : IModule, ICliente
     {
-        private IUnityContainer Container { get; }
-        private IRegionManager RegionManager { get; }
-        public Cliente(IUnityContainer container, IRegionManager regionManager, CrearClienteViewModel viewModel)
+        public void RegisterTypes(IContainerRegistry containerRegistry)
         {
-            this.Container = container;
-            this.RegionManager = regionManager;
-
+            containerRegistry.Register<object, CrearClienteView>("CrearClienteView");
         }
-        public void Initialize()
-        {
-            Container.RegisterType<object, CrearClienteView>("CrearClienteView");
 
-            var view = Container.Resolve<ClienteMenuBar>();
+        public void OnInitialized(IContainerProvider containerProvider)
+        {
+            var view = containerProvider.Resolve<ClienteMenuBar>();
             if (view != null)
             {
-                var regionAdapter = Container.Resolve<RibbonRegionAdapter>();
-                var mainWindow = Container.Resolve<IMainWindow>();
+                var regionAdapter = containerProvider.Resolve<RibbonRegionAdapter>();
+                var mainWindow = containerProvider.Resolve<IMainWindow>();
                 var region = regionAdapter.Initialize(mainWindow.mainRibbon, "Cliente");
 
                 region.Add(view, "MenuBar");

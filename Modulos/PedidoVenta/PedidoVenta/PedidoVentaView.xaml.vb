@@ -1,7 +1,7 @@
-﻿Imports System.Globalization
-Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Unity
+﻿Imports Prism.Regions
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Prism.Ioc
+Imports Unity
 
 Public Class PedidoVentaView
     Private ReadOnly container As IUnityContainer
@@ -19,7 +19,7 @@ Public Class PedidoVentaView
 
     Private Async Sub PedidoVentaView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         If Not cargado Then
-            Dim view As ListaPedidosVenta = Me.container.Resolve(Of ListaPedidosVenta)
+            Dim view As ListaPedidosVenta = container.Resolve(Of ListaPedidosVenta)
             view.cambiarRegionManager(scopedRegionManager)
             Dim region As IRegion = scopedRegionManager.Regions("ListaPedidosRegion")
             region.Add(view, "ListaPedidosVenta")

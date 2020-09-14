@@ -1,8 +1,4 @@
-﻿Imports Microsoft.Practices.Unity
-Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
-Imports System.Net.Http
+﻿Imports System.Net.Http
 Imports System.Collections.ObjectModel
 Imports Newtonsoft.Json
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
@@ -12,10 +8,14 @@ Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json.Linq
-Imports Nesto.Modulos.PlantillaVenta
 Imports Xceed.Wpf.Toolkit
-Imports Microsoft.Practices.Prism.PubSubEvents
+Imports Prism.Events
 Imports Nesto.Models.Nesto.Models
+Imports Prism.Ioc
+Imports Prism.Regions
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
+Imports Unity
 
 Public Class PlantillaVentaViewModel
     Inherits ViewModelBase

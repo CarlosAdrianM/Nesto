@@ -1,18 +1,14 @@
 ﻿using Claytondus.AmazonMWS.Finances;
-using Claytondus.AmazonMWS.Finances.Model;
-using Microsoft.Practices.Prism.Commands;
-using Microsoft.Practices.Prism.Interactivity.InteractionRequest;
-using Microsoft.Practices.Prism.Regions;
+using Prism.Commands;
+using Prism.Interactivity.InteractionRequest;
+using Prism.Regions;
 using Microsoft.VisualBasic;
 using Nesto.Contratos;
 using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.CanalesExternos.Models;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 using System.Windows.Input;
@@ -41,8 +37,6 @@ namespace Nesto.Modulos.CanalesExternos
 
             NotificationRequest = new InteractionRequest<INotification>();
             ConfirmationRequest = new InteractionRequest<IConfirmation>();
-
-            //CargarPedidosCommand.Execute(null); // ponerlo en el Loaded
         }
 
         #region "Propiedades Prism"
@@ -94,6 +88,10 @@ namespace Nesto.Modulos.CanalesExternos
         public ICommand CargarDetallePagoCommand { get; private set; }
         private async void OnCargarDetallePago()
         {
+            if (PagoSeleccionado == null)
+            {
+                return;
+            }
             try
             {
                 EstaOcupado = true;

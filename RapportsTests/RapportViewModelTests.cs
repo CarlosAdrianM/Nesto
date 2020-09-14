@@ -1,11 +1,4 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Microsoft.Practices.Prism.Regions;
-using FakeItEasy;
-using Nesto.Modulos.Rapports;
-using Nesto.Contratos;
-using static Nesto.Modulos.Rapports.RapportsModel;
-
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace RapportsTests
 {
     [TestClass]

@@ -1,12 +1,4 @@
-﻿using FakeItEasy;
-using Microsoft.Practices.Prism.Regions;
-using Microsoft.Practices.Unity;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Nesto.Contratos;
-using Nesto.Models;
-using Nesto.Modulos.PlantillaVenta;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace PlantillaVentaTests
 {

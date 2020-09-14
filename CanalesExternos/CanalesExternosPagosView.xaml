@@ -5,7 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Nesto.Modulos.CanalesExternos"
              xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity" 
-             xmlns:prism="http://www.codeplex.com/prism" xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:prism="http://prismlibrary.com/" 
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800" Language="es-ES">
     
@@ -58,7 +59,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <DataGrid Grid.Column="1" Grid.Row="0" ItemsSource="{Binding PagoSeleccionado.DetallesPago}" AutoGenerateColumns="False">
+                <DataGrid Grid.Column="1" Grid.Row="0" ItemsSource="{Binding PagoSeleccionado.DetallesPago}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Pedido" Binding="{Binding ExternalId}"/>
                         <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}">

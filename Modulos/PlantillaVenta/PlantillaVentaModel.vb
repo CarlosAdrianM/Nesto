@@ -1,4 +1,4 @@
-﻿Imports Microsoft.Practices.Prism.Mvvm
+﻿Imports Prism.Mvvm
 Imports Newtonsoft.Json
 
 Public Class PlantillaVentaModel

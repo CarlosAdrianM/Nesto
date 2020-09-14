@@ -1,4 +1,4 @@
-﻿Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
+﻿Imports Prism.Interactivity.InteractionRequest
 
 Partial Public Class Notificacion
     Implements IInteractionRequestAware

@@ -1,4 +1,4 @@
-﻿Imports Microsoft.Practices.Prism.PubSubEvents
+﻿Imports Prism.Events
 
 Public Class SacarPickingEvent
     Inherits PubSubEvent(Of Integer)

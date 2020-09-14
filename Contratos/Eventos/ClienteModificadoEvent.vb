@@ -1,6 +1,5 @@
-﻿Imports Microsoft.Practices.Prism.PubSubEvents
-Imports Nesto.Models
-Imports Nesto.Models.Nesto.Models
+﻿Imports Nesto.Models.Nesto.Models
+Imports Prism.Events
 
 Public Class ClienteModificadoEvent
     Inherits PubSubEvent(Of Clientes)

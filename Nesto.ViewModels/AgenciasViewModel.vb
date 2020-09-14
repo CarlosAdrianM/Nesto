@@ -4,18 +4,15 @@ Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Controls
 Imports System.Data.Entity.Core.Objects
-Imports Microsoft.Practices.Prism.Mvvm
-Imports Microsoft.Practices.Prism.Commands
-Imports Microsoft.Practices.Prism.Interactivity.InteractionRequest
+Imports Prism.Mvvm
+Imports Prism.Commands
+Imports Prism.Interactivity.InteractionRequest
 Imports Microsoft.Win32
-Imports Microsoft.Practices.Prism.Regions
-Imports Microsoft.Practices.Unity
+Imports Prism.Regions
 Imports System.Transactions
 Imports System.Threading.Tasks
 Imports Nesto.Contratos
-Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
-Imports Newtonsoft.Json
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -1907,7 +1904,12 @@ Public Class AgenciasViewModel
 
         servicio.Borrar(envioBorrar.Numero)
         listaPendientes.Remove(envioBorrar)
-        ActualizarEstadoComandos()
+        If Not listaPendientes.Any Then
+            EnvioPendienteSeleccionado = Nothing
+        Else
+            ActualizarEstadoComandos()
+        End If
+
     End Sub
 
     Public Property InsertarEnvioPendienteCommand() As DelegateCommand
