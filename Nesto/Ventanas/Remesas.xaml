@@ -3,11 +3,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:Nesto.Views"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True"
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
-    <UserControl.DataContext>
-        <vm:RemesasViewModel/>
-    </UserControl.DataContext>
 
     <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Espere, por favor...">
         <Grid>

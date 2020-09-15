@@ -149,6 +149,7 @@
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                                        <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" />
                                         <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
                                         <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="4*"/>
                                         <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">

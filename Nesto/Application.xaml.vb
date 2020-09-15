@@ -17,6 +17,7 @@ Imports Nesto.Modules.Producto
 Imports Nesto.Modulos.Cliente
 Imports Prism.Regions
 Imports Unity
+Imports Prism.Mvvm
 
 Partial Public Class Application
     Inherits PrismApplication
@@ -96,5 +97,10 @@ Partial Public Class Application
         'regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), resultado)
 
         regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), Me.Container.Resolve(Of Prism.RibbonRegionAdapter.RibbonRegionAdapter)())
+    End Sub
+
+    Protected Overrides Sub ConfigureViewModelLocator()
+        MyBase.ConfigureViewModelLocator()
+        ViewModelLocationProvider.Register(GetType(Remesas).ToString, GetType(RemesasViewModel))
     End Sub
 End Class
