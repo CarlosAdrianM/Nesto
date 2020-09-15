@@ -119,8 +119,8 @@ Public Class AgenciasViewModel
             Return Me.resultMessage
         End Get
         Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
+            resultMessage = value
+            RaisePropertyChanged(NameOf(InteractionResultMessage))
         End Set
     End Property
 
@@ -253,14 +253,14 @@ Public Class AgenciasViewModel
                         listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, value.Numero, fechaFiltro)
                     End If
 
-                    OnPropertyChanged("") ' para que actualice todos los enlaces
+                    RaisePropertyChanged("") ' para que actualice todos los enlaces
                 End If
             Catch ex As Exception
                 NotificationRequest.Raise(New Notification() With {
                     .Title = "Error",
                     .Content = "No se encuentra la implementación de la agencia " + value.Nombre
                 })
-                OnPropertyChanged("agenciaSeleccionada")
+                RaisePropertyChanged(NameOf(agenciaSeleccionada))
             End Try
 
         End Set
@@ -315,9 +315,9 @@ Public Class AgenciasViewModel
                 End If
                 listaReembolsosSeleccionados = New ObservableCollection(Of EnviosAgencia)
 
-                OnPropertyChanged("sumaContabilidad")
-                OnPropertyChanged("descuadreContabilidad")
-                OnPropertyChanged("etiquetaBultosTramitados")
+                RaisePropertyChanged(NameOf(sumaContabilidad))
+                RaisePropertyChanged(NameOf(descuadreContabilidad))
+                RaisePropertyChanged(NameOf(etiquetaBultosTramitados))
                 'actualizar lista de pedidos o de envíos, dependiendo de la pestaña que esté seleccionada
                 'una vez actualizadas, seleccionar el pedido o el envío actual también
             Catch ex As Exception
@@ -399,7 +399,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
             SetProperty(_listaTiposRetorno, value)
-            OnPropertyChanged("retornoModificar")
+            RaisePropertyChanged(NameOf(retornoModificar))
         End Set
     End Property
 
@@ -673,9 +673,9 @@ Public Class AgenciasViewModel
                     cmdRehusarEnvio.RaiseCanExecuteChanged()
                 End If
 
-                OnPropertyChanged("sePuedeModificarReembolso")
-                OnPropertyChanged("sePuedeModificarEstado")
-                OnPropertyChanged("agenciaSeleccionada")
+                RaisePropertyChanged(NameOf(sePuedeModificarReembolso))
+                RaisePropertyChanged(NameOf(sePuedeModificarEstado))
+                RaisePropertyChanged(NameOf(agenciaSeleccionada))
             Catch ex As Exception
                 Return
             End Try
@@ -695,7 +695,7 @@ Public Class AgenciasViewModel
                 agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = value.Agencia)
             End If
             SetProperty(_envioPendienteSeleccionado, value)
-            OnPropertyChanged(NameOf(HayUnEnvioPendienteSeleccionado))
+            RaisePropertyChanged(NameOf(HayUnEnvioPendienteSeleccionado))
             ActualizarEstadoComandos()
         End Set
     End Property
@@ -803,8 +803,8 @@ Public Class AgenciasViewModel
             End If
 
             'Dim agenciaNueva As AgenciasTransporte = (From a In DbContext.AgenciasTransporte Where a.Ruta = pedidoSeleccionado.Ruta).FirstOrDefault
-            OnPropertyChanged("empresaSeleccionada")
-            OnPropertyChanged("agenciaSeleccionada")
+            RaisePropertyChanged(NameOf(empresaSeleccionada))
+            RaisePropertyChanged(NameOf(agenciaSeleccionada))
         End Set
     End Property
 
@@ -925,9 +925,9 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaEnviosTramitados, value)
-            OnPropertyChanged("sePuedeModificarReembolso")
-            OnPropertyChanged("sePuedeModificarEstado")
-            OnPropertyChanged("etiquetaBultosTramitados")
+            RaisePropertyChanged(NameOf(sePuedeModificarReembolso))
+            RaisePropertyChanged(NameOf(sePuedeModificarEstado))
+            RaisePropertyChanged(NameOf(etiquetaBultosTramitados))
         End Set
     End Property
 
@@ -988,8 +988,8 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaReembolsos, value)
-            OnPropertyChanged("sumaReembolsos")
-            OnPropertyChanged("descuadreContabilidad")
+            RaisePropertyChanged(NameOf(sumaReembolsos))
+            RaisePropertyChanged(NameOf(descuadreContabilidad))
         End Set
     End Property
 
@@ -1000,7 +1000,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
             SetProperty(_listaReembolsosSeleccionados, value)
-            OnPropertyChanged("sumaSeleccionadas")
+            RaisePropertyChanged(NameOf(sumaSeleccionadas))
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -1092,7 +1092,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As digitalizacion)
             SetProperty(_digitalizacionActual, value)
-            OnPropertyChanged("cmdDescargarImagen")
+            RaisePropertyChanged(NameOf(cmdDescargarImagen))
             If Not IsNothing(cmdDescargarImagen) Then
                 cmdDescargarImagen.RaiseCanExecuteChanged()
             End If
@@ -1106,7 +1106,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Double)
             SetProperty(_reembolsoModificar, value)
-            OnPropertyChanged("envioActual")
+            RaisePropertyChanged(NameOf(envioActual))
         End Set
     End Property
 
@@ -1117,7 +1117,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As tipoIdDescripcion)
             SetProperty(_retornoModificar, value)
-            OnPropertyChanged("envioActual")
+            RaisePropertyChanged(NameOf(envioActual))
         End Set
     End Property
 
@@ -1128,7 +1128,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As Integer)
             SetProperty(_estadoModificar, value)
-            OnPropertyChanged("envioActual")
+            RaisePropertyChanged(NameOf(envioActual))
         End Set
     End Property
 
@@ -1171,7 +1171,7 @@ Public Class AgenciasViewModel
         End Get
         Set(value As ObservableCollection(Of EnviosHistoria))
             SetProperty(_listaHistoriaEnvio, value)
-            OnPropertyChanged("mostrarHistoria")
+            RaisePropertyChanged(NameOf(mostrarHistoria))
         End Set
     End Property
 
@@ -1265,7 +1265,7 @@ Public Class AgenciasViewModel
         End If
         Try
             Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioActual, servicio)
-            If respuesta = "OK" OrElse respuesta.StartsWith("ENVIO DUPLICADO") Then
+            If respuesta = "OK" OrElse agenciaEspecifica.RespuestaYaTramitada(respuesta) Then
                 mensajeError = servicio.TramitarEnvio(envioActual)
                 listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
                 envioActual = listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
@@ -1275,8 +1275,8 @@ Public Class AgenciasViewModel
         Catch ex As Exception
             mensajeError = ex.Message
         End Try
-        OnPropertyChanged("listaReembolsos")
-        OnPropertyChanged("mensajeError")
+        RaisePropertyChanged(NameOf(listaReembolsos))
+        RaisePropertyChanged(NameOf(mensajeError))
     End Sub
 
     Private _cmdTramitarTodos As ICommand
@@ -1354,7 +1354,7 @@ Public Class AgenciasViewModel
         listaEnviosPedido.Remove(copiaEnvio)
         listaEnvios.Remove(copiaEnvio)
         envioActual = listaEnvios.LastOrDefault
-        OnPropertyChanged("listaEnvios")
+        RaisePropertyChanged(NameOf(listaEnvios))
     End Sub
 
     Private _cmdInsertar As DelegateCommand(Of Object)
@@ -1507,8 +1507,8 @@ Public Class AgenciasViewModel
         If Not IsNothing(lineaReembolsoSeleccionado) Then
             listaReembolsosSeleccionados.Add(lineaReembolsoSeleccionado)
             listaReembolsos.Remove(lineaReembolsoSeleccionado)
-            OnPropertyChanged("sumaSeleccionadas")
-            OnPropertyChanged("sumaReembolsos")
+            RaisePropertyChanged(NameOf(sumaSeleccionadas))
+            RaisePropertyChanged(NameOf(sumaReembolsos))
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
         Else
             mensajeError = "No hay ninguna línea seleccionada"
@@ -1531,8 +1531,8 @@ Public Class AgenciasViewModel
         If Not IsNothing(lineaReembolsoContabilizar) Then
             listaReembolsos.Add(lineaReembolsoContabilizar)
             listaReembolsosSeleccionados.Remove(lineaReembolsoContabilizar)
-            OnPropertyChanged("sumaSeleccionadas")
-            OnPropertyChanged("sumaReembolsos")
+            RaisePropertyChanged(NameOf(sumaSeleccionadas))
+            RaisePropertyChanged(NameOf(sumaReembolsos))
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
         Else
             mensajeError = "No hay ninguna línea seleccionada"
@@ -1648,9 +1648,9 @@ Public Class AgenciasViewModel
                         Next
                         'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                         If DbContext.SaveChanges() Then
-                            OnPropertyChanged("sumaContabilidad")
-                            OnPropertyChanged("descuadreContabilidad")
-                            OnPropertyChanged("sumaReembolsos")
+                            RaisePropertyChanged(NameOf(sumaContabilidad))
+                            RaisePropertyChanged(NameOf(descuadreContabilidad))
+                            RaisePropertyChanged(NameOf(sumaReembolsos))
 
                             transaction.Complete()
                             success = True ' Marcamos correctas las transacciones
@@ -2466,7 +2466,7 @@ Public Class AgenciasViewModel
                     ' Reset the context since the operation succeeded. 
                     DbContext.SaveChanges()
                     envio = envioEncontrado
-                    OnPropertyChanged("listaEnviosTramitados")
+                    RaisePropertyChanged(NameOf(listaEnviosTramitados))
                 Else
                     NotificationRequest.Raise(New Notification() With {
                      .Title = "¡Error!",
@@ -2651,7 +2651,7 @@ Public Class AgenciasViewModel
         InsertarEnvioPendienteCommand.RaiseCanExecuteChanged()
         BorrarEnvioPendienteCommand.RaiseCanExecuteChanged()
         GuardarEnvioPendienteCommand.RaiseCanExecuteChanged()
-        OnPropertyChanged("NoEstaInsertandoPendiente")
+        RaisePropertyChanged(NameOf(NoEstaInsertandoPendiente))
     End Sub
     Public Sub EnvioPendienteSeleccionadoPropertyChangedEventHandler(sender As Object, e As PropertyChangedEventArgs)
         Dim envio = CType(sender, EnvioAgenciaWrapper)
@@ -2756,7 +2756,6 @@ Public Class estadoEnvio
         End Get
         Set(value As ObservableCollection(Of expedicion))
             SetProperty(_listaExpediciones, value)
-            'OnPropertyChanged("listaExpediciones")
         End Set
     End Property
 
@@ -2767,7 +2766,6 @@ Public Class estadoEnvio
         End Get
         Set(value As ObservableCollection(Of digitalizacion))
             SetProperty(_listaDigitalizaciones, value)
-            'OnPropertyChanged("listaDigitalizaciones")
         End Set
     End Property
 
@@ -2782,7 +2780,6 @@ Public Class tracking
         End Get
         Set(value As String)
             SetProperty(_estadoTracking, value)
-            'OnPropertyChanged("estadoTracking")
         End Set
     End Property
 
@@ -2793,7 +2790,6 @@ Public Class tracking
         End Get
         Set(value As DateTime)
             SetProperty(_fechaTracking, value)
-            'OnPropertyChanged("fechaTracking")
         End Set
     End Property
 
@@ -2833,7 +2829,6 @@ Public Class expedicion
         End Get
         Set(value As String)
             SetProperty(_numeroExpedicion, value)
-            'OnPropertyChanged("numeroExpedicion")
         End Set
     End Property
 
@@ -2844,7 +2839,6 @@ Public Class expedicion
         End Get
         Set(value As Date)
             SetProperty(_fecha, value)
-            'OnPropertyChanged("fecha")
         End Set
     End Property
 
@@ -2855,7 +2849,6 @@ Public Class expedicion
         End Get
         Set(value As Date)
             SetProperty(_fechaEstimada, value)
-            'OnPropertyChanged("fechaEstimada")
         End Set
     End Property
 
@@ -2866,7 +2859,6 @@ Public Class expedicion
         End Get
         Set(value As ObservableCollection(Of tracking))
             SetProperty(_listaTracking, value)
-            'OnPropertyChanged("listaTracking")
         End Set
     End Property
 

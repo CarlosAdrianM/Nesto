@@ -728,6 +728,10 @@ Public Class AgenciaCorreosExpress
         }
     End Function
 
+    Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada
+        Return respuesta.StartsWith("ENVIO DUPLICADO") OrElse respuesta = "EL ENVIO NO PUEDE SER ACTUALIZADO PORQUE EL CLIENTE NO PERMITE ACTUALIZAR"
+    End Function
+
     Public Class EnvioCEX
         <MaxLength(100)>
         Public Property Solicitante As String

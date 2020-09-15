@@ -30,4 +30,5 @@ Public Interface IAgencia
     ReadOnly Property HorarioDefecto As Byte
     ReadOnly Property ServicioAuxiliar As Byte ' este servicio se ignorará y no se mostrará en los tramitados
     ReadOnly Property ServicioCreaEtiquetaRetorno As Byte ' el servicio que imprimie etiqueta de retorno
+    Function RespuestaYaTramitada(respuesta As String) As Boolean
 End Interface

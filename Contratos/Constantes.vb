@@ -46,6 +46,7 @@
         Public Const ESTADO_LINEA_PENDIENTE = -1
     End Class
     Public Class Series
+        Public Const SERIE_CURSOS As String = "CV"
         Public Const SERIE_DEFECTO As String = "NV"
         Public Const UNION_LASER As String = "UL"
     End Class

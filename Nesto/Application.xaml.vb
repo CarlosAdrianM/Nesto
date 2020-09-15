@@ -1,6 +1,5 @@
 ﻿Imports System.Windows.Markup
 Imports System.Globalization
-Imports Prism.Unity
 Imports Prism.Ioc
 Imports Prism.Modularity
 Imports Nesto.Contratos
@@ -20,14 +19,12 @@ Imports Unity
 Imports Prism.Mvvm
 
 Partial Public Class Application
-    Inherits PrismApplication
+
     ' Application-level events, such as Startup, Exit, and DispatcherUnhandledException
     ' can be handled in this file.
     Protected Overrides Sub OnStartup(e As StartupEventArgs)
         FrameworkElement.LanguageProperty.OverrideMetadata(GetType(FrameworkElement), New FrameworkPropertyMetadata(XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)))
         MyBase.OnStartup(e)
-        'Dim bootstrapper As Bootstrapper = New Bootstrapper
-        'Bootstrapper.Run()
     End Sub
 
     Protected Overrides Sub RegisterTypes(containerRegistry As IContainerRegistry)
@@ -88,14 +85,6 @@ Partial Public Class Application
 
     Protected Overrides Sub ConfigureRegionAdapterMappings(regionAdapterMappings As Prism.Regions.RegionAdapterMappings)
         MyBase.ConfigureRegionAdapterMappings(regionAdapterMappings)
-        'Dim fluentRibbonRegionAdapter = ServiceLocator.Current.GetInstance(Of RibbonRegionAdapter)()
-        'regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), fluentRibbonRegionAdapter)
-
-        'Dim sl = Container.Resolve(Of IServiceLocator)
-        'Dim rbf = New RegionBehaviorFactory(sl)
-        'Dim resultado = New RibbonRegionAdapter(rbf)
-        'regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), resultado)
-
         regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), Me.Container.Resolve(Of Prism.RibbonRegionAdapter.RibbonRegionAdapter)())
     End Sub
 

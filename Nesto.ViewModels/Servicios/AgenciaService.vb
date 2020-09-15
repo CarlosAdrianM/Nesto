@@ -245,9 +245,9 @@ Public Class AgenciaService
     Public Function CargarExtractoCliente(empresa As String, cliente As String, positivos As Boolean) As ObservableCollection(Of ExtractoCliente) Implements IAgenciaService.CargarExtractoCliente
         Using contexto = New NestoEntities
             If positivos Then
-                Return New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa And e.Número = cliente And e.ImportePdte > 0 And (e.Estado = "NRM" Or e.Estado Is Nothing))
+                Return New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa AndAlso e.Número = cliente AndAlso e.ImportePdte > 0 AndAlso (e.Estado = "NRM" OrElse e.Estado Is Nothing) AndAlso Not e.Nº_Documento.StartsWith(Constantes.Series.SERIE_CURSOS))
             Else
-                Return New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa And e.Número = cliente And e.ImportePdte < 0 And (e.Estado = "NRM" Or e.Estado Is Nothing))
+                Return New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa AndAlso e.Número = cliente AndAlso e.ImportePdte < 0 AndAlso (e.Estado = "NRM" OrElse e.Estado Is Nothing) AndAlso Not e.Nº_Documento.StartsWith(Constantes.Series.SERIE_CURSOS))
             End If
         End Using
     End Function
