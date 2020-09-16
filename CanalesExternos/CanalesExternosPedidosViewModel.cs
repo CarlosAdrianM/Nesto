@@ -97,10 +97,11 @@ namespace Nesto.Modulos.CanalesExternos
                 {
                     FechaDesde = (DateTime)PedidoSeleccionado.Pedido.fecha;
                 }
-                OnPropertyChanged(() => PedidoSeleccionadoDireccion);
-                OnPropertyChanged(() => PedidoSeleccionadoNombre);
-                OnPropertyChanged(() => PedidoSeleccionadoTelefonoFijo);
-                OnPropertyChanged(() => PedidoSeleccionadoTelefonoMovil);
+                RaisePropertyChanged(nameof(PedidoSeleccionadoDireccion));
+                RaisePropertyChanged(nameof(PedidoSeleccionadoNombre));
+                RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoFijo));
+                RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoMovil));
+                CrearPedidoCommand.RaiseCanExecuteChanged();
             }
         }
         public string PedidoSeleccionadoDireccion
@@ -216,8 +217,10 @@ namespace Nesto.Modulos.CanalesExternos
         public DelegateCommand<PedidoCanalExterno> CrearPedidoCommand { get; private set; }
         private bool CanCrearPedido(PedidoCanalExterno pedidoExterno)
         {
-            return pedidoExterno != null && !string.IsNullOrEmpty(pedidoExterno.Nombre) && !string.IsNullOrEmpty(pedidoExterno.Direccion) && 
-                (!string.IsNullOrWhiteSpace(pedidoExterno.TelefonoFijo) || !string.IsNullOrWhiteSpace(pedidoExterno.TelefonoMovil));
+            return pedidoExterno != null && 
+                (!string.IsNullOrEmpty(pedidoExterno.Nombre) && !string.IsNullOrEmpty(pedidoExterno.Direccion) && 
+                (!string.IsNullOrWhiteSpace(pedidoExterno.TelefonoFijo) || !string.IsNullOrWhiteSpace(pedidoExterno.TelefonoMovil)) || 
+                pedidoExterno.PedidoCanalId.StartsWith("FBA"));
         }
         private async void OnCrearPedidoAsync(PedidoCanalExterno pedidoExterno)
         {

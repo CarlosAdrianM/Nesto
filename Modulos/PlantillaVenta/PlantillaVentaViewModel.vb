@@ -1475,7 +1475,7 @@ Public Class PlantillaVentaViewModel
                     End If
 
                     ' Abrimos el pedido
-                    PedidoVentaViewModel.cargarPedido(clienteSeleccionado.empresa, numPedido, container)
+                    PedidoVentaViewModel.CargarPedido(clienteSeleccionado.empresa, numPedido, container)
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)

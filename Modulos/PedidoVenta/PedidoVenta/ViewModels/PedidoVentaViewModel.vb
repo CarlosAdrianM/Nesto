@@ -7,14 +7,15 @@ Imports Nesto.Models.PedidoVenta
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports Prism.Ioc
+Imports Prism.Mvvm
 Imports Unity
 
 Public Class PedidoVentaViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
-    Private regionManager As IRegionManager
+    Private ReadOnly regionManager As IRegionManager
     Private ReadOnly container As IUnityContainer
-    Public Property configuracion As IConfiguracion
+    Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, container As IUnityContainer)
@@ -31,6 +32,16 @@ Public Class PedidoVentaViewModel
     Public Property empresaInicial As String
     Public Property pedidoInicial As Integer
 
+
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(value As String)
+            SetProperty(_titulo, value)
+        End Set
+    End Property
     Private _scopedRegionManager As IRegionManager
     Public Property scopedRegionManager As IRegionManager
         Get
@@ -66,7 +77,7 @@ Public Class PedidoVentaViewModel
 
 #End Region
 
-    Public Shared Sub cargarPedido(empresa As String, pedido As Integer, container As IUnityContainer)
+    Public Shared Sub CargarPedido(empresa As String, pedido As Integer, container As IUnityContainer)
         Dim view = container.Resolve(Of PedidoVentaView)
         Dim regionManager = container.Resolve(Of IRegionManager)
         If Not IsNothing(view) Then

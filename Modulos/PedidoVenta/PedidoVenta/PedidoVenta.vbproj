@@ -98,15 +98,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="DetallePedidoView.xaml.vb">
+    <Compile Include="Views\DetallePedidoView.xaml.vb">
       <DependentUpon>DetallePedidoView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="DetallePedidoViewModel.vb" />
+    <Compile Include="ViewModels\DetallePedidoViewModel.vb" />
     <Compile Include="IPedidoVentaService.vb" />
-    <Compile Include="ListaPedidosVenta.xaml.vb">
+    <Compile Include="Views\ListaPedidosVenta.xaml.vb">
       <DependentUpon>ListaPedidosVenta.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ListaPedidosVentaViewModel.vb" />
+    <Compile Include="ViewModels\ListaPedidosVentaViewModel.vb" />
     <Compile Include="Microsoft\Practices\Unity.vb" />
     <Compile Include="Notificacion.xaml.vb">
       <DependentUpon>Notificacion.xaml</DependentUpon>
@@ -116,18 +116,18 @@
     </Compile>
     <Compile Include="PedidoVentaModel.vb" />
     <Compile Include="PedidoVentaService.vb" />
-    <Compile Include="PedidoVentaView.xaml.vb">
+    <Compile Include="Views\PedidoVentaView.xaml.vb">
       <DependentUpon>PedidoVentaView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="PedidoVentaViewModel.vb" />
+    <Compile Include="ViewModels\PedidoVentaViewModel.vb" />
     <Compile Include="PickingPopupView.xaml.vb">
       <DependentUpon>PickingPopupView.xaml</DependentUpon>
     </Compile>
-    <Page Include="DetallePedidoView.xaml">
+    <Page Include="Views\DetallePedidoView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="ListaPedidosVenta.xaml">
+    <Page Include="Views\ListaPedidosVenta.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -144,7 +144,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="PedidoVenta.vb" />
-    <Page Include="PedidoVentaView.xaml">
+    <Page Include="Views\PedidoVentaView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -893,7 +893,7 @@ Public Class ClientesViewModel
         Return ListaPedidos IsNot Nothing
     End Function
     Private Sub CargarPedido(ByVal param As Object)
-        PedidoVentaViewModel.cargarPedido(empresaActual, param.numero, contenedor)
+        PedidoVentaViewModel.CargarPedido(empresaActual, param.numero, contenedor)
     End Sub
 
 

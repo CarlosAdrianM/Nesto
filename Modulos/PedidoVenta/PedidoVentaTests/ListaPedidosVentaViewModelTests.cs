@@ -22,7 +22,7 @@ namespace PedidoVentaTests
             A.CallTo(() => servicio.cargarListaPedidos("", false, false)).Returns(new ObservableCollection<ResumenPedido> { pedido });
             var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator);
 
-            vm.cmdCargarListaPedidos.Execute(null);
+            vm.cmdCargarListaPedidos.Execute();
 
 
             A.CallTo(() => configuracion.leerParametro("1", "Vendedor")).MustHaveHappenedOnceExactly();

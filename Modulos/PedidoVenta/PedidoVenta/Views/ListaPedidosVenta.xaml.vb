@@ -1,19 +1,6 @@
 ﻿Imports Prism.Regions
 
 Public Class ListaPedidosVenta
-    Public Sub New(viewModel As ListaPedidosVentaViewModel)
-
-        ' Esta llamada es exigida por el diseñador.
-        InitializeComponent()
-        viewModel.cmdCargarListaPedidos.Execute(Nothing)
-        ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-        Me.DataContext = viewModel
-
-        ' Ponemos el foco en el filtro
-        txtFiltro.Focus()
-    End Sub
-
-
     Private Sub txtFiltro_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtFiltro.GotFocus
         txtFiltro.SelectAll()
     End Sub

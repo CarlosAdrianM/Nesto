@@ -5,11 +5,10 @@ Imports Prism.Events
 Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Prism.Ioc
-Imports Unity
+Imports Prism.Mvvm
 
 Public Class ListaPedidosVentaViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
 
     Public Property configuracion As IConfiguracion
@@ -22,7 +21,7 @@ Public Class ListaPedidosVentaViewModel
         Me.configuracion = configuracion
         Me.servicio = servicio
 
-        cmdCargarListaPedidos = New DelegateCommand(Of Object)(AddressOf OnCargarListaPedidos, AddressOf CanCargarListaPedidos)
+        cmdCargarListaPedidos = New DelegateCommand(AddressOf OnCargarListaPedidos)
 
         NotificationRequest = New InteractionRequest(Of INotification)
         ConfirmationRequest = New InteractionRequest(Of IConfirmation)
@@ -58,8 +57,8 @@ Public Class ListaPedidosVentaViewModel
             Return Me.resultMessage
         End Get
         Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
+            resultMessage = value
+            RaisePropertyChanged(NameOf(InteractionResultMessage))
         End Set
     End Property
 
@@ -156,8 +155,7 @@ Public Class ListaPedidosVentaViewModel
         Set(value As Boolean)
             If value <> _mostrarPresupuestos Then
                 SetProperty(_mostrarPresupuestos, value)
-                'Task.Run(Function() cmdCargarListaPedidos.Execute(Nothing))
-                cmdCargarListaPedidos.Execute(Nothing)
+                cmdCargarListaPedidos.Execute()
             End If
         End Set
     End Property
@@ -222,19 +220,19 @@ Public Class ListaPedidosVentaViewModel
 #End Region
 
 #Region "Comandos"
-    Private _cmdCargarListaPedidos As DelegateCommand(Of Object)
-    Public Property cmdCargarListaPedidos As DelegateCommand(Of Object)
+    Private _cmdCargarListaPedidos As DelegateCommand
+    Public Property cmdCargarListaPedidos As DelegateCommand
         Get
             Return _cmdCargarListaPedidos
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdCargarListaPedidos, value)
         End Set
     End Property
-    Private Function CanCargarListaPedidos(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Sub OnCargarListaPedidos(arg As Object)
+    Private Async Sub OnCargarListaPedidos()
+        If Not IsNothing(listaPedidos) AndAlso listaPedidos.Any Then
+            Return
+        End If
         Try
             estaCargandoListaPedidos = True
             vendedor = Await configuracion.leerParametro("1", "Vendedor")
@@ -265,7 +263,7 @@ Public Class ListaPedidosVentaViewModel
         resumenSeleccionado.tienePicking = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(p) p.picking > 0))
         resumenSeleccionado.tieneFechasFuturas = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > Today))
         resumenSeleccionado.tieneProductos = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(l) l.tipoLinea = 1))
-        OnPropertyChanged("resumenSeleccionado")
+        RaisePropertyChanged(NameOf(resumenSeleccionado))
     End Sub
 
     Private Sub CargarResumenSeleccionado()

@@ -346,7 +346,7 @@ Public Class ComisionesViewModel
         If IsNothing(arg) Then
             Return
         End If
-        PedidoVentaViewModel.cargarPedido(arg.Empresa, arg.Número, container)
+        PedidoVentaViewModel.CargarPedido(arg.Empresa, arg.Número, container)
     End Sub
 
 #End Region

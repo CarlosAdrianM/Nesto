@@ -9,9 +9,10 @@ Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Prism.Mvvm
 
 Public Class DetallePedidoViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
     Implements INavigationAware
 
     Private estaActualizarFechaActivo As Boolean = True
@@ -31,18 +32,18 @@ Public Class DetallePedidoViewModel
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
 
-        cmdAbrirPicking = New DelegateCommand(Of Object)(AddressOf OnAbrirPicking, AddressOf CanAbrirPicking)
+        cmdAbrirPicking = New DelegateCommand(AddressOf OnAbrirPicking)
         AceptarPresupuestoCommand = New DelegateCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
         DescargarPresupuestoCommand = New DelegateCommand(AddressOf OnDescargarPresupuesto, AddressOf CanDescargarPresupuesto)
-        cmdActualizarTotales = New DelegateCommand(Of Object)(AddressOf OnActualizarTotales, AddressOf CanActualizarTotales)
-        cmdCambiarFechaEntrega = New DelegateCommand(Of Object)(AddressOf OnCambiarFechaEntrega, AddressOf CanCambiarFechaEntrega)
-        cmdCambiarIva = New DelegateCommand(Of Object)(AddressOf OnCambiarIva, AddressOf CanCambiarIva)
-        cmdCargarPedido = New DelegateCommand(Of ResumenPedido)(AddressOf OnCargarPedido, AddressOf CanCargarPedido)
-        CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
-        cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada, AddressOf CanCeldaModificada)
-        cmdModificarPedido = New DelegateCommand(AddressOf OnModificarPedido, AddressOf CanModificarPedido)
-        cmdPonerDescuentoPedido = New DelegateCommand(Of Object)(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
-        cmdSacarPicking = New DelegateCommand(Of Object)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
+        cmdActualizarTotales = New DelegateCommand(AddressOf OnActualizarTotales)
+        cmdCambiarFechaEntrega = New DelegateCommand(AddressOf OnCambiarFechaEntrega)
+        cmdCambiarIva = New DelegateCommand(AddressOf OnCambiarIva)
+        cmdCargarPedido = New DelegateCommand(Of ResumenPedido)(AddressOf OnCargarPedido)
+        CargarProductoCommand = New DelegateCommand(Of LineaPedidoVentaDTO)(AddressOf OnCargarProducto)
+        cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada)
+        cmdModificarPedido = New DelegateCommand(AddressOf OnModificarPedido)
+        cmdPonerDescuentoPedido = New DelegateCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
+        cmdSacarPicking = New DelegateCommand(Of Object)(AddressOf OnSacarPicking)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
 
         NotificationRequest = New InteractionRequest(Of INotification)
@@ -87,8 +88,8 @@ Public Class DetallePedidoViewModel
             Return Me.resultMessage
         End Get
         Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
+            resultMessage = value
+            RaisePropertyChanged(NameOf(InteractionResultMessage))
         End Set
     End Property
 
@@ -137,7 +138,7 @@ Public Class DetallePedidoViewModel
                     Return
                 End If
                 SetProperty(_descuentoPedido, value)
-                cmdPonerDescuentoPedido.Execute(Nothing)
+                cmdPonerDescuentoPedido.Execute()
             End If
         End Set
     End Property
@@ -200,8 +201,8 @@ Public Class DetallePedidoViewModel
         Set(value As Date)
             SetProperty(_fechaEntrega, value)
             If estaActualizarFechaActivo Then
-                cmdCambiarFechaEntrega.Execute(Nothing)
-                OnPropertyChanged("pedido")
+                cmdCambiarFechaEntrega.Execute()
+                RaisePropertyChanged(NameOf(pedido))
             End If
         End Set
     End Property
@@ -213,7 +214,7 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As LineaPedidoVentaDTO)
             SetProperty(_lineaActual, value)
-            OnPropertyChanged("pedido")
+            RaisePropertyChanged(NameOf(pedido))
         End Set
     End Property
 
@@ -278,7 +279,7 @@ Public Class DetallePedidoViewModel
                 }
                 pedido.VendedoresGrupoProducto.Add(vendedorPorGrupo)
             End If
-            OnPropertyChanged("mostrarAceptarPresupuesto")
+            RaisePropertyChanged(NameOf(mostrarAceptarPresupuesto))
             AceptarPresupuestoCommand.RaiseCanExecuteChanged()
             DescargarPresupuestoCommand.RaiseCanExecuteChanged()
         End Set
@@ -293,7 +294,15 @@ Public Class DetallePedidoViewModel
             SetProperty(_textoBusyIndicator, value)
         End Set
     End Property
-
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(value As String)
+            SetProperty(_titulo, value)
+        End Set
+    End Property
     Private _vendedorPorGrupo As VendedorGrupoProductoDTO
     Public Property vendedorPorGrupo As VendedorGrupoProductoDTO
         Get
@@ -313,19 +322,16 @@ Public Class DetallePedidoViewModel
 #End Region
 
 #Region "Comandos"
-    Private _cmdAbrirPicking As DelegateCommand(Of Object)
-    Public Property cmdAbrirPicking As DelegateCommand(Of Object)
+    Private _cmdAbrirPicking As DelegateCommand
+    Public Property cmdAbrirPicking As DelegateCommand
         Get
             Return _cmdAbrirPicking
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdAbrirPicking, value)
         End Set
     End Property
-    Private Function CanAbrirPicking(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Sub OnAbrirPicking(arg As Object)
+    Private Sub OnAbrirPicking()
         If Not IsNothing(pedido) Then
             numeroPedidoPicking = pedido.numero
             numeroClientePicking = pedido.cliente
@@ -355,64 +361,51 @@ Public Class DetallePedidoViewModel
         cmdModificarPedido.Execute()
     End Sub
 
-    Private _cmdActualizarTotales As DelegateCommand(Of Object)
-    Public Property cmdActualizarTotales As DelegateCommand(Of Object)
+    Private _cmdActualizarTotales As DelegateCommand
+    Public Property cmdActualizarTotales As DelegateCommand
         Get
             Return _cmdActualizarTotales
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdActualizarTotales, value)
         End Set
     End Property
-    Private Function CanActualizarTotales(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Sub OnActualizarTotales(arg As Object)
-        OnPropertyChanged("pedido")
+    Private Sub OnActualizarTotales()
+        RaisePropertyChanged(NameOf(pedido))
     End Sub
 
-    Private _cmdCambiarFechaEntrega As DelegateCommand(Of Object)
-    Public Property cmdCambiarFechaEntrega As DelegateCommand(Of Object)
+    Private _cmdCambiarFechaEntrega As DelegateCommand
+    Public Property cmdCambiarFechaEntrega As DelegateCommand
         Get
             Return _cmdCambiarFechaEntrega
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdCambiarFechaEntrega, value)
         End Set
     End Property
-    Private Function CanCambiarFechaEntrega(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Sub OnCambiarFechaEntrega(arg As Object)
-        'pedido.LineasPedido.ToList.ForEach(Function(l)
-        '                                       l.fechaEntrega = fechaEntrega
-        '                                       Return l
-        '                                   End Function)
+    Private Sub OnCambiarFechaEntrega()
         For Each linea In pedido.LineasPedido
             linea.fechaEntrega = fechaEntrega
         Next
 
-        OnPropertyChanged("pedido")
+        RaisePropertyChanged(NameOf(pedido))
     End Sub
 
-    Private _cmdCambiarIva As DelegateCommand(Of Object)
-    Public Property cmdCambiarIva As DelegateCommand(Of Object)
+    Private _cmdCambiarIva As DelegateCommand
+    Public Property cmdCambiarIva As DelegateCommand
         Get
             Return _cmdCambiarIva
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdCambiarIva, value)
         End Set
     End Property
-    Private Function CanCambiarIva(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Sub OnCambiarIva(arg As Object)
+    Private Sub OnCambiarIva()
         If IsNothing(pedido) Then
             Return
         End If
         pedido.iva = IIf(IsNothing(pedido.iva), ivaOriginal, Nothing)
-        OnPropertyChanged("pedido")
+        RaisePropertyChanged(NameOf(pedido))
     End Sub
 
     Private _cmdCargarPedido As DelegateCommand(Of ResumenPedido)
@@ -424,9 +417,6 @@ Public Class DetallePedidoViewModel
             SetProperty(_cmdCargarPedido, value)
         End Set
     End Property
-    Private Function CanCargarPedido(arg As ResumenPedido) As Boolean
-        Return True
-    End Function
     Private Async Sub OnCargarPedido(resumen As ResumenPedido)
         If Not IsNothing(resumen) AndAlso Not IsNothing(resumen.numero) Then
             Me.Titulo = "Pedido Venta (" + resumen.numero.ToString + ")"
@@ -440,21 +430,19 @@ Public Class DetallePedidoViewModel
         End If
     End Sub
 
-    Private _cargarProductoCommand As DelegateCommand(Of Object)
-    Public Property CargarProductoCommand As DelegateCommand(Of Object)
+    Private _cargarProductoCommand As DelegateCommand(Of LineaPedidoVentaDTO)
+    Public Property CargarProductoCommand As DelegateCommand(Of LineaPedidoVentaDTO)
         Get
             Return _cargarProductoCommand
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand(Of LineaPedidoVentaDTO))
             SetProperty(_cargarProductoCommand, value)
         End Set
     End Property
-    Private Function CanCargarProducto(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Sub OnCargarProducto(arg As Object)
+    Private Sub OnCargarProducto(linea As LineaPedidoVentaDTO)
         Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("numeroProductoParameter", lineaActual.producto)
+        'parameters.Add("numeroProductoParameter", lineaActual.producto)
+        parameters.Add("numeroProductoParameter", linea.producto)
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
@@ -467,9 +455,6 @@ Public Class DetallePedidoViewModel
             SetProperty(_cmdCeldaModificada, value)
         End Set
     End Property
-    Private Function CanCeldaModificada(arg As Object) As Boolean
-        Return True
-    End Function
     Private Async Sub OnCeldaModificada(arg As Object)
         arg = CType(arg, DataGridCellEditEndingEventArgs)
         If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = DateTime.MinValue Then
@@ -499,7 +484,7 @@ Public Class DetallePedidoViewModel
             End If
         End If
         If arg.Column.Header = "Aplicar Dto." Then
-            cmdActualizarTotales.Execute(Nothing) ' Await 
+            cmdActualizarTotales.Execute() ' ¿por qué no llamar directamente a raisepropertychanged?
         End If
     End Sub
 
@@ -619,9 +604,6 @@ Public Class DetallePedidoViewModel
             SetProperty(_cmdModificarPedido, value)
         End Set
     End Property
-    Private Function CanModificarPedido() As Boolean
-        Return True
-    End Function
     Private Async Sub OnModificarPedido()
         textoBusyIndicator = "Modificando pedido..."
         estaBloqueado = True
@@ -661,23 +643,23 @@ Public Class DetallePedidoViewModel
         End Try
     End Sub
 
-    Private _cmdPonerDescuentoPedido As DelegateCommand(Of Object)
-    Public Property cmdPonerDescuentoPedido As DelegateCommand(Of Object)
+    Private _cmdPonerDescuentoPedido As DelegateCommand
+    Public Property cmdPonerDescuentoPedido As DelegateCommand
         Get
             Return _cmdPonerDescuentoPedido
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdPonerDescuentoPedido, value)
         End Set
     End Property
-    Private Function CanPonerDescuentoPedido(arg As Object) As Boolean
+    Private Function CanPonerDescuentoPedido() As Boolean
         Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.LineasPedido)
     End Function
-    Private Sub OnPonerDescuentoPedido(arg As Object)
+    Private Sub OnPonerDescuentoPedido()
         For Each linea In pedido.LineasPedido.Where(Function(l) l.aplicarDescuento AndAlso l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
             linea.descuento = descuentoPedido
         Next
-        OnPropertyChanged("pedido")
+        RaisePropertyChanged(NameOf(pedido))
     End Sub
 
     Private _cmdSacarPicking As DelegateCommand(Of Object)
@@ -689,9 +671,6 @@ Public Class DetallePedidoViewModel
             SetProperty(_cmdSacarPicking, value)
         End Set
     End Property
-    Private Function CanSacarPicking(arg As Object) As Boolean
-        Return True
-    End Function
     Private Async Sub OnSacarPicking(arg As Object)
         Dim pedidoPicking As PedidoVentaDTO = arg
         Try
