@@ -10,7 +10,7 @@ using static Nesto.Models.PedidoVenta;
 using Nesto.ViewModels;
 using Nesto.Modulos.PedidoVenta;
 
-namespace Nesto.Modulos.CanalesExternos
+namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
     public class CanalesExternosPedidosViewModel : Contratos.ViewModelBase
     {

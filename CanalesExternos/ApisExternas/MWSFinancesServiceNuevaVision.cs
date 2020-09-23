@@ -291,9 +291,12 @@ namespace Claytondus.AmazonMWS.Finances
                 if (ajuste.AdjustmentType == "ReserveDebit")
                 {
                     cabecera.AjusteRetencion += ajuste.AdjustmentAmount.CurrencyAmount;
-                } else
+                } else if (ajuste.AdjustmentType == "ReserveCredit")
                 {
                     cabecera.RestoAjustes += ajuste.AdjustmentAmount.CurrencyAmount;
+                } else
+                {
+                    cabecera.Comision += ajuste.AdjustmentAmount.CurrencyAmount;
                 }
                 
             }

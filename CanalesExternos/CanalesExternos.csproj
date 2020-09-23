@@ -79,11 +79,11 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="CanalesExternosPagosView.xaml">
+    <Page Include="Views\CanalesExternosPagosView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="CanalesExternosPedidosView.xaml">
+    <Page Include="Views\CanalesExternosPedidosView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -101,12 +101,12 @@
       <DependentUpon>CanalesExternosMenuBar.xaml</DependentUpon>
     </Compile>
     <Compile Include="CanalesExternosMenuBarViewModel.cs" />
-    <Compile Include="CanalesExternosPagosView.xaml.cs">
+    <Compile Include="Views\CanalesExternosPagosView.xaml.cs">
       <DependentUpon>CanalesExternosPagosView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="CanalesExternosPagosViewModel.cs" />
-    <Compile Include="CanalesExternosPedidosViewModel.cs" />
-    <Compile Include="CanalesExternosPedidosView.xaml.cs">
+    <Compile Include="ViewModels\CanalesExternosPagosViewModel.cs" />
+    <Compile Include="ViewModels\CanalesExternosPedidosViewModel.cs" />
+    <Compile Include="Views\CanalesExternosPedidosView.xaml.cs">
       <DependentUpon>CanalesExternosPedidosView.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>

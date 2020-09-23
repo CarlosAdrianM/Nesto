@@ -1,7 +1,6 @@
 ﻿using Claytondus.AmazonMWS.Finances;
 using Prism.Commands;
 using Prism.Interactivity.InteractionRequest;
-using Prism.Regions;
 using Microsoft.VisualBasic;
 using Nesto.Contratos;
 using Nesto.Models.Nesto.Models;
@@ -12,23 +11,19 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Transactions;
 using System.Windows.Input;
+using Prism.Mvvm;
 
-namespace Nesto.Modulos.CanalesExternos
+namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
-    public class CanalesExternosPagosViewModel : Contratos.ViewModelBase
+    public class CanalesExternosPagosViewModel : BindableBase
     {
         private const string PROVEEDOR_AMAZON = "869";
         private const string CONTACTO_PROVEEDOR_AMAZON = "0";
         private const string BANCO_AMAZON = "57200013";
         private const string CUENTA_COMISIONES = "62300023";
 
-        private IRegionManager RegionManager { get; }
-        private IConfiguracion Configuracion { get; }
-        public CanalesExternosPagosViewModel(IRegionManager regionManager, IConfiguracion configuracion)
+        public CanalesExternosPagosViewModel()
         {
-            RegionManager = regionManager;
-            Configuracion = configuracion;
-
             Titulo = "Canales Externos Pagos";
 
             CargarPagosCommand = new DelegateCommand(OnCargarPagos);
@@ -84,6 +79,12 @@ namespace Nesto.Modulos.CanalesExternos
             }
         }
 
+        private string _titulo;
+        public string Titulo
+        {
+            get { return _titulo; }
+            set { SetProperty(ref _titulo, value); }
+        }
 
         public ICommand CargarDetallePagoCommand { get; private set; }
         private async void OnCargarDetallePago()
@@ -120,7 +121,7 @@ namespace Nesto.Modulos.CanalesExternos
                     }
                 });
                 
-                OnPropertyChanged(() => PagoSeleccionado);
+                RaisePropertyChanged(nameof(PagoSeleccionado));
             }
             catch (Exception ex)
             {

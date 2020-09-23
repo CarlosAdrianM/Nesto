@@ -191,6 +191,29 @@ namespace Nesto.Modulos.CanalesExternos
                     };
                     lineasNesto.Add(lineaPortes);
                 }
+
+                if (Convert.ToDecimal(orderItem.ShippingDiscount?.Amount) != 0)
+                {
+                    decimal baseImponibleDescuentoPortes = Convert.ToDecimal(orderItem.ShippingDiscount.Amount) / 100 / PORCENTAJE_IVA * CambioDivisas;
+                    LineaPedidoVentaDTO lineaDescuentoPortes = new LineaPedidoVentaDTO
+                    {
+                        almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
+                        aplicarDescuento = false,
+                        cantidad = (short)1,
+                        delegacion = DELEGACION_AMAZON,
+                        formaVenta = FORMA_VENTA_AMAZON,
+                        estado = 1,
+                        fechaEntrega = DateTime.Today,
+                        iva = IVA_GENERAL,
+                        precio = baseImponibleDescuentoPortes,
+                        producto = "62400003",
+                        texto = "DESCUENTO PORTES " + orderItem.Title.ToUpper(),
+                        tipoLinea = 2, // cuenta contable
+                        vistoBueno = true,
+                        usuario = configuracion.usuario
+                    };
+                    lineasNesto.Add(lineaDescuentoPortes);
+                }
             }
 
             return lineasNesto;
