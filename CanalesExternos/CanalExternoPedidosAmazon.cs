@@ -199,7 +199,7 @@ namespace Nesto.Modulos.CanalesExternos
                     {
                         almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
                         aplicarDescuento = false,
-                        cantidad = (short)1,
+                        cantidad = (short)-1,
                         delegacion = DELEGACION_AMAZON,
                         formaVenta = FORMA_VENTA_AMAZON,
                         estado = 1,

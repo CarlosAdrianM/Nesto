@@ -866,6 +866,9 @@ Public Class PlantillaVentaViewModel
                     Dim producto As LineaPlantillaJson
                     For i = 0 To listaProductosFijada.Count - 1
                         producto = listaProductosFijada(i)
+                        If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN Then
+                            producto.aplicarDescuento = True
+                        End If
                         productoOriginal = listaProductosOriginal.Where(Function(p) p.producto = producto.producto).FirstOrDefault
                         If Not IsNothing(productoOriginal) Then
                             listaProductosFijada(i) = productoOriginal

@@ -12,6 +12,7 @@
         Public Class Especiales
             Public Const TIENDA_ONLINE As String = "31517"
             Public Const AMAZON As String = "32624"
+            Public Const EL_EDEN As String = "15191"
         End Class
     End Class
     Public Class DiariosContables
