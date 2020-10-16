@@ -276,7 +276,7 @@ namespace MarketplaceWebServiceOrders {
             marketplaceId.Add("A1RKKUPIHCS9HS"); // Amazon.es
             marketplaceId.Add("A13V1IB3VIYZZH"); // Amazon.fr
             marketplaceId.Add("APJ6JRA9NG5V4");  // Amazon.it
-            marketplaceId.Add("A302IUJ673AU08");  // Amazon.nl
+            marketplaceId.Add("A1805IZSGTT6HS");  // Amazon.nl
             request.MarketplaceId = marketplaceId;
             List<string> fulfillmentChannel = new List<string>();
             //request.FulfillmentChannel = fulfillmentChannel;
@@ -320,7 +320,7 @@ namespace MarketplaceWebServiceOrders {
             marketplaceId.Add("A1RKKUPIHCS9HS"); // Amazon.es
             marketplaceId.Add("A13V1IB3VIYZZH"); // Amazon.fr
             marketplaceId.Add("APJ6JRA9NG5V4");  // Amazon.it
-            marketplaceId.Add("A302IUJ673AU08");  // Amazon.nl
+            marketplaceId.Add("A1805IZSGTT6HS");  // Amazon.nl
             request.MarketplaceId = marketplaceId;
             List<string> fulfillmentChannel = new List<string>();
             fulfillmentChannel.Add("AFN");
