@@ -234,7 +234,7 @@ Public Class AgenciasViewModel
                             envioCreandose.Agencia = agenciaSeleccionada.Numero
                         End If
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.PEDIDOS AndAlso Not IsNothing(empresaSeleccionada) Then
+                    If PestañaSeleccionada.Name = Pestannas.PEDIDOS AndAlso Not IsNothing(empresaSeleccionada) AndAlso Not IsNothing(pedidoSeleccionado) Then
                         listaEnviosPedido = servicio.CargarListaEnviosPedido(empresaSeleccionada.Número, pedidoSeleccionado.Número)
                     End If
                     If PestañaSeleccionada.Name = Pestannas.EN_CURSO Then

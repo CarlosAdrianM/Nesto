@@ -1,4 +1,11 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using FakeItEasy;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nesto.Contratos;
+using Nesto.Modulos.PlantillaVenta;
+using Prism.Events;
+using Prism.Regions;
+using System.Collections.ObjectModel;
+using Unity;
 
 namespace PlantillaVentaTests
 {
@@ -28,5 +35,49 @@ namespace PlantillaVentaTests
 
         //    Assert.AreEqual("Selección del cliente", viewModel.CurrentWizardPage?.Title);
         //}
+
+        [TestMethod]
+        public void PlantillaVenta_BaseImponible_RedondeaLosDecimales()
+        {
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator);
+            vm.listaProductosOriginal = new ObservableCollection<PlantillaVentaModel.LineaPlantillaJson>();
+            vm.listaProductosOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
+            {
+                cantidad = 1,
+                precio = 4.5M,
+                descuento = .35M
+            });
+
+            decimal baseImponible = vm.baseImponiblePedido;
+
+            Assert.AreEqual(2.92M, baseImponible);
+        }
+
+        [TestMethod]
+        public void PlantillaVenta_BaseImponiblePortes_RedondeaLosDecimales()
+        {
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator);
+            vm.listaProductosOriginal = new ObservableCollection<PlantillaVentaModel.LineaPlantillaJson>();
+            vm.listaProductosOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
+            {
+                cantidad = 1,
+                precio = 4.5M,
+                descuento = .35M
+            });
+
+            decimal baseImponiblePortes = vm.baseImponibleParaPortes;
+
+            Assert.AreEqual(2.92M, baseImponiblePortes);
+        }
     }
 }
