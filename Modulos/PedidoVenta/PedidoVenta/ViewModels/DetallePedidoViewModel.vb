@@ -56,7 +56,7 @@ Public Class DetallePedidoViewModel
     Private Async Sub InsertarProducto(productoSeleccionado As String)
         If Not IsNothing(lineaActual) Then
             lineaActual.producto = productoSeleccionado
-            Await CargarDatosProducto(productoSeleccionado)
+            Await CargarDatosProducto(productoSeleccionado, lineaActual.cantidad)
         End If
     End Sub
 
@@ -457,11 +457,17 @@ Public Class DetallePedidoViewModel
     End Property
     Private Async Sub OnCeldaModificada(arg As Object)
         arg = CType(arg, DataGridCellEditEndingEventArgs)
+        If Not arg.Row.DataContext.Equals(lineaActual) Then
+            lineaActual = arg.Row.DataContext
+        End If
         If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = DateTime.MinValue Then
             lineaActual.fechaEntrega = fechaEntrega
         End If
         If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.producto Then
-            Await CargarDatosProducto(arg.EditingElement.Text)
+            Await CargarDatosProducto(arg.EditingElement.Text, lineaActual.cantidad)
+        End If
+        If arg.Column.Header = "Cantidad" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.cantidad Then
+            Await CargarDatosProducto(lineaActual.producto, arg.EditingElement.Text)
         End If
         If arg.Column.Header = "Precio" OrElse arg.Column.Header = "Descuento" Then
             Dim textBox As TextBox = arg.EditingElement
@@ -488,9 +494,9 @@ Public Class DetallePedidoViewModel
         End If
     End Sub
 
-    Private Async Function CargarDatosProducto(numeroProducto As String) As Task
+    Private Async Function CargarDatosProducto(numeroProducto As String, cantidad As Short) As Task
         Dim lineaCambio As LineaPedidoVentaDTO = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
-        Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, lineaActual.cantidad)
+        Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, cantidad)
         If Not IsNothing(producto) Then
             lineaCambio.precio = producto.precio
             lineaCambio.texto = producto.nombre

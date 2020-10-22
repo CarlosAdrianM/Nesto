@@ -151,7 +151,7 @@ Public Class PlantillaVentaViewModel
         Get
             Dim baseImponible As Decimal = 0
             If (Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0) Then
-                baseImponible = listaProductosPedido.Sum(Function(l) l.cantidad * l.precio - Math.Round(l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
+                baseImponible = listaProductosPedido.Sum(Function(l) l.cantidad * l.precio - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
             End If
             RaisePropertyChanged(NameOf(baseImponibleParaPortes))
             Return baseImponible
@@ -162,7 +162,7 @@ Public Class PlantillaVentaViewModel
         Get
             Dim baseImponible As Decimal = 0
             If (Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0) Then
-                baseImponible = listaProductosPedido.Where(Function(l) l.esSobrePedido = False).Sum(Function(l) l.cantidad * l.precio - Math.Round(l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
+                baseImponible = listaProductosPedido.Where(Function(l) l.esSobrePedido = False).Sum(Function(l) l.cantidad * l.precio - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero))
             End If
             Return baseImponible
         End Get
