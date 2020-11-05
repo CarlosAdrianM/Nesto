@@ -17,6 +17,8 @@ Imports Nesto.Modulos.Cliente
 Imports Prism.Regions
 Imports Unity
 Imports Prism.Mvvm
+Imports ControlesUsuario
+Imports ControlesUsuario.Dialogs
 
 Partial Public Class Application
 
@@ -47,6 +49,8 @@ Partial Public Class Application
         containerRegistry.Register(GetType(IProductoService), GetType(ProductoService))
         containerRegistry.Register(GetType(ICliente), GetType(Nesto.Modulos.Cliente.Cliente))
         containerRegistry.Register(GetType(IClienteService), GetType(ClienteService))
+
+        containerRegistry.RegisterDialog(Of MessageDialog, MessageDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window

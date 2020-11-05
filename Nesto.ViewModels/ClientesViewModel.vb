@@ -17,10 +17,11 @@ Imports System.Runtime.InteropServices
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PedidoVenta
-Imports Prism.Ioc
 Imports Unity
-
-'Imports Nesto.Models.Nesto.Models.EF
+Imports Prism.Mvvm
+Imports Prism.Commands
+Imports System.Transactions
+Imports Prism.Services.Dialogs
 
 Public Interface IOService
     Function OpenFileDialog(defaultPath As String) As String
@@ -30,12 +31,13 @@ Public Interface IOService
 End Interface
 
 Public Class ClientesViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
     '    Implements IActiveAware
 
     Private Shared DbContext As NestoEntities
     Public Property configuracion As IConfiguracion
     Private ReadOnly Property contenedor As IUnityContainer
+    Private ReadOnly Property dialogService As IDialogService
 
     'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
@@ -62,15 +64,29 @@ Public Class ClientesViewModel
         cargarDatos()
     End Sub
 
-    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer)
+    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService)
         Me.configuracion = configuracion
         Me.contenedor = contenedor
+        Me.dialogService = dialogService
         cargarDatos()
         clienteActivo = Nothing
         'inicializarListaClientesVendedor()
+        ReclamarDeudaCommand = New DelegateCommand(AddressOf OnReclamarDeuda)
+        AbrirEnlaceReclamacionCommand = New DelegateCommand(AddressOf OnAbrirEnlaceReclamacion, AddressOf CanAbrirEnlaceReclamacion)
+        ConfirmarReclamarDeudaCommand = New DelegateCommand(AddressOf OnConfirmarReclamarDeuda, AddressOf CanConfirmarReclamarDeuda)
     End Sub
 
 #Region "Propiedades"
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(value As String)
+            SetProperty(_titulo, value)
+        End Set
+    End Property
+
     Private _empresaActual As String
     Public Property empresaActual As String
         Get
@@ -92,7 +108,6 @@ Public Class ClientesViewModel
         Dim mainViewModel = New MainViewModel()
         clienteActual = Await mainViewModel.leerParametro(empresaActual, "UltNumCliente")
     End Function
-
 
     Private _clienteActual As String
     Public Property clienteActual As String
@@ -276,15 +291,19 @@ Public Class ClientesViewModel
                 deudaVencida = 0
                 ListaFacturas = Nothing
                 ListaPedidos = Nothing
+                ListaDeudas = Nothing
             End If
 
             If IndiceSeleccionado = 1 Then
                 CargarFacturas()
             ElseIf IndiceSeleccionado = 2 Then
                 CargarPedidos()
+            ElseIf IndiceSeleccionado = 3 Then
+                CargarDeudas()
             Else
                 ListaFacturas = Nothing
                 ListaPedidos = Nothing
+                ListaDeudas = Nothing
             End If
 
             OnPropertyChanged("clienteActivo")
@@ -597,14 +616,23 @@ Public Class ClientesViewModel
         End Get
     End Property
 
+    Private _listaDeudas As ObservableCollection(Of ExtractoClienteDTO)
+    Public Property ListaDeudas As ObservableCollection(Of ExtractoClienteDTO)
+        Get
+            Return _listaDeudas
+        End Get
+        Set(value As ObservableCollection(Of ExtractoClienteDTO))
+            SetProperty(_listaDeudas, value)
+        End Set
+    End Property
+
     Private _listaFacturas As ObservableCollection(Of ExtractoClienteDTO)
     Public Property ListaFacturas As ObservableCollection(Of ExtractoClienteDTO)
         Get
             Return _listaFacturas
         End Get
         Set(value As ObservableCollection(Of ExtractoClienteDTO))
-            _listaFacturas = value
-            OnPropertyChanged("ListaFacturas")
+            SetProperty(_listaFacturas, value)
         End Set
     End Property
 
@@ -630,12 +658,86 @@ Public Class ClientesViewModel
                 CargarFacturas()
             ElseIf _indiceSeleccionado = 2 Then 'Pedidos
                 CargarPedidos()
+            ElseIf _indiceSeleccionado = 3 Then 'Deudas
+                CargarDeudas()
             End If
             OnPropertyChanged("IndiceSeleccionado")
         End Set
     End Property
 
+    Public ReadOnly Property SumaDeudasSeleccionadas As Decimal
+        Get
+            If IsNothing(ListaDeudas) OrElse Not ListaDeudas.Any(Function(l) l.Seleccionada) Then
+                Return 0
+            End If
+            Return ListaDeudas.Where(Function(l) l.Seleccionada).Sum(Function(l) l.ImportePendiente)
+        End Get
+    End Property
 
+    Private _importeReclamarDeuda As Decimal
+    Public Property ImporteReclamarDeuda As Decimal
+        Get
+            Return _importeReclamarDeuda
+        End Get
+        Set(value As Decimal)
+            SetProperty(_importeReclamarDeuda, value)
+            ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Private _asuntoReclamarDeuda As String = "Enlace de pago a Nueva Visión"
+    Public Property AsuntoReclamarDeuda As String
+        Get
+            Return _asuntoReclamarDeuda
+        End Get
+        Set(value As String)
+            SetProperty(_asuntoReclamarDeuda, value)
+        End Set
+    End Property
+
+    Private _correoReclamarDeuda As String
+    Public Property CorreoReclamarDeuda As String
+        Get
+            Return _correoReclamarDeuda
+        End Get
+        Set(value As String)
+            SetProperty(_correoReclamarDeuda, value)
+            ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Private _movilReclamarDeuda As String
+    Public Property MovilReclamarDeuda As String
+        Get
+            Return _movilReclamarDeuda
+        End Get
+        Set(value As String)
+            SetProperty(_movilReclamarDeuda, value)
+            ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Private _nombreReclamarDeuda As String
+    Public Property NombreReclamarDeuda As String
+        Get
+            Return _nombreReclamarDeuda
+        End Get
+        Set(value As String)
+            SetProperty(_nombreReclamarDeuda, value)
+        End Set
+    End Property
+
+
+    Private _enlaceReclamarDeuda As String
+    Public Property EnlaceReclamarDeuda As String
+        Get
+            Return _enlaceReclamarDeuda
+        End Get
+        Set(value As String)
+            SetProperty(_enlaceReclamarDeuda, value)
+            AbrirEnlaceReclamacionCommand.RaiseCanExecuteChanged()
+        End Set
+    End Property
 
 #End Region
 #Region "Comandos"
@@ -897,6 +999,79 @@ Public Class ClientesViewModel
     End Sub
 
 
+    Private _reclamarDeudaCommand As DelegateCommand
+    Public Property ReclamarDeudaCommand As DelegateCommand
+        Get
+            Return _reclamarDeudaCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_reclamarDeudaCommand, value)
+        End Set
+    End Property
+    Private Async Sub OnReclamarDeuda()
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = String.Empty
+
+            Dim reclamacion As New ReclamacionDeuda With {
+                .Asunto = AsuntoReclamarDeuda,
+                .Correo = CorreoReclamarDeuda,
+                .Importe = ImporteReclamarDeuda,
+                .Movil = MovilReclamarDeuda,
+                .Nombre = NombreReclamarDeuda,
+                .Direccion = clienteActivo.Dirección,
+                .TextoSMS = "Este es un mensaje de @COMERCIO@. Puede pagar el importe pendiente de @IMPORTE@ @MONEDA@ aquí: @URL@"
+            }
+
+            Try
+                Dim urlConsulta As String = "ReclamacionDeuda"
+                Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
+                Dim content As StringContent = New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
+                response = Await client.PostAsync(urlConsulta, content)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                    reclamacion = JsonConvert.DeserializeObject(Of ReclamacionDeuda)(respuesta)
+                    If reclamacion.TramitadoOK Then
+                        EnlaceReclamarDeuda = reclamacion.Enlace
+                    End If
+                Else
+                    respuesta = String.Empty
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido procesar la reclamación de deuda")
+            Finally
+
+            End Try
+        End Using
+    End Sub
+
+    Public Property AbrirEnlaceReclamacionCommand As DelegateCommand
+    Private Function CanAbrirEnlaceReclamacion() As Boolean
+        Return Not String.IsNullOrEmpty(EnlaceReclamarDeuda)
+    End Function
+    Private Sub OnAbrirEnlaceReclamacion()
+        System.Diagnostics.Process.Start(EnlaceReclamarDeuda)
+    End Sub
+
+    Public Property ConfirmarReclamarDeudaCommand As DelegateCommand
+    Private Function CanConfirmarReclamarDeuda() As Boolean
+        Return ImporteReclamarDeuda >= 1 AndAlso (Not IsNothing(CorreoReclamarDeuda) OrElse Not IsNothing(MovilReclamarDeuda))
+    End Function
+    Private Sub OnConfirmarReclamarDeuda()
+        Dim p As New DialogParameters
+        p.Add("message", "¿Desea reclamar la deuda?")
+        dialogService.ShowDialog("MessageDialog", p, Sub(r)
+                                                         If r.Result = ButtonResult.OK Then
+                                                             ReclamarDeudaCommand.Execute()
+                                                         End If
+                                                     End Sub)
+    End Sub
+
+
+
     Private Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
         If IsNothing(clienteActivo) Then
             Return Nothing
@@ -1013,6 +1188,56 @@ Public Class ClientesViewModel
 
 
     End Sub
+
+    Private Async Sub CargarDeudas()
+        If IsNothing(clienteActivo) OrElse (ListaDeudas IsNot Nothing AndAlso clienteActivo.Nº_Cliente?.Trim() = ListaDeudas.FirstOrDefault()?.Cliente) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = String.Empty
+
+            Try
+                Dim urlConsulta As String = "ExtractosCliente"
+                urlConsulta += "?cliente=" + clienteActivo.Nº_Cliente
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = String.Empty
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido cargar la lista de deudas desde el servidor")
+            Finally
+
+            End Try
+            Dim lista = JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta)
+            For Each l In lista
+                l.Seleccionada = l.Vencimiento < DateTime.Today OrElse IsNothing(l.Vencimiento)
+                AddHandler l.PropertyChanged, New PropertyChangedEventHandler(AddressOf LineaDeudaPropertyChangedEventHandler)
+            Next
+            ListaDeudas = New ObservableCollection(Of ExtractoClienteDTO)(lista.OrderBy(Function(l) l.Fecha))
+            ImporteReclamarDeuda = SumaDeudasSeleccionadas
+        End Using
+
+        Dim correo As New CorreoCliente(clienteActivo.PersonasContactoCliente)
+        CorreoReclamarDeuda = correo.CorreoAgencia ' TODO: desarrollar correo deuda
+        Dim telefono As New Telefono(clienteActivo.Teléfono)
+        MovilReclamarDeuda = telefono.MovilUnico
+
+    End Sub
+
+    Private Sub LineaDeudaPropertyChangedEventHandler(sender As Object, e As PropertyChangedEventArgs)
+        If e.PropertyName = "Seleccionada" Then
+            ImporteReclamarDeuda = SumaDeudasSeleccionadas
+        End If
+    End Sub
+
 
 #End Region
 
@@ -1208,6 +1433,7 @@ Public Class cabeceraPedidoAgrupada
 End Class
 
 Public Class ExtractoClienteDTO
+    Inherits BindableBase
     Public Property Id As Integer
     Public Property Empresa As String
     Public Property Asiento As Integer
@@ -1225,7 +1451,14 @@ Public Class ExtractoClienteDTO
     Public Property CCC As String
     Public Property Ruta As String
     Public Property Estado As String
-
+    Private _seleccionada As Boolean
     Public Property Seleccionada As Boolean
+        Get
+            Return _seleccionada
+        End Get
+        Set(value As Boolean)
+            SetProperty(_seleccionada, value)
+        End Set
+    End Property
 
 End Class

@@ -6,29 +6,37 @@
              xmlns:controles="clr-namespace:ControlesUsuario"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300" Loaded="UserControl_Loaded">
-    <StackPanel Name="ControlPrincipal">
-        <Border DockPanel.Dock="Top" HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
-            <DockPanel HorizontalAlignment="Stretch">
-                <TextBlock Name="btnBuscar" DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎"/>
-                <TextBox Name="txtFiltro" DockPanel.Dock="Left" Text="{Binding filtro}" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0" KeyUp="txtFiltro_KeyUp" GotFocus="txtFiltro_GotFocus" MouseUp="txtFiltro_MouseUp" PreviewMouseUp="txtFiltro_PreviewMouseUp"/>
-            </DockPanel>
-        </Border>
-        <StackPanel Name="pnlDatosCliente" MouseUp="pnlDatosCliente_MouseUp" Visibility="{Binding visibilidadDatosCliente}">
-            <TextBlock Name="txtNombreCliente" Text="{Binding clienteSeleccionado.nombre}" FontWeight="Light" FontSize="8"></TextBlock>
-            <TextBlock Name="txtDireccionCliente" Text="{Binding clienteSeleccionado.direccion}" FontWeight="Light" FontSize="8"></TextBlock>
+    <UserControl.Resources>
+        <controles:EstadoColorConverter x:Key="estadoColorConverter" />
+    </UserControl.Resources>
+    
+    <DockPanel Name="ControlPrincipal">
+        <StackPanel DockPanel.Dock="Top">
+            <Border HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
+                <DockPanel HorizontalAlignment="Stretch">
+                    <TextBlock Name="btnBuscar" DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎"/>
+                    <TextBox Name="txtFiltro" DockPanel.Dock="Left" Text="{Binding filtro, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0" KeyUp="txtFiltro_KeyUp" GotFocus="txtFiltro_GotFocus" MouseUp="txtFiltro_MouseUp" PreviewMouseUp="txtFiltro_PreviewMouseUp"/>
+                </DockPanel>
+            </Border>
+            <StackPanel Name="pnlDatosCliente" MouseUp="pnlDatosCliente_MouseUp" Visibility="{Binding visibilidadDatosCliente}">
+                <TextBlock Name="txtNombreCliente" Text="{Binding clienteSeleccionado.nombre}" FontWeight="Light" FontSize="8"></TextBlock>
+                <TextBlock Name="txtDireccionCliente" Text="{Binding clienteSeleccionado.direccion}" FontWeight="Light" FontSize="8"></TextBlock>
+            </StackPanel>
+            <StackPanel Name="pnlCargando" Visibility="{Binding visibilidadCargando}">
+                <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="10" Foreground="Blue"></TextBlock>
+            </StackPanel>
+            <controles:SelectorDireccionEntrega Configuracion="{Binding Configuracion}" Empresa="{Binding clienteSeleccionado.empresa}" Cliente="{Binding clienteSeleccionado.cliente}" Seleccionada="{Binding contactoSeleccionado, Mode=TwoWay}" Visibility="{Binding visibilidadSelectorEntrega}"></controles:SelectorDireccionEntrega>
         </StackPanel>
-        <StackPanel Name="pnlCargando" Visibility="{Binding visibilidadCargando}">
-            <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="8" Foreground="Red"></TextBlock>
-        </StackPanel>
-        <controles:SelectorDireccionEntrega Configuracion="{Binding Configuracion}" Empresa="{Binding clienteSeleccionado.empresa}" Cliente="{Binding clienteSeleccionado.cliente}" Seleccionada="{Binding contactoSeleccionado, Mode=TwoWay}" Visibility="{Binding visibilidadSelectorEntrega}"></controles:SelectorDireccionEntrega>
-        <ListView ItemsSource="{Binding listaClientes}" Visibility="{Binding visibilidadListaClientes}">
+        <ListView DockPanel.Dock="Bottom" ItemsSource="{Binding listaClientes}" Visibility="{Binding visibilidadListaClientes}" HorizontalContentAlignment="Stretch">
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Border Name="brdCliente" BorderThickness="2" CornerRadius="3" MouseUp="brdCliente_MouseUp">
-                        <StackPanel>
-                            <TextBlock Text="{Binding nombre}" FontWeight="Black"></TextBlock>
-                            <TextBlock Text="{Binding direccion}"></TextBlock>
-                            <TextBlock Text="{Binding poblacion}"></TextBlock>
+                    <Border Name="brdCliente" BorderThickness="2" CornerRadius="5"  BorderBrush="{Binding estado, Converter={StaticResource estadoColorConverter}}"  MouseUp="brdCliente_MouseUp">
+                        <StackPanel Margin="6">
+                            <TextBlock Text="{Binding nombre}" FontWeight="Black" />
+                            <TextBlock Text="{Binding direccion}" />
+                            <TextBlock Text="{Binding poblacion}" MaxHeight="60"/>
+                            <TextBlock Text="{Binding cliente}" FontStyle="Italic"/>
+                            <TextBlock Text="{Binding comentarios}" MaxHeight="60"/>
                         </StackPanel>
                     </Border>
                 </DataTemplate>
@@ -36,5 +44,5 @@
         </ListView>
         
         
-    </StackPanel>
+    </DockPanel>
 </UserControl>

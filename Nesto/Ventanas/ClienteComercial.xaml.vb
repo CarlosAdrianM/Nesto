@@ -37,4 +37,59 @@ Public Class ClienteComercial
     Private Sub txtFiltro_PreviewMouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtFiltro.PreviewMouseUp
         txtFiltro.SelectAll()
     End Sub
+
+    Private Sub txtReclamarDeudaCorreo_KeyUp(sender As Object, e As KeyEventArgs) Handles txtReclamarDeudaCorreo.KeyUp
+        If e.Key = Key.Enter Then
+            txtReclamarDeudaMovil.Focus()
+        End If
+    End Sub
+
+    Private Sub txtReclamarDeudaMovil_KeyUp(sender As Object, e As KeyEventArgs) Handles txtReclamarDeudaMovil.KeyUp
+        If e.Key = Key.Enter Then
+            txtReclamarDeudaImporte.Focus()
+        End If
+    End Sub
+
+    Private Sub txtReclamarDeudaImporte_KeyUp(sender As Object, e As KeyEventArgs) Handles txtReclamarDeudaImporte.KeyUp
+        If e.Key = Key.Enter Then
+            txtReclamarDeudaAsunto.Focus()
+        End If
+    End Sub
+
+    Private Sub txtReclamarDeudaAsunto_KeyUp(sender As Object, e As KeyEventArgs) Handles txtReclamarDeudaAsunto.KeyUp
+        If e.Key = Key.Enter Then
+            txtReclamarDeudaNombre.Focus()
+        End If
+    End Sub
+
+    Private Sub txtReclamarDeudaNombre_KeyUp(sender As Object, e As KeyEventArgs) Handles txtReclamarDeudaNombre.KeyUp
+        If e.Key = Key.Enter Then
+            btnReclamarDeuda.Focus()
+        End If
+    End Sub
+
+    Private Sub txtReclamarDeudaAsunto_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtReclamarDeudaAsunto.GotFocus
+        txtReclamarDeudaAsunto.SelectAll()
+    End Sub
+
+    Private Sub txtReclamarDeudaCorreo_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtReclamarDeudaCorreo.GotFocus
+        txtReclamarDeudaCorreo.SelectAll()
+    End Sub
+
+    Private Sub txtReclamarDeudaImporte_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtReclamarDeudaImporte.GotFocus
+        txtReclamarDeudaImporte.SelectAll()
+    End Sub
+
+    Private Sub txtReclamarDeudaMovil_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtReclamarDeudaMovil.GotFocus
+        txtReclamarDeudaMovil.SelectAll()
+    End Sub
+
+    Private Sub txtReclamarDeudaNombre_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtReclamarDeudaNombre.GotFocus
+        txtReclamarDeudaNombre.SelectAll()
+    End Sub
+
+    Private Sub Run_MouseRightButtonUp(sender As Object, e As MouseButtonEventArgs)
+        Dim vm As ClientesViewModel = DataContext
+        Clipboard.SetText(vm.EnlaceReclamarDeuda)
+    End Sub
 End Class

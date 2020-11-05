@@ -364,40 +364,54 @@ namespace Nesto.Modulos.Cliente
 
         public async new void OnNavigatedTo(NavigationContext navigationContext)
         {
-            if (navigationContext.Parameters.Count() == 0)
+            if (!navigationContext.Parameters.Any())
             {
                 return;
             }
-            string empresa = navigationContext.Parameters["empresaParameter"].ToString();
-            string cliente = navigationContext.Parameters["clienteParameter"].ToString();
-            string contacto = navigationContext.Parameters["contactoParameter"].ToString();
-
-            ClienteCrear clienteCrear = await Servicio.LeerClienteCrear(empresa, cliente, contacto);
-
-            Titulo = String.Format("Editar Cliente {1}/{2}", empresa, cliente, contacto);
-
-            EsUnaModificacion = true;
-
-            ClienteEmpresa = clienteCrear.Empresa;
-            ClienteNumero = clienteCrear.Cliente;
-            ClienteContacto = clienteCrear.Contacto;
-
-            ClienteNif = clienteCrear.Nif;
-            ClienteNombre = clienteCrear.Nombre;
-            ClienteDireccion = clienteCrear.Direccion;
-            ClienteCodigoPostal = clienteCrear.CodigoPostal;
-            ClienteTelefono = clienteCrear.Telefono;
-            ClienteVendedorEstetica = clienteCrear.VendedorEstetica;
-            ClienteVendedorPeluqueria = clienteCrear.VendedorPeluqueria;
-            ClienteTieneEstetica = clienteCrear.Estetica;
-            ClienteTienePeluqueria = clienteCrear.Peluqueria;
-            ClienteFormaPago = clienteCrear.FormaPago;
-            ClientePlazosPago = clienteCrear.PlazosPago;
-            ClienteIban = clienteCrear.Iban;
-            PersonasContacto = new ObservableCollection<PersonaContactoDTO>();
-            foreach (var persona in clienteCrear.PersonasContacto)
+            
+            if (navigationContext.Parameters["empresaParameter"] != null &&
+                navigationContext.Parameters["clienteParameter"] != null &&
+                navigationContext.Parameters["contactoParameter"] != null)
             {
-                PersonasContacto.Add(persona);
+                string empresa = navigationContext.Parameters["empresaParameter"].ToString();
+                string cliente = navigationContext.Parameters["clienteParameter"].ToString();
+                string contacto = navigationContext.Parameters["contactoParameter"].ToString();
+
+                ClienteCrear clienteCrear = await Servicio.LeerClienteCrear(empresa, cliente, contacto);
+
+                Titulo = String.Format("Editar Cliente {1}/{2}", empresa, cliente, contacto);
+
+                EsUnaModificacion = true;
+
+                ClienteEmpresa = clienteCrear.Empresa;
+                ClienteNumero = clienteCrear.Cliente;
+                ClienteContacto = clienteCrear.Contacto;
+
+                ClienteNif = clienteCrear.Nif;
+                ClienteNombre = clienteCrear.Nombre;
+                ClienteDireccion = clienteCrear.Direccion;
+                ClienteCodigoPostal = clienteCrear.CodigoPostal;
+                ClienteTelefono = clienteCrear.Telefono;
+                ClienteVendedorEstetica = clienteCrear.VendedorEstetica;
+                ClienteVendedorPeluqueria = clienteCrear.VendedorPeluqueria;
+                ClienteTieneEstetica = clienteCrear.Estetica;
+                ClienteTienePeluqueria = clienteCrear.Peluqueria;
+                ClienteFormaPago = clienteCrear.FormaPago;
+                ClientePlazosPago = clienteCrear.PlazosPago;
+                ClienteIban = clienteCrear.Iban;
+                PersonasContacto = new ObservableCollection<PersonaContactoDTO>();
+                foreach (var persona in clienteCrear.PersonasContacto)
+                {
+                    PersonasContacto.Add(persona);
+                }
+            }
+
+            if (navigationContext.Parameters["nifParameter"] != null &&
+                navigationContext.Parameters["nombreParameter"] != null)
+            {
+                ClienteNif = navigationContext.Parameters["nifParameter"].ToString();
+                ClienteNombre = navigationContext.Parameters["nombreParameter"].ToString();
+                await GoToDatosGenerales();
             }
         }
 
@@ -511,6 +525,11 @@ namespace Nesto.Modulos.Cliente
             {
                 NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
             }
+        }
+
+        public void CrearContacto(string cifNif, string nombre)
+        {
+            throw new NotImplementedException();
         }
     }
 }

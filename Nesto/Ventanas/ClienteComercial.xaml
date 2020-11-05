@@ -4,7 +4,10 @@
     xmlns:local="clr-namespace:Nesto.Views"
     xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"    
-    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels" xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity">
+    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels" 
+    xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True">
 
 
     <UserControl.Resources>
@@ -192,6 +195,76 @@
                                         </DataGridTextColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Deudas">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+
+                                <DataGrid Grid.Row="0" ItemsSource="{Binding ListaDeudas}" AutoGenerateColumns="False" CanUserAddRows="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTemplateColumn Header="Seleccionada">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox HorizontalAlignment="Center" IsChecked="{Binding Seleccionada, UpdateSourceTrigger=PropertyChanged}"  />
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                                        <DataGridTextColumn Header="Vencimiento" Binding="{Binding Vencimiento, StringFormat=d}" />
+                                        <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" />
+                                        <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
+                                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="4*"/>
+                                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">
+                                            <DataGridTextColumn.CellStyle>
+                                                <Style>
+                                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                </Style>
+                                            </DataGridTextColumn.CellStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="CCC" Binding="{Binding CCC}"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Grid Grid.Column="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid Grid.Row="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Correo-e:" TextAlignment="Right" Margin="3"></TextBlock>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Móvil:" TextAlignment="Right" Margin="3"></TextBlock>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Importe:" TextAlignment="Right" Margin="3"></TextBlock>
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Asunto:" TextAlignment="Right" Margin="3"></TextBlock>
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Nombre:" TextAlignment="Right" Margin="3"></TextBlock>
+                                        <TextBox Name="txtReclamarDeudaCorreo" Grid.Row="0" Grid.Column="1" Text="{Binding CorreoReclamarDeuda}"></TextBox>
+                                        <TextBox Name="txtReclamarDeudaMovil" Grid.Row="1" Grid.Column="1" Text="{Binding MovilReclamarDeuda}"></TextBox>
+                                        <TextBox Name="txtReclamarDeudaImporte" Grid.Row="2" Grid.Column="1" Text="{Binding ImporteReclamarDeuda, StringFormat=c}"></TextBox>
+                                        <TextBox Name="txtReclamarDeudaAsunto" Grid.Row="3" Grid.Column="1" Text="{Binding AsuntoReclamarDeuda}"></TextBox>
+                                        <TextBox Name="txtReclamarDeudaNombre" Grid.Row="4" Grid.Column="1" Text="{Binding NombreReclamarDeuda}"></TextBox>
+                                        <TextBlock Grid.Row="5" Grid.ColumnSpan="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                            <Hyperlink Name="txtEnlaceReclamacion" Command="{Binding AbrirEnlaceReclamacionCommand}" ToolTip="Clic con el botón derecho para copiar al portapapeles">
+                                                <Run Text="{Binding EnlaceReclamarDeuda}" MouseRightButtonUp="Run_MouseRightButtonUp"/>
+                                            </Hyperlink>
+                                        </TextBlock>
+                                    </Grid>
+                                    <Button Name="btnReclamarDeuda" Grid.Row="1" Command="{Binding ConfirmarReclamarDeudaCommand}" Margin="3,0,0,0">Reclamar Deuda</Button>
+                                </Grid>
                             </Grid>
                         </TabItem>
                     </TabControl>

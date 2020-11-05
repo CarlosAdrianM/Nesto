@@ -2,22 +2,17 @@
 using Nesto.Contratos;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace ControlesUsuario
 {
@@ -34,7 +29,6 @@ namespace ControlesUsuario
 
         public event PropertyChangedEventHandler PropertyChanged;
         private string vendedor;
-        private bool cargando;
         private string empresaPorDefecto = "1";
 
         #region "Campos de la Vista"
@@ -51,8 +45,7 @@ namespace ControlesUsuario
             } catch
             {
                 filtro = "Desconectado";
-            }
-            
+            }            
         }
         private void pnlDatosCliente_MouseUp(object sender, MouseButtonEventArgs e)
         {
@@ -67,13 +60,30 @@ namespace ControlesUsuario
         {
             if (e.Key == Key.Enter)
             {
+                if (string.IsNullOrEmpty(filtro))
+                {
+                    _listaClienteOriginal = null;
+                    listaClientes = null;
+                    clienteSeleccionado = null;
+                    return;
+                }
+                if (_listaClienteOriginal == null)
+                {
+                    cargarCliente();
+                } else
+                {
+                    _listaClienteOriginal = listaClientes;
+                }
                 TraversalRequest tRequest = new TraversalRequest(FocusNavigationDirection.Next);
                 UIElement keyboardFocus = Keyboard.FocusedElement as UIElement;
                 UIElement originalUIE = keyboardFocus;
 
-                if (keyboardFocus != null)
+                if (keyboardFocus != null && clienteSeleccionado != null && clienteSeleccionado.cliente == txtFiltro.Text)
                 {
                     keyboardFocus.MoveFocus(tRequest);
+                } else
+                {
+                    txtFiltro.SelectAll();
                 }
 
                 e.Handled = true;
@@ -102,9 +112,7 @@ namespace ControlesUsuario
             } else
             {
                 vendedor = await Configuracion.leerParametro(empresaPorDefecto, "Vendedor");
-            }
-
-            
+            }            
 
             // Para poner el foco en el primer control
             //TraversalRequest tRequest = new TraversalRequest(FocusNavigationDirection.Next);
@@ -115,6 +123,19 @@ namespace ControlesUsuario
         #endregion
 
         #region "Propiedades"
+        private bool _cargando;
+        public bool cargando
+        {
+            get { return _cargando; }
+            set { 
+                if (_cargando != value)
+                {
+                    _cargando = value;
+                    OnPropertyChanged("cargando");
+                    OnPropertyChanged(nameof(visibilidadCargando));
+                }
+            }
+        }
         private ClienteDTO _clienteSeleccionado;
         public ClienteDTO clienteSeleccionado
         {
@@ -131,6 +152,7 @@ namespace ControlesUsuario
                     this.ClienteCompleto = _clienteSeleccionado;
                     OnPropertyChanged("clienteSeleccionado");
                     OnPropertyChanged("visibilidadDatosCliente");
+                    _listaClienteOriginal = null;
                 }
             }
 
@@ -165,12 +187,21 @@ namespace ControlesUsuario
             {
                 if (_filtro != value)
                 {
-                    _filtro = value;
+                    _filtro = value.ToLower();
                     OnPropertyChanged("filtro");
-                    cargarCliente();
+                    if (listaClientes != null && listaClientes.Any())
+                    {
+                        listaClientes = new ObservableCollection<ClienteDTO>(_listaClienteOriginal.Where(l =>
+                            (
+                            (l.nombre != null && l.nombre.ToLower().Contains(filtro)) ||
+                            (l.direccion != null && l.direccion.ToLower().Contains(filtro)) ||
+                            (l.telefono != null && l.telefono.ToLower().Contains(filtro)) ||
+                            (l.poblacion != null && l.poblacion.ToLower().Contains(filtro))
+                            )
+                        ));
+                    }
                 }
             }
-
         }
 
         private ObservableCollection<ClienteDTO> _listaClientes;
@@ -187,6 +218,7 @@ namespace ControlesUsuario
                 OnPropertyChanged("visibilidadListaClientes");
             }
         }
+        private ObservableCollection<ClienteDTO> _listaClienteOriginal;
 
         public Visibility visibilidadCargando
         {
@@ -209,7 +241,8 @@ namespace ControlesUsuario
                 if (clienteSeleccionado != null)
                 {
                     return Visibility.Visible;
-                }else
+                }
+                else
                 {
                     return Visibility.Collapsed;
                 }
@@ -219,10 +252,11 @@ namespace ControlesUsuario
         {
             get
             {
-                if (listaClientes == null || listaClientes.Count == 0)
+                if (listaClientes == null || !listaClientes.Any())
                 {
                     return Visibility.Collapsed;
-                } else
+                }
+                else
                 {
                     return Visibility.Visible;
                 }
@@ -333,6 +367,10 @@ namespace ControlesUsuario
                 //}
                 selector.filtro = selector.Cliente.Trim();
             }
+            if (selector.ClienteCompleto == null)
+            {
+                selector.cargarCliente();
+            }
 
         }
 
@@ -378,8 +416,6 @@ namespace ControlesUsuario
             }
 
         }
-
-
 
         public string Etiqueta
         {
@@ -468,7 +504,7 @@ namespace ControlesUsuario
 
             clienteSeleccionado = null;
 
-            if (filtro.Trim() == "")
+            if (string.IsNullOrEmpty(filtro))
             {
                 return;
             }
@@ -489,7 +525,8 @@ namespace ControlesUsuario
                     if (response.IsSuccessStatusCode)
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
-                        listaClientes = JsonConvert.DeserializeObject<ObservableCollection<ClienteDTO>>(resultado);
+                        _listaClienteOriginal = JsonConvert.DeserializeObject<ObservableCollection<ClienteDTO>>(resultado);
+                        listaClientes = _listaClienteOriginal;
                         if (Cliente != null)
                         {
                             //vendedorSeleccionado = listaVendedores.Where(l => l.vendedor == Seleccionado.Trim()).SingleOrDefault();
@@ -568,5 +605,36 @@ namespace ControlesUsuario
             txtFiltro.SelectAll();
         }
     }
+    public class EstadoColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            var estado = (int)value;
+            if (estado == -1)
+            {
+                return Brushes.DarkRed;
+            }
+            else if (estado == 5)
+            {
+                return Brushes.Red;
+            }
+            else if (estado == 7)
+            {
+                return Brushes.GreenYellow;
+            }
+            else if (estado == 0 || estado == 9)
+            {
+                return Brushes.Green;
+            }
+            else
+            {
+                return Brushes.Transparent;
+            }
+        }
 
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

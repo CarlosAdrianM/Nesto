@@ -13,6 +13,7 @@ Imports System.Transactions
 Imports System.Threading.Tasks
 Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
+Imports Nesto.Models
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -23,7 +24,6 @@ Public Class AgenciasViewModel
     ' fecha de cobro a 01/01/15
     Const MODO_CUADRE = False
 
-    Const CARGO_AGENCIA = 26
     Const LONGITUD_TELEFONO = 15
 
     'Private ReadOnly container As IUnityContainer
@@ -349,13 +349,9 @@ Public Class AgenciasViewModel
                     poblacionEnvio = If(cliente.Población IsNot Nothing, cliente.Población.Trim, "")
                     provinciaEnvio = If(cliente.Provincia IsNot Nothing, cliente.Provincia.Trim, "")
                     codPostalEnvio = If(cliente.CodPostal IsNot Nothing, cliente.CodPostal.Trim, "")
-                    If cliente.Teléfono IsNot Nothing Then
-                        telefonoEnvio = telefonoUnico(cliente.Teléfono.Trim, "F")
-                        movilEnvio = telefonoUnico(cliente.Teléfono.Trim, "M")
-                    Else
-                        telefonoEnvio = ""
-                        movilEnvio = ""
-                    End If
+                    Dim telefono As Telefono = New Telefono(cliente.Teléfono)
+                    telefonoEnvio = telefono.FijoUnico
+                    movilEnvio = telefono.MovilUnico
                     correoEnvio = correoUnico()
                     observacionesEnvio = pedidoSeleccionado.Comentarios
                     attEnvio = nombreEnvio
@@ -1980,67 +1976,17 @@ Public Class AgenciasViewModel
 #End Region
 
 #Region "Funciones de Ayuda"
-
-    Public Function telefonoUnico(listaTelefonos As String, Optional tipo As String = "F") As String
-        ' tipo = F -> teléfono fijo
-        ' tipo = M -> teléfono móvil
-
-        Dim telefonos() As String
-        Dim stringSeparators() As String = {"/"}
-
-        telefonos = listaTelefonos.Split(stringSeparators, StringSplitOptions.RemoveEmptyEntries)
-        For Each t As String In telefonos
-            If (t.Length = 9) And (
-                (tipo = "F" And t.Substring(0, 1) = "9") Or
-                (tipo = "M" And t.Substring(0, 1) = "6") Or
-                (tipo = "M" And t.Substring(0, 1) = "7") Or
-                (tipo = "M" And t.Substring(0, 1) = "8")
-                ) Then
-                Return t
-            End If
-        Next
-        Return ""
-
-    End Function
-    Public Function correoUnico(Optional listaPersonas As List(Of PersonasContactoCliente) = Nothing) As String
-        Dim correo As String
-        Dim personaAgencia As PersonasContactoCliente
-
-        If IsNothing(listaPersonas) Then
-            If IsNothing(pedidoSeleccionado.Clientes.PersonasContactoCliente.FirstOrDefault) Then
-                Return ""
-            Else
-                listaPersonas = pedidoSeleccionado.Clientes.PersonasContactoCliente.ToList
-            End If
-        End If
-
-        If IsNothing(listaPersonas.FirstOrDefault) Then
-            Return ""
-        End If
-        personaAgencia = (From c In listaPersonas Where c.Cargo = CARGO_AGENCIA And c.CorreoElectrónico <> "").FirstOrDefault
-        If Not IsNothing(personaAgencia) AndAlso Not IsNothing(personaAgencia.CorreoElectrónico) Then
-            correo = personaAgencia.CorreoElectrónico.Trim
-            If correo <> "" Then
-                Return correo
-            End If
-        End If
-
-        personaAgencia = (From c In listaPersonas Where c.CorreoElectrónico <> "").FirstOrDefault
-        If Not IsNothing(personaAgencia) AndAlso Not IsNothing(personaAgencia.CorreoElectrónico) Then
-            correo = personaAgencia.CorreoElectrónico.Trim
-            If correo <> "" Then
-                Return correo
-            End If
-        End If
-
-        If IsNothing(listaPersonas.FirstOrDefault.CorreoElectrónico) Then
-            Return ""
+    Public Function correoUnico() As String
+        If Not pedidoSeleccionado.Clientes.PersonasContactoCliente.Any Then
+            Return String.Empty
         Else
-            Return listaPersonas.FirstOrDefault.CorreoElectrónico.Trim
+            Return correoUnico(pedidoSeleccionado.Clientes.PersonasContactoCliente.ToList)
         End If
+    End Function
 
-
-
+    Public Function correoUnico(listaPersonas As List(Of PersonasContactoCliente)) As String
+        Dim correo As CorreoCliente = New CorreoCliente(listaPersonas)
+        Return correo.CorreoAgencia
     End Function
     Public Function importeReembolso(pedidoSeleccionado As CabPedidoVta) As Decimal
 
@@ -2686,6 +2632,7 @@ Public Class AgenciasViewModel
             Return
         End If
 
+        Dim telefono As Telefono = New Telefono(pedido.Clientes.Teléfono)
         With EnvioPendienteSeleccionado
             .Cliente = pedido.Nº_Cliente
             .Contacto = pedido.Contacto
@@ -2699,13 +2646,8 @@ Public Class AgenciasViewModel
             .Observaciones = pedido.Comentarios
             .Poblacion = If(pedido.Clientes.Población IsNot Nothing, pedido.Clientes.Población.Trim, "")
             .Provincia = If(pedido.Clientes.Provincia IsNot Nothing, pedido.Clientes.Provincia.Trim, "")
-            If pedido.Clientes.Teléfono IsNot Nothing Then
-                .Telefono = telefonoUnico(pedido.Clientes.Teléfono.Trim, "F")
-                .Movil = telefonoUnico(pedido.Clientes.Teléfono.Trim, "M")
-            Else
-                .Telefono = ""
-                .Movil = ""
-            End If
+            .Telefono = Telefono.FijoUnico
+            .Movil = telefono.MovilUnico
             .Reembolso = importeReembolso(pedido)
             .Pais = agenciaEspecifica.paisDefecto
             .Retorno = agenciaEspecifica.retornoSinRetorno

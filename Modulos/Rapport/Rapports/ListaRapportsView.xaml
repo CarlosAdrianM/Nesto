@@ -17,16 +17,27 @@
             <ColumnDefinition Width="3*"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0" Margin="3">
-            <controles:SelectorCliente Name="txtSelectorCliente" Configuracion="{Binding configuracion}" Empresa="1" Cliente="{Binding clienteSeleccionado, Mode=TwoWay}" Contacto="{Binding contactoSeleccionado, Mode=TwoWay}"></controles:SelectorCliente>
-            <TextBlock></TextBlock>
-            <DatePicker SelectedDate="{Binding fechaSeleccionada}"></DatePicker>
-            <CheckBox IsChecked="{Binding esUsuarioElVendedor}">Filtrar por Usuario</CheckBox>
-            <TextBlock></TextBlock>
-            <Button Command="{Binding cmdCargarListaRapports}">Cargar Rapports</Button>
-            <TextBlock></TextBlock>
-            <Button Command="{Binding cmdCrearRapport}">Crear Rapport</Button>
-        </StackPanel>
+        <Grid Grid.Column="0" Margin="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <controles:SelectorCliente Grid.Row="0" Name="txtSelectorCliente" Configuracion="{Binding configuracion}" Empresa="1" Cliente="{Binding clienteSeleccionado, Mode=TwoWay}" Contacto="{Binding contactoSeleccionado, Mode=TwoWay}"></controles:SelectorCliente>
+            <TextBlock Grid.Row="1"></TextBlock>
+            <StackPanel Grid.Row="2">
+                <DatePicker SelectedDate="{Binding fechaSeleccionada}"></DatePicker>
+                <CheckBox IsChecked="{Binding esUsuarioElVendedor}">Filtrar por Usuario</CheckBox>
+            </StackPanel>
+            <TextBlock Grid.Row="3"></TextBlock>
+            <Button Grid.Row="4" Command="{Binding cmdCargarListaRapports}">Cargar Rapports</Button>
+            <TextBlock Grid.Row="5"></TextBlock>
+            <Button Grid.Row="6" Command="{Binding cmdCrearRapport}">Crear Rapport</Button>
+        </Grid>
 
         <xctk:BusyIndicator Grid.Column="1" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando rapports...">
             <DockPanel HorizontalAlignment="Stretch" Margin="3">

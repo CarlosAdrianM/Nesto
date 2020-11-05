@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 
 namespace ControlesUsuario.Models
 {
@@ -41,6 +37,7 @@ namespace ControlesUsuario.Models
         public string comentarios { get; set; }
         public int estado { get; set; }
         public string vendedor { get; set; }
+        public string cifNif { get; set; }
         public List<VendedorGrupoProductoDTO> VendedoresGrupoProducto { get; set; }
 
         private void OnPropertyChanged([CallerMemberName] String propertyName = "")

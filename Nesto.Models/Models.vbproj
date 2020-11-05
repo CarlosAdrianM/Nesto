@@ -109,6 +109,7 @@
     <Compile Include="Contabilidad.vb">
       <DependentUpon>NestoModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="CorreoCliente.vb" />
     <Compile Include="DataSets\ControlPedidos.Designer.vb">
       <DependentUpon>ControlPedidos.xsd</DependentUpon>
       <AutoGen>True</AutoGen>
@@ -247,6 +248,7 @@
     <Compile Include="Productos.vb">
       <DependentUpon>NestoModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="ReclamacionDeuda.vb" />
     <Compile Include="Remesas.vb">
       <DependentUpon>NestoModel.tt</DependentUpon>
     </Compile>
@@ -259,6 +261,7 @@
     <Compile Include="SubGruposProducto.vb">
       <DependentUpon>NestoModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Telefono.vb" />
     <Compile Include="Vendedores.vb">
       <DependentUpon>NestoModel.tt</DependentUpon>
     </Compile>

@@ -51,6 +51,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClienteTests", "Modulos\Cli
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlantillaVentaTests", "PlantillaVentaTests\PlantillaVentaTests.csproj", "{B0B250D5-0DAF-4B47-B637-EFE38CD9102F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Models.Tests", "Models.Tests\Models.Tests.csproj", "{06A5EB75-767B-40DB-9E2D-589288116063}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -283,6 +285,18 @@ Global
 		{B0B250D5-0DAF-4B47-B637-EFE38CD9102F}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{B0B250D5-0DAF-4B47-B637-EFE38CD9102F}.Release|x86.ActiveCfg = Release|Any CPU
 		{B0B250D5-0DAF-4B47-B637-EFE38CD9102F}.Release|x86.Build.0 = Release|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Debug|x86.Build.0 = Debug|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Release|x86.ActiveCfg = Release|Any CPU
+		{06A5EB75-767B-40DB-9E2D-589288116063}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
