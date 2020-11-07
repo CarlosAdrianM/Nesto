@@ -9,9 +9,15 @@ Imports System.Windows.Controls
 Imports System.Threading.Tasks
 Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
+Imports Prism.Mvvm
+Imports Prism.Commands
+Imports Microsoft.Identity.Client
+Imports Microsoft.Graph.Auth
+Imports System.Threading
+Imports Microsoft.Graph
 
 Public Class RemesasViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
     Const numRemesas = 100
 
@@ -45,17 +51,30 @@ Public Class RemesasViewModel
         listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
         impagadoActual = listaImpagados.FirstOrDefault
         'usuarioTareas = mainModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto")
-        usuarioTareas = "carmengarcia@nuevavision.es" 'mainViewModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto").Result
+        usuarioTareas = "monicaprado@nuevavision.es" 'mainViewModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto").Result
         listaTiposRemesa = New ObservableCollection(Of tipoRemesa)
         tipoRemesaActual = New tipoRemesa("B2B", "Profesionales (B2B)")
         listaTiposRemesa.Add(tipoRemesaActual)
         listaTiposRemesa.Add(New tipoRemesa("CORE", "Particulares (CORE)"))
         tipoRemesaActual = listaTiposRemesa.LastOrDefault ' Por defecto es CORE -> FirstOrDefault para B2B
         fechaCobro = Today
+
+        CrearTareasPlannerCommand = New DelegateCommand(AddressOf OnCrearTareasPlanner, AddressOf CanCrearTareasPlanner)
     End Sub
 
 
 #Region "Propiedades"
+
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(value As String)
+            SetProperty(_titulo, value)
+        End Set
+    End Property
+
     Private Property _listaEmpresas As ObservableCollection(Of Empresas)
     Public Property listaEmpresas As ObservableCollection(Of Empresas)
         Get
@@ -406,6 +425,62 @@ Public Class RemesasViewModel
                 mensajeError = ex.InnerException.Message
             End If
         End Try
+    End Sub
+
+    Public Property CrearTareasPlannerCommand As DelegateCommand
+    Private Function CanCrearTareasPlanner() As Boolean
+        Return True
+    End Function
+    Private Async Sub OnCrearTareasPlanner()
+        Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
+        Dim tenantId = "16d9b0cd-12c6-4639-8c26-779abc0dc0ad"
+        Dim planId = "uI4iq6Cw2EO7IvMNPmDXBJcAAmeB" ' Gestión de cobro
+        Dim carlosId = "24b32850-5629-4b14-bee0-1c03021cc393"
+        Dim monicaId = "532c9b5b-45b9-43d8-a571-d1b69fb5bf5c"
+        Dim carmenId = "bf047170-791d-4075-a6b9-8363bce7a229"
+
+        Dim app As IPublicClientApplication = PublicClientApplicationBuilder.Create(clientId).WithTenantId(tenantId).Build()
+
+        Dim scopes = {"Group.ReadWrite.All"}
+        Dim authProvider As InteractiveAuthenticationProvider = New InteractiveAuthenticationProvider(app, scopes)
+
+        Dim graphClient As GraphServiceClient = New GraphServiceClient(authProvider)
+
+        Dim ruta As New Rutas
+        Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
+
+        Try
+            For Each impagado In impagados
+                Dim asignadas = New PlannerAssignments
+                asignadas.AddAssignee(monicaId)
+                asignadas.AddAssignee(carmenId)
+
+                ruta = (From r In DbContext.Rutas Where r.Empresa = impagado.c.Empresa And r.Número = impagado.c.Ruta).FirstOrDefault
+                Dim plannerTask = New PlannerTask With
+                {
+                    .PlanId = planId,
+                    .BucketId = "mfv4eFpWok2SETNoMdyLnJcAG25s",
+                    .Title = ruta.Descripción.Trim + " - Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
+                        ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim,
+                    .Assignments = asignadas
+                }
+                Dim detalles As PlannerTaskDetails = New PlannerTaskDetails()
+                detalles.Description = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
+                        "Motivo: " + impagado.e.Concepto + vbCrLf +
+                        "Ruta: " + impagado.c.Ruta + vbCrLf +
+                        "Empresa: " + impagado.c.Empresas.Nombre.Trim
+                plannerTask.Details = detalles
+                Await graphClient.Planner.Tasks.Request().AddAsync(plannerTask)
+            Next
+            mensajeError = "Tareas del asiento " + CStr(impagadoActual.asiento) + " creadas correctamente"
+        Catch ex As Exception
+            If IsNothing(ex.InnerException) Then
+                mensajeError = ex.Message
+            Else
+                mensajeError = ex.InnerException.Message
+            End If
+        End Try
+
     End Sub
 
 #End Region
