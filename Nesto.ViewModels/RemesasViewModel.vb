@@ -1,5 +1,4 @@
-﻿Imports Nesto.Models
-Imports System.Windows.Input
+﻿Imports System.Windows.Input
 Imports System.ComponentModel
 Imports System.Collections.ObjectModel
 Imports System.Windows
@@ -13,7 +12,6 @@ Imports Prism.Mvvm
 Imports Prism.Commands
 Imports Microsoft.Identity.Client
 Imports Microsoft.Graph.Auth
-Imports System.Threading
 Imports Microsoft.Graph
 
 Public Class RemesasViewModel
@@ -38,11 +36,13 @@ Public Class RemesasViewModel
         Property descripcion As String
     End Structure
 
-    Public Sub New()
+    Public Sub New(app As IPublicClientApplication, configuracion As IConfiguracion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
         Titulo = "Remesas"
+        Me.app = app
+        Me.configuracion = configuracion
         DbContext = New NestoEntities
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
@@ -50,8 +50,6 @@ Public Class RemesasViewModel
         remesaActual = listaRemesas.FirstOrDefault
         listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
         impagadoActual = listaImpagados.FirstOrDefault
-        'usuarioTareas = mainModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto")
-        usuarioTareas = "monicaprado@nuevavision.es" 'mainViewModel.leerParametro(empresaActual, "UsuarioAvisoImpagadoDefecto").Result
         listaTiposRemesa = New ObservableCollection(Of tipoRemesa)
         tipoRemesaActual = New tipoRemesa("B2B", "Profesionales (B2B)")
         listaTiposRemesa.Add(tipoRemesaActual)
@@ -74,6 +72,9 @@ Public Class RemesasViewModel
             SetProperty(_titulo, value)
         End Set
     End Property
+
+    Private Property app As IPublicClientApplication
+    Private Property configuracion As IConfiguracion
 
     Private Property _listaEmpresas As ObservableCollection(Of Empresas)
     Public Property listaEmpresas As ObservableCollection(Of Empresas)
@@ -160,14 +161,17 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-    Private Property _PestañaSeleccionada As TabItem
+    Private Property _pestañaSeleccionada As TabItem
     Public Property PestañaSeleccionada As TabItem
         Get
-            Return _PestañaSeleccionada
+            Return _pestañaSeleccionada
         End Get
         Set(value As TabItem)
-            _PestañaSeleccionada = value
-            OnPropertyChanged("PestañaSeleccionada")
+            SetProperty(_pestañaSeleccionada, value)
+            If _pestañaSeleccionada.Header = "Impagados" AndAlso String.IsNullOrEmpty(usuarioTareas) Then
+                usuarioTareas = configuracion.LeerParametroSync(empresaActual, "UsuarioAvisoImpagadoDefecto")
+                RaisePropertyChanged(NameOf(usuarioTareas))
+            End If
         End Set
     End Property
 
@@ -215,8 +219,7 @@ Public Class RemesasViewModel
             Return _usuarioTareas
         End Get
         Set(value As String)
-            _usuarioTareas = value
-            OnPropertyChanged("usuarioActual")
+            SetProperty(_usuarioTareas, value)
         End Set
     End Property
 
@@ -432,45 +435,74 @@ Public Class RemesasViewModel
         Return True
     End Function
     Private Async Sub OnCrearTareasPlanner()
-        Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
-        Dim tenantId = "16d9b0cd-12c6-4639-8c26-779abc0dc0ad"
         Dim planId = "uI4iq6Cw2EO7IvMNPmDXBJcAAmeB" ' Gestión de cobro
-        Dim carlosId = "24b32850-5629-4b14-bee0-1c03021cc393"
-        Dim monicaId = "532c9b5b-45b9-43d8-a571-d1b69fb5bf5c"
-        Dim carmenId = "bf047170-791d-4075-a6b9-8363bce7a229"
-
-        Dim app As IPublicClientApplication = PublicClientApplicationBuilder.Create(clientId).WithTenantId(tenantId).Build()
-
-        Dim scopes = {"Group.ReadWrite.All"}
+        Dim bucketId = "mfv4eFpWok2SETNoMdyLnJcAG25s" ' Pendientes
+        Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}
         Dim authProvider As InteractiveAuthenticationProvider = New InteractiveAuthenticationProvider(app, scopes)
 
         Dim graphClient As GraphServiceClient = New GraphServiceClient(authProvider)
 
-        Dim ruta As New Rutas
+        Dim users = Await graphClient.Users.Request().GetAsync()
+
+        Dim usuarios As String() = usuarioTareas.Split(New Char() {";"c})
+        Dim usuariosAsignar As New List(Of String)
+        For Each usuario In usuarios
+            Dim usuarioAsignar = users.FirstOrDefault(Function(c) c.Mail = usuario.Trim).Id
+            If Not String.IsNullOrEmpty(usuarioAsignar) Then
+                usuariosAsignar.Add(usuarioAsignar)
+            End If
+        Next
+
+        Dim tareasBucket = Await graphClient.Planner.Buckets(bucketId).Tasks.Request().GetAsync()
+
         Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
+
+        Dim plannerTask As PlannerTask
 
         Try
             For Each impagado In impagados
                 Dim asignadas = New PlannerAssignments
-                asignadas.AddAssignee(monicaId)
-                asignadas.AddAssignee(carmenId)
+                For Each usuario In usuariosAsignar
+                    asignadas.AddAssignee(usuario)
+                Next
 
-                ruta = (From r In DbContext.Rutas Where r.Empresa = impagado.c.Empresa And r.Número = impagado.c.Ruta).FirstOrDefault
-                Dim plannerTask = New PlannerTask With
-                {
-                    .PlanId = planId,
-                    .BucketId = "mfv4eFpWok2SETNoMdyLnJcAG25s",
-                    .Title = ruta.Descripción.Trim + " - Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
-                        ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim,
-                    .Assignments = asignadas
-                }
+                Dim tituloTarea = String.Format("Impagados cliente {0}", impagado.e.Número.Trim)
+
+                Dim detallesAntiguos As PlannerTaskDetails
+
+                If tareasBucket.Any(Function(t) t.Title = tituloTarea) Then
+                    plannerTask = tareasBucket.First(Function(t) t.Title = tituloTarea)
+                    detallesAntiguos = Await graphClient.Planner.Tasks(plannerTask.Id).Details.Request().GetAsync()
+                Else
+                    plannerTask = New PlannerTask With
+                    {
+                        .PlanId = planId,
+                        .BucketId = bucketId,
+                        .Title = tituloTarea,
+                        .Assignments = asignadas
+                    }
+                End If
+
+                Dim elementoCheckList As String = String.Format("Fecha {0}, importe {1} (más gastos). {2}.",
+                        impagado.e.Fecha.ToShortDateString, FormatCurrency(impagado.e.Importe), impagado.e.Concepto.Trim)
                 Dim detalles As PlannerTaskDetails = New PlannerTaskDetails()
-                detalles.Description = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
-                        "Motivo: " + impagado.e.Concepto + vbCrLf +
-                        "Ruta: " + impagado.c.Ruta + vbCrLf +
-                        "Empresa: " + impagado.c.Empresas.Nombre.Trim
-                plannerTask.Details = detalles
-                Await graphClient.Planner.Tasks.Request().AddAsync(plannerTask)
+                detalles.Checklist = New PlannerChecklistItems()
+                detalles.Checklist.AddChecklistItem(Left(elementoCheckList, 100))
+
+                If IsNothing(detallesAntiguos) Then
+                    Dim descripcion As String = String.Format("Llamar al cliente {0}/{1}. Vendedor: {2}. {3} en  {4}. Ruta: {5}. Empresa: {6}.",
+                            impagado.e.Número.Trim(), impagado.e.Contacto.Trim, impagado.c.Vendedor.Trim, impagado.c.Nombre.Trim, impagado.c.Dirección.Trim, impagado.c.Ruta, impagado.c.Empresas.Nombre.Trim)
+                    detalles.Description = descripcion
+                    detalles.PreviewType = PlannerPreviewType.Checklist
+                    plannerTask.Details = detalles
+                End If
+
+                If String.IsNullOrEmpty(plannerTask.Id) Then
+                    Await graphClient.Planner.Tasks.Request().AddAsync(plannerTask)
+                    tareasBucket.Add(plannerTask)
+                Else
+                    Await graphClient.Planner.Tasks(plannerTask.Id).Details.Request().Header("If-Match", detallesAntiguos.GetEtag).UpdateAsync(detalles)
+                End If
             Next
             mensajeError = "Tareas del asiento " + CStr(impagadoActual.asiento) + " creadas correctamente"
         Catch ex As Exception

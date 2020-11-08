@@ -4,4 +4,5 @@
     ReadOnly Property servidorAPI As String
     ReadOnly Property usuario As String
     Function UsuarioEnGrupo(grupo As String) As Boolean
+    Function LeerParametroSync(empresa As String, clave As String) As String
 End Interface

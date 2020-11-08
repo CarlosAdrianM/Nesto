@@ -151,7 +151,7 @@
                                         <Button Grid.Column="0" Content="Crear Tareas Planner" Command="{Binding CrearTareasPlannerCommand}" Margin="3" Padding="3"/>
                                         <Button Grid.Column="0" Content="Crear Tareas Outlook" Command="{Binding cmdCrearTareasOutlook}" Margin="3" Padding="3"/>
                                     </StackPanel>
-                                    <TextBox Grid.Column="1" Text="{Binding usuarioTareas}" Margin="3"/>
+                                    <TextBox Grid.Column="1" Text="{Binding usuarioTareas}" Margin="3" VerticalContentAlignment="Center"/>
                                 </Grid>
                             </StackPanel>
                         </DockPanel>

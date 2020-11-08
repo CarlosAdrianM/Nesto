@@ -50,6 +50,30 @@ Public Class Configuracion
 
     End Function
 
+    Public Function LeerParametroSync(empresa As String, clave As String) As String Implements IConfiguracion.LeerParametroSync
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(Me.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Try
+                response = client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=" + System.Environment.UserName + "&clave=" + clave).Result
+
+                If response.IsSuccessStatusCode Then
+                    Dim respuesta As String = response.Content.ReadAsStringAsync().Result
+                    respuesta = JsonConvert.DeserializeObject(Of String)(respuesta)
+                    Return respuesta.Trim
+                Else
+                    Throw New Exception("No se puede leer el parámetro")
+                End If
+            Catch ex As Exception
+                Throw New Exception("No se puede leer el parámetro")
+            End Try
+
+        End Using
+
+    End Function
+
     Public Function UsuarioEnGrupo(grupo As String) As Boolean Implements IConfiguracion.UsuarioEnGrupo
         Dim yourDomain As String = System.Environment.UserDomainName
         Using ctx As New PrincipalContext(ContextType.Domain, yourDomain)
