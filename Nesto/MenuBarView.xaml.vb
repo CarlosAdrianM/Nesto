@@ -17,6 +17,7 @@ Public Class MenuBarView
     Private regionManager As IRegionManager
     Private configuracion As IConfiguracion
 
+
     'Public Sub New(regionManager As IRegionManager, container As IContainerProvider, configuracion As IConfiguracion)
 
 
