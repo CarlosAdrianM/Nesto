@@ -1,7 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Windows
 Imports System.Net
-Imports Prism.Interactivity.InteractionRequest
 Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks
@@ -10,24 +9,8 @@ Imports Nesto.Models.Nesto.Models
 Public Class AgenciaOnTime
     Implements IAgencia
 
-
-    ' Propiedades de Prism
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
     Public Sub New(agencia As AgenciasViewModel)
         If Not IsNothing(agencia) Then
-
-            NotificationRequest = New InteractionRequest(Of INotification)
-            'ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
             ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
                 New tipoIdDescripcion(0, "NO"),
                 New tipoIdDescripcion(1, "SI")
@@ -50,13 +33,7 @@ Public Class AgenciaOnTime
 
     ' Funciones
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
-
-        NotificationRequest.Raise(New Notification() With {
-             .Title = "Error",
-            .Content = "OnTime no permite integración. Consulte el estado en la página web de OnTime."
-        })
-        Return Nothing
-
+        Throw New Exception("OnTime no permite integración. Consulte el estado en la página web de OnTime.")
     End Function
     Public Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio Implements IAgencia.transformarXMLdeEstado
         Dim estado As New estadoEnvio
@@ -113,10 +90,7 @@ Public Class AgenciaOnTime
                 objStream.Writeline("")
             Next
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-                    .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
-                .Content = ex.InnerException.Message
-            })
+            Throw New Exception("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.InnerException.Message)
         Finally
             objStream.Close()
             objFSO = Nothing

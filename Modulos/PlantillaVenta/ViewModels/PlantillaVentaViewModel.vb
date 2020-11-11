@@ -11,22 +11,23 @@ Imports Newtonsoft.Json.Linq
 Imports Xceed.Wpf.Toolkit
 Imports Prism.Events
 Imports Nesto.Models.Nesto.Models
-Imports Prism.Ioc
 Imports Prism.Regions
 Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
 Imports Unity
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
+Imports Prism.Mvvm
 
 Public Class PlantillaVentaViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IPlantillaVentaService
     Private ReadOnly eventAggregator As IEventAggregator
-
-
+    Private ReadOnly dialogService As IDialogService
+    Public Property Titulo As String
     Private Const ESTADO_LINEA_CURSO As Integer = 1
     Private Const ESTADO_LINEA_PRESUPUESTO As Integer = -3
 
@@ -39,12 +40,13 @@ Public Class PlantillaVentaViewModel
     Dim formaVentaPedido, delegacionUsuario, almacenRutaUsuario, iva, vendedorUsuario As String
     Dim ultimoClienteAbierto As String = ""
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService)
         Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
+        Me.dialogService = dialogService
 
         Titulo = "Plantilla Ventas"
 
@@ -67,9 +69,6 @@ Public Class PlantillaVentaViewModel
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
         cmdCalcularSePuedeServirPorGlovo = New DelegateCommand(AddressOf OnCalcularSePuedeServirPorGlovo)
         CambiarIvaCommand = New DelegateCommand(AddressOf OnCambiarIva)
-
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
         ' Al leer los clientes lo lee del parámetro PermitirVerClientesTodosLosVendedores
         todosLosVendedores = False
@@ -96,38 +95,6 @@ Public Class PlantillaVentaViewModel
 
 
 #Region "Propiedades"
-    '*** Propiedades de Prism 
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
-        End Set
-    End Property
-
     '*** Propiedades de Nesto
     Private vendedor As String
     Private ultimaOferta As Integer = 0
@@ -177,16 +144,11 @@ Public Class PlantillaVentaViewModel
             If Not IsNothing(value) AndAlso String.IsNullOrWhiteSpace(value.cifNif) Then
                 If ultimoClienteAbierto = value.cliente Then
                     Dim mensajeError As String = String.Format("A este cliente le faltan datos. Si continua es{0}posible que no pueda finalizar el pedido. Elija entre rellenar los{0}datos que faltan (Cancel) o continuar con el pedido (OK)", Environment.NewLine)
-                    Me.ConfirmationRequest.Raise(
-                        New Confirmation() With {
-                            .Content = mensajeError,
-                            .Title = "Faltan datos en el cliente"
-                        },
-                        Sub(c)
-                            InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                        End Sub
-                    )
-                    If InteractionResultMessage = "OK" Then
+                    Dim continuar As Boolean
+                    dialogService.ShowConfirmation("Faltan datos en el cliente", mensajeError, Sub(r)
+                                                                                                   continuar = (r.Result = ButtonResult.OK)
+                                                                                               End Sub)
+                    If continuar Then
                         SeleccionarElCliente(value)
                     Else
                         NavegarAClienteCrear(value)
@@ -198,19 +160,19 @@ Public Class PlantillaVentaViewModel
             ElseIf Not IsNothing(value) Then
                 SeleccionarElCliente(value)
             End If
-            OnPropertyChanged(Function() SePuedeFinalizar)
+            RaisePropertyChanged(NameOf(SePuedeFinalizar))
         End Set
     End Property
 
     Private Sub SeleccionarElCliente(value As ClienteJson)
         SetProperty(_clienteSeleccionado, value)
-        OnPropertyChanged("hayUnClienteSeleccionado")
+        RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
         cmdCargarProductosPlantilla.Execute(Nothing)
         cmdComprobarPendientes.Execute(Nothing)
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
-        OnPropertyChanged(Function() clienteSeleccionado)
+        RaisePropertyChanged(NameOf(clienteSeleccionado))
     End Sub
 
     Private Sub NavegarAClienteCrear(value As ClienteJson)
@@ -231,8 +193,8 @@ Public Class PlantillaVentaViewModel
             If fechaMinimaEntrega > fechaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If
-            OnPropertyChanged(Function() textoFacturacionElectronica)
-            OnPropertyChanged("fechaMinimaEntrega")
+            RaisePropertyChanged(NameOf(textoFacturacionElectronica))
+            RaisePropertyChanged(NameOf(fechaMinimaEntrega))
             ' Se hace así para que coja la fecha de hoy cuando se pueda
             ' Si lo hacemos en otro orden, da error porque ponemos una fecha
             ' menor a la que nos permite el datapicker
@@ -272,7 +234,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As Boolean)
             SetProperty(_esPresupuesto, value)
-            OnPropertyChanged(Function() SePuedeFinalizar)
+            RaisePropertyChanged(NameOf(SePuedeFinalizar))
         End Set
     End Property
 
@@ -364,7 +326,7 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As FormaPagoDTO)
             SetProperty(_formaPagoSeleccionada, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
-            OnPropertyChanged(Function() SePuedeFinalizar)
+            RaisePropertyChanged(NameOf(SePuedeFinalizar))
         End Set
     End Property
 
@@ -405,9 +367,9 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As Integer)
             SetProperty(_formaVentaSeleccionada, value)
-            OnPropertyChanged("formaVentaDirecta")
-            OnPropertyChanged("formaVentaTelefono")
-            OnPropertyChanged("formaVentaOtras")
+            RaisePropertyChanged(NameOf(formaVentaDirecta))
+            RaisePropertyChanged(NameOf(formaVentaTelefono))
+            RaisePropertyChanged(NameOf(formaVentaOtras))
         End Set
     End Property
 
@@ -513,9 +475,9 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of LineaPlantillaJson))
             SetProperty(_listaProductos, value)
-            OnPropertyChanged("listaProductosPedido")
-            OnPropertyChanged("baseImponiblePedido")
-            OnPropertyChanged("totalPedido")
+            RaisePropertyChanged(NameOf(listaProductosPedido))
+            RaisePropertyChanged(NameOf(baseImponiblePedido))
+            RaisePropertyChanged(NameOf(totalPedido))
         End Set
     End Property
 
@@ -595,7 +557,7 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As PlazoPagoDTO)
             SetProperty(_plazoPagoSeleccionado, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
-            OnPropertyChanged(Function() SePuedeFinalizar)
+            RaisePropertyChanged(NameOf(SePuedeFinalizar))
             If (Not IsNothing(_plazoPagoSeleccionado)) Then
                 cmdCalcularSePuedeServirPorGlovo.Execute()
             End If
@@ -769,25 +731,19 @@ Public Class PlantillaVentaViewModel
                     If arg.descuento < arg.descuentoProducto OrElse Not arg.aplicarDescuento Then
                         arg.descuento = IIf(arg.aplicarDescuento, arg.descuentoProducto, 0)
                     End If
-                    OnPropertyChanged("baseImponiblePedido")
+                    RaisePropertyChanged(NameOf(baseImponiblePedido))
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar el precio y los descuentos especiales"
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar el precio y los descuentos especiales")
                 End If
 
                 'Carlos 04/07/18: desactivo porque lo controlamos con las ofertas permitidas
                 'Await cmdComprobarCondicionesPrecio.Execute(arg)
 
-                OnPropertyChanged("listaProductosPedido")
-                OnPropertyChanged("baseImponiblePedido")
-                OnPropertyChanged("totalPedido")
+                RaisePropertyChanged(NameOf(listaProductosPedido))
+                RaisePropertyChanged(NameOf(baseImponiblePedido))
+                RaisePropertyChanged(NameOf(totalPedido))
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 'estaOcupado = False
             End Try
@@ -822,17 +778,17 @@ Public Class PlantillaVentaViewModel
         If (arg.cantidad + arg.cantidadOferta <> 0) AndAlso Not arg.stockActualizado Then
             cmdCargarStockProducto.Execute(arg)
         End If
-        OnPropertyChanged("hayProductosEnElPedido")
-        OnPropertyChanged("NoHayProductosEnElPedido")
+        RaisePropertyChanged(NameOf(hayProductosEnElPedido))
+        RaisePropertyChanged(NameOf(NoHayProductosEnElPedido))
         If IsNothing(productoSeleccionado) OrElse productoSeleccionado.producto <> arg.producto Then
             productoSeleccionado = arg
         End If
 
-        OnPropertyChanged("productoSeleccionado")
-        OnPropertyChanged("listaProductos")
-        OnPropertyChanged("listaProductosPedido")
-        OnPropertyChanged("baseImponiblePedido")
-        OnPropertyChanged("totalPedido")
+        RaisePropertyChanged(NameOf(productoSeleccionado))
+        RaisePropertyChanged(NameOf(listaProductos))
+        RaisePropertyChanged(NameOf(listaProductosPedido))
+        RaisePropertyChanged(NameOf(baseImponiblePedido))
+        RaisePropertyChanged(NameOf(totalPedido))
 
     End Sub
 
@@ -875,16 +831,10 @@ Public Class PlantillaVentaViewModel
                         End If
                     Next
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar los productos"
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar los productos")
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try
@@ -905,9 +855,9 @@ Public Class PlantillaVentaViewModel
     Private Sub OnCambiarIva()
         'this.direccionSeleccionada.iva = this.direccionSeleccionada.iva ? undefined : this.iva;
         clienteSeleccionado.iva = IIf(Not String.IsNullOrWhiteSpace(clienteSeleccionado.iva), Nothing, iva)
-        OnPropertyChanged(Function() clienteSeleccionado)
-        OnPropertyChanged(Function() totalPedido)
-        OnPropertyChanged(Function() SePuedeFinalizar)
+        RaisePropertyChanged(NameOf(clienteSeleccionado))
+        RaisePropertyChanged(NameOf(totalPedido))
+        RaisePropertyChanged(NameOf(SePuedeFinalizar))
     End Sub
 
     Private _cmdCargarClientesVendedor As DelegateCommand
@@ -937,10 +887,7 @@ Public Class PlantillaVentaViewModel
             todosLosVendedores = IIf(parametroClientesTodosVendedores.Trim = "1", True, False)
             listaClientesOriginal = Await servicio.CargarClientesVendedor(filtroCliente, vendedor, todosLosVendedores)
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+            dialogService.ShowError(ex.Message)
         Finally
             estaOcupado = False
         End Try
@@ -978,16 +925,10 @@ Public Class PlantillaVentaViewModel
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     listaDireccionesEntrega = JsonConvert.DeserializeObject(Of ObservableCollection(Of DireccionesEntregaJson))(cadenaJson)
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar las direcciones de entrega"
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar las direcciones de entrega")
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try
@@ -1028,16 +969,10 @@ Public Class PlantillaVentaViewModel
                     listaFormasPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaPagoDTO))(cadenaJson)
                     formaPagoSeleccionada = listaFormasPago.Where(Function(l) l.formaPago = direccionEntregaSeleccionada.formaPago).SingleOrDefault
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar las formas de pago"
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar las formas de pago")
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try
@@ -1084,16 +1019,10 @@ Public Class PlantillaVentaViewModel
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     listaFormasVenta = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaVentaDTO))(cadenaJson)
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar las formas de venta"
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar las formas de venta")
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try
@@ -1134,16 +1063,10 @@ Public Class PlantillaVentaViewModel
                     listaPlazosPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of PlazoPagoDTO))(cadenaJson)
                     plazoPagoSeleccionado = listaPlazosPago.Where(Function(l) l.plazoPago = direccionEntregaSeleccionada.plazosPago).SingleOrDefault
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar los plazos de pago"
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar los plazos de pago")
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try
@@ -1213,16 +1136,10 @@ Public Class PlantillaVentaViewModel
                         Dim contenido2 As String = detallesError("ExceptionMessage")
                         contenido = contenido + vbCr + contenido2
                     End While
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar la plantilla" + vbCr + contenido
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar la plantilla" + vbCr + contenido)
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = ex.Message
-                    })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try
@@ -1269,20 +1186,14 @@ Public Class PlantillaVentaViewModel
                     arg.urlImagen = datosStock.urlImagen
                     arg.stockActualizado = True
                     arg.fechaInsercion = Now
-                    OnPropertyChanged("listaProductosPedido")
-                    OnPropertyChanged("productoSeleccionado")
-                    OnPropertyChanged("baseImponiblePedido")
+                    RaisePropertyChanged(NameOf(listaProductosPedido))
+                    RaisePropertyChanged(NameOf(productoSeleccionado))
+                    RaisePropertyChanged(NameOf(baseImponiblePedido))
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar el stock del producto"
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar el stock del producto")
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = ex.Message
-                    })
+                dialogService.ShowError(ex.Message)
             Finally
                 'estaOcupado = False
             End Try
@@ -1323,16 +1234,10 @@ Public Class PlantillaVentaViewModel
                     listaUltimasVentas = JsonConvert.DeserializeObject(Of ObservableCollection(Of UltimasVentasProductoClienteDTO))(cadenaJson)
 
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al cargar las últimas ventas del producto"
-                    })
+                    dialogService.ShowError("Se ha producido un error al cargar las últimas ventas del producto")
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = ex.Message
-                    })
+                dialogService.ShowError(ex.Message)
             Finally
                 'estaOcupado = False
             End Try
@@ -1377,22 +1282,13 @@ Public Class PlantillaVentaViewModel
                             textoMensaje += i.ToString + vbCr
                         Next
                         textoMensaje += vbCr + "Por favor, revise que sea todo correcto."
-                        NotificationRequest.Raise(New Notification() With {
-                            .Title = "Pendientes",
-                            .Content = textoMensaje
-                        })
+                        dialogService.ShowNotification("Pendientes", textoMensaje)
                     End If
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Se ha producido un error al comprobar los pedidos pendientes del cliente"
-                    })
+                    dialogService.ShowError("Se ha producido un error al comprobar los pedidos pendientes del cliente")
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 'estaOcupado = False
             End Try
@@ -1417,10 +1313,7 @@ Public Class PlantillaVentaViewModel
     Private Async Sub OnCrearPedido()
 
         If IsNothing(formaPagoSeleccionada) OrElse IsNothing(plazoPagoSeleccionado) OrElse IsNothing(clienteSeleccionado) Then
-            NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = "Compruebe que tiene seleccionados plazos y forma de pago, por favor."
-                })
+            dialogService.ShowError("Compruebe que tiene seleccionados plazos y forma de pago, por favor.")
             Return
         End If
 
@@ -1438,12 +1331,8 @@ Public Class PlantillaVentaViewModel
         End If
 
         If IsNothing(plazoPagoSeleccionado) AndAlso (IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(direccionEntregaSeleccionada.plazosPago)) Then
-            NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = "Este contacto no tiene plazos de pago asignados"
-                    })
+            dialogService.ShowError("Este contacto no tiene plazos de pago asignados")
             Return
-            'Throw New Exception("Este contacto no tiene plazos de pago asignados")
         End If
 
         Using client As New HttpClient
@@ -1465,10 +1354,6 @@ Public Class PlantillaVentaViewModel
                     'listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
                     Dim pathNumeroPedido = response.Headers.Location.LocalPath
                     Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
-                    'NotificationRequest.Raise(New Notification() With {
-                    '    .Title = "Plantilla",
-                    '    .Content = "Pedido " + numPedido + " creado correctamente"
-                    '})
 
                     ' Cerramos la ventana
                     Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
@@ -1489,16 +1374,10 @@ Public Class PlantillaVentaViewModel
                         contenido = contenido + vbCr + contenido2
                     End While
 
-                    NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = contenido
-                })
+                    dialogService.ShowError(contenido)
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try
@@ -1644,9 +1523,9 @@ Public Class PlantillaVentaViewModel
         listaProductosOriginal.Add(arg)
         'listaProductos = listaProductosOriginal
         'filtroProducto = ""
-        OnPropertyChanged("baseImponiblePedido")
-        OnPropertyChanged("listaProductos")
-        OnPropertyChanged("listaProductosOriginal")
+        RaisePropertyChanged(NameOf(baseImponiblePedido))
+        RaisePropertyChanged(NameOf(listaProductos))
+        RaisePropertyChanged(NameOf(listaProductosOriginal))
     End Sub
 
     Private _cmdCalcularSePuedeServirPorGlovo As DelegateCommand
@@ -1695,16 +1574,10 @@ Public Class PlantillaVentaViewModel
                         contenido = contenido + vbCr + contenido2
                     End While
 
-                    NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = contenido
-                })
+                    dialogService.ShowError(contenido)
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try

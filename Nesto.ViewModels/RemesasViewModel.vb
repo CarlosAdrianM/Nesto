@@ -13,6 +13,8 @@ Imports Prism.Commands
 Imports Microsoft.Identity.Client
 Imports Microsoft.Graph.Auth
 Imports Microsoft.Graph
+Imports System.Threading
+Imports Prism.Services.Dialogs
 
 Public Class RemesasViewModel
     Inherits BindableBase
@@ -23,6 +25,8 @@ Public Class RemesasViewModel
     Dim mainViewModel As New MainViewModel
     Dim empresaDefecto As String = "1" 'mainModel.leerParametro("1", "EmpresaPorDefecto")
     Dim blnPuedeVerTodasLasRemesas As Boolean = True
+
+    Private ReadOnly dialogService As IDialogService
 
     Public Structure tipoRemesa
         Public Sub New(
@@ -36,13 +40,14 @@ Public Class RemesasViewModel
         Property descripcion As String
     End Structure
 
-    Public Sub New(app As IPublicClientApplication, configuracion As IConfiguracion)
+    Public Sub New(app As IPublicClientApplication, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
         Titulo = "Remesas"
         Me.app = app
         Me.configuracion = configuracion
+        Me.dialogService = dialogService
         DbContext = New NestoEntities
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
@@ -83,7 +88,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of Empresas))
             _listaEmpresas = value
-            OnPropertyChanged("listaEmpresas")
+            RaisePropertyChanged("listaEmpresas")
         End Set
     End Property
 
@@ -97,7 +102,7 @@ Public Class RemesasViewModel
             listaRemesas = New ObservableCollection(Of Remesas)(From c In DbContext.Remesas Where c.Empresa = empresaActual Order By c.Número Descending Take numRemesas)
             blnPuedeVerTodasLasRemesas = True
             listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
-            OnPropertyChanged("empresaActual")
+            RaisePropertyChanged("empresaActual")
         End Set
     End Property
 
@@ -113,7 +118,7 @@ Public Class RemesasViewModel
             Else
                 listaMovimientos = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual And e.Remesa = remesaActual.Número And e.TipoApunte = 3)
             End If
-            OnPropertyChanged("remesaActual")
+            RaisePropertyChanged("remesaActual")
         End Set
     End Property
 
@@ -124,7 +129,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As Xml.Linq.XDocument)
             _contenidoFichero = value
-            OnPropertyChanged("contenidoFichero")
+            RaisePropertyChanged("contenidoFichero")
         End Set
     End Property
 
@@ -135,7 +140,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As String)
             _mensajeError = value
-            OnPropertyChanged("mensajeError")
+            RaisePropertyChanged("mensajeError")
         End Set
     End Property
 
@@ -146,7 +151,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of Remesas))
             _listaRemesas = value
-            OnPropertyChanged("listaRemesas")
+            RaisePropertyChanged("listaRemesas")
         End Set
     End Property
 
@@ -157,7 +162,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of ExtractoCliente))
             _listaMovimientos = value
-            OnPropertyChanged("listaMovimientos")
+            RaisePropertyChanged("listaMovimientos")
         End Set
     End Property
 
@@ -182,7 +187,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of impagado))
             _listaImpagados = value
-            OnPropertyChanged("listaImpagados")
+            RaisePropertyChanged("listaImpagados")
         End Set
     End Property
 
@@ -193,7 +198,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of ExtractoCliente))
             _listaImpagadosDetalle = value
-            OnPropertyChanged("listaImpagadosDetalle")
+            RaisePropertyChanged("listaImpagadosDetalle")
         End Set
     End Property
 
@@ -209,7 +214,7 @@ Public Class RemesasViewModel
             Else
                 listaImpagadosDetalle = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And e.TipoApunte = 4)
             End If
-            OnPropertyChanged("impagadoActual")
+            RaisePropertyChanged("impagadoActual")
         End Set
     End Property
 
@@ -230,7 +235,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As ObservableCollection(Of tipoRemesa))
             _listaTiposRemesa = value
-            'OnPropertyChanged("listaTiposRemesa")
+            'RaisePropertyChanged("listaTiposRemesa")
         End Set
     End Property
 
@@ -241,7 +246,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As tipoRemesa)
             _tipoRemesaActual = value
-            OnPropertyChanged("tipoRemesaActual")
+            RaisePropertyChanged("tipoRemesaActual")
         End Set
     End Property
 
@@ -252,7 +257,7 @@ Public Class RemesasViewModel
         End Get
         Set(value As Date)
             _fechaCobro = value
-            OnPropertyChanged("fechaCobro")
+            RaisePropertyChanged("fechaCobro")
         End Set
     End Property
 
@@ -263,7 +268,7 @@ Public Class RemesasViewModel
         End Get
         Set(ByVal value As Boolean)
             _estaOcupado = value
-            OnPropertyChanged("estaOcupado")
+            RaisePropertyChanged("estaOcupado")
         End Set
     End Property
 
@@ -435,6 +440,18 @@ Public Class RemesasViewModel
         Return True
     End Function
     Private Async Sub OnCrearTareasPlanner()
+        Dim p As New DialogParameters
+        Dim continuar As Boolean = False
+        p.Add("message", "¿Desea crear las tareas en Planner?")
+        dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
+                                                              If r.Result = ButtonResult.OK Then
+                                                                  continuar = True
+                                                              End If
+                                                          End Sub)
+
+        If Not continuar Then
+            Return
+        End If
         Dim planId = "uI4iq6Cw2EO7IvMNPmDXBJcAAmeB" ' Gestión de cobro
         Dim bucketId = "mfv4eFpWok2SETNoMdyLnJcAG25s" ' Pendientes
         Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}

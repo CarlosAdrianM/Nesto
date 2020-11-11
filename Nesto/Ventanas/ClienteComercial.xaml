@@ -252,9 +252,9 @@
                                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Importe:" TextAlignment="Right" Margin="3"></TextBlock>
                                         <TextBlock Grid.Row="3" Grid.Column="0" Text="Asunto:" TextAlignment="Right" Margin="3"></TextBlock>
                                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Nombre:" TextAlignment="Right" Margin="3"></TextBlock>
-                                        <TextBox Name="txtReclamarDeudaCorreo" Grid.Row="0" Grid.Column="1" Text="{Binding CorreoReclamarDeuda}"></TextBox>
-                                        <TextBox Name="txtReclamarDeudaMovil" Grid.Row="1" Grid.Column="1" Text="{Binding MovilReclamarDeuda}"></TextBox>
-                                        <TextBox Name="txtReclamarDeudaImporte" Grid.Row="2" Grid.Column="1" Text="{Binding ImporteReclamarDeuda, StringFormat=c}"></TextBox>
+                                        <TextBox Name="txtReclamarDeudaCorreo" Grid.Row="0" Grid.Column="1" Text="{Binding CorreoReclamarDeuda, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                                        <TextBox Name="txtReclamarDeudaMovil" Grid.Row="1" Grid.Column="1" Text="{Binding MovilReclamarDeuda, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                                        <TextBox Name="txtReclamarDeudaImporte" Grid.Row="2" Grid.Column="1" Text="{Binding ImporteReclamarDeuda, StringFormat=c, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                                         <TextBox Name="txtReclamarDeudaAsunto" Grid.Row="3" Grid.Column="1" Text="{Binding AsuntoReclamarDeuda}"></TextBox>
                                         <TextBox Name="txtReclamarDeudaNombre" Grid.Row="4" Grid.Column="1" Text="{Binding NombreReclamarDeuda}"></TextBox>
                                         <TextBlock Grid.Row="5" Grid.ColumnSpan="2" VerticalAlignment="Center" HorizontalAlignment="Center">

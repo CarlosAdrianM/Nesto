@@ -141,6 +141,10 @@
       <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
       <Name>Contratos</Name>
     </ProjectReference>
+    <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj">
+      <Project>{3961283c-76c3-4b5f-80f2-01a78593e67f}</Project>
+      <Name>ControlesUsuario</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.2">

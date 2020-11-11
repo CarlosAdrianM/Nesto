@@ -12,9 +12,10 @@ Imports System.Windows.Media
 Imports Nesto.Models.Nesto.Models
 Imports Prism.Ioc
 Imports Unity
+Imports Prism.Mvvm
 
 Public Class ComisionesViewModel
-    Inherits Nesto.Contratos.ViewModelBase
+    Inherits BindableBase
 
     Private Shared DbContext As NestoEntities
     Private container As IUnityContainer
@@ -67,7 +68,7 @@ Public Class ComisionesViewModel
         End Get
         Set(value As ObservableCollection(Of Vendedores))
             _listaVendedores = value
-            OnPropertyChanged("listaVendedores")
+            RaisePropertyChanged("listaVendedores")
         End Set
     End Property
 
@@ -79,9 +80,9 @@ Public Class ComisionesViewModel
         Set(value As Vendedores)
 
             _vendedorActual = value
-            OnPropertyChanged("vendedorActual")
-            OnPropertyChanged("MostrarPanelAntiguo")
-            OnPropertyChanged("MostrarPanelComisionAnual")
+            RaisePropertyChanged("vendedorActual")
+            RaisePropertyChanged("MostrarPanelAntiguo")
+            RaisePropertyChanged("MostrarPanelComisionAnual")
             If IsNothing(value) Then
                 Return
             End If
@@ -123,7 +124,7 @@ Public Class ComisionesViewModel
         End Get
         Set(value As Comisiones_Result)
             _comisionesActual = value
-            OnPropertyChanged("comisionesActual")
+            RaisePropertyChanged("comisionesActual")
         End Set
     End Property
 
@@ -134,8 +135,8 @@ Public Class ComisionesViewModel
         End Get
         Set(ByVal value As ComisionAnualResumen)
             SetProperty(_comisionAnualResumenActual, value)
-            OnPropertyChanged("MostrarColumnaTres")
-            OnPropertyChanged("MostrarColumnaCuatro")
+            RaisePropertyChanged("MostrarColumnaTres")
+            RaisePropertyChanged("MostrarColumnaCuatro")
         End Set
     End Property
 
@@ -156,8 +157,8 @@ Public Class ComisionesViewModel
         End Get
         Set(value As String)
             SetProperty(_mesActual, value)
-            OnPropertyChanged("MostrarPanelAntiguo")
-            OnPropertyChanged("MostrarPanelComisionAnual")
+            RaisePropertyChanged("MostrarPanelAntiguo")
+            RaisePropertyChanged("MostrarPanelComisionAnual")
             fechaDesde = DateSerial(Year(Now), DateTime.ParseExact(value, "MMMM", CultureInfo.CurrentCulture).Month, 1)
             If fechaDesde > Now Then
                 fechaDesde = fechaDesde.AddYears(-1)
@@ -194,6 +195,7 @@ Public Class ComisionesViewModel
         End Set
     End Property
 
+    Public Property Titulo As String
     Private _fechaDesde As Date
     Public Property fechaDesde As Date
         Get
@@ -201,7 +203,7 @@ Public Class ComisionesViewModel
         End Get
         Set(value As Date)
             _fechaDesde = value
-            OnPropertyChanged("EsMesEnCurso")
+            RaisePropertyChanged("EsMesEnCurso")
         End Set
     End Property
 
@@ -222,7 +224,7 @@ Public Class ComisionesViewModel
         End Get
         Set(value As ObservableCollection(Of vstLinPedidoVtaConVendedor))
             _listaPedidos = value
-            OnPropertyChanged("listaPedidos")
+            RaisePropertyChanged("listaPedidos")
         End Set
     End Property
 
@@ -233,7 +235,7 @@ Public Class ComisionesViewModel
         End Get
         Set(value As ObservableCollection(Of vstLinPedidoVtaComisiones))
             _listaVentasComision = value
-            OnPropertyChanged("listaVentasComision")
+            RaisePropertyChanged("listaVentasComision")
         End Set
     End Property
 
@@ -244,7 +246,7 @@ Public Class ComisionesViewModel
         End Get
         Set(value As ObservableCollection(Of vstLinPedidoVtaComisiones))
             _listaVentasFamilia = value
-            OnPropertyChanged("listaVentasFamilia")
+            RaisePropertyChanged("listaVentasFamilia")
         End Set
     End Property
 
@@ -255,7 +257,7 @@ Public Class ComisionesViewModel
     '    End Get
     '    Set(ByVal value As Boolean)
     '        SetProperty(_mostrarPanelAntiguo, value)
-    '        OnPropertyChanged("MostrarPanelComisionAnual")
+    '        RaisePropertyChanged("MostrarPanelComisionAnual")
     '    End Set
     'End Property
 
@@ -295,8 +297,8 @@ Public Class ComisionesViewModel
         Set(ByVal value As Boolean)
             If _incluirAlbaranes <> value Then
                 SetProperty(_incluirAlbaranes, value)
-                OnPropertyChanged("MostrarPanelAntiguo")
-                OnPropertyChanged("MostrarPanelComisionAnual")
+                RaisePropertyChanged("MostrarPanelAntiguo")
+                RaisePropertyChanged("MostrarPanelComisionAnual")
                 CalcularComisionAsync()
             End If
         End Set
@@ -310,8 +312,8 @@ Public Class ComisionesViewModel
         Set(value As Boolean)
             If _incluirPicking <> value Then
                 SetProperty(_incluirPicking, value)
-                OnPropertyChanged("MostrarPanelAntiguo")
-                OnPropertyChanged("MostrarPanelComisionAnual")
+                RaisePropertyChanged("MostrarPanelAntiguo")
+                RaisePropertyChanged("MostrarPanelComisionAnual")
                 CalcularComisionAsync()
             End If
         End Set

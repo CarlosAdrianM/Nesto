@@ -1,11 +1,12 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
 Imports Prism.Events
 Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Mvvm
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 
 Public Class ListaPedidosVentaViewModel
     Inherits BindableBase
@@ -13,56 +14,21 @@ Public Class ListaPedidosVentaViewModel
 
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
+    Private ReadOnly dialogService As IDialogService
 
     Private vendedor As String
     Private verTodosLosVendedores As Boolean = False
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator)
+    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService)
         Me.configuracion = configuracion
         Me.servicio = servicio
+        Me.dialogService = dialogService
 
         cmdCargarListaPedidos = New DelegateCommand(AddressOf OnCargarListaPedidos)
-
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
         eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
         eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
     End Sub
-
-#Region "Propiedades de Prism"
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            resultMessage = value
-            RaisePropertyChanged(NameOf(InteractionResultMessage))
-        End Set
-    End Property
-
-#End Region
 
 #Region "Propiedades"
     Private _empresaSeleccionada As String = "1  "
@@ -248,10 +214,7 @@ Public Class ListaPedidosVentaViewModel
             listaPedidos = Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores, mostrarPresupuestos)
             listaPedidosOriginal = listaPedidos
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-            .Title = "Error",
-            .Content = ex.Message
-        })
+            dialogService.ShowError(ex.Message)
         Finally
             estaCargandoListaPedidos = False
         End Try

@@ -1,18 +1,19 @@
-﻿<UserControl x:Class="Nesto.Modulos.Cliente.NotificacionTelefono"
+﻿<UserControl x:Class="Nesto.Modulos.Cliente.NotificacionTelefonoView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Nesto.Modulos.Cliente"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="450" d:DesignWidth="800"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True">
     <Grid MinWidth="400">
         <Grid.RowDefinitions>
             <RowDefinition />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ListView Grid.Row="0" ItemsSource="{Binding Content}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <ListView Grid.Row="0" ItemsSource="{Binding ClientesMismoTelefono}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <StackPanel HorizontalAlignment="Stretch">
@@ -29,7 +30,9 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <Button x:Name="OKButton" Content="OK" Width="75" Height="25" HorizontalAlignment="Right" Margin="10" Grid.Row="1" IsDefault="True" Click="OKButton_Click"/>
-
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Button Command="{Binding CloseDialogCommand}" CommandParameter="true" Content="OK" Width="75" Height="25" HorizontalAlignment="Right" Margin="3" IsDefault="True" />
+        </StackPanel>
+        
     </Grid>
 </UserControl>

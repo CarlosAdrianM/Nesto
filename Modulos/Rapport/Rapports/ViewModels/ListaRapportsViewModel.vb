@@ -1,12 +1,12 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
 Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
+Imports Prism.Mvvm
 
 Public Class ListaRapportsViewModel
-    Inherits Contratos.ViewModelBase
+    Inherits BindableBase
 
     Private ReadOnly regionManager As IRegionManager
     Public Property configuracion As IConfiguracion
@@ -31,44 +31,8 @@ Public Class ListaRapportsViewModel
         cmdCargarListaRapportsFiltrada = New DelegateCommand(AddressOf OnCargarListaRapportsFiltrada, AddressOf CanCargarListaRapportsFiltrada)
         cmdCrearRapport = New DelegateCommand(Of Object)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
 
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
         Titulo = "Lista de Rapports"
     End Sub
-
-#Region "Propiedades de Prism"
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
-        End Set
-    End Property
-#End Region
 
 #Region "Propiedades"
     Private _clienteSeleccionado As String
@@ -238,6 +202,9 @@ Public Class ListaRapportsViewModel
             SetProperty(_cmdCrearRapport, value)
         End Set
     End Property
+
+    Public ReadOnly Property Titulo As String
+
     Private Function CanCrearRapport(arg As Object) As Boolean
         Return True
     End Function

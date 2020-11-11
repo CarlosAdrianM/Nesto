@@ -36,7 +36,8 @@ Public Class MenuBarView
         'Dim w2 As New frmInforme
         'w2.Owner = Me
         Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of frmCRInforme)()
+        Dim vista = container.Resolve(Of CRInforme)()
+        vista.DataContext.Titulo = "Informe Premios"
         'vista.DataContext.Titulo = "Informe"
 
         'Dim fchFechaInicial As New Date
@@ -98,7 +99,8 @@ Public Class MenuBarView
         'Dim Ventana As New frmInforme
         'Ventana.Owner = Me
         Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of frmCRInforme)()
+        Dim vista = container.Resolve(Of CRInforme)()
+        vista.DataContext.Titulo = "Informe Estado 9"
 
 
         Dim rptPremio
@@ -247,12 +249,13 @@ Public Class MenuBarView
     End Sub
     Private Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SóloFacturas As Boolean)
         Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of frmCRInforme)()
+        Dim vista = container.Resolve(Of CRInforme)()
+        vista.DataContext.Titulo = "Informe Ventas"
 
         'Dim Ventana As New frmInforme
         'Ventana.Owner = Me
 
-        Dim rptPremio As New ReporteResumenVentas
+        Dim rptVentas As New ReporteResumenVentas
 
 
         Dim crParameterDiscreteValue As ParameterDiscreteValue
@@ -270,7 +273,7 @@ Public Class MenuBarView
 
         '
 
-        crParameterFieldDefinitions = rptPremio.DataDefinition.ParameterFields
+        crParameterFieldDefinitions = rptVentas.DataDefinition.ParameterFields
 
 
 
@@ -327,7 +330,7 @@ Public Class MenuBarView
 
         Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
         vista.crvInforme.Owner = Window.GetWindow(mainWindow)
-        vista.crvInforme.ViewerCore.ReportSource = rptPremio
+        vista.crvInforme.ViewerCore.ReportSource = rptVentas
 
         region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
@@ -356,7 +359,8 @@ Public Class MenuBarView
     Private Sub GenerarInformePeluquería(FechaDesde As Date, FechaHasta As Date)
 
         Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of frmCRInforme)()
+        Dim vista = container.Resolve(Of CRInforme)()
+        vista.DataContext.Titulo = "Informe Peluquería"
 
         'Dim Ventana As New frmInforme
         'Ventana.Owner = Me
@@ -446,10 +450,12 @@ Public Class MenuBarView
         End Select
     End Sub
     Private Sub GenerarInformeRapports(FechaDesde As Date, FechaHasta As Date)
-        Dim Ventana As New frmInforme
-        'Ventana.Owner = Me
+        Dim region As IRegion = regionManager.Regions("MainRegion")
+        Dim vista = container.Resolve(Of CRInforme)()
+        vista.DataContext.Titulo = "Informe Rapports"
 
-        Dim rptPremio As New rapportEstado9
+
+        Dim rptRapports As New rapportEstado9
 
 
         Dim crParameterDiscreteValue As ParameterDiscreteValue
@@ -467,7 +473,7 @@ Public Class MenuBarView
 
         '
 
-        crParameterFieldDefinitions = rptPremio.DataDefinition.ParameterFields
+        crParameterFieldDefinitions = rptRapports.DataDefinition.ParameterFields
 
 
 
@@ -502,10 +508,15 @@ Public Class MenuBarView
 
 
 
-        Ventana.crvInforme.ViewerCore.ReportSource = rptPremio
+        'Ventana.crvInforme.ViewerCore.ReportSource = rptPremio
 
 
-        Ventana.Show()
+        Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
+        vista.crvInforme.Owner = Window.GetWindow(mainWindow)
+        vista.crvInforme.ViewerCore.ReportSource = rptRapports
+
+        region.Add(vista, nombreVista(region, vista.ToString))
+        region.Activate(vista)
 
     End Sub
     Private Sub btnClientesFicha_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnClientesFicha.Click
@@ -518,7 +529,8 @@ Public Class MenuBarView
     Private Sub btnControlPedidos_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnControlPedidos.Click
 
         Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of frmCRInforme)()
+        Dim vista = container.Resolve(Of CRInforme)()
+        vista.DataContext.Titulo = "Informe Pedidos"
 
 
         'Dim w2 As New frmInforme
@@ -541,7 +553,8 @@ Public Class MenuBarView
     End Sub
     Private Sub btnInventario_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnInventario.Click
         Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of frmCRInforme)()
+        Dim vista = container.Resolve(Of CRInforme)()
+        vista.DataContext.Titulo = "Informe Inventario"
 
         Dim rptInforme As New ImpresoUbicaciones_Inventario
 
@@ -551,7 +564,8 @@ Public Class MenuBarView
     End Sub
     Private Sub btnUbicaciones_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnUbicaciones.Click
         Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of frmCRInforme)()
+        Dim vista = container.Resolve(Of CRInforme)()
+        vista.DataContext.Titulo = "Informe Ubicaciones"
         'region.Add(vista, nombreVista(region, vista.ToString))
         'region.Activate(vista)
 

@@ -100,7 +100,7 @@ Public Class ClientesViewModel
                 listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             End If
             actualizarCliente(_empresaActual, clienteActual, contactoActual)
-            OnPropertyChanged("empresaActual")
+            RaisePropertyChanged("empresaActual")
         End Set
     End Property
 
@@ -118,10 +118,10 @@ Public Class ClientesViewModel
             _clienteActual = value
             listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
-            OnPropertyChanged("clienteActual")
+            RaisePropertyChanged(NameOf(clienteActual))
             If Not IsNothing(clienteActivo) AndAlso Not IsNothing(clienteActivo.Nº_Cliente) Then
                 Titulo = String.Format("Cliente {0}", clienteActivo.Nº_Cliente.Trim)
-                OnPropertyChanged("Titulo")
+                RaisePropertyChanged(NameOf(Titulo))
             End If
         End Set
     End Property
@@ -134,7 +134,7 @@ Public Class ClientesViewModel
         Set(value As String)
             _contactoActual = value
             actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
-            OnPropertyChanged("contactoActual")
+            RaisePropertyChanged("contactoActual")
         End Set
     End Property
 
@@ -145,7 +145,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ClienteJson)
             _clienteServidor = value
-            OnPropertyChanged("clienteServidor")
+            RaisePropertyChanged("clienteServidor")
         End Set
     End Property
 
@@ -156,7 +156,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of Empresas))
             _listaEmpresas = value
-            OnPropertyChanged("listaEmpresas")
+            RaisePropertyChanged("listaEmpresas")
         End Set
     End Property
 
@@ -167,7 +167,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _nombre = value
-            OnPropertyChanged("nombre")
+            RaisePropertyChanged("nombre")
         End Set
     End Property
 
@@ -178,7 +178,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As CCC)
             _cuentaActiva = value
-            OnPropertyChanged("cuentaActiva")
+            RaisePropertyChanged("cuentaActiva")
         End Set
     End Property
 
@@ -189,7 +189,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of CCC))
             _cuentasBanco = value
-            OnPropertyChanged("cuentasBanco")
+            RaisePropertyChanged("cuentasBanco")
         End Set
     End Property
 
@@ -306,7 +306,7 @@ Public Class ClientesViewModel
                 ListaDeudas = Nothing
             End If
 
-            OnPropertyChanged("clienteActivo")
+            RaisePropertyChanged("clienteActivo")
         End Set
     End Property
 
@@ -323,7 +323,7 @@ Public Class ClientesViewModel
                 clienteActivo = Nothing
             End If
 
-            OnPropertyChanged("clienteActivoDTO")
+            RaisePropertyChanged("clienteActivoDTO")
         End Set
     End Property
 
@@ -334,7 +334,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _mensajeError = value
-            OnPropertyChanged("mensajeError")
+            RaisePropertyChanged("mensajeError")
         End Set
     End Property
 
@@ -345,7 +345,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _selectedPath = value
-            OnPropertyChanged("selectedPath")
+            RaisePropertyChanged("selectedPath")
         End Set
     End Property
 
@@ -356,7 +356,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of EstadosCCC))
             _listaEstadosCCC = value
-            OnPropertyChanged("listaEstadosCCC")
+            RaisePropertyChanged("listaEstadosCCC")
         End Set
     End Property
 
@@ -367,7 +367,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _vendedor = value
-            OnPropertyChanged("vendedor")
+            RaisePropertyChanged("vendedor")
             If vendedor <> "" Then
                 esVendedorDeFamilias = Not IsNothing((From c In DbContext.FamiliasVendedor Where c.Empresa = empresaActual And c.Vendedor = vendedor Take 1).FirstOrDefault)
             End If
@@ -399,7 +399,7 @@ Public Class ClientesViewModel
                 )
             End If
             clienteServidor.VendedoresGrupoProducto.ElementAt(0).vendedor = value
-            OnPropertyChanged("vendedorPorGrupo")
+            RaisePropertyChanged("vendedorPorGrupo")
         End Set
     End Property
 
@@ -411,7 +411,7 @@ Public Class ClientesViewModel
         Set(value As ObservableCollection(Of ClienteJson))
             _listaClientesVendedor = value
             'clienteActivoDTO = _listaClientesVendedor.FirstOrDefault
-            OnPropertyChanged("listaClientesVendedor")
+            RaisePropertyChanged("listaClientesVendedor")
         End Set
     End Property
 
@@ -429,7 +429,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of SeguimientoCliente))
             _seguimientosOrdenados = value
-            OnPropertyChanged("seguimientosOrdenados")
+            RaisePropertyChanged("seguimientosOrdenados")
         End Set
     End Property
 
@@ -440,7 +440,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of lineaVentaAgrupada))
             _listaVentas = value
-            OnPropertyChanged("listaVentas")
+            RaisePropertyChanged("listaVentas")
         End Set
     End Property
 
@@ -480,7 +480,7 @@ Public Class ClientesViewModel
             filtro = ""
         End If
 
-        OnPropertyChanged("filtro")
+        RaisePropertyChanged("filtro")
     End Sub
 
     Private _rangoFechasVenta As String
@@ -499,7 +499,7 @@ Public Class ClientesViewModel
                 End If
                 listaVentas = New ObservableCollection(Of lineaVentaAgrupada)(From l In DbContext.LinPedidoVta Where (l.Empresa = "1" Or l.Empresa = "3") And l.Nº_Cliente = clienteActivo.Nº_Cliente And l.Contacto = clienteActivo.Contacto And l.Estado >= 2 And l.Fecha_Albarán >= fechaDesde Group By l.Producto, l.Texto, l.SubGruposProducto.Descripción Into Sum(l.Cantidad), Max(l.Fecha_Albarán) Select New lineaVentaAgrupada With {.producto = Producto, .nombre = Texto, .cantidad = Sum, .fechaUltVenta = Max, .subGrupo = Descripción})
             End If
-            OnPropertyChanged("rangoFechasVenta")
+            RaisePropertyChanged("rangoFechasVenta")
         End Set
     End Property
 
@@ -510,7 +510,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As Nullable(Of Decimal))
             _deudaVencida = value
-            OnPropertyChanged("deudaVencida")
+            RaisePropertyChanged("deudaVencida")
         End Set
     End Property
 
@@ -521,7 +521,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
             _listaSecuencias = value
-            OnPropertyChanged("listaSecuencias")
+            RaisePropertyChanged("listaSecuencias")
         End Set
     End Property
 
@@ -532,7 +532,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
             _listaTipos = value
-            OnPropertyChanged("listaTipos")
+            RaisePropertyChanged("listaTipos")
         End Set
     End Property
 
@@ -553,8 +553,8 @@ Public Class ClientesViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of ExtractoCliente))
             _extractoCCC = value
-            OnPropertyChanged("extractoCCC")
-            OnPropertyChanged("estaVisibleExtractoCCC")
+            RaisePropertyChanged("extractoCCC")
+            RaisePropertyChanged("estaVisibleExtractoCCC")
         End Set
     End Property
 
@@ -565,8 +565,8 @@ Public Class ClientesViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of cabeceraPedidoAgrupada))
             _pedidosCCC = value
-            OnPropertyChanged("pedidosCCC")
-            OnPropertyChanged("estaVisiblePedidosCCC")
+            RaisePropertyChanged("pedidosCCC")
+            RaisePropertyChanged("estaVisiblePedidosCCC")
         End Set
     End Property
 
@@ -577,10 +577,10 @@ Public Class ClientesViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of Clientes))
             _listaContactos = value
-            OnPropertyChanged("listaContactos")
+            RaisePropertyChanged("listaContactos")
             If Not IsNothing(value.FirstOrDefault) Then
                 contactoActual = value.FirstOrDefault.Contacto
-                OnPropertyChanged("contactoActual")
+                RaisePropertyChanged("contactoActual")
             End If
         End Set
     End Property
@@ -592,7 +592,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As Boolean)
             _estaOcupado = value
-            OnPropertyChanged("estaOcupado")
+            RaisePropertyChanged("estaOcupado")
         End Set
     End Property
 
@@ -643,7 +643,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of ResumenPedido))
             _listaPedidos = value
-            OnPropertyChanged("ListaPedidos")
+            RaisePropertyChanged("ListaPedidos")
         End Set
     End Property
 
@@ -661,7 +661,7 @@ Public Class ClientesViewModel
             ElseIf _indiceSeleccionado = 3 Then 'Deudas
                 CargarDeudas()
             End If
-            OnPropertyChanged("IndiceSeleccionado")
+            RaisePropertyChanged("IndiceSeleccionado")
         End Set
     End Property
 
@@ -906,6 +906,18 @@ Public Class ClientesViewModel
         Return True
     End Function
     Private Sub GuardarVendedores(ByVal param As Object)
+        Dim continuar As Boolean = False
+        Dim p As New DialogParameters
+        p.Add("message", "¿Desea guardar los vendedores?")
+        dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
+                                                              If r.Result = ButtonResult.OK Then
+                                                                  continuar = True
+                                                              End If
+                                                          End Sub)
+        If Not continuar Then
+            Return
+        End If
+
         Try
 
             ' PUT de clienteServidor
@@ -927,6 +939,12 @@ Public Class ClientesViewModel
             End Using
 
             mensajeError = "Cliente guardado correctamente"
+
+            Dim c As New DialogParameters
+            c.Add("message", "Se han guardado correctamente los vendedores")
+            dialogService.ShowDialog("NotificationDialog", c, Sub(r)
+
+                                                              End Sub)
         Catch ex As Exception
             If Not IsNothing(ex.InnerException) Then
                 mensajeError = ex.InnerException.Message
@@ -1063,7 +1081,7 @@ Public Class ClientesViewModel
     Private Sub OnConfirmarReclamarDeuda()
         Dim p As New DialogParameters
         p.Add("message", "¿Desea reclamar la deuda?")
-        dialogService.ShowDialog("MessageDialog", p, Sub(r)
+        dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
                                                          If r.Result = ButtonResult.OK Then
                                                              ReclamarDeudaCommand.Execute()
                                                          End If

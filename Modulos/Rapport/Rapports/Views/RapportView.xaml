@@ -4,25 +4,16 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
-             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
              xmlns:prism="http://prismlibrary.com/"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300" Margin="3">
+             d:DesignHeight="300" d:DesignWidth="300" Margin="3"
+             prism:ViewModelLocator.AutoWireViewModel="True">
     
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
     
-    <i:Interaction.Triggers>
-        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="False"/>
-        </prism:InteractionRequestTrigger>
-        <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
-        </prism:InteractionRequestTrigger>
-    </i:Interaction.Triggers>
     
     <Grid>
         <Grid.RowDefinitions>

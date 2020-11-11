@@ -3,29 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Nesto.Modulos.Cliente"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
              xmlns:prism="http://prismlibrary.com/"
              mc:Ignorable="d"  Loaded="UserControl_Loaded"
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="450" d:DesignWidth="800"
+             prism:ViewModelLocator.AutoWireViewModel="True">
     
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
-
-    <i:Interaction.Triggers>
-        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
-        </prism:InteractionRequestTrigger>
-        <prism:InteractionRequestTrigger SourceObject="{Binding ClienteTelefonoRequest, Mode=OneWay}">
-            <prism:PopupWindowAction  IsModal="True" CenterOverAssociatedObject="True">
-                <prism:PopupWindowAction.WindowContent>
-                    <local:NotificacionTelefono/>
-                </prism:PopupWindowAction.WindowContent>
-            </prism:PopupWindowAction>
-        </prism:InteractionRequestTrigger>
-    </i:Interaction.Triggers>
 
     <Grid FocusManager.FocusedElement="{Binding ElementName=txtNif}">
         <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Cargando datos...">

@@ -5,16 +5,19 @@ Imports System.Windows.Input
 Imports System.Windows.Controls
 Imports Prism.Mvvm
 Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
 Imports Nesto.Models.Nesto.Models
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
+Imports Nesto.Contratos
 
 Public Class AlquileresViewModel
     Inherits BindableBase
 
     Private Shared DbContext As NestoEntities
-    Dim mainViewModel As New MainViewModel
+    Private ReadOnly dialogService As IDialogService
+    Private ReadOnly configuracion As IConfiguracion
 
-    Public Sub New()
+    Public Sub New(dialogService As IDialogService, configuracion As IConfiguracion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
@@ -26,47 +29,14 @@ Public Class AlquileresViewModel
         cmdIntercambiarNumeroSerie = New DelegateCommand(Of Object)(AddressOf OnIntercambiarNumeroSerie, AddressOf CanIntercambiarNumeroSerie)
         cmdInicializarAlquiler = New DelegateCommand(Of Object)(AddressOf OnInicializarAlquiler, AddressOf CanInicializarAlquiler)
 
-        ' Prism
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
         Titulo = "Alquileres"
+
+        Me.dialogService = dialogService
+        Me.configuracion = configuracion
     End Sub
 
 
 #Region "Datos Publicados"
-
-    '*** Propiedades de Prism 
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
-        End Set
-    End Property
 
     Private _titulo As String
     Public Property Titulo As String
@@ -85,7 +55,6 @@ Public Class AlquileresViewModel
         End Get
         Set(value As ObservableCollection(Of CabAlquileres))
             SetProperty(_AlquileresCollection, value)
-            'OnPropertyChanged("AlquileresCollection")
         End Set
     End Property
 
@@ -108,7 +77,6 @@ Public Class AlquileresViewModel
         End Get
         Set(value As ObservableCollection(Of ExtractoInmovilizado))
             SetProperty(_colExtractoInmovilizado, value)
-            'OnPropertyChanged("colExtractoInmovilizado")
         End Set
     End Property
 
@@ -128,7 +96,6 @@ Public Class AlquileresViewModel
                 End If
             End If
             SetProperty(_PestañaSeleccionada, value)
-            'OnPropertyChanged("PestañaSeleccionada")
         End Set
     End Property
 
@@ -139,7 +106,6 @@ Public Class AlquileresViewModel
         End Get
         Set(value As ObservableCollection(Of LinPedidoVta))
             SetProperty(_colMovimientos, value)
-            'OnPropertyChanged("colMovimientos")
         End Set
     End Property
 
@@ -150,7 +116,6 @@ Public Class AlquileresViewModel
         End Get
         Set(value As ObservableCollection(Of prdProductosAlquiler))
             SetProperty(_colProductosAlquilerLista, value)
-            'OnPropertyChanged("colProductosAlquilerLista")
         End Set
     End Property
 
@@ -167,7 +132,6 @@ Public Class AlquileresViewModel
 
             colExtractoInmovilizado = Nothing
             colMovimientos = Nothing
-            'OnPropertyChanged("ProductoSeleccionado")
         End Set
     End Property
 
@@ -178,7 +142,6 @@ Public Class AlquileresViewModel
         End Get
         Set(value As ObservableCollection(Of LinPedidoCmp))
             SetProperty(_colCompra, value)
-            'OnPropertyChanged("colCompra")
         End Set
     End Property
 
@@ -189,7 +152,6 @@ Public Class AlquileresViewModel
         End Get
         Set(value As String)
             SetProperty(_mensajeError, value)
-            'OnPropertyChanged("mensajeError")
         End Set
     End Property
 
@@ -312,7 +274,7 @@ Public Class AlquileresViewModel
     End Function
     Private Async Sub ImprimirEtiquetaMaquina(ByVal param As Object)
 
-        Dim puerto As String = Await mainViewModel.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await configuracion.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
@@ -336,6 +298,7 @@ Public Class AlquileresViewModel
 
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
+            dialogService.ShowError(mensajeError)
         Finally
             objStream.Close()
             objFSO = Nothing
@@ -357,7 +320,7 @@ Public Class AlquileresViewModel
     End Function
     Private Async Sub ImprimirEtiquetaPedido(ByVal param As Object)
 
-        Dim puerto As String = Await mainViewModel.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await configuracion.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
@@ -407,19 +370,13 @@ Public Class AlquileresViewModel
 
         ' Comprobamos que no sea el mismo alquiler el que tenga ese nº de serie
         If LineaSeleccionada.NumeroSerie.Trim = numeroSerieIntercambiar.Trim Then
-            NotificationRequest.Raise(New Notification() With { _
-                .Title = "Error", _
-                .Content = "El número de serie origen es el mismo que el destino"
-            })
+            dialogService.ShowError("El número de serie origen es el mismo que el destino")
             Return
         End If
 
         ' Comprobamos que exista el alquiler
         If IsNothing(alquiler) Then
-            NotificationRequest.Raise(New Notification() With { _
-                .Title = "Error", _
-                .Content = "No se encuentra el producto con número de serie " + numeroSerieIntercambiar _
-            })
+            dialogService.ShowError("No se encuentra el producto con número de serie " + numeroSerieIntercambiar)
             Return
         End If
 
@@ -429,15 +386,9 @@ Public Class AlquileresViewModel
             LineaSeleccionada.NumeroSerie = numeroSerieIntercambiar.Trim
             alquiler.NumeroSerie = numeroSerieIntermedio.Trim
             DbContext.SaveChanges()
-            NotificationRequest.Raise(New Notification() With { _
-                .Title = "Información", _
-                .Content = "Números de serie actualizados correctamente"
-            })
+            dialogService.ShowNotification("Números de serie actualizados correctamente")
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With { _
-                .Title = "Error", _
-                .Content = "No se pudo realizar el cambio de número de serie"
-            })
+            dialogService.ShowError("No se pudo realizar el cambio de número de serie")
         End Try
 
     End Sub
@@ -455,16 +406,11 @@ Public Class AlquileresViewModel
         Return Not IsNothing(LineaSeleccionada)
     End Function
     Private Sub OnInicializarAlquiler(arg As Object)
-        Me.ConfirmationRequest.Raise(
-            New Confirmation() With {
-                .Content = "¿Desea inicializar los campos de este alquiler?", .Title = "Inicializar"
-            },
-            Sub(c)
-                InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-            End Sub
-        )
-
-        If InteractionResultMessage = "KO" Or IsNothing(LineaSeleccionada) Then
+        Dim continuar As Boolean
+        dialogService.ShowConfirmation("Inicializar", "¿Desea inicializar los campos de este alquiler?", Sub(r)
+                                                                                                             continuar = (r.Result = ButtonResult.OK)
+                                                                                                         End Sub)
+        If Not continuar OrElse IsNothing(LineaSeleccionada) Then
             Return
         End If
 
@@ -486,6 +432,3 @@ Public Class AlquileresViewModel
 
 #End Region
 End Class
-
-
-

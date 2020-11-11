@@ -1,13 +1,10 @@
-﻿Imports Nesto.Contratos
-Class CarteraPagosView
-    Public Sub New(viewModel As CarteraPagosViewModel)
+﻿Class CarteraPagosView
+    Public Sub New()
 
         ' Esta llamada es exigida por el diseñador.
         InitializeComponent()
 
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-        Me.DataContext = viewModel
-
 
     End Sub
 
@@ -16,8 +13,6 @@ Class CarteraPagosView
     End Sub
 
     Private Async Sub CarteraPagos_Loaded(sender As Object, e As RoutedEventArgs) Handles CarteraPagos.Loaded
-        Dim viewModel As CarteraPagosViewModel = CType(Me.DataContext, CarteraPagosViewModel)
-
         ' Ponemos el foco inicial en la empresa
         txtRemesa.Focus()
     End Sub

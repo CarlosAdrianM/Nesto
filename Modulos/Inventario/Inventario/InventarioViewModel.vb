@@ -3,31 +3,32 @@ Imports System.Globalization
 Imports System.Net.Http
 Imports System.Text
 Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
 Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Inventario.InventarioModel
 Imports Newtonsoft.Json
+Imports Prism.Mvvm
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 
 Public Class InventarioViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly configuracion As IConfiguracion
+    Private ReadOnly dialogService As IDialogService
 
     Const EMPRESA_DEFECTO As String = "1"
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
+        Me.dialogService = dialogService
 
         cmdAbrirInventario = New DelegateCommand(Of Object)(AddressOf OnAbrirInventario, AddressOf CanAbrirInventario)
         cmdActualizarLineaInventario = New DelegateCommand(Of Object)(AddressOf OnActualizarLineaInventario, AddressOf CanActualizarLineaInventario)
         cmdActualizarMovimientos = New DelegateCommand(Of Object)(AddressOf OnActualizarMovimientos, AddressOf CanActualizarMovimientos)
         cmdCrearLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnCrearLineaInventario, AddressOf CanCrearLineaInventario)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
-
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
 
         Titulo = "Inventario Tienda"
 
@@ -37,41 +38,9 @@ Public Class InventarioViewModel
         movimientosDia = New ObservableCollection(Of Movimiento)
     End Sub
 
-    Public Overrides Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean
-        Return True
-    End Function
 
 #Region "Propiedades de Prism"
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
-        End Set
-    End Property
+    Public Property Titulo As String
 
 #End Region
 
@@ -214,24 +183,16 @@ Public Class InventarioViewModel
                 If Not response.IsSuccessStatusCode Then
                     Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
-
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = detallesError("ExceptionMessage")
-                    })
+                    dialogService.ShowError(detallesError("ExceptionMessage"))
                 Else
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     movimientosTotal = JsonConvert.DeserializeObject(Of ObservableCollection(Of InventarioDTO))(cadenaJson)
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 estaOcupado = False
             End Try
-            'OnPropertyChanged("movimientosDia")
 
         End Using
 
@@ -266,11 +227,7 @@ Public Class InventarioViewModel
                 If Not response.IsSuccessStatusCode Then
                     Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
-
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = detallesError("ExceptionMessage")
-                    })
+                    dialogService.ShowError(detallesError("ExceptionMessage"))
                 Else
                     movimientoActual = New Movimiento With {
                         .Cantidad = cantidad,
@@ -281,14 +238,11 @@ Public Class InventarioViewModel
                         .Producto = linea.Producto
                     }
                     movimientosDia.Add(movimientoActual)
-                    numeroProducto = ""
+                    numeroProducto = String.Empty
                     cantidad = 1
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 'estaOcupado = False
             End Try
@@ -326,7 +280,7 @@ Public Class InventarioViewModel
             linea.StockReal += cantidad
             cmdActualizarLineaInventario.Execute(linea) ' AWAIT
         End If
-        OnPropertyChanged("movimientosDia")
+        RaisePropertyChanged(NameOf(movimientosDia))
     End Sub
 
     Private _cmdCrearLineaInventario As DelegateCommand(Of InventarioDTO)
@@ -359,10 +313,7 @@ Public Class InventarioViewModel
                 Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
 
                 If Not response.IsSuccessStatusCode Then
-                    NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = detallesError("ExceptionMessage")
-                    })
+                    dialogService.ShowError(detallesError("ExceptionMessage"))
                 Else
                     linea.Producto = detallesError("Número")
                     linea.Descripcion = detallesError("Descripción")
@@ -375,14 +326,11 @@ Public Class InventarioViewModel
                         .Subgrupo = linea.Subgrupo,
                         .Producto = linea.Producto
                     })
-                    numeroProducto = ""
+                    numeroProducto = String.Empty
                     cantidad = 1
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 'estaOcupado = False
             End Try
@@ -411,20 +359,9 @@ Public Class InventarioViewModel
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     linea = JsonConvert.DeserializeObject(Of InventarioDTO)(cadenaJson)
-                    'Else
-                    '    Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
-                    '    Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
-
-                    '    NotificationRequest.Raise(New Notification() With {
-                    '        .Title = "Error",
-                    '        .Content = detallesError("ExceptionMessage")
-                    '    })
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = ex.Message
-                })
+                dialogService.ShowError(ex.Message)
             Finally
                 'estaOcupado = False
             End Try

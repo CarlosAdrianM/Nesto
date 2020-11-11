@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using FakeItEasy;
-using Prism.Interactivity.InteractionRequest;
 using Prism.Events;
 using Prism.Regions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -10,6 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Contratos;
 using Nesto.Modulos.Cliente;
 using Xceed.Wpf.Toolkit;
+using Prism.Services.Dialogs;
 
 namespace ClienteTests
 {
@@ -20,18 +20,20 @@ namespace ClienteTests
         private IConfiguracion Configuracion { get; }
         private IClienteService Servicio { get; }
         private IEventAggregator EventAggregator { get; }
+        private IDialogService DialogService { get; }
         public CrearClienteViewModelTests()
         {
             RegionManager = A.Fake<IRegionManager>();
             Configuracion = A.Fake<IConfiguracion>();
             Servicio = A.Fake<IClienteService>();
             EventAggregator = A.Fake<IEventAggregator>();
+            DialogService = A.Fake<IDialogService>();
         }
 
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_BloqueaElNombreSiEsUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
 
             vm.ClienteNif = "B111";
 
@@ -41,7 +43,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_NoBloqueaElNombreSiNoEsUnCif()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
 
             vm.ClienteNif = "530021-A";
 
@@ -51,7 +53,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_NoBloqueaElNombreSiEsUnNie()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
 
             vm.ClienteNif = "X/78787";
 
@@ -61,7 +63,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_SeActualizaNombreIsEnabled()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -79,7 +81,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_SeActualizaSePuedeAvanzarADatosGenerales()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -97,7 +99,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNombre_SeActualizaSePuedeAvanzarADatosGenerales()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
             int vecesSeHaLlamado = 0;
             vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
             {
@@ -116,7 +118,7 @@ namespace ClienteTests
         [TestMethod]
         public void CrearClienteViewModel_PasarADatosComision_SiOtroClienteTieneEseMovilSeNotifica()
         {
-            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator);
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
             RespuestaDatosGeneralesClientes respuestaFake = A.Fake<RespuestaDatosGeneralesClientes>();
             ClienteTelefonoLookup clienteFake = new ClienteTelefonoLookup
             {
@@ -127,11 +129,6 @@ namespace ClienteTests
             };
             respuestaFake.ClientesMismoTelefono = new List<ClienteTelefonoLookup> { clienteFake };
             A.CallTo(() => Servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored)).Returns(respuestaFake);
-            int vecesSeHaLlamado = 0;
-            vm.ClienteTelefonoRequest.Raised += delegate (object sender, InteractionRequestedEventArgs e)
-            {
-                vecesSeHaLlamado++;
-            };
             WizardPage paginaActual = A.Fake<WizardPage>();
             paginaActual.Name = CrearClienteViewModel.DATOS_GENERALES;
             WizardPage paginaSiguiente = A.Fake<WizardPage>();
@@ -141,7 +138,9 @@ namespace ClienteTests
             // ACT
             vm.PaginaActual = paginaSiguiente;
 
-            Assert.AreEqual(1, vecesSeHaLlamado);
+            //Assert
+            A.CallTo(() => DialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+
         }
     }
 }

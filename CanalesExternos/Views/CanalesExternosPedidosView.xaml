@@ -3,17 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"     
         xmlns:prism="http://prismlibrary.com/"
         prism:ViewModelLocator.AutoWireViewModel="True"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d" Loaded="UserControl_Loaded">
-
-    <i:Interaction.Triggers>
-        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
-        </prism:InteractionRequestTrigger>
-    </i:Interaction.Triggers>
 
     <Grid>
         <Grid.ColumnDefinitions>

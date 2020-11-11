@@ -1,0 +1,36 @@
+﻿<UserControl x:Class="PickingPopupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="350"
+             Width="350">
+    <xctk:BusyIndicator IsBusy="{Binding estaSacandoPicking}" BusyContent="Sacando Picking...">
+        <Grid Margin="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <RadioButton Grid.Column="0" Grid.Row="0" Content="Pedido" IsChecked="{Binding esPickingPedido, Mode=TwoWay}" GroupName="TipoPicking"></RadioButton>
+            <TextBox Grid.Column="1" Grid.Row="0" Name="txtNumeroPedido" Text="{Binding numeroPedidoPicking}"></TextBox>
+            <RadioButton Grid.Column="0" Grid.Row="1" Content="Cliente" IsChecked="{Binding esPickingCliente, Mode=TwoWay}" GroupName="TipoPicking"></RadioButton>
+            <TextBox Grid.Column="1" Grid.Row="1" Name="txtCliente" Text="{Binding numeroClientePicking}"></TextBox>
+            <RadioButton Grid.Column="0" Grid.Row="2" Content="Rutas" IsChecked="{Binding esPickingRutas, Mode=TwoWay}" GroupName="TipoPicking"></RadioButton>
+            <TextBlock Grid.Column="0" Grid.Row="3"></TextBlock>
+
+            <Button Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="4" Command="{Binding cmdSacarPicking}" CommandParameter="{Binding pedidoPicking}">Aceptar</Button>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

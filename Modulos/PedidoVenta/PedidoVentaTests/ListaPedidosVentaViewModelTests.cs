@@ -6,6 +6,7 @@ using Prism.Events;
 using Nesto.Modulos.PedidoVenta;
 using static Nesto.Modulos.PedidoVenta.PedidoVentaModel;
 using Prism.Ioc;
+using Prism.Services.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -18,9 +19,10 @@ namespace PedidoVentaTests
             var configuracion = A.Fake<IConfiguracion>();
             var servicio = A.Fake<IPedidoVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
             var pedido = A.Fake<ResumenPedido>();
             A.CallTo(() => servicio.cargarListaPedidos("", false, false)).Returns(new ObservableCollection<ResumenPedido> { pedido });
-            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator);
+            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator, dialogService);
 
             vm.cmdCargarListaPedidos.Execute();
 
@@ -35,9 +37,10 @@ namespace PedidoVentaTests
             var configuracion = A.Fake<IConfiguracion>();
             var servicio = A.Fake<IPedidoVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
             A.CallTo(() => configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1");
             A.CallTo(() => configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("123456");
-            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator);
+            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator, dialogService);
 
             ResumenPedido resumen = vm.cargarPedidoPorDefecto().Result;
             ResumenPedido esperado = new ResumenPedido { empresa = "1", numero = 123456 };

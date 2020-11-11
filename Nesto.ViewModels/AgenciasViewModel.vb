@@ -6,7 +6,6 @@ Imports System.Windows.Controls
 Imports System.Data.Entity.Core.Objects
 Imports Prism.Mvvm
 Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
 Imports Microsoft.Win32
 Imports Prism.Regions
 Imports System.Transactions
@@ -14,6 +13,8 @@ Imports System.Threading.Tasks
 Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Models
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -26,11 +27,11 @@ Public Class AgenciasViewModel
 
     Const LONGITUD_TELEFONO = 15
 
-    'Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IAgenciaService
     Private ReadOnly configuracion As IConfiguracion
-    'Private Shared DbContext As NestoEntities
+    Public ReadOnly dialogService As IDialogService
+
 
     Dim empresaDefecto As String
 
@@ -38,17 +39,15 @@ Public Class AgenciasViewModel
 
     Private imprimirEtiqueta As Boolean
 
-    Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion)
+    Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
 
-        'Me.container = container
         Me.regionManager = regionManager
         Me.servicio = servicio
         Me.configuracion = configuracion
-
-        'DbContext = New NestoEntities
+        Me.dialogService = dialogService
 
         Titulo = "Agencias"
         PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS, .Header = "Temporal"}
@@ -71,15 +70,11 @@ Public Class AgenciasViewModel
         GuardarEnvioPendienteCommand = New DelegateCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
 
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
         factory.Add("ASM", Function() New AgenciaASM(Me))
         factory.Add("OnTime", Function() New AgenciaOnTime(Me))
         factory.Add("Glovo", Function() New AgenciaGlovo(Me))
         factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
     End Sub
-
 
 
 #Region "Propiedades"
@@ -92,40 +87,8 @@ Public Class AgenciasViewModel
     ' Carlos 26/10/17 -> estas propiedades "envio" habría que quitarlas y crear EnvioAgenciaWrapper donde
     ' tengamos todas esas propiedades con un PropertyChanged y change tracking
 
-    '*** Propiedades de Prism 
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            resultMessage = value
-            RaisePropertyChanged(NameOf(InteractionResultMessage))
-        End Set
-    End Property
-
-    Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion)
-        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion), configuracion)
+    Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
+        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion), configuracion, dialogService)
         agenciasVM.InsertarEnvioPendienteCommand.Execute()
         agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL)
         agenciasVM.EnvioPendienteSeleccionado.Pedido = etiqueta.Pedido
@@ -256,10 +219,7 @@ Public Class AgenciasViewModel
                     RaisePropertyChanged("") ' para que actualice todos los enlaces
                 End If
             Catch ex As Exception
-                NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = "No se encuentra la implementación de la agencia " + value.Nombre
-                })
+                dialogService.ShowError("No se encuentra la implementación de la agencia " + value.Nombre)
                 RaisePropertyChanged(NameOf(agenciaSeleccionada))
             End Try
 
@@ -370,19 +330,10 @@ Public Class AgenciasViewModel
                         agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = agenciaConfigurar.Numero)
                     End If
                 Catch ex As Exception
-                    If Not IsNothing(NotificationRequest) Then
-                        NotificationRequest.Raise(New Notification() With {
-                         .Title = "Error",
-                        .Content = ex.Message
-                        })
-                    End If
+                    dialogService.ShowError(ex.Message)
                 End Try
 
             Else
-                'NotificationRequest.Raise(New Notification() With {
-                ' .Title = "Error",
-                '.Content = "El pedido seleccionado no existe"
-                '})
                 numeroPedido = 36
             End If
         End Set
@@ -1312,7 +1263,11 @@ Public Class AgenciasViewModel
         Return Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso envioActual.Agencia = agenciaSeleccionada.Numero
     End Function
     Private Sub ImprimirEtiquetaPedido(ByVal param As Object)
-        agenciaEspecifica.imprimirEtiqueta(envioActual)
+        Try
+            agenciaEspecifica.imprimirEtiqueta(envioActual)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        End Try
     End Sub
 
     Private _cmdBorrar As ICommand
@@ -1333,18 +1288,12 @@ Public Class AgenciasViewModel
             Throw New Exception("No se puede borrar un pedido tramitado")
         End If
         Dim mensajeMostrar = String.Format("¿Confirma que desea borrar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
-        Me.ConfirmationRequest.Raise(
-                New Confirmation() With {
-                    .Content = mensajeMostrar, .Title = "Borrar Envío"
-                },
-                Sub(c)
-                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                End Sub
-            )
-
-        If InteractionResultMessage = "KO" Then
+        Dim continuar As Boolean
+        continuar = dialogService.ShowConfirmationAnswer("Borrar Envío", mensajeMostrar)
+        If Not continuar Then
             Return
         End If
+
         servicio.Borrar(envioActual.Numero)
         Dim copiaEnvio = envioActual
         listaEnviosPedido.Remove(copiaEnvio)
@@ -1370,10 +1319,7 @@ Public Class AgenciasViewModel
             InsertarRegistro(servicioActual.id = agenciaEspecifica.ServicioCreaEtiquetaRetorno)
         Catch e As Exception
             imprimirEtiqueta = False
-            NotificationRequest.Raise(New Notification() With {
-                 .Title = "Error",
-                .Content = e.Message
-            })
+            dialogService.ShowError(e.Message)
         End Try
     End Sub
 
@@ -1396,10 +1342,7 @@ Public Class AgenciasViewModel
                 cmdImprimirEtiquetaPedido.Execute(Nothing)
             End If
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-             .Title = "Error",
-            .Content = ex.Message
-            })
+            dialogService.ShowError(ex.Message)
             Return
         End Try
         Dim textoImprimir As String
@@ -1408,10 +1351,7 @@ Public Class AgenciasViewModel
         Else
             textoImprimir = "Envío ampliado correctamente"
         End If
-        NotificationRequest.Raise(New Notification() With {
-             .Title = "Envío",
-            .Content = textoImprimir
-        })
+        dialogService.ShowNotification("Envío", textoImprimir)
     End Sub
 
     Private _cmdCargarEstado As DelegateCommand(Of Object)
@@ -1432,10 +1372,13 @@ Public Class AgenciasViewModel
             mensajeError = "No se puede cargar el estado porque no hay ningún envío seleccionado"
             Return
         End If
-        'XMLdeEstado = cargarEstado(envioActual)
-        XMLdeEstado = agenciaEspecifica.cargarEstado(envioActual)
-        estadoEnvioCargado = agenciaEspecifica.transformarXMLdeEstado(XMLdeEstado)
-        mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
+        Try
+            XMLdeEstado = agenciaEspecifica.cargarEstado(envioActual)
+            estadoEnvioCargado = agenciaEspecifica.transformarXMLdeEstado(XMLdeEstado)
+            mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        End Try
     End Sub
 
     Private _cmdCargarDatos As DelegateCommand
@@ -1548,26 +1491,18 @@ Public Class AgenciasViewModel
         Return (Not IsNothing(numClienteContabilizar) AndAlso numClienteContabilizar.Length > 0 AndAlso Not IsNothing(listaReembolsosSeleccionados) AndAlso listaReembolsosSeleccionados.Count > 0) Or MODO_CUADRE
     End Function
     Private Sub OnContabilizarReembolso(arg As Object)
-        Me.ConfirmationRequest.Raise(
-            New Confirmation() With {
-                .Content = "¿Desea contabilizar?", .Title = "Contabilizar"
-            },
-            Sub(c)
-                InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-            End Sub
-        )
-
-        If InteractionResultMessage = "KO" Or IsNothing(listaReembolsosSeleccionados) Then
+        Dim continuar As Boolean
+        dialogService.ShowConfirmation("Contabilizar", "¿Desea contabilizar?", Sub(r)
+                                                                                   continuar = (r.Result = ButtonResult.OK)
+                                                                               End Sub)
+        If Not continuar OrElse IsNothing(listaReembolsosSeleccionados) Then
             Return
         End If
 
         ' Comprobamos si existe el cliente
         Dim cliente As Clientes = servicio.CargarClientePrincipal(empresaSeleccionada.Número, numClienteContabilizar)
         If IsNothing(cliente) Then
-            NotificationRequest.Raise(New Notification() With {
-                .Title = "Error al contabilizar",
-                .Content = "El cliente " + numClienteContabilizar + " no existe en " + empresaSeleccionada.Nombre
-            })
+            dialogService.ShowError("El cliente " + numClienteContabilizar + " no existe en " + empresaSeleccionada.Nombre)
             Return
         End If
 
@@ -1665,23 +1600,14 @@ Public Class AgenciasViewModel
                     If success Then
                         ' Reset the context since the operation succeeded. 
                         DbContext.SaveChanges()
-                        NotificationRequest.Raise(New Notification() With {
-                         .Title = "Contabilizado Correctamente",
-                        .Content = "Nº Asiento: " + asiento.ToString
-                    })
+                        dialogService.ShowNotification("Contabilizado Correctamente", "Nº Asiento: " + asiento.ToString)
                     Else
                         transaction.Dispose()
-                        NotificationRequest.Raise(New Notification() With {
-                         .Title = "¡Error!",
-                        .Content = "Se ha producido un error y no se han grabado los datos"
-                    })
+                        dialogService.ShowError("Se ha producido un error y no se han grabado los datos")
                     End If
                 Catch ex As Exception
                     transaction.Dispose()
-                    NotificationRequest.Raise(New Notification() With {
-                         .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
-                        .Content = ex.Message
-                    })
+                    dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.Message)
                 End Try
             End Using ' Cerramos el contexto
         End Using ' finaliza la transacción
@@ -1733,18 +1659,14 @@ Public Class AgenciasViewModel
     End Function
     Private Sub OnModificar(arg As Object)
         Dim mensajeMostrar = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
-        Me.ConfirmationRequest.Raise(
-                New Confirmation() With {
-                    .Content = mensajeMostrar, .Title = "Modificar Envío"
-                },
-                Sub(c)
-                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                End Sub
-            )
-
-        If InteractionResultMessage = "KO" Then
+        Dim continuar As Boolean
+        dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
+                                                                              continuar = (r.Result = ButtonResult.OK)
+                                                                          End Sub)
+        If Not continuar Then
             Return
         End If
+
         servicio.Modificar(envioActual)
     End Sub
 
@@ -1763,18 +1685,14 @@ Public Class AgenciasViewModel
     End Function
     Private Sub OnModificarEnvio(arg As Object)
         Dim mensajeMostrar = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
-        Me.ConfirmationRequest.Raise(
-                New Confirmation() With {
-                    .Content = mensajeMostrar, .Title = "Modificar Envío"
-                },
-                Sub(c)
-                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                End Sub
-            )
-
-        If InteractionResultMessage = "KO" Then
+        Dim continuar As Boolean
+        dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
+                                                                              continuar = (r.Result = ButtonResult.OK)
+                                                                          End Sub)
+        If Not continuar Then
             Return
         End If
+
         modificarEnvio(envioActual, reembolsoModificar, retornoModificar, estadoModificar, fechaEntregaModificar)
     End Sub
 
@@ -1820,16 +1738,12 @@ Public Class AgenciasViewModel
     End Function
     Private Sub OnRecibirRetorno(arg As Object)
         If Not IsNothing(lineaRetornoSeleccionado) Then
-            Me.ConfirmationRequest.Raise(
-                New Confirmation() With {
-                    .Content = "¿Confirma que ha recibido el retorno del pedido " + lineaRetornoSeleccionado.Pedido.ToString + "?", .Title = "Retorno"
-                },
-                Sub(c)
-                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                End Sub
-            )
-
-            If InteractionResultMessage = "KO" Or IsNothing(lineaRetornoSeleccionado) Then
+            Dim mensajeMostrar As String = String.Format("¿Confirma que ha recibido el retorno del pedido {0}?", lineaRetornoSeleccionado.Pedido.ToString)
+            Dim continuar As Boolean
+            dialogService.ShowConfirmation("Retorno", mensajeMostrar, Sub(r)
+                                                                          continuar = (r.Result = ButtonResult.OK)
+                                                                      End Sub)
+            If Not continuar OrElse IsNothing(lineaRetornoSeleccionado) Then
                 Return
             End If
 
@@ -1842,10 +1756,7 @@ Public Class AgenciasViewModel
                     listaRetornos.Remove(lineaRetornoSeleccionado)
                 Else
                     mensajeError = "Se ha producido un error al actualizar la fecha del retorno"
-                    NotificationRequest.Raise(New Notification() With {
-                    .Title = "Error",
-                    .Content = "No se ha podido actualizar la fecha del retorno"
-                })
+                    dialogService.ShowError("No se ha podido actualizar la fecha del retorno")
                 End If
             End Using
         Else
@@ -1877,16 +1788,9 @@ Public Class AgenciasViewModel
     End Function
     Private Sub OnBorrarEnvioPendiente()
         Dim mensajeMostrar = String.Format("¿Confirma que desea borrar el envío pendiente del cliente {1}?{0}{0}{2}", Environment.NewLine, EnvioPendienteSeleccionado.Cliente?.Trim, EnvioPendienteSeleccionado.Direccion)
-        Me.ConfirmationRequest.Raise(
-                New Confirmation() With {
-                    .Content = mensajeMostrar, .Title = "Borrar Envío"
-                },
-                Sub(c)
-                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                End Sub
-            )
-
-        If InteractionResultMessage = "KO" Then
+        Dim continuar As Boolean
+        continuar = dialogService.ShowConfirmationAnswer("Borrar Envío", mensajeMostrar)
+        If Not continuar Then
             Return
         End If
 
@@ -1959,10 +1863,7 @@ Public Class AgenciasViewModel
             EnvioPendienteSeleccionado.TieneCambios = False
             listaPendientes.Add(EnvioPendienteSeleccionado)
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-                 .Title = "Error al modificar envío",
-                .Content = ex.Message
-            })
+            dialogService.ShowError("Error al modificar envío:" + vbCr + ex.Message)
         End Try
     End Sub
 
@@ -2066,41 +1967,32 @@ Public Class AgenciasViewModel
                 textoConfirmar = "Si el nº total de bultos pasa de " + envioActual.Bultos.ToString + " a " + bultos.ToString
                 imprimirEtiqueta = True
             End If
-            Me.ConfirmationRequest.Raise(
-                New Confirmation() With {
-                    .Content = "Este pedido es una ampliación del pedido " + envioActual.Pedido.ToString + ". " +
-                    textoConfirmar +
-                    " puede actualizar los datos." + vbCrLf +
-                    "En caso contrario, pulse Cancelar, modifique el nº de bultos y vuelva a intentarlo." + vbCrLf + vbCrLf +
-                    "¿Desea actualizar los datos?",
-                    .Title = "Ampliación"
-                },
-                Sub(c)
-                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                End Sub
-            )
 
-            If InteractionResultMessage = "KO" Then
+            Dim mensajeMostrar As String = String.Format("Este pedido es una ampliación del pedido {0}. " +
+                    "{1} puede actualizar los datos." + vbCrLf +
+                    "En caso contrario, pulse Cancelar, modifique el nº de bultos y vuelva a intentarlo." + vbCrLf + vbCrLf +
+                    "¿Desea actualizar los datos?", envioActual.Pedido.ToString, textoConfirmar)
+            Dim continuar As Boolean
+            dialogService.ShowConfirmation("Ampliación", mensajeMostrar, Sub(r)
+                                                                             continuar = (r.Result = ButtonResult.OK)
+                                                                         End Sub)
+            If Not continuar Then
                 Throw New Exception("Cancelado por el usuario")
                 Return
             End If
+
+
         Else
             imprimirEtiqueta = True
         End If
 
         Dim hayAlgunaLineaConPicking As Boolean = servicio.HayAlgunaLineaConPicking(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
         If Not hayAlgunaLineaConPicking Then
-            ConfirmationRequest.Raise(
-                New Confirmation() With {
-                    .Content = "Este pedido no tiene ninguna línea con picking. ¿Desea insertar el pedido de todos modos?",
-                    .Title = "Pedido Sin Picking"
-                },
-                Sub(c)
-                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                End Sub
-            )
-
-            If InteractionResultMessage = "KO" Then
+            Dim continuar As Boolean
+            dialogService.ShowConfirmation("Pedido Sin Picking", "Este pedido no tiene ninguna línea con picking. ¿Desea insertar el pedido de todos modos?", Sub(r)
+                                                                                                                                                                  continuar = (r.Result = ButtonResult.OK)
+                                                                                                                                                              End Sub)
+            If Not continuar Then
                 Throw New Exception("Cancelado por el usuario")
                 Return
             End If
@@ -2203,17 +2095,11 @@ Public Class AgenciasViewModel
 
             Catch ex As Exception
                 transaction.Dispose()
-                NotificationRequest.Raise(New Notification() With {
-                         .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
-                        .Content = ex.Message
-                    })
+                dialogService.ShowError("Se ha producido un error y no se han grabado los datos: " + vbCr + ex.Message)
             End Try
 
             If Not success Then
-                NotificationRequest.Raise(New Notification() With {
-                         .Title = "¡Error!",
-                        .Content = "Se ha producido un error y no se ha creado la etiqueta correctamente"
-                    })
+                dialogService.ShowError("Se ha producido un error y no se ha creado la etiqueta correctamente")
             End If
 
         End Using ' finaliza la transacción
@@ -2293,24 +2179,17 @@ Public Class AgenciasViewModel
 
         ' Carlos 14/12/16: no se pueden modificar los envíos que estén cobrados
         If Not IsNothing(envio.FechaPagoReembolso) Then
-            NotificationRequest.Raise(New Notification() With {
-                     .Title = "¡Error!",
-                    .Content = "No se puede modificar este envío, porque ya está cobrado"
-                })
+            dialogService.ShowError("No se puede modificar este envío, porque ya está cobrado")
             Return
         End If
 
         If Math.Abs(reembolso) > Math.Abs(envio.Reembolso * 10) Then 'es demasiado grande
-            Me.ConfirmationRequest.Raise(
-                New Confirmation() With {
-                    .Content = "¿Es correcto el importe de " + reembolso.ToString("C") + "?", .Title = "¡Atención!"
-                },
-                Sub(c)
-                    InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-                End Sub
-            )
-
-            If InteractionResultMessage = "KO" Then
+            Dim mensajeMostrar = String.Format("¿Es correcto el importe de {0}?", reembolso.ToString("C"))
+            Dim continuar As Boolean
+            dialogService.ShowConfirmation("¡Atención!", mensajeMostrar, Sub(r)
+                                                                             continuar = (r.Result = ButtonResult.OK)
+                                                                         End Sub)
+            If Not continuar Then
                 Return
             End If
         End If
@@ -2414,10 +2293,7 @@ Public Class AgenciasViewModel
                     envio = envioEncontrado
                     RaisePropertyChanged(NameOf(listaEnviosTramitados))
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                     .Title = "¡Error!",
-                    .Content = "Se ha producido un error y no se grabado los datos"
-                })
+                    dialogService.ShowError("Se ha producido un error y no se grabado los datos")
                 End If
             End Using ' cerramos el contexto breve
         End Using ' Cerramos la transaccion
@@ -2541,10 +2417,7 @@ Public Class AgenciasViewModel
                     ' Reset the context since the operation succeeded. 
                     DbContext.SaveChanges()
                 Else
-                    NotificationRequest.Raise(New Notification() With {
-                     .Title = "¡Error!",
-                    .Content = "Se ha producido un error y no se han grabado los datos"
-                })
+                    dialogService.ShowError("Se ha producido un error y no se han grabado los datos")
                     Return -1
                 End If
             End Using ' Cerramos contexto breve
@@ -2625,10 +2498,7 @@ Public Class AgenciasViewModel
         Dim pedido As CabPedidoVta = servicio.CargarPedido(empresaSeleccionada.Número, numeroPedido)
 
         If IsNothing(pedido) Then
-            NotificationRequest.Raise(New Notification() With {
-                 .Title = "Error",
-                .Content = "No se encuentra el pedido " + numeroPedido.ToString
-            })
+            dialogService.ShowError("No se encuentra el pedido " + numeroPedido.ToString)
             Return
         End If
 
@@ -2646,7 +2516,7 @@ Public Class AgenciasViewModel
             .Observaciones = pedido.Comentarios
             .Poblacion = If(pedido.Clientes.Población IsNot Nothing, pedido.Clientes.Población.Trim, "")
             .Provincia = If(pedido.Clientes.Provincia IsNot Nothing, pedido.Clientes.Provincia.Trim, "")
-            .Telefono = Telefono.FijoUnico
+            .Telefono = telefono.FijoUnico
             .Movil = telefono.MovilUnico
             .Reembolso = importeReembolso(pedido)
             .Pais = agenciaEspecifica.paisDefecto

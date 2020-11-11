@@ -1,5 +1,4 @@
-﻿Imports System.ComponentModel
-Imports Nesto.Models.MainModel
+﻿Imports Nesto.Models.MainModel
 Imports System.Windows.Input
 Imports System.Windows.Controls
 Imports System.Windows
@@ -11,35 +10,35 @@ Imports System.Net.Http
 Imports System.Threading.Tasks
 Imports Newtonsoft.Json
 Imports Nesto.Contratos
-Imports Prism.Ioc
 Imports Unity
+Imports System.ComponentModel
 
-Public Class ViewModelBase
-    Implements INotifyPropertyChanged
+'Public Class ViewModelBase
+'    Implements INotifyPropertyChanged
 
-    Public Event PropertyChanged(ByVal sender As Object, ByVal e As System.ComponentModel.PropertyChangedEventArgs) Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
+'    Public Event PropertyChanged(ByVal sender As Object, ByVal e As System.ComponentModel.PropertyChangedEventArgs) Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
 
-    Protected Sub OnPropertyChanged(ByVal strPropertyName As String)
-        If Me.PropertyChangedEvent IsNot Nothing Then
-            RaiseEvent PropertyChanged(Me, New System.ComponentModel.PropertyChangedEventArgs(strPropertyName))
-        End If
-    End Sub
+'    Protected Sub RaisePropertyChanged(ByVal strPropertyName As String)
+'        If Me.PropertyChangedEvent IsNot Nothing Then
+'            RaiseEvent PropertyChanged(Me, New System.ComponentModel.PropertyChangedEventArgs(strPropertyName))
+'        End If
+'    End Sub
 
-    Public Sub New()
-        Titulo = "Informe"
-    End Sub
+'    Public Sub New()
+'        Titulo = "Informe"
+'    End Sub
 
-    Private _titulo As String
-    Public Property Titulo As String
-        Get
-            Return _titulo
-        End Get
-        Set(ByVal value As String)
-            _titulo = value
-        End Set
-    End Property
+'    Private _titulo As String
+'    Public Property Titulo As String
+'        Get
+'            Return _titulo
+'        End Get
+'        Set(ByVal value As String)
+'            _titulo = value
+'        End Set
+'    End Property
 
-End Class
+'End Class
 Public Class RelayCommand
     Implements ICommand
 
@@ -103,7 +102,7 @@ Public Class MainViewModel
 
         Set(ByVal value As RatioVenta)
             Me._RatiosVenta = value
-            OnPropertyChanged("RatiosVenta")
+            RaisePropertyChanged("RatiosVenta")
         End Set
     End Property
     Public Property MediaRatioVenta() As Decimal
@@ -141,7 +140,7 @@ Public Class MainViewModel
         End Get
         Set(value As String)
             _opcionesFechas = value
-            OnPropertyChanged("mostrarFechas")
+            RaisePropertyChanged("mostrarFechas")
         End Set
     End Property
 
@@ -170,7 +169,7 @@ Public Class MainViewModel
 
         Set(ByVal value As String)
             Me._Vendedor = value
-            OnPropertyChanged("Vendedor")
+            RaisePropertyChanged("Vendedor")
         End Set
     End Property
 

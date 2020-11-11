@@ -1,0 +1,24 @@
+﻿<UserControl x:Name="CarteraPagos" x:Class="CarteraPagosView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        xmlns:prism="http://prismlibrary.com/"
+        prism:ViewModelLocator.AutoWireViewModel="True">
+
+
+
+    <StackPanel>
+        <TextBlock>Remesa: </TextBlock>
+        <TextBox Name="txtRemesa" Text="{Binding numeroRemesa, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+        <TextBlock></TextBlock>
+        <TextBlock></TextBlock>
+        <TextBlock>Nº Orden:</TextBlock>
+        <TextBox Name="txtNumOrden" Text="{Binding numeroOrdenExtracto, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+        <TextBlock></TextBlock>
+        <TextBlock></TextBlock>
+        <TextBlock></TextBlock>
+        <Button Name="btnCrearFichero" Command="{Binding cmdCrearFicheroRemesa}">Crear Fichero de la Remesa</Button>
+    </StackPanel>
+</UserControl>

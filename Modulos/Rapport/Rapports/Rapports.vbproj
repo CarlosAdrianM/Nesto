@@ -109,13 +109,13 @@
     <Compile Include="RapportsMenuBar.xaml.vb">
       <DependentUpon>RapportsMenuBar.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ListaRapportsViewModel.vb" />
+    <Compile Include="ViewModels\ListaRapportsViewModel.vb" />
     <Compile Include="RapportsModel.vb" />
-    <Compile Include="RapportView.xaml.vb">
+    <Compile Include="Views\RapportView.xaml.vb">
       <DependentUpon>RapportView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="RapportViewModel.vb" />
-    <Page Include="ListaRapportsView.xaml">
+    <Compile Include="ViewModels\RapportViewModel.vb" />
+    <Page Include="Views\ListaRapportsView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -123,7 +123,7 @@
       <DependentUpon>Application.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ListaRapportsView.xaml.vb">
+    <Compile Include="Views\ListaRapportsView.xaml.vb">
       <DependentUpon>ListaRapportsView.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
@@ -131,7 +131,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="RapportView.xaml">
+    <Page Include="Views\RapportView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

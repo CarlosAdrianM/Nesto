@@ -99,9 +99,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Notificacion.xaml.vb">
-      <DependentUpon>Notificacion.xaml</DependentUpon>
-    </Compile>
     <Page Include="InventarioMenuBar.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -123,10 +120,6 @@
       <DependentUpon>InventarioView.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="Notificacion.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Import Include="System.Threading.Tasks" />
@@ -185,6 +178,10 @@
     <ProjectReference Include="..\..\..\Contratos\Contratos.vbproj">
       <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
       <Name>Contratos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\ControlesUsuario\ControlesUsuario.csproj">
+      <Project>{3961283c-76c3-4b5f-80f2-01a78593e67f}</Project>
+      <Name>ControlesUsuario</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

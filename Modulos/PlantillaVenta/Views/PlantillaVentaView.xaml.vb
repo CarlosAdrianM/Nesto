@@ -3,11 +3,9 @@ Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports Xceed.Wpf.Toolkit
 
 Public Class PlantillaVentaView
-    Public Sub New(viewModel As PlantillaVentaViewModel)
+    Public Sub New()
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
-
-        Me.DataContext = viewModel
     End Sub
 
     Private Sub SeleccionCliente_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionCliente.Enter

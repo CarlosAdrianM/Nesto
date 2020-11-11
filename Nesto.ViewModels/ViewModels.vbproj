@@ -91,6 +91,7 @@
     </Compile>
     <Compile Include="ClientesViewModel.vb" />
     <Compile Include="ComisionesViewModel.vb" />
+    <Compile Include="CRInformeViewModel.vb" />
     <Compile Include="DeudaViewModel.vb" />
     <Compile Include="Agencias\IAgencia.vb" />
     <Compile Include="EnvioAgenciaWrapper.vb" />
@@ -140,6 +141,10 @@
     <ProjectReference Include="..\Contratos\Contratos.vbproj">
       <Project>{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}</Project>
       <Name>Contratos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj">
+      <Project>{3961283C-76C3-4B5F-80F2-01A78593E67F}</Project>
+      <Name>ControlesUsuario</Name>
     </ProjectReference>
     <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj">
       <Project>{5678F232-EBFE-4834-B77F-51B2C0824380}</Project>

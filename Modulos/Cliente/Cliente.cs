@@ -2,6 +2,7 @@
 using Nesto.Contratos;
 using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
+using Nesto.Modulos.Cliente.ViewModels;
 
 namespace Nesto.Modulos.Cliente
 {
@@ -10,6 +11,7 @@ namespace Nesto.Modulos.Cliente
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.Register<object, CrearClienteView>("CrearClienteView");
+            containerRegistry.RegisterDialog<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
         }
 
         public void OnInitialized(IContainerProvider containerProvider)

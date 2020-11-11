@@ -2,12 +2,10 @@
 Imports System.Windows.Controls
 Imports System.Windows
 Imports System.Windows.Input
-Imports System.Collections.ObjectModel
-Imports System.Windows.Media
-
+Imports Prism.Mvvm
 
 Public Class DeudaViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
     Public Sub New()
         Me._RatiosDeuda = RatioDeuda.CargarRatiosDeuda
@@ -15,6 +13,8 @@ Public Class DeudaViewModel
     End Sub
 
     Private _RatiosDeuda As RatioDeuda
+    Public Property Titulo As String
+
     Public ReadOnly Property RatiosDeuda As RatioDeuda
         Get
             Return _RatiosDeuda
@@ -22,7 +22,7 @@ Public Class DeudaViewModel
 
         'Set(ByVal value As RatioDeuda)
         '    Me._RatiosDeuda = value
-        '    OnPropertyChanged("RatiosDeuda")
+        '    RaisePropertyChanged("RatiosDeuda")
         'End Set
     End Property
 
@@ -33,7 +33,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As DetalleVentaReal)
             _DetalleVentaReal = value
-            OnPropertyChanged("DetalleVentaReal")
+            RaisePropertyChanged("DetalleVentaReal")
         End Set
     End Property
 
@@ -44,7 +44,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As DetalleVentaPeriodo)
             _DetalleVentaPeriodo = value
-            OnPropertyChanged("DetalleVentaPeriodo")
+            RaisePropertyChanged("DetalleVentaPeriodo")
         End Set
     End Property
 
@@ -55,7 +55,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As DetalleDeuda)
             _DetalleDeuda = value
-            OnPropertyChanged("DetalleDeuda")
+            RaisePropertyChanged("DetalleDeuda")
         End Set
     End Property
 
@@ -66,7 +66,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As IEnumerable)
             _DeudaAgrupada = value
-            OnPropertyChanged("DeudaAgrupada")
+            RaisePropertyChanged("DeudaAgrupada")
         End Set
     End Property
 
@@ -77,7 +77,7 @@ Public Class DeudaViewModel
         End Get
         Set(value As RatioDeuda)
             _RatioDeudaSeleccionado = value
-            OnPropertyChanged("RatioDeudaSeleccionado")
+            RaisePropertyChanged("RatioDeudaSeleccionado")
         End Set
     End Property
 
@@ -139,17 +139,17 @@ Public Class DeudaViewModel
     Private Sub CargarDetalleDeuda(ByVal param As Object)
         DetalleDeuda = DetalleDeuda.CargarDetalleDeuda(param.ToString)
         DeudaAgrupada = From x In DetalleDeuda.AsEnumerable()
-                                Group By x.Cliente, x.Contacto, x.Nombre, x.Direccion, x.Poblacion, x.CodPostal, x.Provincia, x.Telefono Into g = Group
-                                Where g.Sum(Function(d) d.Deuda) <> 0
-                                Order By g.Sum(Function(d) d.Deuda) Descending
-                                Select New With {
-                                    Cliente, Contacto, Nombre, Direccion, Poblacion, CodPostal, Provincia, Telefono, .SumaDeuda = g.Sum(Function(d) d.Deuda), .Detalle = g.Select(Function(y) New With {
-                                        y.Concepto,
-                                        y.Deuda,
-                                        y.FechaVto,
-                                        y.Tipo
-                                    }
-                                 )}
+                        Group By x.Cliente, x.Contacto, x.Nombre, x.Direccion, x.Poblacion, x.CodPostal, x.Provincia, x.Telefono Into g = Group
+                        Where g.Sum(Function(d) d.Deuda) <> 0
+                        Order By g.Sum(Function(d) d.Deuda) Descending
+                        Select New With {
+                            Cliente, Contacto, Nombre, Direccion, Poblacion, CodPostal, Provincia, Telefono, .SumaDeuda = g.Sum(Function(d) d.Deuda), .Detalle = g.Select(Function(y) New With {
+                                y.Concepto,
+                                y.Deuda,
+                                y.FechaVto,
+                                y.Tipo
+                            }
+                         )}
 
 
     End Sub
@@ -186,18 +186,18 @@ Public Class DeudaViewModel
     Private Sub CargarDetalleVencido(ByVal param As Object)
 
         DeudaAgrupada = From x In DetalleDeuda.AsEnumerable()
-                                Group By x.Cliente, x.Contacto, x.Nombre, x.Direccion, x.Poblacion, x.CodPostal, x.Provincia, x.Telefono Into g = Group
-                                Where (g.Where(Function(h) h.FechaVto < Today).Sum(Function(d) d.Deuda) <> 0)
-                                Order By g.Where(Function(h) h.FechaVto < Today).Sum(Function(d) d.Deuda) Descending
-                                Select New With {
-                                    Cliente, Contacto, Nombre, Direccion, Poblacion, CodPostal, Provincia, Telefono, .SumaDeuda = g.Where(Function(h) h.FechaVto < Today).Sum(Function(d) d.Deuda), .Detalle = (From y In g Where y.FechaVto < Today Select New With {
-                                        y.Concepto,
-                                        y.Deuda,
-                                        y.FechaVto,
-                                        y.Tipo
-                                    }
-                                 )
-                              }
+                        Group By x.Cliente, x.Contacto, x.Nombre, x.Direccion, x.Poblacion, x.CodPostal, x.Provincia, x.Telefono Into g = Group
+                        Where (g.Where(Function(h) h.FechaVto < Today).Sum(Function(d) d.Deuda) <> 0)
+                        Order By g.Where(Function(h) h.FechaVto < Today).Sum(Function(d) d.Deuda) Descending
+                        Select New With {
+                            Cliente, Contacto, Nombre, Direccion, Poblacion, CodPostal, Provincia, Telefono, .SumaDeuda = g.Where(Function(h) h.FechaVto < Today).Sum(Function(d) d.Deuda), .Detalle = (From y In g Where y.FechaVto < Today Select New With {
+                                y.Concepto,
+                                y.Deuda,
+                                y.FechaVto,
+                                y.Tipo
+                            }
+                         )
+                      }
 
 
 

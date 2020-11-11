@@ -1,5 +1,4 @@
-﻿Imports Nesto.Models
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Input
@@ -9,11 +8,13 @@ Imports Microsoft.Office.Interop
 Imports System.Threading.Tasks
 Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
+Imports Prism.Mvvm
 
 Public Class PlanesVentajasViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
     Private Shared DbContext As NestoEntities
+    Public Property Titulo As String
     Dim configuracion As IConfiguracion
     Private ruta As String
     Private Const ESTADO_PLAN_CANCELADO = 6
@@ -47,7 +48,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _empresaActual = value
-            OnPropertyChanged("empresaActual")
+            RaisePropertyChanged("empresaActual")
         End Set
     End Property
 
@@ -58,7 +59,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _vendedor = value
-            OnPropertyChanged("vendedor")
+            RaisePropertyChanged("vendedor")
         End Set
     End Property
 
@@ -69,7 +70,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of PlanesVentajas))
             _listaPlanes = value
-            OnPropertyChanged("listaPlanes")
+            RaisePropertyChanged("listaPlanes")
         End Set
     End Property
 
@@ -90,12 +91,12 @@ Public Class PlanesVentajasViewModel
                 barrasGrafico.Add(New datosGrafico With {.clave = "Proyección", .valor = importeProyeccion})
                 gaugeGrafico.Clear()
                 gaugeGrafico.Add(New datosGrafico With {.clave = "Realizado", .valor = porcentajeRealizado})
-                OnPropertyChanged("planActual")
-                OnPropertyChanged("diasPlan")
-                OnPropertyChanged("diasTranscurridos")
-                OnPropertyChanged("importeDiaObjetivo")
-                OnPropertyChanged("barrasGrafico")
-                OnPropertyChanged("porcentajeRealizado")
+                RaisePropertyChanged("planActual")
+                RaisePropertyChanged("diasPlan")
+                RaisePropertyChanged("diasTranscurridos")
+                RaisePropertyChanged("importeDiaObjetivo")
+                RaisePropertyChanged("barrasGrafico")
+                RaisePropertyChanged("porcentajeRealizado")
             Else
                 listaClientes = Nothing
                 lineasVenta = Nothing
@@ -110,7 +111,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of Clientes))
             _listaClientes = value
-            OnPropertyChanged("listaClientes")
+            RaisePropertyChanged("listaClientes")
         End Set
     End Property
 
@@ -126,7 +127,7 @@ Public Class PlanesVentajasViewModel
             Else
                 importeVentas = 0
             End If
-            OnPropertyChanged("lineasVenta")
+            RaisePropertyChanged("lineasVenta")
         End Set
     End Property
 
@@ -137,8 +138,8 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As Double)
             _importeVentas = value
-            OnPropertyChanged("importeVentas")
-            OnPropertyChanged("importeProyeccion")
+            RaisePropertyChanged("importeVentas")
+            RaisePropertyChanged("importeProyeccion")
         End Set
     End Property
 
@@ -237,7 +238,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _mensajeError = value
-            OnPropertyChanged("mensajeError")
+            RaisePropertyChanged("mensajeError")
         End Set
     End Property
 
@@ -248,7 +249,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As String)
             _selectedPath = value
-            OnPropertyChanged("selectedPath")
+            RaisePropertyChanged("selectedPath")
         End Set
     End Property
 
@@ -259,7 +260,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As TabItem)
             _PestañaSeleccionada = value
-            OnPropertyChanged("PestañaSeleccionada")
+            RaisePropertyChanged("PestañaSeleccionada")
         End Set
     End Property
 
@@ -270,7 +271,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of Empresas))
             _listaEmpresas = value
-            OnPropertyChanged("listaEmpresas")
+            RaisePropertyChanged("listaEmpresas")
         End Set
     End Property
 
@@ -281,7 +282,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(value As ObservableCollection(Of EstadosPlanVentajas))
             _listaEstados = value
-            OnPropertyChanged("listaEstados")
+            RaisePropertyChanged("listaEstados")
         End Set
     End Property
 
@@ -298,7 +299,7 @@ Public Class PlanesVentajasViewModel
                 ActualizarListaPlanes()
             End If
 
-            OnPropertyChanged("filtro")
+            RaisePropertyChanged("filtro")
         End Set
     End Property
 
@@ -309,7 +310,7 @@ Public Class PlanesVentajasViewModel
         End Get
         Set(ByVal value As Boolean)
             _verPlanesNulos = value
-            OnPropertyChanged("verPlanesNulos")
+            RaisePropertyChanged("verPlanesNulos")
             ActualizarListaPlanes()
         End Set
     End Property

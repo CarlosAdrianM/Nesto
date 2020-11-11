@@ -6,6 +6,7 @@ using Prism.Regions;
 using Nesto.Contratos;
 using System.ComponentModel;
 using Prism.Events;
+using Prism.Services.Dialogs;
 
 namespace PedidoVentaTests
 {
@@ -20,7 +21,8 @@ namespace PedidoVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator);
+            IDialogService dialogService = A.Fake<IDialogService>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
             PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
             LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
             lineaFake.descuentoProducto = (decimal).4;
@@ -44,7 +46,8 @@ namespace PedidoVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator);
+            IDialogService dialogService = A.Fake<IDialogService>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
             PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
             LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
             lineaFake.descuentoProducto = (decimal).4;
@@ -69,7 +72,8 @@ namespace PedidoVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator);
+            IDialogService dialogService = A.Fake<IDialogService>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
             PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
             LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
             lineaFake.descuentoProducto = (decimal).4;

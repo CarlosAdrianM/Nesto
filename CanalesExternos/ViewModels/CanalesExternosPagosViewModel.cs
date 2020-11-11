@@ -1,6 +1,5 @@
 ﻿using Claytondus.AmazonMWS.Finances;
 using Prism.Commands;
-using Prism.Interactivity.InteractionRequest;
 using Microsoft.VisualBasic;
 using Nesto.Contratos;
 using Nesto.Models.Nesto.Models;
@@ -12,6 +11,8 @@ using System.Threading.Tasks;
 using System.Transactions;
 using System.Windows.Input;
 using Prism.Mvvm;
+using Prism.Services.Dialogs;
+using ControlesUsuario.Dialogs;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -22,23 +23,17 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         private const string BANCO_AMAZON = "57200013";
         private const string CUENTA_COMISIONES = "62300023";
 
-        public CanalesExternosPagosViewModel()
+        private IDialogService dialogService { get; }
+
+        public CanalesExternosPagosViewModel(IDialogService dialogService)
         {
             Titulo = "Canales Externos Pagos";
+            this.dialogService = dialogService;
 
             CargarPagosCommand = new DelegateCommand(OnCargarPagos);
             CargarDetallePagoCommand = new DelegateCommand(OnCargarDetallePago);
             ContabilizarPagoCommand = new DelegateCommand(OnContabilizarPago, CanContabilizarPago);
-
-            NotificationRequest = new InteractionRequest<INotification>();
-            ConfirmationRequest = new InteractionRequest<IConfirmation>();
         }
-
-        #region "Propiedades Prism"
-        public InteractionRequest<INotification> NotificationRequest { get; private set; }
-        public InteractionRequest<IConfirmation> ConfirmationRequest { get; private set; }
-        private bool ResultadoConfirmacion { get; set; }
-        #endregion
 
         private bool _estaOcupado;
         public bool EstaOcupado
@@ -125,7 +120,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
             catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                dialogService.ShowError(ex.Message);
             }
             finally
             {
@@ -144,7 +139,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
             catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                dialogService.ShowError(ex.Message);
             }
             finally
             {
@@ -160,13 +155,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         }
         private async void OnContabilizarPago()
         {
-            ConfirmationRequest.Raise(new Confirmation
-            {
-                Title = "Contabilizar pago",
-                Content = "¿Desea contabilizar el pago?"
-            }, c=> ResultadoConfirmacion = c.Confirmed);
+            bool continuar = dialogService.ShowConfirmationAnswer("Contabilizar pago", "¿Desea contabilizar el pago?");
 
-            if (!ResultadoConfirmacion)
+            if (!continuar)
             {
                 return;
             }
@@ -402,8 +393,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     // A desarrollar cuando ya todo lo pendiente del proveedor hecho automático
                     
                     EstaOcupado = false;
-                    NotificationRequest.Raise(new Notification { Content = "Se ha contabilizado correctamente el pago", Title = "Pago contabilizado" });
-
+                    dialogService.ShowNotification("Pago contabilizado", "Se ha contabilizado correctamente el pago");
                 }
             }
 

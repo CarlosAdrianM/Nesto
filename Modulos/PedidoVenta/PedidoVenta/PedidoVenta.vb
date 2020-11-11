@@ -12,6 +12,7 @@ Public Class PedidoVenta
     Public Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
         containerRegistry.Register(Of Object, PedidoVentaView)("PedidoVentaView")
         containerRegistry.Register(Of Object, DetallePedidoView)("DetallePedidoView")
+        containerRegistry.RegisterDialog(Of PickingPopupView, PickingPopupViewModel)
     End Sub
 
     Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized

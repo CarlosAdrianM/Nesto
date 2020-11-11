@@ -4,6 +4,7 @@ using Nesto.Contratos;
 using Nesto.Modulos.PlantillaVenta;
 using Prism.Events;
 using Prism.Regions;
+using Prism.Services.Dialogs;
 using System.Collections.ObjectModel;
 using Unity;
 
@@ -44,7 +45,8 @@ namespace PlantillaVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator);
+            IDialogService dialogService = A.Fake<IDialogService>();
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
             vm.listaProductosOriginal = new ObservableCollection<PlantillaVentaModel.LineaPlantillaJson>();
             vm.listaProductosOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
             {
@@ -66,7 +68,8 @@ namespace PlantillaVentaTests
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator);
+            IDialogService dialogService = A.Fake<IDialogService>();
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
             vm.listaProductosOriginal = new ObservableCollection<PlantillaVentaModel.LineaPlantillaJson>();
             vm.listaProductosOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
             {

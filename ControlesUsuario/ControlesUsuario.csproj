@@ -51,10 +51,15 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Dialogs\MessageDialog.xaml.cs">
-      <DependentUpon>MessageDialog.xaml</DependentUpon>
+    <Compile Include="Dialogs\ConfirmationDialog.xaml.cs">
+      <DependentUpon>ConfirmationDialog.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Dialogs\MessageDialogViewModel.cs" />
+    <Compile Include="Dialogs\ConfirmationDialogViewModel.cs" />
+    <Compile Include="Dialogs\DialogServiceExtensions.cs" />
+    <Compile Include="Dialogs\NotificationDialog.xaml.cs">
+      <DependentUpon>NotificationDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\NotificationDialogViewModel.cs" />
     <Compile Include="SelectorCliente\SelectorCliente.xaml.cs">
       <DependentUpon>SelectorCliente.xaml</DependentUpon>
     </Compile>
@@ -67,7 +72,11 @@
       <DependentUpon>SelectorVendedor.xaml</DependentUpon>
     </Compile>
     <Compile Include="SelectorVendedor\SelectorVendedorModel.cs" />
-    <Page Include="Dialogs\MessageDialog.xaml">
+    <Page Include="Dialogs\ConfirmationDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\NotificationDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

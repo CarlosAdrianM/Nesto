@@ -1,29 +1,13 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Windows
-Imports Prism.Interactivity.InteractionRequest
 Imports Nesto.Models.Nesto.Models
 Imports System.Threading.Tasks
 
 Public Class AgenciaGlovo
     Implements IAgencia
 
-    ' Propiedades de Prism
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
     Public Sub New(agencia As AgenciasViewModel)
         If Not IsNothing(agencia) Then
-
-            NotificationRequest = New InteractionRequest(Of INotification)
-            'ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
             ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
                 New tipoIdDescripcion(0, "NO")
             }

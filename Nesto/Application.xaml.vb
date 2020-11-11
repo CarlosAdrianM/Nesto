@@ -38,7 +38,7 @@ Partial Public Class Application
 
         Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
         Dim tenantId = "16d9b0cd-12c6-4639-8c26-779abc0dc0ad"
-        Dim msGraphApp As IPublicClientApplication = PublicClientApplicationBuilder.Create(clientId).WithTenantId(tenantId).Build()
+        Dim msGraphApp As IPublicClientApplication = PublicClientApplicationBuilder.Create(clientId).WithTenantId(tenantId).WithRedirectUri("https://login.microsoftonline.com/common/oauth2/nativeclient").Build()
         containerRegistry.RegisterInstance(GetType(IPublicClientApplication), msGraphApp)
 
         containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
@@ -57,7 +57,8 @@ Partial Public Class Application
         containerRegistry.Register(GetType(ICliente), GetType(Nesto.Modulos.Cliente.Cliente))
         containerRegistry.Register(GetType(IClienteService), GetType(ClienteService))
 
-        containerRegistry.RegisterDialog(Of MessageDialog, MessageDialogViewModel)
+        containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
+        containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window
@@ -102,5 +103,7 @@ Partial Public Class Application
     Protected Overrides Sub ConfigureViewModelLocator()
         MyBase.ConfigureViewModelLocator()
         ViewModelLocationProvider.Register(GetType(Remesas).ToString, GetType(RemesasViewModel))
+        ViewModelLocationProvider.Register(GetType(Alquileres).ToString, GetType(AlquileresViewModel))
+        ViewModelLocationProvider.Register(GetType(CRInforme).ToString, GetType(CRInformeViewModel))
     End Sub
 End Class

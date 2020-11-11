@@ -1,66 +1,31 @@
 ﻿Imports System.Collections.Specialized
-Imports System.IO
 Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
 Imports Prism.Regions
 Imports Nesto.Contratos
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
+Imports Prism.Mvvm
 
 Public Class CarteraPagosViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly servicio As ICarteraPagosService
+    Private ReadOnly dialogService As IDialogService
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As ICarteraPagosService)
-        'Me.container = container
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As ICarteraPagosService, dialogService As IDialogService)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
+        Me.dialogService = dialogService
 
         cmdAbrirCarteraPagos = New DelegateCommand(Of Object)(AddressOf OnAbrirCarteraPagos, AddressOf CanAbrirCarteraPagos)
         cmdCrearFicheroRemesa = New DelegateCommand(Of Object)(AddressOf OnCrearFicheroRemesa, AddressOf CanCrearFicheroRemesa)
 
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
         Titulo = "Remesa de Pagos"
 
     End Sub
-
-#Region "Propiedades de Prism"
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
-        End Set
-    End Property
-
-#End Region
 
 #Region "Propiedades de Nesto"
     Private _banco As String = 5
@@ -83,7 +48,7 @@ Public Class CarteraPagosViewModel
         Set(ByVal value As Integer)
             SetProperty(_numeroOrdenExtracto, value)
             numeroRemesa = 0
-            OnPropertyChanged(Function() numeroRemesa)
+            RaisePropertyChanged(NameOf(numeroRemesa))
             cmdCrearFicheroRemesa.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -128,6 +93,9 @@ Public Class CarteraPagosViewModel
             SetProperty(_cmdCrearFicheroRemesa, value)
         End Set
     End Property
+
+    Public Property Titulo As String
+
     Private Function CanCrearFicheroRemesa(arg As Object) As Boolean
         Return numeroRemesa <> 0 OrElse
             (numeroRemesa = 0 AndAlso Not IsNothing(banco) AndAlso banco <> String.Empty AndAlso Not IsNothing(numeroOrdenExtracto) AndAlso numeroOrdenExtracto <> 0)
@@ -142,17 +110,11 @@ Public Class CarteraPagosViewModel
             End If
 
             If respuesta = "" Then
-                NotificationRequest.Raise(New Notification() With {
-                .Title = "Error",
-                .Content = "No se ha podido crear el fichero"
-            })
+                dialogService.ShowError("No se ha podido crear el fichero")
             End If
 
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-            .Title = "Error",
-            .Content = ex.Message
-        })
+            dialogService.ShowError(ex.Message)
         End Try
 
         If respuesta <> "" Then
@@ -167,10 +129,7 @@ Public Class CarteraPagosViewModel
 
             listaClipboard.Add(respuesta)
             Clipboard.SetFileDropList(listaClipboard)
-            NotificationRequest.Raise(New Notification() With {
-                .Title = "Fichero Creado",
-                .Content = "Se ha creado correctamente el fichero: " + vbCrLf + respuesta
-            })
+            dialogService.ShowNotification("Fichero Creado", "Se ha creado correctamente el fichero: " + vbCrLf + respuesta)
         End If
     End Sub
 

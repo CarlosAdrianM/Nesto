@@ -27,7 +27,7 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <InstallUrl>\\rds2016\Unidad_F\dev\Nesto\</InstallUrl>
-    <ApplicationRevision>2</ApplicationRevision>
+    <ApplicationRevision>3</ApplicationRevision>
     <ApplicationVersion>1.7.1.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -228,9 +228,6 @@
     <Compile Include="Ventanas\CRInforme.xaml.vb">
       <DependentUpon>CRInforme.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Ventanas\Notificacion.xaml.vb">
-      <DependentUpon>Notificacion.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Ventanas\PlanesVentajas.xaml.vb">
       <DependentUpon>PlanesVentajas.xaml</DependentUpon>
     </Compile>
@@ -279,14 +276,6 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Ventanas\Deuda.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Informe.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Notificacion.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -1,5 +1,4 @@
 ﻿using Prism.Commands;
-using Prism.Interactivity.InteractionRequest;
 using Prism.Events;
 using Prism.Regions;
 using Microsoft.VisualBasic;
@@ -11,10 +10,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Xceed.Wpf.Toolkit;
+using Prism.Services.Dialogs;
+using ControlesUsuario.Dialogs;
+using Prism.Mvvm;
 
 namespace Nesto.Modulos.Cliente
 {
-    public class CrearClienteViewModel: ViewModelBase, INavigationAware
+    public class CrearClienteViewModel: BindableBase, INavigationAware
     {
         private const string DATOS_FISCALES = "DatosFiscales";
         public const string DATOS_GENERALES = "DatosGenerales";
@@ -26,13 +28,15 @@ namespace Nesto.Modulos.Cliente
         private IClienteService Servicio { get; }
 
         private IEventAggregator EventAggregator { get; }
+        private IDialogService DialogService { get; }
 
-        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio, IEventAggregator eventAggregator)
+        public CrearClienteViewModel(IRegionManager regionManager, IConfiguracion configuracion, IClienteService servicio, IEventAggregator eventAggregator, IDialogService dialogService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
             Servicio = servicio;
             EventAggregator = eventAggregator;
+            DialogService = dialogService;
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo);
             AnnadirPersonaContactoCommand = new DelegateCommand(OnAnnadirPersonaContacto);
@@ -45,14 +49,7 @@ namespace Nesto.Modulos.Cliente
                 new PersonaContactoDTO()
             };
 
-            NotificationRequest = new InteractionRequest<INotification>();
-            ClienteTelefonoRequest = new InteractionRequest<INotification>();
         }
-
-        #region "Propiedades Prism"
-        public InteractionRequest<INotification> NotificationRequest { get; private set; }
-        public InteractionRequest<INotification> ClienteTelefonoRequest { get; private set; }
-        #endregion
 
         #region "Propiedades"
         private string clienteCodigoPostal;
@@ -109,8 +106,8 @@ namespace Nesto.Modulos.Cliente
             }
             set {
                 SetProperty(ref clienteNif, value);
-                OnPropertyChanged(()=>NombreIsEnabled);
-                OnPropertyChanged(() => SePuedeAvanzarADatosGenerales);
+                RaisePropertyChanged(nameof(NombreIsEnabled));
+                RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
             }
         }
         private string clienteNombre;
@@ -121,7 +118,7 @@ namespace Nesto.Modulos.Cliente
             set
             {
                 SetProperty(ref clienteNombre, value);
-                OnPropertyChanged(() => SePuedeAvanzarADatosGenerales);
+                RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
             }
         }
         private string clienteNumero;
@@ -156,7 +153,7 @@ namespace Nesto.Modulos.Cliente
             get { return clienteTieneEstetica; }
             set {
                 SetProperty(ref clienteTieneEstetica, value);
-                OnPropertyChanged(() => SePuedeAvanzarADatosPago);
+                RaisePropertyChanged(nameof(SePuedeAvanzarADatosPago));
             }
         }
         private bool clienteTienePeluqueria;
@@ -164,7 +161,7 @@ namespace Nesto.Modulos.Cliente
             get { return clienteTienePeluqueria; }
             set {
                 SetProperty(ref clienteTienePeluqueria, value);
-                OnPropertyChanged(() => SePuedeAvanzarADatosPago);
+                RaisePropertyChanged(nameof(SePuedeAvanzarADatosPago));
             }
         }
         private string clienteVendedorEstetica;
@@ -179,7 +176,7 @@ namespace Nesto.Modulos.Cliente
             get { return clienteVendedorPeluqueria; }
             set {
                 SetProperty(ref clienteVendedorPeluqueria, value);
-                OnPropertyChanged(() => VendedorPeluqueriaMostrar);
+                RaisePropertyChanged(nameof(VendedorPeluqueriaMostrar));
             }
         }
         public bool EstaOcupado { get; set; }
@@ -201,8 +198,8 @@ namespace Nesto.Modulos.Cliente
             get { return nifValidado; }
             set {
                 SetProperty(ref nifValidado, value);
-                OnPropertyChanged(() => NifSinValidar);
-                OnPropertyChanged(() => NombreIsEnabled);
+                RaisePropertyChanged(nameof(NifSinValidar));
+                RaisePropertyChanged(nameof(NombreIsEnabled));
             }
         }
         public bool NifSinValidar
@@ -307,6 +304,8 @@ namespace Nesto.Modulos.Cliente
             PersonasContacto.Remove(persona);
         }
         public ICommand CrearClienteCommand { get; private set; }
+        public string Titulo { get; private set; }
+
         private async void OnCrearCliente()
         {
             ClienteCrear cliente = new ClienteCrear
@@ -340,12 +339,18 @@ namespace Nesto.Modulos.Cliente
                 {
                     cliente.Contacto = ClienteContacto;
                     Clientes clienteCreado = await Servicio.ModificarCliente(cliente);
-                    NotificationRequest.Raise(new Notification { Content = "Se ha modificado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim(), Title = "Cliente Modificado" });
-                    EventAggregator.GetEvent<ClienteModificadoEvent>().Publish(clienteCreado);
+                    if (clienteCreado != null)
+                    {
+                        DialogService.ShowNotification("Cliente Modificado", "Se ha modificado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
+                        EventAggregator.GetEvent<ClienteModificadoEvent>().Publish(clienteCreado);
+                    }
                 } else
                 {
                     Clientes clienteCreado = await Servicio.CrearCliente(cliente);
-                    NotificationRequest.Raise(new Notification { Content = "Se ha creado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim(), Title = "Cliente Creado" });
+                    if (clienteCreado!=null)
+                    {
+                        DialogService.ShowNotification("Cliente Creado", "Se ha creado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
+                    }
                 }
                 
                 var view = RegionManager.Regions["MainRegion"].ActiveViews.FirstOrDefault();
@@ -356,7 +361,7 @@ namespace Nesto.Modulos.Cliente
                 }
             } catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                DialogService.ShowError(ex.Message);
             }           
         }
         #endregion
@@ -428,7 +433,7 @@ namespace Nesto.Modulos.Cliente
                 respuesta.ClientesMismoTelefono = respuesta.ClientesMismoTelefono.Where(c => c.Cliente != ClienteNumero).ToList();
                 if (respuesta.ClientesMismoTelefono.Count > 0)
                 {
-                    ClienteTelefonoRequest.Raise(new Notification { Content = respuesta.ClientesMismoTelefono, Title = "Clientes con el mismo teléfono:" });
+                    DialogService.ShowDialog("NotificacionTelefonoView", new DialogParameters { { "clientesMismoTelefono", respuesta.ClientesMismoTelefono } }, null);
                 }
 
                 ClienteDireccion = respuesta.DireccionFormateada;
@@ -438,7 +443,7 @@ namespace Nesto.Modulos.Cliente
                     ClienteDireccion += ", " + ClienteDireccionAdicional.ToUpper();
                 }
                 ClienteDireccion = Strings.Left(ClienteDireccion, 50);
-                ClientePoblacion = respuesta.Poblacion;
+                ClientePoblacion = Strings.Left(respuesta.Poblacion, 30);
                 ClienteProvincia = respuesta.Provincia;
                 ClienteRuta = respuesta.Ruta;
                 ClienteTelefono = respuesta.TelefonoFormateado;
@@ -448,7 +453,7 @@ namespace Nesto.Modulos.Cliente
             }
             catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                DialogService.ShowError(ex.Message);
             }
         }
         private async Task GoToDatosGenerales()
@@ -494,12 +499,12 @@ namespace Nesto.Modulos.Cliente
                 NifValidado = respuesta.NifValidado;
                 if (!NifValidado)
                 {
-                    NotificationRequest.Raise(new Notification { Content = "El NIF "+ClienteNif+ " no es válido (o no corresponde a " + ClienteNombre + ")" , Title = "Error" });
+                    DialogService.ShowError("El NIF " + ClienteNif + " no es válido (o no corresponde a " + ClienteNombre + ")");
                 }
             }
             catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                DialogService.ShowError(ex.Message);
             }
         }
         private async Task GoToDatosContacto()
@@ -513,7 +518,7 @@ namespace Nesto.Modulos.Cliente
                 if (!respuesta.DatosPagoValidos || (!respuesta.IbanValido && FormaPagoRecibo))
                 {
                     ClienteDatosPagoValidados = false;
-                    NotificationRequest.Raise(new Notification { Content = "Datos de Pago no son válidos", Title = "Error" });
+                    DialogService.ShowError("Datos de Pago no son válidos");
                     return;
                 } else
                 {
@@ -523,13 +528,23 @@ namespace Nesto.Modulos.Cliente
             }
             catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                DialogService.ShowError(ex.Message);
             }
         }
 
         public void CrearContacto(string cifNif, string nombre)
         {
             throw new NotImplementedException();
+        }
+
+        public bool IsNavigationTarget(NavigationContext navigationContext)
+        {
+            return true;
+        }
+
+        public void OnNavigatedFrom(NavigationContext navigationContext)
+        {
+            
         }
     }
 }

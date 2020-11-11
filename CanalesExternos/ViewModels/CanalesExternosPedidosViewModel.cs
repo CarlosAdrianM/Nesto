@@ -1,5 +1,4 @@
 ﻿using Prism.Commands;
-using Prism.Interactivity.InteractionRequest;
 using Prism.Regions;
 using Nesto.Contratos;
 using System;
@@ -9,6 +8,8 @@ using System.Windows.Input;
 using static Nesto.Models.PedidoVenta;
 using Nesto.ViewModels;
 using Nesto.Modulos.PedidoVenta;
+using Prism.Services.Dialogs;
+using ControlesUsuario.Dialogs;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -16,6 +17,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
     {
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
+        private IDialogService DialogService { get; }
 
         public event EventHandler CanalSeleccionadoHaCambiado;
 
@@ -25,10 +27,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
         
-        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion)
+        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
+            DialogService = dialogService;
 
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
@@ -36,12 +39,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             CrearComandos();
 
             Titulo = "Canales Externos Pedidos";
-            NotificationRequest = new InteractionRequest<INotification>();
         }
-
-        #region "Propiedades Prism"
-        public InteractionRequest<INotification> NotificationRequest { get; private set; }
-        #endregion
 
         #region "Propiedades Nesto"
         
@@ -159,7 +157,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos);
             } catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                DialogService.ShowError(ex.Message);
             }
             finally
             {
@@ -203,10 +201,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 etiqueta.Observaciones += !string.IsNullOrEmpty(pedido.TelefonoMovil) ? " " + pedido.TelefonoMovil : "";
                 etiqueta.Observaciones += " " + pedido.PedidoCanalId;
 
-                AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion);
+                AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion, DialogService);
 
                 EstaOcupado = false;
-                NotificationRequest.Raise(new Notification { Content = "Etiqueta creada", Title = "Crear Etiqueta" });
+                DialogService.ShowNotification("Crear Etiqueta", "Etiqueta creada");
             }
             finally
             {
@@ -230,12 +228,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 PedidoVentaDTO pedido = pedidoExterno.Pedido;
                 string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
                 EstaOcupado = false;
-                NotificationRequest.Raise(new Notification { Content = resultado, Title = "Crear Pedido" });
+                DialogService.ShowNotification("Crear Pedido", resultado);
                 PedidoSeleccionado.PedidoNestoId = Int32.Parse(resultado.Split(' ')[1]);
                 CrearEtiquetaCommand.RaiseCanExecuteChanged();
             } catch(Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error al crear pedido" });
+                DialogService.ShowError(ex.Message);
             }
             finally
             {
@@ -262,7 +260,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos);
             } catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                DialogService.ShowError(ex.Message);
             }
             finally
             {

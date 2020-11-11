@@ -1,5 +1,4 @@
 ﻿using Prism.Commands;
-using Prism.Interactivity.InteractionRequest;
 using Prism.Events;
 using Prism.Regions;
 using Nesto.Contratos;
@@ -10,15 +9,19 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Prism.Services.Dialogs;
+using Prism.Mvvm;
+using ControlesUsuario.Dialogs;
 
 namespace Nesto.Modulos.Producto
 {
-    public class ProductoViewModel : ViewModelBase, INavigationAware
+    public class ProductoViewModel : BindableBase, INavigationAware
     {
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
         private IProductoService Servicio { get; }
         private IEventAggregator EventAggregator { get; }
+        private IDialogService DialogService { get; }
 
         private string _filtroNombre;
         private string _filtroFamilia;
@@ -31,12 +34,13 @@ namespace Nesto.Modulos.Producto
         private string _referenciaBuscar;
 
 
-        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IEventAggregator eventAggregator)
+        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IEventAggregator eventAggregator, IDialogService dialogService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
             Servicio = servicio;
             EventAggregator = eventAggregator;
+            DialogService = dialogService;
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
             BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
@@ -44,7 +48,6 @@ namespace Nesto.Modulos.Producto
             SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
 
             Titulo = "Producto";
-            NotificationRequest = new InteractionRequest<INotification>();
         }
 
         public async void CargarProducto()
@@ -59,13 +62,10 @@ namespace Nesto.Modulos.Producto
                 Titulo = "Producto " + ProductoActual.Producto;
             } catch (Exception ex)
             {
-                NotificationRequest.Raise(new Notification { Content = ex.Message, Title = "Error" });
+                DialogService.ShowError(ex.Message);
+                
             }            
         }
-
-        #region "Propiedades Prism"
-        public InteractionRequest<INotification> NotificationRequest { get; private set; }
-        #endregion
 
         #region "Propiedades Nesto"
         public ObservableCollection<ProductoClienteModel> ClientesResultadoBusqueda
@@ -193,6 +193,8 @@ namespace Nesto.Modulos.Producto
 
 
         public ICommand SeleccionarProductoCommand { get; private set; }
+        public string Titulo { get; private set; }
+
         private bool CanSeleccionarProducto()
         {
             return true;
@@ -232,5 +234,14 @@ namespace Nesto.Modulos.Producto
             }
         }
 
+        public bool IsNavigationTarget(NavigationContext navigationContext)
+        {
+            return true;
+        }
+
+        public void OnNavigatedFrom(NavigationContext navigationContext)
+        {
+            
+        }
     }
 }

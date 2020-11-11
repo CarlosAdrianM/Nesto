@@ -151,6 +151,10 @@
       <Project>{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}</Project>
       <Name>Contratos</Name>
     </ProjectReference>
+    <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj">
+      <Project>{3961283c-76c3-4b5f-80f2-01a78593e67f}</Project>
+      <Name>ControlesUsuario</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj">
       <Project>{5678F232-EBFE-4834-B77F-51B2C0824380}</Project>
       <Name>PedidoVenta</Name>

@@ -74,7 +74,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="CrearClienteView.xaml">
+    <Page Include="Views\CrearClienteView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -88,11 +88,12 @@
     </Compile>
     <Compile Include="ClienteModel.cs" />
     <Compile Include="ClienteService.cs" />
-    <Compile Include="CrearClienteView.xaml.cs">
+    <Compile Include="ViewModels\NotificacionTelefonoViewModel.cs" />
+    <Compile Include="Views\CrearClienteView.xaml.cs">
       <DependentUpon>CrearClienteView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="CrearClienteViewModel.cs" />
-    <Page Include="NotificacionTelefono.xaml">
+    <Compile Include="ViewModels\CrearClienteViewModel.cs" />
+    <Page Include="Views\NotificacionTelefonoView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -101,8 +102,8 @@
     <Compile Include="IClienteService.cs" />
     <Compile Include="Models\ClienteCrear.cs" />
     <Compile Include="Models\PersonaContactoDTO.cs" />
-    <Compile Include="NotificacionTelefono.xaml.cs">
-      <DependentUpon>NotificacionTelefono.xaml</DependentUpon>
+    <Compile Include="Views\NotificacionTelefonoView.xaml.cs">
+      <DependentUpon>NotificacionTelefonoView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
@@ -137,6 +138,10 @@
     <ProjectReference Include="..\..\Contratos\Contratos.vbproj">
       <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
       <Name>Contratos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ControlesUsuario\ControlesUsuario.csproj">
+      <Project>{3961283c-76c3-4b5f-80f2-01a78593e67f}</Project>
+      <Name>ControlesUsuario</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Nesto.Models\Models.vbproj">
       <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>

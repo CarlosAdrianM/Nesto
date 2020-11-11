@@ -3,13 +3,14 @@ Imports System.IO
 Imports System.Net.Http
 Imports System.Runtime.InteropServices
 Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
 Imports Prism.Events
 Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Mvvm
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 
 Public Class DetallePedidoViewModel
     Inherits BindableBase
@@ -20,17 +21,19 @@ Public Class DetallePedidoViewModel
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly eventAggregator As IEventAggregator
+    Private ReadOnly dialogService As IDialogService
 
     Private ivaOriginal As String
 
     Private Const IVA_POR_DEFECTO = "G21"
     Private Const EMPRESA_POR_DEFECTO = "1"
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
+        Me.dialogService = dialogService
 
         cmdAbrirPicking = New DelegateCommand(AddressOf OnAbrirPicking)
         AceptarPresupuestoCommand = New DelegateCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
@@ -43,12 +46,7 @@ Public Class DetallePedidoViewModel
         cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New DelegateCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New DelegateCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
-        cmdSacarPicking = New DelegateCommand(Of Object)(AddressOf OnSacarPicking)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
-
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-        PickingPopup = New InteractionRequest(Of INotification)
 
         eventAggregator.GetEvent(Of ProductoSeleccionadoEvent).Subscribe(AddressOf InsertarProducto)
     End Sub
@@ -59,53 +57,6 @@ Public Class DetallePedidoViewModel
             Await CargarDatosProducto(productoSeleccionado, lineaActual.cantidad)
         End If
     End Sub
-
-
-#Region "Propiedades de Prism"
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            resultMessage = value
-            RaisePropertyChanged(NameOf(InteractionResultMessage))
-        End Set
-    End Property
-
-    Private _PickingPopup As InteractionRequest(Of INotification)
-    Public Property PickingPopup As InteractionRequest(Of INotification)
-        Get
-            Return _PickingPopup
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _PickingPopup = value
-        End Set
-    End Property
-
-
-
-#End Region
 
 #Region "Propiedades"
     Private _celdaActual As DataGridCellInfo
@@ -125,51 +76,12 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As Decimal)
             If _descuentoPedido <> value Then
-                Me.ConfirmationRequest.Raise(
-                    New Confirmation() With {
-                        .Content = "¿Desea aplicar el descuento a todas las líneas?", .Title = "Descuento Pedido"
-            },
-            Sub(c)
-                InteractionResultMessage = If(c.Confirmed, "OK", "KO")
-            End Sub
-        )
-
-                If InteractionResultMessage = "KO" Then
+                If Not dialogService.ShowConfirmationAnswer("Descuento Pedido", "¿Desea aplicar el descuento a todas las líneas?") Then
                     Return
                 End If
                 SetProperty(_descuentoPedido, value)
                 cmdPonerDescuentoPedido.Execute()
             End If
-        End Set
-    End Property
-
-    Private _esPickingCliente As Boolean
-    Public Property esPickingCliente As Boolean
-        Get
-            Return _esPickingCliente
-        End Get
-        Set(value As Boolean)
-            SetProperty(_esPickingCliente, value)
-        End Set
-    End Property
-
-    Private _esPickingPedido As Boolean = True
-    Public Property esPickingPedido As Boolean
-        Get
-            Return _esPickingPedido
-        End Get
-        Set(value As Boolean)
-            SetProperty(_esPickingPedido, value)
-        End Set
-    End Property
-
-    Private _esPickingRutas As Boolean
-    Public Property esPickingRutas As Boolean
-        Get
-            Return _esPickingRutas
-        End Get
-        Set(value As Boolean)
-            SetProperty(_esPickingRutas, value)
         End Set
     End Property
 
@@ -183,15 +95,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-    Private _estaSacandoPicking As Boolean
-    Public Property estaSacandoPicking() As Boolean
-        Get
-            Return _estaSacandoPicking
-        End Get
-        Set(ByVal value As Boolean)
-            SetProperty(_estaSacandoPicking, value)
-        End Set
-    End Property
+
 
     Private _fechaEntrega As Date
     Public Property fechaEntrega As Date
@@ -228,31 +132,10 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-
     Public ReadOnly Property mostrarAceptarPresupuesto()
         Get
             Return (Not IsNothing(pedido)) AndAlso pedido.EsPresupuesto
         End Get
-    End Property
-
-    Private _numeroPedidoPicking As Integer
-    Public Property numeroPedidoPicking As Integer
-        Get
-            Return _numeroPedidoPicking
-        End Get
-        Set(value As Integer)
-            SetProperty(_numeroPedidoPicking, value)
-        End Set
-    End Property
-
-    Private _numeroClientePicking As String
-    Public Property numeroClientePicking() As String
-        Get
-            Return _numeroClientePicking
-        End Get
-        Set(ByVal value As String)
-            SetProperty(_numeroClientePicking, value)
-        End Set
     End Property
 
     Private _pedido As PedidoVentaDTO
@@ -332,16 +215,9 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Sub OnAbrirPicking()
-        If Not IsNothing(pedido) Then
-            numeroPedidoPicking = pedido.numero
-            numeroClientePicking = pedido.cliente
-        Else
-            numeroPedidoPicking = 0
-        End If
-        PickingPopup.Raise(New Notification() With {
-                            .Title = "Picking",
-                            .Content = Me
-                        })
+        dialogService.ShowDialog("PickingPopupView", New DialogParameters From {
+            {"pedidoPicking", pedido}
+        }, Nothing)
     End Sub
 
     Private _aceptarPresupuestoCommand As DelegateCommand
@@ -552,10 +428,7 @@ Public Class DetallePedidoViewModel
             Else
                 mensajeError = ex.InnerException.Message
             End If
-            NotificationRequest.Raise(New Notification() With {
-                .Title = "Error",
-                .Content = mensajeError
-            })
+            dialogService.ShowError(mensajeError)
         Finally
             estaBloqueado = False
             textoBusyIndicator = String.Empty
@@ -634,16 +507,10 @@ Public Class DetallePedidoViewModel
                                    Throw New Exception(ex.Message)
                                End Try
                            End Sub)
-            NotificationRequest.Raise(New Notification() With {
-                           .Title = "Pedido Modificado",
-                           .Content = "Pedido " + pedido.numero.ToString + " modificado correctamente"
-                       })
+            dialogService.ShowNotification("Pedido Modificado", "Pedido " + pedido.numero.ToString + " modificado correctamente")
             eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error en pedido " + pedido.numero.ToString,
-                        .Content = ex.Message
-                    })
+            dialogService.ShowError(ex.Message)
         Finally
             estaBloqueado = False
         End Try
@@ -666,82 +533,6 @@ Public Class DetallePedidoViewModel
             linea.descuento = descuentoPedido
         Next
         RaisePropertyChanged(NameOf(pedido))
-    End Sub
-
-    Private _cmdSacarPicking As DelegateCommand(Of Object)
-    Public Property cmdSacarPicking As DelegateCommand(Of Object)
-        Get
-            Return _cmdSacarPicking
-        End Get
-        Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdSacarPicking, value)
-        End Set
-    End Property
-    Private Async Sub OnSacarPicking(arg As Object)
-        Dim pedidoPicking As PedidoVentaDTO = arg
-        Try
-            estaSacandoPicking = True
-            Await Task.Run(Sub()
-                               Try
-                                   If esPickingPedido Then
-                                       Dim empresaPicking As String
-                                       If Not IsNothing(pedidoPicking) Then
-                                           empresaPicking = pedidoPicking.empresa
-                                       Else
-                                           empresaPicking = EMPRESA_POR_DEFECTO
-                                       End If
-                                       servicio.sacarPickingPedido(empresaPicking, numeroPedidoPicking)
-                                   ElseIf esPickingCliente Then
-                                       servicio.sacarPickingPedido(numeroClientePicking)
-                                   ElseIf esPickingRutas Then
-                                       servicio.sacarPickingPedido()
-                                   Else
-                                       Throw New Exception("No hay ningún tipo de picking seleccionado")
-                                   End If
-                               Catch ex As Exception
-                                   Throw ex
-                               End Try
-                           End Sub)
-
-            Dim textoMensaje As String
-            If esPickingPedido Then
-                textoMensaje = "Se ha asignado el picking correctamente al pedido " + numeroPedidoPicking.ToString
-            ElseIf esPickingCliente Then
-                textoMensaje = "Se ha asignado el picking correctamente al cliente " + numeroClientePicking
-            ElseIf esPickingRutas Then
-                textoMensaje = "Se ha asignado el picking correctamente a las rutas"
-            Else
-                Throw New Exception("Tiene que haber algún tipo de picking seleccionado")
-            End If
-            NotificationRequest.Raise(New Notification() With {
-                        .Title = "Picking",
-                        .Content = textoMensaje
-                    })
-            eventAggregator.GetEvent(Of SacarPickingEvent).Publish(1)
-        Catch ex As Exception
-            Dim tituloError As String
-            If esPickingPedido Then
-                tituloError = "Error Picking pedido " + numeroPedidoPicking.ToString
-            ElseIf esPickingCliente Then
-                tituloError = "Error Picking cliente " + numeroClientePicking
-            ElseIf esPickingRutas Then
-                tituloError = "Error Picking Rutas"
-            Else
-                tituloError = "Error Picking sin tipo"
-            End If
-            Dim textoError As String
-            If IsNothing(ex.InnerException) Then
-                textoError = ex.Message
-            Else
-                textoError = ex.Message + vbCr + ex.InnerException.Message
-            End If
-            NotificationRequest.Raise(New Notification() With {
-                        .Title = tituloError,
-                        .Content = textoError
-                    })
-        Finally
-            estaSacandoPicking = False
-        End Try
     End Sub
 
     Public Property AbrirEnlaceSeguimientoCommand As DelegateCommand(Of String)

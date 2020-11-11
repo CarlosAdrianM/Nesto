@@ -7,19 +7,6 @@
     xmlns:local="clr-namespace:Nesto.Views"
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
-    <i:Interaction.Triggers>
-        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction  IsModal="True" CenterOverAssociatedObject="True">
-                <prism:PopupWindowAction.WindowContent>
-                    <local:Notificacion/>
-                </prism:PopupWindowAction.WindowContent>
-            </prism:PopupWindowAction>
-        </prism:InteractionRequestTrigger>
-        <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
-        </prism:InteractionRequestTrigger>
-    </i:Interaction.Triggers>
-
     <UserControl.Resources>
         <HierarchicalDataTemplate x:Key="templateTracking">
             <Border Style="{StaticResource bordeAzul}">

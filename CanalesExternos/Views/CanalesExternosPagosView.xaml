@@ -11,12 +11,6 @@
              d:DesignHeight="450" d:DesignWidth="800" Language="es-ES">
     
     <i:Interaction.Triggers>
-        <prism:InteractionRequestTrigger SourceObject="{Binding NotificationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
-        </prism:InteractionRequestTrigger>
-        <prism:InteractionRequestTrigger SourceObject="{Binding ConfirmationRequest, Mode=OneWay}">
-            <prism:PopupWindowAction IsModal="True" CenterOverAssociatedObject="True"/>
-        </prism:InteractionRequestTrigger>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding CargarPagosCommand}" />
         </i:EventTrigger>

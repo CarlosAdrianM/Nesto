@@ -98,6 +98,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="ViewModels\PickingPopupViewModel.vb" />
     <Compile Include="Views\DetallePedidoView.xaml.vb">
       <DependentUpon>DetallePedidoView.xaml</DependentUpon>
     </Compile>
@@ -108,9 +109,6 @@
     </Compile>
     <Compile Include="ViewModels\ListaPedidosVentaViewModel.vb" />
     <Compile Include="Microsoft\Practices\Unity.vb" />
-    <Compile Include="Notificacion.xaml.vb">
-      <DependentUpon>Notificacion.xaml</DependentUpon>
-    </Compile>
     <Compile Include="PedidoVentaMenuBar.xaml.vb">
       <DependentUpon>PedidoVentaMenuBar.xaml</DependentUpon>
     </Compile>
@@ -120,7 +118,7 @@
       <DependentUpon>PedidoVentaView.xaml</DependentUpon>
     </Compile>
     <Compile Include="ViewModels\PedidoVentaViewModel.vb" />
-    <Compile Include="PickingPopupView.xaml.vb">
+    <Compile Include="Views\PickingPopupView.xaml.vb">
       <DependentUpon>PickingPopupView.xaml</DependentUpon>
     </Compile>
     <Page Include="Views\DetallePedidoView.xaml">
@@ -130,10 +128,6 @@
     <Page Include="Views\ListaPedidosVenta.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Notificacion.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
     </Page>
     <Page Include="PedidoVentaMenuBar.xaml">
       <SubType>Designer</SubType>
@@ -148,7 +142,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="PickingPopupView.xaml">
+    <Page Include="Views\PickingPopupView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

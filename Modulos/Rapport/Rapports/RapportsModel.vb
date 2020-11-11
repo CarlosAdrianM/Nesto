@@ -13,7 +13,7 @@ Public Class RapportsModel
             Set(value As Integer)
                 If _Id <> value Then
                     _Id = value
-                    OnPropertyChanged("Id")
+                    RaisePropertyChanged("Id")
                 End If
             End Set
         End Property
@@ -26,7 +26,7 @@ Public Class RapportsModel
             Set(value As String)
                 If _Empresa <> value Then
                     _Empresa = value
-                    OnPropertyChanged("Empresa")
+                    RaisePropertyChanged("Empresa")
                 End If
             End Set
         End Property
@@ -39,7 +39,7 @@ Public Class RapportsModel
             Set(value As String)
                 If _Cliente <> value Then
                     _Cliente = value
-                    OnPropertyChanged("Cliente")
+                    RaisePropertyChanged("Cliente")
                 End If
             End Set
         End Property
@@ -53,7 +53,7 @@ Public Class RapportsModel
             Set(value As DateTime)
                 If _Fecha <> value Then
                     _Fecha = value
-                    OnPropertyChanged("Fecha")
+                    RaisePropertyChanged("Fecha")
                 End If
             End Set
         End Property
@@ -66,7 +66,7 @@ Public Class RapportsModel
             Set(value As String)
                 If _Tipo <> value Then
                     _Tipo = value
-                    OnPropertyChanged("Tipo")
+                    RaisePropertyChanged("Tipo")
                 End If
             End Set
         End Property
@@ -79,7 +79,7 @@ Public Class RapportsModel
             Set(value As String)
                 If _Vendedor <> value Then
                     _Vendedor = value
-                    OnPropertyChanged("Vendedor")
+                    RaisePropertyChanged("Vendedor")
                 End If
             End Set
         End Property
@@ -92,7 +92,7 @@ Public Class RapportsModel
             Set(value As Boolean)
                 If _Pedido <> value Then
                     _Pedido = value
-                    OnPropertyChanged("Pedido")
+                    RaisePropertyChanged("Pedido")
                 End If
             End Set
         End Property
@@ -110,7 +110,7 @@ Public Class RapportsModel
             Set(value As String)
                 If _Comentarios <> value Then
                     _Comentarios = value
-                    OnPropertyChanged("Comentarios")
+                    RaisePropertyChanged("Comentarios")
                 End If
             End Set
         End Property
@@ -123,7 +123,7 @@ Public Class RapportsModel
             Set(value As EstadoSeguimientoDTO)
                 If _Estado <> value Then
                     _Estado = value
-                    OnPropertyChanged("Estado")
+                    RaisePropertyChanged("Estado")
                 End If
             End Set
         End Property
@@ -157,7 +157,7 @@ Public Class RapportsModel
 
         Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
-        Private Sub OnPropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
+        Private Sub RaisePropertyChanged(<CallerMemberName()> Optional ByVal propertyName As String = Nothing)
             RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(propertyName))
         End Sub
     End Class

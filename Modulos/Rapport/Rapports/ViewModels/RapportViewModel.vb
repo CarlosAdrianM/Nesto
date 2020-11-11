@@ -1,25 +1,27 @@
-﻿Imports ControlesUsuario.Models
-Imports Microsoft.Office.Interop
-Imports Prism.Commands
-Imports Prism.Interactivity.InteractionRequest
+﻿Imports Prism.Commands
 Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
+Imports Prism.Mvvm
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 
 Public Class RapportViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
     Implements INavigationAware
 
     Public Property configuracion As IConfiguracion
     Private Const empresaPorDefecto As String = "1"
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IRapportService
+    Private ReadOnly dialogService As IDialogService
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager)
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager, dialogService As IDialogService)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.regionManager = regionManager
+        Me.dialogService = dialogService
 
         listaTiposRapports = New List(Of idDescripcion)
         listaTiposRapports.Add(New idDescripcion With {
@@ -48,42 +50,7 @@ Public Class RapportViewModel
         cmdCrearCita = New DelegateCommand(AddressOf OnCrearCita, AddressOf CanCrearCita)
         cmdGuardarCambios = New DelegateCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
 
-        NotificationRequest = New InteractionRequest(Of INotification)
-        ConfirmationRequest = New InteractionRequest(Of IConfirmation)
     End Sub
-
-#Region "Propiedades de Prism"
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
-    Private _ConfirmationRequest As InteractionRequest(Of IConfirmation)
-    Public Property ConfirmationRequest As InteractionRequest(Of IConfirmation)
-        Get
-            Return _ConfirmationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of IConfirmation))
-            _ConfirmationRequest = value
-        End Set
-    End Property
-
-    Private resultMessage As String
-    Public Property InteractionResultMessage As String
-        Get
-            Return Me.resultMessage
-        End Get
-        Set(value As String)
-            Me.resultMessage = value
-            Me.OnPropertyChanged("InteractionResultMessage")
-        End Set
-    End Property
-#End Region
 
 #Region "Propiedades de Nesto"
     Private _clienteCompleto As Object
@@ -99,7 +66,7 @@ Public Class RapportViewModel
             Else
                 VendedorPeluqueria = String.Empty
             End If
-            OnPropertyChanged(Function() EstaVisibleTipoCentro)
+            RaisePropertyChanged(NameOf(EstaVisibleTipoCentro))
         End Set
     End Property
 
@@ -147,6 +114,7 @@ Public Class RapportViewModel
         Set(value As SeguimientoClienteDTO)
             SetProperty(_rapport, value)
             cmdCrearCita.RaiseCanExecuteChanged()
+            cmdGuardarCambios.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -213,10 +181,7 @@ Public Class RapportViewModel
             Await servicio.CrearCita(rapport, fechaAviso)
             SePuedeCrearRapport = True
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-                        .Title = "Error",
-                        .Content = ex.Message
-                    })
+            dialogService.ShowError(ex.Message)
             SePuedeCrearRapport = True
         End Try
     End Sub
@@ -241,16 +206,9 @@ Public Class RapportViewModel
         Dim texto As String
         Try
             texto = Await servicio.crearRapport(rapport)
-            NotificationRequest.Raise(New Notification() With {
-                .Title = "Rapport",
-                .Content = texto
-            })
+            dialogService.ShowNotification("Rapport", texto)
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-                .Title = "Error",
-                .Content = ex.Message
-            })
-
+            dialogService.ShowError(ex.Message)
         End Try
     End Sub
 #End Region
@@ -261,6 +219,14 @@ Public Class RapportViewModel
         If VendedorUsuario Is Nothing Then
             VendedorUsuario = Await configuracion.leerParametro("1", "Vendedor")
         End If
+    End Sub
+
+    Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
+
+    End Function
+
+    Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
+
     End Sub
 
     Public Structure idDescripcion

@@ -115,8 +115,8 @@ Public Class PlantillaVentaModel
             End Get
             Set(value As String)
                 SetProperty(_urlImagen, value)
-                OnPropertyChanged("imagen")
-                OnPropertyChanged("imagenVisible")
+                RaisePropertyChanged(NameOf(imagen))
+                RaisePropertyChanged(NameOf(imagenVisible))
             End Set
         End Property
         Public ReadOnly Property colorEstado As Brush

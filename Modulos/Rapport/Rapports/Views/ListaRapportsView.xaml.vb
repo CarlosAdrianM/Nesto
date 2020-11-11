@@ -1,10 +1,9 @@
 ﻿Class ListaRapportsView
-    Public Sub New(viewModel As ListaRapportsViewModel)
+    Public Sub New()
 
         ' Esta llamada es exigida por el diseñador.
         InitializeComponent()
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-        Me.DataContext = viewModel
 
     End Sub
 

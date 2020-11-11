@@ -100,18 +100,15 @@
     </ApplicationDefinition>
     <Compile Include="CarteraPagos.vb" />
     <Compile Include="CarteraPagosService.vb" />
-    <Compile Include="CarteraPagosView.xaml.vb">
+    <Compile Include="Views\CarteraPagosView.xaml.vb">
       <DependentUpon>CarteraPagosView.xaml</DependentUpon>
     </Compile>
     <Compile Include="ICarteraPagosService.vb" />
-    <Compile Include="Notificacion.xaml.vb">
-      <DependentUpon>Notificacion.xaml</DependentUpon>
-    </Compile>
     <Page Include="CarteraPagosMenuBar.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="CarteraPagosView.xaml">
+    <Page Include="Views\CarteraPagosView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -122,10 +119,6 @@
     <Compile Include="CarteraPagosMenuBar.xaml.vb">
       <DependentUpon>CarteraPagosMenuBar.xaml</DependentUpon>
     </Compile>
-    <Page Include="Notificacion.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Import Include="System.Threading.Tasks" />
@@ -147,7 +140,7 @@
     <Import Include="System.Windows.Navigation" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CarteraPagosViewModel.vb" />
+    <Compile Include="ViewModels\CarteraPagosViewModel.vb" />
     <Compile Include="My Project\AssemblyInfo.vb">
       <SubType>Code</SubType>
     </Compile>
@@ -184,6 +177,10 @@
     <ProjectReference Include="..\..\..\Contratos\Contratos.vbproj">
       <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
       <Name>Contratos</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\ControlesUsuario\ControlesUsuario.csproj">
+      <Project>{3961283c-76c3-4b5f-80f2-01a78593e67f}</Project>
+      <Name>ControlesUsuario</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

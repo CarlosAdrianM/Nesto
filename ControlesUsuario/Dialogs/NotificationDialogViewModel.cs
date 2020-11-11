@@ -2,12 +2,10 @@
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ControlesUsuario.Dialogs
 {
-    public class MessageDialogViewModel : BindableBase, IDialogAware
+    public class NotificationDialogViewModel : BindableBase, IDialogAware
     {
         private DelegateCommand<string> _closeDialogCommand;
         public DelegateCommand<string> CloseDialogCommand =>
@@ -20,7 +18,7 @@ namespace ControlesUsuario.Dialogs
             set { SetProperty(ref _message, value); }
         }
 
-        private string _title = "Notificación";
+        private string _title = "Información";
         public string Title
         {
             get { return _title; }
@@ -59,6 +57,7 @@ namespace ControlesUsuario.Dialogs
         public virtual void OnDialogOpened(IDialogParameters parameters)
         {
             Message = parameters.GetValue<string>("message");
+            Title = parameters.GetValue<string>("title");
         }
     }
 }

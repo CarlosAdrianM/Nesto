@@ -3,11 +3,11 @@
 namespace ControlesUsuario.Dialogs
 {
     /// <summary>
-    /// Interaction logic for MessageDialog
+    /// Interaction logic for ConfirmationDialog
     /// </summary>
-    public partial class MessageDialog : UserControl
+    public partial class ConfirmationDialog : UserControl
     {
-        public MessageDialog()
+        public ConfirmationDialog()
         {
             InitializeComponent();
         }

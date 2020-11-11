@@ -6,7 +6,6 @@ Imports System.Net.Http
 Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Windows
-Imports Prism.Interactivity.InteractionRequest
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Serialization
@@ -14,21 +13,7 @@ Imports Newtonsoft.Json.Serialization
 Public Class AgenciaCorreosExpress
     Implements IAgencia
 
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
     Public Sub New()
-
-        NotificationRequest = New InteractionRequest(Of INotification)
-        'ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
         ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(0, "No disponible")
         }
@@ -234,9 +219,7 @@ Public Class AgenciaCorreosExpress
             Throw New Exception("El envío debe tener un código de barras asignada para poder imprimir la etiqueta")
         End If
 
-        Dim mainViewModel As New MainViewModel
         Dim puerto As String = "\\RDS2016\Etiquetas3"
-        'Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
@@ -378,10 +361,7 @@ Public Class AgenciaCorreosExpress
                 objStream.Writeline("N")
             End If
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-                    .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
-                .Content = ex.InnerException.Message
-            })
+            Throw New Exception("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.InnerException.Message)
         Finally
             objStream.Close()
             objFSO = Nothing

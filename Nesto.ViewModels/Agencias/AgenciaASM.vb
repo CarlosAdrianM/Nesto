@@ -3,34 +3,19 @@ Imports System.Windows
 Imports System.Net
 Imports System.IO
 Imports System.Text.RegularExpressions
-Imports Prism.Interactivity.InteractionRequest
 Imports Nesto.Models.Nesto.Models
 Imports System.Threading.Tasks
+Imports ControlesUsuario.Dialogs
 
 Public Class AgenciaASM
     Implements IAgencia
 
     Private Const EMPRESA_ESPEJO As String = "3  "
 
-    ' Propiedades de Prism
-    Private _NotificationRequest As InteractionRequest(Of INotification)
-    Public Property NotificationRequest As InteractionRequest(Of INotification)
-        Get
-            Return _NotificationRequest
-        End Get
-        Private Set(value As InteractionRequest(Of INotification))
-            _NotificationRequest = value
-        End Set
-    End Property
-
     Private agenciaVM As AgenciasViewModel
 
     Public Sub New(agencia As AgenciasViewModel)
         If Not IsNothing(agencia) Then
-
-            NotificationRequest = New InteractionRequest(Of INotification)
-            'ConfirmationRequest = New InteractionRequest(Of IConfirmation)
-
             ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
                 New tipoIdDescripcion(0, "Sin Retorno"),
                 New tipoIdDescripcion(1, "Con Retorno"),
@@ -53,7 +38,6 @@ Public Class AgenciaASM
 
             ListaPaises = rellenarPaises()
 
-            'agenciaSeleccionada = agencia.agenciaSeleccionada
             agenciaVM = agencia
         End If
 
@@ -64,10 +48,7 @@ Public Class AgenciaASM
     ' Funciones
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
         If IsNothing(envio) Then
-            NotificationRequest.Raise(New Notification() With {
-                 .Title = "Error",
-                .Content = "No hay ningún envío seleccionado, no se puede cargar el estado"
-            })
+            agenciaVM.dialogService.ShowError("No hay ningún envío seleccionado, no se puede cargar el estado")
             Return Nothing
         End If
         Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + envio.AgenciasTransporte.Identificador)
@@ -383,10 +364,7 @@ Public Class AgenciaASM
 
 
         Catch ex As Exception
-            NotificationRequest.Raise(New Notification() With {
-                    .Title = "¡Error! Se ha producido un error y no se han grabado los datos",
-                .Content = ex.InnerException.Message
-            })
+            agenciaVM.dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.InnerException.Message)
         Finally
             objStream.Close()
             objFSO = Nothing

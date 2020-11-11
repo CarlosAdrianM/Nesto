@@ -7,9 +7,10 @@ Imports System.Collections.ObjectModel
 'Imports Nesto.Models.Nesto.Models.EF
 Imports System.Windows.Controls
 Imports Nesto.Models.Nesto.Models
+Imports Prism.Mvvm
 
 Public Class PrestashopViewModel
-    Inherits ViewModelBase
+    Inherits BindableBase
 
     Private Shared DbContext As New NestoEntities
 
@@ -28,7 +29,7 @@ Public Class PrestashopViewModel
         End Get
         Set(value As ObservableCollection(Of PrestashopProductos))
             _Producto = value
-            OnPropertyChanged("Producto")
+            RaisePropertyChanged("Producto")
         End Set
     End Property
 
@@ -39,7 +40,7 @@ Public Class PrestashopViewModel
         End Get
         Set(value As PrestashopProductos)
             _LineaSeleccionada = value
-            OnPropertyChanged("LineaSeleccionada")
+            RaisePropertyChanged("LineaSeleccionada")
         End Set
     End Property
 
@@ -50,7 +51,7 @@ Public Class PrestashopViewModel
         End Get
         Set(value As String)
             _productoBuscar = value
-            OnPropertyChanged("productoBuscar")
+            RaisePropertyChanged("productoBuscar")
         End Set
     End Property
 
@@ -66,7 +67,7 @@ Public Class PrestashopViewModel
                 Producto = New ObservableCollection(Of PrestashopProductos)(From x In DbContext.PrestashopProductos Where (x.VistoBueno = False Or x.VistoBueno Is Nothing) Select x)
             End If
             _PestañaSeleccionada = value
-            OnPropertyChanged("PestañaSeleccionada")
+            RaisePropertyChanged("PestañaSeleccionada")
         End Set
     End Property
 
@@ -140,6 +141,9 @@ Public Class PrestashopViewModel
             Return _cmdVistoBueno
         End Get
     End Property
+
+    Public Property Titulo As String
+
     Private Function CanVistoBueno(ByVal param As Object) As Boolean
         If LineaSeleccionada Is Nothing Then
             Return False
