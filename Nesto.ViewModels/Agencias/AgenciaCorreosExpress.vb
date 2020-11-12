@@ -136,7 +136,7 @@ Public Class AgenciaCorreosExpress
             .TelefOtrs = IIf(envio.Telefono.Trim <> "", envio.Movil.Trim, ""),
             .Observac = envio.Observaciones?.Substring(0, Math.Min(80, envio.Observaciones.Length)),
             .NumBultos = envio.Bultos.ToString("D2"),
-            .Kilos = "00000.00",
+            .Kilos = "00001.00",
             .Producto = envio.Servicio.ToString("D2"),
             .Portes = "P",
             .Reembolso = Replace(envio.Reembolso.ToString("0.##"), ",", "."),
@@ -283,7 +283,7 @@ Public Class AgenciaCorreosExpress
                 objStream.Writeline("A350,1150,3,3,2,3,N,""" + ListaPaises.Single(Function(p) p.Id = envio.Pais).Nombre.ToUpper.Trim + """")
                 objStream.Writeline("A20,530,3,2,3,2,N,""EXP:" + envio.CodigoBarras + """")
                 objStream.Writeline("A158,320,3,2,1,1,N,""PESO: """)
-                objStream.Writeline("A175,320,3,2,2,1,N,"" """) '<< KILOS >> Kgs.
+                objStream.Writeline("A175,320,3,2,2,1,N,""1""") '<< KILOS >> Kgs.
                 objStream.Writeline("A98,320,3,2,1,1,N,""BULTOS: """)
                 objStream.Writeline("A115,320,3,2,2,1,N,""" + i.ToString + " DE " + envio.Bultos.ToString + """")
                 objStream.Writeline("A98,520,3,2,1,1,N,""REEMBOLSO: """)
@@ -341,7 +341,7 @@ Public Class AgenciaCorreosExpress
                 objStream.Writeline("A350,1150,3,3,2,3,N,""" + ListaPaises.Single(Function(p) p.Id = paisDefecto).Nombre.ToUpper.Trim + """")
                 objStream.Writeline("A20,530,3,2,3,2,N,""EXP:" + envio.CodigoBarras + """")
                 objStream.Writeline("A158,320,3,2,1,1,N,""PESO: """)
-                objStream.Writeline("A175,320,3,2,2,1,N,"" """) '<< KILOS >> Kgs.
+                objStream.Writeline("A175,320,3,2,2,1,N,""1""") '<< KILOS >> Kgs.
                 objStream.Writeline("A98,320,3,2,1,1,N,""BULTOS: """)
                 objStream.Writeline("A115,320,3,2,2,1,N,""1 DE 1""")
                 objStream.Writeline("A98,520,3,2,1,1,N,""REEMBOLSO: """)
@@ -779,7 +779,7 @@ Public Class AgenciaCorreosExpress
         <MaxLength(2)>
         Public Property NumBultos As String
         <MaxLength(8)>
-        Public Property Kilos As String
+        Public Property Kilos As String = "1"
         <MaxLength(6)>
         Public Property Volumen As String = ""
         <MaxLength(6)>
@@ -823,7 +823,7 @@ Public Class AgenciaCorreosExpress
         <MaxLength(50)>
         Public Property Observaciones As String = ""
         <MaxLength(6)>
-        Public Property Kilos As String = ""
+        Public Property Kilos As String = "1"
         <MaxLength(5)>
         Public Property Volumen As String = ""
         <MaxLength(5)>
