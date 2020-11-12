@@ -4,13 +4,18 @@ Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Prism.Mvvm
+Imports Unity
 
 Public Class ListaRapportsViewModel
     Inherits BindableBase
+    Implements INavigationAware
 
     Private ReadOnly regionManager As IRegionManager
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IRapportService
+    Private ReadOnly container As IUnityContainer
+
+
     Private _vendedor As String
     Public Property vendedor As String
         Get
@@ -21,10 +26,11 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
+        Me.container = container
 
         cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
         cmdCargarListaRapports = New DelegateCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
@@ -228,6 +234,18 @@ Public Class ListaRapportsViewModel
             listaRapports = New ObservableCollection(Of SeguimientoClienteDTO)
         End If
         listaRapports.Add(rapportNuevo)
+    End Sub
+
+    Public Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
+
+    End Sub
+
+    Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
+        Return True
+    End Function
+
+    Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
+
     End Sub
 
 #End Region

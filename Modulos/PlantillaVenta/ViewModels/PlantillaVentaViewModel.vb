@@ -20,6 +20,7 @@ Imports Prism.Mvvm
 
 Public Class PlantillaVentaViewModel
     Inherits BindableBase
+    Implements INavigationAware
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
@@ -1620,6 +1621,18 @@ Public Class PlantillaVentaViewModel
         End While
         Return nombreAmpliado
     End Function
+
+    Public Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
+
+    End Sub
+
+    Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
+        Return False
+    End Function
+
+    Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
+
+    End Sub
 
 
 #End Region
