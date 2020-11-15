@@ -199,6 +199,10 @@
       <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>
       <Name>Models</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Cliente\Cliente.csproj">
+      <Project>{50929425-20ab-441d-bd99-52179b491af9}</Project>
+      <Name>Cliente</Name>
+    </ProjectReference>
     <ProjectReference Include="..\PedidoVenta\PedidoVenta\PedidoVenta.vbproj">
       <Project>{5678F232-EBFE-4834-B77F-51B2C0824380}</Project>
       <Name>PedidoVenta</Name>

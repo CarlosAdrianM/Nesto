@@ -17,6 +17,7 @@ Imports Unity
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Prism.Mvvm
+Imports Nesto.Modulos.Cliente
 
 Public Class PlantillaVentaViewModel
     Inherits BindableBase
@@ -70,6 +71,7 @@ Public Class PlantillaVentaViewModel
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
         cmdCalcularSePuedeServirPorGlovo = New DelegateCommand(AddressOf OnCalcularSePuedeServirPorGlovo)
         CambiarIvaCommand = New DelegateCommand(AddressOf OnCambiarIva)
+        CargarCorreoYMovilTarjeta = New DelegateCommand(AddressOf OnCargarCorreoYMovilTarjeta)
 
         ' Al leer los clientes lo lee del parámetro PermitirVerClientesTodosLosVendedores
         todosLosVendedores = False
@@ -165,6 +167,26 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _cobroTarjetaCorreo As String
+    Public Property CobroTarjetaCorreo As String
+        Get
+            Return _cobroTarjetaCorreo
+        End Get
+        Set(value As String)
+            SetProperty(_cobroTarjetaCorreo, value)
+        End Set
+    End Property
+
+    Private _cobroTarjetaMovil As String
+    Public Property CobroTarjetaMovil As String
+        Get
+            Return _cobroTarjetaMovil
+        End Get
+        Set(value As String)
+            SetProperty(_cobroTarjetaMovil, value)
+        End Set
+    End Property
+
     Private Sub SeleccionarElCliente(value As ClienteJson)
         SetProperty(_clienteSeleccionado, value)
         RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
@@ -238,6 +260,14 @@ Public Class PlantillaVentaViewModel
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
         End Set
     End Property
+    Public ReadOnly Property EsTarjetaPrepago As Boolean
+        Get
+            Return Not IsNothing(formaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
+                formaPagoSeleccionada.formaPago = Constantes.FormasPago.TARJETA AndAlso
+                plazoPagoSeleccionado.plazoPago = Constantes.PlazosPago.PREPAGO
+        End Get
+    End Property
+
 
     Private _estaOcupado As Boolean = False
     Public Property estaOcupado As Boolean
@@ -328,6 +358,8 @@ Public Class PlantillaVentaViewModel
             SetProperty(_formaPagoSeleccionada, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
+            RaisePropertyChanged(NameOf(EsTarjetaPrepago))
+            RaisePropertyChanged(NameOf(MandarCobroTarjeta))
         End Set
     End Property
 
@@ -524,6 +556,19 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _mandarCobroTarjeta As Boolean
+    Public Property MandarCobroTarjeta As Boolean
+        Get
+            Return _mandarCobroTarjeta AndAlso EsTarjetaPrepago
+        End Get
+        Set(value As Boolean)
+            SetProperty(_mandarCobroTarjeta, value)
+            If MandarCobroTarjeta Then
+                CargarCorreoYMovilTarjeta.Execute()
+            End If
+        End Set
+    End Property
+
     Public ReadOnly Property NoHayProductosEnElPedido
         Get
             Return Not hayProductosEnElPedido
@@ -559,6 +604,8 @@ Public Class PlantillaVentaViewModel
             SetProperty(_plazoPagoSeleccionado, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
+            RaisePropertyChanged(NameOf(EsTarjetaPrepago))
+            RaisePropertyChanged(NameOf(MandarCobroTarjeta))
             If (Not IsNothing(_plazoPagoSeleccionado)) Then
                 cmdCalcularSePuedeServirPorGlovo.Execute()
             End If
@@ -893,6 +940,33 @@ Public Class PlantillaVentaViewModel
             estaOcupado = False
         End Try
 
+    End Sub
+
+    Private _cargarCorreoYMovilTarjeta As DelegateCommand
+    Public Property CargarCorreoYMovilTarjeta As DelegateCommand
+        Get
+            Return _cargarCorreoYMovilTarjeta
+        End Get
+        Set(value As DelegateCommand)
+            SetProperty(_cargarCorreoYMovilTarjeta, value)
+        End Set
+    End Property
+    Private Async Sub OnCargarCorreoYMovilTarjeta()
+        Dim telefono As Telefono = New Telefono(clienteSeleccionado.telefono)
+        CobroTarjetaMovil = telefono.MovilUnico
+        Dim cliente = Await servicio.CargarCliente(clienteSeleccionado.empresa, clienteSeleccionado.cliente, direccionEntregaSeleccionada.contacto)
+        Dim personasContacto = New List(Of PersonasContactoCliente)
+        For Each persona In cliente.PersonasContacto
+            personasContacto.Add(New PersonasContactoCliente With {
+                .Cargo = IIf(persona.FacturacionElectronica, 22, 14),
+                .CorreoElectrónico = persona.CorreoElectronico
+                                 })
+        Next
+        Dim correo As CorreoCliente = New CorreoCliente(personasContacto)
+        CobroTarjetaCorreo = correo.CorreoUnicoFacturaElectronica
+        If String.IsNullOrEmpty(CobroTarjetaCorreo) Then
+            CobroTarjetaCorreo = correo.CorreoAgencia
+        End If
     End Sub
 
     Private _cmdCargarDireccionesEntrega As DelegateCommand(Of Object)
@@ -1355,6 +1429,9 @@ Public Class PlantillaVentaViewModel
                     'listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
                     Dim pathNumeroPedido = response.Headers.Location.LocalPath
                     Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
+                    If MandarCobroTarjeta Then
+                        servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, totalPedido, numPedido)
+                    End If
 
                     ' Cerramos la ventana
                     Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
