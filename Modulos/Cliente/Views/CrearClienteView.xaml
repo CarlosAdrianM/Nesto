@@ -185,6 +185,8 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="3"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="2*"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
@@ -198,8 +200,9 @@
 
 
                             <RadioButton Name="optEfectivo" Grid.Row="1" Grid.Column="3" IsChecked="{Binding FormaPagoEfectivo}">Efectivo</RadioButton>
-                            <RadioButton Name="optRecibo" Grid.Row="3" Grid.Column="3" IsChecked="{Binding FormaPagoRecibo}" Checked="OptRecibo_Checked">Recibo banco</RadioButton>
-                            <TextBox Name="txtIban" Grid.Row="5" Grid.Column="3" Text="{Binding ClienteIban}" Visibility="{Binding FormaPagoRecibo, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
+                            <RadioButton Name="optTarjeta" Grid.Row="3" Grid.Column="3" IsChecked="{Binding FormaPagoTarjeta}">Tarjeta</RadioButton>
+                            <RadioButton Name="optRecibo" Grid.Row="5" Grid.Column="3" IsChecked="{Binding FormaPagoRecibo}" Checked="OptRecibo_Checked">Recibo banco</RadioButton>
+                            <TextBox Name="txtIban" Grid.Row="7" Grid.Column="3" Text="{Binding ClienteIban}" Visibility="{Binding FormaPagoRecibo, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
                             
                             
                             <Border Grid.Column="5" Grid.Row="0" BorderBrush="Green" BorderThickness="3" CornerRadius="15" Padding="5">

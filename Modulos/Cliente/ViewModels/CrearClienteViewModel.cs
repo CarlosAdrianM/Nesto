@@ -193,6 +193,12 @@ namespace Nesto.Modulos.Cliente
             get { return formaPagoRecibo; }
             set { SetProperty(ref formaPagoRecibo, value); }
         }
+        private bool formaPagoTarjeta;
+        public bool FormaPagoTarjeta
+        {
+            get { return formaPagoTarjeta; }
+            set { SetProperty(ref formaPagoTarjeta, value); }
+        }
         private bool nifValidado = false;
         public bool NifValidado {
             get { return nifValidado; }
@@ -511,8 +517,8 @@ namespace Nesto.Modulos.Cliente
         {
             try
             {
-                ClienteFormaPago = FormaPagoRecibo ? "RCB" : "EFC";
-                ClientePlazosPago = "CONTADO";
+                ClienteFormaPago = FormaPagoRecibo ? Constantes.FormasPago.RECIBO : FormaPagoTarjeta ? Constantes.FormasPago.TARJETA : Constantes.FormasPago.EFECTIVO;
+                ClientePlazosPago = FormaPagoTarjeta ? Constantes.PlazosPago.PREPAGO : Constantes.PlazosPago.CONTADO;
                 RespuestaDatosBancoCliente respuesta = await Servicio.ValidarDatosPago(ClienteFormaPago, ClientePlazosPago, ClienteIban);
                 ClienteIban = respuesta.IbanFormateado;
                 if (!respuesta.DatosPagoValidos || (!respuesta.IbanValido && FormaPagoRecibo))

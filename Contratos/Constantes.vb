@@ -31,6 +31,7 @@
     End Class
     Public Class FormasPago
         Public Const EFECTIVO As String = "EFC"
+        Public Const RECIBO As String = "RCB"
         Public Const TARJETA As String = "TAR"
     End Class
     Public Class FormasVenta
@@ -48,6 +49,7 @@
         Public Const ESTADO_LINEA_PENDIENTE = -1
     End Class
     Public Class PlazosPago
+        Public Const CONTADO As String = "CONTADO"
         Public Const PREPAGO As String = "PRE"
     End Class
     Public Class Series
