@@ -181,7 +181,7 @@ namespace Nesto.Modulos.Cliente
         }
         public bool EstaOcupado { get; set; }
         private bool EsUnaModificacion { get; set; } = false;
-        private bool formaPagoEfectivo = true;
+        private bool formaPagoEfectivo;
         public bool FormaPagoEfectivo
         {
             get { return formaPagoEfectivo; }
@@ -193,7 +193,7 @@ namespace Nesto.Modulos.Cliente
             get { return formaPagoRecibo; }
             set { SetProperty(ref formaPagoRecibo, value); }
         }
-        private bool formaPagoTarjeta;
+        private bool formaPagoTarjeta = true;
         public bool FormaPagoTarjeta
         {
             get { return formaPagoTarjeta; }

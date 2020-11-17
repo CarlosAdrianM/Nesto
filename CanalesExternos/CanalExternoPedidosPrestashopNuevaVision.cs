@@ -19,7 +19,8 @@ namespace Nesto.Modulos.CanalesExternos
         private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
         private const string FORMA_PAGO_PAYPAL = "PayPal";
         private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
-        private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay - Login and Pay with Amazon";
+        private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay V2";
+        private const string FORMA_PAGO_BIZUM = "Bizum - Pago online";
 
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)
         {
@@ -80,7 +81,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 pedidoSalida.formaPago = "EFC";
                 pedidoSalida.plazosPago = "CONTADO";
-            } else if (formaPago == FORMA_PAGO_PAYPAL || formaPago == FORMA_PAGO_REDSYS)
+            } else if (formaPago == FORMA_PAGO_PAYPAL || formaPago == FORMA_PAGO_REDSYS || formaPago == FORMA_PAGO_BIZUM)
             {
                 pedidoSalida.formaPago = "TAR";
                 pedidoSalida.plazosPago = "PRE";
@@ -204,7 +205,8 @@ namespace Nesto.Modulos.CanalesExternos
 
             Dictionary<string, string> cuentasFormaPago = new Dictionary<string, string>();
             cuentasFormaPago.Add(FORMA_PAGO_PAYPAL, "57200020"); 
-            cuentasFormaPago.Add(FORMA_PAGO_REDSYS, "57200013"); 
+            cuentasFormaPago.Add(FORMA_PAGO_REDSYS, "57200013");
+            cuentasFormaPago.Add(FORMA_PAGO_BIZUM, "57200013");
             cuentasFormaPago.Add(FORMA_PAGO_AMAZON_PAY, "57200022"); 
 
             if (cuentasFormaPago.ContainsKey(formaPago))
