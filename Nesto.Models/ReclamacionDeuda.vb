@@ -5,6 +5,7 @@
     Public Property Asunto As String
     Public Property Nombre As String
     Public Property Direccion As String
+    Public Property Cliente As String
 
     Public Property TextoSMS As String
 

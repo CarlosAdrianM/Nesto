@@ -1033,6 +1033,7 @@ Public Class ClientesViewModel
             Dim respuesta As String = String.Empty
 
             Dim reclamacion As New ReclamacionDeuda With {
+                .Cliente = clienteActivo?.Nº_Cliente.Trim(),
                 .Asunto = AsuntoReclamarDeuda,
                 .Correo = CorreoReclamarDeuda,
                 .Importe = ImporteReclamarDeuda,

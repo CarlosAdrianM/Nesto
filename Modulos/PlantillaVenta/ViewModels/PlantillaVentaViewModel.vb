@@ -1430,7 +1430,7 @@ Public Class PlantillaVentaViewModel
                     Dim pathNumeroPedido = response.Headers.Location.LocalPath
                     Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
                     If MandarCobroTarjeta Then
-                        servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, totalPedido, numPedido)
+                        servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, totalPedido, numPedido, clienteSeleccionado.cliente)
                     End If
 
                     ' Cerramos la ventana

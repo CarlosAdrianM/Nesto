@@ -15,13 +15,14 @@ Public Class PlantillaVentaService
         Me.configuracion = configuracion
     End Sub
 
-    Public Async Sub EnviarCobroTarjeta(correo As String, movil As String, totalPedido As Decimal, pedido As String) Implements IPlantillaVentaService.EnviarCobroTarjeta
+    Public Async Sub EnviarCobroTarjeta(correo As String, movil As String, totalPedido As Decimal, pedido As String, cliente As String) Implements IPlantillaVentaService.EnviarCobroTarjeta
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
             Dim respuesta As String = String.Empty
 
             Dim reclamacion As New ReclamacionDeuda With {
+                .Cliente = cliente,
                 .Asunto = String.Format("Pago pedido {0} de Nueva Visión", pedido),
                 .Correo = correo,
                 .Importe = totalPedido,
