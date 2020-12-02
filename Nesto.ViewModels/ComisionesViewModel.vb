@@ -88,7 +88,9 @@ Public Class ComisionesViewModel
             End If
 
             If MostrarPanelAntiguo Then
+                EstaOcupado = True
                 comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
+                EstaOcupado = False
             Else
                 CalcularComisionAsync()
             End If
@@ -331,6 +333,16 @@ Public Class ComisionesViewModel
         End Get
     End Property
 
+    Private _estaOcupado As Boolean
+    Public Property EstaOcupado As Boolean
+        Get
+            Return _estaOcupado
+        End Get
+        Set(value As Boolean)
+            SetProperty(_estaOcupado, value)
+        End Set
+    End Property
+
 #Region "Comandos"
     Private _cmdAbrirPedido As DelegateCommand(Of Object)
     Public Property cmdAbrirPedido As DelegateCommand(Of Object)
@@ -359,7 +371,8 @@ Public Class ComisionesViewModel
 
 
     Private Async Function CalcularComisionAnual(vendedor As String, anno As Integer, mes As Integer, incluirAlbaranes As Boolean, incluirPicking As Boolean) As Task(Of ComisionAnualResumen)
-
+        EstaOcupado = True
+        RaisePropertyChanged(NameOf(EstaOcupado))
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -385,7 +398,7 @@ Public Class ComisionesViewModel
             Catch ex As Exception
                 Throw New Exception("No se han podido cargar las comisiones del vendedor " + vendedor)
             Finally
-
+                EstaOcupado = False
             End Try
 
             Dim comision As ComisionAnualResumen = JsonConvert.DeserializeObject(Of ComisionAnualResumen)(respuesta)
@@ -397,6 +410,7 @@ Public Class ComisionesViewModel
 
 
     Public Class ComisionAnualResumen
+        Inherits BindableBase
         Public Property Id As Integer
         Public Property Vendedor As String
         Public Property Anno As Integer
@@ -407,6 +421,15 @@ Public Class ComisionesViewModel
         Public Property GeneralInicioTramo As Decimal
         Public Property GeneralFinalTramo As Decimal
         Public Property GeneralBajaSaltoMesSiguiente As Boolean
+        Public Property GeneralVentaAcumulada As Decimal
+        Public Property GeneralComisionAcumulada As Decimal
+        Public Property GeneralTipoConseguido As Decimal
+        Public Property GeneralTipoReal As Decimal
+        Public ReadOnly Property GeneralTipoConseguidoYReal As String
+            Get
+                Return String.Format("{0} / {1}", GeneralTipoConseguido.ToString("P"), GeneralTipoReal.ToString("P"))
+            End Get
+        End Property
         Public Property TotalComisiones As Decimal
 
         Public ReadOnly Property ColorProgreso As Brush
@@ -415,6 +438,17 @@ Public Class ComisionesViewModel
                     Return Brushes.Red
                 Else
                     Return Brushes.Green
+                End If
+            End Get
+        End Property
+
+        Public ReadOnly Property ColorTipoConseguidoYReal As Brush
+            Get
+
+                If GeneralTipoReal = GeneralTipoConseguido Then
+                    Return Brushes.Green
+                Else
+                    Return Brushes.Black
                 End If
             End Get
         End Property

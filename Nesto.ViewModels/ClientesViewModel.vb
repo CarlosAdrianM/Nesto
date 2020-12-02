@@ -410,7 +410,9 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of ClienteJson))
             _listaClientesVendedor = value
-            'clienteActivoDTO = _listaClientesVendedor.FirstOrDefault
+            If IsNothing(clienteActivoDTO) Then
+                clienteActivoDTO = _listaClientesVendedor.FirstOrDefault
+            End If
             RaisePropertyChanged("listaClientesVendedor")
         End Set
     End Property
