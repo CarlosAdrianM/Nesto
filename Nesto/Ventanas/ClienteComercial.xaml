@@ -200,7 +200,7 @@
                         <TabItem Header="Deudas">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="3*"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 
@@ -215,8 +215,8 @@
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
                                         <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
-                                        <DataGridTextColumn Header="Vencimiento" Binding="{Binding Vencimiento, StringFormat=d}" />
-                                        <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" />
+                                        <DataGridTextColumn Header="Vto." Binding="{Binding Vencimiento, StringFormat=d}" />
+                                        <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
                                         <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
                                         <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="4*"/>
                                         <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">

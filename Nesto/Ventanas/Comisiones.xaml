@@ -6,41 +6,43 @@
     xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
-    <Grid>
-        <Grid.Resources>
-            <xcdg:CurrencyConverter x:Key="currencyConverter"/>
-            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-            <DataTemplate x:Key="currency_celltemplate">
-                <TextBlock Text="{Binding Converter={StaticResource currencyConverter}}"/>
-            </DataTemplate>
-            <Style TargetType="{x:Type xcdg:DataRow}">
-                <Setter Property="Height" Value="20" />
-            </Style>
-            <xcdg:DataGridCollectionViewSource x:Key="cvs_listaPedidos" Source="{Binding listaPedidos}">
-                <xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                    <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
-                    <xcdg:DataGridGroupDescription PropertyName="Número"/>
-                </xcdg:DataGridCollectionViewSource.GroupDescriptions>
-            </xcdg:DataGridCollectionViewSource>
-            <xcdg:DataGridCollectionViewSource x:Key="cvs_listaVentasComision" Source="{Binding listaVentasComision}">
-                <xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                    <xcdg:DataGridGroupDescription PropertyName="Grupo"/>
-                    <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
-                </xcdg:DataGridCollectionViewSource.GroupDescriptions>
-            </xcdg:DataGridCollectionViewSource>
-            <xcdg:DataGridCollectionViewSource x:Key="cvs_listaVentasFamilia" Source="{Binding listaVentasFamilia}">
-                <xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                    <xcdg:DataGridGroupDescription PropertyName="Familia"/>
-                </xcdg:DataGridCollectionViewSource.GroupDescriptions>
-            </xcdg:DataGridCollectionViewSource>
-        </Grid.Resources>
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Cargando comisiones...">
 
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <xctk:BusyIndicator Grid.Row="0" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando comisiones...">
-            <Grid>
+        <Grid>
+            <Grid.Resources>
+                <xcdg:CurrencyConverter x:Key="currencyConverter"/>
+                <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+                <DataTemplate x:Key="currency_celltemplate">
+                    <TextBlock Text="{Binding Converter={StaticResource currencyConverter}}"/>
+                </DataTemplate>
+                <Style TargetType="{x:Type xcdg:DataRow}">
+                    <Setter Property="Height" Value="20" />
+                </Style>
+                <xcdg:DataGridCollectionViewSource x:Key="cvs_listaPedidos" Source="{Binding listaPedidos}">
+                    <xcdg:DataGridCollectionViewSource.GroupDescriptions>
+                        <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
+                        <xcdg:DataGridGroupDescription PropertyName="Número"/>
+                    </xcdg:DataGridCollectionViewSource.GroupDescriptions>
+                </xcdg:DataGridCollectionViewSource>
+                <xcdg:DataGridCollectionViewSource x:Key="cvs_listaVentasComision" Source="{Binding listaVentasComision}">
+                    <xcdg:DataGridCollectionViewSource.GroupDescriptions>
+                        <xcdg:DataGridGroupDescription PropertyName="Grupo"/>
+                        <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
+                    </xcdg:DataGridCollectionViewSource.GroupDescriptions>
+                </xcdg:DataGridCollectionViewSource>
+                <xcdg:DataGridCollectionViewSource x:Key="cvs_listaVentasFamilia" Source="{Binding listaVentasFamilia}">
+                    <xcdg:DataGridCollectionViewSource.GroupDescriptions>
+                        <xcdg:DataGridGroupDescription PropertyName="Familia"/>
+                    </xcdg:DataGridCollectionViewSource.GroupDescriptions>
+                </xcdg:DataGridCollectionViewSource>
+            </Grid.Resources>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" >
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
@@ -57,424 +59,424 @@
                 <TextBlock Grid.Column="3" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Text="{Binding ComisionAnualResumenActual.GeneralInicioTramo, StringFormat=c}" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5,5" Foreground="White"></TextBlock>
                 <TextBlock Grid.Column="3" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Text="{Binding ComisionAnualResumenActual.GeneralFinalTramo, StringFormat=c}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,5"></TextBlock>
             </Grid>
-        </xctk:BusyIndicator>
-        <DockPanel Grid.Row="1">
-            <Grid DockPanel.Dock="Top"  Visibility="{Binding Path=MostrarPanelAntiguo, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10" Margin="3">
-                        <Grid ToolTip="Cosmética, Accesorios y Peluquería">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="ExtraBold" Margin="3" FontSize="14">Cosmética</TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Facturado:"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="Fin de Mes:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaFDMCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Total Venta:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="4" Grid.Column="0" Content="% Comisión:"/>
-                            <TextBox Grid.Row="4" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.C_ComisionCos, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="5" Grid.Column="0" Content="Total Comisión:"/>
-                            <TextBox Grid.Row="5" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="6" Grid.Column="0" Content="Siguiente Tramo:"/>
-                            <TextBox Grid.Row="6" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.SiguienteTramoCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="7" Grid.Column="0" Content="Diferencia:"/>
-                            <TextBox Grid.Row="7" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.DiferenciaTramoCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="8" Grid.Column="0" Content="Importe Ruta:"/>
-                            <TextBox Grid.Row="8" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.ImporteRutaCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
+            <DockPanel Grid.Row="1">
+                <Grid DockPanel.Dock="Top"  Visibility="{Binding Path=MostrarPanelAntiguo, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Grid.Column="0">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10" Margin="3">
+                            <Grid ToolTip="Cosmética, Accesorios y Peluquería">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="ExtraBold" Margin="3" FontSize="14">Cosmética</TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Facturado:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="Fin de Mes:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaFDMCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Total Venta:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="4" Grid.Column="0" Content="% Comisión:"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.C_ComisionCos, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="5" Grid.Column="0" Content="Total Comisión:"/>
+                                <TextBox Grid.Row="5" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="6" Grid.Column="0" Content="Siguiente Tramo:"/>
+                                <TextBox Grid.Row="6" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.SiguienteTramoCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="7" Grid.Column="0" Content="Diferencia:"/>
+                                <TextBox Grid.Row="7" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.DiferenciaTramoCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="8" Grid.Column="0" Content="Importe Ruta:"/>
+                                <TextBox Grid.Row="8" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.ImporteRutaCos, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Column="1">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
+                            <Grid ToolTip="Aparatos">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="ExtraBold" Margin="3" FontSize="14">Aparatos</TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Facturado:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaAPA, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="Fin de Mes:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaFDMApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Total Venta:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="4" Grid.Column="0" Content="% Comisión:"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.C_ComisionApa, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="5" Grid.Column="0" Content="Total Comisión:"/>
+                                <TextBox Grid.Row="5" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="6" Grid.Column="0" Content="Siguiente Tramo:"/>
+                                <TextBox Grid.Row="6" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.SiguienteTramoApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="7" Grid.Column="0" Content="Diferencia:"/>
+                                <TextBox Grid.Row="7" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.DiferenciaTramoApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="8" Grid.Column="0" Content="Importe Ruta:"/>
+                                <TextBox Grid.Row="8" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.ImporteRutaApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+
+                    <Grid Grid.Column="2">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
+                            <Grid ToolTip="Otros Aparatos">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="ExtraBold" Margin="3" FontSize="14">Otros Aparatos</TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Facturado:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="Fin de Mes:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaFDMAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Total Venta:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="4" Grid.Column="0" Content="% Comisión:"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.C_ComisionAcp, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="5" Grid.Column="0" Content="Total Comisión:"/>
+                                <TextBox Grid.Row="5" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="6" Grid.Column="0" Content="Siguiente Tramo:"/>
+                                <TextBox Grid.Row="6" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.SiguienteTramoAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="7" Grid.Column="0" Content="Diferencia:"/>
+                                <TextBox Grid.Row="7" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.DiferenciaTramoAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="8" Grid.Column="0" Content="Importe Ruta:"/>
+                                <TextBox Grid.Row="8" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.ImporteRutaAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+
+                    <Grid Grid.Column="3">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3" Background="AliceBlue">
+                            <Grid ToolTip="Totales">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="ExtraBold" Margin="3" FontSize="14">Totales</TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Premio Eva Visnú:" ToolTip="Venta de Eva Visnú desde el principio del trimestre hasta el final del mes seleccionado"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.PremioEva, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="Fin de mes Eva:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.EvaFdM, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Venta Unión Láser:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaUL, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="4" Grid.Column="0" Content="Comisión Unión Láser:"/>
+                                <TextBox Grid.Row="4" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionUL, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="5" Grid.Column="0" Content="Total Ruta:"/>
+                                <TextBox Grid.Row="5" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.CifraRuta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="6" Grid.Column="0" Content="Venta Cursos:"/>
+                                <TextBox Grid.Row="6" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaCur, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="7" Grid.Column="0" Content="Comisión Cursos:"/>
+                                <TextBox Grid.Row="7" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionCur, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="8" Grid.Column="0" Content="TOTAL COMISIÓN:"/>
+                                <TextBox Grid.Row="8" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+
                 </Grid>
 
-                <Grid Grid.Column="1">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
-                        <Grid ToolTip="Aparatos">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="ExtraBold" Margin="3" FontSize="14">Aparatos</TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Facturado:"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaAPA, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="Fin de Mes:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaFDMApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Total Venta:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="4" Grid.Column="0" Content="% Comisión:"/>
-                            <TextBox Grid.Row="4" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.C_ComisionApa, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="5" Grid.Column="0" Content="Total Comisión:"/>
-                            <TextBox Grid.Row="5" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="6" Grid.Column="0" Content="Siguiente Tramo:"/>
-                            <TextBox Grid.Row="6" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.SiguienteTramoApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="7" Grid.Column="0" Content="Diferencia:"/>
-                            <TextBox Grid.Row="7" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.DiferenciaTramoApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="8" Grid.Column="0" Content="Importe Ruta:"/>
-                            <TextBox Grid.Row="8" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.ImporteRutaApa, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
+                <Grid DockPanel.Dock="Top"  Visibility="{Binding Path=MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Grid.Column="0">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10" Margin="3">
+                            <Grid ToolTip="General (sin Unión Láser, ni Otros Aparatos)">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[0].Nombre, Mode=OneWay}"></TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Column="1">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
+                            <Grid ToolTip="Unión Láser">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[1].Nombre, Mode=OneWay}"></TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Column="2" Visibility="{Binding MostrarColumnaTres, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
+                            <Grid ToolTip="Eva Visnú">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[2].Nombre, Mode=OneWay}"></TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="% Extra:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Column="3" Visibility="{Binding MostrarColumnaCuatro, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
+                            <Grid ToolTip="Otros Aparatos">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[3].Nombre, Mode=OneWay}"></TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Column="4">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3" Background="AliceBlue">
+                            <Grid ToolTip="Totales Año">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14">Totales Año (sólo General)</TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Venta acumulada:" ToolTip="Total acumulado de venta del año"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralVentaAcumulada, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="% Conseguido/Real:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralTipoConseguidoYReal, Mode=OneWay}" HorizontalContentAlignment="Right" Foreground="{Binding ComisionAnualResumenActual.ColorTipoConseguidoYReal}"/>
+                                <Label Grid.Row="3" Grid.Column="0" Content="Comisión acumulada:"/>
+                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralComisionAcumulada, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Column="5">
+                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3" Background="AliceBlue">
+                            <Grid ToolTip="Totales Mes">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14">Totales Mes</TextBlock>
+                                <Label Grid.Row="1" Grid.Column="0" Content="Falta para salto:" ToolTip="Importe para dar el siguiente salto"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralFaltaParaSalto, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="2" Grid.Column="0" Content="Proyección Año:"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralProyeccion, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <Label Grid.Row="3" FontWeight="Bold" Grid.Column="0" Content="TOTAL COMISIÓN:"/>
+                                <TextBox Grid.Row="3" FontWeight="Bold" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.TotalComisiones, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+
                 </Grid>
 
-
-                <Grid Grid.Column="2">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
-                        <Grid ToolTip="Otros Aparatos">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="ExtraBold" Margin="3" FontSize="14">Otros Aparatos</TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Facturado:"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="Fin de Mes:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaFDMAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Total Venta:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="4" Grid.Column="0" Content="% Comisión:"/>
-                            <TextBox Grid.Row="4" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.C_ComisionAcp, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="5" Grid.Column="0" Content="Total Comisión:"/>
-                            <TextBox Grid.Row="5" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="6" Grid.Column="0" Content="Siguiente Tramo:"/>
-                            <TextBox Grid.Row="6" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.SiguienteTramoAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="7" Grid.Column="0" Content="Diferencia:"/>
-                            <TextBox Grid.Row="7" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.DiferenciaTramoAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="8" Grid.Column="0" Content="Importe Ruta:"/>
-                            <TextBox Grid.Row="8" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.ImporteRutaAcp, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-
-                <Grid Grid.Column="3">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3" Background="AliceBlue">
-                        <Grid ToolTip="Totales">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" FontWeight="ExtraBold" Margin="3" FontSize="14">Totales</TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Premio Eva Visnú:" ToolTip="Venta de Eva Visnú desde el principio del trimestre hasta el final del mes seleccionado"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.PremioEva, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="Fin de mes Eva:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.EvaFdM, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Venta Unión Láser:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaUL, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="4" Grid.Column="0" Content="Comisión Unión Láser:"/>
-                            <TextBox Grid.Row="4" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionUL, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="5" Grid.Column="0" Content="Total Ruta:"/>
-                            <TextBox Grid.Row="5" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.CifraRuta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="6" Grid.Column="0" Content="Venta Cursos:"/>
-                            <TextBox Grid.Row="6" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.VentaCur, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="7" Grid.Column="0" Content="Comisión Cursos:"/>
-                            <TextBox Grid.Row="7" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComisionCur, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="8" Grid.Column="0" Content="TOTAL COMISIÓN:"/>
-                            <TextBox Grid.Row="8" Grid.Column="1" Margin="3" Text="{Binding  Path=comisionesActual.TotalComision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-
-            </Grid>
-
-            <Grid DockPanel.Dock="Top"  Visibility="{Binding Path=MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <Grid Grid.Column="0">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10" Margin="3">
-                        <Grid ToolTip="General (sin Unión Láser, ni Otros Aparatos)">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[0].Nombre, Mode=OneWay}"></TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-                <Grid Grid.Column="1">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
-                        <Grid ToolTip="Unión Láser">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[1].Nombre, Mode=OneWay}"></TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-                <Grid Grid.Column="2" Visibility="{Binding MostrarColumnaTres, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
-                        <Grid ToolTip="Eva Visnú">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[2].Nombre, Mode=OneWay}"></TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="% Extra:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-                <Grid Grid.Column="3" Visibility="{Binding MostrarColumnaCuatro, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
-                        <Grid ToolTip="Otros Aparatos">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[3].Nombre, Mode=OneWay}"></TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-                <Grid Grid.Column="4">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3" Background="AliceBlue">
-                        <Grid ToolTip="Totales Año">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14">Totales Año (sólo General)</TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Venta acumulada:" ToolTip="Total acumulado de venta del año"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralVentaAcumulada, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="% Conseguido/Real:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralTipoConseguidoYReal, Mode=OneWay}" HorizontalContentAlignment="Right" Foreground="{Binding ComisionAnualResumenActual.ColorTipoConseguidoYReal}"/>
-                            <Label Grid.Row="3" Grid.Column="0" Content="Comisión acumulada:"/>
-                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralComisionAcumulada, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-                <Grid Grid.Column="5">
-                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3" Background="AliceBlue">
-                        <Grid ToolTip="Totales Mes">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14">Totales Mes</TextBlock>
-                            <Label Grid.Row="1" Grid.Column="0" Content="Falta para salto:" ToolTip="Importe para dar el siguiente salto"/>
-                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralFaltaParaSalto, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="2" Grid.Column="0" Content="Proyección Año:"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.GeneralProyeccion, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            <Label Grid.Row="3" FontWeight="Bold" Grid.Column="0" Content="TOTAL COMISIÓN:"/>
-                            <TextBox Grid.Row="3" FontWeight="Bold" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.TotalComisiones, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                        </Grid>
-                    </Border>
-                </Grid>
-
-
-            </Grid>
-
-            <TabControl DockPanel.Dock="Bottom" >
-                <TabItem Header="Pendientes de Entregar">
-                    <xcdg:DataGridControl Name="dgrPendientesEntregar" ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
-                        <xcdg:DataGridControl.View>
-                            <xcdg:TableView UseDefaultHeadersFooters="False">
-                                <xcdg:TableView.FixedHeaders>
-                                    <DataTemplate>
-                                        <xcdg:ColumnManagerRow/>
-                                    </DataTemplate>
-                                </xcdg:TableView.FixedHeaders>
-                            </xcdg:TableView>
-                        </xcdg:DataGridControl.View>
-                        <xcdg:DataGridControl.Columns>
-                            <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
-                            <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
-                            <xcdg:Column FieldName="Dirección" Width="3*" Title="Dirección" />
-                            <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
-                            <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
-                            <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
-                            <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
-                            <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
-                            <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
-                            <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
-                            <xcdg:Column FieldName="Estado" Width="*" Title="Estado" CellHorizontalContentAlignment="Right"/>
-                        </xcdg:DataGridControl.Columns>
-                    </xcdg:DataGridControl>
-                </TabItem>
-                <TabItem Header="Entregados por Grupo">
-                    <xcdg:DataGridControl Name="dgrGrupos" ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
-                        <xcdg:DataGridControl.DefaultGroupConfiguration>
-                            <xcdg:GroupConfiguration InitiallyExpanded="False"/>
-                        </xcdg:DataGridControl.DefaultGroupConfiguration>
-                        <xcdg:DataGridControl.View>
-                            <xcdg:TableView UseDefaultHeadersFooters="False">
-                                <xcdg:TableView.FixedHeaders>
-                                    <DataTemplate>
-                                        <xcdg:ColumnManagerRow />
-                                    </DataTemplate>
-                                </xcdg:TableView.FixedHeaders>
-                            </xcdg:TableView>
-                        </xcdg:DataGridControl.View>
-                        <xcdg:DataGridControl.Columns>
-                            <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
-                            <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
-                            <xcdg:Column FieldName="Dirección" Width="0" Title="Dirección" />
-                            <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
-                            <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
-                            <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
-                            <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
-                            <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
-                            <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
-                            <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
-                        </xcdg:DataGridControl.Columns>
-                    </xcdg:DataGridControl>
-                </TabItem>
-                <TabItem Header="Entregados por Familia">
-                    <xcdg:DataGridControl Name="dgrFamilias" ItemsSource="{Binding Source={StaticResource cvs_listaVentasFamilia}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
-                        <xcdg:DataGridControl.DefaultGroupConfiguration>
-                            <xcdg:GroupConfiguration InitiallyExpanded="False"/>
-                        </xcdg:DataGridControl.DefaultGroupConfiguration>
-                        <xcdg:DataGridControl.View>
-                            <xcdg:TableView UseDefaultHeadersFooters="False">
-                                <xcdg:TableView.FixedHeaders>
-                                    <DataTemplate>
-                                        <xcdg:ColumnManagerRow />
-                                    </DataTemplate>
-                                </xcdg:TableView.FixedHeaders>
-                            </xcdg:TableView>
-                        </xcdg:DataGridControl.View>
-                        <xcdg:DataGridControl.Columns>
-                            <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
-                            <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
-                            <xcdg:Column FieldName="Dirección" Width="0" Title="Dirección" />
-                            <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
-                            <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
-                            <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
-                            <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
-                            <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
-                            <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
-                            <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
-                        </xcdg:DataGridControl.Columns>
-                    </xcdg:DataGridControl>
-                </TabItem>
-            </TabControl>
-        </DockPanel>
-    </Grid>
-    
+                <TabControl DockPanel.Dock="Bottom" >
+                    <TabItem Header="Pendientes de Entregar">
+                        <xcdg:DataGridControl Name="dgrPendientesEntregar" ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                            <xcdg:DataGridControl.View>
+                                <xcdg:TableView UseDefaultHeadersFooters="False">
+                                    <xcdg:TableView.FixedHeaders>
+                                        <DataTemplate>
+                                            <xcdg:ColumnManagerRow/>
+                                        </DataTemplate>
+                                    </xcdg:TableView.FixedHeaders>
+                                </xcdg:TableView>
+                            </xcdg:DataGridControl.View>
+                            <xcdg:DataGridControl.Columns>
+                                <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
+                                <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
+                                <xcdg:Column FieldName="Dirección" Width="3*" Title="Dirección" />
+                                <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
+                                <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
+                                <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
+                                <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
+                                <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
+                                <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
+                                <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
+                                <xcdg:Column FieldName="Estado" Width="*" Title="Estado" CellHorizontalContentAlignment="Right"/>
+                            </xcdg:DataGridControl.Columns>
+                        </xcdg:DataGridControl>
+                    </TabItem>
+                    <TabItem Header="Entregados por Grupo">
+                        <xcdg:DataGridControl Name="dgrGrupos" ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                            <xcdg:DataGridControl.DefaultGroupConfiguration>
+                                <xcdg:GroupConfiguration InitiallyExpanded="False"/>
+                            </xcdg:DataGridControl.DefaultGroupConfiguration>
+                            <xcdg:DataGridControl.View>
+                                <xcdg:TableView UseDefaultHeadersFooters="False">
+                                    <xcdg:TableView.FixedHeaders>
+                                        <DataTemplate>
+                                            <xcdg:ColumnManagerRow />
+                                        </DataTemplate>
+                                    </xcdg:TableView.FixedHeaders>
+                                </xcdg:TableView>
+                            </xcdg:DataGridControl.View>
+                            <xcdg:DataGridControl.Columns>
+                                <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
+                                <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
+                                <xcdg:Column FieldName="Dirección" Width="0" Title="Dirección" />
+                                <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
+                                <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
+                                <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
+                                <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
+                                <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
+                                <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
+                                <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
+                            </xcdg:DataGridControl.Columns>
+                        </xcdg:DataGridControl>
+                    </TabItem>
+                    <TabItem Header="Entregados por Familia">
+                        <xcdg:DataGridControl Name="dgrFamilias" ItemsSource="{Binding Source={StaticResource cvs_listaVentasFamilia}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
+                            <xcdg:DataGridControl.DefaultGroupConfiguration>
+                                <xcdg:GroupConfiguration InitiallyExpanded="False"/>
+                            </xcdg:DataGridControl.DefaultGroupConfiguration>
+                            <xcdg:DataGridControl.View>
+                                <xcdg:TableView UseDefaultHeadersFooters="False">
+                                    <xcdg:TableView.FixedHeaders>
+                                        <DataTemplate>
+                                            <xcdg:ColumnManagerRow />
+                                        </DataTemplate>
+                                    </xcdg:TableView.FixedHeaders>
+                                </xcdg:TableView>
+                            </xcdg:DataGridControl.View>
+                            <xcdg:DataGridControl.Columns>
+                                <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
+                                <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
+                                <xcdg:Column FieldName="Dirección" Width="0" Title="Dirección" />
+                                <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
+                                <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
+                                <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
+                                <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
+                                <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
+                                <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
+                                <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
+                            </xcdg:DataGridControl.Columns>
+                        </xcdg:DataGridControl>
+                    </TabItem>
+                </TabControl>
+            </DockPanel>
+        </Grid>
+    </xctk:BusyIndicator>
     
     
 </UserControl>

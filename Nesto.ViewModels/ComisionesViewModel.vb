@@ -88,9 +88,11 @@ Public Class ComisionesViewModel
             End If
 
             If MostrarPanelAntiguo Then
-                EstaOcupado = True
-                comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
-                EstaOcupado = False
+                Task.Run(Sub()
+                             EstaOcupado = True
+                             comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
+                             EstaOcupado = False
+                         End Sub)
             Else
                 CalcularComisionAsync()
             End If
@@ -338,7 +340,7 @@ Public Class ComisionesViewModel
         Get
             Return _estaOcupado
         End Get
-        Set(value As Boolean)
+        Set(ByVal value As Boolean) ' el ByVal es necesario para que actualice
             SetProperty(_estaOcupado, value)
         End Set
     End Property
@@ -372,7 +374,7 @@ Public Class ComisionesViewModel
 
     Private Async Function CalcularComisionAnual(vendedor As String, anno As Integer, mes As Integer, incluirAlbaranes As Boolean, incluirPicking As Boolean) As Task(Of ComisionAnualResumen)
         EstaOcupado = True
-        RaisePropertyChanged(NameOf(EstaOcupado))
+
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
