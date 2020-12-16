@@ -39,7 +39,7 @@ namespace Nesto.Modulos.CanalesExternos
             await Task.Run(async () => {
                 foreach (Order order in listaAmazon)
                 {
-                    if (order.OrderTotal.CurrencyCode != Constantes.Empresas.MONEDA_CONTABILIDAD)
+                    if (order.OrderTotal != null && order.OrderTotal.CurrencyCode != Constantes.Empresas.MONEDA_CONTABILIDAD)
                     {
                         CambioDivisas = await MarketplaceWebServiceOrdersNuevaVision.CalculaDivisa(order.OrderTotal.CurrencyCode, Constantes.Empresas.MONEDA_CONTABILIDAD);
                     } else
@@ -96,7 +96,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 pedidoSalida.comentarios += "N/ Pedido: " + order.SellerOrderId + "\r\n";
             }
-            if (order.OrderTotal.CurrencyCode != Constantes.Empresas.MONEDA_CONTABILIDAD)
+            if (order.OrderTotal != null && order.OrderTotal.CurrencyCode != Constantes.Empresas.MONEDA_CONTABILIDAD)
             {
                 pedidoSalida.comentarios += string.Format("Importe original: {0} {1} (cambio {2})", order.OrderTotal.Amount.ToString(), order.OrderTotal.CurrencyCode, CambioDivisas.ToString()) + "\r\n";
             }

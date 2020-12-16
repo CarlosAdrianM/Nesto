@@ -180,6 +180,7 @@ Public Class RapportViewModel
         Try
             Await servicio.CrearCita(rapport, fechaAviso)
             SePuedeCrearRapport = True
+            dialogService.ShowNotification("Cita", "Se ha creado la cita correctamente")
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
             SePuedeCrearRapport = True

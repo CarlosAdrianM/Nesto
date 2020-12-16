@@ -1,10 +1,14 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
 Imports System.Text
+Imports Microsoft.Graph
+Imports Microsoft.Graph.Auth
+Imports Microsoft.Identity.Client
 Imports Microsoft.Office.Interop
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Newtonsoft.Json
+
 
 Public Class RapportService
     Inherits ViewModelBase
@@ -12,9 +16,12 @@ Public Class RapportService
 
 
     Private ReadOnly configuracion As IConfiguracion
+    Private Property app As IPublicClientApplication
 
-    Public Sub New(configuracion As IConfiguracion)
+
+    Public Sub New(configuracion As IConfiguracion, app As IPublicClientApplication)
         Me.configuracion = configuracion
+        Me.app = app
     End Sub
 
 
@@ -90,24 +97,32 @@ Public Class RapportService
     End Function
 
     Public Async Function CrearCita(rapport As SeguimientoClienteDTO, fechaAviso As Date) As Task(Of String) Implements IRapportService.CrearCita
-        Dim objOL As Outlook.Application
-        Dim nuevaCita As Outlook.AppointmentItem
+        Dim scopes = {"Calendars.ReadWrite"}
+        Dim authProvider As InteractiveAuthenticationProvider = New InteractiveAuthenticationProvider(app, scopes)
+        Dim graphClient As GraphServiceClient = New GraphServiceClient(authProvider)
 
         If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
             Return "No se puede crear el aviso si no se especifica un cliente y un contacto"
         End If
 
-        Await Task.Run(Sub()
-                           objOL = New Outlook.Application
-                           nuevaCita = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
-                           nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
-                           nuevaCita.Body = rapport.Comentarios
-                           nuevaCita.Start = fechaAviso
-                           nuevaCita.End = fechaAviso.AddMinutes(15)
-                           nuevaCita.ReminderSet = True
-                           nuevaCita.ReminderMinutesBeforeStart = 0
-                           nuevaCita.Save()
-                       End Sub)
+        Dim nuevaCita As New [Event]
+        nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
+        nuevaCita.Body = New ItemBody With {
+            .Content = rapport.Comentarios
+        }
+
+        nuevaCita.Start = New DateTimeTimeZone With {
+            .DateTime = String.Format("{0:yyyy-MM-ddTHH:mm:ss.FFFZ}", fechaAviso),
+            .TimeZone = "Etc/ GMT"
+        }
+        '.TimeZone = "Europe/Paris"
+        nuevaCita.End = New DateTimeTimeZone With {
+            .DateTime = String.Format("{0:yyyy-MM-ddTHH:mm:ss.FFFZ}", fechaAviso.AddMinutes(15)),
+            .TimeZone = "Etc/ GMT"
+        }
+        nuevaCita.IsReminderOn = True
+        nuevaCita.ReminderMinutesBeforeStart = 0
+        Await graphClient.Me.Calendar.Events.Request().AddAsync(nuevaCita)
         Return "Cita creada correctamente"
     End Function
 
