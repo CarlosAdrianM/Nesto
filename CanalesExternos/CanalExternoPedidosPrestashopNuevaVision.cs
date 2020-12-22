@@ -76,6 +76,7 @@ namespace Nesto.Modulos.CanalesExternos
             decimal totalPedido = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products_wt")?.Value) / 1000000, 4);
             decimal totalPortes = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000, 4);
             decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
+            decimal totalEmbalaje = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl")?.Value) / 1000000, 4);
             decimal totalAPagar = totalPedido + totalPortes - totalDescuentos;
             if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO)
             {
@@ -153,6 +154,34 @@ namespace Nesto.Modulos.CanalesExternos
                 }
 
                 pedidoSalida.LineasPedido.Add(lineaPortes);
+            }
+
+            // Añadir embalaje
+            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl").Value) != 0)
+            {
+                LineaPedidoVentaDTO lineaEmbalaje = new LineaPedidoVentaDTO
+                {
+                    almacen = "ALG",
+                    aplicarDescuento = false,
+                    cantidad = (short)1,
+                    delegacion = "ALG",
+                    formaVenta = "WEB",
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = "G21",
+                    precio = totalEmbalaje,
+                    producto = "62700020",
+                    texto = "EMBALAJE DE REGALO",
+                    tipoLinea = 2, // cuenta contable
+                    usuario = configuracion.usuario
+                };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaEmbalaje.precio = lineaEmbalaje.precio / (decimal)1.21;
+                }
+
+                pedidoSalida.LineasPedido.Add(lineaEmbalaje);
             }
 
             // Añadir cupones de descuento
