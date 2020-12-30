@@ -1999,9 +1999,9 @@ Public Class AgenciasViewModel
         End If
 
         ' Carlos 16/09/15: hacemos que se pueda cobrar en efectivo por la agencia
-        If reembolso > 0 AndAlso IsNothing(pedidoSeleccionado.IVA) AndAlso agenciaSeleccionada.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO Then
-            agenciaSeleccionada = servicio.CargarAgenciaPorNombreYCuentaReembolsos(Constantes.Empresas.EMPRESA_ESPEJO, agenciaSeleccionada.CuentaReembolsos, agenciaSeleccionada.Nombre)
-        End If
+        'If reembolso > 0 AndAlso IsNothing(pedidoSeleccionado.IVA) AndAlso agenciaSeleccionada.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO Then
+        '    agenciaSeleccionada = servicio.CargarAgenciaPorNombreYCuentaReembolsos(Constantes.Empresas.EMPRESA_ESPEJO, agenciaSeleccionada.CuentaReembolsos, agenciaSeleccionada.Nombre)
+        'End If
 
         ' Carlos: 08/02/20: la transacción vale para hacer el dispose si no coge código de barras
         Dim success As Boolean = False
