@@ -2146,7 +2146,8 @@ Public Class AgenciasViewModel
 
         ' Carlos 16/09/15. Ponemos cobros de agencia en efectivo.
         If IsNothing(pedidoSeleccionado.IVA) AndAlso importeReembolso(pedidoSeleccionado) > 0 Then
-            agenciaNueva = servicio.CargarAgenciaPorRuta(Constantes.Empresas.EMPRESA_ESPEJO, pedidoSeleccionado.Ruta)
+            'agenciaNueva = servicio.CargarAgenciaPorRuta(Constantes.Empresas.EMPRESA_ESPEJO, pedidoSeleccionado.Ruta)
+            agenciaNueva = listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
         Else
             agenciaNueva = servicio.CargarAgenciaPorRuta(pedidoSeleccionado.Empresa, pedidoSeleccionado.Ruta)
         End If
