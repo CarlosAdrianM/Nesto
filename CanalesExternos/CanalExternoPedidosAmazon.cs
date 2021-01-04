@@ -21,7 +21,8 @@ namespace Nesto.Modulos.CanalesExternos
         private const string DELEGACION_AMAZON = "ALG";
         private const string VENDEDOR_AMAZON = "NV";
         private const string IVA_GENERAL = "G21";
-        private const decimal PORCENTAJE_IVA = 1.21M;
+        private const string IVA_EXPORTACION = "IM";
+        private decimal PORCENTAJE_IVA_GENERAL = 1.21M;
 
         private IConfiguracion configuracion;
 
@@ -36,19 +37,28 @@ namespace Nesto.Modulos.CanalesExternos
 
 
             ObservableCollection<PedidoCanalExterno> listaNesto = new ObservableCollection<PedidoCanalExterno>();
-            await Task.Run(async () => {
+            await Task.Run(() =>
+            {
                 foreach (Order order in listaAmazon)
                 {
                     if (order.OrderTotal != null && order.OrderTotal.CurrencyCode != Constantes.Empresas.MONEDA_CONTABILIDAD)
                     {
-                        CambioDivisas = await MarketplaceWebServiceOrdersNuevaVision.CalculaDivisa(order.OrderTotal.CurrencyCode, Constantes.Empresas.MONEDA_CONTABILIDAD);
-                    } else
+                        try
+                        {
+                            CambioDivisas = MarketplaceWebServiceOrdersNuevaVision.CalculaDivisa(order.OrderTotal.CurrencyCode, Constantes.Empresas.MONEDA_CONTABILIDAD);
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+                    }
+                    else
                     {
                         CambioDivisas = 1;
                     }
                     PedidoCanalExterno pedidoExterno = TransformarPedido(order);
                     List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
-                    pedidoExterno.Pedido.LineasPedido = TransformarLineas(lineasAmazon, order.FulfillmentChannel);
+                    pedidoExterno.Pedido.LineasPedido = TransformarLineas(lineasAmazon, order.FulfillmentChannel, pedidoExterno.Pedido.iva);
                     listaNesto.Add(pedidoExterno);
                 }
             });
@@ -123,7 +133,10 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoExterno.Provincia = order.ShippingAddress?.StateOrRegion?.ToString().ToUpper();
             pedidoExterno.TelefonoFijo = order.ShippingAddress?.Phone?.ToString().ToUpper();
             pedidoExterno.PaisISO = order.ShippingAddress?.CountryCode?.ToString().ToUpper();
-
+            if (pedidoExterno.PaisISO == "GB")
+            {
+                pedidoExterno.Pedido.iva = IVA_EXPORTACION;
+            }
             
 
             PrepagoDTO prepago = new PrepagoDTO
@@ -144,12 +157,20 @@ namespace Nesto.Modulos.CanalesExternos
             return pedidoExterno;
         }
 
-        private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, string canalCumplimiento)
+        private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, string canalCumplimiento, string iva)
         {
             ObservableCollection<LineaPedidoVentaDTO> lineasNesto = new ObservableCollection<LineaPedidoVentaDTO>();
             foreach (OrderItem orderItem in lineasAmazon)
             {
-                decimal baseImponible = Convert.ToDecimal(orderItem.ItemPrice?.Amount) / 100 / PORCENTAJE_IVA * CambioDivisas;
+                decimal porcentajeIva;
+                if (iva == IVA_EXPORTACION)
+                {
+                    porcentajeIva = 1;
+                } else
+                {
+                    porcentajeIva = PORCENTAJE_IVA_GENERAL; 
+                }
+                decimal baseImponible = Convert.ToDecimal(orderItem.ItemPrice?.Amount) / 100 / porcentajeIva * CambioDivisas;
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
                     almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
@@ -171,7 +192,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (Convert.ToDecimal(orderItem.ShippingPrice?.Amount) != 0)
                 {
-                    decimal baseImponiblePortes = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / PORCENTAJE_IVA * CambioDivisas;
+                    decimal baseImponiblePortes = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / porcentajeIva * CambioDivisas;
                     LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                     {
                         almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
@@ -194,7 +215,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (Convert.ToDecimal(orderItem.ShippingDiscount?.Amount) != 0)
                 {
-                    decimal baseImponibleDescuentoPortes = Convert.ToDecimal(orderItem.ShippingDiscount.Amount) / 100 / PORCENTAJE_IVA * CambioDivisas;
+                    decimal baseImponibleDescuentoPortes = Convert.ToDecimal(orderItem.ShippingDiscount.Amount) / 100 / porcentajeIva * CambioDivisas;
                     LineaPedidoVentaDTO lineaDescuentoPortes = new LineaPedidoVentaDTO
                     {
                         almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,

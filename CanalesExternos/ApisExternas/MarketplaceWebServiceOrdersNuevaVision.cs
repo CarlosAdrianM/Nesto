@@ -19,8 +19,11 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace MarketplaceWebServiceOrders {
 
@@ -351,41 +354,52 @@ namespace MarketplaceWebServiceOrders {
             return this.client.ListOrdersByNextToken(request);
         }
                 
-        public static async Task<decimal> CalculaDivisa(string monedaOrigen, string monedaDestino)
+        public static decimal CalculaDivisa(string monedaOrigen, string monedaDestino)
         {
-            string apiKey = "4894|GMDw0jJ78NXw_GdVnEADMS*XuFQ11Cw9";
-            JObject obj;
-            using (HttpClient client = new HttpClient())
+            if (monedaDestino != "EUR")
             {
-                client.BaseAddress = new Uri("https://api.cambio.today/v1/quotes/");
-                HttpResponseMessage response;
+                throw new Exception("No se puede convertir a monedas distantas al Euro");
+            }
+            try
+            {
+                List<Rate> rates = new List<Rate>();
 
-                try
+                var doc = new XmlDocument();
+                doc.Load(@"http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml");
+
+                XmlNodeList nodes = doc.SelectNodes("//*[@currency]");
+
+                if (nodes != null)
                 {
-                    string urlConsulta = string.Format("{0}/{1}/json?quantity=1&key={2}",monedaOrigen, monedaDestino, apiKey);
-
-
-                    response = await client.GetAsync(urlConsulta);
-
-                    if (response.IsSuccessStatusCode)
+                    foreach (XmlNode node in nodes)
                     {
-                        string resultado = await response.Content.ReadAsStringAsync();
-                        obj = JObject.Parse(resultado);
-                    }
-                    else
-                    {
-                        throw new Exception("No se ha podido calcular el cambio del día");
+                        var rate = new Rate()
+                        {
+                            Currency = node.Attributes["currency"].Value,
+                            Value = Decimal.Parse(node.Attributes["rate"].Value, NumberStyles.Any, new CultureInfo("en-Us"))
+                        };
+                        rates.Add(rate);
                     }
                 }
-                catch (Exception ex)
+                Rate destino = rates.Single(r => r.Currency == monedaOrigen);
+                if (destino != null)
                 {
-                    throw ex;
+                    return 1M / destino.Value;
+                }
+                else
+                {
+                    throw new Exception("No se ha podido calcular el cambio del día");
                 }
             }
-
-            return Decimal.Parse(obj["result"]["amount"].ToString());
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
-        // https://api.cambio.today/v1/quotes/GBP/EUR/json?quantity=1&key=4894|GMDw0jJ78NXw_GdVnEADMS*XuFQ11Cw9
-
+        class Rate
+        {
+            public string Currency { get; set; }
+            public decimal Value { get; set; }
+        }
     }
 }
