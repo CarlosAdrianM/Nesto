@@ -262,7 +262,7 @@ Public Class AgenciaService
 
     Public Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte Implements IAgenciaService.CargarAgenciaPorRuta
         Using contexto = New NestoEntities
-            If empresa = Constantes.Empresas.EMPRESA_DEFECTO Then
+            If empresa.Trim = Constantes.Empresas.EMPRESA_DEFECTO Then
                 Return contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Ruta = ruta)
             Else
                 Return contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)

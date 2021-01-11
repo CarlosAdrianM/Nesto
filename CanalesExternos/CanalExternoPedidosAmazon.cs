@@ -22,6 +22,7 @@ namespace Nesto.Modulos.CanalesExternos
         private const string VENDEDOR_AMAZON = "NV";
         private const string IVA_GENERAL = "G21";
         private const string IVA_EXPORTACION = "IM";
+        private const string IVA_EXENTO = "EX";
         private decimal PORCENTAJE_IVA_GENERAL = 1.21M;
 
         private IConfiguracion configuracion;
@@ -180,7 +181,7 @@ namespace Nesto.Modulos.CanalesExternos
                     formaVenta = FORMA_VENTA_AMAZON,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
-                    iva = IVA_GENERAL, 
+                    iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL, 
                     precio = baseImponible/orderItem.QuantityOrdered,
                     producto = orderItem.SellerSKU.EndsWith("FBA") ? orderItem.SellerSKU.Substring(0, orderItem.SellerSKU.Length-3) : orderItem.SellerSKU,
                     texto = orderItem.Title.ToUpper(),
@@ -202,7 +203,7 @@ namespace Nesto.Modulos.CanalesExternos
                         formaVenta = FORMA_VENTA_AMAZON,
                         estado = 1,
                         fechaEntrega = DateTime.Today,
-                        iva = IVA_GENERAL, 
+                        iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL,
                         precio = baseImponiblePortes,
                         producto = "62400003",
                         texto = "PORTES " + orderItem.Title.ToUpper(),
@@ -225,7 +226,7 @@ namespace Nesto.Modulos.CanalesExternos
                         formaVenta = FORMA_VENTA_AMAZON,
                         estado = 1,
                         fechaEntrega = DateTime.Today,
-                        iva = IVA_GENERAL,
+                        iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL,
                         precio = baseImponibleDescuentoPortes,
                         producto = "62400003",
                         texto = "DESCUENTO PORTES " + orderItem.Title.ToUpper(),

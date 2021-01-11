@@ -90,23 +90,29 @@ namespace Claytondus.AmazonMWS.Finances
 
                 foreach (var grupo in respuesta.ListFinancialEventGroupsResult.FinancialEventGroupList.OrderBy(l => l.FundTransferDate))
                 {
-                    PagoCanalExterno pago = new PagoCanalExterno
+                    try
                     {
-                        MonedaOriginal = grupo.OriginalTotal?.CurrencyCode,
-                        PagoExternalId = grupo.FinancialEventGroupId,
-                        Estado = grupo.ProcessingStatus,
-                        Importe = (decimal)(grupo.OriginalTotal?.CurrencyCode == Constantes.Empresas.MONEDA_CONTABILIDAD ? grupo.OriginalTotal?.CurrencyAmount : grupo.ConvertedTotal?.CurrencyAmount),
-                        ImporteOriginal = (decimal)(grupo.OriginalTotal?.CurrencyAmount),
-                        SaldoInicial = grupo.BeginningBalance.CurrencyAmount,
-                        FechaPago = grupo.FundTransferDate,
-                        FechaInicio = grupo.FinancialEventGroupStart,
-                        FechaFinal = grupo.FinancialEventGroupEnd
-                    };
-                    if (pago.MonedaOriginal != Constantes.Empresas.MONEDA_CONTABILIDAD)
+                        PagoCanalExterno pago = new PagoCanalExterno
+                        {
+                            MonedaOriginal = grupo.OriginalTotal?.CurrencyCode,
+                            PagoExternalId = grupo.FinancialEventGroupId,
+                            Estado = grupo.ProcessingStatus,
+                            Importe = (decimal)(grupo.OriginalTotal?.CurrencyCode == Constantes.Empresas.MONEDA_CONTABILIDAD || grupo.ConvertedTotal == null ? grupo.OriginalTotal?.CurrencyAmount : grupo.ConvertedTotal?.CurrencyAmount),
+                            ImporteOriginal = (decimal)(grupo.OriginalTotal?.CurrencyAmount),
+                            SaldoInicial = grupo.BeginningBalance.CurrencyAmount,
+                            FechaPago = grupo.FundTransferDate,
+                            FechaInicio = grupo.FinancialEventGroupStart,
+                            FechaFinal = grupo.FinancialEventGroupEnd
+                        };
+                        if (pago.MonedaOriginal != Constantes.Empresas.MONEDA_CONTABILIDAD && grupo.ConvertedTotal != null)
+                        {
+                            pago.CambioDivisas = (decimal)(grupo.ConvertedTotal.CurrencyAmount / grupo.OriginalTotal?.CurrencyAmount);
+                        }
+                        listaPagos.Add(pago);
+                    } catch (Exception e)
                     {
-                        pago.CambioDivisas = (decimal)(grupo.ConvertedTotal?.CurrencyAmount / grupo.OriginalTotal?.CurrencyAmount);
+                        throw e;
                     }
-                    listaPagos.Add(pago);
                 }
 
                 return listaPagos;
