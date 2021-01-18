@@ -198,7 +198,7 @@ Public Class RapportViewModel
         End Set
     End Property
     Private Function CanGuardarCambios(arg As Object) As Boolean
-        Return Not IsNothing(rapport) AndAlso rapport.Usuario = configuracion.usuario
+        Return Not IsNothing(rapport) AndAlso (rapport.Usuario.ToLower = configuracion.usuario.ToLower OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
     End Function
     Private Async Sub OnGuardarCambios(arg As Object)
         If Not EstaVisibleTipoCentro Then
