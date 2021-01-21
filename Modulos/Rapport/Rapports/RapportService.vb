@@ -111,15 +111,18 @@ Public Class RapportService
             .Content = rapport.Comentarios
         }
 
+        Dim dateTimeFormat As String = "yyyy-MM-ddTHH:mm:ss"
+
         nuevaCita.Start = New DateTimeTimeZone With {
-            .DateTime = String.Format("{0:yyyy-MM-ddTHH:mm:ss.FFFZ}", fechaAviso),
-            .TimeZone = "Etc/ GMT"
+            .DateTime = fechaAviso.ToString(dateTimeFormat),
+            .TimeZone = TimeZoneInfo.Local.Id
         }
-        '.TimeZone = "Europe/Paris"
+
         nuevaCita.End = New DateTimeTimeZone With {
-            .DateTime = String.Format("{0:yyyy-MM-ddTHH:mm:ss.FFFZ}", fechaAviso.AddMinutes(15)),
-            .TimeZone = "Etc/ GMT"
+            .DateTime = fechaAviso.AddMinutes(15).ToString(dateTimeFormat),
+            .TimeZone = TimeZoneInfo.Local.Id
         }
+
         nuevaCita.IsReminderOn = True
         nuevaCita.ReminderMinutesBeforeStart = 0
         Await graphClient.Me.Calendar.Events.Request().AddAsync(nuevaCita)

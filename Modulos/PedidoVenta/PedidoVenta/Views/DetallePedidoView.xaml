@@ -166,6 +166,19 @@
                                     </i:EventTrigger>
                                 </i:Interaction.Triggers>
                             </TextBox>
+                            <TextBlock></TextBlock>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition/>
+                                    <RowDefinition/>
+                                    <RowDefinition/>
+                                    <RowDefinition/>
+                                </Grid.RowDefinitions>
+                                <xctk:WatermarkTextBox Grid.Row="0" Text="{Binding CobroTarjetaCorreo, UpdateSourceTrigger=PropertyChanged}" Watermark="Correo electrónico para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
+                                <xctk:WatermarkTextBox Grid.Row="1" Text="{Binding CobroTarjetaMovil, UpdateSourceTrigger=PropertyChanged}" Watermark="Móvil para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
+                                <xctk:WatermarkTextBox Grid.Row="2" Text="{Binding CobroTarjetaImporte, StringFormat=c}" Watermark="Imprte para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
+                                <Button Grid.Row="3" Command="{Binding EnviarCobroTarjetaCommand}">Mandar enlace pago</Button>
+                            </Grid>
                         </StackPanel>
                         <DataGrid Grid.Column="1" ItemsSource="{Binding pedido.Prepagos}" AutoGenerateColumns="False" Margin="3">
                             <DataGrid.Columns>

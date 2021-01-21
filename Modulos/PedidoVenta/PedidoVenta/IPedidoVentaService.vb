@@ -11,4 +11,5 @@ Public Interface IPedidoVentaService
     Sub sacarPickingPedido(cliente As String)
     Sub sacarPickingPedido()
     Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO))
+    Sub EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, cliente As String)
 End Interface

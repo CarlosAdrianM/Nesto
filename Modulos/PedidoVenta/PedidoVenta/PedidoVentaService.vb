@@ -280,4 +280,45 @@ Public Class PedidoVentaService
 
         End Using
     End Function
+
+    Public Async Sub EnviarCobroTarjeta(correo As String, movil As String, totalPedido As Decimal, pedido As String, cliente As String) Implements IPedidoVentaService.EnviarCobroTarjeta
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = String.Empty
+
+            Dim reclamacion As New ReclamacionDeuda With {
+                .Cliente = cliente,
+                .Asunto = String.Format("Pago pedido {0} de Nueva Visión", pedido),
+                .Correo = correo,
+                .Importe = totalPedido,
+                .Movil = movil,
+                .TextoSMS = "Este es un mensaje de @COMERCIO@. Puede pagar el pedido " + pedido + " de @IMPORTE@ @MONEDA@ aquí: @URL@"
+            }
+
+            Try
+                Dim urlConsulta As String = "ReclamacionDeuda"
+                Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
+                Dim content As StringContent = New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
+                response = Await client.PostAsync(urlConsulta, content)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                    'reclamacion = JsonConvert.DeserializeObject(Of ReclamacionDeuda)(respuesta)
+                    'If reclamacion.TramitadoOK Then
+                    '   EnlaceReclamarDeuda = reclamacion.Enlace
+                    'End If
+                Else
+                    respuesta = String.Empty
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido procesar la reclamación de deuda")
+            Finally
+
+            End Try
+        End Using
+
+    End Sub
+
 End Class

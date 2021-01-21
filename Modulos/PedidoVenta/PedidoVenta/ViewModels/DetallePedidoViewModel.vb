@@ -47,6 +47,7 @@ Public Class DetallePedidoViewModel
         cmdModificarPedido = New DelegateCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New DelegateCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
+        EnviarCobroTarjetaCommand = New DelegateCommand(AddressOf OnEnviarCobroTarjeta, AddressOf CanEnviarCobroTarjeta)
 
         eventAggregator.GetEvent(Of ProductoSeleccionadoEvent).Subscribe(AddressOf InsertarProducto)
     End Sub
@@ -66,6 +67,39 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As DataGridCellInfo)
             SetProperty(_celdaActual, value)
+        End Set
+    End Property
+
+    Private _cobroTarjetaCorreo As String
+    Public Property CobroTarjetaCorreo As String
+        Get
+            Return _cobroTarjetaCorreo
+        End Get
+        Set(value As String)
+            SetProperty(_cobroTarjetaCorreo, value)
+            EnviarCobroTarjetaCommand.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Private _cobroTarjetaImporte As Decimal
+    Public Property CobroTarjetaImporte As Decimal
+        Get
+            Return _cobroTarjetaImporte
+        End Get
+        Set(value As Decimal)
+            SetProperty(_cobroTarjetaImporte, value)
+            EnviarCobroTarjetaCommand.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Private _cobroTarjetaMovil As String
+    Public Property CobroTarjetaMovil As String
+        Get
+            Return _cobroTarjetaMovil
+        End Get
+        Set(value As String)
+            SetProperty(_cobroTarjetaMovil, value)
+            EnviarCobroTarjetaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -94,8 +128,6 @@ Public Class DetallePedidoViewModel
             SetProperty(_estaBloqueado, value)
         End Set
     End Property
-
-
 
     Private _fechaEntrega As Date
     Public Property fechaEntrega As Date
@@ -248,6 +280,7 @@ Public Class DetallePedidoViewModel
     End Property
     Private Sub OnActualizarTotales()
         RaisePropertyChanged(NameOf(pedido))
+        CobroTarjetaImporte = pedido.total
     End Sub
 
     Private _cmdCambiarFechaEntrega As DelegateCommand
@@ -300,6 +333,7 @@ Public Class DetallePedidoViewModel
             ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(resumen.empresa, resumen.numero)
             If Not IsNothing(pedido) Then
                 ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
+                CobroTarjetaImporte = pedido.total
             End If
         Else
             Me.Titulo = "Lista de Pedidos"
@@ -433,6 +467,26 @@ Public Class DetallePedidoViewModel
             estaBloqueado = False
             textoBusyIndicator = String.Empty
         End Try
+    End Sub
+
+    Private _enviarCobroTarjetaCommand As DelegateCommand
+    Public Property EnviarCobroTarjetaCommand As DelegateCommand
+        Get
+            Return _enviarCobroTarjetaCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_enviarCobroTarjetaCommand, value)
+        End Set
+    End Property
+    Private Function CanEnviarCobroTarjeta() As Boolean
+        Return (Not String.IsNullOrEmpty(CobroTarjetaCorreo) OrElse Not String.IsNullOrEmpty(CobroTarjetaMovil)) AndAlso CobroTarjetaImporte > 0
+    End Function
+
+    Private Sub OnEnviarCobroTarjeta()
+        If Not dialogService.ShowConfirmationAnswer("Cobro tarjeta", "¿Desea enviar el enlace de cobro con tarjeta?") Then
+            Return
+        End If
+        servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, CobroTarjetaImporte, pedido.numero.ToString, pedido.cliente)
     End Sub
 
     Private Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
