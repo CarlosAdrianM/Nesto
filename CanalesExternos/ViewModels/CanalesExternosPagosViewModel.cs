@@ -102,6 +102,14 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     PagoSeleccionado.DetallesPago = cabeceraPago.DetallePagos;
                     if (PagoSeleccionado.MonedaOriginal != Constantes.Empresas.MONEDA_CONTABILIDAD)
                     {
+                        if (PagoSeleccionado.CambioDivisas == 1M)
+                        {
+                            PagoCanalExterno pagoCambio = ListaPagos.Where(p => p.FechaFinal > PagoSeleccionado.FechaFinal && p.CambioDivisas != 1M).OrderBy(p => p.FechaFinal).FirstOrDefault();
+                            if (pagoCambio != null)
+                            {
+                                PagoSeleccionado.CambioDivisas = pagoCambio.CambioDivisas;
+                            }
+                        }
                         PagoSeleccionado.Importe = Math.Round(PagoSeleccionado.ImporteOriginal * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
                         PagoSeleccionado.AjusteRetencion = Math.Round(PagoSeleccionado.AjusteRetencion * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
                         PagoSeleccionado.RestoAjustes = Math.Round(PagoSeleccionado.RestoAjustes * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
@@ -177,44 +185,48 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 using (var db = new NestoEntities())
                 {
                     db.Database.CommandTimeout = 300;
-                    PreContabilidad apunteIngreso = new PreContabilidad
-                    {
-                        Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                        Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                        Asiento = 1,
-                        Fecha = fechaPago,
-                        FechaVto = fechaPago,
-                        TipoApunte = Constantes.TiposApunte.PAGO,
-                        TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                        Nº_Cuenta = PROVEEDOR_AMAZON,
-                        Contacto = CONTACTO_PROVEEDOR_AMAZON,
-                        Concepto = string.Format("Pago {0}", nombreMarket),
-                        Haber = PagoSeleccionado.Importe,
-                        Nº_Documento = documento,
-                        NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                        FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                    };
-                    db.PreContabilidad.Add(apunteIngreso);
 
-                    PreContabilidad apunteBanco = new PreContabilidad
+                    if (PagoSeleccionado.Importe != 0)
                     {
-                        Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                        Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                        Asiento = 1,
-                        Fecha = fechaPago,
-                        FechaVto = fechaPago,
-                        TipoApunte = Constantes.TiposApunte.PAGO,
-                        TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                        Nº_Cuenta = BANCO_AMAZON,
-                        Concepto = string.Format("Pago {0}", nombreMarket),
-                        Debe = PagoSeleccionado.Importe,
-                        Nº_Documento = documento,
-                        NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                        FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                    };
-                    db.PreContabilidad.Add(apunteBanco);
+                        PreContabilidad apunteIngreso = new PreContabilidad
+                        {
+                            Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                            Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                            Asiento = 1,
+                            Fecha = fechaPago,
+                            FechaVto = fechaPago,
+                            TipoApunte = Constantes.TiposApunte.PAGO,
+                            TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
+                            Nº_Cuenta = PROVEEDOR_AMAZON,
+                            Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                            Concepto = string.Format("Pago {0}", nombreMarket),
+                            Haber = PagoSeleccionado.Importe,
+                            Nº_Documento = documento,
+                            NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                            Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                            FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                        };
+                        db.PreContabilidad.Add(apunteIngreso);
+
+                        PreContabilidad apunteBanco = new PreContabilidad
+                        {
+                            Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                            Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                            Asiento = 1,
+                            Fecha = fechaPago,
+                            FechaVto = fechaPago,
+                            TipoApunte = Constantes.TiposApunte.PAGO,
+                            TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
+                            Nº_Cuenta = BANCO_AMAZON,
+                            Concepto = string.Format("Pago {0}", nombreMarket),
+                            Debe = PagoSeleccionado.Importe,
+                            Nº_Documento = documento,
+                            NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                            Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                            FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                        };
+                        db.PreContabilidad.Add(apunteBanco);
+                    }
 
                     PreContabilidad apunteProveedor = new PreContabilidad
                     {

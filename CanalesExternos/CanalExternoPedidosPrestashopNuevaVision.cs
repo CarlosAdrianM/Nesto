@@ -19,7 +19,7 @@ namespace Nesto.Modulos.CanalesExternos
         private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
         private const string FORMA_PAGO_PAYPAL = "PayPal";
         private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
-        private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay V2";
+        private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay (Checkout v2)";
         private const string FORMA_PAGO_BIZUM = "Bizum - Pago online";
 
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)

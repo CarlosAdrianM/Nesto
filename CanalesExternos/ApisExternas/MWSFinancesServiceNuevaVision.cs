@@ -94,10 +94,12 @@ namespace Claytondus.AmazonMWS.Finances
                     {
                         PagoCanalExterno pago = new PagoCanalExterno
                         {
-                            MonedaOriginal = grupo.OriginalTotal?.CurrencyCode,
+                            MonedaOriginal = grupo.OriginalTotal != null ? grupo.OriginalTotal.CurrencyCode : grupo.BeginningBalance.CurrencyCode,
                             PagoExternalId = grupo.FinancialEventGroupId,
                             Estado = grupo.ProcessingStatus,
-                            Importe = (decimal)(grupo.OriginalTotal?.CurrencyCode == Constantes.Empresas.MONEDA_CONTABILIDAD || grupo.ConvertedTotal == null ? grupo.OriginalTotal?.CurrencyAmount : grupo.ConvertedTotal?.CurrencyAmount),
+                            Importe = (decimal)(grupo.OriginalTotal?.CurrencyCode == Constantes.Empresas.MONEDA_CONTABILIDAD || grupo.ConvertedTotal == null ? 
+                                grupo.OriginalTotal != null ? 
+                                    grupo.OriginalTotal.CurrencyAmount : 0 : grupo.ConvertedTotal?.CurrencyAmount),
                             ImporteOriginal = (decimal)(grupo.OriginalTotal?.CurrencyAmount),
                             SaldoInicial = grupo.BeginningBalance.CurrencyAmount,
                             FechaPago = grupo.FundTransferDate,
@@ -107,6 +109,9 @@ namespace Claytondus.AmazonMWS.Finances
                         if (pago.MonedaOriginal != Constantes.Empresas.MONEDA_CONTABILIDAD && grupo.ConvertedTotal != null)
                         {
                             pago.CambioDivisas = (decimal)(grupo.ConvertedTotal.CurrencyAmount / grupo.OriginalTotal?.CurrencyAmount);
+                        } else
+                        {
+                            pago.CambioDivisas = 1M;
                         }
                         listaPagos.Add(pago);
                     } catch (Exception e)
@@ -260,6 +265,13 @@ namespace Claytondus.AmazonMWS.Finances
                     foreach (var promocion in item.PromotionList)
                     {
                         detalle.Promociones += promocion.PromotionAmount.CurrencyAmount;
+                    }
+                    foreach (var impuesto in item.ItemTaxWithheldList)
+                    {
+                        foreach (var tax in impuesto.TaxesWithheld)
+                        {
+                            detalle.Importe += tax.ChargeAmount.CurrencyAmount;
+                        }
                     }
                 }
 
