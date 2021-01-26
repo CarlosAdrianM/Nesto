@@ -149,6 +149,31 @@ Public Class ClientesViewModel
         End Set
     End Property
 
+    Private _estadoPeluqueria As Short
+    Public Property estadoPeluqueria As Short
+        Get
+            Return _estadoPeluqueria
+        End Get
+        Set(value As Short)
+            _estadoPeluqueria = value
+            If IsNothing(clienteServidor) OrElse IsNothing(clienteServidor.VendedoresGrupoProducto) Then
+                Return
+            End If
+            If clienteServidor.VendedoresGrupoProducto.Count = 0 Then
+                clienteServidor.VendedoresGrupoProducto.Add(New VendedorGrupoProductoDTO With
+                                       {
+                                       .grupoProducto = "PEL",
+                                       .vendedor = "NV",
+                                       .estado = Constantes.Clientes.ESTADO_NORMAL,
+                                       .usuario = configuracion.usuario
+                                       }
+                )
+            End If
+            clienteServidor.VendedoresGrupoProducto.ElementAt(0).estado = value
+            RaisePropertyChanged(NameOf(estadoPeluqueria))
+        End Set
+    End Property
+
     Private _listaEmpresas As ObservableCollection(Of Empresas)
     Public Property listaEmpresas As ObservableCollection(Of Empresas)
         Get
@@ -252,8 +277,10 @@ Public Class ClientesViewModel
                 clienteServidor = JsonConvert.DeserializeObject(Of ClienteJson)(respuesta)
                 If Not IsNothing(clienteServidor) AndAlso Not IsNothing(clienteServidor.VendedoresGrupoProducto) AndAlso clienteServidor.VendedoresGrupoProducto.Count > 0 Then
                     vendedorPorGrupo = clienteServidor.VendedoresGrupoProducto.ElementAt(0).vendedor
+                    estadoPeluqueria = clienteServidor.VendedoresGrupoProducto.ElementAt(0).estado
                 Else
                     vendedorPorGrupo = Nothing
+                    estadoPeluqueria = Nothing
                 End If
 
 
@@ -394,6 +421,7 @@ Public Class ClientesViewModel
                                        {
                                        .grupoProducto = "PEL",
                                        .vendedor = "NV",
+                                       .estado = Constantes.Clientes.ESTADO_NORMAL,
                                        .usuario = configuracion.usuario
                                        }
                 )
@@ -943,7 +971,7 @@ Public Class ClientesViewModel
             mensajeError = "Cliente guardado correctamente"
 
             Dim c As New DialogParameters
-            c.Add("message", "Se han guardado correctamente los vendedores")
+            c.Add("message", "Se han guardado correctamente los cambios")
             dialogService.ShowDialog("NotificationDialog", c, Sub(r)
 
                                                               End Sub)

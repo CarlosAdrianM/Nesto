@@ -72,6 +72,7 @@
                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding clienteActivo.Nº_Cliente}" />
                     <TextBlock Grid.Row="1" Grid.Column="0">Teléfono:</TextBlock>
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding clienteActivo.Teléfono}" />
+                    <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding estadoPeluqueria}"></TextBox>
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding clienteActivo.CCC, Converter={StaticResource bancoConverter}}" />
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding clienteActivo.CCC2.EstadosCCC.Descripción}" />
                     <TextBlock Grid.Row="2" Grid.Column="2">Deuda vencida:</TextBlock>
@@ -80,7 +81,7 @@
                     <controles:SelectorVendedor Grid.Row="0" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding clienteServidor.vendedor, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
                     <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor Peluquería:</TextBlock>
                     <controles:SelectorVendedor Grid.Row="1" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding vendedorPorGrupo, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
-                    <Button Grid.Row="2" Grid.Column="4" Command="{Binding cmdGuardarVendedores}" Margin="2">Guardar Vendedores</Button>
+                    <Button Grid.Row="2" Grid.Column="4" Command="{Binding cmdGuardarVendedores}" Margin="2">Guardar</Button>
                     <DataGrid Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContactoCliente}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
