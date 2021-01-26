@@ -515,7 +515,7 @@ Public Class RemesasViewModel
                 End If
 
                 If String.IsNullOrEmpty(plannerTask.Id) Then
-                    Await graphClient.Planner.Tasks.Request().AddAsync(plannerTask)
+                    plannerTask = Await graphClient.Planner.Tasks.Request().AddAsync(plannerTask)
                     tareasBucket.Add(plannerTask)
                 Else
                     Await graphClient.Planner.Tasks(plannerTask.Id).Details.Request().Header("If-Match", detallesAntiguos.GetEtag).UpdateAsync(detalles)
