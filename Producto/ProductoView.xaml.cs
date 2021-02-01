@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -21,7 +22,10 @@ namespace Nesto.Modulos.Producto
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            //((ProductoViewModel)DataContext).CargarProducto();
+            if (((ProductoViewModel)DataContext).PestannaSeleccionada == null)
+            {
+                ((ProductoViewModel)DataContext).PestannaSeleccionada = (TabItem)tabProducto.Items[0];
+            }
             txtFiltroNombre.Focus();
             Keyboard.Focus(txtFiltroNombre);
             txtReferencia.SelectAll();
