@@ -171,7 +171,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
 
             EstaOcupado = true;
-            string nombreMarket = DatosMarkets.NombreMarket[DatosMarkets.MarketCuentaPago[PagoSeleccionado.DetallesPago.First().CuentaContablePago]];
+            string nombreMarket = DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.CuentaContablePago == PagoSeleccionado.DetallesPago.First().CuentaContablePago).Id).NombreMarket;
             string documento = "AMZ" + PagoSeleccionado.FechaPago.ToString("ddMMyy");
             DateTime fechaPago = new DateTime(PagoSeleccionado.FechaPago.Year, PagoSeleccionado.FechaPago.Month, PagoSeleccionado.FechaPago.Day);
             int asiento = 0;

@@ -249,8 +249,8 @@ namespace Claytondus.AmazonMWS.Finances
                 DetallePagoCanalExterno detalle = new DetallePagoCanalExterno
                 {
                     ExternalId = evento.AmazonOrderId,
-                    CuentaContablePago = DatosMarkets.CuentaContablePago[DatosMarkets.CodigoMarket[evento.MarketplaceName]],
-                    CuentaContableComisiones = DatosMarkets.CuentaContableComision[DatosMarkets.CodigoMarket[evento.MarketplaceName]]
+                    CuentaContablePago = DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.NombreMarket == evento.MarketplaceName).Id).CuentaContablePago,
+                    CuentaContableComisiones = DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.NombreMarket == evento.MarketplaceName).Id).CuentaContableComision
                 };
                 foreach (var item in evento.ShipmentItemList)
                 {
@@ -283,7 +283,7 @@ namespace Claytondus.AmazonMWS.Finances
                 DetallePagoCanalExterno detalle = new DetallePagoCanalExterno
                 {
                     ExternalId = evento.AmazonOrderId,
-                    CuentaContablePago = DatosMarkets.CuentaContablePago[DatosMarkets.CodigoMarket[evento.MarketplaceName]]
+                    CuentaContablePago = DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.NombreMarket == evento.MarketplaceName).Id).CuentaContablePago
                 };
                 foreach (var item in evento.ShipmentItemAdjustmentList)
                 {
@@ -298,6 +298,13 @@ namespace Claytondus.AmazonMWS.Finances
                     foreach (var promocion in item.PromotionAdjustmentList)
                     {
                         detalle.Comisiones += promocion.PromotionAmount.CurrencyAmount;
+                    }
+                    foreach (var impuesto in item.ItemTaxWithheldList)
+                    {
+                        foreach (var tax in impuesto.TaxesWithheld)
+                        {
+                            detalle.Importe += tax.ChargeAmount.CurrencyAmount;
+                        }
                     }
                 }
 

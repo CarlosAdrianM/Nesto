@@ -15,6 +15,7 @@
  */
 
 using MarketplaceWebServiceOrders.Model;
+using Nesto.Modulos.CanalesExternos.Models;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -274,12 +275,10 @@ namespace MarketplaceWebServiceOrders {
             orderStatus.Add("PartiallyShipped");
             request.OrderStatus = orderStatus;
             List<string> marketplaceId = new List<string>();
-            marketplaceId.Add("A1F83G8C2ARO7P"); // Amazon.co.uk
-            marketplaceId.Add("A1PA6795UKMFR9"); // Amazon.de
-            marketplaceId.Add("A1RKKUPIHCS9HS"); // Amazon.es
-            marketplaceId.Add("A13V1IB3VIYZZH"); // Amazon.fr
-            marketplaceId.Add("APJ6JRA9NG5V4");  // Amazon.it
-            marketplaceId.Add("A1805IZSGTT6HS");  // Amazon.nl
+            foreach (var market in DatosMarkets.Mercados)
+            {
+                marketplaceId.Add(market.Id);
+            }
             request.MarketplaceId = marketplaceId;
             List<string> fulfillmentChannel = new List<string>();
             //request.FulfillmentChannel = fulfillmentChannel;
@@ -318,12 +317,10 @@ namespace MarketplaceWebServiceOrders {
             orderStatus.Add("Shipped");
             request.OrderStatus = orderStatus;
             List<string> marketplaceId = new List<string>();
-            marketplaceId.Add("A1F83G8C2ARO7P"); // Amazon.co.uk
-            marketplaceId.Add("A1PA6795UKMFR9"); // Amazon.de
-            marketplaceId.Add("A1RKKUPIHCS9HS"); // Amazon.es
-            marketplaceId.Add("A13V1IB3VIYZZH"); // Amazon.fr
-            marketplaceId.Add("APJ6JRA9NG5V4");  // Amazon.it
-            marketplaceId.Add("A1805IZSGTT6HS");  // Amazon.nl
+            foreach (var market in DatosMarkets.Mercados)
+            {
+                marketplaceId.Add(market.Id);
+            }
             request.MarketplaceId = marketplaceId;
             List<string> fulfillmentChannel = new List<string>();
             fulfillmentChannel.Add("AFN");

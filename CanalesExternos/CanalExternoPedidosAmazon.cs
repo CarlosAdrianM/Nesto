@@ -143,8 +143,8 @@ namespace Nesto.Modulos.CanalesExternos
             PrepagoDTO prepago = new PrepagoDTO
             {
                 Importe = orderTotal,
-                CuentaContable = DatosMarkets.CuentaContablePago[order.MarketplaceId], 
-                ConceptoAdicional = string.Format("{0} {1}", DatosMarkets.NombreMarket[order.MarketplaceId], numeroOrderAmazon)
+                CuentaContable = DatosMarkets.Buscar(order.MarketplaceId).CuentaContablePago, 
+                ConceptoAdicional = string.Format("{0} {1}", DatosMarkets.Buscar(order.MarketplaceId).NombreMarket, numeroOrderAmazon)
             };
 
             if (prepago.ConceptoAdicional.Length > 50)

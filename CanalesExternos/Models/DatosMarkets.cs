@@ -8,54 +8,73 @@ namespace Nesto.Modulos.CanalesExternos.Models
 {
     public class DatosMarkets
     {
-        public static Dictionary<string, string> CuentaContablePago = new Dictionary<string, string>()
+        public static List<Mercado> Mercados { 
+            get
+            {
+                return new List<Mercado>
+                {
+                    new Mercado {
+                        Id = "A1F83G8C2ARO7P",
+                        NombreMarket = "Amazon.co.uk",
+                        CuentaContablePago = "55500049",
+                        CuentaContableComision = "55500066"
+                    },
+                    new Mercado {
+                        Id = "A1PA6795UKMFR9",
+                        NombreMarket = "Amazon.de",
+                        CuentaContablePago = "55500046",
+                        CuentaContableComision = "55500065"
+                    },
+                    new Mercado {
+                        Id = "A1RKKUPIHCS9HS",
+                        NombreMarket = "Amazon.es",
+                        CuentaContablePago = "55500047",
+                        CuentaContableComision = "55500062"
+                    },
+                    new Mercado {
+                        Id = "A13V1IB3VIYZZH",
+                        NombreMarket = "Amazon.fr",
+                        CuentaContablePago = "55500045",
+                        CuentaContableComision = "55500064"
+                    },
+                    new Mercado {
+                        Id = "APJ6JRA9NG5V4",
+                        NombreMarket = "Amazon.it",
+                        CuentaContablePago = "55500048",
+                        CuentaContableComision = "55500063"
+                    },
+                    new Mercado {
+                        Id = "A1805IZSGTT6HS",
+                        NombreMarket = "Amazon.nl",
+                        CuentaContablePago = "55500050",
+                        CuentaContableComision = "55500069"
+                    },
+                    new Mercado {
+                        Id = "A2NODRKZP88ZB9",
+                        NombreMarket = "Amazon.se",
+                        CuentaContablePago = "55500072",
+                        CuentaContableComision = "55500073"
+                    },
+                    new Mercado {
+                        Id = "A33AVAJ2PDY3EV",
+                        NombreMarket = "Amazon.tr",
+                        CuentaContablePago = "sin_crear",
+                        CuentaContableComision = "sin_crear"
+                    }
+                };
+            } 
+        }
+        public static Mercado Buscar(string Id)
         {
-            {"A1F83G8C2ARO7P", "55500049"}, // Amazon.co.uk
-            {"A1PA6795UKMFR9", "55500046"}, // Amazon.de
-            {"A1RKKUPIHCS9HS", "55500047"}, // Amazon.es
-            {"A13V1IB3VIYZZH", "55500045"}, // Amazon.fr
-            {"APJ6JRA9NG5V4", "55500048"},   // Amazon.it
-            {"A1805IZSGTT6HS", "55500050"}   // Amazon.nl
-        };
-        
-        public static Dictionary<string, string> CuentaContableComision = new Dictionary<string, string>()
-        {
-            {"A1F83G8C2ARO7P", "55500066"}, // Amazon.co.uk
-            {"A1PA6795UKMFR9", "55500065"}, // Amazon.de
-            {"A1RKKUPIHCS9HS", "55500062"}, // Amazon.es
-            {"A13V1IB3VIYZZH", "55500064"}, // Amazon.fr
-            {"APJ6JRA9NG5V4", "55500063"},   // Amazon.it
-            {"A1805IZSGTT6HS", "55500069"}   // Amazon.nl
-        };
+            return Mercados.Single(m => m.Id == Id);
+        }
+    }
 
-        public static Dictionary<string, string> MarketCuentaPago = new Dictionary<string, string>()
-        {
-            {"55500049", "A1F83G8C2ARO7P"}, // Amazon.co.uk
-            {"55500046", "A1PA6795UKMFR9"}, // Amazon.de
-            {"55500047", "A1RKKUPIHCS9HS"}, // Amazon.es
-            {"55500045", "A13V1IB3VIYZZH"}, // Amazon.fr
-            {"55500048", "APJ6JRA9NG5V4"},   // Amazon.it
-            {"55500050", "A1805IZSGTT6HS"}   // Amazon.nl
-        };
-
-        public static Dictionary<string, string> NombreMarket = new Dictionary<string, string>()
-        {
-            {"A1F83G8C2ARO7P", "Amazon.co.uk"},
-            {"A1PA6795UKMFR9", "Amazon.de"},
-            {"A1RKKUPIHCS9HS", "Amazon.es"},
-            {"A13V1IB3VIYZZH", "Amazon.fr"},
-            {"APJ6JRA9NG5V4", "Amazon.it" },
-            {"A1805IZSGTT6HS", "Amazon.nl" }
-        };
-
-        public static Dictionary<string, string> CodigoMarket = new Dictionary<string, string>()
-        {
-            {"Amazon.co.uk", "A1F83G8C2ARO7P"},
-            {"Amazon.de", "A1PA6795UKMFR9"},
-            {"Amazon.es", "A1RKKUPIHCS9HS"},
-            {"Amazon.fr", "A13V1IB3VIYZZH"},
-            {"Amazon.it", "APJ6JRA9NG5V4"},
-            {"Amazon.nl", "A1805IZSGTT6HS"}
-        };
+    public class Mercado
+    {
+        public string Id { get; set; }
+        public string CuentaContablePago { get; set; }
+        public string CuentaContableComision { get; set; }
+        public string NombreMarket { get; set; }
     }
 }
