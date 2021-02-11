@@ -283,7 +283,8 @@ namespace Claytondus.AmazonMWS.Finances
                 DetallePagoCanalExterno detalle = new DetallePagoCanalExterno
                 {
                     ExternalId = evento.AmazonOrderId,
-                    CuentaContablePago = DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.NombreMarket == evento.MarketplaceName).Id).CuentaContablePago
+                    CuentaContablePago = DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.NombreMarket == evento.MarketplaceName).Id).CuentaContablePago,
+                    CuentaContableComisiones = DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.NombreMarket == evento.MarketplaceName).Id).CuentaContableComision
                 };
                 foreach (var item in evento.ShipmentItemAdjustmentList)
                 {

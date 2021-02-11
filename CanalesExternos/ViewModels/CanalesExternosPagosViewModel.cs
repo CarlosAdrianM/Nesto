@@ -13,6 +13,7 @@ using System.Windows.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using ControlesUsuario.Dialogs;
+using System.Data.Entity.Validation;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -392,6 +393,21 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                             db.prdContabilizar(Constantes.Empresas.EMPRESA_DEFECTO, Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS);
                         });                        
                     }
+                    catch (DbEntityValidationException ex)
+                    {
+                        scope.Dispose();
+                        EstaOcupado = false;
+                        string mensajeError = ex.Message;
+                        foreach (var errorValidacion in ex.EntityValidationErrors)
+                        {
+                            foreach (var textoError in errorValidacion.ValidationErrors)
+                            {
+                                mensajeError += "\n" + textoError.ErrorMessage;
+                            }
+                        }
+                        dialogService.ShowError(mensajeError);
+                        return;
+                    }
                     catch (Exception ex)
                     {
                         scope.Dispose();
@@ -399,6 +415,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         throw ex;
                     }
                     
+
                     scope.Complete();
 
                     // Buscamos los nº de orden y liquidamos 

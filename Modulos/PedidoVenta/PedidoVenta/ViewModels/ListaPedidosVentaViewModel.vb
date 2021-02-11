@@ -122,6 +122,7 @@ Public Class ListaPedidosVentaViewModel
             If value <> _mostrarPresupuestos Then
                 SetProperty(_mostrarPresupuestos, value)
                 listaPedidosOriginal = Nothing
+                listaPedidos = Nothing
                 mostrarSoloPendientes = False
                 mostrarSoloPicking = False
                 cmdCargarListaPedidos.Execute()
