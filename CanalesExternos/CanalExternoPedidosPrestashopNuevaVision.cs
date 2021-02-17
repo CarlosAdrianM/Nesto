@@ -95,6 +95,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.ruta = "00";
             pedidoSalida.serie = "NV";
             pedidoSalida.periodoFacturacion = "NRM";
+            pedidoSalida.servirJunto = true;
 
             pedidoSalida.usuario = configuracion.usuario;
 
@@ -103,6 +104,21 @@ namespace Nesto.Modulos.CanalesExternos
             var listaLineasXML = pedidoEntrada.Pedido.Element("associations").Element("order_rows").Elements();
             foreach(var linea in listaLineasXML)
             {
+                var porcentajeIva = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) - 1, 2);
+                string tipoIva;
+                if (porcentajeIva == .21M)
+                {
+                    tipoIva = "G21";
+                } else if (porcentajeIva == .10M)
+                {
+                    tipoIva = "R10";
+                } else if (porcentajeIva == .04M)
+                {
+                    tipoIva = "SR";
+                } else
+                {
+                    throw new ArgumentException(string.Format("Tipo de IVA {0}% no definido", (porcentajeIva * 100).ToString()));
+                }
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
                     almacen = "ALG",
@@ -112,7 +128,7 @@ namespace Nesto.Modulos.CanalesExternos
                     formaVenta = "WEB",
                     estado = 1,
                     fechaEntrega = DateTime.Today,
-                    iva = "G21", // TODO: LEER DEL PRODUCTO
+                    iva = tipoIva,
                     precio = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
                     producto = linea.Element("product_reference").Value,
                     texto = linea.Element("product_name").Value.ToUpper(),
@@ -122,7 +138,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaNesto.precio = Math.Round(lineaNesto.precio / (decimal)1.21, 4);
+                    lineaNesto.precio = Math.Round(lineaNesto.precio / (decimal)(1+porcentajeIva), 4);
                 }
 
                 pedidoSalida.LineasPedido.Add(lineaNesto);

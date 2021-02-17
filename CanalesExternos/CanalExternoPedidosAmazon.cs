@@ -119,6 +119,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.ruta = "00";
             pedidoSalida.serie = "NV";
             pedidoSalida.periodoFacturacion = "NRM";
+            pedidoSalida.servirJunto = true;
 
             pedidoSalida.usuario = configuracion.usuario;
 

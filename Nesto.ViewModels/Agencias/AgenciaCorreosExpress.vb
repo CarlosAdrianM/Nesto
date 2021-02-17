@@ -176,7 +176,8 @@ Public Class AgenciaCorreosExpress
         Dim handler As New HttpClientHandler With {.Credentials = credenciales}
 
         Using client As New HttpClient(handler)
-            client.BaseAddress = New Uri("https://www.correosexpress.com/wpsc/apiRestGrabacionEnvio/")
+            client.BaseAddress = New Uri("https://www.cexpr.es/wspsc/apiRestGrabacionEnviok8s/")
+            'client.BaseAddress = New Uri("https://www.correosexpress.com/wpsc/apiRestGrabacionEnvio/")
             'https://www.correosexpress.com/wpsc/apiRestGrabacionEnvio/json/grabacionEnvio
             'https://test.correosexpress.com/wspsc/apiRestGrabacionEnvio/json/grabacionEnvio
             Dim response As HttpResponseMessage
