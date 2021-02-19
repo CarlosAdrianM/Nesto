@@ -19,6 +19,7 @@ namespace Nesto.Modules.Producto
         public string Grupo { get; set; }
         public string Subgrupo { get; set; }
         public string UrlFoto { get; set; }
+        public bool RoturaStockProveedor { get; set; }
         public ICollection<StockProducto> Stocks { get; set; }
 
         public class StockProducto

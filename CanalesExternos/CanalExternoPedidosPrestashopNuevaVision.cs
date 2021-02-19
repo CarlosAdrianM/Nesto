@@ -104,9 +104,16 @@ namespace Nesto.Modulos.CanalesExternos
             var listaLineasXML = pedidoEntrada.Pedido.Element("associations").Element("order_rows").Elements();
             foreach(var linea in listaLineasXML)
             {
-                var porcentajeIva = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) - 1, 2);
+                decimal porcentajeIva;
+                if (Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) != 0) {
+                    porcentajeIva = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) - 1, 2);
+                } else
+                {
+                    porcentajeIva = 0;
+                }
+                    
                 string tipoIva;
-                if (porcentajeIva == .21M)
+                if (porcentajeIva == .21M || porcentajeIva == 0)
                 {
                     tipoIva = "G21";
                 } else if (porcentajeIva == .10M)
@@ -117,7 +124,7 @@ namespace Nesto.Modulos.CanalesExternos
                     tipoIva = "SR";
                 } else
                 {
-                    throw new ArgumentException(string.Format("Tipo de IVA {0}% no definido", (porcentajeIva * 100).ToString()));
+                    throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", (porcentajeIva * 100).ToString("p")));
                 }
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {

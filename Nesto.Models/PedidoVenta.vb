@@ -146,7 +146,6 @@ Public Class PedidoVenta
         '        Return 1 - ((1 - descuento) * (1 - descuentoProducto))
         '    End Get
         'End Property
-
         Public ReadOnly Property estaAlbaraneada() As Boolean
             Get
                 Return estado >= 2
@@ -229,6 +228,20 @@ Public Class PedidoVenta
         Public Property servirJunto() As Boolean
         Public Property EsPresupuesto() As Boolean = False
         Public Property notaEntrega As Boolean
+        Private _descuentoPP As Decimal
+        Public Property DescuentoPP As Decimal
+            Get
+                Return _descuentoPP
+            End Get
+            Set(value As Decimal)
+                _descuentoPP = value
+                OnPropertyChanged(NameOf(DescuentoPP))
+                OnPropertyChanged(NameOf(baseImponible))
+                OnPropertyChanged(NameOf(baseImponiblePicking))
+                OnPropertyChanged(NameOf(total))
+                OnPropertyChanged(NameOf(totalPicking))
+            End Set
+        End Property
         Public Property usuario() As String
 
         Public ReadOnly Property baseImponible As Decimal
@@ -296,7 +309,7 @@ Public Class PedidoVenta
         End Property
 
         Private Function calcularBaseImponibleLinea(linea As LineaPedidoVentaDTO)
-            Return linea.bruto * (1 - sumaDescuentos(linea))
+            Return linea.bruto * (1 - sumaDescuentos(linea)) * (1 - DescuentoPP)
         End Function
 
         Private Function calcularTotalLinea(linea As LineaPedidoVentaDTO)
@@ -304,6 +317,8 @@ Public Class PedidoVenta
                 Return calcularBaseImponibleLinea(linea)
             ElseIf Me.iva = "R10" Then
                 Return calcularBaseImponibleLinea(linea) * 1.1
+            ElseIf Me.iva = "SR4" Then
+                Return calcularBaseImponibleLinea(linea) * 1.04
             Else
                 Return calcularBaseImponibleLinea(linea) * 1.21
             End If
@@ -318,14 +333,12 @@ Public Class PedidoVenta
         End Sub
 
     End Class
-
     Public Class PrepagoDTO
         Public Property Importe As Decimal
         Public Property Factura As String
         Public Property CuentaContable As String
         Public Property ConceptoAdicional As String
     End Class
-
     Public Class VendedorGrupoProductoDTO
             Implements INotifyPropertyChanged
 

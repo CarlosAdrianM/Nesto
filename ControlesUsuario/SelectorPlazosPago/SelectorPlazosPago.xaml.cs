@@ -119,6 +119,25 @@ namespace ControlesUsuario
             DependencyProperty.Register("Seleccionada", typeof(string),
               typeof(SelectorPlazosPago));
 
+        /// <summary>
+        /// Gets or sets the DESCUENTO para las llamadas a la API
+        /// </summary>
+        public decimal Descuento
+        {
+            get { return (decimal)GetValue(DescuentoProperty); }
+            set
+            {
+                SetValue(DescuentoProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the SELECCIONADA dependency property
+        /// </summary>
+        public static readonly DependencyProperty DescuentoProperty =
+            DependencyProperty.Register("Descuento", typeof(decimal),
+              typeof(SelectorPlazosPago));
+
 
         #endregion
 
@@ -137,6 +156,7 @@ namespace ControlesUsuario
                 if (plazosPagoSeleccionado != null)
                 {
                     Seleccionada = plazosPagoSeleccionado.plazoPago;
+                    Descuento = plazosPagoSeleccionado.descuentoPP;
                 }
             }
         }

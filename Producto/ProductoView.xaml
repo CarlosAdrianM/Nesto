@@ -29,7 +29,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
         <TextBlock Grid.Column="0" Grid.Row="0" Text="Referencia"></TextBlock>
         <TextBlock Grid.Column="0" Grid.Row="1" Text="Nombre"></TextBlock>
@@ -48,8 +49,9 @@
         <TextBox Grid.Column="1" Grid.Row="5" Text="{Binding ProductoActual.Grupo}"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding ProductoActual.Subgrupo}"></TextBox>
         <TextBox Grid.Column="1" Grid.Row="7" Text="{Binding ProductoActual.Estado}"></TextBox>
+        <TextBlock Grid.Column="1" Grid.Row="8" TextAlignment="Center" Text="Producto en rotura de stock del proveedor" Background="Red" FontWeight="Black" Foreground="White" Visibility="{Binding ProductoActual.RoturaStockProveedor, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Hidden}"></TextBlock>
 
-        <ItemsControl ItemsSource="{Binding ProductoActual.Stocks}" Grid.Column="1" Grid.Row="8">
+        <ItemsControl ItemsSource="{Binding ProductoActual.Stocks}" Grid.Column="1" Grid.Row="9">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <UniformGrid Rows="1" />
@@ -85,13 +87,13 @@
                             <TextBlock Text="{Binding PendienteReposicion}" Grid.Column="1" Grid.Row="5"></TextBlock>
                             <TextBlock Text="Cantidad Disponible" Grid.Column="0" Grid.Row="6"></TextBlock>
                             <TextBlock Text="{Binding CantidadDisponible}" Grid.Column="1" Grid.Row="6"></TextBlock>
-                        </Grid>
+                        </Grid> 
                     </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
 
-        <Image Grid.Row="9" Grid.Column="1" Source="{Binding ProductoActual.UrlFoto}" Height="Auto" Width="Auto" Margin="0,0,10,0"/>
+        <Image Grid.Row="10" Grid.Column="1" Source="{Binding ProductoActual.UrlFoto}" Height="Auto" Width="Auto" Margin="0,0,10,0"/>
 
         <TabControl Name="tabProducto" Grid.Column="2" Grid.RowSpan="99999" Margin="3,0" SelectedItem="{Binding PestannaSeleccionada}">
             <TabItem Header="Filtros">

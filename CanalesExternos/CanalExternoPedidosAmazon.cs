@@ -183,7 +183,7 @@ namespace Nesto.Modulos.CanalesExternos
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL, 
-                    precio = baseImponible/orderItem.QuantityOrdered,
+                    precio = orderItem.QuantityOrdered != 0 ? baseImponible / orderItem.QuantityOrdered : baseImponible,
                     producto = orderItem.SellerSKU.EndsWith("FBA") ? orderItem.SellerSKU.Substring(0, orderItem.SellerSKU.Length-3) : orderItem.SellerSKU,
                     texto = orderItem.Title.ToUpper(),
                     tipoLinea = 1, // producto
