@@ -124,7 +124,7 @@ namespace Nesto.Modulos.CanalesExternos
                     tipoIva = "SR";
                 } else
                 {
-                    throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", (porcentajeIva * 100).ToString("p")));
+                    throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", porcentajeIva.ToString("p")));
                 }
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
