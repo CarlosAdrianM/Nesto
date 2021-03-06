@@ -1,37 +1,7 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{3961283C-76C3-4B5F-80F2-01A78593E67F}</ProjectGuid>
     <OutputType>library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ControlesUsuario</RootNamespace>
-    <AssemblyName>ControlesUsuario</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
-    <TargetFrameworkProfile />
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <PlatformTarget>x86</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+    <TargetFramework>net48</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -43,35 +13,12 @@
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
+    <Reference Include="System.Xaml" />
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Dialogs\ConfirmationDialog.xaml.cs">
-      <DependentUpon>ConfirmationDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Dialogs\ConfirmationDialogViewModel.cs" />
-    <Compile Include="Dialogs\DialogServiceExtensions.cs" />
-    <Compile Include="Dialogs\NotificationDialog.xaml.cs">
-      <DependentUpon>NotificationDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Dialogs\NotificationDialogViewModel.cs" />
-    <Compile Include="SelectorCliente\SelectorCliente.xaml.cs">
-      <DependentUpon>SelectorCliente.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SelectorCliente\SelectorClienteModel.cs" />
-    <Compile Include="SelectorEmpresa\SelectorEmpresa.xaml.cs">
-      <DependentUpon>SelectorEmpresa.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SelectorEmpresa\SelectorEmpresaModel.cs" />
-    <Compile Include="SelectorVendedor\SelectorVendedor.xaml.cs">
-      <DependentUpon>SelectorVendedor.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SelectorVendedor\SelectorVendedorModel.cs" />
     <Page Include="Dialogs\ConfirmationDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -100,41 +47,12 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Compile Include="SelectorPlazosPago\SelectorPlazosPago.xaml.cs">
-      <DependentUpon>SelectorPlazosPago.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SelectorPlazosPago\SelectorPlazosPagoModel.cs" />
-    <Compile Include="SelectorFormaPago\SelectorFormaPago.xaml.cs">
-      <DependentUpon>SelectorFormaPago.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="SelectorFormaPago\SelectorFormaPagoModel.cs" />
-    <Compile Include="SelectorDireccionEntrega\SelectorDireccionEntregaModel.cs" />
-    <Compile Include="SelectorDireccionEntrega\SelectorDireccionEntrega.xaml.cs">
-      <DependentUpon>SelectorDireccionEntrega.xaml</DependentUpon>
-    </Compile>
     <Page Include="SelectorVendedor\SelectorVendedor.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
     <None Include="app.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -146,10 +64,7 @@
     <Resource Include="Images\Direccion.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Contratos\Contratos.vbproj">
-      <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
-      <Name>Contratos</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\Contratos\Contratos.vbproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json">
@@ -162,12 +77,4 @@
       <Version>8.0.0.1909</Version>
     </PackageReference>
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>

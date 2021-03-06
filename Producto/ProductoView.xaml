@@ -133,7 +133,10 @@
                                     <TextBlock Text="{Binding Familia}"/>
                                     <TextBlock Text="{Binding Subgrupo}"/>
                                     <TextBlock Text="{Binding PrecioProfesional, StringFormat=c}"/>
-                                    <TextBlock Text="{Binding Estado}"/>
+                                    <TextBlock>
+                                    <Run Text="Estado"/>
+                                    <Run Text="{Binding Estado}"/>
+                                    </TextBlock>
                                 </StackPanel>
                             </DataTemplate>
                         </ListView.ItemTemplate>
