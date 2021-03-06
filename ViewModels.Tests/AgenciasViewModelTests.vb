@@ -10,6 +10,7 @@ Imports Prism.Services.Dialogs
 Imports System.Windows
 Imports System.Runtime.CompilerServices
 Imports ControlesUsuario.Dialogs
+Imports Microsoft.VisualStudio.TestTools.UnitTesting
 
 <TestClass()>
 Public Class AgenciaViewModelTests

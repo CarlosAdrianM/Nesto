@@ -1,44 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>
-    </ProductVersion>
-    <SchemaVersion>
-    </SchemaVersion>
-    <ProjectGuid>{88335EDE-B08A-44EA-9286-F9C0AED290C8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Nesto.ViewModels</RootNamespace>
-    <AssemblyName>ViewModels</AssemblyName>
-    <FileAlignment>512</FileAlignment>
     <MyType>Windows</MyType>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <TargetFrameworkProfile />
+    <TargetFramework>net48</TargetFramework>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <DefineDebug>true</DefineDebug>
-    <DefineTrace>true</DefineTrace>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DocumentationFile>ViewModels.xml</DocumentationFile>
-    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
-    <Prefer32Bit>false</Prefer32Bit>
-    <PlatformTarget>x86</PlatformTarget>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <DefineDebug>false</DefineDebug>
-    <DefineTrace>true</DefineTrace>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DocumentationFile>ViewModels.xml</DocumentationFile>
-    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -81,51 +47,6 @@
     <Import Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Agencias\AgenciaASM.vb" />
-    <Compile Include="Agencias\AgenciaCorreosExpress.vb" />
-    <Compile Include="Agencias\AgenciaGlovo.vb" />
-    <Compile Include="Agencias\AgenciaOnTime.vb" />
-    <Compile Include="AgenciasViewModel.vb" />
-    <Compile Include="AlquileresViewModel.vb">
-      <CustomToolNamespace>Nesto.ViewModels</CustomToolNamespace>
-    </Compile>
-    <Compile Include="ClientesViewModel.vb" />
-    <Compile Include="ComisionesViewModel.vb" />
-    <Compile Include="CRInformeViewModel.vb" />
-    <Compile Include="DeudaViewModel.vb" />
-    <Compile Include="Agencias\IAgencia.vb" />
-    <Compile Include="EnvioAgenciaWrapper.vb" />
-    <Compile Include="MainViewModel.vb" />
-    <Compile Include="My Project\AssemblyInfo.vb" />
-    <Compile Include="My Project\Application.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Application.myapp</DependentUpon>
-    </Compile>
-    <Compile Include="My Project\Resources.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="My Project\Settings.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <Compile Include="PlanesVentajasViewModel.vb" />
-    <Compile Include="PrestashopViewModel.vb" />
-    <Compile Include="RemesasViewModel.vb" />
-    <Compile Include="Servicios\AgenciaService.vb" />
-    <Compile Include="Servicios\IAgenciaService.vb" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="My Project\Resources.resx">
-      <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
-      <CustomToolNamespace>My.Resources</CustomToolNamespace>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="app.config" />
     <None Include="My Project\Application.myapp">
       <Generator>MyApplicationCodeGenerator</Generator>
@@ -138,22 +59,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Contratos\Contratos.vbproj">
-      <Project>{CFBE7538-0C41-4D1C-A1AA-1E741693CD0A}</Project>
-      <Name>Contratos</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj">
-      <Project>{3961283C-76C3-4B5F-80F2-01A78593E67F}</Project>
-      <Name>ControlesUsuario</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj">
-      <Project>{5678F232-EBFE-4834-B77F-51B2C0824380}</Project>
-      <Name>PedidoVenta</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Nesto.Models\Models.vbproj">
-      <Project>{81ea708b-89e1-439e-b5f1-a054250f1b36}</Project>
-      <Name>Models</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\Contratos\Contratos.vbproj" />
+    <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
+    <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj" />
+    <ProjectReference Include="..\Nesto.Models\Models.vbproj" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="Microsoft.Office.Core">
@@ -210,12 +119,4 @@
       <Version>8.0.0.1909</Version>
     </PackageReference>
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>
