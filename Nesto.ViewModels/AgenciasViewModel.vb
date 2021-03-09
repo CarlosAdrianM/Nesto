@@ -2132,43 +2132,43 @@ Public Class AgenciasViewModel
             Return agenciaSeleccionada
         End If
 
-        'Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+        Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
 
-        If reembolso <> 0 AndAlso Not IsNothing(pedidoSeleccionado.IVA) AndAlso pedidoSeleccionado.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO AndAlso Constantes.Agencias.AGENCIA_REEMBOLSOS <> String.Empty Then
-            Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
-        End If
+        'If reembolso <> 0 AndAlso Not IsNothing(pedidoSeleccionado.IVA) AndAlso pedidoSeleccionado.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO AndAlso Constantes.Agencias.AGENCIA_REEMBOLSOS <> String.Empty Then
+        '    Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+        'End If
 
-        Dim agenciaNueva As AgenciasTransporte
+        'Dim agenciaNueva As AgenciasTransporte
 
-        If IsNothing(pedidoSeleccionado.Ruta) AndAlso Not IsNothing(agenciaSeleccionada) Then
-            pedidoSeleccionado.Ruta = agenciaSeleccionada.Ruta
-        End If
+        'If IsNothing(pedidoSeleccionado.Ruta) AndAlso Not IsNothing(agenciaSeleccionada) Then
+        '    pedidoSeleccionado.Ruta = agenciaSeleccionada.Ruta
+        'End If
 
-        ' Carlos 16/09/15. Ponemos cobros de agencia en efectivo.
-        If IsNothing(pedidoSeleccionado.IVA) AndAlso importeReembolso(pedidoSeleccionado) > 0 Then
-            'agenciaNueva = servicio.CargarAgenciaPorRuta(Constantes.Empresas.EMPRESA_ESPEJO, pedidoSeleccionado.Ruta)
-            agenciaNueva = listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
-        Else
-            agenciaNueva = servicio.CargarAgenciaPorRuta(pedidoSeleccionado.Empresa, pedidoSeleccionado.Ruta)
-        End If
+        '' Carlos 16/09/15. Ponemos cobros de agencia en efectivo.
+        'If IsNothing(pedidoSeleccionado.IVA) AndAlso importeReembolso(pedidoSeleccionado) > 0 Then
+        '    'agenciaNueva = servicio.CargarAgenciaPorRuta(Constantes.Empresas.EMPRESA_ESPEJO, pedidoSeleccionado.Ruta)
+        '    agenciaNueva = listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+        'Else
+        '    agenciaNueva = servicio.CargarAgenciaPorRuta(pedidoSeleccionado.Empresa, pedidoSeleccionado.Ruta)
+        'End If
 
-        ' Carlos 22/09/15. Para que se puedan meter reembolsos
-        If IsNothing(agenciaNueva) Then
-            Dim cliente As Clientes = servicio.CargarCliente(pedidoSeleccionado.Empresa, pedidoSeleccionado.Nº_Cliente, pedidoSeleccionado.Contacto)
-            agenciaNueva = servicio.CargarListaAgencias(pedidoSeleccionado.Empresa).OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Ruta = cliente.Ruta)
-        End If
+        '' Carlos 22/09/15. Para que se puedan meter reembolsos
+        'If IsNothing(agenciaNueva) Then
+        '    Dim cliente As Clientes = servicio.CargarCliente(pedidoSeleccionado.Empresa, pedidoSeleccionado.Nº_Cliente, pedidoSeleccionado.Contacto)
+        '    agenciaNueva = servicio.CargarListaAgencias(pedidoSeleccionado.Empresa).OrderByDescending(Function(o) o.Numero).FirstOrDefault(Function(a) a.Ruta = cliente.Ruta)
+        'End If
 
-        If Not IsNothing(agenciaNueva) AndAlso (IsNothing(agenciaSeleccionada) OrElse (agenciaSeleccionada.Numero <> agenciaNueva.Numero Or agenciaSeleccionada.Empresa <> agenciaNueva.Empresa)) Then
-            Return agenciaNueva
-            'empresaSeleccionada = listaEmpresas.Where(Function(e) e.Número = agenciaNueva.Empresa).Single()
-            'agenciaConfigurar = listaAgencias.Single(Function(a) a.Numero = agenciaNueva.Numero)
-        End If
+        'If Not IsNothing(agenciaNueva) AndAlso (IsNothing(agenciaSeleccionada) OrElse (agenciaSeleccionada.Numero <> agenciaNueva.Numero Or agenciaSeleccionada.Empresa <> agenciaNueva.Empresa)) Then
+        '    Return agenciaNueva
+        '    'empresaSeleccionada = listaEmpresas.Where(Function(e) e.Número = agenciaNueva.Empresa).Single()
+        '    'agenciaConfigurar = listaAgencias.Single(Function(a) a.Numero = agenciaNueva.Numero)
+        'End If
 
-        If (IsNothing(agenciaSeleccionada) AndAlso IsNothing(agenciaNueva)) OrElse agenciaSeleccionada.Empresa <> pedidoSeleccionado.Empresa Then
-            Return listaAgencias.LastOrDefault()
-        End If
+        'If (IsNothing(agenciaSeleccionada) AndAlso IsNothing(agenciaNueva)) OrElse agenciaSeleccionada.Empresa <> pedidoSeleccionado.Empresa Then
+        '    Return listaAgencias.LastOrDefault()
+        'End If
 
-        Return agenciaSeleccionada
+        'Return agenciaSeleccionada
     End Function
     Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, fechaEntrega As Date)
         modificarEnvio(envio, reembolso, retorno, estado, False, fechaEntrega)
