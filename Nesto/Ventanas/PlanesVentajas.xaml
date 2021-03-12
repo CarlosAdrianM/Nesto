@@ -153,7 +153,7 @@
                         <Button Grid.Row="4" Grid.Column="1" Content="Asignar PDF" Command="{Binding cmdAsignarPlan}" Margin="3" Name="btnAsignarPlan"/>
                         <Button Grid.Row="4" Grid.Column="2" Content="Nuevo" Command="{Binding cmdAñadir}" Margin="3" Name="btnAñadir"/>
                         <Button Grid.Row="4" Grid.Column="3" Content="Guardar" Command="{Binding cmdGuardar}" Margin="3" Name="btnGuardar"/>
-                        <DataGrid Grid.RowSpan="5" Grid.Column="4" ItemsSource="{Binding planActual.PlanVentajasCliente}" Margin="3"  IsReadOnly="False" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="True">
+                                <DataGrid Grid.RowSpan="5" Grid.Column="4" ItemsSource="{Binding listaClientesEditar}" Margin="3"  IsReadOnly="False" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" />
                             </DataGrid.Columns>

@@ -80,10 +80,14 @@ Public Class PlanesVentajasViewModel
             Return _planActual
         End Get
         Set(value As PlanesVentajas)
+            If Not IsNothing(_planActual) Then
+                _planActual.PlanVentajasCliente = New HashSet(Of PlanVentajasCliente)(listaClientesEditar)
+            End If
             _planActual = value
             mensajeError = ""
             If Not IsNothing(planActual) Then
                 listaClientes = New ObservableCollection(Of Clientes)(From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c)
+                listaClientesEditar = planActual.PlanVentajasCliente.ToList
                 lineasVenta = New ObservableCollection(Of LinPedidoVta)(From l In DbContext.LinPedidoVta Join c In (From p In DbContext.PlanVentajasCliente Join c In DbContext.Clientes On p.Cliente Equals c.Nº_Cliente Where c.Empresa = empresaActual Where p.NumeroContrato = planActual.Numero Select c) On l.Nº_Cliente Equals c.Nº_Cliente And l.Contacto Equals c.Contacto Where l.Familia = planActual.Familia And l.Fecha_Factura >= planActual.FechaInicio And l.Fecha_Factura <= planActual.FechaFin Select l Order By l.Fecha_Factura Descending)
                 barrasGrafico.Clear()
                 barrasGrafico.Add(New datosGrafico With {.clave = "Presupuestado", .valor = planActual.Importe})
@@ -99,12 +103,13 @@ Public Class PlanesVentajasViewModel
                 RaisePropertyChanged("porcentajeRealizado")
             Else
                 listaClientes = Nothing
+                listaClientesEditar = Nothing
                 lineasVenta = Nothing
             End If
         End Set
     End Property
 
-    Private Property _listaClientes As ObservableCollection(Of Clientes)
+    Private _listaClientes As ObservableCollection(Of Clientes)
     Public Property listaClientes As ObservableCollection(Of Clientes)
         Get
             Return _listaClientes
@@ -112,6 +117,16 @@ Public Class PlanesVentajasViewModel
         Set(value As ObservableCollection(Of Clientes))
             _listaClientes = value
             RaisePropertyChanged("listaClientes")
+        End Set
+    End Property
+
+    Private _listaClientesEditar As List(Of PlanVentajasCliente)
+    Public Property listaClientesEditar As List(Of PlanVentajasCliente)
+        Get
+            Return _listaClientesEditar
+        End Get
+        Set(value As List(Of PlanVentajasCliente))
+            SetProperty(_listaClientesEditar, value)
         End Set
     End Property
 

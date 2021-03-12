@@ -330,6 +330,19 @@ Public Class AgenciasViewModel
                         agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = agenciaConfigurar.Numero)
                     End If
                 Catch ex As Exception
+                    reembolso = 0
+                    bultos = 1
+                    nombreEnvio = String.Empty
+                    direccionEnvio = String.Empty
+                    poblacionEnvio = String.Empty
+                    provinciaEnvio = String.Empty
+                    codPostalEnvio = String.Empty
+                    telefonoEnvio = String.Empty
+                    movilEnvio = String.Empty
+                    correoEnvio = String.Empty
+                    observacionesEnvio = String.Empty
+                    attEnvio = String.Empty
+                    fechaEnvio = Today
                     dialogService.ShowError(ex.Message)
                 End Try
 
