@@ -8,7 +8,7 @@ Imports Microsoft.Office.Interop
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Newtonsoft.Json
-
+Imports Newtonsoft.Json.Linq
 
 Public Class RapportService
     Inherits ViewModelBase
@@ -84,8 +84,14 @@ Public Class RapportService
                     End If
                 Else
                     Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError As String = JsonConvert.DeserializeObject(Of String)(respuestaError)
-                    Return "Se ha producido un error al guardar el rapport"
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+                    Throw New Exception("Se ha producido un error al crear el rapport" + vbCr + contenido)
                 End If
             Catch ex As Exception
                 Throw ex

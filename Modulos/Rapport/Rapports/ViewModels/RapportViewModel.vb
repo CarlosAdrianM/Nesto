@@ -47,6 +47,21 @@ Public Class RapportViewModel
                               .id = TiposCentro.EsteticaYPeluqueria,
                               .descripcion = "Estética y Peluquería"})
 
+        ' Hacer que lo lea de la BD
+        listaEstadosRapport = New List(Of idShortDescripcion)
+        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .id = 0,
+                                .descripcion = "Vigente"})
+        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .id = 1,
+                                .descripcion = "No Contactado"})
+        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .id = 2,
+                                .descripcion = "Gestión Administrativa"})
+        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .id = -1,
+                                .descripcion = "Nulo"})
+
         cmdCrearCita = New DelegateCommand(AddressOf OnCrearCita, AddressOf CanCrearCita)
         cmdGuardarCambios = New DelegateCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
 
@@ -83,6 +98,16 @@ Public Class RapportViewModel
         End Get
         Set(value As DateTime)
             SetProperty(_fechaAviso, value)
+        End Set
+    End Property
+
+    Private _listaEstadosRapport As List(Of idShortDescripcion)
+    Public Property listaEstadosRapport As List(Of idShortDescripcion)
+        Get
+            Return _listaEstadosRapport
+        End Get
+        Set(value As List(Of idShortDescripcion))
+            SetProperty(_listaEstadosRapport, value)
         End Set
     End Property
 
@@ -250,6 +275,18 @@ Public Class RapportViewModel
             descripcion = _descripcion
         End Sub
         Property id As TiposCentro
+        Property descripcion As String
+    End Structure
+
+    Public Structure idShortDescripcion
+        Public Sub New(
+       ByVal _id As Short,
+       ByVal _descripcion As String
+       )
+            id = _id
+            descripcion = _descripcion
+        End Sub
+        Property id As Short
         Property descripcion As String
     End Structure
 End Class

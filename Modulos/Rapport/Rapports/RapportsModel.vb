@@ -115,12 +115,12 @@ Public Class RapportsModel
             End Set
         End Property
 
-        Private _Estado As EstadoSeguimientoDTO
-        Public Property Estado As EstadoSeguimientoDTO
+        Private _Estado As Short
+        Public Property Estado As Short
             Get
                 Return _Estado
             End Get
-            Set(value As EstadoSeguimientoDTO)
+            Set(value As Short)
                 If _Estado <> value Then
                     _Estado = value
                     RaisePropertyChanged("Estado")
@@ -141,13 +141,6 @@ Public Class RapportsModel
             SoloPeluqueria
             <Description("Estética y Peluquería")>
             EsteticaYPeluqueria
-        End Enum
-
-        Public Enum EstadoSeguimientoDTO
-            Nulo = -1
-            Vigente
-            No_Contactado
-            Gestion_Administrativa
         End Enum
 
         Public Class TipoSeguimientoDTO

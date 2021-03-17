@@ -114,12 +114,12 @@ Public Class SeguimientoClienteDTO
         End Set
     End Property
 
-    Private _Estado As EstadoSeguimientoDTO
-    Public Property Estado As EstadoSeguimientoDTO
+    Private _Estado As Short
+    Public Property Estado As Short
         Get
             Return _Estado
         End Get
-        Set(value As EstadoSeguimientoDTO)
+        Set(value As Short)
             If _Estado <> value Then
                 _Estado = value
                 RaisePropertyChanged("Estado")
