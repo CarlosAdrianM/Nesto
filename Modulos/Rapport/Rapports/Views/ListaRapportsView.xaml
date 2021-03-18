@@ -6,12 +6,15 @@
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:prism="http://prismlibrary.com/"
              xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
-             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:rapports="clr-namespace:Nesto.Modulos.Rapports" d:DataContext="{d:DesignInstance Type=rapports:RapportViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300"
              prism:ViewModelLocator.AutoWireViewModel="True">
-    
-    
+
+    <UserControl.Resources>
+        <CollectionViewSource x:Key="ListaEstados" Source="{Binding listaEstadosRapport}"/>
+        <CollectionViewSource x:Key="ListaTipos" Source="{Binding listaTiposRapports}"/>
+    </UserControl.Resources>    
     
     <Grid>
         <Grid.ColumnDefinitions>
@@ -44,28 +47,17 @@
         <xctk:BusyIndicator Grid.Column="1" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando rapports...">
             <DockPanel HorizontalAlignment="Stretch" Margin="3">
                 <xctk:WatermarkTextBox Name="txtFiltro" DockPanel.Dock="Top" Text="{Binding Filtro}" Watermark="Introduce un texto para buscar en todos los seguimientos..." HorizontalAlignment="Stretch"></xctk:WatermarkTextBox>
-                <xcdg:DataGridControl DockPanel.Dock="Bottom" ItemsSource="{Binding listaRapports}" SelectedItem="{Binding rapportSeleccionado}" AutoCreateColumns="False" ReadOnly="True">
-
-                    <xcdg:DataGridControl.View>
-                        <xcdg:TableView UseDefaultHeadersFooters="False">
-                            <xcdg:TableView.FixedHeaders>
-                                <DataTemplate>
-                                    <xcdg:ColumnManagerRow/>
-                                </DataTemplate>
-                            </xcdg:TableView.FixedHeaders>
-                        </xcdg:TableView>
-                    </xcdg:DataGridControl.View>
-
-                    <xcdg:DataGridControl.Columns>
-                        <xcdg:Column FieldName="Fecha" Width="*" Title="Fecha" />
-                        <xcdg:Column FieldName="Cliente" Width="*" Title="Cliente" />
-                        <xcdg:Column FieldName="Tipo" Width="*" Title="Tipo" />
-                        <xcdg:Column FieldName="Vendedor" Width="*" Title="Vendedor" />
-                        <xcdg:Column FieldName="Pedido" Width="*" Title="Pedido"/>
-                        <xcdg:Column FieldName="Estado" Width="*" Title="Estado"/>
-                        <xcdg:Column FieldName="Comentarios" Width="3*" Title="Comentarios" />
-                    </xcdg:DataGridControl.Columns>
-                </xcdg:DataGridControl>
+                <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaRapports}" SelectedItem="{Binding rapportSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Fecha, StringFormat=d}" Width="Auto" Header="Fecha" />
+                        <DataGridTextColumn Binding="{Binding Cliente}" Width="Auto" Header="Cliente" />
+                        <DataGridComboBoxColumn ItemsSource="{Binding Source={StaticResource ListaTipos}}" Header="Tipo" DisplayMemberPath="descripcion" SelectedValuePath="id" SelectedValueBinding="{Binding Tipo}"></DataGridComboBoxColumn>
+                        <DataGridTextColumn Binding="{Binding Vendedor}" Width="Auto" Header="Vendedor" />
+                        <DataGridCheckBoxColumn Binding="{Binding Pedido}" Width="Auto" Header="Pedido"/>
+                        <DataGridComboBoxColumn ItemsSource="{Binding Source={StaticResource ListaEstados}}" Header="Estado" DisplayMemberPath="descripcion" SelectedValuePath="id" SelectedValueBinding="{Binding Estado}"></DataGridComboBoxColumn>
+                        <DataGridTextColumn Binding="{Binding Comentarios}" Width="*" Header="Comentarios" />
+                    </DataGrid.Columns>
+                </DataGrid>
             </DockPanel>
         </xctk:BusyIndicator>
         <ContentControl Grid.Column="2" prism:RegionManager.RegionName="RapportDetailRegion" Margin="3"></ContentControl>

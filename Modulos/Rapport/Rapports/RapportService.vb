@@ -7,6 +7,7 @@ Imports Microsoft.Identity.Client
 Imports Microsoft.Office.Interop
 Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
+Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
@@ -203,4 +204,34 @@ Public Class RapportService
         End Using
     End Function
 
+    Public Function CargarListaEstados() As List(Of RapportsModel.SeguimientoClienteDTO.idShortDescripcion) Implements IRapportService.CargarListaEstados
+        ' Hacer que lo lea de la BD
+        Dim listaEstadosRapport = New List(Of idShortDescripcion)
+        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .id = 0,
+                                .descripcion = "Vigente"})
+        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .id = 1,
+                                .descripcion = "No Contactado"})
+        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .id = 2,
+                                .descripcion = "Gestión Administrativa"})
+        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .id = -1,
+                                .descripcion = "Nulo"})
+        Return listaEstadosRapport
+    End Function
+
+    Public Function CargarListaTipos() As List(Of idDescripcion) Implements IRapportService.CargarListaTipos
+        Dim listaTiposRapports = New List(Of idDescripcion)
+        listaTiposRapports.Add(New idDescripcion With {
+            .id = "V",
+            .descripcion = "Visita"
+        })
+        listaTiposRapports.Add(New idDescripcion With {
+            .id = "T",
+            .descripcion = "Teléfono"
+        })
+        Return listaTiposRapports
+    End Function
 End Class

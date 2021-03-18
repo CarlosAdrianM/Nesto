@@ -221,9 +221,9 @@ namespace Nesto.Modulos.CanalesExternos
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
                     precio = totalDescuentos,
-                    producto = "62700020",
+                    producto = "TiCKET",
                     texto = "CUPÓN DE DESCUENTO",
-                    tipoLinea = 2, // cuenta contable
+                    tipoLinea = 1, // producto
                     usuario = configuracion.usuario
                 };
 

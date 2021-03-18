@@ -132,6 +132,31 @@ Public Class RapportsModel
         Public Property Nombre As String
         Public Property Direccion As String
 
+
+        Public Structure idDescripcion
+            Public Sub New(
+       ByVal _id As String,
+       ByVal _descripcion As String
+       )
+                id = _id
+                descripcion = _descripcion
+            End Sub
+            Property id As String
+            Property descripcion As String
+        End Structure
+
+        Public Structure idShortDescripcion
+            Public Sub New(
+               ByVal _id As Short,
+               ByVal _descripcion As String
+            )
+                id = _id
+                descripcion = _descripcion
+            End Sub
+            Property id As Short
+            Property descripcion As String
+        End Structure
+
         Public Enum TiposCentro
             <Description("No se sabe")>
             NoSeSabe

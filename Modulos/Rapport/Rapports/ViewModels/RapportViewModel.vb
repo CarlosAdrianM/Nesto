@@ -1,7 +1,6 @@
 ﻿Imports Prism.Commands
 Imports Prism.Regions
 Imports Nesto.Contratos
-Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
@@ -23,15 +22,7 @@ Public Class RapportViewModel
         Me.regionManager = regionManager
         Me.dialogService = dialogService
 
-        listaTiposRapports = New List(Of idDescripcion)
-        listaTiposRapports.Add(New idDescripcion With {
-            .id = "V",
-            .descripcion = "Visita"
-        })
-        listaTiposRapports.Add(New idDescripcion With {
-            .id = "T",
-            .descripcion = "Teléfono"
-        })
+        listaTiposRapports = servicio.CargarListaTipos()
 
         listaTiposCentros = New List(Of idDescripcionTipoCentro)
         listaTiposCentros.Add(New idDescripcionTipoCentro With {
@@ -47,20 +38,7 @@ Public Class RapportViewModel
                               .id = TiposCentro.EsteticaYPeluqueria,
                               .descripcion = "Estética y Peluquería"})
 
-        ' Hacer que lo lea de la BD
-        listaEstadosRapport = New List(Of idShortDescripcion)
-        listaEstadosRapport.Add(New idShortDescripcion With {
-                                .id = 0,
-                                .descripcion = "Vigente"})
-        listaEstadosRapport.Add(New idShortDescripcion With {
-                                .id = 1,
-                                .descripcion = "No Contactado"})
-        listaEstadosRapport.Add(New idShortDescripcion With {
-                                .id = 2,
-                                .descripcion = "Gestión Administrativa"})
-        listaEstadosRapport.Add(New idShortDescripcion With {
-                                .id = -1,
-                                .descripcion = "Nulo"})
+        listaEstadosRapport = servicio.CargarListaEstados()
 
         cmdCrearCita = New DelegateCommand(AddressOf OnCrearCita, AddressOf CanCrearCita)
         cmdGuardarCambios = New DelegateCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
@@ -255,17 +233,6 @@ Public Class RapportViewModel
 
     End Sub
 
-    Public Structure idDescripcion
-        Public Sub New(
-       ByVal _id As String,
-       ByVal _descripcion As String
-       )
-            id = _id
-            descripcion = _descripcion
-        End Sub
-        Property id As String
-        Property descripcion As String
-    End Structure
     Public Structure idDescripcionTipoCentro
         Public Sub New(
        ByVal _id As TiposCentro,
@@ -278,15 +245,4 @@ Public Class RapportViewModel
         Property descripcion As String
     End Structure
 
-    Public Structure idShortDescripcion
-        Public Sub New(
-       ByVal _id As Short,
-       ByVal _descripcion As String
-       )
-            id = _id
-            descripcion = _descripcion
-        End Sub
-        Property id As Short
-        Property descripcion As String
-    End Structure
 End Class

@@ -5,6 +5,7 @@ Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Prism.Mvvm
 Imports Unity
+Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 
 Public Class ListaRapportsViewModel
     Inherits BindableBase
@@ -36,6 +37,9 @@ Public Class ListaRapportsViewModel
         cmdCargarListaRapports = New DelegateCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
         cmdCargarListaRapportsFiltrada = New DelegateCommand(AddressOf OnCargarListaRapportsFiltrada, AddressOf CanCargarListaRapportsFiltrada)
         cmdCrearRapport = New DelegateCommand(Of Object)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
+
+        listaTiposRapports = servicio.CargarListaTipos()
+        listaEstadosRapport = servicio.CargarListaEstados()
 
         Titulo = "Lista de Rapports"
     End Sub
@@ -95,6 +99,16 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
+    Private _listaEstadosRapport As List(Of idShortDescripcion)
+    Public Property listaEstadosRapport As List(Of idShortDescripcion)
+        Get
+            Return _listaEstadosRapport
+        End Get
+        Set(value As List(Of idShortDescripcion))
+            SetProperty(_listaEstadosRapport, value)
+        End Set
+    End Property
+
     Private _listaRapports As ObservableCollection(Of SeguimientoClienteDTO)
     Public Property listaRapports As ObservableCollection(Of SeguimientoClienteDTO)
         Get
@@ -102,6 +116,16 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As ObservableCollection(Of SeguimientoClienteDTO))
             SetProperty(_listaRapports, value)
+        End Set
+    End Property
+
+    Private _listaTiposRapports As List(Of idDescripcion)
+    Public Property listaTiposRapports As List(Of idDescripcion)
+        Get
+            Return _listaTiposRapports
+        End Get
+        Set(value As List(Of idDescripcion))
+            SetProperty(_listaTiposRapports, value)
         End Set
     End Property
 
