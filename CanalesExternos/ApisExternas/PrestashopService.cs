@@ -125,7 +125,10 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                     {
                         string resultado = await content.ReadAsStringAsync();
                         resultado = resultado.TrimStart('\n');
-                        xmlProvincia = XDocument.Parse(resultado).Element("prestashop").Element("state");
+                        if (!string.IsNullOrEmpty(resultado))
+                        {
+                            xmlProvincia = XDocument.Parse(resultado).Element("prestashop").Element("state");
+                        }
                     }
                     catch (Exception ex)
                     {
