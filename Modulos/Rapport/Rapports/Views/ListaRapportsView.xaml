@@ -5,7 +5,6 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:prism="http://prismlibrary.com/"
-             xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:rapports="clr-namespace:Nesto.Modulos.Rapports" d:DataContext="{d:DesignInstance Type=rapports:RapportViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300"
