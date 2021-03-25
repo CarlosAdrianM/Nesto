@@ -194,7 +194,7 @@ Public Class ListaRapportsViewModel
             parametroVendedor = IIf(esUsuarioElVendedor, configuracion.usuario, vendedor)
             listaRapports = Await servicio.cargarListaRapports(parametroVendedor, fechaSeleccionada)
         End If
-        rapportSeleccionado = listaRapports.LastOrDefault
+        rapportSeleccionado = listaRapports.FirstOrDefault
     End Sub
 
     Private _cmdCargarListaRapportsFiltrada As DelegateCommand
@@ -216,7 +216,7 @@ Public Class ListaRapportsViewModel
         Try
             EstaOcupado = True
             listaRapports = Await servicio.cargarListaRapportsFiltrada(vendedor, Filtro)
-            rapportSeleccionado = listaRapports.LastOrDefault
+            rapportSeleccionado = listaRapports.FirstOrDefault
         Catch ex As Exception
             Throw ex
         Finally

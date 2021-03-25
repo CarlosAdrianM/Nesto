@@ -105,21 +105,24 @@ namespace Nesto.Modulos.CanalesExternos
             foreach(var linea in listaLineasXML)
             {
                 decimal porcentajeIva;
+                decimal importeSinIva = Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) / 1000000;
+                decimal importeConIva = Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000;
+
                 if (Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) != 0) {
-                    porcentajeIva = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) - 1, 2);
+                    porcentajeIva = Math.Round(importeConIva / importeSinIva - 1, 2);
                 } else
                 {
                     porcentajeIva = 0;
                 }
                     
                 string tipoIva;
-                if (porcentajeIva == .21M || porcentajeIva == 0)
+                if (porcentajeIva == .21M || porcentajeIva == 0 || Math.Round(importeSinIva * 1.21M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
                 {
                     tipoIva = "G21";
-                } else if (porcentajeIva == .10M)
+                } else if (porcentajeIva == .10M || Math.Round(importeSinIva * 1.1M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
                 {
                     tipoIva = "R10";
-                } else if (porcentajeIva == .04M)
+                } else if (porcentajeIva == .04M || Math.Round(importeSinIva * 1.04M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
                 {
                     tipoIva = "SR";
                 } else
