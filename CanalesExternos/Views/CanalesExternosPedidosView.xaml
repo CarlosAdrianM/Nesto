@@ -95,6 +95,9 @@
                 <TextBlock>Población:</TextBlock>
                 <TextBox Name="txtPoblacion" Text="{Binding PedidoSeleccionado.Poblacion}"></TextBox>
                 <TextBlock/>
+                <TextBlock>Observaciones:</TextBlock>
+                <TextBox Name="txtObservaciones" Text="{Binding PedidoSeleccionado.Observaciones}"></TextBox>
+                <TextBlock/>
             </StackPanel>
         </Grid>
         

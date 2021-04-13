@@ -58,6 +58,10 @@ namespace Nesto.Modulos.CanalesExternos
                         CambioDivisas = 1;
                     }
                     PedidoCanalExterno pedidoExterno = TransformarPedido(order);
+                    pedidoExterno.Observaciones = "Phone:";
+                    pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoFijo) ? " " + pedidoExterno.TelefonoFijo : "";
+                    pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
+                    pedidoExterno.Observaciones += " " + pedidoExterno.PedidoCanalId;
                     List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
                     pedidoExterno.Pedido.LineasPedido = TransformarLineas(lineasAmazon, order.FulfillmentChannel, pedidoExterno.Pedido.iva);
                     listaNesto.Add(pedidoExterno);

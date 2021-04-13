@@ -188,19 +188,15 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     Email = pedido.CorreoElectronico,
                     Telefono = pedido.TelefonoFijo,
                     Movil = pedido.TelefonoMovil,
-                    PaisISO = pedido.PaisISO
+                    PaisISO = pedido.PaisISO, 
+                    Observaciones = pedido.Observaciones
                 };
                 
                 if (pedido.Pedido.formaPago == Constantes.FormasPago.EFECTIVO)
                 {
                     etiqueta.Reembolso = pedido.Pedido.total;
                 }
-
-                etiqueta.Observaciones = "Phone:";
-                etiqueta.Observaciones += !string.IsNullOrEmpty(pedido.TelefonoFijo) ? " " + pedido.TelefonoFijo : "";
-                etiqueta.Observaciones += !string.IsNullOrEmpty(pedido.TelefonoMovil) ? " " + pedido.TelefonoMovil : "";
-                etiqueta.Observaciones += " " + pedido.PedidoCanalId;
-
+                
                 AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion, DialogService);
 
                 EstaOcupado = false;

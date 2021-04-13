@@ -20,6 +20,7 @@ namespace Nesto.Modulos.CanalesExternos
         public string TelefonoMovil { get; set; }
         public string CorreoElectronico { get; set; }
         public string PaisISO { get; set; }
+        public string Observaciones { get; set; }
         public PedidoVentaDTO Pedido { get; set; }
 
     }

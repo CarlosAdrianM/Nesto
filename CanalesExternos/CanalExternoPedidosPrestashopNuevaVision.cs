@@ -36,7 +36,12 @@ namespace Nesto.Modulos.CanalesExternos
             foreach (var urlPedido in listaPrestashop)
             {
                 PedidoPrestashop pedidoPrestashop = await servicio.CargarPedidoAsync(urlPedido);
-                listaNesto.Add(TransformarPedido(pedidoPrestashop));
+                PedidoCanalExterno pedidoExterno = TransformarPedido(pedidoPrestashop);
+                pedidoExterno.Observaciones = "Phone:";
+                pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoFijo) ? " " + pedidoExterno.TelefonoFijo : "";
+                pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
+                pedidoExterno.Observaciones += " " + pedidoExterno.PedidoCanalId;
+                listaNesto.Add(pedidoExterno);
             }
                         
             return listaNesto;
