@@ -62,7 +62,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
         cmdCargarPlazosPago = New DelegateCommand(Of Object)(AddressOf OnCargarPlazosPago, AddressOf CanCargarPlazosPago)
         CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
-        cmdCargarProductosPlantilla = New DelegateCommand(Of Object)(AddressOf OnCargarProductosPlantilla, AddressOf CanCargarProductosPlantilla)
+        cmdCargarProductosPlantilla = New DelegateCommand(AddressOf OnCargarProductosPlantilla)
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
         cmdComprobarPendientes = New DelegateCommand(Of Object)(AddressOf OnComprobarPendientes, AddressOf CanComprobarPendientes)
@@ -110,12 +110,13 @@ Public Class PlantillaVentaViewModel
         Set(value As tipoAlmacen)
             SetProperty(_almacenSeleccionado, value)
             If Not IsNothing(listaProductos) Then
-                For Each prod In listaProductos
-                    prod.stockActualizado = False
-                Next
+                Task.Run(Async Sub()
+                             listaProductosOriginal = Await servicio.PonerStocks(listaProductosOriginal, value.id)
+                         End Sub)
             End If
         End Set
     End Property
+
 
     Public ReadOnly Property baseImponiblePedido As Decimal
         Get
@@ -191,7 +192,7 @@ Public Class PlantillaVentaViewModel
         SetProperty(_clienteSeleccionado, value)
         RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
-        cmdCargarProductosPlantilla.Execute(Nothing)
+        cmdCargarProductosPlantilla.Execute()
         cmdComprobarPendientes.Execute(Nothing)
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
@@ -866,6 +867,7 @@ Public Class PlantillaVentaViewModel
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     listaProductosFijada = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+                    listaProductosFijada = Await servicio.PonerStocks(listaProductosFijada, almacenSeleccionado.id)
                     Dim productoOriginal As LineaPlantillaJson
                     Dim producto As LineaPlantillaJson
                     For i = 0 To listaProductosFijada.Count - 1
@@ -878,6 +880,7 @@ Public Class PlantillaVentaViewModel
                             listaProductosFijada(i) = productoOriginal
                         End If
                     Next
+                    estaOcupado = False
                 Else
                     dialogService.ShowError("Se ha producido un error al cargar los productos")
                 End If
@@ -1171,55 +1174,27 @@ Public Class PlantillaVentaViewModel
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
-    Private _cmdCargarProductosPlantilla As DelegateCommand(Of Object)
-    Public Property cmdCargarProductosPlantilla As DelegateCommand(Of Object)
+    Private _cmdCargarProductosPlantilla As DelegateCommand
+    Public Property cmdCargarProductosPlantilla As DelegateCommand
         Get
             Return _cmdCargarProductosPlantilla
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdCargarProductosPlantilla, value)
         End Set
     End Property
-    Private Function CanCargarProductosPlantilla(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Sub OnCargarProductosPlantilla(arg As Object)
+    Private Async Sub OnCargarProductosPlantilla()
 
-        If IsNothing(clienteSeleccionado) Then
-            Return
-        End If
-
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            client.Timeout = client.Timeout.Add(New TimeSpan(0, 5, 0)) 'cinco minutos más
-            Dim response As HttpResponseMessage
-
+        Try
             estaOcupado = True
-
-            Try
-                response = Await client.GetAsync("PlantillaVentas?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
-
-                If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
-                Else
-                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
-                        contenido = contenido + vbCr + contenido2
-                    End While
-                    dialogService.ShowError("Se ha producido un error al cargar la plantilla" + vbCr + contenido)
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                estaOcupado = False
-            End Try
-
-        End Using
+            listaProductosOriginal = Await servicio.CargarProductosPlantilla(clienteSeleccionado)
+            estaOcupado = False
+            listaProductosOriginal = Await servicio.PonerStocks(listaProductosOriginal, almacenSeleccionado.id)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        Finally
+            estaOcupado = False
+        End Try
 
     End Sub
 

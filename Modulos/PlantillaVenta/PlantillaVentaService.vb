@@ -5,7 +5,9 @@ Imports ControlesUsuario.Models
 Imports Nesto.Contratos
 Imports Nesto.Models
 Imports Nesto.Modulos.Cliente
+Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
 
 Public Class PlantillaVentaService
     Implements IPlantillaVentaService
@@ -103,6 +105,66 @@ Public Class PlantillaVentaService
                 Throw New Exception(ex.Message)
             Finally
 
+            End Try
+        End Using
+    End Function
+
+    Public Async Function CargarProductosPlantilla(clienteSeleccionado As ClienteJson) As Task(Of ObservableCollection(Of LineaPlantillaJson)) Implements IPlantillaVentaService.CargarProductosPlantilla
+        If IsNothing(clienteSeleccionado) Then
+            Return Nothing
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            client.Timeout = client.Timeout.Add(New TimeSpan(0, 5, 0)) 'cinco minutos más
+            Dim response As HttpResponseMessage
+
+            response = Await client.GetAsync("PlantillaVentas?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
+
+            If response.IsSuccessStatusCode Then
+                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+            Else
+                Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                Dim contenido As String = detallesError("ExceptionMessage")
+                While Not IsNothing(detallesError("InnerException"))
+                    detallesError = detallesError("InnerException")
+                    Dim contenido2 As String = detallesError("ExceptionMessage")
+                    contenido = contenido + vbCr + contenido2
+                End While
+                Throw New Exception("Se ha producido un error al cargar la plantilla" + vbCr + contenido)
+            End If
+        End Using
+    End Function
+
+    Public Async Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaJson), almacen As String) As Task(Of ObservableCollection(Of LineaPlantillaJson)) Implements IPlantillaVentaService.PonerStocks
+        Dim param As PonerStockParam = New PonerStockParam()
+        param.Lineas = lineas.ToList()
+        param.Almacen = almacen
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = String.Empty
+
+            Try
+                Dim urlConsulta As String = "PlantillaVentas/PonerStock"
+                Dim paramJson As String = JsonConvert.SerializeObject(param)
+                Dim content As StringContent = New StringContent(paramJson, Encoding.UTF8, "application/json")
+                response = Await client.PostAsync(urlConsulta, content)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                    Return JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(respuesta)
+                    'If reclamacion.TramitadoOK Then
+                    '   EnlaceReclamarDeuda = reclamacion.Enlace
+                    'End If
+                Else
+                    Return lineas
+                End If
+            Catch ex As Exception
+                Throw New Exception("No se han podido poner los stocks de los productos")
             End Try
         End Using
     End Function

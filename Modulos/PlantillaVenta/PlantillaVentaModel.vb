@@ -234,7 +234,19 @@ Public Class PlantillaVentaModel
                 Return aplicarDescuento OrElse subGrupo = "Productos depilación ceras"
             End Get
         End Property
-
+        Public ReadOnly Property textoUnidadesDisponibles As String
+            Get
+                If cantidadDisponible = 0 Then
+                    Return String.Empty
+                ElseIf cantidadDisponible < 0 Then
+                    Return String.Format("Falta stock ({0} und.)", -cantidadDisponible)
+                ElseIf cantidadDisponible = 1 Then
+                    Return "Solo 1 und. disponible"
+                Else
+                    Return String.Format("{0} und. disponibles", cantidadDisponible)
+                End If
+            End Get
+        End Property
 
     End Class
     Public Class PlazoPagoDTO
@@ -266,5 +278,11 @@ Public Class PlantillaVentaModel
         Public Property precioBruto As Decimal
         Public Property descuentos As Decimal
         Public Property precioNeto As Decimal
+    End Class
+
+    Public Class PonerStockParam
+        Public Property Lineas As List(Of LineaPlantillaJson)
+        Public Property Almacen As String
+        Public Property Ordenar As Boolean
     End Class
 End Class

@@ -167,6 +167,10 @@
                                                     <ColumnDefinition/>
                                                     <ColumnDefinition/>
                                                 </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition/>
+                                                </Grid.RowDefinitions>
 
                                                 <StackPanel Grid.Column="0">
                                                     <TextBlock Margin="3" TextWrapping="WrapWithOverflow" Text="Cantidad Cobrada"></TextBlock>
@@ -188,6 +192,10 @@
                                                             </i:EventTrigger>
                                                         </i:Interaction.Triggers>
                                                     </xctk:ShortUpDown>
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding textoUnidadesDisponibles}"/>
                                                 </StackPanel>
                                             </Grid>
                                             <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
