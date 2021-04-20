@@ -58,6 +58,7 @@ Public Class PlantillaVentaModel
             End Get
             Set(value As Integer)
                 SetProperty(_cantidad, value)
+                RaisePropertyChanged(NameOf(colorStock))
             End Set
         End Property
         Private _cantidadOferta As Integer
@@ -73,6 +74,7 @@ Public Class PlantillaVentaModel
                     aplicarDescuento = aplicarDescuentoFicha
                 End If
                 SetProperty(_cantidadOferta, value)
+                RaisePropertyChanged(NameOf(colorStock))
             End Set
         End Property
         Public Property tamanno() As System.Nullable(Of Integer)
@@ -102,7 +104,16 @@ Public Class PlantillaVentaModel
         End Property
         Public Property aplicarDescuentoFicha() As Boolean?
         Public Property stock As Integer
+        Private _cantidadDisponible As Integer
         Public Property cantidadDisponible As Integer
+            Get
+                Return _cantidadDisponible
+            End Get
+            Set(value As Integer)
+                SetProperty(_cantidadDisponible, value)
+                RaisePropertyChanged(NameOf(colorStock))
+            End Set
+        End Property
         Public Property cantidadPendienteRecibir As Integer
         Public Property stockActualizado As Boolean
         Public Property fechaInsercion As DateTime = DateTime.MaxValue

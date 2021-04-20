@@ -482,6 +482,7 @@ Public Class RemesasViewModel
                 For Each usuario In usuariosAsignar
                     asignadas.AddAssignee(usuario)
                 Next
+                asignadas.ODataType = Nothing
 
                 Dim tituloTarea = String.Format("Impagados cliente {0}", impagado.e.Número.Trim)
 
@@ -505,6 +506,7 @@ Public Class RemesasViewModel
                 Dim detalles As PlannerTaskDetails = New PlannerTaskDetails()
                 detalles.Checklist = New PlannerChecklistItems()
                 detalles.Checklist.AddChecklistItem(Left(elementoCheckList, 100))
+                detalles.Checklist.ODataType = Nothing
 
                 If IsNothing(detallesAntiguos) Then
                     Dim descripcion As String = String.Format("Llamar al cliente {0}/{1}. Vendedor: {2}. {3} en  {4}. Ruta: {5}. Empresa: {6}.",

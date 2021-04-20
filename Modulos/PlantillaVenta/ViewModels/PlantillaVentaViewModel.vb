@@ -55,7 +55,7 @@ Public Class PlantillaVentaViewModel
         cmdAbrirPlantillaVenta = New DelegateCommand(Of Object)(AddressOf OnAbrirPlantillaVenta, AddressOf CanAbrirPlantillaVenta)
         cmdActualizarPrecioProducto = New DelegateCommand(Of Object)(AddressOf OnActualizarPrecioProducto, AddressOf CanActualizarPrecioProducto)
         cmdActualizarProductosPedido = New DelegateCommand(Of Object)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
-        cmdBuscarEnTodosLosProductos = New DelegateCommand(Of Object)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
+        cmdBuscarEnTodosLosProductos = New DelegateCommand(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
         cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
@@ -67,11 +67,13 @@ Public Class PlantillaVentaViewModel
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
         cmdComprobarPendientes = New DelegateCommand(Of Object)(AddressOf OnComprobarPendientes, AddressOf CanComprobarPendientes)
         cmdCrearPedido = New DelegateCommand(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
-        cmdFijarFiltroProductos = New DelegateCommand(Of Object)(AddressOf OnFijarFiltroProductos, AddressOf CanFijarFiltroProductos)
+        cmdFijarFiltroProductos = New DelegateCommand(Of String)(AddressOf OnFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
         cmdCalcularSePuedeServirPorGlovo = New DelegateCommand(AddressOf OnCalcularSePuedeServirPorGlovo)
         CambiarIvaCommand = New DelegateCommand(AddressOf OnCambiarIva)
         CargarCorreoYMovilTarjeta = New DelegateCommand(AddressOf OnCargarCorreoYMovilTarjeta)
+        QuitarFiltroProductoCommand = New DelegateCommand(Of String)(AddressOf OnQuitarFiltroProducto)
+        SoloConStockCommand = New DelegateCommand(AddressOf OnSoloConStock, AddressOf CanSoloConStock)
 
         ' Al leer los clientes lo lee del parámetro PermitirVerClientesTodosLosVendedores
         todosLosVendedores = False
@@ -80,6 +82,8 @@ Public Class PlantillaVentaViewModel
         almacenSeleccionado = New tipoAlmacen("ALG", "Algete")
         listaAlmacenes.Add(almacenSeleccionado)
         listaAlmacenes.Add(New tipoAlmacen("REI", "Reina"))
+
+        ListaFiltrosProducto = New ObservableCollection(Of String)
 
         eventAggregator.GetEvent(Of ClienteModificadoEvent).Subscribe(AddressOf ActualizarCliente)
     End Sub
@@ -337,18 +341,24 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As String)
             SetProperty(_filtroProducto, value.ToLower)
-            If Not IsNothing(listaProductosFijada) Then
-                listaProductos = New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosFijada Where
-                    l IsNot Nothing AndAlso
-                    (((l.producto IsNot Nothing) AndAlso (l.producto.ToLower.Contains(filtroProducto)))) OrElse
-                    (((l.texto IsNot Nothing) AndAlso (l.texto.ToLower.Contains(filtroProducto)))) OrElse
-                    (((l.familia IsNot Nothing) AndAlso (l.familia.ToLower.Contains(filtroProducto)))) OrElse
-                    (((l.subGrupo IsNot Nothing) AndAlso (l.subGrupo.ToLower.Contains(filtroProducto))))
-                )
-            End If
+            listaProductos = AplicarFiltro(filtroProducto)
             cmdBuscarEnTodosLosProductos.RaiseCanExecuteChanged()
         End Set
     End Property
+
+    Private Function AplicarFiltro(filtro As String) As ObservableCollection(Of LineaPlantillaJson)
+        If Not IsNothing(listaProductosFijada) Then
+            Return New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosFijada Where
+                             l IsNot Nothing AndAlso
+                             (((l.producto IsNot Nothing) AndAlso (l.producto.ToLower.Contains(filtro)))) OrElse
+                             (((l.texto IsNot Nothing) AndAlso (l.texto.ToLower.Contains(filtro)))) OrElse
+                             (((l.familia IsNot Nothing) AndAlso (l.familia.ToLower.Contains(filtro)))) OrElse
+                             (((l.subGrupo IsNot Nothing) AndAlso (l.subGrupo.ToLower.Contains(filtro))))
+                        )
+        Else
+            Return New ObservableCollection(Of LineaPlantillaJson)
+        End If
+    End Function
 
     Private _formaPagoSeleccionada As FormaPagoDTO
     Public Property formaPagoSeleccionada() As FormaPagoDTO
@@ -472,6 +482,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _listaFiltrosProducto As ObservableCollection(Of String)
+    Public Property ListaFiltrosProducto As ObservableCollection(Of String)
+        Get
+            Return _listaFiltrosProducto
+        End Get
+        Set(value As ObservableCollection(Of String))
+            SetProperty(_listaFiltrosProducto, value)
+        End Set
+    End Property
+
     Private _listaFormasPago As ObservableCollection(Of FormaPagoDTO)
     Public Property listaFormasPago() As ObservableCollection(Of FormaPagoDTO)
         Get
@@ -512,6 +532,7 @@ Public Class PlantillaVentaViewModel
             RaisePropertyChanged(NameOf(listaProductosPedido))
             RaisePropertyChanged(NameOf(baseImponiblePedido))
             RaisePropertyChanged(NameOf(totalPedido))
+            SoloConStockCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -789,6 +810,7 @@ Public Class PlantillaVentaViewModel
                 'Await cmdComprobarCondicionesPrecio.Execute(arg)
 
                 RaisePropertyChanged(NameOf(listaProductosPedido))
+                RaisePropertyChanged(NameOf(listaProductos))
                 RaisePropertyChanged(NameOf(baseImponiblePedido))
                 RaisePropertyChanged(NameOf(totalPedido))
             Catch ex As Exception
@@ -841,19 +863,58 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Private _cmdBuscarEnTodosLosProductos As DelegateCommand(Of Object)
-    Public Property cmdBuscarEnTodosLosProductos As DelegateCommand(Of Object)
+    Private _quitarFiltroProductoCommand As DelegateCommand(Of String)
+    Public Property QuitarFiltroProductoCommand As DelegateCommand(Of String)
+        Get
+            Return _quitarFiltroProductoCommand
+        End Get
+        Set(value As DelegateCommand(Of String))
+            SetProperty(_quitarFiltroProductoCommand, value)
+        End Set
+    End Property
+    Private Sub OnQuitarFiltroProducto(filtro As String)
+        filtro = filtro.ToLower
+        If ListaFiltrosProducto.Count = 1 OrElse Not listaProductosOriginal.Any Then
+            ListaFiltrosProducto.Clear()
+            listaProductosFijada = listaProductosOriginal
+        Else
+            ListaFiltrosProducto.Remove(filtro)
+            listaProductosFijada = listaProductosOriginal
+            For Each filtroFijado In ListaFiltrosProducto
+                listaProductosFijada = AplicarFiltro(filtroFijado)
+            Next
+        End If
+    End Sub
+
+    Private _soloConStockCommand As DelegateCommand
+    Public Property SoloConStockCommand As DelegateCommand
+        Get
+            Return _soloConStockCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_soloConStockCommand, value)
+        End Set
+    End Property
+    Private Function CanSoloConStock() As Boolean
+        Return Not IsNothing(listaProductos) AndAlso listaProductos.Any
+    End Function
+    Private Sub OnSoloConStock()
+        listaProductos = New ObservableCollection(Of LineaPlantillaJson)(listaProductos.Where(Function(l) l.cantidadDisponible > 0))
+    End Sub
+
+    Private _cmdBuscarEnTodosLosProductos As DelegateCommand
+    Public Property cmdBuscarEnTodosLosProductos As DelegateCommand
         Get
             Return _cmdBuscarEnTodosLosProductos
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdBuscarEnTodosLosProductos, value)
         End Set
     End Property
-    Private Function CanBuscarEnTodosLosProductos(arg As Object) As Boolean
+    Private Function CanBuscarEnTodosLosProductos() As Boolean
         Return Not IsNothing(filtroProducto) AndAlso filtroProducto.Length >= 3
     End Function
-    Private Async Sub OnBuscarEnTodosLosProductos(arg As Object)
+    Private Async Sub OnBuscarEnTodosLosProductos()
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -881,6 +942,8 @@ Public Class PlantillaVentaViewModel
                         End If
                     Next
                     estaOcupado = False
+                    ListaFiltrosProducto.Clear()
+                    ListaFiltrosProducto.Add(filtroProducto)
                 Else
                     dialogService.ShowError("Se ha producido un error al cargar los productos")
                 End If
@@ -1237,6 +1300,7 @@ Public Class PlantillaVentaViewModel
                     arg.stockActualizado = True
                     arg.fechaInsercion = Now
                     RaisePropertyChanged(NameOf(listaProductosPedido))
+                    RaisePropertyChanged(NameOf(listaProductos))
                     RaisePropertyChanged(NameOf(productoSeleccionado))
                     RaisePropertyChanged(NameOf(baseImponiblePedido))
                 Else
@@ -1535,22 +1599,26 @@ Public Class PlantillaVentaViewModel
         Return Constantes.Series.SERIE_DEFECTO
     End Function
 
-    Private _cmdFijarFiltroProductos As DelegateCommand(Of Object)
-    Public Property cmdFijarFiltroProductos As DelegateCommand(Of Object)
+    Private _cmdFijarFiltroProductos As DelegateCommand(Of String)
+    Public Property cmdFijarFiltroProductos As DelegateCommand(Of String)
         Get
             Return _cmdFijarFiltroProductos
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand(Of String))
             SetProperty(_cmdFijarFiltroProductos, value)
         End Set
     End Property
-    Private Function CanFijarFiltroProductos(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Sub OnFijarFiltroProductos(arg As Object)
-        If filtroProducto.Length > 0 Then
-            listaProductosFijada = listaProductos
+    Private Sub OnFijarFiltroProductos(filtro As String)
+        If Not String.IsNullOrEmpty(filtro) Then
+            ListaFiltrosProducto.Add(filtro)
+            If Not listaProductos.Any Then
+                cmdBuscarEnTodosLosProductos.Execute()
+            Else
+                listaProductos = AplicarFiltro(filtroProducto)
+                listaProductosFijada = listaProductos
+            End If
         Else
+            ListaFiltrosProducto.Clear()
             listaProductosFijada = listaProductosOriginal
         End If
     End Sub

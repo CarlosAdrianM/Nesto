@@ -15,6 +15,7 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Models
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
+Imports System.Data.Entity.Validation
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -1875,7 +1876,16 @@ Public Class AgenciasViewModel
             EnvioPendienteSeleccionado = EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)
             EnvioPendienteSeleccionado.TieneCambios = False
             listaPendientes.Add(EnvioPendienteSeleccionado)
+        Catch ex As DbEntityValidationException
+            Dim mensajeError As String = String.Empty
+            For Each eve In ex.EntityValidationErrors
+                For Each ve In eve.ValidationErrors
+                    mensajeError += ve.ErrorMessage + vbCr
+                Next
+            Next
+            dialogService.ShowError("Error al modificar envío:" + vbCr + mensajeError)
         Catch ex As Exception
+            'validatonerrors
             dialogService.ShowError("Error al modificar envío:" + vbCr + ex.Message)
         End Try
     End Sub

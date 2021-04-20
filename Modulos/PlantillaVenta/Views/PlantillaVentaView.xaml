@@ -5,6 +5,7 @@
              xmlns:prism="http://prismlibrary.com/"
              xmlns:local="clr-namespace:Nesto.Modulos.PlantillaVenta"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
@@ -91,6 +92,7 @@
                     <Grid HorizontalAlignment="Stretch">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
@@ -102,12 +104,33 @@
                         <StackPanel Grid.Row="0" Grid.Column="0">
                             <TextBox Name="txtFiltroProducto" Text="{Binding filtroProducto, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource TextBoxPlaceholder}" Tag="Introduce algún dato del producto..." PreviewMouseLeftButtonUp="txtFiltroProducto_MouseUp">
                                 <TextBox.InputBindings>
-                                    <KeyBinding Command="{Binding cmdFijarFiltroProductos}" Key="Enter" />
+                                    <KeyBinding Command="{Binding cmdFijarFiltroProductos}" CommandParameter="{Binding filtroProducto}" Key="Enter" />
                                 </TextBox.InputBindings>
                             </TextBox>
-                            <Button Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}">
-                                <AccessText>_Buscar en todos los productos</AccessText>
-                            </Button>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}">
+                                    <AccessText>_Buscar en todos los productos</AccessText>
+                                </Button>
+                                <Button Grid.Column="1" Name="btnSoloConStock" Command="{Binding SoloConStockCommand}">
+                                    <AccessText>Mostrar solo con _Stock</AccessText>
+                                </Button>
+                            </Grid>
+                            <ItemsControl Name="itmChips" ItemsSource="{Binding ListaFiltrosProducto}" PreviewMouseLeftButtonUp="itmChips_PreviewMouseLeftButtonUp">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <materialDesign:Chip Content="{Binding}" DeleteCommand="{Binding Path=DataContext.QuitarFiltroProductoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" DeleteCommandParameter="{Binding}" IsDeletable="True" Background="LightGray" Margin="2"/>   
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                         <Grid  Grid.Row="0" Grid.Column="1" Margin="3,0">
                             <Grid.ColumnDefinitions>
@@ -139,7 +162,7 @@
                                 <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="descripcion" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
                             </StackPanel>
                         </Grid>
-                        <ListView x:Name="lstProductos" Grid.Row="1" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListView x:Name="lstProductos" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding listaProductos}" SelectedItem="{Binding productoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <DockPanel Height="110" Margin="6" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Hidden">
@@ -195,7 +218,7 @@
                                                 </StackPanel>
 
                                                 <StackPanel Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center">
-                                                    <TextBlock Text="{Binding textoUnidadesDisponibles}"/>
+                                                    <TextBlock Text="{Binding textoUnidadesDisponibles}" Foreground="{Binding colorStock}"/>
                                                 </StackPanel>
                                             </Grid>
                                             <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
@@ -215,7 +238,7 @@
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
-                        <DockPanel Grid.Row="1" Grid.Column="1" >
+                        <DockPanel Grid.Row="2" Grid.Column="1" >
                             <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaUltimasVentas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Fecha" Binding="{Binding fecha, StringFormat=d}" />
@@ -310,7 +333,7 @@
                                 </DataGrid.RowStyle>
                             </DataGrid>
                         </DockPanel>
-                        <StackPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
+                        <StackPanel Grid.Row="3" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
                             <TextBlock TextWrapping="Wrap">Este comentario lo verá el compañero de almacén que prepare el pedido. El cliente no ve este comentario.</TextBlock>
                             <TextBox Text="{Binding clienteSeleccionado.comentarioPicking}"/>
                         </StackPanel>

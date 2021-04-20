@@ -17,8 +17,10 @@ Public Class PlantillaVentaView
         Keyboard.Focus(txtFiltroProducto)
     End Sub
 
-    Private Sub txtFiltroProducto_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFiltroProducto.KeyUp
+    Private Async Sub txtFiltroProducto_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFiltroProducto.KeyUp
         If e.Key = System.Windows.Input.Key.Enter Then
+            Await Task.Delay(500)
+            Keyboard.Focus(txtFiltroProducto)
             txtFiltroProducto.SelectAll()
         End If
         If e.Key = Key.D1 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 0 Then
@@ -30,7 +32,7 @@ Public Class PlantillaVentaView
         If e.Key = Key.D3 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 2 Then
             lstProductos.SelectedItem = lstProductos.Items(2)
         End If
-        If e.Key = Key.OemPlus AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then
+        If (e.Key = Key.OemPlus OrElse e.Key = Key.Add) AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then ' Cantidad + 1
             If IsNothing(lstProductos.SelectedItem) Then
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
@@ -38,7 +40,7 @@ Public Class PlantillaVentaView
             linea.cantidad += 1
             txtFiltroProducto.SelectAll()
         End If
-        If e.Key = Key.OemPlus AndAlso e.KeyboardDevice.Modifiers = (ModifierKeys.Control Or ModifierKeys.Shift) Then
+        If (e.Key = Key.OemPlus OrElse e.Key = Key.Add) AndAlso e.KeyboardDevice.Modifiers = (ModifierKeys.Control Or ModifierKeys.Shift) Then ' Oferta + 1
             If IsNothing(lstProductos.SelectedItem) Then
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
@@ -48,7 +50,27 @@ Public Class PlantillaVentaView
                 txtFiltroProducto.SelectAll()
             End If
         End If
-        If e.Key = Key.D6 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then
+        If (e.Key = Key.OemMinus OrElse e.Key = Key.Subtract) AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then ' Cantidad + 1
+            If IsNothing(lstProductos.SelectedItem) Then
+                lstProductos.SelectedItem = lstProductos.Items(0)
+            End If
+            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            If (linea.cantidad > 0) Then
+                linea.cantidad -= 1
+            End If
+            txtFiltroProducto.SelectAll()
+        End If
+        If (e.Key = Key.OemMinus OrElse e.Key = Key.Subtract) AndAlso e.KeyboardDevice.Modifiers = (ModifierKeys.Control Or ModifierKeys.Shift) Then ' Oferta + 1
+            If IsNothing(lstProductos.SelectedItem) Then
+                lstProductos.SelectedItem = lstProductos.Items(0)
+            End If
+            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            If linea.aplicarDescuentoFicha AndAlso linea.cantidadOferta > 0 Then
+                linea.cantidadOferta -= 1
+                txtFiltroProducto.SelectAll()
+            End If
+        End If
+        If e.Key = Key.D6 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then ' 6+1
             If IsNothing(lstProductos.SelectedItem) Then
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
@@ -117,6 +139,11 @@ Public Class PlantillaVentaView
 
     Private Async Sub btnBuscar_Click(sender As Object, e As RoutedEventArgs) Handles btnBuscar.Click
         Await Task.Delay(500)
+        Keyboard.Focus(txtFiltroProducto)
+    End Sub
+
+    Private Async Sub itmChips_PreviewMouseLeftButtonUp(sender As Object, e As MouseButtonEventArgs)
+        Await Task.Delay(200)
         Keyboard.Focus(txtFiltroProducto)
     End Sub
 End Class
