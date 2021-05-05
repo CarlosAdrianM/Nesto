@@ -345,6 +345,7 @@
           <Property Name="FechaFactura" Type="date" />
           <Property Name="ImporteGasto" Type="money" Nullable="false" />
           <Property Name="FechaRetornoRecibido" Type="date" />
+          <Property Name="ImporteAsegurado" Type="money" Nullable="false" />
           <Property Name="Usuario" Type="varchar" MaxLength="50" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="RowVersion" Type="timestamp" StoreGeneratedPattern="Computed" Nullable="false" />
@@ -4319,6 +4320,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="Pais" Type="Int32" Nullable="false" />
           <Property Name="FechaEntrega" Type="DateTime" Precision="0" />
           <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" annotation:StoreGeneratedPattern="Computed" ConcurrencyMode="Fixed" />
+          <Property Name="ImporteAsegurado" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
         </EntityType>
         <Association Name="FK_AgenciasTransporte_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
@@ -5478,6 +5480,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <EntitySetMapping Name="EnviosAgencia">
             <EntityTypeMapping TypeName="Nesto.Models.EF.EnviosAgencia">
               <MappingFragment StoreEntitySet="EnviosAgencia">
+                <ScalarProperty Name="ImporteAsegurado" ColumnName="ImporteAsegurado" />
                 <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
                 <ScalarProperty Name="FechaEntrega" ColumnName="FechaEntrega" />
                 <ScalarProperty Name="Pais" ColumnName="Pais" />

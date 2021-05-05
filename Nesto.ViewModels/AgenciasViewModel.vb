@@ -384,6 +384,16 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    Private _importeAsegurado As Decimal
+    Public Property importeAsegurado As Decimal
+        Get
+            Return _importeAsegurado
+        End Get
+        Set(value As Decimal)
+            SetProperty(_importeAsegurado, value)
+        End Set
+    End Property
+
     Private _bultos As Integer
     Public Property bultos As Integer
         Get

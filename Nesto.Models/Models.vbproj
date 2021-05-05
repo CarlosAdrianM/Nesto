@@ -171,4 +171,11 @@
       <Version>8.0.0.1909</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Update="ModelNesto.Designer.vb">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ModelNesto.edmx</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>

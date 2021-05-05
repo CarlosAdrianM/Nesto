@@ -95,7 +95,7 @@
                         <TextBlock Grid.Column="2" Grid.Row="6" Text="Teléfono Móvil:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="2" Grid.Row="7" Text="Atención:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="5" Grid.Row="0" Text="Email:" Style="{StaticResource etiquetaTexto}"/>
-                        <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso/Seguro:" Style="{StaticResource etiquetaTexto}"/>
 
                         <TextBox Name="txtPedidosNumero" Grid.Column="1" Grid.Row="0" Text="{Binding numeroPedido}" Style="{StaticResource campoTexto}" />
                         <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding pedidoSeleccionado.Nº_Cliente}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
@@ -115,7 +115,15 @@
                         <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="7" Text="{Binding attEnvio}" Style="{StaticResource campoTexto}"/>
                         <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises}" SelectedItem="{Binding paisActual}" DisplayMemberPath="Nombre" Style="{StaticResource listaCombo}"/>
                         <TextBox Grid.Column="6" Grid.Row="0" Text="{Binding correoEnvio}" Style="{StaticResource campoTexto}"/>
-                        <TextBox Grid.Column="6" Grid.Row="1" Text="{Binding reembolso, StringFormat=c}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
+                        <Grid Grid.Column="6" Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding reembolso, StringFormat=c}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
+                            <TextBox Grid.Column="1" Text="{Binding importeAsegurado, StringFormat=c}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
+                        </Grid>
+                        
 
 
                         <DataGrid Visibility="{Binding mostrarHistoria}" Grid.Column="5" Grid.ColumnSpan="2" Grid.Row="2" Grid.RowSpan="4" ItemsSource="{Binding listaHistoriaEnvio}" AutoGenerateColumns="False" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
@@ -139,6 +147,13 @@
                                 <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
                                 <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
                                 <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Seguro" Binding="{Binding ImporteAsegurado, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -219,7 +234,7 @@
                         <TextBlock Grid.Column="2" Grid.Row="6" Text="Teléfono Móvil:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="2" Grid.Row="7" Text="Atención:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="5" Grid.Row="0" Text="Email:" Style="{StaticResource etiquetaTexto}"/>
-                        <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso/Seguro:" Style="{StaticResource etiquetaTexto}"/>
 
                         <TextBox Name="EnvioPendientePedidoTextBox" Grid.Column="1" Grid.Row="0" Text="{Binding EnvioPendienteSeleccionado.Pedido, UpdateSourceTrigger=LostFocus}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}" IsReadOnly="{Binding NoEstaInsertandoPendiente}"/>
                         <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding EnvioPendienteSeleccionado.Cliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" IsReadOnly="True" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
@@ -239,7 +254,15 @@
                         <TextBox Grid.Column="3" Grid.ColumnSpan="2" Grid.Row="7" Text="{Binding EnvioPendienteSeleccionado.Atencion, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <ComboBox Grid.Column="4" Grid.Row="4" ItemsSource="{Binding listaPaises, UpdateSourceTrigger=PropertyChanged}" SelectedValue="{Binding EnvioPendienteSeleccionado.Pais, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="Nombre" SelectedValuePath="Id" Style="{StaticResource listaCombo}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <TextBox Grid.Column="6" Grid.Row="0" Text="{Binding EnvioPendienteSeleccionado.Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
-                        <TextBox Grid.Column="6" Grid.Row="1" Text="{Binding EnvioPendienteSeleccionado.Reembolso, StringFormat=c, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
+                        <Grid Grid.Column="6" Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding EnvioPendienteSeleccionado.Reembolso, StringFormat=c, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
+                            <TextBox Grid.Column="1" Text="{Binding EnvioPendienteSeleccionado.ImporteAsegurado, StringFormat=c, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
+                        </Grid>
+                        
 
                         <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Borrar Envío" Command = "{Binding BorrarEnvioPendienteCommand}"/>
                         <Button Grid.Column="5" Grid.Row="7" MinWidth="80" Margin="3" Content="Guardar Cambios" Command = "{Binding GuardarEnvioPendienteCommand}"/>
@@ -254,6 +277,13 @@
                                 <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
                                 <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}"/>
                                 <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Seguro" Binding="{Binding ImporteAsegurado, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -310,7 +340,7 @@
                         <TextBlock Grid.Column="2" Grid.Row="6" Text="Teléfono Móvil:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="2" Grid.Row="7" Text="Atención:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="5" Grid.Row="0" Text="Email:" Style="{StaticResource etiquetaTexto}"/>
-                        <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso/Seguro:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="5" Grid.Row="2" Text="Nombre Plaza:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="5" Grid.Row="3" Text="Teléfono Plaza:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="5" Grid.Row="4" Text="Email Plaza:" Style="{StaticResource etiquetaTexto}"/>
@@ -333,7 +363,15 @@
                         <TextBox Grid.Column="3" Grid.Row="6" Grid.ColumnSpan="2" Text="{Binding envioActual.Movil, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="3" Grid.Row="7" Grid.ColumnSpan="2" Text="{Binding envioActual.Atencion, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}"/>
                         <TextBox Grid.Column="6" Grid.Row="0" Text="{Binding envioActual.Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}"/>
-                        <TextBox Grid.Column="6" Grid.Row="1" Text="{Binding envioActual.Reembolso, StringFormat=c, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
+                        <Grid Grid.Column="6" Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" Text="{Binding envioActual.Reembolso, StringFormat=c, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
+                            <TextBox Grid.Column="1" Text="{Binding envioActual.ImporteAsegurado, StringFormat=c, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right"/>
+                        </Grid>
+                        
                         <TextBox Grid.Column="6" Grid.Row="2" Text="{Binding envioActual.NombrePlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
                         <TextBox Grid.Column="6" Grid.Row="3" Text="{Binding envioActual.TelefonoPlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
                         <TextBox Grid.Column="6" Grid.Row="4" Text="{Binding envioActual.EmailPlaza}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
@@ -356,6 +394,13 @@
                             <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}"  Width="3*" />
                             <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
                             <DataGridTextColumn Header="Reembolso" Binding="{Binding Reembolso, StringFormat=c}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style>
+                                        <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Seguro" Binding="{Binding ImporteAsegurado, StringFormat=c}">
                                 <DataGridTextColumn.CellStyle>
                                     <Style>
                                         <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />

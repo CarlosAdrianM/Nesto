@@ -140,6 +140,7 @@ Public Class AgenciaCorreosExpress
             .Producto = envio.Servicio.ToString("D2"),
             .Portes = "P",
             .Reembolso = Replace(envio.Reembolso.ToString("0.##"), ",", "."),
+            .Seguro = Replace(envio.ImporteAsegurado.ToString("0.##"), ",", "."),
             .ListaBultos = New List(Of Bulto),
             .ListaInformacionAdicional = New List(Of InformacionAdicional)
         }
@@ -798,7 +799,7 @@ Public Class AgenciaCorreosExpress
         <MaxLength(1)>
         Public Property EntrSabado As String = ""
         <MaxLength(7)>
-        Public Property Seguro As String = ""
+        Public Property Seguro As String
         <MaxLength(16)>
         Public Property NumEnvioVuelta As String = ""
         <MaxLength(7)>
