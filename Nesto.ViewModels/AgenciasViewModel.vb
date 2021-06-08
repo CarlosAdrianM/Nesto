@@ -33,7 +33,6 @@ Public Class AgenciasViewModel
     Private ReadOnly configuracion As IConfiguracion
     Public ReadOnly dialogService As IDialogService
 
-
     Dim empresaDefecto As String
 
     Dim factory As New Dictionary(Of String, Func(Of IAgencia))
@@ -75,6 +74,7 @@ Public Class AgenciasViewModel
         factory.Add("OnTime", Function() New AgenciaOnTime(Me))
         factory.Add("Glovo", Function() New AgenciaGlovo(Me))
         factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
+        factory.Add("Sending", Function() New AgenciaSending())
     End Sub
 
 

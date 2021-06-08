@@ -177,5 +177,15 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>ModelNesto.edmx</DependentUpon>
     </Compile>
+    <Compile Update="NestoModel.Context.vb">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>NestoModel.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Update="NestoModel.vb">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>NestoModel.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>

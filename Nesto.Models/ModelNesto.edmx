@@ -5,6 +5,26 @@
     <!-- SSDL content -->
     <edmx:StorageModels>
     <Schema Namespace="Nesto.Models.EF.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2008" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="AgenciaSendingDelegaciones">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Codigo" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="Nombre" Type="nvarchar" MaxLength="255" />
+        </EntityType>
+        <EntityType Name="AgenciaSendingPueblos">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="CODP_CODIGO" Type="nvarchar" MaxLength="255" />
+          <Property Name="DELE_CODIGO" Type="nvarchar" MaxLength="255" />
+          <Property Name="DELE_CODIGO_1" Type="nvarchar" MaxLength="255" />
+          <Property Name="ZONA_CODIGO" Type="nvarchar" MaxLength="255" />
+          <Property Name="POBL_NOMBRE" Type="nvarchar" MaxLength="255" />
+          <Property Name="PAIS_CODIGO" Type="nvarchar" MaxLength="255" />
+        </EntityType>
         <EntityType Name="AgenciasTransporte">
           <Key>
             <PropertyRef Name="Numero" />
@@ -1932,6 +1952,8 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
         </Function>
         <Function Name="prdProductosAlquilerLista" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" />
         <EntityContainer Name="NestoModelsEFStoreContainer">
+          <EntitySet Name="AgenciaSendingDelegaciones" EntityType="Self.AgenciaSendingDelegaciones" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AgenciaSendingPueblos" EntityType="Self.AgenciaSendingPueblos" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AgenciasTransporte" EntityType="Self.AgenciasTransporte" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="CabAlquileres" EntityType="Self.CabAlquileres" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="CabFacturaVta" EntityType="Self.CabFacturaVta" Schema="dbo" store:Type="Tables" />
@@ -2644,6 +2666,8 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           </FunctionImport>
           <EntitySet Name="vstLinPedidoVtaConVendedor" EntityType="Nesto.Models.EF.vstLinPedidoVtaConVendedor" />
           <EntitySet Name="vstLinPedidoVtaComisiones" EntityType="Nesto.Models.EF.vstLinPedidoVtaComisiones" />
+          <EntitySet Name="AgenciaSendingDelegaciones" EntityType="Nesto.Models.EF.AgenciaSendingDelegacion" />
+          <EntitySet Name="AgenciaSendingPueblos" EntityType="Nesto.Models.EF.AgenciaSendingPueblo" />
           </EntityContainer>
         <EntityType Name="Productos">
           <Key>
@@ -4726,6 +4750,26 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="EstadoFamilia" Type="Int16" />
           <Property Name="PrecioTarifa" Type="Decimal" Precision="19" Scale="4" />
         </EntityType>
+        <EntityType Name="AgenciaSendingDelegacion">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Codigo" Type="String" Nullable="false" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="Nombre" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="AgenciaSendingPueblo">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="CODP_CODIGO" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="DELE_CODIGO" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="DELE_CODIGO_1" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="ZONA_CODIGO" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="POBL_NOMBRE" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+          <Property Name="PAIS_CODIGO" Type="String" MaxLength="255" FixedLength="false" Unicode="true" />
+        </EntityType>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -5727,6 +5771,28 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
+          <EntitySetMapping Name="AgenciaSendingDelegaciones">
+            <EntityTypeMapping TypeName="Nesto.Models.EF.AgenciaSendingDelegacion">
+              <MappingFragment StoreEntitySet="AgenciaSendingDelegaciones">
+                <ScalarProperty Name="Nombre" ColumnName="Nombre" />
+                <ScalarProperty Name="Codigo" ColumnName="Codigo" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AgenciaSendingPueblos">
+            <EntityTypeMapping TypeName="Nesto.Models.EF.AgenciaSendingPueblo">
+              <MappingFragment StoreEntitySet="AgenciaSendingPueblos">
+                <ScalarProperty Name="PAIS_CODIGO" ColumnName="PAIS_CODIGO" />
+                <ScalarProperty Name="POBL_NOMBRE" ColumnName="POBL_NOMBRE" />
+                <ScalarProperty Name="ZONA_CODIGO" ColumnName="ZONA_CODIGO" />
+                <ScalarProperty Name="DELE_CODIGO_1" ColumnName="DELE_CODIGO_1" />
+                <ScalarProperty Name="DELE_CODIGO" ColumnName="DELE_CODIGO" />
+                <ScalarProperty Name="CODP_CODIGO" ColumnName="CODP_CODIGO" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
           </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
@@ -6084,6 +6150,8 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
         <AssociationConnector Association="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" />
         <EntityTypeShape EntityType="Nesto.Models.EF.vstLinPedidoVtaConVendedor" Width="1.5" PointX="21.375" PointY="1.25" />
         <EntityTypeShape EntityType="Nesto.Models.EF.vstLinPedidoVtaComisiones" Width="1.5" PointX="21.75" PointY="7.25" />
+        <EntityTypeShape EntityType="Nesto.Models.EF.AgenciaSendingDelegacion" Width="1.5" PointX="16.375" PointY="10.25" />
+        <EntityTypeShape EntityType="Nesto.Models.EF.AgenciaSendingPueblo" Width="1.5" PointX="20.375" PointY="16.75" />
         </Diagram>
     </Diagrams>
   </Designer>

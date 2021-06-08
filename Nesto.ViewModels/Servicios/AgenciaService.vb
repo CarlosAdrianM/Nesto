@@ -191,7 +191,8 @@ Public Class AgenciaService
 
     Public Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double? Implements IAgenciaService.CalcularSumaContabilidad
         Using contexto = New NestoEntities
-            Return (Aggregate c In contexto.Contabilidad Where c.Empresa = empresa And c.Nº_Cuenta = cuentaReembolsos Into Sum(CType(c.Debe, Double?) - CType(c.Haber, Double?)))
+            Dim fechaInicial As Date = New Date(2019, 1, 1)
+            Return (Aggregate c In contexto.Contabilidad Where c.Empresa = empresa AndAlso c.Fecha >= fechaInicial AndAlso c.Nº_Cuenta = cuentaReembolsos Into Sum(CType(c.Debe, Double?) - CType(c.Haber, Double?)))
         End Using
     End Function
 

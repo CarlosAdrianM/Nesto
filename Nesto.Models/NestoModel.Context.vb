@@ -61,6 +61,8 @@ Namespace Nesto.Models
         Public Overridable Property EnviosHistoria() As DbSet(Of EnviosHistoria)
         Public Overridable Property vstLinPedidoVtaConVendedor() As DbSet(Of vstLinPedidoVtaConVendedor)
         Public Overridable Property vstLinPedidoVtaComisiones() As DbSet(Of vstLinPedidoVtaComisiones)
+        Public Overridable Property AgenciaSendingDelegaciones() As DbSet(Of AgenciaSendingDelegacion)
+        Public Overridable Property AgenciaSendingPueblos() As DbSet(Of AgenciaSendingPueblo)
     
         Public Overridable Function prdProductosAlquilerLista() As ObjectResult(Of prdProductosAlquiler)
             Return DirectCast(Me, IObjectContextAdapter).ObjectContext.ExecuteFunction(Of prdProductosAlquiler)("prdProductosAlquilerLista")

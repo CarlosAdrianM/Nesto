@@ -44,7 +44,6 @@ Namespace Nesto.Models
         Public Property Vendedor As String
         Public Property FechaFactura As Nullable(Of Date)
         Public Property ImporteGasto As Decimal
-        Public Property ImporteAsegurado As Decimal
         Public Property Usuario As String
         Public Property FechaModificacion As Date
         Public Property FechaPagoReembolso As Nullable(Of Date)
@@ -52,6 +51,7 @@ Namespace Nesto.Models
         Public Property Pais As Integer
         Public Property FechaEntrega As Nullable(Of Date)
         Public Property RowVersion As Byte()
+        Public Property ImporteAsegurado As Decimal
     
         Public Overridable Property Clientes As Clientes
         Public Overridable Property Empresas As Empresas
