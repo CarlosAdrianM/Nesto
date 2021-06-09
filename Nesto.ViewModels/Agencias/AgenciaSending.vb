@@ -404,7 +404,7 @@ Public Class AgenciaSending
                 builder.AppendLine("")
                 builder.AppendLine("^FN10^FH\^FD" + envio.CodPostal.ToUpper.Trim + " " + envio.Poblacion.ToUpper.Trim + "^FS")
                 builder.AppendLine("")
-                builder.AppendLine("^FN11^FH\^FD" + envio.Observaciones.Trim + "^FS")
+                builder.AppendLine("^FN11^FH\^FD" + envio.Observaciones?.Trim + "^FS")
                 builder.AppendLine("")
                 builder.AppendLine("^FN12^FH\^FD^FS")
                 builder.AppendLine("")

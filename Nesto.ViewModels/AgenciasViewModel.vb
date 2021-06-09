@@ -2165,11 +2165,13 @@ Public Class AgenciasViewModel
             Return agenciaSeleccionada
         End If
 
-        Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+        'Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
 
-        'If reembolso <> 0 AndAlso Not IsNothing(pedidoSeleccionado.IVA) AndAlso pedidoSeleccionado.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO AndAlso Constantes.Agencias.AGENCIA_REEMBOLSOS <> String.Empty Then
-        '    Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
-        'End If
+        If reembolso <> 0 AndAlso Not IsNothing(pedidoSeleccionado.IVA) AndAlso pedidoSeleccionado.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO AndAlso Constantes.Agencias.AGENCIA_REEMBOLSOS <> String.Empty Then
+            Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+        End If
+
+        Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_DEFECTO)
 
         'Dim agenciaNueva As AgenciasTransporte
 
