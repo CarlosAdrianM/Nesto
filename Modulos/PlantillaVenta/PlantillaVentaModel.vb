@@ -119,6 +119,7 @@ Public Class PlantillaVentaModel
         Public Property fechaInsercion As DateTime = DateTime.MaxValue
         Public Property descuento As Decimal
         Public Property descuentoProducto As Decimal
+        Public Property clasificacionMasVendidos As Integer
         Private _urlImagen As String
         Public Property urlImagen As String
             Get
@@ -205,11 +206,22 @@ Public Class PlantillaVentaModel
         End Property
         Public ReadOnly Property imagenVisible As Visibility
             Get
+                RaisePropertyChanged(NameOf(clasificacionVisible))
                 'Return Visibility.Visible
                 If urlImagen = "" Then
                     Return Visibility.Collapsed
                 Else
                     Return Visibility.Visible
+                End If
+            End Get
+        End Property
+        Public ReadOnly Property clasificacionVisible As Visibility
+            Get
+                'Return Visibility.Visible
+                If urlImagen = "" Then
+                    Return Visibility.Visible
+                Else
+                    Return Visibility.Collapsed
                 End If
             End Get
         End Property

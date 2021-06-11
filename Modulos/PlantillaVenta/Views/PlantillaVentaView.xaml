@@ -173,13 +173,15 @@
                                         </-->
 
                                         <StackPanel DockPanel.Dock="Left" Grid.Column="0" Width="110" MinWidth="110" Height="110" >
-                                            
+
                                             <Image Source="{Binding imagen}" Height="100" Width="100" Visibility="{Binding imagenVisible}" Margin="0,0,10,0">
                                                 <xctk:MagnifierManager.Magnifier>
                                                     <xctk:Magnifier Radius="100" ZoomFactor=".3" />
                                                 </xctk:MagnifierManager.Magnifier>
                                             </Image>
-                                            <Border Background="{Binding colorEstado}" Height="110" Width="110" HorizontalAlignment="Left" Margin="0,0,10,0"/>
+                                            <Border Background="{Binding colorEstado}" Height="110" Width="110" HorizontalAlignment="Left" Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding clasificacionMasVendidos}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="24" Visibility="{Binding clasificacionVisible}"></TextBlock>
+                                            </Border>
                                         </StackPanel>
 
                                         <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
