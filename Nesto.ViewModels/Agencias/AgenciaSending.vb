@@ -433,7 +433,7 @@ Public Class AgenciaSending
             Next
 
         Catch ex As Exception
-            Throw New Exception("Se ha producido un error y no se han imprimido las etiquetas:" + vbCr + ex.InnerException.Message)
+            Throw New Exception("Se ha producido un error y no se han imprimido las etiquetas:" + vbCr + ex.Message)
         Finally
             objStream.Close()
         End Try
@@ -548,7 +548,9 @@ Friend Class CodigoRutaZona
 
     Public Sub New(codPostal As String, poblacion As String)
         Using db As New NestoEntities
-            Dim pueblos = db.AgenciaSendingPueblos.Where(Function(p) p.CODP_CODIGO = codPostal)
+            Dim codigoPostalFormateado = Replace(codPostal, "-", "")
+            codigoPostalFormateado = Replace(codigoPostalFormateado, " ", "")
+            Dim pueblos = db.AgenciaSendingPueblos.Where(Function(p) p.CODP_CODIGO = codigoPostalFormateado)
             pueblo = pueblos.FirstOrDefault
             If pueblos.Count > 1 Then
                 pueblos = pueblos.Where(Function(p) p.POBL_NOMBRE = poblacion)
