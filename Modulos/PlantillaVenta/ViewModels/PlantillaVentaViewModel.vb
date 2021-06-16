@@ -933,8 +933,9 @@ Public Class PlantillaVentaViewModel
                     Dim producto As LineaPlantillaJson
                     For i = 0 To listaProductosFijada.Count - 1
                         producto = listaProductosFijada(i)
-                        If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN Then
+                        If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR Then
                             producto.aplicarDescuento = True
+                            producto.aplicarDescuentoFicha = True
                         End If
                         productoOriginal = listaProductosOriginal.Where(Function(p) p.producto = producto.producto).FirstOrDefault
                         If Not IsNothing(productoOriginal) Then
@@ -1594,6 +1595,10 @@ Public Class PlantillaVentaViewModel
     Private Function CalcularSerie() As String
         If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.All(Function(l) l.familia = Constantes.Familias.UNION_LASER_NOMBRE) Then
             Return Constantes.Series.UNION_LASER
+        End If
+
+        If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.All(Function(l) l.familia = Constantes.Familias.EVA_VISNU_NOMBRE) Then
+            Return Constantes.Series.EVA_VISNU
         End If
 
         Return Constantes.Series.SERIE_DEFECTO

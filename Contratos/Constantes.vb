@@ -28,6 +28,7 @@
         Public Const MONEDA_CONTABILIDAD As String = "EUR"
     End Class
     Public Class Familias
+        Public Const EVA_VISNU_NOMBRE As String = "Eva Visnu"
         Public Const UNION_LASER_NOMBRE As String = "Unión Láser"
     End Class
     Public Class FormasPago
@@ -57,6 +58,7 @@
         Public Const SERIE_CURSOS As String = "CV"
         Public Const SERIE_DEFECTO As String = "NV"
         Public Const UNION_LASER As String = "UL"
+        Public Const EVA_VISNU As String = "EV"
     End Class
     Public Class TiposApunte
         Public Const PASO_A_CARTERA = "0"
