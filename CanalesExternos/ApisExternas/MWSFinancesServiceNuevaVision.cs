@@ -277,7 +277,6 @@ namespace Claytondus.AmazonMWS.Finances
 
                 cabecera.DetallePagos.Add(detalle);
             }
-
             foreach (var evento in listaEventos.RefundEventList)
             {
                 DetallePagoCanalExterno detalle = new DetallePagoCanalExterno
@@ -311,7 +310,6 @@ namespace Claytondus.AmazonMWS.Finances
 
                 cabecera.DetallePagos.Add(detalle);
             }
-
             foreach (var ajuste in listaEventos.AdjustmentEventList)
             {
                 if (ajuste.AdjustmentType == "ReserveDebit")
@@ -323,6 +321,21 @@ namespace Claytondus.AmazonMWS.Finances
                 } else
                 {
                     cabecera.Comision += ajuste.AdjustmentAmount.CurrencyAmount;
+                }
+                
+            }
+            foreach (var garantia in listaEventos.GuaranteeClaimEventList)
+            {
+                foreach (var ajuste in garantia.ShipmentItemAdjustmentList)
+                {
+                    foreach (var cargo in ajuste.ItemChargeAdjustmentList)
+                    {
+                        cabecera.Comision += cargo.ChargeAmount.CurrencyAmount;
+                    }
+                    foreach (var comision in ajuste.ItemFeeAdjustmentList)
+                    {
+                        cabecera.Comision += comision.FeeAmount.CurrencyAmount;
+                    }
                 }
                 
             }
