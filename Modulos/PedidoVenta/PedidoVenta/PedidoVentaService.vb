@@ -138,7 +138,15 @@ Public Class PedidoVentaService
             If response.IsSuccessStatusCode Then
                 respuesta = response.Content.ReadAsStringAsync().Result
             Else
-                Throw New Exception(response.Content.ReadAsStringAsync().Result)
+                Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                Dim contenido As String = detallesError("ExceptionMessage")
+                While Not IsNothing(detallesError("InnerException"))
+                    detallesError = detallesError("InnerException")
+                    Dim contenido2 As String = detallesError("ExceptionMessage")
+                    contenido = contenido + vbCr + contenido2
+                End While
+                Throw New Exception(contenido)
             End If
 
         End Using

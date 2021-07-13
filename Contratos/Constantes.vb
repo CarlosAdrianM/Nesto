@@ -28,7 +28,7 @@
         Public Const MONEDA_CONTABILIDAD As String = "EUR"
     End Class
     Public Class Familias
-        Public Const EVA_VISNU_NOMBRE As String = "Eva Visnu"
+        Public Const EVA_VISNU_NOMBRE As String = "Eva Visnú"
         Public Const UNION_LASER_NOMBRE As String = "Unión Láser"
     End Class
     Public Class FormasPago
