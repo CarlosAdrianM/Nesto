@@ -159,6 +159,7 @@ Public Class AgenciaViewModelTests
         agencia2.Ruta = "YYY"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia2)
         A.CallTo(Function() servicio.CargarListaAgencias("1")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
+        A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(New Clientes With {.CodPostal = "28110"})
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
@@ -250,6 +251,16 @@ Public Class AgenciaViewModelTests
     End Sub
 
     '' seleccionar pestaña pendientes se desactiva la combo de agencias, porque tratamos todos juntos
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlInsertarEnvio_SiEstaPendienteCogeLaAgenciaDelPendiente()
+        CrearViewModelConUnEnvioEnLaListaDePendientes()
+        viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.ETIQUETAS}
+
+        viewModel.numeroPedido = 12345
+
+        Assert.AreEqual(Constantes.Agencias.AGENCIA_REEMBOLSOS, viewModel.agenciaSeleccionada.Nombre)
+    End Sub
 
     <TestMethod>
     Public Sub AgenciaViewModel_AlSeleccionarLaTabPendientesVariasVeces_LaListaPendientesMantieneElNumeroDeRegistros()
@@ -413,9 +424,9 @@ Public Class AgenciaViewModelTests
 
         viewModel.InsertarEnvioPendienteCommand.Execute()
 
-        Assert.AreEqual(New AgenciaOnTime(viewModel).ServicioDefecto(), viewModel.servicioActual.id)
-        Assert.AreEqual(New AgenciaOnTime(viewModel).HorarioDefecto, viewModel.horarioActual.id)
-        Assert.AreEqual(New AgenciaOnTime(viewModel).paisDefecto, viewModel.paisActual.Id)
+        Assert.AreEqual(New AgenciaCorreosExpress().ServicioDefecto(), viewModel.servicioActual.id)
+        Assert.AreEqual(New AgenciaCorreosExpress().HorarioDefecto, viewModel.horarioActual.id)
+        Assert.AreEqual(New AgenciaCorreosExpress().paisDefecto, viewModel.paisActual.Id)
     End Sub
 
     <TestMethod>
@@ -752,6 +763,7 @@ Public Class AgenciaViewModelTests
         pedido.IVA = "G21"
         A.CallTo(Function() servicio.CargarLineasPedidoSinPicking(123456)).Returns(New List(Of LinPedidoVta) From {New LinPedidoVta With {.Total = 1}})
         A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+        A.CallTo(Function() servicio.CargarEnvio("1", 123456)).Returns(Nothing)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
         viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
         viewModel.cmdCargarDatos.Execute()
@@ -763,7 +775,7 @@ Public Class AgenciaViewModelTests
     End Sub
 
     <TestMethod>
-    Public Sub AgenciaViewModel_ConfigurarAgencia_SiTieneReembolsoCogeLaAgenciaInternacional()
+    Public Sub AgenciaViewModel_ConfigurarAgencia_SiNoTieneReembolsoCogeLaAgenciaPorDefecto()
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
         A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("36")
         Dim empresa = A.Fake(Of Empresas)
@@ -775,15 +787,16 @@ Public Class AgenciaViewModelTests
         Dim agencia1 = A.Fake(Of AgenciasTransporte)
         agencia1.Empresa = "1"
         agencia1.Numero = 1
-        agencia1.Nombre = "OnTime"
+        agencia1.Nombre = "Correos Express"
         agencia1.Ruta = "YYY"
         Dim agencia2 = A.Fake(Of AgenciasTransporte)
         agencia2.Empresa = "1"
         agencia2.Numero = 2
-        agencia2.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL
+        agencia2.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS
         agencia2.Ruta = "XXX"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "YYY")).Returns(agencia1)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
+        A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(New Clientes With {.CodPostal = "28110"})
         Dim pedido = A.Fake(Of CabPedidoVta)
         pedido.Empresa = "1"
         pedido.Número = 123456
@@ -799,7 +812,7 @@ Public Class AgenciaViewModelTests
         viewModel.paisActual = New Pais(99, "NARNIA")
 
         Assert.IsNotNull(viewModel.agenciaSeleccionada)
-        Assert.AreEqual(Constantes.Agencias.AGENCIA_REEMBOLSOS, viewModel.agenciaSeleccionada.Nombre)
+        Assert.AreEqual(Constantes.Agencias.AGENCIA_DEFECTO, viewModel.agenciaSeleccionada.Nombre)
     End Sub
 
     <TestMethod>
@@ -828,6 +841,7 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("2", "XXX")).Returns(agencia2)
         A.CallTo(Function() servicio.CargarListaAgencias("1")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1})
         A.CallTo(Function() servicio.CargarListaAgencias("2")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia2})
+        A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(New Clientes With {.CodPostal = "28110"})
         Dim pedido = A.Fake(Of CabPedidoVta)
         pedido.Empresa = "2"
         pedido.Número = 123456
@@ -918,7 +932,7 @@ Public Class AgenciaViewModelTests
             .Dirección = "Dirección cliente",
             .Población = "Población cliente",
             .Provincia = "Provincia cliente",
-            .CodPostal = "28001",
+            .CodPostal = "07001",
             .Teléfono = "911234567"
         }
         pedido.Clientes = cliente
@@ -928,11 +942,21 @@ Public Class AgenciaViewModelTests
             .Empresa = "1",
             .Numero = 2,
             .Ruta = "XXX",
-            .Nombre = "OnTime"
+            .Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS
+        }
+        Dim agencia2 = New AgenciasTransporte With {
+            .Empresa = "1",
+            .Numero = 1,
+            .Ruta = "NNN",
+            .Nombre = Constantes.Agencias.AGENCIA_DEFECTO
         }
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "XXX")).Returns(agencia)
-        Dim listaAgencias = New ObservableCollection(Of AgenciasTransporte) From {agencia}
+        Dim listaAgencias = New ObservableCollection(Of AgenciasTransporte) From {agencia, agencia2}
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(listaAgencias)
+        Dim envioSinWrapper As EnviosAgencia = envio.ToEnvioAgencia
+        envioSinWrapper.AgenciasTransporte = agencia
+        A.CallTo(Function() servicio.CargarEnvio("1", 12345)).Returns(envioSinWrapper)
+        A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(cliente)
         Dim res = New DialogResult(ButtonResult.OK)
         A.CallTo(Sub() dialogService.
                      ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
@@ -956,6 +980,7 @@ Public Class AgenciaViewModelTests
         Dim envio = New EnviosAgencia With {
             .Numero = 123
         }
+        A.CallTo(Function() servicio.CargarEnvio("1", 12345)).Returns(Nothing)
         Dim listaEnvios = New ObservableCollection(Of EnviosAgencia) From {
             envio
         }

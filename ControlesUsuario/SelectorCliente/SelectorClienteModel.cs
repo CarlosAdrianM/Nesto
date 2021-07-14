@@ -34,10 +34,18 @@ namespace ControlesUsuario.Models
         public string direccion { get; set; }
         public string poblacion { get; set; }
         public string telefono { get; set; }
+        public string codigoPostal { get; set; }
+        public string provincia { get; set; }
         public string comentarios { get; set; }
         public int estado { get; set; }
         public string vendedor { get; set; }
         public string cifNif { get; set; }
+        public string poblacionConCodigoPostal {
+            get
+            {
+                return string.Format("{0} {1} ({2})", codigoPostal, poblacion, provincia);
+            } 
+        }
         public List<VendedorGrupoProductoDTO> VendedoresGrupoProducto { get; set; }
 
         private void OnPropertyChanged([CallerMemberName] String propertyName = "")

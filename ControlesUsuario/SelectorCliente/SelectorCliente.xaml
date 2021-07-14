@@ -32,11 +32,11 @@
                 <DataTemplate>
                     <Border Name="brdCliente" BorderThickness="2" CornerRadius="5"  BorderBrush="{Binding estado, Converter={StaticResource estadoColorConverter}}"  MouseUp="brdCliente_MouseUp">
                         <StackPanel Margin="6">
-                            <TextBlock Text="{Binding nombre}" FontWeight="Black" />
-                            <TextBlock Text="{Binding direccion}" />
-                            <TextBlock Text="{Binding poblacion}" MaxHeight="60"/>
-                            <TextBlock Text="{Binding cliente}" FontStyle="Italic"/>
-                            <TextBlock Text="{Binding comentarios}" MaxHeight="60"/>
+                            <TextBlock Text="{Binding nombre}" FontWeight="Black" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding direccion}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding poblacionConCodigoPostal}" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding cliente}" FontStyle="Italic" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding comentarios}" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                     </Border>
                 </DataTemplate>

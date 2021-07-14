@@ -323,7 +323,15 @@ Public Class AgenciasViewModel
                     End If
                     listaEnviosPedido = servicio.CargarListaEnviosPedido(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
                     envioActual = listaEnviosPedido.LastOrDefault
-                    Dim agenciaConfigurar = ConfigurarAgenciaPedido()
+
+                    Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
+                    Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
+                    Dim agenciaConfigurar
+                    If estabaPendiente Then
+                        agenciaConfigurar = envioPendiente.AgenciasTransporte
+                    Else
+                        agenciaConfigurar = ConfigurarAgenciaPedido()
+                    End If
                     If Not IsNothing(agenciaConfigurar) AndAlso (IsNothing(empresaSeleccionada) OrElse agenciaConfigurar.Empresa <> empresaSeleccionada.Número) AndAlso Not IsNothing(listaEmpresas) Then
                         empresaSeleccionada = listaEmpresas.Single(Function(e) e.Número = agenciaConfigurar.Empresa)
                     End If
