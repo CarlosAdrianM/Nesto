@@ -53,9 +53,9 @@ Public Class RapportViewModel
         End Get
         Set(value As Object)
             SetProperty(_clienteCompleto, value)
-            VendedorEstetica = _clienteCompleto.vendedor?.Trim()
-            If _clienteCompleto.VendedoresGrupoProducto IsNot Nothing AndAlso _clienteCompleto.VendedoresGrupoProducto.Count > 0 Then
-                VendedorPeluqueria = _clienteCompleto.VendedoresGrupoProducto(0).Vendedor?.Trim()
+            VendedorEstetica = _clienteCompleto?.vendedor?.Trim()
+            If _clienteCompleto?.VendedoresGrupoProducto IsNot Nothing AndAlso _clienteCompleto?.VendedoresGrupoProducto?.Count > 0 Then
+                VendedorPeluqueria = _clienteCompleto?.VendedoresGrupoProducto(0)?.Vendedor?.Trim()
             Else
                 VendedorPeluqueria = String.Empty
             End If

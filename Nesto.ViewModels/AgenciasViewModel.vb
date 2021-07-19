@@ -38,6 +38,7 @@ Public Class AgenciasViewModel
     Dim factory As New Dictionary(Of String, Func(Of IAgencia))
 
     Private imprimirEtiqueta As Boolean
+    Private EstaInsertandoEnvio As Boolean
 
     Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
@@ -1344,14 +1345,21 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanInsertar(arg As Object) As Boolean
-        Return Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaSeleccionada) 'AndAlso pedidoSeleccionado.Empresa <> EMPRESA_ESPEJO
+        Return Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso Not EstaInsertandoEnvio 'AndAlso pedidoSeleccionado.Empresa <> EMPRESA_ESPEJO
     End Function
     Private Sub OnInsertar(arg As Object)
         Try
-            InsertarRegistro(servicioActual.id = agenciaEspecifica.ServicioCreaEtiquetaRetorno)
+            If Not EstaInsertandoEnvio Then
+                EstaInsertandoEnvio = True
+                cmdInsertar.RaiseCanExecuteChanged()
+                InsertarRegistro(servicioActual.id = agenciaEspecifica.ServicioCreaEtiquetaRetorno)
+            End If
         Catch e As Exception
             imprimirEtiqueta = False
             dialogService.ShowError(e.Message)
+        Finally
+            EstaInsertandoEnvio = False
+            cmdInsertar.RaiseCanExecuteChanged()
         End Try
     End Sub
 
