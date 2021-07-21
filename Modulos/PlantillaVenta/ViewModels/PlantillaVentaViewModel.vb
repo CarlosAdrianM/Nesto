@@ -65,7 +65,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarProductosPlantilla = New DelegateCommand(AddressOf OnCargarProductosPlantilla)
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
-        cmdComprobarPendientes = New DelegateCommand(Of Object)(AddressOf OnComprobarPendientes, AddressOf CanComprobarPendientes)
+        cmdComprobarPendientes = New DelegateCommand(AddressOf OnComprobarPendientes)
         cmdCrearPedido = New DelegateCommand(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
         cmdFijarFiltroProductos = New DelegateCommand(Of String)(AddressOf OnFijarFiltroProductos)
         cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
@@ -197,7 +197,7 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
         cmdCargarProductosPlantilla.Execute()
-        cmdComprobarPendientes.Execute(Nothing)
+        cmdComprobarPendientes.Execute()
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
         RaisePropertyChanged(NameOf(clienteSeleccionado))
@@ -501,7 +501,6 @@ Public Class PlantillaVentaViewModel
             SetProperty(_listaFormasPago, value)
         End Set
     End Property
-
     Private _listaFormasVenta As ObservableCollection(Of FormaVentaDTO)
     Public Property listaFormasVenta() As ObservableCollection(Of FormaVentaDTO)
         Get
@@ -511,7 +510,16 @@ Public Class PlantillaVentaViewModel
             SetProperty(_listaFormasVenta, value)
         End Set
     End Property
-
+    Private _listaPedidosPendientes As List(Of Integer)
+    Public Property ListaPedidosPendientes As List(Of Integer)
+        Get
+            Return _listaPedidosPendientes
+        End Get
+        Set(value As List(Of Integer))
+            SetProperty(_listaPedidosPendientes, value)
+            RaisePropertyChanged(NameOf(TienePedidosPendientes))
+        End Set
+    End Property
     Private _listaPlazosPago As ObservableCollection(Of PlazoPagoDTO)
     Public Property listaPlazosPago() As ObservableCollection(Of PlazoPagoDTO)
         Get
@@ -616,7 +624,15 @@ Public Class PlantillaVentaViewModel
             SetProperty(_paginasWizard, value)
         End Set
     End Property
-
+    Private _pedidoPendienteSeleccionado As Integer
+    Public Property PedidoPendienteSeleccionado As Integer
+        Get
+            Return _pedidoPendienteSeleccionado
+        End Get
+        Set(value As Integer)
+            SetProperty(_pedidoPendienteSeleccionado, value)
+        End Set
+    End Property
     Private _plazoPagoSeleccionado As PlazoPagoDTO
     Public Property plazoPagoSeleccionado As PlazoPagoDTO
         Get
@@ -708,7 +724,11 @@ Public Class PlantillaVentaViewModel
             Return "Recuerde pedir un correo electrónico al cliente para poder activar la facturación electrónica"
         End Get
     End Property
-
+    Public ReadOnly Property TienePedidosPendientes As Boolean
+        Get
+            Return Not IsNothing(ListaPedidosPendientes) AndAlso ListaPedidosPendientes.Any
+        End Get
+    End Property
     Private _todosLosVendedores As Boolean
     Public Property todosLosVendedores As Boolean
         Get
@@ -1361,55 +1381,34 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Private _cmdComprobarPendientes As DelegateCommand(Of Object)
-    Public Property cmdComprobarPendientes As DelegateCommand(Of Object)
+    Private _cmdComprobarPendientes As DelegateCommand
+    Public Property cmdComprobarPendientes As DelegateCommand
         Get
             Return _cmdComprobarPendientes
         End Get
-        Set(value As DelegateCommand(Of Object))
+        Set(value As DelegateCommand)
             SetProperty(_cmdComprobarPendientes, value)
         End Set
     End Property
-    Private Function CanComprobarPendientes(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Sub OnComprobarPendientes(arg As Object)
+    Private Async Sub OnComprobarPendientes()
         If IsNothing(clienteSeleccionado) Then
             Return
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
+        Try
+            ListaPedidosPendientes = Await servicio.CargarListaPendientes(clienteSeleccionado.empresa, clienteSeleccionado.cliente)
 
-            Try
-                Dim urlConsulta As String = "PlantillaVentas/PedidosPendientes?empresa=" + clienteSeleccionado.empresa
-                urlConsulta += "&clientePendientes=" + clienteSeleccionado.cliente
-                response = Await client.GetAsync(urlConsulta)
-
-                If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    Dim pedidosPendientes As List(Of Integer) = JsonConvert.DeserializeObject(Of List(Of Integer))(cadenaJson)
-
-                    If pedidosPendientes.Count > 0 Then
-                        Dim textoMensaje As String = "Este cliente tiene otros pedidos pendientes." + vbCr + vbCr
-                        For Each i In pedidosPendientes
-                            textoMensaje += i.ToString + vbCr
-                        Next
-                        textoMensaje += vbCr + "Por favor, revise que sea todo correcto."
-                        dialogService.ShowNotification("Pendientes", textoMensaje)
-                    End If
-                Else
-                    dialogService.ShowError("Se ha producido un error al comprobar los pedidos pendientes del cliente")
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                'estaOcupado = False
-            End Try
-
-        End Using
-
+            If ListaPedidosPendientes.Any Then
+                Dim textoMensaje As String = "Este cliente tiene otros pedidos pendientes." + vbCr + vbCr
+                For Each i In ListaPedidosPendientes
+                    textoMensaje += i.ToString + vbTab
+                Next
+                textoMensaje += vbCr + vbCr + "Por favor, revise que sea todo correcto."
+                dialogService.ShowNotification("Pendientes", textoMensaje)
+            End If
+        Catch ex As Exception
+            dialogService.ShowError("Se ha producido un error al comprobar los pedidos pendientes del cliente" + vbCrLf + ex.Message)
+        End Try
     End Sub
 
     Private _cmdCrearPedido As DelegateCommand
@@ -1450,57 +1449,41 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        Using client As New HttpClient
-            estaOcupado = True
 
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
+        estaOcupado = True
+        Dim pedido As PedidoVentaDTO = PrepararPedido()
 
-            Dim pedido As PedidoVentaDTO = PrepararPedido()
+        Try
 
-            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+            Dim numPedido As String
 
-            Try
+            If PedidoPendienteSeleccionado = 0 Then
+                numPedido = Await servicio.CrearPedido(pedido)
+            Else
+                Dim pedidoUnido As PedidoVentaDTO = Await servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido)
+                numPedido = pedidoUnido.numero.ToString
+            End If
 
-                response = Await client.PostAsync("PedidosVenta", content)
+            If MandarCobroTarjeta Then
+                servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, totalPedido, numPedido, clienteSeleccionado.cliente)
+            End If
 
-                If response.IsSuccessStatusCode Then
-                    'Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    'listaProductosOriginal = JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
-                    Dim pathNumeroPedido = response.Headers.Location.LocalPath
-                    Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
-                    If MandarCobroTarjeta Then
-                        servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, totalPedido, numPedido, clienteSeleccionado.cliente)
-                    End If
+            ' Cerramos la ventana
+            Dim view = regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
+            If Not IsNothing(view) Then
+                regionManager.Regions("MainRegion").Deactivate(view)
+                regionManager.Regions("MainRegion").Remove(view)
+            End If
 
-                    ' Cerramos la ventana
-                    Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
-                    If Not IsNothing(view) Then
-                        Me.regionManager.Regions("MainRegion").Deactivate(view)
-                        Me.regionManager.Regions("MainRegion").Remove(view)
-                    End If
+            ' Abrimos el pedido
+            PedidoVentaViewModel.CargarPedido(clienteSeleccionado.empresa, numPedido, container)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        Finally
+            estaOcupado = False
+        End Try
 
-                    ' Abrimos el pedido
-                    PedidoVentaViewModel.CargarPedido(clienteSeleccionado.empresa, numPedido, container)
-                Else
-                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
-                        contenido = contenido + vbCr + contenido2
-                    End While
 
-                    dialogService.ShowError(contenido)
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                estaOcupado = False
-            End Try
-
-        End Using
 
     End Sub
 

@@ -113,6 +113,16 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
+    Private _listaPedidosPendientes As ObservableCollection(Of ResumenPedido)
+    Public Property ListaPedidosPendientes As ObservableCollection(Of ResumenPedido)
+        Get
+            Return _listaPedidosPendientes
+        End Get
+        Set(ByVal value As ObservableCollection(Of ResumenPedido))
+            SetProperty(_listaPedidosPendientes, value)
+        End Set
+    End Property
+
     Private _mostrarPresupuestos As Boolean = False
     Public Property mostrarPresupuestos As Boolean
         Get
@@ -166,6 +176,32 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
+    Private _pedidoPendienteUnir As ResumenPedido
+    Public Property PedidoPendienteUnir As ResumenPedido
+        Get
+            Return _pedidoPendienteUnir
+        End Get
+        Set(value As ResumenPedido)
+            SetProperty(_pedidoPendienteUnir, value)
+            If Not IsNothing(value) Then
+                Dim mensajeError As String = String.Format("Se van a unir los pedidos {0} y {1}, manteniendo los datos de cabecera del {0}", value.numero, resumenSeleccionado.numero)
+                Dim continuar As Boolean
+                dialogService.ShowConfirmation("Faltan datos en el cliente", mensajeError, Sub(r)
+                                                                                               continuar = (r.Result = ButtonResult.OK)
+                                                                                           End Sub)
+                If continuar Then
+                    Try
+                        servicio.UnirPedidos(value.empresa, value.numero, resumenSeleccionado.numero)
+                        CargarResumenSeleccionado()
+                        dialogService.ShowDialog(String.Format("Se han unido los pedidos {0} y {1} correctamente", value.numero, resumenSeleccionado.numero))
+                    Catch ex As Exception
+                        dialogService.ShowError(ex.Message)
+                    End Try
+                End If
+            End If
+        End Set
+    End Property
+
     Private _resumenSeleccionado As ResumenPedido
     Public Property resumenSeleccionado() As ResumenPedido
         Get
@@ -186,6 +222,16 @@ Public Class ListaPedidosVentaViewModel
             SetProperty(_scopedRegionManager, value)
         End Set
     End Property
+
+    Public ReadOnly Property TextoUnirPedido As String
+        Get
+            If IsNothing(ListaPedidosPendientes) OrElse ListaPedidosPendientes.Count = 0 Then
+                Return String.Empty
+            End If
+            Return String.Format("Unir ({0})", ListaPedidosPendientes.Count)
+        End Get
+    End Property
+
 
 #End Region
 
@@ -233,14 +279,20 @@ Public Class ListaPedidosVentaViewModel
         RaisePropertyChanged(NameOf(resumenSeleccionado))
     End Sub
 
-    Private Sub CargarResumenSeleccionado()
+    Private Async Function CargarResumenSeleccionado() As Task
         Dim parameters As NavigationParameters = New NavigationParameters()
         parameters.Add("resumenPedidoParameter", resumenSeleccionado)
         scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
         If Not IsNothing(resumenSeleccionado) Then
             empresaSeleccionada = resumenSeleccionado.empresa
+            Dim pendientes As ObservableCollection(Of Integer) = Await servicio.CargarPedidosPendientes(resumenSeleccionado.empresa, resumenSeleccionado.cliente)
+            ListaPedidosPendientes = New ObservableCollection(Of ResumenPedido)(pendientes.Where(Function(p) p <> resumenSeleccionado.numero).Select(Function(p) New ResumenPedido With {
+                .empresa = resumenSeleccionado.empresa,
+                .numero = p
+                                                                                                                                                   }))
+            RaisePropertyChanged(NameOf(TextoUnirPedido))
         End If
-    End Sub
+    End Function
 
     Private Function convertirCadenaInteger(texto As String) As Integer
         Dim valor As Integer

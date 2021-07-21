@@ -37,26 +37,65 @@
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">
-                            <StackPanel>
-                                <TextBlock Text="{Binding nombre}"></TextBlock>
-                                <TextBlock Text="{Binding direccion}"></TextBlock>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding cliente}"></TextBlock>
-                                    <TextBlock xml:space="preserve" Text=" - "></TextBlock>
-                                    <TextBlock Text="{Binding fecha, StringFormat=d}"></TextBlock>
-                                    <TextBlock xml:space="preserve" Text=" ("></TextBlock>
-                                    <TextBlock Text="{Binding baseImponible, StringFormat=c}"></TextBlock>
-                                    <TextBlock>)</TextBlock>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                            
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding nombre}"></TextBlock>
+                                    <TextBlock Text="{Binding direccion}"></TextBlock>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding cliente}"></TextBlock>
+                                        <TextBlock xml:space="preserve" Text=" - "></TextBlock>
+                                        <TextBlock Text="{Binding fecha, StringFormat=d}"></TextBlock>
+                                        <TextBlock xml:space="preserve" Text=" ("></TextBlock>
+                                        <TextBlock Text="{Binding baseImponible, StringFormat=c}"></TextBlock>
+                                        <TextBlock>)</TextBlock>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Background="Red" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePendientes, Converter={StaticResource BooleanToVisibilityConverter} }">Pendientes</TextBlock>
+                                        <TextBlock Background="Green" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePicking, Converter={StaticResource BooleanToVisibilityConverter} }">Picking</TextBlock>
+                                        <TextBlock Background="Blue" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneFechasFuturas, Converter={StaticResource BooleanToVisibilityConverter} }">En Espera</TextBlock>
+                                        <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
+                                        <TextBlock Background="DarkGoldenrod" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePresupuesto, Converter={StaticResource BooleanToVisibilityConverter} }">Presupuesto</TextBlock>
+                                        <TextBlock Background="BlueViolet" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneSeguimiento, Converter={StaticResource BooleanToVisibilityConverter} }" Text="{Binding ultimoSeguimiento}"></TextBlock>
+                                    </StackPanel>
                                 </StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Background="Red" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePendientes, Converter={StaticResource BooleanToVisibilityConverter} }">Pendientes</TextBlock>
-                                    <TextBlock Background="Green" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePicking, Converter={StaticResource BooleanToVisibilityConverter} }">Picking</TextBlock>
-                                    <TextBlock Background="Blue" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneFechasFuturas, Converter={StaticResource BooleanToVisibilityConverter} }">En Espera</TextBlock>
-                                    <TextBlock Background="LightGray" Foreground="Black" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=noTieneProductos, Converter={StaticResource BooleanToVisibilityConverter} }">Sin Productos</TextBlock>
-                                    <TextBlock Background="DarkGoldenrod" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tienePresupuesto, Converter={StaticResource BooleanToVisibilityConverter} }">Presupuesto</TextBlock>
-                                    <TextBlock Background="BlueViolet" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneSeguimiento, Converter={StaticResource BooleanToVisibilityConverter} }" Text="{Binding ultimoSeguimiento}"></TextBlock>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel.Style>
+                                        <Style TargetType="{x:Type StackPanel}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding 
+                           RelativeSource={RelativeSource Mode=FindAncestor,
+                           AncestorType={x:Type ListViewItem}},Path=IsSelected}" 
+                 Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <TextBlock Text="{Binding DataContext.TextoUnirPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"></TextBlock>
+                                    <ComboBox ItemsSource="{Binding DataContext.ListaPedidosPendientes, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" DisplayMemberPath="numero" SelectedItem="{Binding DataContext.PedidoPendienteUnir, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}">
+                                        <ComboBox.Style>
+                                            <Style TargetType="{x:Type ComboBox}">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=FindAncestor,
+                    AncestorType={x:Type ListViewItem}},Path=IsSelected}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                    <Trigger Property="HasItems" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ComboBox.Style>
+                                    </ComboBox>
                                 </StackPanel>
-                            </StackPanel>
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ListView.ItemTemplate>

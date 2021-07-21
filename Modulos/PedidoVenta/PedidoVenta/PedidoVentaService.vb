@@ -1,11 +1,9 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
-Imports System.Runtime.ExceptionServices
 Imports System.Text
 Imports Nesto.Contratos
 Imports Nesto.Models
 Imports Nesto.Models.PedidoVenta
-Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
@@ -329,4 +327,72 @@ Public Class PedidoVentaService
 
     End Sub
 
+    Public Async Function CargarPedidosPendientes(empresa As String, cliente As String) As Task(Of ObservableCollection(Of Integer)) Implements IPedidoVentaService.CargarPedidosPendientes
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Try
+                Dim urlConsulta As String = "PlantillaVentas/PedidosPendientes?empresa=" + empresa
+                urlConsulta += "&clientePendientes=" + cliente
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    Dim pedidosPendientes As ObservableCollection(Of Integer) = JsonConvert.DeserializeObject(Of ObservableCollection(Of Integer))(cadenaJson)
+                    Return New ObservableCollection(Of Integer)(pedidosPendientes.OrderByDescending(Function(p) p))
+                Else
+                    Throw New Exception("Se ha producido un error al comprobar los pedidos pendientes del cliente")
+                End If
+            Catch ex As Exception
+                Throw New Exception(ex.Message)
+            End Try
+        End Using
+    End Function
+
+    Public Async Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer) As Task(Of PedidoVentaDTO) Implements IPedidoVentaService.UnirPedidos
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Dim parametro As New ParametroStringIntInt With {
+                .Empresa = empresa,
+                .NumeroPedidoOriginal = numeroPedidoOriginal,
+                .NumeroPedidoAmpliacion = numeroPedidoAmpliacion
+            }
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
+
+            Try
+                response = Await client.PostAsync("PedidosVenta/UnirPedidos", content)
+
+                If response.IsSuccessStatusCode Then
+                    Dim respuestaString As String = Await response.Content.ReadAsStringAsync()
+                    Dim pedidoRespuesta As PedidoVentaDTO = JsonConvert.DeserializeObject(Of PedidoVentaDTO)(respuestaString)
+                    If Not IsNothing(pedidoRespuesta) Then
+                        Return pedidoRespuesta
+                    Else
+                        Throw New Exception("Pedido unido no generado")
+                    End If
+                Else
+                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+
+                    Throw New Exception(contenido)
+                End If
+            Catch ex As Exception
+                Throw New Exception(ex.Message)
+            Finally
+
+            End Try
+
+        End Using
+    End Function
 End Class

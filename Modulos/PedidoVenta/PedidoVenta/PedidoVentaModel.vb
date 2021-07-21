@@ -1,4 +1,6 @@
-﻿Public Class PedidoVentaModel
+﻿Imports Nesto.Models.PedidoVenta
+
+Public Class PedidoVentaModel
     Public Class ResumenPedido
         Public Property empresa As String
         Public Property numero As Integer
@@ -47,5 +49,17 @@
         Public Property Fecha As DateTime
         Public Property AgenciaNombre As String
         Public Property EnlaceSeguimiento As String
+    End Class
+
+    Public Class ParametroStringIntInt
+        Public Property Empresa As String
+        Public Property NumeroPedidoOriginal As Integer
+        Public Property NumeroPedidoAmpliacion As Integer
+    End Class
+
+    Public Class ParametroStringIntPedido
+        Public Property Empresa As String
+        Public Property NumeroPedidoOriginal As Integer
+        Public Property PedidoAmpliacion As PedidoVentaDTO
     End Class
 End Class

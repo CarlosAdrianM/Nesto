@@ -435,6 +435,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -443,6 +444,8 @@
                             <TextBlock Grid.Row="0" Margin="3">Seleccione la forma de pago y los plazos:</TextBlock>
                             <ComboBox Grid.Row="1" MinWidth="300" ItemsSource="{Binding listaFormasPago}" SelectedItem="{Binding formaPagoSeleccionada}" DisplayMemberPath="descripcion" Margin="3"></ComboBox>
                             <ComboBox Grid.Row="2" MinWidth="300" ItemsSource="{Binding listaPlazosPago}" SelectedItem="{Binding plazoPagoSeleccionado}" DisplayMemberPath="descripcion" Margin="3"></ComboBox>
+                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="3,10,0,0" Visibility="{Binding TienePedidosPendientes, Converter={StaticResource BooleanToVisibilityConverter}}">Ampliar en el pedido:</TextBlock>
+                            <ComboBox Grid.Row="4"  Grid.Column="0" ItemsSource="{Binding ListaPedidosPendientes}" SelectedItem="{Binding PedidoPendienteSeleccionado}" Margin="3"  Visibility="{Binding TienePedidosPendientes, Converter={StaticResource BooleanToVisibilityConverter}}"></ComboBox>
                             <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding MandarCobroTarjeta}" Visibility="{Binding EsTarjetaPrepago, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3">¿Mandar cobro por tarjeta?</CheckBox>
                             <xctk:WatermarkTextBox Grid.Row="1" Grid.Column="1" Text="{Binding CobroTarjetaCorreo}" Watermark="Correo electrónico para el cobro con tarjeta" Visibility="{Binding MandarCobroTarjeta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3"></xctk:WatermarkTextBox>
                             <xctk:WatermarkTextBox Grid.Row="2" Grid.Column="1" Text="{Binding CobroTarjetaMovil}" Watermark="Móvil para el cobro con tarjeta" Visibility="{Binding MandarCobroTarjeta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="3"></xctk:WatermarkTextBox>
