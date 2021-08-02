@@ -217,7 +217,8 @@ Public Class AgenciaSending
         End If
 
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraAgencia")
+
         Dim objFSO
         Dim objStream
         objFSO = CreateObject("Scripting.FileSystemObject")

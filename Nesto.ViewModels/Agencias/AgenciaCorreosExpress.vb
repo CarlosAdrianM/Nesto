@@ -221,7 +221,8 @@ Public Class AgenciaCorreosExpress
             Throw New Exception("El envío debe tener un código de barras asignada para poder imprimir la etiqueta")
         End If
 
-        Dim puerto As String = "\\RDS2016\Etiquetas3"
+        Dim mainViewModel As New MainViewModel
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
 
         Dim objFSO
         Dim objStream
