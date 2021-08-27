@@ -12,6 +12,7 @@ Imports Newtonsoft.Json
 Imports Nesto.Contratos
 Imports Unity
 Imports System.ComponentModel
+Imports System.Data
 
 'Public Class ViewModelBase
 '    Implements INotifyPropertyChanged

@@ -25,7 +25,7 @@ Class InventarioView
 
 
 
-    Private Sub txtProducto_KeyUp(sender As Object, e As KeyEventArgs) Handles txtProducto.KeyUp
+    Private Async Sub txtProducto_KeyUp(sender As Object, e As KeyEventArgs) Handles txtProducto.KeyUp
         If teclaSuelta AndAlso e.Key = Key.Return Then
             e.Handled = True
             teclaSuelta = False
@@ -33,7 +33,15 @@ Class InventarioView
                 txtCantidad.Focus()
             Else
                 sender.GetBindingExpression(TextBox.TextProperty).UpdateSource()
-                DataContext.cmdInsertarProducto.Execute(sender.Text)
+                Dim vm As InventarioViewModel = DataContext
+                Dim nuevoMovimiento = Await vm.InsertarProducto(sender.Text)
+                If Not IsNothing(nuevoMovimiento) Then
+                    If tclMovimientos.SelectedIndex = 0 Then 'Recientes
+                        dgrRecientes.ScrollIntoView(nuevoMovimiento)
+                    Else ' Completo
+                        dgrCompleto.ScrollIntoView(nuevoMovimiento)
+                    End If
+                End If
             End If
             txtProducto.SelectAll()
         End If

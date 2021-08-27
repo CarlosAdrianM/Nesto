@@ -38,7 +38,7 @@ Partial Public Class Application
 
         Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
         Dim tenantId = "16d9b0cd-12c6-4639-8c26-779abc0dc0ad"
-        Dim msGraphApp As IPublicClientApplication = PublicClientApplicationBuilder.Create(clientId).WithTenantId(tenantId).WithRedirectUri("https://login.microsoftonline.com/common/oauth2/nativeclient").Build()
+        Dim msGraphApp As IPublicClientApplication = PublicClientApplicationBuilder.Create(clientId).WithTenantId(tenantId).WithRedirectUri("http://localhost").Build()
         containerRegistry.RegisterInstance(GetType(IPublicClientApplication), msGraphApp)
 
         containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
@@ -70,28 +70,28 @@ Partial Public Class Application
         ' Módulo que tiene los botones del Ribbon de todo lo viejo que no se hizo con módulos
         moduleCatalog.AddModule(GetType(IMenuBar)) ', InitializationMode.WhenAvailable
 
-        '' Plantilla de Ventas - 17/07/15
+        ' Plantilla de Ventas - 17/07/15
         moduleCatalog.AddModule(GetType(IPlantillaVenta)) ', InitializationMode.WhenAvailable
 
-        '' Inventarios - 09/11/15
+        ' Inventarios - 09/11/15
         moduleCatalog.AddModule(GetType(IInventario)) ', InitializationMode.WhenAvailable
 
-        '' Cartera de Pagos - 19/07/16
+        ' Cartera de Pagos - 19/07/16
         moduleCatalog.AddModule(GetType(ICarteraPagos)) ', InitializationMode.WhenAvailable
 
-        '' Pedido de Venta - 26/10/16
+        ' Pedido de Venta - 26/10/16
         moduleCatalog.AddModule(GetType(IPedidoVenta))
 
-        '' Rapports - 14/03/17
+        ' Rapports - 14/03/17
         moduleCatalog.AddModule(GetType(IRapports))
 
-        '' Canales Externos - 03/10/17
+        ' Canales Externos - 03/10/17
         moduleCatalog.AddModule(Of Nesto.Modulos.CanalesExternos.CanalesExternos)
 
-        '' Producto - 29/05/18
+        ' Producto - 29/05/18
         moduleCatalog.AddModule(GetType(IProducto))
 
-        '' Cliente - 29/05/19
+        ' Cliente - 29/05/19
         moduleCatalog.AddModule(GetType(ICliente))
     End Sub
 

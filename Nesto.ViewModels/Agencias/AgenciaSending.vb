@@ -219,18 +219,18 @@ Public Class AgenciaSending
         Dim mainViewModel As New MainViewModel
         Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraAgencia")
 
-        Dim objFSO
-        Dim objStream
-        objFSO = CreateObject("Scripting.FileSystemObject")
-        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+        'Dim objFSO
+        'Dim objStream
+        'objFSO = CreateObject("Scripting.FileSystemObject")
+        'objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
 
         Dim i As Integer
 
         Try
             Dim rutaZona As New CodigoRutaZona(envio.CodPostal, envio.Poblacion)
+            Dim builder As New StringBuilder
             For i = 1 To envio.Bultos
                 Dim codigoBarrasBulto As String = CalcularCodigoBarrasBulto(envio, rutaZona, i)
-                Dim builder As New StringBuilder
                 builder.AppendLine("^FX --- FORMATO DE LA ETIQUETA --- ^FS")
                 builder.AppendLine("^XA^LRY^FWN^CFD,24^PW839^LH0,0^CI27^PR4^MNY^MTD^MD10^PON^PMN^LRY^XZ")
                 builder.AppendLine("^XA^MCY^XZ^XA")
@@ -429,14 +429,12 @@ Public Class AgenciaSending
                 builder.AppendLine("^FN52^FH\^FD" + envio.CodigoBarras + "VCIW^FS")
                 builder.AppendLine("^PQ1,0,1,Y")
                 builder.AppendLine("^XZ")
-
-                objStream.Write(builder.ToString)
             Next
-
+            RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
         Catch ex As Exception
             Throw New Exception("Se ha producido un error y no se han imprimido las etiquetas:" + vbCr + ex.Message)
-        Finally
-            objStream.Close()
+            'Finally
+            '    objStream.Close()
         End Try
     End Sub
     Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir

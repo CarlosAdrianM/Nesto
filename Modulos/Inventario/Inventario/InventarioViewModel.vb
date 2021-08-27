@@ -28,7 +28,7 @@ Public Class InventarioViewModel
         cmdActualizarLineaInventario = New DelegateCommand(Of Object)(AddressOf OnActualizarLineaInventario, AddressOf CanActualizarLineaInventario)
         cmdActualizarMovimientos = New DelegateCommand(Of Object)(AddressOf OnActualizarMovimientos, AddressOf CanActualizarMovimientos)
         cmdCrearLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnCrearLineaInventario, AddressOf CanCrearLineaInventario)
-        cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
+        cmdInsertarProducto = New DelegateCommand(Of String)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
 
         Titulo = "Inventario Tienda"
 
@@ -210,7 +210,7 @@ Public Class InventarioViewModel
     Private Function CanActualizarLineaInventario(arg As Object) As Boolean
         Return True
     End Function
-    Private Async Sub OnActualizarLineaInventario(arg As Object)
+    Private Async Function OnActualizarLineaInventario(arg As Object) As Task(Of Movimiento)
         Using client As New HttpClient
             'estaOcupado = True
 
@@ -241,6 +241,7 @@ Public Class InventarioViewModel
                     numeroProducto = String.Empty
                     cantidad = 1
                 End If
+                Return movimientoActual
             Catch ex As Exception
                 dialogService.ShowError(ex.Message)
             Finally
@@ -248,23 +249,30 @@ Public Class InventarioViewModel
             End Try
 
         End Using
-    End Sub
+    End Function
 
-    Private _cmdInsertarProducto As DelegateCommand(Of Object)
-    Public Property cmdInsertarProducto As DelegateCommand(Of Object)
+    Private _cmdInsertarProducto As DelegateCommand(Of String)
+    Public Property cmdInsertarProducto As DelegateCommand(Of String)
         Get
             Return _cmdInsertarProducto
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand(Of String))
             SetProperty(_cmdInsertarProducto, value)
         End Set
     End Property
-    Private Function CanInsertarProducto(arg As Object) As Boolean
+    Private Function CanInsertarProducto(prod As String) As Boolean
         Return True
     End Function
-    Private Async Sub OnInsertarProducto(arg As Object)
+    Private Async Function OnInsertarProducto(prod As String) As Task(Of Movimiento)
 
-        Dim linea As InventarioDTO = Await buscarInventario(EMPRESA_DEFECTO, almacen, fechaSeleccionada, arg)
+        Dim linea As InventarioDTO
+        Try
+            linea = Await buscarInventario(EMPRESA_DEFECTO, almacen, fechaSeleccionada, prod).ConfigureAwait(True)
+        Catch ex As Exception
+
+        End Try
+
+        Dim movimientoModificado As Movimiento
 
         If IsNothing(linea) Then
             linea = New InventarioDTO With {
@@ -275,13 +283,14 @@ Public Class InventarioViewModel
                 .StockCalculado = 0,
                 .StockReal = cantidad
             }
-            cmdCrearLineaInventario.Execute(linea) ' AWAIT
+            movimientoModificado = Await OnCrearLineaInventario(linea) ' AWAIT
         Else
             linea.StockReal += cantidad
-            cmdActualizarLineaInventario.Execute(linea) ' AWAIT
+            movimientoModificado = Await OnActualizarLineaInventario(linea) ' AWAIT
         End If
         RaisePropertyChanged(NameOf(movimientosDia))
-    End Sub
+        Return movimientoModificado
+    End Function
 
     Private _cmdCrearLineaInventario As DelegateCommand(Of InventarioDTO)
     Public Property cmdCrearLineaInventario As DelegateCommand(Of InventarioDTO)
@@ -295,7 +304,7 @@ Public Class InventarioViewModel
     Private Function CanCrearLineaInventario(arg As Object) As Boolean
         Return True
     End Function
-    Private Async Sub OnCrearLineaInventario(arg As Object)
+    Private Async Function OnCrearLineaInventario(arg As Object) As Task(Of Movimiento)
         Using client As New HttpClient
             'estaOcupado = True
 
@@ -307,6 +316,7 @@ Public Class InventarioViewModel
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
 
             Try
+                Dim nuevoMovimiento As Movimiento
                 response = Await client.PostAsync("Inventarios", content)
 
                 Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
@@ -318,16 +328,19 @@ Public Class InventarioViewModel
                     linea.Producto = detallesError("Número")
                     linea.Descripcion = detallesError("Descripción")
                     linea.Familia = detallesError("Familia")
-                    movimientosDia.Add(New Movimiento With {
+                    nuevoMovimiento = New Movimiento With {
                         .Cantidad = cantidad,
                         .Descripcion = linea.Descripcion,
                         .Familia = linea.Familia,
                         .Grupo = linea.Grupo,
                         .Subgrupo = linea.Subgrupo,
                         .Producto = linea.Producto
-                    })
+                    }
+                    movimientosDia.Add(nuevoMovimiento)
+                    RaisePropertyChanged(NameOf(movimientosDia))
                     numeroProducto = String.Empty
                     cantidad = 1
+                    Return nuevoMovimiento
                 End If
             Catch ex As Exception
                 dialogService.ShowError(ex.Message)
@@ -336,7 +349,7 @@ Public Class InventarioViewModel
             End Try
 
         End Using
-    End Sub
+    End Function
 
 
 #End Region
@@ -370,6 +383,10 @@ Public Class InventarioViewModel
 
         Return linea
 
+    End Function
+
+    Public Async Function InsertarProducto(producto As String) As Task(Of Movimiento)
+        Return Await OnInsertarProducto(producto)
     End Function
 
 #End Region

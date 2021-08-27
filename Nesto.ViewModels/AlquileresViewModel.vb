@@ -9,6 +9,7 @@ Imports Nesto.Models.Nesto.Models
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Contratos
+Imports System.IO
 
 Public Class AlquileresViewModel
     Inherits BindableBase
@@ -276,33 +277,33 @@ Public Class AlquileresViewModel
 
         Dim puerto As String = Await configuracion.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
 
-        Dim objFSO
-        Dim objStream
-        objFSO = CreateObject("Scripting.FileSystemObject")
-        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+        'Dim objFSO
+        'Dim objStream
+        'objFSO = CreateObject("Scripting.FileSystemObject")
+        'objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
 
         Try
-
-            objStream.Writeline("I8,A,034")
-            objStream.Writeline("N")
-            objStream.Writeline("A50,500,3,4,3,2,N,""  UnióN LáseR""")
-            objStream.Writeline("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
-            objStream.Writeline("A190,10,0,5,1,1,N,""" + ProductoSeleccionado.Nombre + """")
-            objStream.Writeline("A190,190,0,3,1,1,N,""N/S: " + LineaSeleccionada.NumeroSerie + """")
-            objStream.Writeline("B190,90,0,3,2,7,70,N,""" + LineaSeleccionada.NumeroSerie + """")
-            objStream.Writeline("A190,250,0,3,1,1,N,""Fecha Etiquetado: " + Now.ToShortDateString + """")
-            objStream.Writeline("A190,300,0,3,1,1,N,""Revisada por: """)
-            objStream.Writeline("A190,400,0,3,1,1,N,""Observaciones: """)
-            objStream.Writeline("P1")
-            objStream.Writeline("")
-
+            Using objStream As StreamWriter = File.CreateText(puerto)
+                objStream.WriteLine("I8,A,034")
+                objStream.WriteLine("N")
+                objStream.WriteLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
+                objStream.WriteLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
+                objStream.WriteLine("A190,10,0,5,1,1,N,""" + ProductoSeleccionado.Nombre + """")
+                objStream.WriteLine("A190,190,0,3,1,1,N,""N/S: " + LineaSeleccionada.NumeroSerie + """")
+                objStream.WriteLine("B190,90,0,3,2,7,70,N,""" + LineaSeleccionada.NumeroSerie + """")
+                objStream.WriteLine("A190,250,0,3,1,1,N,""Fecha Etiquetado: " + Now.ToShortDateString + """")
+                objStream.WriteLine("A190,300,0,3,1,1,N,""Revisada por: """)
+                objStream.WriteLine("A190,400,0,3,1,1,N,""Observaciones: """)
+                objStream.WriteLine("P1")
+                objStream.WriteLine("")
+            End Using
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
             dialogService.ShowError(mensajeError)
-        Finally
-            objStream.Close()
-            objFSO = Nothing
-            objStream = Nothing
+            'Finally
+            '    objStream.Close()
+            '    objFSO = Nothing
+            '    objStream = Nothing
         End Try
     End Sub
 
@@ -322,34 +323,35 @@ Public Class AlquileresViewModel
 
         Dim puerto As String = Await configuracion.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
 
-        Dim objFSO
-        Dim objStream
-        objFSO = CreateObject("Scripting.FileSystemObject")
-        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+        'Dim objFSO
+        'Dim objStream
+        'objFSO = CreateObject("Scripting.FileSystemObject")
+        'objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
         Dim i As Integer
 
         Try
-            For i = 1 To bultos
-                objStream.Writeline("I8,A,034")
-                objStream.Writeline("N")
-                objStream.Writeline("A50,500,3,4,3,2,N,""  UnióN LáseR""")
-                objStream.Writeline("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
-                objStream.Writeline("A190,10,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Nombre.Trim + """")
-                objStream.Writeline("A190,60,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Dirección + """")
-                objStream.Writeline("A190,110,0,4,1,1,N,""" + LineaSeleccionada.Clientes.CodPostal.Trim + " " + LineaSeleccionada.Clientes.Población.Trim + """")
-                objStream.Writeline("A190,160,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Provincia.Trim + "")
-                objStream.Writeline("A190,210,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString + "")
-                objStream.Writeline("B190,260,0,3,2,7,70,N,""" + LineaSeleccionada.CabPedidoVta.ToString + """")
-                objStream.Writeline("P1")
-                objStream.Writeline("")
-            Next
-
+            Using objStream As StreamWriter = File.CreateText(puerto)
+                For i = 1 To bultos
+                    objStream.WriteLine("I8,A,034")
+                    objStream.WriteLine("N")
+                    objStream.WriteLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
+                    objStream.WriteLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
+                    objStream.WriteLine("A190,10,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Nombre.Trim + """")
+                    objStream.WriteLine("A190,60,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Dirección + """")
+                    objStream.WriteLine("A190,110,0,4,1,1,N,""" + LineaSeleccionada.Clientes.CodPostal.Trim + " " + LineaSeleccionada.Clientes.Población.Trim + """")
+                    objStream.WriteLine("A190,160,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Provincia.Trim + "")
+                    objStream.WriteLine("A190,210,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString + "")
+                    objStream.WriteLine("B190,260,0,3,2,7,70,N,""" + LineaSeleccionada.CabPedidoVta.ToString + """")
+                    objStream.WriteLine("P1")
+                    objStream.WriteLine("")
+                Next
+            End Using
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
-        Finally
-            objStream.Close()
-            objFSO = Nothing
-            objStream = Nothing
+            'Finally
+            '    objStream.Close()
+            '    objFSO = Nothing
+            '    objStream = Nothing
         End Try
     End Sub
 

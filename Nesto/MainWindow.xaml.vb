@@ -1,6 +1,6 @@
 ﻿Imports Prism.Regions
 Imports Nesto.Contratos
-Imports System.Deployment.Application
+
 
 Class MainWindow
     Implements IMainWindow
@@ -16,11 +16,13 @@ Class MainWindow
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.regionManager = regionManager
         'Me.DataContext = New MainViewModel(container, regionManager)
-        Try
-            tituloVentana = "Nesto (" + ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString() + ")"
-        Catch ex As InvalidDeploymentException
-            tituloVentana = "Nesto"
-        End Try
+        'Try
+        '    tituloVentana = "Nesto (" + ApplicationDeployment.CurrentDeployment.CurrentVersion.ToString() + ")"
+        'Catch ex As InvalidDeploymentException
+        '    tituloVentana = "Nesto"
+        'End Try
+
+        tituloVentana = "Nesto (1.9.3)"
 
         Me.Title = tituloVentana
     End Sub

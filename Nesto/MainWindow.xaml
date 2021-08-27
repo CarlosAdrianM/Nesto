@@ -8,7 +8,7 @@
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         Title="Nesto" 
         x:Name="RibbonWindow"
-		Icon="/Nesto;component/Icono2_NV_256x256.ico" WindowState="Maximized"  VerticalContentAlignment="Center" VerticalAlignment="Center">
+		Icon="/Icono2_NV_256x256.ico" WindowState="Maximized"  VerticalContentAlignment="Center" VerticalAlignment="Center">
     
     <Window.Resources>
         

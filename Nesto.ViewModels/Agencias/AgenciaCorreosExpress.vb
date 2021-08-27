@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.ComponentModel.DataAnnotations
 Imports System.Configuration
+Imports System.IO
 Imports System.Net
 Imports System.Net.Http
 Imports System.Text
@@ -224,10 +225,6 @@ Public Class AgenciaCorreosExpress
         Dim mainViewModel As New MainViewModel
         Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
 
-        Dim objFSO
-        Dim objStream
-        objFSO = CreateObject("Scripting.FileSystemObject")
-        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
         Dim i As Integer
 
         Const ANCHO_OBSERVACIONES As Integer = 46
@@ -242,6 +239,7 @@ Public Class AgenciaCorreosExpress
         End If
 
         Try
+            Dim builder As New StringBuilder
             For i = 1 To envio.Bultos
                 Dim codigoBarrasBulto = CalcularCodigoBarrasBulto(envio.CodigoBarras, i, codigoPostal)
                 Dim observaciones = envio.Observaciones?.Substring(0, Math.Min(envio.Observaciones.Length, ANCHO_OBSERVACIONES * 2))
@@ -252,123 +250,124 @@ Public Class AgenciaCorreosExpress
                 If textoServicio.Length > 18 Then
                     textoServicio = textoServicio.Substring(0, 18)
                 End If
-                objStream.Writeline("N")
-                objStream.Writeline("OD")
-                objStream.Writeline("q816")
-                'objStream.Writeline("I8,1")
-                objStream.Writeline("I8,A,034")
-                objStream.Writeline("Q1583,24+0")
-                objStream.Writeline("S4")
-                objStream.Writeline("D13")
-                objStream.Writeline("ZT")
-                objStream.Writeline("LO5,540,467,4")
-                objStream.Writeline("LO93,330,120,4")
-                objStream.Writeline("LO93,170,120,4")
-                objStream.Writeline("LO352,5,4,535")
-                objStream.Writeline("LO150,5,4,535")
-                objStream.Writeline("LO210,5,4,535")
-                objStream.Writeline("LO90,5,4,1100")
-                objStream.Writeline("LO468,540,4,660")
-                objStream.Writeline("A25,1100,3,1,2,1,N,""" + envio.Empresas.Nombre.ToUpper.Trim() + """")
-                objStream.Writeline("A55,1100,3,1,1,1,N,""" + envio.Empresas.Dirección.ToUpper.Trim() + """")
-                objStream.Writeline("A75,1100,3,1,1,1,N,""" + envio.Empresas.Población.ToUpper.Trim() + """")
-                objStream.Writeline("A75,830,3,1,1,1,N,""Telf.:  " + envio.Empresas.Teléfono.Trim() + """")
-                objStream.Writeline("A270,520,3,3,2,1,N,""COD.BULTO: " + codigoBarrasBulto + """")
-                objStream.Writeline("B770,410,1,1,4,2,256,N,""" + codigoBarrasBulto + """")
-                objStream.Writeline("A100,1100,3,3,2,1,N,""" + envio.Nombre.ToUpper.Trim + """")
-                objStream.Writeline("A435,1150,3,1,2,1,N,""ATT: " + envio.Atencion.ToUpper.Trim + """")
-                objStream.Writeline("A435,800,3,1,2,1,N,""TELF.: " + IIf(envio.Telefono.ToUpper.Trim <> "", envio.Telefono.ToUpper.Trim, envio.Movil.ToUpper.Trim) + """")
-                objStream.Writeline("A140,1100,3,2,2,1,N,""" + envio.Direccion.ToUpper.Trim + """")
-                objStream.Writeline("A250,1100,3,5,2,2,N,""" + envio.CodPostal.ToUpper.Trim + """")
-                objStream.Writeline("A390,1150,3,3,2,1,N,""" + envio.Poblacion.ToUpper.Trim + """")
-                objStream.Writeline("A220,520,3,3,2,1,N,""REF: " + envio.Cliente.Trim() + "/" + envio.Pedido.ToString.Trim() + """")
-                objStream.Writeline("A350,1150,3,3,2,3,N,""  """) ' << DESTINO >>
-                objStream.Writeline("A350,1150,3,3,2,3,N,""" + ListaPaises.Single(Function(p) p.Id = envio.Pais).Nombre.ToUpper.Trim + """")
-                objStream.Writeline("A20,530,3,2,3,2,N,""EXP:" + envio.CodigoBarras + """")
-                objStream.Writeline("A158,320,3,2,1,1,N,""PESO: """)
-                objStream.Writeline("A175,320,3,2,2,1,N,""1""") '<< KILOS >> Kgs.
-                objStream.Writeline("A98,320,3,2,1,1,N,""BULTOS: """)
-                objStream.Writeline("A115,320,3,2,2,1,N,""" + i.ToString + " DE " + envio.Bultos.ToString + """")
-                objStream.Writeline("A98,520,3,2,1,1,N,""REEMBOLSO: """)
-                objStream.Writeline("A115,520,3,2,2,1,N,""" + envio.Reembolso.ToString("C") + """")
-                objStream.Writeline("A158,520,3,2,1,1,N,""TIPO DE PORTES:""")
-                objStream.Writeline("A175,520,3,2,2,1,N,""PAGADOS""")
-                objStream.Writeline("A70,450,3,1,1,1,N,""Envio retorno: """) ' << RETORNO >> 
-                objStream.Writeline("A400,520,3,3,2,2,N,""" + textoServicio + """")
-                objStream.Writeline("A180,1100,3,2,2,1,N,""" + observaciones.Substring(0, Math.Min(observaciones.Length, ANCHO_OBSERVACIONES)) + """")
+                builder.AppendLine("N")
+                builder.AppendLine("OD")
+                builder.AppendLine("q816")
+                'objStream.AppendLine("I8,1")
+                builder.AppendLine("I8,A,034")
+                builder.AppendLine("Q1583,24+0")
+                builder.AppendLine("S4")
+                builder.AppendLine("D13")
+                builder.AppendLine("ZT")
+                builder.AppendLine("LO5,540,467,4")
+                builder.AppendLine("LO93,330,120,4")
+                builder.AppendLine("LO93,170,120,4")
+                builder.AppendLine("LO352,5,4,535")
+                builder.AppendLine("LO150,5,4,535")
+                builder.AppendLine("LO210,5,4,535")
+                builder.AppendLine("LO90,5,4,1100")
+                builder.AppendLine("LO468,540,4,660")
+                builder.AppendLine("A25,1100,3,1,2,1,N,""" + envio.Empresas.Nombre.ToUpper.Trim() + """")
+                builder.AppendLine("A55,1100,3,1,1,1,N,""" + envio.Empresas.Dirección.ToUpper.Trim() + """")
+                builder.AppendLine("A75,1100,3,1,1,1,N,""" + envio.Empresas.Población.ToUpper.Trim() + """")
+                builder.AppendLine("A75,830,3,1,1,1,N,""Telf.:  " + envio.Empresas.Teléfono.Trim() + """")
+                builder.AppendLine("A270,520,3,3,2,1,N,""COD.BULTO: " + codigoBarrasBulto + """")
+                builder.AppendLine("B770,410,1,1,4,2,256,N,""" + codigoBarrasBulto + """")
+                builder.AppendLine("A100,1100,3,3,2,1,N,""" + envio.Nombre.ToUpper.Trim + """")
+                builder.AppendLine("A435,1150,3,1,2,1,N,""ATT: " + envio.Atencion.ToUpper.Trim + """")
+                builder.AppendLine("A435,800,3,1,2,1,N,""TELF.: " + IIf(envio.Telefono.ToUpper.Trim <> "", envio.Telefono.ToUpper.Trim, envio.Movil.ToUpper.Trim) + """")
+                builder.AppendLine("A140,1100,3,2,2,1,N,""" + envio.Direccion.ToUpper.Trim + """")
+                builder.AppendLine("A250,1100,3,5,2,2,N,""" + envio.CodPostal.ToUpper.Trim + """")
+                builder.AppendLine("A390,1150,3,3,2,1,N,""" + envio.Poblacion.ToUpper.Trim + """")
+                builder.AppendLine("A220,520,3,3,2,1,N,""REF: " + envio.Cliente.Trim() + "/" + envio.Pedido.ToString.Trim() + """")
+                builder.AppendLine("A350,1150,3,3,2,3,N,""  """) ' << DESTINO >>
+                builder.AppendLine("A350,1150,3,3,2,3,N,""" + ListaPaises.Single(Function(p) p.Id = envio.Pais).Nombre.ToUpper.Trim + """")
+                builder.AppendLine("A20,530,3,2,3,2,N,""EXP:" + envio.CodigoBarras + """")
+                builder.AppendLine("A158,320,3,2,1,1,N,""PESO: """)
+                builder.AppendLine("A175,320,3,2,2,1,N,""1""") '<< KILOS >> Kgs.
+                builder.AppendLine("A98,320,3,2,1,1,N,""BULTOS: """)
+                builder.AppendLine("A115,320,3,2,2,1,N,""" + i.ToString + " DE " + envio.Bultos.ToString + """")
+                builder.AppendLine("A98,520,3,2,1,1,N,""REEMBOLSO: """)
+                builder.AppendLine("A115,520,3,2,2,1,N,""" + envio.Reembolso.ToString("C") + """")
+                builder.AppendLine("A158,520,3,2,1,1,N,""TIPO DE PORTES:""")
+                builder.AppendLine("A175,520,3,2,2,1,N,""PAGADOS""")
+                builder.AppendLine("A70,450,3,1,1,1,N,""Envio retorno: """) ' << RETORNO >> 
+                builder.AppendLine("A400,520,3,3,2,2,N,""" + textoServicio + """")
+                builder.AppendLine("A180,1100,3,2,2,1,N,""" + observaciones.Substring(0, Math.Min(observaciones.Length, ANCHO_OBSERVACIONES)) + """")
                 If observaciones.Length > 46 Then
-                    objStream.Writeline("A220,1100,3,2,2,1,N,""" + observaciones.Substring(ANCHO_OBSERVACIONES, Math.Min(observaciones.Length - ANCHO_OBSERVACIONES, ANCHO_OBSERVACIONES)) + """")
+                    builder.AppendLine("A220,1100,3,2,2,1,N,""" + observaciones.Substring(ANCHO_OBSERVACIONES, Math.Min(observaciones.Length - ANCHO_OBSERVACIONES, ANCHO_OBSERVACIONES)) + """")
                 End If
-                objStream.Writeline("A115,160,3,2,2,1,N,""" + envio.Fecha.ToString("dd/MM/yyyy") + """")
-                objStream.Writeline("A98,160,3,2,1,1,N,""FECHA: """)
-                'objStream.Writeline("b760,340,P,800,600,s1,c0,f0,x2,y5,l5,t0,o2," << PDF417 >> "")
-                objStream.Writeline("P1")
-                objStream.Writeline("N")
+                builder.AppendLine("A115,160,3,2,2,1,N,""" + envio.Fecha.ToString("dd/MM/yyyy") + """")
+                builder.AppendLine("A98,160,3,2,1,1,N,""FECHA: """)
+                'objStream.AppendLine("b760,340,P,800,600,s1,c0,f0,x2,y5,l5,t0,o2," << PDF417 >> "")
+                builder.AppendLine("P1")
+                builder.AppendLine("N")
             Next
 
             If envio.Servicio = ServicioCreaEtiquetaRetorno Then
                 envio.CodigoBarras = CalcularCodigoBarrasRetorno(envio.CodigoBarras)
                 Dim codigoBarrasBulto = CalcularCodigoBarrasBulto(envio.CodigoBarras, 1, envio.Empresas.CodPostal.Trim)
                 Dim observaciones = envio.Observaciones.Substring(0, Math.Min(envio.Observaciones.Length, ANCHO_OBSERVACIONES * 2))
-                objStream.Writeline("N")
-                objStream.Writeline("OD")
-                objStream.Writeline("q816")
-                'objStream.Writeline("I8,1")
-                objStream.Writeline("I8,A,034")
-                objStream.Writeline("Q1583,24+0")
-                objStream.Writeline("S4")
-                objStream.Writeline("D13")
-                objStream.Writeline("ZT")
-                objStream.Writeline("LO5,540,467,4")
-                objStream.Writeline("LO93,330,120,4")
-                objStream.Writeline("LO93,170,120,4")
-                objStream.Writeline("LO352,5,4,535")
-                objStream.Writeline("LO150,5,4,535")
-                objStream.Writeline("LO210,5,4,535")
-                objStream.Writeline("LO90,5,4,1100")
-                objStream.Writeline("LO468,540,4,660")
-                objStream.Writeline("A25,1100,3,1,2,1,N,""" + envio.Nombre.ToUpper.Trim() + """")
-                objStream.Writeline("A55,1100,3,1,1,1,N,""" + envio.Direccion.ToUpper.Trim() + """")
-                objStream.Writeline("A75,1100,3,1,1,1,N,""" + envio.Poblacion.ToUpper.Trim() + """")
-                objStream.Writeline("A75,830,3,1,1,1,N,""Telf.:  " + IIf(envio.Telefono.ToUpper.Trim <> "", envio.Telefono.ToUpper.Trim, envio.Movil.ToUpper.Trim) + """")
-                objStream.Writeline("A270,520,3,3,2,1,N,""COD.BULTO: " + codigoBarrasBulto + """")
-                objStream.Writeline("B770,410,1,1,4,2,256,N,""" + codigoBarrasBulto + """")
-                objStream.Writeline("A100,1100,3,3,2,1,N,""" + envio.Empresas.Nombre.ToUpper.Trim + """")
-                objStream.Writeline("A435,1150,3,1,2,1,N,""ATT: DPTO. ALMACÉN""")
-                objStream.Writeline("A435,800,3,1,2,1,N,""TELF.: " + envio.Empresas.Teléfono.Trim() + """")
-                objStream.Writeline("A140,1100,3,2,2,1,N,""" + envio.Empresas.Dirección.ToUpper.Trim + """")
-                objStream.Writeline("A250,1100,3,5,2,2,N,""" + envio.Empresas.CodPostal.ToUpper.Trim + """")
-                objStream.Writeline("A390,1150,3,3,2,1,N,""" + envio.Empresas.Población.ToUpper.Trim + """")
-                objStream.Writeline("A220,520,3,3,2,1,N,""REF: " + envio.Cliente.Trim() + "/" + envio.Pedido.ToString.Trim() + "R""")
-                objStream.Writeline("A350,1150,3,3,2,3,N,""  """) ' << DESTINO >>
-                objStream.Writeline("A350,1150,3,3,2,3,N,""" + ListaPaises.Single(Function(p) p.Id = paisDefecto).Nombre.ToUpper.Trim + """")
-                objStream.Writeline("A20,530,3,2,3,2,N,""EXP:" + envio.CodigoBarras + """")
-                objStream.Writeline("A158,320,3,2,1,1,N,""PESO: """)
-                objStream.Writeline("A175,320,3,2,2,1,N,""1""") '<< KILOS >> Kgs.
-                objStream.Writeline("A98,320,3,2,1,1,N,""BULTOS: """)
-                objStream.Writeline("A115,320,3,2,2,1,N,""1 DE 1""")
-                objStream.Writeline("A98,520,3,2,1,1,N,""REEMBOLSO: """)
-                objStream.Writeline("A115,520,3,2,2,1,N,""""")
-                objStream.Writeline("A158,520,3,2,1,1,N,""TIPO DE PORTES:""")
-                objStream.Writeline("A175,520,3,2,2,1,N,""PAGADOS""")
-                objStream.Writeline("A70,450,3,1,1,1,N,""Envio retorno: """) ' << RETORNO >> 
-                objStream.Writeline("A400,520,3,3,2,2,N,""52 RETORNO""")
-                objStream.Writeline("A180,1100,3,2,2,1,N,""" + observaciones.Substring(0, Math.Min(observaciones.Length, ANCHO_OBSERVACIONES)) + """")
+                builder.AppendLine("N")
+                builder.AppendLine("OD")
+                builder.AppendLine("q816")
+                'objStream.AppendLine("I8,1")
+                builder.AppendLine("I8,A,034")
+                builder.AppendLine("Q1583,24+0")
+                builder.AppendLine("S4")
+                builder.AppendLine("D13")
+                builder.AppendLine("ZT")
+                builder.AppendLine("LO5,540,467,4")
+                builder.AppendLine("LO93,330,120,4")
+                builder.AppendLine("LO93,170,120,4")
+                builder.AppendLine("LO352,5,4,535")
+                builder.AppendLine("LO150,5,4,535")
+                builder.AppendLine("LO210,5,4,535")
+                builder.AppendLine("LO90,5,4,1100")
+                builder.AppendLine("LO468,540,4,660")
+                builder.AppendLine("A25,1100,3,1,2,1,N,""" + envio.Nombre.ToUpper.Trim() + """")
+                builder.AppendLine("A55,1100,3,1,1,1,N,""" + envio.Direccion.ToUpper.Trim() + """")
+                builder.AppendLine("A75,1100,3,1,1,1,N,""" + envio.Poblacion.ToUpper.Trim() + """")
+                builder.AppendLine("A75,830,3,1,1,1,N,""Telf.:  " + IIf(envio.Telefono.ToUpper.Trim <> "", envio.Telefono.ToUpper.Trim, envio.Movil.ToUpper.Trim) + """")
+                builder.AppendLine("A270,520,3,3,2,1,N,""COD.BULTO: " + codigoBarrasBulto + """")
+                builder.AppendLine("B770,410,1,1,4,2,256,N,""" + codigoBarrasBulto + """")
+                builder.AppendLine("A100,1100,3,3,2,1,N,""" + envio.Empresas.Nombre.ToUpper.Trim + """")
+                builder.AppendLine("A435,1150,3,1,2,1,N,""ATT: DPTO. ALMACÉN""")
+                builder.AppendLine("A435,800,3,1,2,1,N,""TELF.: " + envio.Empresas.Teléfono.Trim() + """")
+                builder.AppendLine("A140,1100,3,2,2,1,N,""" + envio.Empresas.Dirección.ToUpper.Trim + """")
+                builder.AppendLine("A250,1100,3,5,2,2,N,""" + envio.Empresas.CodPostal.ToUpper.Trim + """")
+                builder.AppendLine("A390,1150,3,3,2,1,N,""" + envio.Empresas.Población.ToUpper.Trim + """")
+                builder.AppendLine("A220,520,3,3,2,1,N,""REF: " + envio.Cliente.Trim() + "/" + envio.Pedido.ToString.Trim() + "R""")
+                builder.AppendLine("A350,1150,3,3,2,3,N,""  """) ' << DESTINO >>
+                builder.AppendLine("A350,1150,3,3,2,3,N,""" + ListaPaises.Single(Function(p) p.Id = paisDefecto).Nombre.ToUpper.Trim + """")
+                builder.AppendLine("A20,530,3,2,3,2,N,""EXP:" + envio.CodigoBarras + """")
+                builder.AppendLine("A158,320,3,2,1,1,N,""PESO: """)
+                builder.AppendLine("A175,320,3,2,2,1,N,""1""") '<< KILOS >> Kgs.
+                builder.AppendLine("A98,320,3,2,1,1,N,""BULTOS: """)
+                builder.AppendLine("A115,320,3,2,2,1,N,""1 DE 1""")
+                builder.AppendLine("A98,520,3,2,1,1,N,""REEMBOLSO: """)
+                builder.AppendLine("A115,520,3,2,2,1,N,""""")
+                builder.AppendLine("A158,520,3,2,1,1,N,""TIPO DE PORTES:""")
+                builder.AppendLine("A175,520,3,2,2,1,N,""PAGADOS""")
+                builder.AppendLine("A70,450,3,1,1,1,N,""Envio retorno: """) ' << RETORNO >> 
+                builder.AppendLine("A400,520,3,3,2,2,N,""52 RETORNO""")
+                builder.AppendLine("A180,1100,3,2,2,1,N,""" + observaciones.Substring(0, Math.Min(observaciones.Length, ANCHO_OBSERVACIONES)) + """")
                 If observaciones.Length > 46 Then
-                    objStream.Writeline("A220,1100,3,2,2,1,N,""" + observaciones.Substring(ANCHO_OBSERVACIONES, Math.Min(observaciones.Length - ANCHO_OBSERVACIONES, ANCHO_OBSERVACIONES)) + """")
+                    builder.AppendLine("A220,1100,3,2,2,1,N,""" + observaciones.Substring(ANCHO_OBSERVACIONES, Math.Min(observaciones.Length - ANCHO_OBSERVACIONES, ANCHO_OBSERVACIONES)) + """")
                 End If
-                objStream.Writeline("A115,160,3,2,2,1,N,""" + envio.Fecha.ToString("dd/MM/yyyy") + """")
-                objStream.Writeline("A98,160,3,2,1,1,N,""FECHA: """)
-                'objStream.Writeline("b760,340,P,800,600,s1,c0,f0,x2,y5,l5,t0,o2," << PDF417 >> "")
-                objStream.Writeline("P1")
-                objStream.Writeline("N")
+                builder.AppendLine("A115,160,3,2,2,1,N,""" + envio.Fecha.ToString("dd/MM/yyyy") + """")
+                builder.AppendLine("A98,160,3,2,1,1,N,""FECHA: """)
+                'objStream.AppendLine("b760,340,P,800,600,s1,c0,f0,x2,y5,l5,t0,o2," << PDF417 >> "")
+                builder.AppendLine("P1")
+                builder.AppendLine("N")
             End If
+            RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
         Catch ex As Exception
             Throw New Exception("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.InnerException.Message)
-        Finally
-            objStream.Close()
-            objFSO = Nothing
-            objStream = Nothing
+            'Finally
+            '    objStream.Close()
+            '    objFSO = Nothing
+            '    objStream = Nothing
         End Try
     End Sub
 

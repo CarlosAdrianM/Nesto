@@ -57,27 +57,27 @@
         </Grid>
         <TabControl Name="tclMovimientos" Grid.Column="1" TabStripPlacement="Bottom">
             <TabItem Name="tabRecientes" Header="Recientes">
-                <xcdg:DataGridControl Name="dgrRecientes" ItemsSource="{Binding movimientosDia}" AutoCreateColumns="False" AutoScrollCurrentItem="All" ReadOnly="True" SynchronizeCurrent="True" SelectedItem="{Binding movimientoActual, Mode=TwoWay}" SynchronizeSelectionWithCurrent="True">
-                    <xcdg:DataGridControl.Columns>
-                        <xcdg:Column FieldName="Producto" Title="Producto" />
-                        <xcdg:Column FieldName="Descripcion" Width="2*" Title="Descripción" />
-                        <xcdg:Column FieldName="Familia" Title="Familia"/>
-                        <xcdg:Column FieldName="Cantidad" Title="Stock"/>
-                    </xcdg:DataGridControl.Columns>
-                </xcdg:DataGridControl>
+                <DataGrid Name="dgrRecientes" ItemsSource="{Binding movimientosDia}" AutoGenerateColumns="False" IsReadOnly="True" SelectedItem="{Binding movimientoActual, Mode=TwoWay}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
+                        <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="2*" />
+                        <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
+                        <DataGridTextColumn Header="Stock" Binding="{Binding Cantidad}" />
+                    </DataGrid.Columns>
+                </DataGrid>
             </TabItem>
             <TabItem Name="tabCompleto" Header="Completo">
                 <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Cargando datos...">
                     <DockPanel>
                         <Button DockPanel.Dock="Top" Command="{Binding cmdActualizarMovimientos}">Actualizar</Button>
-                        <xcdg:DataGridControl DockPanel.Dock="Bottom" Name="dgrCompleto" ItemsSource="{Binding movimientosTotal}" AutoCreateColumns="False" ReadOnly="True">
-                            <xcdg:DataGridControl.Columns>
-                                <xcdg:Column FieldName="Producto" Title="Producto" />
-                                <xcdg:Column FieldName="Descripcion" Width="2*" Title="Descripción" />
-                                <xcdg:Column FieldName="Familia" Title="Familia"/>
-                                <xcdg:Column FieldName="StockReal" Title="Stock"/>
-                            </xcdg:DataGridControl.Columns>
-                        </xcdg:DataGridControl>
+                        <DataGrid DockPanel.Dock="Bottom" Name="dgrCompleto" ItemsSource="{Binding movimientosTotal}" AutoGenerateColumns="False" IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
+                                <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="2*" />
+                                <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
+                                <DataGridTextColumn Header="Stock" Binding="{Binding StockReal}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </DockPanel>
                 </xctk:BusyIndicator>
 

@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.Data.Entity
 Imports System.Data.Objects
 Imports System.Net.Http
 Imports System.Text

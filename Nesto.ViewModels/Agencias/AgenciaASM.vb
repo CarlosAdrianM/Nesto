@@ -324,32 +324,31 @@ Public Class AgenciaASM
         Dim mainViewModel As New MainViewModel
         Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
 
-        Dim objFSO
-        Dim objStream
-        objFSO = CreateObject("Scripting.FileSystemObject")
-        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+        'Dim objFSO
+        'objFSO = CreateObject("Scripting.FileSystemObject")
+        'objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+
         Dim i As Integer
 
-
-
         Try
-            For i = 1 To envio.Bultos
-                objStream.Writeline("I8,A,034")
-                objStream.Writeline("N")
-                objStream.Writeline("A40,10,0,4,1,1,N,""" + envio.Nombre + """")
-                objStream.Writeline("A40,50,0,4,1,1,N,""" + envio.Direccion + """")
-                objStream.Writeline("A40,90,0,4,1,1,N,""" + envio.CodPostal + " " + envio.Poblacion + """")
-                objStream.Writeline("A40,130,0,4,1,1,N,""" + envio.Provincia + """")
-                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + envio.Bultos.ToString _
-                                    + ". Cliente: " + envio.Cliente.Trim + ". Fecha: " + envio.Fecha + """")
-                objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + envio.CodigoBarras + i.ToString("D3") + """")
-                objStream.Writeline("A40,450,0,4,1,2,N,""" + envio.Nemonico + " " + envio.NombrePlaza + """")
-                objStream.Writeline("A40,510,0,4,1,2,N,""" + ListaHorarios.Where(Function(x) x.id = envio.Horario).FirstOrDefault.descripcion + """")
-                objStream.Writeline("A590,265,0,5,2,2,N,""" + envio.Nemonico + """")
-                objStream.Writeline("P1")
-                objStream.Writeline("")
-            Next
-
+            Using objStream As StreamWriter = File.CreateText(puerto)
+                For i = 1 To envio.Bultos
+                    objStream.Writeline("I8,A,034")
+                    objStream.Writeline("N")
+                    objStream.Writeline("A40,10,0,4,1,1,N,""" + envio.Nombre + """")
+                    objStream.Writeline("A40,50,0,4,1,1,N,""" + envio.Direccion + """")
+                    objStream.Writeline("A40,90,0,4,1,1,N,""" + envio.CodPostal + " " + envio.Poblacion + """")
+                    objStream.Writeline("A40,130,0,4,1,1,N,""" + envio.Provincia + """")
+                    objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + envio.Bultos.ToString _
+                                        + ". Cliente: " + envio.Cliente.Trim + ". Fecha: " + envio.Fecha + """")
+                    objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + envio.CodigoBarras + i.ToString("D3") + """")
+                    objStream.Writeline("A40,450,0,4,1,2,N,""" + envio.Nemonico + " " + envio.NombrePlaza + """")
+                    objStream.Writeline("A40,510,0,4,1,2,N,""" + ListaHorarios.Where(Function(x) x.id = envio.Horario).FirstOrDefault.descripcion + """")
+                    objStream.Writeline("A590,265,0,5,2,2,N,""" + envio.Nemonico + """")
+                    objStream.Writeline("P1")
+                    objStream.Writeline("")
+                Next
+            End Using
             '' Insertamos la etiqueta en la tabla
             'Dim etiqueta As New EtiquetasPicking With { _
             '.Empresa = envioActual.Empresa,
@@ -365,10 +364,10 @@ Public Class AgenciaASM
 
         Catch ex As Exception
             agenciaVM.dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.InnerException.Message)
-        Finally
-            objStream.Close()
-            objFSO = Nothing
-            objStream = Nothing
+            'Finally
+            '    objStream.Close()
+            '    objFSO = Nothing
+            '    objStream = Nothing
         End Try
     End Sub
     Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir

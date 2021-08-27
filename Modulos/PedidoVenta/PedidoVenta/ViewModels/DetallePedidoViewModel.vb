@@ -388,11 +388,11 @@ Public Class DetallePedidoViewModel
             Dim culture As CultureInfo = CultureInfo.CurrentCulture
 
             If arg.Column.Header = "Precio" Then
-                If Not Double.TryParse(textBox.Text, style, culture, lineaActual.precio) Then
+                If Not Double.TryParse(textBox.Text, style, CType(culture, IFormatProvider), (lineaActual.precio)) Then
                     Return
                 End If
             Else
-                If Not Double.TryParse(textBox.Text, style, culture, lineaActual.descuento) Then
+                If Not Double.TryParse(textBox.Text, style, CType(culture, IFormatProvider), (lineaActual.descuento)) Then
                     Return
                 Else
                     lineaActual.descuento = lineaActual.descuento / 100

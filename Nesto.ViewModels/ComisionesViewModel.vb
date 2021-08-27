@@ -144,7 +144,7 @@ Public Class ComisionesViewModel
         End Set
     End Property
 
-    Private _colMeses
+    Private _colMeses As Collection(Of String)
     Public Property colMeses As Collection(Of String)
         Get
             Return _colMeses
@@ -463,5 +463,6 @@ Public Class ComisionesViewModel
         Public Property Tipo As Decimal
         Public Property Comision As Decimal
     End Class
+
 End Class
 

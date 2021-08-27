@@ -106,11 +106,11 @@ Public Class PlantillaVentaView
             ' pero como no lo hace, lo cambiamos nosotros
             textBox.Text = Replace(textBox.Text, ".", ",")
             If e.Column.Header = "Precio" Then
-                If Not Double.TryParse(textBox.Text, linea.precio) Then
+                If Not Double.TryParse(textBox.Text, (linea.precio)) Then
                     Return
                 End If
             Else
-                If Not Double.TryParse(textBox.Text, linea.descuento) Then
+                If Not Double.TryParse(textBox.Text, (linea.descuento)) Then
                     Return
                 Else
                     linea.descuento = linea.descuento / 100

@@ -1,4 +1,6 @@
-﻿Imports Nesto.ViewModels
+﻿Imports System.Collections.ObjectModel
+Imports System.Globalization
+Imports Nesto.ViewModels
 Imports Xceed.Wpf.DataGrid
 
 Public Class Comisiones
@@ -45,4 +47,52 @@ Public Class Comisiones
             Await viewModel.CargarDatos()
         End If
     End Sub
+End Class
+
+Public Class GroupsToTotalConverter
+    Implements IValueConverter
+
+    Private Function IValueConverter_Convert(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.Convert
+        If TypeOf value Is ReadOnlyObservableCollection(Of Object) Then
+            Dim items = CType(value, ReadOnlyObservableCollection(Of Object))
+            Dim total As Decimal = 0
+
+            For Each gi In items
+                total += gi.Base_Imponible
+            Next
+
+            Return total.ToString("c")
+        End If
+
+        Return ""
+    End Function
+
+    Private Function IValueConverter_ConvertBack(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.ConvertBack
+        Return value
+    End Function
+End Class
+
+Public Class GroupsToTotalConverterTwoLevels
+    Implements IValueConverter
+
+    Private Function IValueConverter_Convert(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.Convert
+        If TypeOf value Is ReadOnlyObservableCollection(Of Object) Then
+            Dim items = CType(value, ReadOnlyObservableCollection(Of Object))
+            Dim total As Decimal = 0
+
+            For Each gi In items
+                For Each item In gi.Items
+                    total += item.Base_Imponible
+                Next
+            Next
+
+            Return total.ToString("c")
+        End If
+
+        Return ""
+    End Function
+
+    Private Function IValueConverter_ConvertBack(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.ConvertBack
+        Return value
+    End Function
 End Class

@@ -1,9 +1,4 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Nesto.Modulos.Rapports;
-using Nesto.Contratos;
-using FakeItEasy;
-using static Nesto.Modulos.Rapports.RapportsModel;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace RapportsTests
 {

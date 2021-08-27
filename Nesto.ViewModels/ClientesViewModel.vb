@@ -815,7 +815,7 @@ Public Class ClientesViewModel
         'Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified Or System.Data.EntityState.Deleted)
         If IsNothing(cuentaActiva) Then
             Return False
-        ElseIf Not My.Computer.FileSystem.FileExists(rutaMandato) Then
+        ElseIf Not File.Exists(rutaMandato) Then
             Return False
         Else
             Return True
@@ -826,6 +826,7 @@ Public Class ClientesViewModel
             Dim fileName As String = rutaMandato()
             Dim process As System.Diagnostics.Process = New System.Diagnostics.Process
             process.StartInfo.FileName = fileName
+            process.StartInfo.UseShellExecute = True
             process.Start()
             process.WaitForExit()
             mensajeError = ""
@@ -904,7 +905,7 @@ Public Class ClientesViewModel
         If elegirFichero.ShowDialog() Then
             Try
                 selectedPath = elegirFichero.FileName
-                My.Computer.FileSystem.CopyFile(
+                FileIO.FileSystem.CopyFile(
                 selectedPath,
                 rutaMandato,
                 Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,

@@ -9,6 +9,9 @@ Imports Nesto.Contratos
 Imports Prism.Ioc
 Imports Prism.Unity
 Imports Unity
+Imports System.IO
+Imports Microsoft.Reporting.NETCore
+Imports System.Reflection
 
 <[Module](ModuleName:="MenuBarView")>
 Public Class MenuBarView
@@ -17,21 +20,6 @@ Public Class MenuBarView
     Private regionManager As IRegionManager
     Private configuracion As IConfiguracion
 
-
-    'Public Sub New(regionManager As IRegionManager, container As IContainerProvider, configuracion As IConfiguracion)
-
-
-    '    ' Llamada necesaria para el diseñador.
-    '    InitializeComponent()
-
-    '    ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
-    '    Me.container = container
-    '    Me.regionManager = regionManager
-    '    Me.configuracion = configuracion
-    '    Me.DataContext = New MainViewModel(container, regionManager)
-    '    DataContext.Titulo = "Sin Título"
-
-    'End Sub
 
     Private Sub Button1_Click(sender As System.Object, e As RoutedEventArgs) Handles btnInforme.Click
         'Dim w2 As New frmInforme
@@ -248,99 +236,25 @@ Public Class MenuBarView
                 GenerarInformeVentasGrupo(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal, True)
         End Select
     End Sub
-    Private Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SóloFacturas As Boolean)
-        Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of CRInforme)()
-        vista.DataContext.Titulo = "Informe Ventas"
-
-        'Dim Ventana As New frmInforme
-        'Ventana.Owner = Me
-
-        Dim rptVentas As New ReporteResumenVentas
-
-
-        Dim crParameterDiscreteValue As ParameterDiscreteValue
-
-        Dim crParameterFieldDefinitions As ParameterFieldDefinitions
-
-        Dim crParameterFieldLocation As ParameterFieldDefinition
-
-        Dim crParameterValues As ParameterValues
-
-
-
-
-        ' Get the report parameters collection. 
-
-        '
-
-        crParameterFieldDefinitions = rptVentas.DataDefinition.ParameterFields
-
-
-
-
-
-        crParameterFieldLocation = crParameterFieldDefinitions.Item("@FechaDesde")
-
-        crParameterValues = crParameterFieldLocation.CurrentValues
-
-        crParameterDiscreteValue = New CrystalDecisions.Shared.ParameterDiscreteValue
-
-        crParameterDiscreteValue.Value = FechaDesde
-
-        crParameterValues.Add(crParameterDiscreteValue)
-
-        crParameterFieldLocation.ApplyCurrentValues(crParameterValues)
-
-
-
-        crParameterFieldLocation = crParameterFieldDefinitions.Item("@FechaHasta")
-
-        crParameterValues = crParameterFieldLocation.CurrentValues
-
-        crParameterDiscreteValue = New CrystalDecisions.Shared.ParameterDiscreteValue
-
-        crParameterDiscreteValue.Value = FechaHasta
-
-        crParameterValues.Add(crParameterDiscreteValue)
-
-        crParameterFieldLocation.ApplyCurrentValues(crParameterValues)
-
-
-
-
-
-
-
-
-
-
-        crParameterFieldLocation = crParameterFieldDefinitions.Item("@SoloFacturas")
-
-        crParameterValues = crParameterFieldLocation.CurrentValues
-
-        crParameterDiscreteValue = New CrystalDecisions.Shared.ParameterDiscreteValue
-
-        crParameterDiscreteValue.Value = SóloFacturas
-
-        crParameterValues.Add(crParameterDiscreteValue)
-
-        crParameterFieldLocation.ApplyCurrentValues(crParameterValues)
-
-
-
-        Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
-        vista.crvInforme.Owner = Window.GetWindow(mainWindow)
-        vista.crvInforme.ViewerCore.ReportSource = rptVentas
-
-        region.Add(vista, nombreVista(region, vista.ToString))
-        region.Activate(vista)
-
-        'Try
-        'Ventana.Show()
-        'Catch ex As Exception
-        '        Throw New ArgumentException("Error Carlos")
-        '       End Try
+    Private Async Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SoloFacturas As Boolean)
+        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ResumenVentas.rdlc")
+        'Dim nada = Assembly.LoadFrom("Informes").GetManifestResourceNames()
+        Dim dataSource As List(Of Informes.ResumenVentasModel) = Await Informes.ResumenVentasModel.CargarDatos(FechaDesde, FechaHasta, SoloFacturas)
+        Dim report As LocalReport = New LocalReport()
+        report.LoadReportDefinition(reportDefinition)
+        report.DataSources.Add(New ReportDataSource("ResumenVentasDataSet", dataSource))
+        Dim listaParametros As New List(Of ReportParameter) From {
+            New ReportParameter("FechaDesde", FechaDesde),
+            New ReportParameter("FechaHasta", FechaHasta),
+            New ReportParameter("SoloFacturas", SoloFacturas)
+        }
+        report.SetParameters(listaParametros)
+        Dim pdf As Byte() = report.Render("PDF")
+        Dim fileName As String = Path.GetTempPath + "InformeVentas.pdf"
+        File.WriteAllBytes(fileName, pdf)
+        Process.Start(New ProcessStartInfo(fileName) With {
+            .UseShellExecute = True
+        })
     End Sub
     Private Sub btnVentasEmpresas_Loaded(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnVentasEmpresas.Loaded
         If (System.Environment.UserName.ToLower = "alfredo") OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
@@ -450,78 +364,26 @@ Public Class MenuBarView
                 GenerarInformeRapports(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal)
         End Select
     End Sub
-    Private Sub GenerarInformeRapports(FechaDesde As Date, FechaHasta As Date)
-        Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of CRInforme)()
-        vista.DataContext.Titulo = "Informe Rapports"
-
-
-        Dim rptRapports As New rapportEstado9
-
-
-        Dim crParameterDiscreteValue As ParameterDiscreteValue
-
-        Dim crParameterFieldDefinitions As ParameterFieldDefinitions
-
-        Dim crParameterFieldLocation As ParameterFieldDefinition
-
-        Dim crParameterValues As ParameterValues
-
-
-
-
-        ' Get the report parameters collection. 
-
-        '
-
-        crParameterFieldDefinitions = rptRapports.DataDefinition.ParameterFields
-
-
-
-
-
-        crParameterFieldLocation = crParameterFieldDefinitions.Item("@FechaDesde")
-
-        crParameterValues = crParameterFieldLocation.CurrentValues
-
-        crParameterDiscreteValue = New CrystalDecisions.Shared.ParameterDiscreteValue
-
-        crParameterDiscreteValue.Value = FechaDesde
-
-        crParameterValues.Add(crParameterDiscreteValue)
-
-        crParameterFieldLocation.ApplyCurrentValues(crParameterValues)
-
-
-
-        crParameterFieldLocation = crParameterFieldDefinitions.Item("@FechaHasta")
-
-        crParameterValues = crParameterFieldLocation.CurrentValues
-
-        crParameterDiscreteValue = New CrystalDecisions.Shared.ParameterDiscreteValue
-
-        crParameterDiscreteValue.Value = FechaHasta
-
-        crParameterValues.Add(crParameterDiscreteValue)
-
-        crParameterFieldLocation.ApplyCurrentValues(crParameterValues)
-
-
-
-
-        'Ventana.crvInforme.ViewerCore.ReportSource = rptPremio
-
-
-        Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
-        vista.crvInforme.Owner = Window.GetWindow(mainWindow)
-        vista.crvInforme.ViewerCore.ReportSource = rptRapports
-
-        region.Add(vista, nombreVista(region, vista.ToString))
-        region.Activate(vista)
-
+    Private Async Sub GenerarInformeRapports(FechaDesde As Date, FechaHasta As Date)
+        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.DetalleRapports.rdlc")
+        'Dim nada = Assembly.LoadFrom("Informes").GetManifestResourceNames()
+        Dim dataSource As List(Of Informes.DetalleRapportsModel) = Await Informes.DetalleRapportsModel.CargarDatos(FechaDesde, FechaHasta)
+        Dim report As LocalReport = New LocalReport()
+        report.LoadReportDefinition(reportDefinition)
+        report.DataSources.Add(New ReportDataSource("DetalleRapportsDataSet", dataSource))
+        Dim listaParametros As New List(Of ReportParameter) From {
+            New ReportParameter("FechaDesde", FechaDesde),
+            New ReportParameter("FechaHasta", FechaHasta)
+        }
+        report.SetParameters(listaParametros)
+        Dim pdf As Byte() = report.Render("PDF")
+        Dim fileName As String = Path.GetTempPath + "InformeRapports.pdf"
+        File.WriteAllBytes(fileName, pdf)
+        Process.Start(New ProcessStartInfo(fileName) With {
+            .UseShellExecute = True
+        })
     End Sub
     Private Sub btnClientesFicha_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnClientesFicha.Click
-        'Me.regionManager.RegisterViewWithRegion("MainRegion", Function() Me.container.Resolve(Of Clientes)())
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Clientes)()
         region.Add(vista, nombreVista(region, vista.ToString))
@@ -552,16 +414,19 @@ Public Class MenuBarView
         region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
     End Sub
-    Private Sub btnInventario_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnInventario.Click
-        Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of CRInforme)()
-        vista.DataContext.Titulo = "Informe Inventario"
-
-        Dim rptInforme As New ImpresoUbicaciones_Inventario
-
-        vista.crvInforme.ViewerCore.ReportSource = rptInforme
-        region.Add(vista, nombreVista(region, vista.ToString))
-        region.Activate(vista)
+    Private Async Sub btnInventario_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnInventario.Click
+        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.UbicacionesInventario.rdlc")
+        'Dim nada = Assembly.LoadFrom("Informes").GetManifestResourceNames()
+        Dim dataSource As List(Of Informes.UbicacionesInventarioModel) = Await Informes.UbicacionesInventarioModel.CargarDatos()
+        Dim report As LocalReport = New LocalReport()
+        report.LoadReportDefinition(reportDefinition)
+        report.DataSources.Add(New ReportDataSource("UbicacionesInventarioDataSet", dataSource))
+        Dim pdf As Byte() = report.Render("PDF")
+        Dim fileName As String = Path.GetTempPath + "InformeUbicacionesInventario.pdf"
+        File.WriteAllBytes(fileName, pdf)
+        Process.Start(New ProcessStartInfo(fileName) With {
+            .UseShellExecute = True
+        })
     End Sub
     Private Sub btnUbicaciones_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnUbicaciones.Click
         Dim region As IRegion = regionManager.Regions("MainRegion")

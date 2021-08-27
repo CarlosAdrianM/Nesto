@@ -3,8 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-    xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
-    xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
+    xmlns:local="clr-namespace:Nesto.Views">
 
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Cargando comisiones...">
 
@@ -12,29 +11,36 @@
             <Grid.Resources>
                 <xcdg:CurrencyConverter x:Key="currencyConverter"/>
                 <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+                <local:GroupsToTotalConverter x:Key="groupsConverter" />
+                <local:GroupsToTotalConverterTwoLevels x:Key="groupsConverterTwoLevels" />
                 <DataTemplate x:Key="currency_celltemplate">
                     <TextBlock Text="{Binding Converter={StaticResource currencyConverter}}"/>
                 </DataTemplate>
                 <Style TargetType="{x:Type xcdg:DataRow}">
                     <Setter Property="Height" Value="20" />
                 </Style>
-                <xcdg:DataGridCollectionViewSource x:Key="cvs_listaPedidos" Source="{Binding listaPedidos}">
-                    <xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                        <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
-                        <xcdg:DataGridGroupDescription PropertyName="Número"/>
-                    </xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                </xcdg:DataGridCollectionViewSource>
-                <xcdg:DataGridCollectionViewSource x:Key="cvs_listaVentasComision" Source="{Binding listaVentasComision}">
-                    <xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                        <xcdg:DataGridGroupDescription PropertyName="Grupo"/>
-                        <xcdg:DataGridGroupDescription PropertyName="Dirección"/>
-                    </xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                </xcdg:DataGridCollectionViewSource>
-                <xcdg:DataGridCollectionViewSource x:Key="cvs_listaVentasFamilia" Source="{Binding listaVentasFamilia}">
-                    <xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                        <xcdg:DataGridGroupDescription PropertyName="Familia"/>
-                    </xcdg:DataGridCollectionViewSource.GroupDescriptions>
-                </xcdg:DataGridCollectionViewSource>
+
+                <CollectionViewSource x:Key="cvs_listaPedidos" Source="{Binding Path=listaPedidos}" >
+                    <CollectionViewSource.GroupDescriptions>
+                        <PropertyGroupDescription PropertyName="Dirección"/>
+                        <PropertyGroupDescription PropertyName="Número"/>
+                    </CollectionViewSource.GroupDescriptions>
+                </CollectionViewSource>
+
+                <CollectionViewSource x:Key="cvs_listaVentasComision" Source="{Binding Path=listaVentasComision}" >
+                    <CollectionViewSource.GroupDescriptions>
+                        <PropertyGroupDescription PropertyName="Grupo"/>
+                        <PropertyGroupDescription PropertyName="Dirección"/>
+                    </CollectionViewSource.GroupDescriptions>
+                </CollectionViewSource>
+
+                <CollectionViewSource x:Key="cvs_listaVentasFamilia" Source="{Binding Path=listaVentasFamilia}" >
+                    <CollectionViewSource.GroupDescriptions>
+                        <PropertyGroupDescription PropertyName="Familia"/>
+                    </CollectionViewSource.GroupDescriptions>
+                </CollectionViewSource>
+
+
             </Grid.Resources>
 
             <Grid.RowDefinitions>
@@ -386,92 +392,320 @@
                             </Grid>
                         </Border>
                     </Grid>
-
-
                 </Grid>
-
                 <TabControl DockPanel.Dock="Bottom" >
                     <TabItem Header="Pendientes de Entregar">
-                        <xcdg:DataGridControl Name="dgrPendientesEntregar" ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
-                            <xcdg:DataGridControl.View>
-                                <xcdg:TableView UseDefaultHeadersFooters="False">
-                                    <xcdg:TableView.FixedHeaders>
+                        <DataGrid x:Name="dgrPendientesEntregar" ItemsSource="{Binding Source={StaticResource cvs_listaPedidos}}" CanUserAddRows="False" AutoGenerateColumns="False" >
+                            <DataGrid.GroupStyle>
+                                <!-- Style for groups at top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.Panel>
+                                        <ItemsPanelTemplate>
+                                            <DataGridRowsPresenter/>
+                                        </ItemsPanelTemplate>
+                                    </GroupStyle.Panel>
+                                    <GroupStyle.ContainerStyle>
+                                        <Style TargetType="{x:Type GroupItem}">
+                                            <Setter Property="Margin" Value="0,0,0,5"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                        <Expander IsExpanded="True" Background="#FF112255" BorderBrush="#FF002255" Foreground="#FFEEEEEE" BorderThickness="1,1,1,5">
+                                                            <Expander.Header>
+                                                                <DockPanel>
+                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0">
+                                                                        <Run Text="Dirección: "/>
+                                                                        <Run Text="{Binding Path=Name, Mode=OneWay}"/>
+                                                                    </TextBlock>
+                                                                    <TextBlock FontWeight="Bold">
+                                                                        <Run Text="Base Imponible:" />
+                                                                        <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverterTwoLevels}}"/>
+                                                                    </TextBlock>
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0">
+                                                                        <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                                        <Run Text="líneas"/>
+                                                                    </TextBlock>
+                                                                </DockPanel>
+                                                            </Expander.Header>
+                                                            <Expander.Content>
+                                                                <ItemsPresenter />
+                                                            </Expander.Content>
+                                                        </Expander>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </GroupStyle.ContainerStyle>
+                                </GroupStyle>
+                                <!-- Style for groups under the top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
                                         <DataTemplate>
-                                            <xcdg:ColumnManagerRow/>
+                                            <DockPanel Background="LightBlue" Margin="5,0,1,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="100">
+                                                    <Run Text="Pedido:" />
+                                                    <Run Text="{Binding Path=Name, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                    <Run Text="Base Imponible:" />
+                                                    <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
+                                                </TextBlock>
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                    <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                    <Run Text="líneas"/>
+                                                </TextBlock>
+                                            </DockPanel>
                                         </DataTemplate>
-                                    </xcdg:TableView.FixedHeaders>
-                                </xcdg:TableView>
-                            </xcdg:DataGridControl.View>
-                            <xcdg:DataGridControl.Columns>
-                                <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
-                                <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
-                                <xcdg:Column FieldName="Dirección" Width="3*" Title="Dirección" />
-                                <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
-                                <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
-                                <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
-                                <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
-                                <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
-                                <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
-                                <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
-                                <xcdg:Column FieldName="Estado" Width="*" Title="Estado" CellHorizontalContentAlignment="Right"/>
-                            </xcdg:DataGridControl.Columns>
-                        </xcdg:DataGridControl>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </DataGrid.GroupStyle>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Foreground" Value="Black" />
+                                    <Setter Property="Background" Value="White" />
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Número}" />
+                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding Nº_Cliente}" />
+                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Dirección}" />
+                                <DataGridTextColumn Header="Producto" Width="*" Binding="{Binding Producto}" />
+                                <DataGridTextColumn Header="Texto" Width="3*" Binding="{Binding Texto}" />
+                                <DataGridTextColumn Header="Familia" Width="*" Binding="{Binding Familia}" />
+                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                                <DataGridTextColumn Header="Cantidad" Width="*" Binding="{Binding Cantidad}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding Base_Imponible, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Picking" Width="*" Binding="{Binding Picking}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Estado" Width="*" Binding="{Binding Estado}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </TabItem>
                     <TabItem Header="Entregados por Grupo">
-                        <xcdg:DataGridControl Name="dgrGrupos" ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
-                            <xcdg:DataGridControl.DefaultGroupConfiguration>
-                                <xcdg:GroupConfiguration InitiallyExpanded="False"/>
-                            </xcdg:DataGridControl.DefaultGroupConfiguration>
-                            <xcdg:DataGridControl.View>
-                                <xcdg:TableView UseDefaultHeadersFooters="False">
-                                    <xcdg:TableView.FixedHeaders>
+                        <DataGrid x:Name="dgrGrupos" ItemsSource="{Binding Source={StaticResource cvs_listaVentasComision}}" CanUserAddRows="False" AutoGenerateColumns="False" >
+                            <DataGrid.GroupStyle>
+                                <!-- Style for groups at top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.Panel>
+                                        <ItemsPanelTemplate>
+                                            <DataGridRowsPresenter/>
+                                        </ItemsPanelTemplate>
+                                    </GroupStyle.Panel>
+                                    <GroupStyle.ContainerStyle>
+                                        <Style TargetType="{x:Type GroupItem}">
+                                            <Setter Property="Margin" Value="0,0,0,5"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                        <Expander IsExpanded="False" Background="#FF112255" BorderBrush="#FF002255" Foreground="#FFEEEEEE" BorderThickness="1,1,1,5">
+                                                            <Expander.Header>
+                                                                <DockPanel>
+                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0">
+                                                                        <Run Text="Grupo: "/>
+                                                                        <Run Text="{Binding Path=Name, Mode=OneWay}" />
+                                                                    </TextBlock>
+                                                                    <TextBlock FontWeight="Bold">
+                                                                        <Run Text="Base Imponible:" />
+                                                                        <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverterTwoLevels}}"/>
+                                                                    </TextBlock>
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0">
+                                                                        <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                                        <Run Text="líneas"/>
+                                                                    </TextBlock>
+                                                                </DockPanel>
+                                                            </Expander.Header>
+                                                            <Expander.Content>
+                                                                <ItemsPresenter />
+                                                            </Expander.Content>
+                                                        </Expander>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </GroupStyle.ContainerStyle>
+                                </GroupStyle>
+                                <!-- Style for groups under the top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
                                         <DataTemplate>
-                                            <xcdg:ColumnManagerRow />
+                                            <DockPanel Background="LightBlue" Margin="5,0,1,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                    <Run Text="Dirección:" />
+                                                    <Run Text="{Binding Path=Name, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                    <Run Text="Base Imponible:" />
+                                                    <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
+                                                </TextBlock>
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                    <Run Text="   "/>
+                                                    <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                    <Run Text="líneas"/>
+                                                </TextBlock>
+                                            </DockPanel>
                                         </DataTemplate>
-                                    </xcdg:TableView.FixedHeaders>
-                                </xcdg:TableView>
-                            </xcdg:DataGridControl.View>
-                            <xcdg:DataGridControl.Columns>
-                                <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
-                                <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
-                                <xcdg:Column FieldName="Dirección" Width="0" Title="Dirección" />
-                                <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
-                                <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
-                                <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
-                                <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
-                                <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
-                                <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
-                                <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
-                            </xcdg:DataGridControl.Columns>
-                        </xcdg:DataGridControl>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </DataGrid.GroupStyle>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Foreground" Value="Black" />
+                                    <Setter Property="Background" Value="White" />
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Número}" />
+                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding Nº_Cliente}" />
+                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Dirección}" />
+                                <DataGridTextColumn Header="Producto" Width="*" Binding="{Binding Producto}" />
+                                <DataGridTextColumn Header="Texto" Width="3*" Binding="{Binding Texto}" />
+                                <DataGridTextColumn Header="Familia" Width="*" Binding="{Binding Familia}" />
+                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                                <DataGridTextColumn Header="Cantidad" Width="*" Binding="{Binding Cantidad}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding Base_Imponible, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Picking" Width="*" Binding="{Binding Picking}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </TabItem>
                     <TabItem Header="Entregados por Familia">
-                        <xcdg:DataGridControl Name="dgrFamilias" ItemsSource="{Binding Source={StaticResource cvs_listaVentasFamilia}}" AutoCreateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ReadOnly="True">
-                            <xcdg:DataGridControl.DefaultGroupConfiguration>
-                                <xcdg:GroupConfiguration InitiallyExpanded="False"/>
-                            </xcdg:DataGridControl.DefaultGroupConfiguration>
-                            <xcdg:DataGridControl.View>
-                                <xcdg:TableView UseDefaultHeadersFooters="False">
-                                    <xcdg:TableView.FixedHeaders>
+                        <DataGrid x:Name="dgrFamilias" ItemsSource="{Binding Source={StaticResource cvs_listaVentasFamilia}}" CanUserAddRows="False" AutoGenerateColumns="False" >
+                            <DataGrid.GroupStyle>
+                                <!-- Style for groups at top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.Panel>
+                                        <ItemsPanelTemplate>
+                                            <DataGridRowsPresenter/>
+                                        </ItemsPanelTemplate>
+                                    </GroupStyle.Panel>
+                                    <GroupStyle.ContainerStyle>
+                                        <Style TargetType="{x:Type GroupItem}">
+                                            <Setter Property="Margin" Value="0,0,0,5"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                        <Expander IsExpanded="False" Background="#FF112255" BorderBrush="#FF002255" Foreground="#FFEEEEEE" BorderThickness="1,1,1,5">
+                                                            <Expander.Header>
+                                                                <DockPanel>
+                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0">
+                                                                        <Run Text="Familia: "/>
+                                                                        <Run Text="{Binding Path=Name, Mode=OneWay}" />
+                                                                    </TextBlock>
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0">
+                                                                        <Run Text="Base Imponible:" />
+                                                                        <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
+                                                                    </TextBlock>
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0">
+                                                                        <Run Text="   "/>
+                                                                        <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                                        <Run Text="líneas"/>
+                                                                    </TextBlock>
+                                                                </DockPanel>
+                                                            </Expander.Header>
+                                                            <Expander.Content>
+                                                                <ItemsPresenter />
+                                                            </Expander.Content>
+                                                        </Expander>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </GroupStyle.ContainerStyle>
+                                </GroupStyle>
+                                <!-- Style for groups under the top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
                                         <DataTemplate>
-                                            <xcdg:ColumnManagerRow />
+                                            <DockPanel Background="LightBlue" Margin="5,0,1,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="100">
+                                                    <Run Text="{Binding Path=Name, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <TextBlock Foreground="Blue">
+                                                    <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                    <Run Text="líneas" />
+                                                </TextBlock>
+                                            </DockPanel>
                                         </DataTemplate>
-                                    </xcdg:TableView.FixedHeaders>
-                                </xcdg:TableView>
-                            </xcdg:DataGridControl.View>
-                            <xcdg:DataGridControl.Columns>
-                                <xcdg:Column FieldName="Número" Width="*" Title="Pedido" />
-                                <xcdg:Column FieldName="Nº_Cliente" Width="*" Title="Cliente" />
-                                <xcdg:Column FieldName="Dirección" Width="0" Title="Dirección" />
-                                <xcdg:Column FieldName="Producto" Width="*" Title="Producto"/>
-                                <xcdg:Column FieldName="Texto" Width="3*" Title="Texto" />
-                                <xcdg:Column FieldName="Familia" Width="*" Title="Familia"/>
-                                <xcdg:Column FieldName="Fecha_Entrega" Width="*" Title="Fecha Entrega"/>
-                                <xcdg:Column FieldName="Cantidad" Width="*" Title="Cantidad" CellHorizontalContentAlignment="Right"/>
-                                <xcdg:Column FieldName="Base_Imponible" Width="*" Title="Base Imponible" CellContentTemplate="{StaticResource currency_celltemplate}" CellHorizontalContentAlignment="Right"/>
-                                <xcdg:Column FieldName="Picking" Width="*" Title="Picking" CellHorizontalContentAlignment="Right"/>
-                            </xcdg:DataGridControl.Columns>
-                        </xcdg:DataGridControl>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </DataGrid.GroupStyle>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Foreground" Value="Black" />
+                                    <Setter Property="Background" Value="White" />
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Número}" />
+                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding Nº_Cliente}" />
+                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Dirección}" />
+                                <DataGridTextColumn Header="Producto" Width="*" Binding="{Binding Producto}" />
+                                <DataGridTextColumn Header="Texto" Width="3*" Binding="{Binding Texto}" />
+                                <DataGridTextColumn Header="Familia" Width="*" Binding="{Binding Familia}" />
+                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                                <DataGridTextColumn Header="Cantidad" Width="*" Binding="{Binding Cantidad}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding Base_Imponible, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Picking" Width="*" Binding="{Binding Picking}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </TabItem>
                 </TabControl>
             </DockPanel>

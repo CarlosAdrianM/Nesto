@@ -2,8 +2,8 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <RootNamespace>Nesto.Contratos</RootNamespace>
-    <MyType>Windows</MyType>
-    <TargetFramework>net48</TargetFramework>
+    <MyType>Empty</MyType>
+    <TargetFramework>net5.0-windows</TargetFramework>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>

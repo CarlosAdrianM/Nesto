@@ -25,7 +25,7 @@
                        Grid.Column="0"/>
                         <TextBlock Text="{Binding Ratio,StringFormat=p}" Name="txtRatio" 
                        FontSize="8" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="2" Foreground="Red"/>
-                        <Image Source="pack://application:,,,/Nesto;component/Images/FlechaRoja.png" Grid.Column="1"></Image>
+                        <Image Source="/Images/FlechaRoja.png" Grid.Column="1"></Image>
                     </Grid>
                 </Border>
             </StackPanel>
@@ -50,7 +50,7 @@
                        Grid.Column="0"/>
                         <TextBlock Text="{Binding Ratio,StringFormat=p}" Name="txtRatio" 
                        FontSize="8" FontWeight="Bold" HorizontalAlignment="Right" Grid.Column="2" Foreground="Green"/>
-                        <Image Source ="pack://application:,,,/Nesto;component/Images/FlechaVerde.png" Grid.Column="1"></Image>
+                        <Image Source ="/Images/FlechaVerde.png" Grid.Column="1"></Image>
                     </Grid>
                 </Border>
 
@@ -77,34 +77,34 @@
             <RibbonGroup x:Name="grpVendedores"
                                     Header="Vendedores calle">
                 <RibbonButton x:Name="btnInforme"
-                                         LargeImageSource="/Nesto;component/Images/UL_128x42.png"
+                                         LargeImageSource="/Images/UL_128x42.png"
                                          Label="Unión Láser" HorizontalAlignment="Center" />
 
                 <RibbonButton x:Name="btnPeluquería"
-                                         LargeImageSource="/Nesto;component/Images/Peluquería.ico"
+                                         LargeImageSource="/Images/Peluquería.ico"
                                          Label="Peluquería" HorizontalAlignment="Center" />
 
             </RibbonGroup>
 
             <RibbonGroup  Name="grpTelefono" Header="Vendedores Teléfono">
-                <RibbonButton Label="Detalle" LargeImageSource="/Nesto;component/Images/VendedorTelefonicoDetalle.png" Name="btnComisionesTelefono" />
-                <RibbonButton Label="Resumen" LargeImageSource="/Nesto;component/Images/VendedorTelefonico.png" Name="btnResumen"  />
-                <RibbonButton Label="Rapport" LargeImageSource="/Nesto;component/Images/rapports.png" Name="btnRapport"  />
+                <RibbonButton Label="Detalle" LargeImageSource="/Images/VendedorTelefonicoDetalle.png" Name="btnComisionesTelefono" />
+                <RibbonButton Label="Resumen" LargeImageSource="/Images/VendedorTelefonico.png" Name="btnResumen"  />
+                <RibbonButton Label="Rapport" LargeImageSource="/Images/rapports.png" Name="btnRapport"  />
             </RibbonGroup>
 
             <RibbonGroup x:Name="grpGrupoEmpresas"
                                     Header="Grupo de Empresas">
-                <RibbonButton Label="Ventas" Name="btnVentasEmpresas" HorizontalAlignment="Center" LargeImageSource="/Nesto;component/Icono2_NV_256x256.ico" Visibility="Hidden" />
+                <RibbonButton Label="Ventas" Name="btnVentasEmpresas" HorizontalAlignment="Center" LargeImageSource="/Icono2_NV_256x256.ico" Visibility="Hidden" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpControles"
                                     Header="Informes de Control">
-                <RibbonButton Label="Pedidos" LargeImageSource="/Nesto;component/Images/ControlPedidos.png" Name="btnControlPedidos"  />
+                <RibbonButton Label="Pedidos" LargeImageSource="/Images/ControlPedidos.png" Name="btnControlPedidos"  />
             </RibbonGroup>
 
             <RibbonGroup x:Name="grpInventarios"
                                     Header="Inventario">
-                <RibbonButton Label="Inventario" LargeImageSource="/Nesto;component/Images/Inventario.png" Name="btnInventario"  />
-                <RibbonSplitButton Label="Ubicaciones" LargeImageSource="/Nesto;component/Images/Ubicaciones.png" Name="btnUbicaciones">
+                <RibbonButton Label="Inventario" LargeImageSource="/Images/Inventario.png" Name="btnInventario"  />
+                <RibbonSplitButton Label="Ubicaciones" LargeImageSource="/Images/Ubicaciones.png" Name="btnUbicaciones">
                     <TextBox Name="txtLineas">
                         15
                     </TextBox>
@@ -115,7 +115,7 @@
                                     Header="Ratios">
 
 
-                <RibbonButton Label="Premio Deuda" Name="btnRatioDeuda" LargeImageSource="/Nesto;component/Images/Premios.png"/>
+                <RibbonButton Label="Premio Deuda" Name="btnRatioDeuda" LargeImageSource="/Images/Premios.png"/>
 
 
 
@@ -147,21 +147,21 @@
                               Header="Clientes">
             <RibbonGroup x:Name="grpClientesMantenimiento"
                                     Header="Mantenimiento">
-                <RibbonButton Label="Ficha" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesFicha" />
-                <RibbonButton Label="Alquileres" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesAlquileres" />
-                <RibbonButton Label="Remesas" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesRemesas" />
-                <RibbonButton Label="Agencias" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnClientesAgencias" />
+                <RibbonButton Label="Ficha" LargeImageSource="/Images/Cliente.png" Name="btnClientesFicha" />
+                <RibbonButton Label="Alquileres" LargeImageSource="/Images/Cliente.png" Name="btnClientesAlquileres" />
+                <RibbonButton Label="Remesas" LargeImageSource="/Images/Cliente.png" Name="btnClientesRemesas" />
+                <RibbonButton Label="Agencias" LargeImageSource="/Images/Cliente.png" Name="btnClientesAgencias" />
             </RibbonGroup>
         </RibbonTab>
 
         <RibbonTab x:Name="tabVendedores"
                               Header="Vendedores">
             <RibbonGroup x:Name="grpVendedoresCliente" Header="Clientes">
-                <RibbonButton Label="Ficha" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnVendedoresClientes" />
-                <RibbonButton Label="Planes de Ventajas" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnVendedoresPlanVentajas" />
+                <RibbonButton Label="Ficha" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresClientes" />
+                <RibbonButton Label="Planes de Ventajas" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresPlanVentajas" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpVendedoresComisiones" Header="Comisiones">
-                <RibbonButton Label="Comisiones" LargeImageSource="/Nesto;component/Images/Cliente.png" Name="btnVendedoresComisiones" />
+                <RibbonButton Label="Comisiones" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresComisiones" />
             </RibbonGroup>
         </RibbonTab>
 
@@ -170,7 +170,7 @@
             <RibbonGroup x:Name="grpPrestashop"
                                     Header="Mantenimiento">
 
-                <RibbonButton Label="Prestashop" LargeImageSource="/Nesto;component/Images/Prestashop.png" Name="btnPrestashop" />
+                <RibbonButton Label="Prestashop" LargeImageSource="/Images/Prestashop.png" Name="btnPrestashop" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

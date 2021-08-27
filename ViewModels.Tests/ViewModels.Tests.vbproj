@@ -3,8 +3,8 @@
     <OutputType>Library</OutputType>
     <RootNamespace>ViewModels.Tests</RootNamespace>
     <AssemblyName>ViewModels.Tests</AssemblyName>
-    <MyType>Windows</MyType>
-    <TargetFramework>net48</TargetFramework>
+    <MyType>Empty</MyType>
+    <TargetFramework>net5.0-windows</TargetFramework>
     <ReferencePath>$(DevEnvDir)PublicAssemblies\</ReferencePath>
   </PropertyGroup>
   <PropertyGroup>

@@ -5,6 +5,7 @@ Imports System.Net.Http
 Imports System.Net.Http.Headers
 Imports System.Threading.Tasks
 Imports Nesto.Models.Nesto.Models
+Imports System.IO
 
 Public Class AgenciaOnTime
     Implements IAgencia
@@ -65,36 +66,36 @@ Public Class AgenciaOnTime
         Dim mainViewModel As New MainViewModel
         Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
 
-        Dim objFSO
-        Dim objStream
-        objFSO = CreateObject("Scripting.FileSystemObject")
-        objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
+        'Dim objFSO
+        'Dim objStream
+        'objFSO = CreateObject("Scripting.FileSystemObject")
+        'objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
         Dim i As Integer
 
-
-
         Try
-            For i = 1 To envio.Bultos
-                objStream.Writeline("I8,A,034")
-                objStream.Writeline("N")
-                objStream.Writeline("A40,10,0,4,1,1,N,""" + envio.Nombre + """")
-                objStream.Writeline("A40,50,0,4,1,1,N,""" + envio.Direccion + """")
-                objStream.Writeline("A40,90,0,4,1,1,N,""" + envio.CodPostal + " " + envio.Poblacion + """")
-                objStream.Writeline("A40,130,0,4,1,1,N,""" + envio.Provincia + """")
-                objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + envio.Bultos.ToString _
-                                    + ". Cliente: " + envio.Cliente.Trim + ". Fecha: " + envio.Fecha + """")
-                objStream.Writeline("A40,450,0,4,1,2,N,""" + envio.Nemonico + " " + envio.NombrePlaza + """")
-                objStream.Writeline("A40,510,0,4,1,2,N,""" + ListaHorarios.Where(Function(x) x.id = envio.Horario).FirstOrDefault.descripcion + """")
-                objStream.Writeline("A590,265,0,5,2,2,N,""" + envio.Nemonico + """")
-                objStream.Writeline("P1")
-                objStream.Writeline("")
-            Next
+            Using objStream As StreamWriter = File.CreateText(puerto)
+                For i = 1 To envio.Bultos
+                    objStream.WriteLine("I8,A,034")
+                    objStream.WriteLine("N")
+                    objStream.WriteLine("A40,10,0,4,1,1,N,""" + envio.Nombre + """")
+                    objStream.WriteLine("A40,50,0,4,1,1,N,""" + envio.Direccion + """")
+                    objStream.WriteLine("A40,90,0,4,1,1,N,""" + envio.CodPostal + " " + envio.Poblacion + """")
+                    objStream.WriteLine("A40,130,0,4,1,1,N,""" + envio.Provincia + """")
+                    objStream.WriteLine("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + envio.Bultos.ToString _
+                                        + ". Cliente: " + envio.Cliente.Trim + ". Fecha: " + envio.Fecha + """")
+                    objStream.WriteLine("A40,450,0,4,1,2,N,""" + envio.Nemonico + " " + envio.NombrePlaza + """")
+                    objStream.WriteLine("A40,510,0,4,1,2,N,""" + ListaHorarios.Where(Function(x) x.id = envio.Horario).FirstOrDefault.descripcion + """")
+                    objStream.WriteLine("A590,265,0,5,2,2,N,""" + envio.Nemonico + """")
+                    objStream.WriteLine("P1")
+                    objStream.WriteLine("")
+                Next
+            End Using
         Catch ex As Exception
             Throw New Exception("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.InnerException.Message)
-        Finally
-            objStream.Close()
-            objFSO = Nothing
-            objStream = Nothing
+            'Finally
+            '    objStream.Close()
+            '    objFSO = Nothing
+            '    objStream = Nothing
         End Try
     End Sub
     Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir

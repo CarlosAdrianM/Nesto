@@ -1,21 +1,13 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProjectGuid>{F9C51E8E-BB41-4EE0-A54C-0A7E6ACB4037}</ProjectGuid>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{F184B08F-C81C-45F6-A57F-5ABD9991F28F}</ProjectTypeGuids>
     <OutputType>WinExe</OutputType>
     <RootNamespace>Nesto.Views</RootNamespace>
-    <AssemblyName>Nesto</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
-    <MyType>Custom</MyType>
+	<AssemblyName>Nesto</AssemblyName>
+    <TargetFramework>net5.0-windows</TargetFramework>
+	<UseWPF>true</UseWPF>
+    <MyType>Empty</MyType>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
     <PublishUrl>F:\dev\Nesto\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Unc</InstallFrom>
@@ -27,37 +19,12 @@
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
     <InstallUrl>\\rds2016\Unidad_F\dev\Nesto\</InstallUrl>
-    <ApplicationRevision>23</ApplicationRevision>
+    <ApplicationRevision>24</ApplicationRevision>
     <ApplicationVersion>1.8.2.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
-    <PlatformTarget>x86</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <DefineDebug>true</DefineDebug>
-    <DefineTrace>true</DefineTrace>
-    <IncrementalBuild>true</IncrementalBuild>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DocumentationFile>Nesto.xml</DocumentationFile>
-    <NoWarn>41999,42016,42017,42018,42019,42020,42021,42022,42032,42036,42314</NoWarn>
-    <Prefer32Bit>false</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
-    <PlatformTarget>x86</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <DefineDebug>false</DefineDebug>
-    <DefineTrace>true</DefineTrace>
-    <IncrementalBuild>false</IncrementalBuild>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DocumentationFile>Nesto.xml</DocumentationFile>
-    <NoWarn>41999,42016,42017,42018,42019,42020,42021,42022,42032,42036,42314</NoWarn>
-    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
@@ -105,7 +72,6 @@
     <Reference Include="De.TorstenMandelkow.MetroChart">
       <HintPath>.\De.TorstenMandelkow.MetroChart.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Expression.Interactions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="PresentationFramework.Luna" />
     <Reference Include="Prism.RibbonRegionAdapter, Version=0.20.0.1, Culture=neutral, PublicKeyToken=3ddef0a054eea43a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -140,163 +106,10 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
+    <Reference Include="System.Xaml" />
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-  </ItemGroup>
-  <ItemGroup>
-    <ApplicationDefinition Include="Application.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </ApplicationDefinition>
-    <Compile Include="CloseTabAction.vb" />
-    <Compile Include="Configuracion.vb" />
-    <Compile Include="Informes\ImpresoUbicaciones_Inventario.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ImpresoUbicaciones_Inventario.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\InformeControlPedidos.vb">
-      <DependentUpon>InformeControlPedidos.rpt</DependentUpon>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\UbicacionesParaInventario.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>UbicacionesParaInventario.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\rapportEstado9.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>rapportEstado9.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\ReporteComisiones2011Estado9Resumen.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ReporteComisiones2011Estado9Resumen.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\ReporteResumenVentas.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ReporteResumenVentas.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\VentaGrupo.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>VentaGrupo.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\Premio Vendedores UL.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Premio Vendedores UL.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\ReporteComisiones2011Estado9Detalle.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>ReporteComisiones2011Estado9Detalle.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="Informes\VentaPeluqueria.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>VentaPeluqueria.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="MenuBarView.xaml.vb">
-      <DependentUpon>MenuBarView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="NVDataSet.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>NVDataSet.xsd</DependentUpon>
-    </Compile>
-    <Compile Include="Ventanas\Agencias.xaml.vb">
-      <DependentUpon>Agencias.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Ventanas\ClienteComercial.xaml.vb">
-      <DependentUpon>ClienteComercial.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Ventanas\Comisiones.xaml.vb">
-      <DependentUpon>Comisiones.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Ventanas\CRInforme.xaml.vb">
-      <DependentUpon>CRInforme.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Ventanas\PlanesVentajas.xaml.vb">
-      <DependentUpon>PlanesVentajas.xaml</DependentUpon>
-    </Compile>
-    <Page Include="Dictionary.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Compile Include="Application.xaml.vb">
-      <DependentUpon>Application.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="MainWindow.xaml.vb">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Page Include="MenuBarView.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Agencias.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Alquileres.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\ClienteComercial.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Clientes.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Comisiones.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\CRInforme.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Deuda.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\PlanesVentajas.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Prestashop.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="Ventanas\Remesas.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
   </ItemGroup>
   <ItemGroup>
     <Import Include="System.Linq" />
@@ -317,69 +130,6 @@
     <Import Include="System.Windows.Navigation" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="My Project\AssemblyInfo.vb">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="My Project\MyExtensions\MyWpfExtension.vb">
-      <VBMyExtensionTemplateID>Microsoft.VisualBasic.WPF.MyExtension</VBMyExtensionTemplateID>
-      <VBMyExtensionTemplateVersion>1.0.0.0</VBMyExtensionTemplateVersion>
-    </Compile>
-    <Compile Include="My Project\Resources.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="My Project\Settings.Designer.vb">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <EmbeddedResource Include="Informes\ImpresoUbicaciones_Inventario.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>ImpresoUbicaciones_Inventario.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\InformeControlPedidos.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>InformeControlPedidos.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\rapportEstado9.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>rapportEstado9.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\ReporteComisiones2011Estado9Resumen.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>ReporteComisiones2011Estado9Resumen.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\ReporteResumenVentas.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>ReporteResumenVentas.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\UbicacionesParaInventario.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>UbicacionesParaInventario.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\VentaGrupo.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>VentaGrupo.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\VentaPeluqueria.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>VentaPeluqueria.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="My Project\Resources.resx">
-      <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
-      <CustomToolNamespace>My.Resources</CustomToolNamespace>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\Premio Vendedores UL.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>Premio Vendedores UL.vb</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Informes\ReporteComisiones2011Estado9Detalle.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>ReporteComisiones2011Estado9Detalle.vb</LastGenOutput>
-    </EmbeddedResource>
     <None Include="app.config">
       <SubType>Designer</SubType>
     </None>
@@ -469,54 +219,18 @@
     <Resource Include="Images\Ubicaciones.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CanalesExternos\CanalesExternos.csproj">
-      <Project>{c7c073b3-9808-40ae-b522-3f613922b5aa}</Project>
-      <Name>CanalesExternos</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Contratos\Contratos.vbproj">
-      <Project>{cfbe7538-0c41-4d1c-a1aa-1e741693cd0a}</Project>
-      <Name>Contratos</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj">
-      <Project>{3961283c-76c3-4b5f-80f2-01a78593e67f}</Project>
-      <Name>ControlesUsuario</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Modulos\CarteraPagos\CarteraPagos\CarteraPagos.vbproj">
-      <Project>{0a78f73c-a593-4296-843e-49634234b955}</Project>
-      <Name>CarteraPagos</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Modulos\Cliente\Cliente.csproj">
-      <Project>{50929425-20ab-441d-bd99-52179b491af9}</Project>
-      <Name>Cliente</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Modulos\Inventario\Inventario\Inventario.vbproj">
-      <Project>{fc02d1b6-1dbb-4a32-a0d4-d7bbcfb7f283}</Project>
-      <Name>Inventario</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj">
-      <Project>{5678F232-EBFE-4834-B77F-51B2C0824380}</Project>
-      <Name>PedidoVenta</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Modulos\PlantillaVenta\PlantillaVenta.vbproj">
-      <Project>{2c0afe5d-a09a-40f1-8f60-75a446c6e7d4}</Project>
-      <Name>PlantillaVenta</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Modulos\Rapport\Rapports\Rapports.vbproj">
-      <Project>{A2E6851D-AA9D-48DD-9B44-AFF9FC754FD1}</Project>
-      <Name>Rapports</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Nesto.Models\Models.vbproj">
-      <Project>{81EA708B-89E1-439E-B5F1-A054250F1B36}</Project>
-      <Name>Models</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Nesto.ViewModels\ViewModels.vbproj">
-      <Project>{88335EDE-B08A-44EA-9286-F9C0AED290C8}</Project>
-      <Name>ViewModels</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Producto\Producto.csproj">
-      <Project>{6bad5df5-b47e-4f88-98ad-e58a1be33119}</Project>
-      <Name>Producto</Name>
-    </ProjectReference>
+    <ProjectReference Include="..\CanalesExternos\CanalesExternos.csproj" /> 
+    <ProjectReference Include="..\Contratos\Contratos.vbproj" />
+    <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
+    <ProjectReference Include="..\Informes\Informes.csproj" />
+    <ProjectReference Include="..\Modulos\CarteraPagos\CarteraPagos\CarteraPagos.vbproj" />
+    <ProjectReference Include="..\Modulos\Cliente\Cliente.csproj" />
+    <ProjectReference Include="..\Modulos\Inventario\Inventario\Inventario.vbproj" />
+    <ProjectReference Include="..\Modulos\PlantillaVenta\PlantillaVenta.vbproj" />
+    <ProjectReference Include="..\Modulos\Rapport\Rapports\Rapports.vbproj" />
+    <ProjectReference Include="..\Nesto.Models\Models.vbproj" />
+    <ProjectReference Include="..\Nesto.ViewModels\ViewModels.vbproj" />
+    <ProjectReference Include="..\Producto\Producto.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\FlechaNegra.png" />
@@ -558,6 +272,7 @@
     <PackageReference Include="Extended.Wpf.Toolkit">
       <Version>3.4.0</Version>
     </PackageReference>
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="6.0.0-preview.7.21377.19" />
     <PackageReference Include="Newtonsoft.Json">
       <Version>12.0.3</Version>
     </PackageReference>
@@ -567,6 +282,6 @@
     <PackageReference Include="Prism.Wpf">
       <Version>8.0.0.1909</Version>
     </PackageReference>
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.14" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
 </Project>

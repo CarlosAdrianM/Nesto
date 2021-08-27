@@ -9,6 +9,7 @@ Imports System.Threading.Tasks
 Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
 Imports Prism.Mvvm
+Imports System.IO
 
 Public Class PlanesVentajasViewModel
     Inherits BindableBase
@@ -345,7 +346,7 @@ Public Class PlanesVentajasViewModel
         'Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified Or System.Data.EntityState.Deleted)
         If IsNothing(planActual) Then
             Return False
-        ElseIf Not My.Computer.FileSystem.FileExists(rutaPlan) Then
+        ElseIf Not File.Exists(rutaPlan) Then
             Return False
         Else
             Return True
@@ -356,6 +357,7 @@ Public Class PlanesVentajasViewModel
             Dim fileName As String = rutaPlan()
             Dim process As System.Diagnostics.Process = New System.Diagnostics.Process
             process.StartInfo.FileName = fileName
+            process.StartInfo.UseShellExecute = True
             process.Start()
             process.WaitForExit()
             mensajeError = ""
@@ -389,7 +391,7 @@ Public Class PlanesVentajasViewModel
         If elegirFichero.ShowDialog() Then
             Try
                 selectedPath = elegirFichero.FileName
-                My.Computer.FileSystem.CopyFile(
+                FileIO.FileSystem.CopyFile(
                 selectedPath,
                 rutaPlan,
                 Microsoft.VisualBasic.FileIO.UIOption.AllDialogs,

@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Nesto.Informes</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="DetalleRapports.rdlc" />
+    <None Remove="ResumenVentas.rdlc" />
+    <None Remove="UbicacionesInventario.rdlc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="UbicacionesInventario.rdlc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Data.DataSetExtensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="DetalleRapports.rdlc" />
+    <EmbeddedResource Include="ResumenVentas.rdlc" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nesto.Models\Models.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+</Project>

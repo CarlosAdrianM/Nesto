@@ -1921,7 +1921,9 @@ Public Class AgenciasViewModel
         Return EnlaceSeguimientoEnvio <> ""
     End Function
     Private Sub OnAbrirEnlaceSeguimientoCommand()
-        System.Diagnostics.Process.Start(EnlaceSeguimientoEnvio)
+        Process.Start(New ProcessStartInfo(EnlaceSeguimientoEnvio) With {
+            .UseShellExecute = True
+        })
     End Sub
 #End Region
 
