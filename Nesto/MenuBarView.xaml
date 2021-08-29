@@ -72,8 +72,40 @@
                 </RibbonApplicationMenu.ControlSizeDefinition>
             </RibbonApplicationMenu>
         </Ribbon.ApplicationMenu>
+        <RibbonTab x:Name="tabClientes"
+                              Header="Clientes">
+            <RibbonGroup x:Name="grpClientesMantenimiento"
+                                    Header="Mantenimiento">
+                <RibbonButton Label="Ficha" LargeImageSource="/Images/Cliente.png" Name="btnClientesFicha" />
+                <RibbonButton Label="Alquileres" LargeImageSource="/Images/Cliente.png" Name="btnClientesAlquileres" />
+                <RibbonButton Label="Remesas" LargeImageSource="/Images/Cliente.png" Name="btnClientesRemesas" />
+                <RibbonButton Label="Agencias" LargeImageSource="/Images/Cliente.png" Name="btnClientesAgencias" />
+            </RibbonGroup>
+        </RibbonTab>
+
+        <RibbonTab x:Name="tabVendedores"
+                              Header="Vendedores">
+            <RibbonGroup x:Name="grpVendedoresCliente" Header="Clientes">
+                <RibbonButton Label="Ficha" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresClientes" />
+                <RibbonButton Label="Planes de Ventajas" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresPlanVentajas" />
+            </RibbonGroup>
+            <RibbonGroup x:Name="grpVendedoresComisiones" Header="Comisiones">
+                <RibbonButton Label="Comisiones" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresComisiones" />
+            </RibbonGroup>
+        </RibbonTab>
+
+        <RibbonTab x:Name="tabHerramientas"
+                              Header="Herramientas">
+            <RibbonGroup x:Name="grpPrestashop"
+                                    Header="Mantenimiento">
+
+                <RibbonButton Label="Prestashop" LargeImageSource="/Images/Prestashop.png" Name="btnPrestashop" />
+            </RibbonGroup>
+        </RibbonTab>
+
         <RibbonTab x:Name="tabInformes"
                               Header="Informes">
+            <!--
             <RibbonGroup x:Name="grpVendedores"
                                     Header="Vendedores calle">
                 <RibbonButton x:Name="btnInforme"
@@ -85,10 +117,12 @@
                                          Label="Peluquería" HorizontalAlignment="Center" />
 
             </RibbonGroup>
-
+            -->
             <RibbonGroup  Name="grpTelefono" Header="Vendedores Teléfono">
+                <!--
                 <RibbonButton Label="Detalle" LargeImageSource="/Images/VendedorTelefonicoDetalle.png" Name="btnComisionesTelefono" />
                 <RibbonButton Label="Resumen" LargeImageSource="/Images/VendedorTelefonico.png" Name="btnResumen"  />
+                -->
                 <RibbonButton Label="Rapport" LargeImageSource="/Images/rapports.png" Name="btnRapport"  />
             </RibbonGroup>
 
@@ -104,11 +138,13 @@
             <RibbonGroup x:Name="grpInventarios"
                                     Header="Inventario">
                 <RibbonButton Label="Inventario" LargeImageSource="/Images/Inventario.png" Name="btnInventario"  />
+                <!--
                 <RibbonSplitButton Label="Ubicaciones" LargeImageSource="/Images/Ubicaciones.png" Name="btnUbicaciones">
                     <TextBox Name="txtLineas">
                         15
                     </TextBox>
                 </RibbonSplitButton>
+                -->
             </RibbonGroup>
 
             <RibbonGroup x:Name="grpRatio"
@@ -143,35 +179,6 @@
             </RibbonGroup>
 
         </RibbonTab>
-        <RibbonTab x:Name="tabClientes"
-                              Header="Clientes">
-            <RibbonGroup x:Name="grpClientesMantenimiento"
-                                    Header="Mantenimiento">
-                <RibbonButton Label="Ficha" LargeImageSource="/Images/Cliente.png" Name="btnClientesFicha" />
-                <RibbonButton Label="Alquileres" LargeImageSource="/Images/Cliente.png" Name="btnClientesAlquileres" />
-                <RibbonButton Label="Remesas" LargeImageSource="/Images/Cliente.png" Name="btnClientesRemesas" />
-                <RibbonButton Label="Agencias" LargeImageSource="/Images/Cliente.png" Name="btnClientesAgencias" />
-            </RibbonGroup>
-        </RibbonTab>
 
-        <RibbonTab x:Name="tabVendedores"
-                              Header="Vendedores">
-            <RibbonGroup x:Name="grpVendedoresCliente" Header="Clientes">
-                <RibbonButton Label="Ficha" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresClientes" />
-                <RibbonButton Label="Planes de Ventajas" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresPlanVentajas" />
-            </RibbonGroup>
-            <RibbonGroup x:Name="grpVendedoresComisiones" Header="Comisiones">
-                <RibbonButton Label="Comisiones" LargeImageSource="/Images/Cliente.png" Name="btnVendedoresComisiones" />
-            </RibbonGroup>
-        </RibbonTab>
-
-        <RibbonTab x:Name="tabHerramientas"
-                              Header="Herramientas">
-            <RibbonGroup x:Name="grpPrestashop"
-                                    Header="Mantenimiento">
-
-                <RibbonButton Label="Prestashop" LargeImageSource="/Images/Prestashop.png" Name="btnPrestashop" />
-            </RibbonGroup>
-        </RibbonTab>
     </Ribbon>
 </UserControl>

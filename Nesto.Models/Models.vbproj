@@ -63,17 +63,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.Config" />
-    <None Include="DataSets\ControlPedidos.xsc">
-      <DependentUpon>ControlPedidos.xsd</DependentUpon>
-    </None>
-    <None Include="DataSets\ControlPedidos.xsd">
-      <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>ControlPedidos.Designer.vb</LastGenOutput>
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="DataSets\ControlPedidos.xss">
-      <DependentUpon>ControlPedidos.xsd</DependentUpon>
-    </None>
     <None Include="DataSets\NVDataSet.xsc">
       <DependentUpon>NVDataSet.xsd</DependentUpon>
     </None>

@@ -293,22 +293,6 @@ Public Class NVDataSetMV
     End Function
 
 End Class
-Public Class ControlPedidosMV
-    'Inherits NVDataSetM
-    Private _DatosInformePedidos As DataSet
-    Public Property DatosInformePedidos As DataSet
-        Get
-            Return Me._DatosInformePedidos
-        End Get
-
-        Set(ByVal value As DataSet)
-            Me._DatosInformePedidos = value
-        End Set
-    End Property
-    Public Function CargarDatos() As DataSet
-        Return ControlPedidosM.CargarInformePedidos()
-    End Function
-End Class
 Public Class UbicacionesMV
     'Inherits NVDataSetM
     Private _DatosInformeUbicaciones As DataSet

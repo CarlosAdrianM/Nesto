@@ -7,12 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="ControlPedidos.rdlc" />
     <None Remove="DetalleRapports.rdlc" />
     <None Remove="ResumenVentas.rdlc" />
     <None Remove="UbicacionesInventario.rdlc" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="ControlPedidos.rdlc" />
     <EmbeddedResource Include="UbicacionesInventario.rdlc" />
   </ItemGroup>
 

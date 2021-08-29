@@ -22,7 +22,7 @@ Class MainWindow
         '    tituloVentana = "Nesto"
         'End Try
 
-        tituloVentana = "Nesto (1.9.3)"
+        tituloVentana = "Nesto (" + GetType(MainWindow).Assembly.GetName().Version.ToString + ")"
 
         Me.Title = tituloVentana
     End Sub

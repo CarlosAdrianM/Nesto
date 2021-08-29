@@ -21,63 +21,63 @@ Public Class MenuBarView
     Private configuracion As IConfiguracion
 
 
-    Private Sub Button1_Click(sender As System.Object, e As RoutedEventArgs) Handles btnInforme.Click
-        'Dim w2 As New frmInforme
-        'w2.Owner = Me
-        Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of CRInforme)()
-        vista.DataContext.Titulo = "Informe Premios"
-        'vista.DataContext.Titulo = "Informe"
+    'Private Sub Button1_Click(sender As System.Object, e As RoutedEventArgs) Handles btnInforme.Click
+    '    'Dim w2 As New frmInforme
+    '    'w2.Owner = Me
+    '    Dim region As IRegion = regionManager.Regions("MainRegion")
+    '    Dim vista = container.Resolve(Of CRInforme)()
+    '    vista.DataContext.Titulo = "Informe Premios"
+    '    'vista.DataContext.Titulo = "Informe"
 
-        'Dim fchFechaInicial As New Date
-        'Dim fchFechaFinal As New Date
-
-
-        Select Case cmbOpciones.Text
-            Case "Actual"
-                Me.DataContext.fechaInformeInicial = DateSerial(Year(Now()), Int((Month(Now()) - 1) / 3) * 3 + 1, 1)
-                Me.DataContext.fechaInformeFinal = DateSerial(Year(Now()), Int((Month(Now()) - 1) / 3) * 3 + 4, 0)
-            Case "Anterior"
-                Me.DataContext.fechaInformeInicial = DateSerial(Year(Now()), Int((Month(Now()) - 4) / 3) * 3 + 1, 1)
-                Me.DataContext.fechaInformeFinal = DateSerial(Year(Now()), Int((Month(Now()) - 4) / 3) * 3 + 4, 0)
-            Case Else
-                MsgBox("Parte del programa no implementada aún")
-        End Select
+    '    'Dim fchFechaInicial As New Date
+    '    'Dim fchFechaFinal As New Date
 
 
-
-        Dim mv As New NVDataSetMV
-        Dim ds As New DataSet
-
-        ds = mv.CargarDatos(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal)
-
-        Dim rptPremio As New Premio_Vendedores_UL
-
-        rptPremio.SetDataSource(ds.Tables("Informe"))
+    '    Select Case cmbOpciones.Text
+    '        Case "Actual"
+    '            Me.DataContext.fechaInformeInicial = DateSerial(Year(Now()), Int((Month(Now()) - 1) / 3) * 3 + 1, 1)
+    '            Me.DataContext.fechaInformeFinal = DateSerial(Year(Now()), Int((Month(Now()) - 1) / 3) * 3 + 4, 0)
+    '        Case "Anterior"
+    '            Me.DataContext.fechaInformeInicial = DateSerial(Year(Now()), Int((Month(Now()) - 4) / 3) * 3 + 1, 1)
+    '            Me.DataContext.fechaInformeFinal = DateSerial(Year(Now()), Int((Month(Now()) - 4) / 3) * 3 + 4, 0)
+    '        Case Else
+    '            MsgBox("Parte del programa no implementada aún")
+    '    End Select
 
 
 
-        rptPremio.SetParameterValue("FechaDesde", Me.DataContext.fechaInformeInicial)
-        rptPremio.SetParameterValue("FechaHasta", Me.DataContext.fechaInformeFinal)
+    '    Dim mv As New NVDataSetMV
+    '    Dim ds As New DataSet
 
-        Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
-        vista.crvInforme.Owner = Window.GetWindow(mainWindow)
-        vista.crvInforme.ViewerCore.ReportSource = rptPremio
-        vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
-        region.Add(vista, nombreVista(region, vista.ToString))
-        region.Activate(vista)
-    End Sub
-    Private Sub btnComisionesTelefono_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnComisionesTelefono.Click
-        Select Case cmbOpciones.Text
-            Case "Actual"
-                GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) + 0, 1), DateSerial(Year(Now()), Month(Now()) + 1, 0), False, False)
-            Case "Anterior"
-                GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0), False, True)
-            Case Else
-                MsgBox("Parte del programa no implementada aún")
-        End Select
+    '    ds = mv.CargarDatos(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal)
 
-    End Sub
+    '    Dim rptPremio As New Premio_Vendedores_UL
+
+    '    rptPremio.SetDataSource(ds.Tables("Informe"))
+
+
+
+    '    rptPremio.SetParameterValue("FechaDesde", Me.DataContext.fechaInformeInicial)
+    '    rptPremio.SetParameterValue("FechaHasta", Me.DataContext.fechaInformeFinal)
+
+    '    Dim mainWindow = Me.container.Resolve(Of IMainWindow)()
+    '    vista.crvInforme.Owner = Window.GetWindow(mainWindow)
+    '    vista.crvInforme.ViewerCore.ReportSource = rptPremio
+    '    vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
+    '    region.Add(vista, nombreVista(region, vista.ToString))
+    '    region.Activate(vista)
+    'End Sub
+    'Private Sub btnComisionesTelefono_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnComisionesTelefono.Click
+    '    Select Case cmbOpciones.Text
+    '        Case "Actual"
+    '            GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) + 0, 1), DateSerial(Year(Now()), Month(Now()) + 1, 0), False, False)
+    '        Case "Anterior"
+    '            GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0), False, True)
+    '        Case Else
+    '            MsgBox("Parte del programa no implementada aún")
+    '    End Select
+
+    'End Sub
     Private Async Sub GenerarInformeComisiones9(FechaDesde As Date, FechaHasta As Date, Resumen As Boolean, SoloFacturas As Boolean)
 
 
@@ -215,16 +215,16 @@ Public Class MenuBarView
 
 
     End Sub
-    Private Sub btnResumen_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnResumen.Click
-        Select Case cmbOpciones.Text
-            Case "Actual"
-                GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) + 0, 1), DateSerial(Year(Now()), Month(Now()) + 1, 0), True, False)
-            Case "Anterior"
-                GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0), True, True)
-            Case Else
-                GenerarInformeComisiones9(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal, True, True)
-        End Select
-    End Sub
+    'Private Sub btnResumen_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnResumen.Click
+    '    Select Case cmbOpciones.Text
+    '        Case "Actual"
+    '            GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) + 0, 1), DateSerial(Year(Now()), Month(Now()) + 1, 0), True, False)
+    '        Case "Anterior"
+    '            GenerarInformeComisiones9(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0), True, True)
+    '        Case Else
+    '            GenerarInformeComisiones9(Me.DataContext.fechaInformeInicial, Me.DataContext.fechaInformeFinal, True, True)
+    '    End Select
+    'End Sub
     Private Sub btnVentasEmpresas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVentasEmpresas.Click
         Select Case cmbOpciones.Text
             Case "Actual"
@@ -261,16 +261,16 @@ Public Class MenuBarView
             btnVentasEmpresas.Visibility = Windows.Visibility.Visible
         End If
     End Sub
-    Private Sub btnPeluquería_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnPeluquería.Click
-        Select Case cmbOpciones.Text
-            Case "Actual"
-                GenerarInformePeluquería(DateSerial(Year(Now()), Month(Now()) + 0, 1), DateSerial(Year(Now()), Month(Now()) + 1, 0))
-            Case "Anterior"
-                GenerarInformePeluquería(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0))
-            Case Else
-                MsgBox("Parte del programa no implementada aún")
-        End Select
-    End Sub
+    'Private Sub btnPeluquería_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnPeluquería.Click
+    '    Select Case cmbOpciones.Text
+    '        Case "Actual"
+    '            GenerarInformePeluquería(DateSerial(Year(Now()), Month(Now()) + 0, 1), DateSerial(Year(Now()), Month(Now()) + 1, 0))
+    '        Case "Anterior"
+    '            GenerarInformePeluquería(DateSerial(Year(Now()), Month(Now()) - 1, 1), DateSerial(Year(Now()), Month(Now()), 0))
+    '        Case Else
+    '            MsgBox("Parte del programa no implementada aún")
+    '    End Select
+    'End Sub
     Private Sub GenerarInformePeluquería(FechaDesde As Date, FechaHasta As Date)
 
         Dim region As IRegion = regionManager.Regions("MainRegion")
@@ -389,30 +389,40 @@ Public Class MenuBarView
         region.Add(vista, nombreVista(region, vista.ToString))
         region.Activate(vista)
     End Sub
-    Private Sub btnControlPedidos_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnControlPedidos.Click
-
-        Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of CRInforme)()
-        vista.DataContext.Titulo = "Informe Pedidos"
-
-
-        'Dim w2 As New frmInforme
-        'w2.Owner = Me
-
-        Dim mv As New ControlPedidosMV
-        Dim ds As New DataSet
-
-        ds = mv.CargarDatos
-
-        Dim rptControl As New InformeControlPedidos
-
-        rptControl.SetDataSource(ds.Tables("ControlPedidos"))
+    Private Async Sub btnControlPedidos_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnControlPedidos.Click
+        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ControlPedidos.rdlc")
+        Dim dataSource As List(Of Informes.ControlPedidosModel) = Await Informes.ControlPedidosModel.CargarDatos()
+        Dim report As LocalReport = New LocalReport()
+        report.LoadReportDefinition(reportDefinition)
+        report.DataSources.Add(New ReportDataSource("ControlPedidosDataSet", dataSource))
+        Dim pdf As Byte() = report.Render("PDF")
+        Dim fileName As String = Path.GetTempPath + "InformeControlPedidos.pdf"
+        File.WriteAllBytes(fileName, pdf)
+        Process.Start(New ProcessStartInfo(fileName) With {
+            .UseShellExecute = True
+        })
+        'Dim region As IRegion = regionManager.Regions("MainRegion")
+        'Dim vista = container.Resolve(Of CRInforme)()
+        'vista.DataContext.Titulo = "Informe Pedidos"
 
 
-        vista.crvInforme.ViewerCore.ReportSource = rptControl
-        vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
-        region.Add(vista, nombreVista(region, vista.ToString))
-        region.Activate(vista)
+        ''Dim w2 As New frmInforme
+        ''w2.Owner = Me
+
+        'Dim mv As New ControlPedidosMV
+        'Dim ds As New DataSet
+
+        'ds = mv.CargarDatos
+
+        'Dim rptControl As New InformeControlPedidos
+
+        'rptControl.SetDataSource(ds.Tables("ControlPedidos"))
+
+
+        'vista.crvInforme.ViewerCore.ReportSource = rptControl
+        'vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
+        'region.Add(vista, nombreVista(region, vista.ToString))
+        'region.Activate(vista)
     End Sub
     Private Async Sub btnInventario_Click(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnInventario.Click
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.UbicacionesInventario.rdlc")
@@ -428,43 +438,43 @@ Public Class MenuBarView
             .UseShellExecute = True
         })
     End Sub
-    Private Sub btnUbicaciones_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnUbicaciones.Click
-        Dim region As IRegion = regionManager.Regions("MainRegion")
-        Dim vista = container.Resolve(Of CRInforme)()
-        vista.DataContext.Titulo = "Informe Ubicaciones"
-        'region.Add(vista, nombreVista(region, vista.ToString))
-        'region.Activate(vista)
+    'Private Sub btnUbicaciones_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnUbicaciones.Click
+    '    Dim region As IRegion = regionManager.Regions("MainRegion")
+    '    Dim vista = container.Resolve(Of CRInforme)()
+    '    vista.DataContext.Titulo = "Informe Ubicaciones"
+    '    'region.Add(vista, nombreVista(region, vista.ToString))
+    '    'region.Activate(vista)
 
-        'Dim w2 As New frmInforme
-        'w2.Owner = Me
+    '    'Dim w2 As New frmInforme
+    '    'w2.Owner = Me
 
-        Dim ds As New DataSet
-        Dim intNúmero As Integer
+    '    Dim ds As New DataSet
+    '    Dim intNúmero As Integer
 
-        If CInt(txtLineas.Text) <> 0 Then
-            intNúmero = CInt(txtLineas.Text)
-        Else
-            intNúmero = 15
-        End If
+    '    If CInt(txtLineas.Text) <> 0 Then
+    '        intNúmero = CInt(txtLineas.Text)
+    '    Else
+    '        intNúmero = 15
+    '    End If
 
-        Dim mv As New UbicacionesMV
-        ds = mv.CargarDatos(intNúmero)
+    '    Dim mv As New UbicacionesMV
+    '    ds = mv.CargarDatos(intNúmero)
 
-        Dim rptInforme As New UbicacionesParaInventario
+    '    Dim rptInforme As New UbicacionesParaInventario
 
-        rptInforme.SetDataSource(ds.Tables("Ubicaciones"))
-
-
+    '    rptInforme.SetDataSource(ds.Tables("Ubicaciones"))
 
 
-        vista.crvInforme.ViewerCore.ReportSource = rptInforme
-        vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
-        'w2.crvInforme.ViewerCore.ReportSource = rptInforme
-        'w2.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
-        'w2.Show()
-        region.Add(vista, nombreVista(region, vista.ToString))
-        region.Activate(vista)
-    End Sub
+
+
+    '    vista.crvInforme.ViewerCore.ReportSource = rptInforme
+    '    vista.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
+    '    'w2.crvInforme.ViewerCore.ReportSource = rptInforme
+    '    'w2.crvInforme.ViewerCore.AllowedExportFormats = CrystalDecisions.Shared.ViewerExportFormats.AllFormats
+    '    'w2.Show()
+    '    region.Add(vista, nombreVista(region, vista.ToString))
+    '    region.Activate(vista)
+    'End Sub
     Private Sub btnClientesAlquileres_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesAlquileres.Click
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Alquileres)()

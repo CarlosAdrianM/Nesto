@@ -305,17 +305,17 @@ Public Class MainModel
         End Function
     End Class
 
-    Public Class ControlPedidosM
-        Public Shared Function CargarInformePedidos() As ControlPedidos
-            Dim cnn As New SqlConnection(strConexion)
-            Dim da As New SqlDataAdapter("prdInformeControlPedidos", cnn)
-            da.SelectCommand.CommandType = CommandType.StoredProcedure
+    'Public Class ControlPedidosM
+    '    Public Shared Function CargarInformePedidos() As ControlPedidos
+    '        Dim cnn As New SqlConnection(strConexion)
+    '        Dim da As New SqlDataAdapter("prdInformeControlPedidos", cnn)
+    '        da.SelectCommand.CommandType = CommandType.StoredProcedure
 
-            Dim ds As New ControlPedidos       ' Change this name to match .xsd file name.
-            da.Fill(ds, "ControlPedidos")
-            Return ds
-        End Function
-    End Class
+    '        Dim ds As New ControlPedidos       ' Change this name to match .xsd file name.
+    '        da.Fill(ds, "ControlPedidos")
+    '        Return ds
+    '    End Function
+    'End Class
 
     Public Class UbicacionesM
         Public Shared Function CargarInformeUbicaciones(Numero As Integer) As Ubicaciones
