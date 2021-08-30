@@ -591,7 +591,9 @@ Public Class DetallePedidoViewModel
 
     Public Property AbrirEnlaceSeguimientoCommand As DelegateCommand(Of String)
     Private Sub OnAbrirEnlaceSeguimientoCommand(enlace As String)
-        System.Diagnostics.Process.Start(enlace)
+        Process.Start(New ProcessStartInfo(enlace) With {
+            .UseShellExecute = True
+        })
     End Sub
 
 #End Region

@@ -34,8 +34,10 @@ Public Class Comisiones
 
     Private Sub dgrPendientesEntregar_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrPendientesEntregar.MouseDoubleClick
         Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
-
-        If src.[GetType]() = GetType(CellContentPresenter) Then
+        If IsNothing(src) Then
+            Return
+        End If
+        If src.[GetType]() = GetType(ScrollContentPresenter) Then
             DataContext.cmdAbrirPedido.Execute(dgrPendientesEntregar.SelectedItem)
         End If
     End Sub
