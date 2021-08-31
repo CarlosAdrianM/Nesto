@@ -454,7 +454,9 @@ Public Class DetallePedidoViewModel
 
 
             ' Abrimos la carpeta de descargas
-            Process.Start(path)
+            Process.Start(New ProcessStartInfo(path) With {
+                .UseShellExecute = True
+            })
         Catch ex As Exception
             Dim mensajeError As String
             If IsNothing(ex.InnerException) Then

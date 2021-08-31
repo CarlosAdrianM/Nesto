@@ -1017,7 +1017,9 @@ Public Class ClientesViewModel
             Next
 
             ' Abrimos la carpeta de descargas
-            Process.Start(path)
+            Process.Start(New ProcessStartInfo(path) With {
+                .UseShellExecute = True
+            })
         Catch ex As Exception
             If IsNothing(ex.InnerException) Then
                 mensajeError = ex.Message

@@ -10,6 +10,7 @@ Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Contratos
 Imports System.IO
+Imports System.Text
 
 Public Class AlquileresViewModel
     Inherits BindableBase
@@ -275,7 +276,7 @@ Public Class AlquileresViewModel
     End Function
     Private Async Sub ImprimirEtiquetaMaquina(ByVal param As Object)
 
-        Dim puerto As String = Await configuracion.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await configuracion.leerParametro(LineaSeleccionada.Empresa, Parametros.Claves.ImpresoraCodBarras)
 
         'Dim objFSO
         'Dim objStream
@@ -283,20 +284,20 @@ Public Class AlquileresViewModel
         'objStream = objFSO.CreateTextFile(puerto) 'Puerto al cual se envía la impresión  
 
         Try
-            Using objStream As StreamWriter = File.CreateText(puerto)
-                objStream.WriteLine("I8,A,034")
-                objStream.WriteLine("N")
-                objStream.WriteLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
-                objStream.WriteLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
-                objStream.WriteLine("A190,10,0,5,1,1,N,""" + ProductoSeleccionado.Nombre + """")
-                objStream.WriteLine("A190,190,0,3,1,1,N,""N/S: " + LineaSeleccionada.NumeroSerie + """")
-                objStream.WriteLine("B190,90,0,3,2,7,70,N,""" + LineaSeleccionada.NumeroSerie + """")
-                objStream.WriteLine("A190,250,0,3,1,1,N,""Fecha Etiquetado: " + Now.ToShortDateString + """")
-                objStream.WriteLine("A190,300,0,3,1,1,N,""Revisada por: """)
-                objStream.WriteLine("A190,400,0,3,1,1,N,""Observaciones: """)
-                objStream.WriteLine("P1")
-                objStream.WriteLine("")
-            End Using
+            Dim builder As New StringBuilder
+            builder.AppendLine("I8,A,034")
+            builder.AppendLine("N")
+            builder.AppendLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
+            builder.AppendLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
+            builder.AppendLine("A190,10,0,5,1,1,N,""" + ProductoSeleccionado.Nombre + """")
+            builder.AppendLine("A190,190,0,3,1,1,N,""N/S: " + LineaSeleccionada.NumeroSerie + """")
+            builder.AppendLine("B190,90,0,3,2,7,70,N,""" + LineaSeleccionada.NumeroSerie + """")
+            builder.AppendLine("A190,250,0,3,1,1,N,""Fecha Etiquetado: " + Now.ToShortDateString + """")
+            builder.AppendLine("A190,300,0,3,1,1,N,""Revisada por: """)
+            builder.AppendLine("A190,400,0,3,1,1,N,""Observaciones: """)
+            builder.AppendLine("P1")
+            builder.AppendLine("")
+            RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
             dialogService.ShowError(mensajeError)
@@ -321,7 +322,7 @@ Public Class AlquileresViewModel
     End Function
     Private Async Sub ImprimirEtiquetaPedido(ByVal param As Object)
 
-        Dim puerto As String = Await configuracion.leerParametro(LineaSeleccionada.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await configuracion.leerParametro(LineaSeleccionada.Empresa, Parametros.Claves.ImpresoraAgencia)
 
         'Dim objFSO
         'Dim objStream
@@ -330,22 +331,22 @@ Public Class AlquileresViewModel
         Dim i As Integer
 
         Try
-            Using objStream As StreamWriter = File.CreateText(puerto)
-                For i = 1 To bultos
-                    objStream.WriteLine("I8,A,034")
-                    objStream.WriteLine("N")
-                    objStream.WriteLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
-                    objStream.WriteLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
-                    objStream.WriteLine("A190,10,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Nombre.Trim + """")
-                    objStream.WriteLine("A190,60,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Dirección + """")
-                    objStream.WriteLine("A190,110,0,4,1,1,N,""" + LineaSeleccionada.Clientes.CodPostal.Trim + " " + LineaSeleccionada.Clientes.Población.Trim + """")
-                    objStream.WriteLine("A190,160,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Provincia.Trim + "")
-                    objStream.WriteLine("A190,210,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString + "")
-                    objStream.WriteLine("B190,260,0,3,2,7,70,N,""" + LineaSeleccionada.CabPedidoVta.ToString + """")
-                    objStream.WriteLine("P1")
-                    objStream.WriteLine("")
-                Next
-            End Using
+            Dim builder As New StringBuilder
+            For i = 1 To bultos
+                builder.AppendLine("I8,A,034")
+                builder.AppendLine("N")
+                builder.AppendLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
+                builder.AppendLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
+                builder.AppendLine("A190,10,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Nombre.Trim + """")
+                builder.AppendLine("A190,60,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Dirección + """")
+                builder.AppendLine("A190,110,0,4,1,1,N,""" + LineaSeleccionada.Clientes.CodPostal.Trim + " " + LineaSeleccionada.Clientes.Población.Trim + """")
+                builder.AppendLine("A190,160,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Provincia.Trim + "")
+                builder.AppendLine("A190,210,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString + "")
+                builder.AppendLine("B190,260,0,3,2,7,70,N,""" + LineaSeleccionada.CabPedidoVta.ToString + """")
+                builder.AppendLine("P1")
+                builder.AppendLine("")
+            Next
+            RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
             'Finally

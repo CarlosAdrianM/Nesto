@@ -18,16 +18,30 @@ Public Class Comisiones
 
     Private Sub dgrFamilias_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrFamilias.MouseDoubleClick
         Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
-
-        If src.[GetType]() = GetType(CellContentPresenter) Then
+        If IsNothing(src) Then
+            Return
+        End If
+        If src.[GetType]() = GetType(ScrollContentPresenter) Then
             DataContext.cmdAbrirPedido.Execute(dgrFamilias.SelectedItem)
+        End If
+    End Sub
+
+    Private Sub dgrFechas_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrFechas.MouseDoubleClick
+        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
+        If IsNothing(src) Then
+            Return
+        End If
+        If src.[GetType]() = GetType(ScrollContentPresenter) Then
+            DataContext.cmdAbrirPedido.Execute(dgrFechas.SelectedItem)
         End If
     End Sub
 
     Private Sub dgrGrupos_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrGrupos.MouseDoubleClick
         Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
-
-        If src.[GetType]() = GetType(CellContentPresenter) Then
+        If IsNothing(src) Then
+            Return
+        End If
+        If src.[GetType]() = GetType(ScrollContentPresenter) Then
             DataContext.cmdAbrirPedido.Execute(dgrGrupos.SelectedItem)
         End If
     End Sub

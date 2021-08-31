@@ -1,7 +1,6 @@
 ﻿<UserControl x:Class="Comisiones" x:Name="Comisiones"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:xcdg="http://schemas.xceed.com/wpf/xaml/datagrid"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     xmlns:local="clr-namespace:Nesto.Views">
 
@@ -9,17 +8,17 @@
 
         <Grid>
             <Grid.Resources>
-                <xcdg:CurrencyConverter x:Key="currencyConverter"/>
                 <BooleanToVisibilityConverter x:Key="BoolToVis"/>
                 <local:GroupsToTotalConverter x:Key="groupsConverter" />
                 <local:GroupsToTotalConverterTwoLevels x:Key="groupsConverterTwoLevels" />
+                <!--
                 <DataTemplate x:Key="currency_celltemplate">
                     <TextBlock Text="{Binding Converter={StaticResource currencyConverter}}"/>
                 </DataTemplate>
                 <Style TargetType="{x:Type xcdg:DataRow}">
                     <Setter Property="Height" Value="20" />
                 </Style>
-
+                -->
                 <CollectionViewSource x:Key="cvs_listaPedidos" Source="{Binding Path=listaPedidos}" >
                     <CollectionViewSource.GroupDescriptions>
                         <PropertyGroupDescription PropertyName="Dirección"/>
@@ -37,6 +36,12 @@
                 <CollectionViewSource x:Key="cvs_listaVentasFamilia" Source="{Binding Path=listaVentasFamilia}" >
                     <CollectionViewSource.GroupDescriptions>
                         <PropertyGroupDescription PropertyName="Familia"/>
+                    </CollectionViewSource.GroupDescriptions>
+                </CollectionViewSource>
+
+                <CollectionViewSource x:Key="cvs_listaVentasFecha" Source="{Binding Path=listaVentasFecha}" >
+                    <CollectionViewSource.GroupDescriptions>
+                        <PropertyGroupDescription PropertyName="Fecha_Albarán"/>
                     </CollectionViewSource.GroupDescriptions>
                 </CollectionViewSource>
 
@@ -413,7 +418,7 @@
                                                         <Expander IsExpanded="True" Background="#FF112255" BorderBrush="#FF002255" Foreground="#FFEEEEEE" BorderThickness="1,1,1,5">
                                                             <Expander.Header>
                                                                 <DockPanel>
-                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0">
+                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0" Width="300">
                                                                         <Run Text="Dirección: "/>
                                                                         <Run Text="{Binding Path=Name, Mode=OneWay}"/>
                                                                     </TextBlock>
@@ -421,7 +426,7 @@
                                                                         <Run Text="Base Imponible:" />
                                                                         <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverterTwoLevels}}"/>
                                                                     </TextBlock>
-                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0">
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0" Width="300">
                                                                         <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
                                                                         <Run Text="líneas"/>
                                                                     </TextBlock>
@@ -442,15 +447,15 @@
                                     <GroupStyle.HeaderTemplate>
                                         <DataTemplate>
                                             <DockPanel Background="LightBlue" Margin="5,0,1,0">
-                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="100">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="300">
                                                     <Run Text="Pedido:" />
                                                     <Run Text="{Binding Path=Name, Mode=OneWay}" />
                                                 </TextBlock>
-                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="300">
                                                     <Run Text="Base Imponible:" />
                                                     <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
                                                 </TextBlock>
-                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="300">
                                                     <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
                                                     <Run Text="líneas"/>
                                                 </TextBlock>
@@ -523,15 +528,15 @@
                                                         <Expander IsExpanded="False" Background="#FF112255" BorderBrush="#FF002255" Foreground="#FFEEEEEE" BorderThickness="1,1,1,5">
                                                             <Expander.Header>
                                                                 <DockPanel>
-                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0">
+                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0" Width="300">
                                                                         <Run Text="Grupo: "/>
                                                                         <Run Text="{Binding Path=Name, Mode=OneWay}" />
                                                                     </TextBlock>
-                                                                    <TextBlock FontWeight="Bold">
+                                                                    <TextBlock FontWeight="Bold" Width="300">
                                                                         <Run Text="Base Imponible:" />
                                                                         <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverterTwoLevels}}"/>
                                                                     </TextBlock>
-                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0">
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0" Width="300">
                                                                         <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
                                                                         <Run Text="líneas"/>
                                                                     </TextBlock>
@@ -552,15 +557,15 @@
                                     <GroupStyle.HeaderTemplate>
                                         <DataTemplate>
                                             <DockPanel Background="LightBlue" Margin="5,0,1,0">
-                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="300">
                                                     <Run Text="Dirección:" />
                                                     <Run Text="{Binding Path=Name, Mode=OneWay}" />
                                                 </TextBlock>
-                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="300">
                                                     <Run Text="Base Imponible:" />
                                                     <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
                                                 </TextBlock>
-                                                <TextBlock Foreground="Blue" Margin="30,0,0,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="300">
                                                     <Run Text="   "/>
                                                     <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
                                                     <Run Text="líneas"/>
@@ -627,15 +632,114 @@
                                                         <Expander IsExpanded="False" Background="#FF112255" BorderBrush="#FF002255" Foreground="#FFEEEEEE" BorderThickness="1,1,1,5">
                                                             <Expander.Header>
                                                                 <DockPanel>
-                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0">
+                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0" Width="300">
                                                                         <Run Text="Familia: "/>
                                                                         <Run Text="{Binding Path=Name, Mode=OneWay}" />
                                                                     </TextBlock>
-                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0">
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0" Width="300">
                                                                         <Run Text="Base Imponible:" />
                                                                         <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
                                                                     </TextBlock>
-                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0">
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0" Width="300">
+                                                                        <Run Text="   "/>
+                                                                        <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                                        <Run Text="líneas"/>
+                                                                    </TextBlock>
+                                                                </DockPanel>
+                                                            </Expander.Header>
+                                                            <Expander.Content>
+                                                                <ItemsPresenter />
+                                                            </Expander.Content>
+                                                        </Expander>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </GroupStyle.ContainerStyle>
+                                </GroupStyle>
+                                <!-- Style for groups under the top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate>
+                                            <DockPanel Background="LightBlue" Margin="5,0,1,0">
+                                                <TextBlock Foreground="Blue" Margin="30,0,0,0" Width="300">
+                                                    <Run Text="{Binding Path=Name, Mode=OneWay}" />
+                                                </TextBlock>
+                                                <TextBlock Foreground="Blue" Width="300">
+                                                    <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                    <Run Text="líneas" />
+                                                </TextBlock>
+                                            </DockPanel>
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </DataGrid.GroupStyle>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Foreground" Value="Black" />
+                                    <Setter Property="Background" Value="White" />
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Número}" />
+                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding Nº_Cliente}" />
+                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Dirección}" />
+                                <DataGridTextColumn Header="Producto" Width="*" Binding="{Binding Producto}" />
+                                <DataGridTextColumn Header="Texto" Width="3*" Binding="{Binding Texto}" />
+                                <DataGridTextColumn Header="Familia" Width="*" Binding="{Binding Familia}" />
+                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                                <DataGridTextColumn Header="Cantidad" Width="*" Binding="{Binding Cantidad}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding Base_Imponible, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Picking" Width="*" Binding="{Binding Picking}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </TabItem>
+                    <TabItem Header="Entregados por Fecha">
+                        <DataGrid x:Name="dgrFechas" ItemsSource="{Binding Source={StaticResource cvs_listaVentasFecha}}" CanUserAddRows="False" AutoGenerateColumns="False">
+                            <DataGrid.GroupStyle>
+                                <!-- Style for groups at top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.Panel>
+                                        <ItemsPanelTemplate>
+                                            <DataGridRowsPresenter/>
+                                        </ItemsPanelTemplate>
+                                    </GroupStyle.Panel>
+                                    <GroupStyle.ContainerStyle>
+                                        <Style TargetType="{x:Type GroupItem}">
+                                            <Setter Property="Margin" Value="0,0,0,5"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                        <Expander IsExpanded="False" Background="#FF112255" BorderBrush="#FF002255" Foreground="#FFEEEEEE" BorderThickness="1,1,1,5">
+                                                            <Expander.Header>
+                                                                <DockPanel>
+                                                                    <TextBlock FontWeight="Bold" Margin="5,0,0,0" Width="300">
+                                                                        <Run Text="Fecha: "/>
+                                                                        <Run Text="{Binding Path=Name, Mode=OneWay, StringFormat='{}{0:dd/MM/yyyy (dddd)}', ConverterCulture='es-ES'}" />
+                                                                    </TextBlock>
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0" Width="300">
+                                                                        <Run Text="Base Imponible:" />
+                                                                        <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
+                                                                    </TextBlock>
+                                                                    <TextBlock FontWeight="Bold" Margin="25,0,0,0" Width="300">
                                                                         <Run Text="   "/>
                                                                         <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
                                                                         <Run Text="líneas"/>

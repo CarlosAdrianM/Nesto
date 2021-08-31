@@ -491,6 +491,7 @@ Public Class RemesasViewModel
                 If tareasBucket.Any(Function(t) t.Title = tituloTarea) Then
                     plannerTask = tareasBucket.First(Function(t) t.Title = tituloTarea)
                     detallesAntiguos = Await graphClient.Planner.Tasks(plannerTask.Id).Details.Request().GetAsync()
+                    plannerTask.PercentComplete = 50 ' en curso
                 Else
                     plannerTask = New PlannerTask With
                     {

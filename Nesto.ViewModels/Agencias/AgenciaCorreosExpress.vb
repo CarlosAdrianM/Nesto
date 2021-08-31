@@ -7,6 +7,7 @@ Imports System.Net.Http
 Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Windows
+Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Serialization
@@ -223,7 +224,7 @@ Public Class AgenciaCorreosExpress
         End If
 
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, Parametros.Claves.ImpresoraBolsas)
 
         Dim i As Integer
 

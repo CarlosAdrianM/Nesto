@@ -72,6 +72,7 @@ Public Class PlantillaVentaViewModel
         cmdCalcularSePuedeServirPorGlovo = New DelegateCommand(AddressOf OnCalcularSePuedeServirPorGlovo)
         CambiarIvaCommand = New DelegateCommand(AddressOf OnCambiarIva)
         CargarCorreoYMovilTarjeta = New DelegateCommand(AddressOf OnCargarCorreoYMovilTarjeta)
+        NoAmpliarPedidoCommand = New DelegateCommand(AddressOf OnNoAmpliarPedido, AddressOf CanNoAmpliarPedido)
         QuitarFiltroProductoCommand = New DelegateCommand(Of String)(AddressOf OnQuitarFiltroProducto)
         SoloConStockCommand = New DelegateCommand(AddressOf OnSoloConStock, AddressOf CanSoloConStock)
 
@@ -631,6 +632,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As Integer)
             SetProperty(_pedidoPendienteSeleccionado, value)
+            NoAmpliarPedidoCommand.RaiseCanExecuteChanged()
         End Set
     End Property
     Private _plazoPagoSeleccionado As PlazoPagoDTO
@@ -726,7 +728,7 @@ Public Class PlantillaVentaViewModel
     End Property
     Public ReadOnly Property TienePedidosPendientes As Boolean
         Get
-            Return Not IsNothing(ListaPedidosPendientes) AndAlso ListaPedidosPendientes.Any
+            Return Not IsNothing(ListaPedidosPendientes) AndAlso ListaPedidosPendientes.Where(Function(f) f <> 0).Any
         End Get
     End Property
     Private _todosLosVendedores As Boolean
@@ -1398,9 +1400,9 @@ Public Class PlantillaVentaViewModel
         Try
             ListaPedidosPendientes = Await servicio.CargarListaPendientes(clienteSeleccionado.empresa, clienteSeleccionado.cliente)
 
-            If ListaPedidosPendientes.Any Then
+            If TienePedidosPendientes Then
                 Dim textoMensaje As String = "Este cliente tiene otros pedidos pendientes." + vbCr + vbCr
-                For Each i In ListaPedidosPendientes
+                For Each i In ListaPedidosPendientes.Where(Function(f) f <> 0)
                     textoMensaje += i.ToString + vbTab
                 Next
                 textoMensaje += vbCr + vbCr + "Por favor, revise que sea todo correcto."
@@ -1485,6 +1487,22 @@ Public Class PlantillaVentaViewModel
 
 
 
+    End Sub
+
+    Private _noAmpliarPedidoCommand As DelegateCommand
+    Public Property NoAmpliarPedidoCommand As DelegateCommand
+        Get
+            Return _noAmpliarPedidoCommand
+        End Get
+        Set(value As DelegateCommand)
+            SetProperty(_noAmpliarPedidoCommand, value)
+        End Set
+    End Property
+    Private Function CanNoAmpliarPedido() As Boolean
+        Return PedidoPendienteSeleccionado <> 0
+    End Function
+    Private Sub OnNoAmpliarPedido()
+        PedidoPendienteSeleccionado = 0
     End Sub
 
     Private Function PrepararPedido() As PedidoVentaDTO

@@ -7,6 +7,7 @@ Imports System.Globalization
 Imports System.Runtime.InteropServices
 Imports Microsoft.Win32.SafeHandles
 Imports System.Text
+Imports Nesto.Contratos
 
 Public Class AgenciaSending
     Implements IAgencia
@@ -217,7 +218,7 @@ Public Class AgenciaSending
         End If
 
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraAgencia")
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, Parametros.Claves.ImpresoraAgencia)
 
         'Dim objFSO
         'Dim objStream

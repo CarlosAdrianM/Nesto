@@ -183,6 +183,7 @@ Public Class PlantillaVentaService
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     Dim pedidosPendientes As List(Of Integer) = JsonConvert.DeserializeObject(Of List(Of Integer))(cadenaJson)
+                    pedidosPendientes.Add(0)
                     Return pedidosPendientes
                 Else
                     Throw New Exception("Se ha producido un error al comprobar los pedidos pendientes del cliente")
