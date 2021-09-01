@@ -42,6 +42,7 @@
                 <CollectionViewSource x:Key="cvs_listaVentasFecha" Source="{Binding Path=listaVentasFecha}" >
                     <CollectionViewSource.GroupDescriptions>
                         <PropertyGroupDescription PropertyName="Fecha_Albarán"/>
+                        <PropertyGroupDescription PropertyName="Nº_Cliente"/>
                     </CollectionViewSource.GroupDescriptions>
                 </CollectionViewSource>
 
@@ -737,9 +738,51 @@
                                                                     </TextBlock>
                                                                     <TextBlock FontWeight="Bold" Margin="25,0,0,0" Width="300">
                                                                         <Run Text="Base Imponible:" />
-                                                                        <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
+                                                                        <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverterTwoLevels}}"/>
                                                                     </TextBlock>
                                                                     <TextBlock FontWeight="Bold" Margin="25,0,0,0" Width="300">
+                                                                        <Run Text="   "/>
+                                                                        <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                                        <Run Text="líneas"/>
+                                                                    </TextBlock>
+                                                                </DockPanel>
+                                                            </Expander.Header>
+                                                            
+                                                            <Expander.Content>
+                                                                <ItemsPresenter />
+                                                            </Expander.Content>
+                                                            
+                                                        </Expander>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </GroupStyle.ContainerStyle>
+                                </GroupStyle>
+                                <!-- Style for groups under the top level. -->
+                                <GroupStyle>
+                                    <GroupStyle.ContainerStyle>
+                                        <Style TargetType="{x:Type GroupItem}">
+                                            <Setter Property="Margin" Value="0,0,0,5"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                        <Expander IsExpanded="False" Background="LightBlue" BorderBrush="LightBlue" Foreground="#FFEEEEEE" BorderThickness="1,1,1,5">
+                                                            <Expander.Header>
+                                                                <DockPanel>
+                                                                    <TextBlock Foreground="Blue" Margin="5,0,0,0" Width="100">
+                                                                        <Run Text="Cliente: "/>
+                                                                        <Run Text="{Binding Path=Name, Mode=OneWay, StringFormat='{}{0:dd/MM/yyyy (dddd)}', ConverterCulture='es-ES'}" />   
+                                                                    </TextBlock>
+                                                                    <TextBlock Foreground="Blue" Margin="25,0,0,0" Width="400">
+                                                                        <Run Text="Dirección:" />
+                                                                        <Run Text="{Binding Path=Items[0].Dirección, Mode=OneWay}"/>
+                                                                    </TextBlock>
+                                                                    <TextBlock Foreground="Blue" Margin="25,0,0,0" Width="200">
+                                                                        <Run Text="Base Imponible:" />
+                                                                        <Run Text="{Binding Path=Items, Mode=OneWay, Converter={StaticResource groupsConverter}}"/>
+                                                                    </TextBlock>
+                                                                    <TextBlock Foreground="Blue" Margin="25,0,0,0" Width="200">
                                                                         <Run Text="   "/>
                                                                         <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
                                                                         <Run Text="líneas"/>
@@ -756,7 +799,6 @@
                                         </Style>
                                     </GroupStyle.ContainerStyle>
                                 </GroupStyle>
-                                <!-- Style for groups under the top level. -->
                                 <GroupStyle>
                                     <GroupStyle.HeaderTemplate>
                                         <DataTemplate>
@@ -802,6 +844,13 @@
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="Picking" Width="*" Binding="{Binding Picking}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Estado" Width="*" Binding="{Binding Estado}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
