@@ -4,12 +4,11 @@ using System.ComponentModel;
 using FakeItEasy;
 using Prism.Events;
 using Prism.Regions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-
 using Nesto.Contratos;
 using Nesto.Modulos.Cliente;
 using Xceed.Wpf.Toolkit;
 using Prism.Services.Dialogs;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ClienteTests
 {
@@ -113,7 +112,6 @@ namespace ClienteTests
 
             Assert.AreEqual(1, vecesSeHaLlamado);
         }
-
 
         [TestMethod]
         public void CrearClienteViewModel_PasarADatosComision_SiOtroClienteTieneEseMovilSeNotifica()

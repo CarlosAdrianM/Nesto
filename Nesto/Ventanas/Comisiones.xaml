@@ -42,7 +42,7 @@
                 <CollectionViewSource x:Key="cvs_listaVentasFecha" Source="{Binding Path=listaVentasFecha}" >
                     <CollectionViewSource.GroupDescriptions>
                         <PropertyGroupDescription PropertyName="Fecha_Albarán"/>
-                        <PropertyGroupDescription PropertyName="Nº_Cliente"/>
+                        <PropertyGroupDescription PropertyName="Número"/>
                     </CollectionViewSource.GroupDescriptions>
                 </CollectionViewSource>
 
@@ -771,8 +771,8 @@
                                                             <Expander.Header>
                                                                 <DockPanel>
                                                                     <TextBlock Foreground="Blue" Margin="5,0,0,0" Width="100">
-                                                                        <Run Text="Cliente: "/>
-                                                                        <Run Text="{Binding Path=Name, Mode=OneWay, StringFormat='{}{0:dd/MM/yyyy (dddd)}', ConverterCulture='es-ES'}" />   
+                                                                        <Run Text="Pedido: "/>
+                                                                        <Run Text="{Binding Path=Name, Mode=OneWay}" />   
                                                                     </TextBlock>
                                                                     <TextBlock Foreground="Blue" Margin="25,0,0,0" Width="400">
                                                                         <Run Text="Dirección:" />
