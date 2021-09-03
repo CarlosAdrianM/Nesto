@@ -44,22 +44,9 @@
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.Expression.Interactions, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
     <Reference Include="Prism.RibbonRegionAdapter">
       <HintPath>..\..\..\..\PrismRibbonRegionAdapter\Prism.RibbonRegionAdapter\bin\Debug\Prism.RibbonRegionAdapter.dll</HintPath>
     </Reference>
-    <Reference Include="System.Core" />
-    <Reference Include="System.Windows.Controls.Ribbon" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Xaml" />
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-    <Reference Include="System.Net.Http" />
   </ItemGroup>
   <ItemGroup>
     <Import Include="System.Threading.Tasks" />
@@ -99,9 +86,6 @@
     <Resource Include="Images\Inventario.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Expression.Blend.Sdk">
-      <Version>1.0.2</Version>
-    </PackageReference>
     <PackageReference Include="Extended.Wpf.Toolkit">
       <Version>4.1.0</Version>
     </PackageReference>

@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:prism="http://prismlibrary.com/"
         xmlns:my="clr-namespace:SAPBusinessObjects.WPF.Viewer;assembly=SAPBusinessObjects.WPF.Viewer"
-        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         Title="Nesto" 
         x:Name="RibbonWindow"
 		Icon="/Icono2_NV_256x256.ico" WindowState="Maximized"  VerticalContentAlignment="Center" VerticalAlignment="Center">

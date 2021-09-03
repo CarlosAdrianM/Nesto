@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:Nesto.Modulos.PedidoVenta"
              xmlns:prism="http://prismlibrary.com/"
              prism:ViewModelLocator.AutoWireViewModel="True"
-             xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mc:Ignorable="d" 

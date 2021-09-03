@@ -5,7 +5,7 @@
     xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"    
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels" 
-    xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
     xmlns:prism="http://prismlibrary.com/"
     prism:ViewModelLocator.AutoWireViewModel="True">
 

@@ -1,4 +1,4 @@
-﻿Imports System.Windows.Interactivity
+﻿Imports Microsoft.Xaml.Behaviors
 Imports Prism.Regions
 
 Public Class CloseTabAction
