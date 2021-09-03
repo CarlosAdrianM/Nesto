@@ -457,19 +457,21 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
                                 <ColumnDefinition/>
+                                <ColumnDefinition Width="*"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Reembolso" Style="{StaticResource etiquetaTexto}"/>
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Retorno" Style="{StaticResource etiquetaTexto}"/>
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Estado" Style="{StaticResource etiquetaTexto}"/>
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Fecha Entrega" Style="{StaticResource etiquetaTexto}"/>
-                            <Button Grid.Row="4" Grid.Column="0" Margin="3" Content="Rehusado" Command="{Binding cmdRehusarEnvio}" />
-                            <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding reembolsoModificar, StringFormat=c}" Style="{StaticResource campoTexto}"/>
-                            <ComboBox Grid.Row="1" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" ItemsSource="{Binding listaTiposRetorno}" SelectedItem="{Binding retornoModificar}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
-                            <TextBox Grid.Row="2" Grid.Column="1" IsEnabled="{Binding sePuedeModificarEstado}"  Text="{Binding estadoModificar}" Style="{StaticResource campoTexto}"/>
-                            <DatePicker Grid.Row="3" Grid.Column="1" IsEnabled="{Binding sePuedeModificarReembolso}" SelectedDate="{Binding fechaEntregaModificar}" Margin="3"></DatePicker>
-                            <Button Grid.Row="4" Grid.Column="1" Margin="3" Content="Modificar Envío" Command="{Binding cmdModificarEnvio}" />
-                            <TextBox Grid.RowSpan="5" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding Path=observacionesModificacion}" Style="{StaticResource campoComentarios}" />
+                            <Button Grid.Row="4" Grid.Column="0" Margin="3" Content="Imprimir Manifiesto" Command="{Binding cmdImprimirManifiesto}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Reembolso" Style="{StaticResource etiquetaTexto}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="Retorno" Style="{StaticResource etiquetaTexto}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Estado" Style="{StaticResource etiquetaTexto}"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="Fecha Entrega" Style="{StaticResource etiquetaTexto}"/>
+                            <Button Grid.Row="4" Grid.Column="1" Margin="3" Content="Rehusado" Command="{Binding cmdRehusarEnvio}" />
+                            <TextBox Grid.Row="0" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding reembolsoModificar, StringFormat=c}" Style="{StaticResource campoTexto}"/>
+                            <ComboBox Grid.Row="1" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" ItemsSource="{Binding listaTiposRetorno}" SelectedItem="{Binding retornoModificar}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
+                            <TextBox Grid.Row="2" Grid.Column="2" IsEnabled="{Binding sePuedeModificarEstado}"  Text="{Binding estadoModificar}" Style="{StaticResource campoTexto}"/>
+                            <DatePicker Grid.Row="3" Grid.Column="2" IsEnabled="{Binding sePuedeModificarReembolso}" SelectedDate="{Binding fechaEntregaModificar}" Margin="3"></DatePicker>
+                            <Button Grid.Row="4" Grid.Column="2" Margin="3" Content="Modificar Envío" Command="{Binding cmdModificarEnvio}" />
+                            <TextBox Grid.RowSpan="5" Grid.Column="3" IsEnabled="{Binding sePuedeModificarReembolso}" Text="{Binding Path=observacionesModificacion}" Style="{StaticResource campoComentarios}" />
                         </Grid>
                     </DockPanel>
                     <DockPanel Grid.Row="1">

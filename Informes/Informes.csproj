@@ -9,12 +9,14 @@
   <ItemGroup>
     <None Remove="ControlPedidos.rdlc" />
     <None Remove="DetalleRapports.rdlc" />
+    <None Remove="ManifiestoAgencia.rdlc" />
     <None Remove="ResumenVentas.rdlc" />
     <None Remove="UbicacionesInventario.rdlc" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="ControlPedidos.rdlc" />
+    <EmbeddedResource Include="ManifiestoAgencia.rdlc" />
     <EmbeddedResource Include="UbicacionesInventario.rdlc" />
   </ItemGroup>
 

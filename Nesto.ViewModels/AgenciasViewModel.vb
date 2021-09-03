@@ -16,6 +16,9 @@ Imports Nesto.Models
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports System.Data.Entity.Validation
+Imports System.IO
+Imports System.Reflection
+Imports Microsoft.Reporting.NETCore
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -908,6 +911,7 @@ Public Class AgenciasViewModel
             RaisePropertyChanged(NameOf(sePuedeModificarReembolso))
             RaisePropertyChanged(NameOf(sePuedeModificarEstado))
             RaisePropertyChanged(NameOf(etiquetaBultosTramitados))
+            cmdImprimirManifiesto.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -1746,22 +1750,25 @@ Public Class AgenciasViewModel
         End Set
     End Property
     Private Function CanImprimirManifiesto(arg As Object) As Boolean
-        Return Not IsNothing(listaEnviosTramitados)
+        Return Not IsNothing(listaEnviosTramitados) AndAlso listaEnviosTramitados.Any
     End Function
-    Private Sub OnImprimirManifiesto(arg As Object)
-        'Dim region As IRegion = regionManager.Regions("MainRegion")
-        'Dim vista = container.Resolve(Of Object)("frmCRInforme")
-        'Dim report As New ReportClass
-        'report.FileName = "C:\Users\Carlos.NUEVAVISION\Documents\Visual Studio 2013\Projects\Nesto\Nesto\Informes\ImpresoUbicaciones_Inventario.rpt"
-        'report.Load()
-        ''report.SetDataSource(listaEnviosTramitados)
-        ''Dim stream As IO.Stream = rptH.ExportToStream(CrystalDecisions.Shared.ExportFormatType.PortableDocFormat)
-        ''Return File(stream, "application/pdf")
-        'vista.crvInforme = report
-
-        'region.Add(vista, "frmCRInforme")
-        'region.Activate(vista)
-        ''regionManager.RequestNavigate("MainRegion", New Uri("/Clientes", UriKind.Relative))
+    Private Async Sub OnImprimirManifiesto(arg As Object)
+        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ManifiestoAgencia.rdlc")
+        Dim dataSource As List(Of Informes.ManifiestoAgenciaModel) = Await Informes.ManifiestoAgenciaModel.CargarDatos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+        Dim report As LocalReport = New LocalReport()
+        report.LoadReportDefinition(reportDefinition)
+        report.DataSources.Add(New ReportDataSource("ManifiestoAgenciaDataSet", dataSource))
+        Dim listaParametros As New List(Of ReportParameter) From {
+            New ReportParameter("Fecha", fechaFiltro),
+            New ReportParameter("NombreAgencia", agenciaSeleccionada.Nombre)
+        }
+        report.SetParameters(listaParametros)
+        Dim pdf As Byte() = report.Render("PDF")
+        Dim fileName As String = Path.GetTempPath + "InformeManifiestoAgencia.pdf"
+        File.WriteAllBytes(fileName, pdf)
+        Process.Start(New ProcessStartInfo(fileName) With {
+            .UseShellExecute = True
+        })
     End Sub
 
     Private _cmdRecibirRetorno As DelegateCommand(Of Object)
