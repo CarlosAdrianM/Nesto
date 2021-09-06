@@ -129,9 +129,15 @@ Public Class PlantillaVentaService
                 Dim respuestaError = response.Content.ReadAsStringAsync().Result
                 Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
                 Dim contenido As String = detallesError("ExceptionMessage")
+                If String.IsNullOrEmpty(contenido) Then
+                    contenido = detallesError("exceptionMessage")
+                End If
                 While Not IsNothing(detallesError("InnerException"))
                     detallesError = detallesError("InnerException")
                     Dim contenido2 As String = detallesError("ExceptionMessage")
+                    If String.IsNullOrEmpty(contenido2) Then
+                        contenido2 = detallesError("exceptionMessage")
+                    End If
                     contenido = contenido + vbCr + contenido2
                 End While
                 Throw New Exception("Se ha producido un error al cargar la plantilla" + vbCr + contenido)
@@ -212,9 +218,15 @@ Public Class PlantillaVentaService
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
                     Dim contenido As String = detallesError("ExceptionMessage")
+                    If String.IsNullOrEmpty(contenido) Then
+                        contenido = detallesError("exceptionMessage")
+                    End If
                     While Not IsNothing(detallesError("InnerException"))
                         detallesError = detallesError("InnerException")
                         Dim contenido2 As String = detallesError("ExceptionMessage")
+                        If String.IsNullOrEmpty(contenido2) Then
+                            contenido2 = detallesError("exceptionMessage")
+                        End If
                         contenido = contenido + vbCr + contenido2
                     End While
 
@@ -253,10 +265,16 @@ Public Class PlantillaVentaService
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
+                    Dim contenido As String = detallesError("exceptionMessage")
+                    If String.IsNullOrEmpty(contenido) Then
+                        contenido = detallesError("ExceptionMessage")
+                    End If
                     While Not IsNothing(detallesError("InnerException"))
                         detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        Dim contenido2 As String = detallesError("exceptionMessage")
+                        If String.IsNullOrEmpty(contenido2) Then
+                            contenido2 = detallesError("ExceptionMessage")
+                        End If
                         contenido = contenido + vbCr + contenido2
                     End While
 
