@@ -22,7 +22,6 @@ Public Class RemesasViewModel
     Const numRemesas = 100
 
     Private Shared DbContext As NestoEntities
-    Dim mainViewModel As New MainViewModel
     Dim empresaDefecto As String = "1" 'mainModel.leerParametro("1", "EmpresaPorDefecto")
     Dim blnPuedeVerTodasLasRemesas As Boolean = True
 
@@ -293,7 +292,7 @@ Public Class RemesasViewModel
         Dim listaContenido As List(Of String)
         Dim codigo As String
         codigo = tipoRemesaActual.id
-        Dim nombreFichero As String = Await mainViewModel.leerParametro(empresaActual, Parametros.Claves.PathNorma19) + CStr(remesaActual.Número) + ".xml"
+        Dim nombreFichero As String = Await configuracion.leerParametro(empresaActual, Parametros.Claves.PathNorma19) + CStr(remesaActual.Número) + ".xml"
         'Dim nombreFichero As String = "c:\banco\prueba.xml"
         Try
             mensajeError = "Generando fichero..."
@@ -340,7 +339,7 @@ Public Class RemesasViewModel
         elegirFichero.Filter = "xml files (*.xml)|*.xml|All files (*.*)|*.*"
         elegirFichero.FilterIndex = 1
         elegirFichero.RestoreDirectory = True
-        elegirFichero.InitialDirectory = Await mainViewModel.leerParametro(empresaActual, "PathDefectoImpagados")
+        elegirFichero.InitialDirectory = Await configuracion.leerParametro(empresaActual, "PathDefectoImpagados")
 
         If elegirFichero.ShowDialog() Then
             Try

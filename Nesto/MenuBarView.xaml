@@ -123,7 +123,7 @@
                 <RibbonButton Label="Detalle" LargeImageSource="/Images/VendedorTelefonicoDetalle.png" Name="btnComisionesTelefono" />
                 <RibbonButton Label="Resumen" LargeImageSource="/Images/VendedorTelefonico.png" Name="btnResumen"  />
                 -->
-                <RibbonButton Label="Rapport" LargeImageSource="/Images/rapports.png" Name="btnRapport"  />
+                <RibbonButton Label="Rapport" LargeImageSource="/Images/rapports.png" Name="btnRapport" Visibility="Hidden" />
             </RibbonGroup>
 
             <RibbonGroup x:Name="grpGrupoEmpresas"

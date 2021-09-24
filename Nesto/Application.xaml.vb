@@ -104,6 +104,5 @@ Partial Public Class Application
         MyBase.ConfigureViewModelLocator()
         ViewModelLocationProvider.Register(GetType(Remesas).ToString, GetType(RemesasViewModel))
         ViewModelLocationProvider.Register(GetType(Alquileres).ToString, GetType(AlquileresViewModel))
-        ViewModelLocationProvider.Register(GetType(CRInforme).ToString, GetType(CRInformeViewModel))
     End Sub
 End Class

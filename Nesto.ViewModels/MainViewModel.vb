@@ -14,32 +14,6 @@ Imports Unity
 Imports System.ComponentModel
 Imports System.Data
 
-'Public Class ViewModelBase
-'    Implements INotifyPropertyChanged
-
-'    Public Event PropertyChanged(ByVal sender As Object, ByVal e As System.ComponentModel.PropertyChangedEventArgs) Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
-
-'    Protected Sub RaisePropertyChanged(ByVal strPropertyName As String)
-'        If Me.PropertyChangedEvent IsNot Nothing Then
-'            RaiseEvent PropertyChanged(Me, New System.ComponentModel.PropertyChangedEventArgs(strPropertyName))
-'        End If
-'    End Sub
-
-'    Public Sub New()
-'        Titulo = "Informe"
-'    End Sub
-
-'    Private _titulo As String
-'    Public Property Titulo As String
-'        Get
-'            Return _titulo
-'        End Get
-'        Set(ByVal value As String)
-'            _titulo = value
-'        End Set
-'    End Property
-
-'End Class
 Public Class RelayCommand
     Implements ICommand
 
@@ -194,42 +168,6 @@ Public Class MainViewModel
         End Set
     End Property
 
-
-
-#Region "Comandos"
-    'Private _cmdCerrarVentana As DelegateCommand(Of Object)
-    'Public Property cmdCerrarVentana As DelegateCommand(Of Object)
-    '    Get
-    '        Return _cmdCerrarVentana
-    '    End Get
-    '    Private Set(value As DelegateCommand(Of Object))
-    '        _cmdCerrarVentana = value
-    '    End Set
-    'End Property
-    'Private Function CanCerrarVentana(arg As Object) As Boolean
-    '    Return True
-    'End Function
-    'Private Sub OnCerrarVentana(arg As Object)
-    '    'Dim view = Me.regionManager.Regions("MainRegion").GetView(arg.ToString)
-    '    Dim view = Me.regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
-    '    'Dim view = views.LastOrDefault
-
-    '    'For Each v In views
-    '    '    Debug.Print(v.Name)
-    '    '    If v.DataContext.IsActive Then
-    '    '        view = v
-    '    '        Exit For
-    '    '    End If
-    '    'Next
-
-
-    '    If Not IsNothing(view) Then
-    '        Me.regionManager.Regions("MainRegion").Deactivate(view)
-    '        Me.regionManager.Regions("MainRegion").Remove(view)
-    '    End If
-    'End Sub
-#End Region
-
     Public Async Function leerParametro(empresa As String, clave As String) As Task(Of String)
 
         Using client As New HttpClient
@@ -276,39 +214,7 @@ Public Class RatioDataTemplateSelector
         Return Nothing
     End Function
 End Class
-Public Class NVDataSetMV
-    'Inherits NVDataSetM
-    Private _DatosInformePeluqueria As DataSet
-    Public Property DatosInformePeluqueria As DataSet
-        Get
-            Return Me._DatosInformePeluqueria
-        End Get
 
-        Set(ByVal value As DataSet)
-            Me._DatosInformePeluqueria = value
-        End Set
-    End Property
-    Public Function CargarDatos(fchInicial As Date, fchFinal As Date) As DataSet
-        Return NVDataSetM.CargarInformePeluqueria(fchInicial, fchFinal)
-    End Function
-
-End Class
-Public Class UbicacionesMV
-    'Inherits NVDataSetM
-    Private _DatosInformeUbicaciones As DataSet
-    Public Property DatosInformeUbicaciones As DataSet
-        Get
-            Return Me._DatosInformeUbicaciones
-        End Get
-
-        Set(ByVal value As DataSet)
-            Me._DatosInformeUbicaciones = value
-        End Set
-    End Property
-    Public Function CargarDatos(Numero As Integer) As DataSet
-        Return UbicacionesM.CargarInformeUbicaciones(Numero)
-    End Function
-End Class
 Public Class IconoConverter
     Implements IValueConverter
 

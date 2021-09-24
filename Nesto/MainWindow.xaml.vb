@@ -35,16 +35,5 @@ Class MainWindow
             MainMenu = value
         End Set
     End Property
-
-    'Private Sub btnPruebaBorrar_Click(sender As Object, e As RoutedEventArgs) Handles btnPruebaBorrar.Click
-    '    Dim view = Me.container.Resolve(GetType(MenuBarView))
-    '    If Not IsNothing(view) Then
-    '        'Dim regionAdapter = New RibbonRegionAdapter(Me.container.Resolve(GetType(RegionBehaviorFactory)))
-    '        Dim regionAdapter = Me.container.Resolve(GetType(RibbonRegionAdapter))
-    '        Dim region = regionAdapter.Initialize(MainMenu, "MainMenuQueNoExiste")
-    '        'Dim region = regionManager.Regions("MainMenu")
-    '        region.Add(view, "MenuBar")
-    '    End If
-    'End Sub
 End Class
 

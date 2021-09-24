@@ -1,7 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Globalization
 Imports Nesto.ViewModels
-Imports Xceed.Wpf.DataGrid
 
 Public Class Comisiones
     Public Sub New(viewModel As ComisionesViewModel)

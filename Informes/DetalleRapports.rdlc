@@ -592,7 +592,7 @@
                   </TablixCells>
                 </TablixRow>
                 <TablixRow>
-                  <Height>1.28792cm</Height>
+                  <Height>3.07938cm</Height>
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
@@ -645,6 +645,7 @@
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox80</rd:DefaultName>
+                              <Left>0cm</Left>
                               <Height>0.6cm</Height>
                               <Width>8.90919cm</Width>
                               <Style>
@@ -674,10 +675,106 @@
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox80</rd:DefaultName>
-                              <Top>0.66146cm</Top>
+                              <Top>0.6cm</Top>
+                              <Left>0cm</Left>
                               <Height>0.6cm</Height>
                               <Width>8.90919cm</Width>
                               <ZIndex>1</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox82">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>="Total visitas presenciales: " &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "V", 1, 0))</Value>
+                                      <Style>
+                                        <FontWeight>Bold</FontWeight>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox80</rd:DefaultName>
+                              <Top>1.2cm</Top>
+                              <Left>0cm</Left>
+                              <Height>0.6cm</Height>
+                              <Width>8.90919cm</Width>
+                              <ZIndex>2</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox83">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>="Total visitas teléfonicas: " &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "T", 1, 0))</Value>
+                                      <Style>
+                                        <FontWeight>Bold</FontWeight>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox80</rd:DefaultName>
+                              <Top>1.8cm</Top>
+                              <Left>0cm</Left>
+                              <Height>0.6cm</Height>
+                              <Width>8.90919cm</Width>
+                              <ZIndex>3</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox84">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>="Total pedidos: " &amp; Sum(IIf(Fields!Pedido.Value = True, 1, 0))</Value>
+                                      <Style>
+                                        <FontWeight>Bold</FontWeight>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox80</rd:DefaultName>
+                              <Top>2.4cm</Top>
+                              <Height>0.6cm</Height>
+                              <Width>8.90919cm</Width>
+                              <ZIndex>4</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -917,7 +1014,7 @@
             <FixedColumnHeaders>true</FixedColumnHeaders>
             <FixedRowHeaders>true</FixedRowHeaders>
             <DataSetName>DetalleRapportsDataSet</DataSetName>
-            <Height>3.08475cm</Height>
+            <Height>4.8762cm</Height>
             <Width>28.71362cm</Width>
             <Style>
               <Border>
@@ -926,7 +1023,7 @@
             </Style>
           </Tablix>
         </ReportItems>
-        <Height>1.24235in</Height>
+        <Height>2.24235in</Height>
         <Style />
       </Body>
       <Width>11.31052in</Width>
