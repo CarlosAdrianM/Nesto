@@ -102,34 +102,6 @@ Public Class ComisionesViewModel
                                                                                    Order By l.Número, l.Nº_Orden
                                                                                    Select l)
             ActualizarListadosAgrupados()
-            'If fechaDesde >= New Date(2017, 3, 1) Then
-            '    listaVentasComision = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
-            '                                                                                 Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
-            '                                                                                     (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
-            '                                                                                     l.Vendedor = vendedorActual.Número)
-            '                                                                                 Order By l.Grupo, l.Dirección
-            '                                                                                 Select l)
-            '    listaVentasFamilia = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
-            '                                                                                Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
-            '                                                                                     (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
-            '                                                                                     l.Vendedor = vendedorActual.Número)
-            '                                                                                Order By l.Familia
-            '                                                                                Select l)
-            '    listaVentasFecha = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
-            '                                                                              Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
-            '                                                                                     (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
-            '                                                                                     l.Vendedor = vendedorActual.Número)
-            '                                                                              Order By l.Fecha_Albarán
-            '                                                                              Select l)
-            '    For Each l In listaVentasFecha
-            '        Dim fecha As Date = l.Fecha_Albarán
-            '        l.Fecha_Albarán = fecha.Date
-            '    Next
-            'Else
-            '    listaVentasComision = Nothing
-            '    listaVentasFamilia = Nothing
-            '    listaVentasFecha = Nothing
-            'End If
         End Set
     End Property
 
