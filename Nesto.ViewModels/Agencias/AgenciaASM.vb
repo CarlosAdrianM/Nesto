@@ -6,6 +6,8 @@ Imports System.Text.RegularExpressions
 Imports Nesto.Models.Nesto.Models
 Imports System.Threading.Tasks
 Imports ControlesUsuario.Dialogs
+Imports System.Text
+Imports Nesto.Contratos
 
 Public Class AgenciaASM
     Implements IAgencia
@@ -322,7 +324,7 @@ Public Class AgenciaASM
         End If
 
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, "ImpresoraBolsas")
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, Parametros.Claves.ImpresoraAgencia)
 
         'Dim objFSO
         'objFSO = CreateObject("Scripting.FileSystemObject")
@@ -331,43 +333,26 @@ Public Class AgenciaASM
         Dim i As Integer
 
         Try
-            Using objStream As StreamWriter = File.CreateText(puerto)
-                For i = 1 To envio.Bultos
-                    objStream.Writeline("I8,A,034")
-                    objStream.Writeline("N")
-                    objStream.Writeline("A40,10,0,4,1,1,N,""" + envio.Nombre + """")
-                    objStream.Writeline("A40,50,0,4,1,1,N,""" + envio.Direccion + """")
-                    objStream.Writeline("A40,90,0,4,1,1,N,""" + envio.CodPostal + " " + envio.Poblacion + """")
-                    objStream.Writeline("A40,130,0,4,1,1,N,""" + envio.Provincia + """")
-                    objStream.Writeline("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + envio.Bultos.ToString _
-                                        + ". Cliente: " + envio.Cliente.Trim + ". Fecha: " + envio.Fecha + """")
-                    objStream.Writeline("B40,210,0,2C,4,8,200,B,""" + envio.CodigoBarras + i.ToString("D3") + """")
-                    objStream.Writeline("A40,450,0,4,1,2,N,""" + envio.Nemonico + " " + envio.NombrePlaza + """")
-                    objStream.Writeline("A40,510,0,4,1,2,N,""" + ListaHorarios.Where(Function(x) x.id = envio.Horario).FirstOrDefault.descripcion + """")
-                    objStream.Writeline("A590,265,0,5,2,2,N,""" + envio.Nemonico + """")
-                    objStream.Writeline("P1")
-                    objStream.Writeline("")
-                Next
-            End Using
-            '' Insertamos la etiqueta en la tabla
-            'Dim etiqueta As New EtiquetasPicking With { _
-            '.Empresa = envioActual.Empresa,
-            '.Número = envioActual.Pedido,
-            '.Picking = envioActual.Empresas.MaxPickingListado, 'esto está mal
-            '.NºBultos = envioActual.Bultos,
-            '.UsuarioQuePrepara = multiusuario.Número,
-            '.NºCliente = envioActual.Cliente,
-            '.Contacto = envioActual.Contacto}
-            'DbContext.AddToEtiquetasPicking(etiqueta)
-            'DbContext.SaveChanges()
-
-
+            Dim builder As New StringBuilder
+            For i = 1 To envio.Bultos
+                builder.AppendLine("I8,A,034")
+                builder.AppendLine("N")
+                builder.AppendLine("A40,10,0,4,1,1,N,""" + envio.Nombre + """")
+                builder.AppendLine("A40,50,0,4,1,1,N,""" + envio.Direccion + """")
+                builder.AppendLine("A40,90,0,4,1,1,N,""" + envio.CodPostal + " " + envio.Poblacion + """")
+                builder.AppendLine("A40,130,0,4,1,1,N,""" + envio.Provincia + """")
+                builder.AppendLine("A40,170,0,4,1,1,N,""Bulto: " + i.ToString + "/" + envio.Bultos.ToString _
+                                    + ". Cliente: " + envio.Cliente.Trim + ". Fecha: " + envio.Fecha + """")
+                builder.AppendLine("B40,210,0,2C,4,8,200,B,""" + envio.CodigoBarras + i.ToString("D3") + """")
+                builder.AppendLine("A40,450,0,4,1,2,N,""" + envio.Nemonico + " " + envio.NombrePlaza + """")
+                builder.AppendLine("A40,510,0,4,1,2,N,""" + ListaHorarios.Where(Function(x) x.id = envio.Horario).FirstOrDefault.descripcion + """")
+                builder.AppendLine("A590,265,0,5,2,2,N,""" + envio.Nemonico + """")
+                builder.AppendLine("P1")
+                builder.AppendLine("")
+            Next
+            RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
         Catch ex As Exception
             agenciaVM.dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.InnerException.Message)
-            'Finally
-            '    objStream.Close()
-            '    objFSO = Nothing
-            '    objStream = Nothing
         End Try
     End Sub
     Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir
