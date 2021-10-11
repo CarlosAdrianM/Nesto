@@ -451,8 +451,8 @@ Public Class RemesasViewModel
         If Not continuar Then
             Return
         End If
-        Dim planId = "uI4iq6Cw2EO7IvMNPmDXBJcAAmeB" ' Gestión de cobro
-        Dim bucketId = "mfv4eFpWok2SETNoMdyLnJcAG25s" ' Pendientes
+        Dim planId = Constantes.Planner.GestionCobro.PLAN_ID
+        Dim bucketId = Constantes.Planner.GestionCobro.BUCKET_PENDIENTES
         Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}
         Dim authProvider As InteractiveAuthenticationProvider = New InteractiveAuthenticationProvider(app, scopes)
 

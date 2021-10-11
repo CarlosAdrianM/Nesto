@@ -234,4 +234,65 @@ Public Class RapportService
         })
         Return listaTiposRapports
     End Function
+
+    Public Async Function CrearTareaPlanner(rapport As SeguimientoClienteDTO) As Task(Of String) Implements IRapportService.CrearTareaPlanner
+        Dim planId = Constantes.Planner.GestionCobro.PLAN_ID
+        Dim bucketId = Constantes.Planner.GestionCobro.BUCKET_PENDIENTES
+        Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}
+        Dim authProvider As InteractiveAuthenticationProvider = New InteractiveAuthenticationProvider(app, scopes)
+
+        Dim graphClient As GraphServiceClient = New GraphServiceClient(authProvider)
+        Dim users = Await graphClient.Users.Request().GetAsync()
+
+        Dim tareasBucket = Await graphClient.Planner.Buckets(bucketId).Tasks.Request().GetAsync()
+        Dim plannerTask As PlannerTask
+
+        Try
+            Dim tituloTarea = String.Format("Impagados cliente {0}", rapport.Cliente.Trim)
+
+            If tareasBucket.Any(Function(t) t.Title = tituloTarea) Then
+                plannerTask = tareasBucket.First(Function(t) t.Title = tituloTarea)
+                'Else ' Si no existe, creamos la tarea
+                '    Dim usuarioTareas As String = Await configuracion.leerParametro(rapport.Empresa, Parametros.Claves.UsuarioAvisoImpagadoDefecto)
+                '    Dim usuarios As String() = usuarioTareas.Split(New Char() {";"c})
+                '    Dim usuariosAsignar As New List(Of String)
+                '    For Each nombreUsuario In usuarios
+                '        Dim usuarioAsignar = users.FirstOrDefault(Function(c) c.Mail = nombreUsuario.Trim).Id
+                '        If Not String.IsNullOrEmpty(usuarioAsignar) Then
+                '            usuariosAsignar.Add(usuarioAsignar)
+                '        End If
+                '    Next
+                '    Dim asignadas = New PlannerAssignments
+                '    For Each nombreUsuario In usuariosAsignar
+                '        asignadas.AddAssignee(nombreUsuario)
+                '    Next
+                '    asignadas.ODataType = Nothing
+                '    plannerTask = New PlannerTask With
+                '    {
+                '        .PlanId = planId,
+                '        .BucketId = bucketId,
+                '        .Title = tituloTarea,
+                '        .Assignments = asignadas
+                '    }
+                '    plannerTask = Await graphClient.Planner.Tasks.Request().AddAsync(plannerTask)
+            Else
+                Return "No se anota en planner porque no existe tarea de impagados"
+            End If
+
+            Dim plan As PlannerPlan = Await graphClient.Planner.Plans(planId).Request.GetAsync
+            Dim grupoId = plan.Owner ' en beta es "Container"
+            Dim hiloId = plannerTask.ConversationThreadId
+            Dim hilo = Await graphClient.Groups(grupoId).Threads(hiloId).Request().GetAsync
+            Dim post = New Post With {
+                .Body = New ItemBody With {
+                    .ContentType = BodyType.Text,
+                    .Content = rapport.Comentarios
+                }
+            }
+            Await graphClient.Groups(grupoId).Threads(hiloId).Reply(post).Request().PostAsync()
+            Return "Comentario añadido correctamente a la tarea de planner"
+        Catch ex As Exception
+            Throw
+        End Try
+    End Function
 End Class

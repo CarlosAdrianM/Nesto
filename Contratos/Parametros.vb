@@ -6,6 +6,7 @@
         Const ImpresoraBolsas = "ImpresoraBolsas"
         Const ImpresoraCodBarras = "ImpresoraCodBarras"
         Const PathNorma19 = "PathNorma19"
+        Const UsuarioAvisoImpagadoDefecto = "UsuarioAvisoImpagadoDefecto"
         Const Vendedor = "Vendedor"
     End Structure
 End Class

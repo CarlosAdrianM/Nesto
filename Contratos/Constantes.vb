@@ -50,9 +50,20 @@
         Public Const ESTADO_SIN_FACTURAR = 1
         Public Const ESTADO_LINEA_PENDIENTE = -1
     End Class
+    Public Class Planner
+        Public Class GestionCobro
+            Public Const PLAN_ID As String = "uI4iq6Cw2EO7IvMNPmDXBJcAAmeB"
+            Public Const BUCKET_PENDIENTES As String = "mfv4eFpWok2SETNoMdyLnJcAG25s"
+        End Class
+    End Class
     Public Class PlazosPago
         Public Const CONTADO As String = "CONTADO"
         Public Const PREPAGO As String = "PRE"
+    End Class
+    Public Class Rapports
+        Public Class Estados
+            Public Const GESTION_ADMINISTRATIVA As Integer = 2
+        End Class
     End Class
     Public Class Series
         Public Const SERIE_CURSOS As String = "CV"

@@ -179,6 +179,18 @@ Public Class RapportViewModel
         Return Not IsNothing(rapport)
     End Function
     Private Async Sub OnCrearCita()
+        Dim p As New DialogParameters
+        Dim continuar As Boolean = False
+        p.Add("message", "Se va a crear la tarea. ¿Desea continuar?")
+        dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
+                                                              If r.Result = ButtonResult.OK Then
+                                                                  continuar = True
+                                                              End If
+                                                          End Sub)
+        If Not continuar Then
+            Return
+        End If
+
         SePuedeCrearRapport = False
         Try
             Await servicio.CrearCita(rapport, fechaAviso)
@@ -210,6 +222,9 @@ Public Class RapportViewModel
         Dim texto As String
         Try
             texto = Await servicio.crearRapport(rapport)
+            If rapport.Estado = Constantes.Rapports.Estados.GESTION_ADMINISTRATIVA Then
+                texto += vbCrLf + Await servicio.CrearTareaPlanner(rapport)
+            End If
             dialogService.ShowNotification("Rapport", texto)
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
