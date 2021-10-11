@@ -249,9 +249,10 @@ Public Class RapportService
 
         Try
             Dim tituloTarea = String.Format("Impagados cliente {0}", rapport.Cliente.Trim)
-
+            Dim etag As String
             If tareasBucket.Any(Function(t) t.Title = tituloTarea) Then
-                plannerTask = tareasBucket.First(Function(t) t.Title = tituloTarea)
+                plannerTask = tareasBucket.Where(Function(t) t.Title = tituloTarea).OrderByDescending(Function(t) t.CreatedDateTime).First
+                etag = plannerTask.GetEtag
                 'Else ' Si no existe, creamos la tarea
                 '    Dim usuarioTareas As String = Await configuracion.leerParametro(rapport.Empresa, Parametros.Claves.UsuarioAvisoImpagadoDefecto)
                 '    Dim usuarios As String() = usuarioTareas.Split(New Char() {";"c})
@@ -282,14 +283,29 @@ Public Class RapportService
             Dim plan As PlannerPlan = Await graphClient.Planner.Plans(planId).Request.GetAsync
             Dim grupoId = plan.Owner ' en beta es "Container"
             Dim hiloId = plannerTask.ConversationThreadId
-            Dim hilo = Await graphClient.Groups(grupoId).Threads(hiloId).Request().GetAsync
             Dim post = New Post With {
                 .Body = New ItemBody With {
                     .ContentType = BodyType.Text,
                     .Content = rapport.Comentarios
                 }
             }
-            Await graphClient.Groups(grupoId).Threads(hiloId).Reply(post).Request().PostAsync()
+            If IsNothing(hiloId) Then
+                Dim posts = New ConversationThreadPostsCollectionPage From {
+                    post
+                }
+                Dim hilo As New ConversationThread With {
+                    .Topic = $"Impagados cliente {rapport.Cliente}",
+                    .Posts = posts
+                }
+                Dim hiloCreado = Await graphClient.Groups(grupoId).Threads().Request().AddAsync(hilo)
+                Dim nuevaTask As New PlannerTask With {
+                    .ConversationThreadId = hiloCreado.Id
+                }
+                Await graphClient.Planner.Tasks(plannerTask.Id).Request().Header("Prefer", "return=representation").Header("If-Match", etag).UpdateAsync(nuevaTask)
+            Else
+                Await graphClient.Groups(grupoId).Threads(hiloId).Reply(post).Request().PostAsync()
+            End If
+
             Return "Comentario añadido correctamente a la tarea de planner"
         Catch ex As Exception
             Throw
