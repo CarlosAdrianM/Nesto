@@ -65,6 +65,10 @@
     <Page Remove="Informes\**" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="Images\Packing.png" />
+    <None Remove="Images\Picking.png" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="De.TorstenMandelkow.MetroChart">
       <HintPath>.\De.TorstenMandelkow.MetroChart.dll</HintPath>
     </Reference>
@@ -124,6 +128,10 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Icono2_NV_256x256.ico" />
+    <Resource Include="Images\Packing.png" />
+    <Resource Include="Images\Picking.png">
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\UL_128x42.png" />

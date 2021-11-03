@@ -18,4 +18,12 @@
     Private Sub PickingPopupView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         Keyboard.Focus(txtNumeroPedido)
     End Sub
+
+    Private Sub txtNumeroPicking_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtNumeroPicking.GotFocus
+        txtCliente.SelectAll()
+    End Sub
+
+    Private Sub txtNumeroPicking_PreviewMouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtNumeroPicking.PreviewMouseUp
+        txtCliente.SelectAll()
+    End Sub
 End Class

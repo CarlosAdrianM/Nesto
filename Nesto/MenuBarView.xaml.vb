@@ -48,10 +48,14 @@ Public Class MenuBarView
             .UseShellExecute = True
         })
     End Sub
-    Private Sub btnVentasEmpresas_Loaded(sender As Object, e As System.Windows.RoutedEventArgs) Handles btnVentasEmpresas.Loaded
-        If (System.Environment.UserName.ToLower = "alfredo") OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
-            btnVentasEmpresas.Visibility = Windows.Visibility.Visible
+    Private Sub btnVentasEmpresas_Loaded(sender As Object, e As RoutedEventArgs) Handles btnVentasEmpresas.Loaded
+        If (Environment.UserName.ToLower = "alfredo") OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
+            btnVentasEmpresas.Visibility = Visibility.Visible
             btnRapport.Visibility = Visibility.Visible
+        End If
+
+        If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) Then
+            grpAlmacen.Visibility = Visibility.Visible
         End If
     End Sub
 
@@ -117,7 +121,42 @@ Public Class MenuBarView
             .UseShellExecute = True
         })
     End Sub
-
+    Private Async Sub btnPicking_Click(sender As Object, e As RoutedEventArgs) Handles btnPicking.Click
+        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Picking.rdlc")
+        Dim numeroPicking As Integer = Await Informes.PickingModel.UltimoPicking
+        Dim dataSource As List(Of Informes.PickingModel) = Await Informes.PickingModel.CargarDatos(numeroPicking)
+        Dim report As LocalReport = New LocalReport()
+        report.LoadReportDefinition(reportDefinition)
+        report.DataSources.Add(New ReportDataSource("PickingDataSet", dataSource))
+        Dim listaParametros As New List(Of ReportParameter) From {
+            New ReportParameter("NumeroPicking", numeroPicking)
+        }
+        report.SetParameters(listaParametros)
+        Dim pdf As Byte() = report.Render("PDF")
+        Dim fileName As String = Path.GetTempPath + "InformePicking.pdf"
+        File.WriteAllBytes(fileName, pdf)
+        Process.Start(New ProcessStartInfo(fileName) With {
+            .UseShellExecute = True
+        })
+    End Sub
+    Private Async Sub btnPacking_Click(sender As Object, e As RoutedEventArgs) Handles btnPacking.Click
+        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Packing.rdlc")
+        Dim numeroPicking As Integer = Await Informes.PickingModel.UltimoPicking
+        Dim dataSource As List(Of Informes.PackingModel) = Await Informes.PackingModel.CargarDatos(numeroPicking)
+        Dim report As LocalReport = New LocalReport()
+        report.LoadReportDefinition(reportDefinition)
+        report.DataSources.Add(New ReportDataSource("PackingDataSet", dataSource))
+        Dim listaParametros As New List(Of ReportParameter) From {
+            New ReportParameter("NumeroPicking", numeroPicking)
+        }
+        report.SetParameters(listaParametros)
+        Dim pdf As Byte() = report.Render("PDF")
+        Dim fileName As String = Path.GetTempPath + "InformePacking.pdf"
+        File.WriteAllBytes(fileName, pdf)
+        Process.Start(New ProcessStartInfo(fileName) With {
+            .UseShellExecute = True
+        })
+    End Sub
     Private Sub btnClientesAlquileres_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnClientesAlquileres.Click
         Dim region As IRegion = regionManager.Regions("MainRegion")
         Dim vista = container.Resolve(Of Alquileres)()

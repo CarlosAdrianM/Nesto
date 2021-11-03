@@ -105,24 +105,7 @@
 
         <RibbonTab x:Name="tabInformes"
                               Header="Informes">
-            <!--
-            <RibbonGroup x:Name="grpVendedores"
-                                    Header="Vendedores calle">
-                <RibbonButton x:Name="btnInforme"
-                                         LargeImageSource="/Images/UL_128x42.png"
-                                         Label="Unión Láser" HorizontalAlignment="Center" />
-
-                <RibbonButton x:Name="btnPeluquería"
-                                         LargeImageSource="/Images/Peluquería.ico"
-                                         Label="Peluquería" HorizontalAlignment="Center" />
-
-            </RibbonGroup>
-            -->
             <RibbonGroup  Name="grpTelefono" Header="Vendedores Teléfono">
-                <!--
-                <RibbonButton Label="Detalle" LargeImageSource="/Images/VendedorTelefonicoDetalle.png" Name="btnComisionesTelefono" />
-                <RibbonButton Label="Resumen" LargeImageSource="/Images/VendedorTelefonico.png" Name="btnResumen"  />
-                -->
                 <RibbonButton Label="Rapport" LargeImageSource="/Images/rapports.png" Name="btnRapport" Visibility="Hidden" />
             </RibbonGroup>
 
@@ -145,6 +128,11 @@
                     </TextBox>
                 </RibbonSplitButton>
                 -->
+            </RibbonGroup>
+
+            <RibbonGroup x:Name="grpAlmacen" Header="Almacén" Visibility="Hidden" >
+                <RibbonButton Label="Picking" LargeImageSource="/Images/Picking.png" Name="btnPicking" />
+                <RibbonButton Label="Packing" LargeImageSource="/Images/Packing.png" Name="btnPacking" />
             </RibbonGroup>
 
             <RibbonGroup x:Name="grpRatio"

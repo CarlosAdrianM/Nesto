@@ -485,12 +485,17 @@ Public Class RemesasViewModel
 
                 Dim tituloTarea = String.Format("Impagados cliente {0}", impagado.e.Número.Trim)
 
-                Dim detallesAntiguos As PlannerTaskDetails
+                Dim detallesAntiguos As PlannerTaskDetails = Nothing
 
                 If tareasBucket.Any(Function(t) t.Title = tituloTarea) Then
                     plannerTask = tareasBucket.First(Function(t) t.Title = tituloTarea)
                     detallesAntiguos = Await graphClient.Planner.Tasks(plannerTask.Id).Details.Request().GetAsync()
-                    plannerTask.PercentComplete = 50 ' en curso
+                    If plannerTask.PercentComplete = 100 Then
+                        Dim nuevaTask As New PlannerTask With {
+                            .PercentComplete = 50 ' en curso
+                        }
+                        Await graphClient.Planner.Tasks(plannerTask.Id).Request().Header("Prefer", "return=representation").Header("If-Match", plannerTask.GetEtag).UpdateAsync(nuevaTask)
+                    End If
                 Else
                     plannerTask = New PlannerTask With
                     {

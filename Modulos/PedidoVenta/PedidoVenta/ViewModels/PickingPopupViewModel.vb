@@ -1,4 +1,7 @@
-﻿Imports ControlesUsuario.Dialogs
+﻿Imports System.IO
+Imports System.Reflection
+Imports ControlesUsuario.Dialogs
+Imports Microsoft.Reporting.NETCore
 Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Prism.Commands
@@ -13,17 +16,19 @@ Public Class PickingPopupViewModel
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly eventAggregator As IEventAggregator
     Private ReadOnly dialogService As IDialogService
+    Private ReadOnly configuracion As IConfiguracion
 
 
-    Public Sub New(servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService)
+    Public Sub New(servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, configuracion As IConfiguracion)
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
         Me.dialogService = dialogService
+        Me.configuracion = configuracion
 
-        cmdSacarPicking = New DelegateCommand(Of PedidoVentaDTO)(AddressOf OnSacarPicking)
+        cmdSacarPicking = New DelegateCommand(Of PedidoVentaDTO)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
+        cmdInformePicking = New DelegateCommand(AddressOf OnInformePicking)
+        cmdInformePacking = New DelegateCommand(AddressOf OnInformePacking)
     End Sub
-
-
 
     Public ReadOnly Property Title As String Implements IDialogAware.Title
         Get
@@ -114,6 +119,16 @@ Public Class PickingPopupViewModel
         End Set
     End Property
 
+    Private _numeroPicking As Integer
+    Public Property numeroPicking As Integer
+        Get
+            Return _numeroPicking
+        End Get
+        Set(value As Integer)
+            SetProperty(_numeroPicking, value)
+        End Set
+    End Property
+
     Private _pedidoPicking As PedidoVentaDTO
     Public Property pedidoPicking As PedidoVentaDTO
         Get
@@ -125,7 +140,82 @@ Public Class PickingPopupViewModel
     End Property
 
 
+    Private _cmdInformePacking As DelegateCommand
+    Public Property cmdInformePacking As DelegateCommand
+        Get
+            Return _cmdInformePacking
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_cmdInformePacking, value)
+        End Set
+    End Property
+    Private Async Sub OnInformePacking()
+        Try
+            estaSacandoPicking = True
+            If IsNothing(numeroPicking) OrElse numeroPicking <= 0 Then
+                numeroPicking = Await Informes.PickingModel.UltimoPicking
+            End If
+            Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Packing.rdlc")
+            Dim dataSource As List(Of Informes.PackingModel) = Await Informes.PackingModel.CargarDatos(numeroPicking)
+            Dim report As LocalReport = New LocalReport()
+            report.LoadReportDefinition(reportDefinition)
+            report.DataSources.Add(New ReportDataSource("PackingDataSet", dataSource))
+            Dim listaParametros As New List(Of ReportParameter) From {
+                New ReportParameter("NumeroPicking", numeroPicking)
+            }
+            report.SetParameters(listaParametros)
+            Dim pdf As Byte() = report.Render("PDF")
+            Dim fileName As String = Path.GetTempPath + "InformePacking.pdf"
+            File.WriteAllBytes(fileName, pdf)
+            Process.Start(New ProcessStartInfo(fileName) With {
+                .UseShellExecute = True
+            })
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        Finally
+            estaSacandoPicking = False
+        End Try
+    End Sub
 
+
+
+    Private _cmdInformePicking As DelegateCommand
+    Public Property cmdInformePicking As DelegateCommand
+        Get
+            Return _cmdInformePicking
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_cmdInformePicking, value)
+        End Set
+    End Property
+    Private Async Sub OnInformePicking()
+        Try
+            estaSacandoPicking = True
+            Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Picking.rdlc")
+            If IsNothing(numeroPicking) OrElse numeroPicking <= 0 Then
+                numeroPicking = Await Informes.PickingModel.UltimoPicking
+            End If
+            Dim dataSource As List(Of Informes.PickingModel) = Await Informes.PickingModel.CargarDatos(numeroPicking)
+            Dim report As LocalReport = New LocalReport()
+            report.LoadReportDefinition(reportDefinition)
+            report.DataSources.Add(New ReportDataSource("PickingDataSet", dataSource))
+            Dim listaParametros As New List(Of ReportParameter) From {
+                New ReportParameter("NumeroPicking", numeroPicking)
+            }
+            report.SetParameters(listaParametros)
+            Dim pdf As Byte() = report.Render("PDF")
+            Dim fileName As String = Path.GetTempPath + "InformePicking.pdf"
+            File.WriteAllBytes(fileName, pdf)
+            Process.Start(New ProcessStartInfo(fileName) With {
+                .UseShellExecute = True
+            })
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        Finally
+            estaSacandoPicking = False
+        End Try
+
+    End Sub
 
 
 
@@ -138,6 +228,9 @@ Public Class PickingPopupViewModel
             SetProperty(_cmdSacarPicking, value)
         End Set
     End Property
+    Private Function CanSacarPicking(arg As PedidoVentaDTO) As Boolean
+        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+    End Function
     Private Async Sub OnSacarPicking(pedidoPicking As PedidoVentaDTO)
         Try
             estaSacandoPicking = True
@@ -162,7 +255,6 @@ Public Class PickingPopupViewModel
                                    Throw ex
                                End Try
                            End Sub)
-
             Dim textoMensaje As String
             If esPickingPedido Then
                 textoMensaje = "Se ha asignado el picking correctamente al pedido " + numeroPedidoPicking.ToString
@@ -174,6 +266,7 @@ Public Class PickingPopupViewModel
                 Throw New Exception("Tiene que haber algún tipo de picking seleccionado")
             End If
             dialogService.ShowNotification("Picking", textoMensaje)
+            numeroPicking = Await Informes.PickingModel.UltimoPicking
             eventAggregator.GetEvent(Of SacarPickingEvent).Publish(1)
         Catch ex As Exception
             Dim tituloError As String
