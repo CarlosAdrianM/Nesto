@@ -25,9 +25,10 @@ Public Class PickingPopupViewModel
         Me.dialogService = dialogService
         Me.configuracion = configuracion
 
-        cmdSacarPicking = New DelegateCommand(Of PedidoVentaDTO)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
+        cmdInformeKits = New DelegateCommand(AddressOf OnInformeKits)
         cmdInformePicking = New DelegateCommand(AddressOf OnInformePicking)
         cmdInformePacking = New DelegateCommand(AddressOf OnInformePacking)
+        cmdSacarPicking = New DelegateCommand(Of PedidoVentaDTO)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
     End Sub
 
     Public ReadOnly Property Title As String Implements IDialogAware.Title
@@ -138,6 +139,39 @@ Public Class PickingPopupViewModel
             SetProperty(_pedidoPicking, value)
         End Set
     End Property
+
+
+    Private _cmdInformeKits As DelegateCommand
+    Public Property cmdInformeKits As DelegateCommand
+        Get
+            Return _cmdInformeKits
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_cmdInformeKits, value)
+        End Set
+    End Property
+    Private Async Sub OnInformeKits()
+        Try
+            estaSacandoPicking = True
+            Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.KitsQueSePuedenMontar.rdlc")
+            Dim dataSource As List(Of Informes.KitsQueSePuedenMontarModel) = Await Informes.KitsQueSePuedenMontarModel.CargarDatos()
+            Dim report As LocalReport = New LocalReport()
+            report.LoadReportDefinition(reportDefinition)
+            report.DataSources.Add(New ReportDataSource("KitsQueSePuedenMontarDataSet", dataSource))
+            Dim pdf As Byte() = report.Render("PDF")
+            Dim fileName As String = Path.GetTempPath + "InformeKitsQueSePuedenMontar.pdf"
+            File.WriteAllBytes(fileName, pdf)
+            Process.Start(New ProcessStartInfo(fileName) With {
+                .UseShellExecute = True
+            })
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        Finally
+            estaSacandoPicking = False
+        End Try
+    End Sub
+
+
 
 
     Private _cmdInformePacking As DelegateCommand
