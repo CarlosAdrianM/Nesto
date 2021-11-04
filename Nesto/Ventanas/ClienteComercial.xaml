@@ -227,6 +227,13 @@
                                                 </Style>
                                             </DataGridTextColumn.CellStyle>
                                         </DataGridTextColumn>
+                                        <DataGridTextColumn Header="Pendiente" Binding="{Binding ImportePendiente,StringFormat=c}">
+                                            <DataGridTextColumn.CellStyle>
+                                                <Style>
+                                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                </Style>
+                                            </DataGridTextColumn.CellStyle>
+                                        </DataGridTextColumn>
                                         <DataGridTextColumn Header="CCC" Binding="{Binding CCC}"/>
                                     </DataGrid.Columns>
                                 </DataGrid>

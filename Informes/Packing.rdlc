@@ -69,8 +69,8 @@
           <DataField>Fila</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
-        <Field Name="Nº_Cliente">
-          <DataField>Nº_Cliente</DataField>
+        <Field Name="NºCliente">
+          <DataField>NºCliente</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="NombreSubGrupo">
@@ -191,7 +191,7 @@
                                   </Style>
                                 </TextRun>
                                 <TextRun>
-                                  <Value>=Fields!Nº_Cliente.Value</Value>
+                                  <Value>=Fields!NºCliente.Value</Value>
                                   <Style>
                                     <FontWeight>Bold</FontWeight>
                                   </Style>
