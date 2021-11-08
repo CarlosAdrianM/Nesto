@@ -20,6 +20,7 @@ Imports Prism.Mvvm
 Imports ControlesUsuario
 Imports ControlesUsuario.Dialogs
 Imports Microsoft.Identity.Client
+Imports Azure.Identity
 
 Partial Public Class Application
 
@@ -37,9 +38,11 @@ Partial Public Class Application
         containerRegistry.RegisterSingleton(GetType(IConfiguracion), GetType(Configuracion))
 
         Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
-        Dim tenantId = "16d9b0cd-12c6-4639-8c26-779abc0dc0ad"
-        Dim msGraphApp As IPublicClientApplication = PublicClientApplicationBuilder.Create(clientId).WithTenantId(tenantId).WithRedirectUri("http://localhost").Build()
-        containerRegistry.RegisterInstance(GetType(IPublicClientApplication), msGraphApp)
+        Dim interactiveBrowserCredentialOptions As InteractiveBrowserCredentialOptions = New InteractiveBrowserCredentialOptions() With {
+            .ClientId = clientId
+        }
+        Dim interactiveBrowserCredential As New InteractiveBrowserCredential(interactiveBrowserCredentialOptions)
+        containerRegistry.RegisterInstance(GetType(InteractiveBrowserCredential), interactiveBrowserCredential)
 
         containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
         containerRegistry.Register(GetType(IPlantillaVentaService), GetType(PlantillaVentaService))

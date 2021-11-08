@@ -5,16 +5,13 @@ Imports System.Windows
 Imports Microsoft.Win32
 Imports Microsoft.Office.Interop
 Imports System.Windows.Controls
-Imports System.Threading.Tasks
 Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
 Imports Prism.Mvvm
 Imports Prism.Commands
-Imports Microsoft.Identity.Client
-Imports Microsoft.Graph.Auth
 Imports Microsoft.Graph
-Imports System.Threading
 Imports Prism.Services.Dialogs
+Imports Azure.Identity
 
 Public Class RemesasViewModel
     Inherits BindableBase
@@ -39,12 +36,12 @@ Public Class RemesasViewModel
         Property descripcion As String
     End Structure
 
-    Public Sub New(app As IPublicClientApplication, configuracion As IConfiguracion, dialogService As IDialogService)
+    Public Sub New(interactiveBrowserCredential As InteractiveBrowserCredential, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
         Titulo = "Remesas"
-        Me.app = app
+        Me.InteractiveBrowserCredential = interactiveBrowserCredential
         Me.configuracion = configuracion
         Me.dialogService = dialogService
         DbContext = New NestoEntities
@@ -77,7 +74,8 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-    Private Property app As IPublicClientApplication
+    'Private Property app As IPublicClientApplication
+    Private Property InteractiveBrowserCredential As InteractiveBrowserCredential
     Private Property configuracion As IConfiguracion
 
     Private Property _listaEmpresas As ObservableCollection(Of Empresas)
@@ -454,9 +452,7 @@ Public Class RemesasViewModel
         Dim planId = Constantes.Planner.GestionCobro.PLAN_ID
         Dim bucketId = Constantes.Planner.GestionCobro.BUCKET_PENDIENTES
         Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}
-        Dim authProvider As InteractiveAuthenticationProvider = New InteractiveAuthenticationProvider(app, scopes)
-
-        Dim graphClient As GraphServiceClient = New GraphServiceClient(authProvider)
+        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes) 'you can pass the TokenCredential directly To the GraphServiceClient
 
         Dim users = Await graphClient.Users.Request().GetAsync()
 

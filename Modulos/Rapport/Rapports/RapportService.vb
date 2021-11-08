@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
 Imports System.Text
+Imports Azure.Identity
 Imports Microsoft.Graph
 Imports Microsoft.Graph.Auth
 Imports Microsoft.Identity.Client
@@ -17,12 +18,11 @@ Public Class RapportService
 
 
     Private ReadOnly configuracion As IConfiguracion
-    Private Property app As IPublicClientApplication
+    Private Property InteractiveBrowserCredential As InteractiveBrowserCredential
 
-
-    Public Sub New(configuracion As IConfiguracion, app As IPublicClientApplication)
+    Public Sub New(configuracion As IConfiguracion, interactiveBrowserCredential As InteractiveBrowserCredential)
         Me.configuracion = configuracion
-        Me.app = app
+        Me.InteractiveBrowserCredential = interactiveBrowserCredential
     End Sub
 
 
@@ -105,8 +105,7 @@ Public Class RapportService
 
     Public Async Function CrearCita(rapport As SeguimientoClienteDTO, fechaAviso As Date) As Task(Of String) Implements IRapportService.CrearCita
         Dim scopes = {"Calendars.ReadWrite"}
-        Dim authProvider As InteractiveAuthenticationProvider = New InteractiveAuthenticationProvider(app, scopes)
-        Dim graphClient As GraphServiceClient = New GraphServiceClient(authProvider)
+        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes) 'you can pass the TokenCredential directly To the GraphServiceClient
 
         If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
             Return "No se puede crear el aviso si no se especifica un cliente y un contacto"
@@ -239,9 +238,8 @@ Public Class RapportService
         Dim planId = Constantes.Planner.GestionCobro.PLAN_ID
         Dim bucketId = Constantes.Planner.GestionCobro.BUCKET_PENDIENTES
         Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}
-        Dim authProvider As InteractiveAuthenticationProvider = New InteractiveAuthenticationProvider(app, scopes)
+        Dim graphClient As New GraphServiceClient(interactiveBrowserCredential, scopes) 'you can pass the TokenCredential directly To the GraphServiceClient
 
-        Dim graphClient As GraphServiceClient = New GraphServiceClient(authProvider)
         Dim users = Await graphClient.Users.Request().GetAsync()
 
         Dim tareasBucket = Await graphClient.Planner.Buckets(bucketId).Tasks.Request().GetAsync()
