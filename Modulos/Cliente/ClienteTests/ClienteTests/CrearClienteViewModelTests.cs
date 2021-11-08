@@ -9,6 +9,7 @@ using Nesto.Modulos.Cliente;
 using Xceed.Wpf.Toolkit;
 using Prism.Services.Dialogs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Windows;
 
 namespace ClienteTests
 {
@@ -132,13 +133,11 @@ namespace ClienteTests
             WizardPage paginaSiguiente = A.Fake<WizardPage>();
             paginaSiguiente.Name = CrearClienteViewModel.DATOS_COMISIONES;
             vm.PaginaActual = paginaActual;
-
             // ACT
             vm.PaginaActual = paginaSiguiente;
 
             //Assert
             A.CallTo(() => DialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
-
         }
     }
 }
