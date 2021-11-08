@@ -15,11 +15,6 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Prism.RibbonRegionAdapter">
-      <HintPath>..\..\PrismRibbonRegionAdapter\Prism.RibbonRegionAdapter\bin\Debug\Prism.RibbonRegionAdapter.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -67,5 +62,6 @@
     <PackageReference Include="Prism.Wpf">
       <Version>8.1.97</Version>
     </PackageReference>
+    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.21.0" />
   </ItemGroup>
 </Project>

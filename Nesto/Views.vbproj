@@ -72,10 +72,6 @@
     <Reference Include="De.TorstenMandelkow.MetroChart">
       <HintPath>.\De.TorstenMandelkow.MetroChart.dll</HintPath>
     </Reference>
-    <Reference Include="Prism.RibbonRegionAdapter, Version=0.20.0.1, Culture=neutral, PublicKeyToken=3ddef0a054eea43a, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\PrismRibbonRegionAdapter\Prism.RibbonRegionAdapter\bin\Debug\Prism.RibbonRegionAdapter.dll</HintPath>
-    </Reference>
     <Reference Include="System.DirectoryServices.AccountManagement" />
   </ItemGroup>
   <ItemGroup>
@@ -228,6 +224,7 @@
     <PackageReference Include="Prism.Wpf">
       <Version>8.1.97</Version>
     </PackageReference>
+    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.21.0" />
     <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.14" />
   </ItemGroup>
 </Project>

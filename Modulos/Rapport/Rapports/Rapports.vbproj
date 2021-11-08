@@ -44,11 +44,6 @@
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Prism.RibbonRegionAdapter">
-      <HintPath>..\..\..\..\PrismRibbonRegionAdapter\Prism.RibbonRegionAdapter\bin\Debug\Prism.RibbonRegionAdapter.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <Import Include="System.Threading.Tasks" />
     <Import Include="System.Linq" />
     <Import Include="System.Xml.Linq" />
@@ -135,5 +130,6 @@
     <PackageReference Include="Prism.Wpf">
       <Version>8.1.97</Version>
     </PackageReference>
+    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.21.0" />
   </ItemGroup>
 </Project>

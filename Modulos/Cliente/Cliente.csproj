@@ -19,11 +19,6 @@
     <None Remove="ClienteTests\**" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Prism.RibbonRegionAdapter">
-      <HintPath>..\..\..\PrismRibbonRegionAdapter\Prism.RibbonRegionAdapter\bin\Debug\Prism.RibbonRegionAdapter.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -72,5 +67,6 @@
     <PackageReference Include="Prism.Wpf">
       <Version>8.1.97</Version>
     </PackageReference>
+    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.21.0" />
   </ItemGroup>
 </Project>
