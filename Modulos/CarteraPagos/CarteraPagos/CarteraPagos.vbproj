@@ -90,6 +90,6 @@
     <PackageReference Include="Prism.Wpf">
       <Version>8.1.97</Version>
     </PackageReference>
-    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.21.0" />
+    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
   </ItemGroup>
 </Project>
