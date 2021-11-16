@@ -879,7 +879,7 @@
             <DataSetName>PickingDataSet</DataSetName>
             <Top>1.50495cm</Top>
             <Height>1.2cm</Height>
-            <Width>28.56811cm</Width>
+            <Width>28.5681cm</Width>
             <Style>
               <Border>
                 <Style>None</Style>
@@ -933,6 +933,61 @@
       </Body>
       <Width>11.24729in</Width>
       <Page>
+        <PageFooter>
+          <Height>0.92604cm</Height>
+          <PrintOnFirstPage>true</PrintOnFirstPage>
+          <PrintOnLastPage>true</PrintOnLastPage>
+          <ReportItems>
+            <Textbox Name="PageNumber">
+              <CanGrow>true</CanGrow>
+              <KeepTogether>true</KeepTogether>
+              <Paragraphs>
+                <Paragraph>
+                  <TextRuns>
+                    <TextRun>
+                      <Value>Página </Value>
+                      <Style />
+                    </TextRun>
+                    <TextRun>
+                      <Value>=Globals!PageNumber</Value>
+                      <Style />
+                    </TextRun>
+                    <TextRun>
+                      <Value>/</Value>
+                      <Style />
+                    </TextRun>
+                    <TextRun>
+                      <Value>=Globals!TotalPages</Value>
+                      <Style />
+                    </TextRun>
+                  </TextRuns>
+                  <Style>
+                    <TextAlign>Right</TextAlign>
+                  </Style>
+                </Paragraph>
+              </Paragraphs>
+              <rd:DefaultName>PageNumber</rd:DefaultName>
+              <Top>0.26142cm</Top>
+              <Left>22.30122cm</Left>
+              <Height>0.6cm</Height>
+              <Width>6.2669cm</Width>
+              <Style>
+                <Border>
+                  <Style>None</Style>
+                </Border>
+                <PaddingLeft>2pt</PaddingLeft>
+                <PaddingRight>2pt</PaddingRight>
+                <PaddingTop>2pt</PaddingTop>
+                <PaddingBottom>2pt</PaddingBottom>
+              </Style>
+            </Textbox>
+          </ReportItems>
+          <Style>
+            <Border>
+              <Style>None</Style>
+            </Border>
+          </Style>
+        </PageFooter>
         <PageHeight>21cm</PageHeight>
         <PageWidth>29.7cm</PageWidth>
         <LeftMargin>0.5cm</LeftMargin>

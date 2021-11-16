@@ -40,6 +40,7 @@ namespace Nesto.Informes
         public string Pasillo { get; set; }
         public string Fila { get; set; }
         public string Columna { get; set; }
+        public string Tipo { get; set; }
         public static async Task<List<PackingModel>> CargarDatos(int numeroPicking)
         {
             List<PackingModel> lista = new List<PackingModel>();
@@ -67,6 +68,7 @@ namespace Nesto.Informes
                         item.NºCliente = item.NºCliente?.Trim();
                         item.Poblacion = item.Poblacion?.Trim();
                         item.Telefono = item.Telefono?.Trim();
+                        item.Tipo = item.Tipo;
                     }
                 }
                 catch (Exception e)
