@@ -47,8 +47,15 @@
         Public Const TIENDA_ON_LINE As String = "TiendaOnline"
     End Class
     Public Class LineasPedido
+        Public Const ESTADO_ALBARAN = 2
         Public Const ESTADO_SIN_FACTURAR = 1
         Public Const ESTADO_LINEA_PENDIENTE = -1
+        Public Class TiposLinea
+            Public Const LINEA_TEXTO As String = "0"
+            Public Const PRODUCTO As String = "1"
+            Public Const CUENTA_CONTABLE As String = "2"
+            Public Const INMOVILIZADO As String = "3"
+        End Class
     End Class
     Public Class Planner
         Public Class GestionCobro
@@ -59,6 +66,11 @@
     Public Class PlazosPago
         Public Const CONTADO As String = "CONTADO"
         Public Const PREPAGO As String = "PRE"
+    End Class
+    Public Class Productos
+        Public Class Grupos
+            Public Const MUESTRAS As String = "MMP"
+        End Class
     End Class
     Public Class Rapports
         Public Class Estados

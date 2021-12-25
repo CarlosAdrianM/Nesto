@@ -4,6 +4,7 @@ Imports Nesto.Contratos
 Imports Newtonsoft.Json
 Imports System.DirectoryServices.AccountManagement
 Imports System.Linq
+Imports System.Globalization
 
 Public Class Configuracion
     Implements IConfiguracion
@@ -20,7 +21,11 @@ Public Class Configuracion
 
     Public ReadOnly Property usuario As String Implements IConfiguracion.usuario
         Get
-            Return System.Environment.UserDomainName + "\" + System.Environment.UserName
+            Dim usuarioFormatedo As String = Environment.UserName
+            If usuarioFormatedo = usuarioFormatedo.ToLower OrElse usuarioFormatedo = usuarioFormatedo.ToUpper Then
+                usuarioFormatedo = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(usuarioFormatedo)
+            End If
+            Return Environment.UserDomainName + "\" + usuarioFormatedo
             'Return System.Environment.UserDomainName + "\manuel"
         End Get
     End Property

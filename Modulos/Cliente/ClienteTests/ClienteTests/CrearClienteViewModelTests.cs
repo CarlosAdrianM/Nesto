@@ -128,7 +128,7 @@ namespace ClienteTests
             };
             respuestaFake.ClientesMismoTelefono = new List<ClienteTelefonoLookup> { clienteFake };
             A.CallTo(() => Servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored)).Returns(respuestaFake);
-            WizardPage paginaActual = A.Fake<WizardPage>();
+            WizardPage paginaActual = A.Fake<WizardPage>(); // NO FUNCIONA EL TEST PORQUE NO SÉ CÓMO CREAR EL MOCK DE WizardPage
             paginaActual.Name = CrearClienteViewModel.DATOS_GENERALES;
             WizardPage paginaSiguiente = A.Fake<WizardPage>();
             paginaSiguiente.Name = CrearClienteViewModel.DATOS_COMISIONES;

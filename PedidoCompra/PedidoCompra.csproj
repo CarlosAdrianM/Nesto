@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net5.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>Nesto.Modulos.PedidoCompra</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Images\PedidoCompra.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Contratos\Contratos.vbproj" />
+    <ProjectReference Include="..\Producto\Producto.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\PedidoCompra.png" />
+  </ItemGroup>
+
+</Project>

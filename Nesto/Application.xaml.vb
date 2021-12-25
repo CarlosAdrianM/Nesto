@@ -21,6 +21,7 @@ Imports ControlesUsuario
 Imports ControlesUsuario.Dialogs
 Imports Microsoft.Identity.Client
 Imports Azure.Identity
+Imports Nesto.Modulos.PedidoCompra
 
 Partial Public Class Application
 
@@ -59,6 +60,7 @@ Partial Public Class Application
         containerRegistry.Register(GetType(IProductoService), GetType(ProductoService))
         containerRegistry.Register(GetType(ICliente), GetType(Nesto.Modulos.Cliente.Cliente))
         containerRegistry.Register(GetType(IClienteService), GetType(ClienteService))
+        containerRegistry.Register(GetType(IPedidoCompra), GetType(Nesto.Modulos.PedidoCompra.PedidoCompra))
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
@@ -96,11 +98,14 @@ Partial Public Class Application
 
         ' Cliente - 29/05/19
         moduleCatalog.AddModule(GetType(ICliente))
+
+        ' Pedido de Compra - 17/11/21
+        moduleCatalog.AddModule(GetType(IPedidoCompra))
     End Sub
 
-    Protected Overrides Sub ConfigureRegionAdapterMappings(regionAdapterMappings As Prism.Regions.RegionAdapterMappings)
+    Protected Overrides Sub ConfigureRegionAdapterMappings(regionAdapterMappings As RegionAdapterMappings)
         MyBase.ConfigureRegionAdapterMappings(regionAdapterMappings)
-        regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), Me.Container.Resolve(Of Prism.RibbonRegionAdapter.RibbonRegionAdapter)())
+        regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), Container.Resolve(Of RibbonRegionAdapter)())
     End Sub
 
     Protected Overrides Sub ConfigureViewModelLocator()

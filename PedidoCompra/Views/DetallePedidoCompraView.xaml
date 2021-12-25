@@ -1,0 +1,171 @@
+﻿<UserControl x:Class="Nesto.Modulos.PedidoCompra.Views.DetallePedidoCompraView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:prism="http://prismlibrary.com/" 
+             xmlns:viewmodels="clr-namespace:Nesto.Modulos.PedidoCompra.ViewModels" 
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:xcad="http://schemas.xceed.com/wpf/xaml/avalondock"
+             d:DataContext="{d:DesignInstance Type=viewmodels:DetallePedidoCompraViewModel}"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800"
+             prism:ViewModelLocator.AutoWireViewModel="True">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <xctk:BusyIndicator Grid.Row="0" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando...">
+            <DataGrid Name="grdLineas" ItemsSource="{Binding Pedido.Lineas}" SelectedItem="{Binding LineaSeleccionada}" AutoGenerateColumns="False" IsSynchronizedWithCurrentItem="True">
+                <DataGrid.ItemContainerStyle>
+                    <Style TargetType="{x:Type DataGridRow}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Path=Cantidad}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Path=Id}" Value="-2">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Path=Producto}" Value="">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.ItemContainerStyle>
+                <DataGrid.InputBindings>
+                    <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding CargarProductoCommand}" CommandParameter="{Binding ElementName=grdLineas,Path=SelectedItem}"/>
+                </DataGrid.InputBindings>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Tipo de Línea" Binding="{Binding TipoLinea, UpdateSourceTrigger=LostFocus}"/>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding Producto, UpdateSourceTrigger=LostFocus}"/>
+                    <DataGridTextColumn Header="Texto" Binding="{Binding Texto, UpdateSourceTrigger=LostFocus}"/>
+                    <DataGridTextColumn Header="Fecha Recepción" Binding="{Binding FechaRecepcion, StringFormat=d, UpdateSourceTrigger=LostFocus}"/>
+                    <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad, UpdateSourceTrigger=LostFocus}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Cobradas" Binding="{Binding CantidadCobrada}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Regalo" Binding="{Binding CantidadRegalo}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Precio Unitario" Binding="{Binding PrecioUnitario, StringFormat=c, UpdateSourceTrigger=LostFocus}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Importe Bruto" Binding="{Binding Bruto, StringFormat=c}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Descuento línea" Binding="{Binding DescuentoLinea, StringFormat=p, UpdateSourceTrigger=LostFocus}">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Descuento proveedor" Binding="{Binding DescuentoProveedor, StringFormat=p}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Descuento producto" Binding="{Binding DescuentoProducto, StringFormat=p}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Suma descuentos" Binding="{Binding SumaDescuentos, StringFormat=p}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridCheckBoxColumn Header="Aplicar Dtos." Binding="{Binding AplicarDescuentos, UpdateSourceTrigger=PropertyChanged}" />
+                    <DataGridTextColumn Header="Importe Descuento" Binding="{Binding ImporteDescuento, StringFormat=c}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Base Imponible" Binding="{Binding BaseImponible, StringFormat=c}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Código IVA" Binding="{Binding CodigoIvaProducto, UpdateSourceTrigger=LostFocus}"/>
+                    <DataGridTextColumn Header="Porcentaje IVA" Binding="{Binding PorcentajeIva, StringFormat=p}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=c}" IsReadOnly="True">
+                        <DataGridTextColumn.CellStyle>
+                            <Style>
+                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </xctk:BusyIndicator>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Command="{Binding InsertarLineaCommand}">Insertar línea</Button>
+            <Button Grid.Column="1" Command="{Binding AmpliarHastaStockMaximoCommand}">Ampliar hasta el stock máximo resto productos</Button>
+            <Button Grid.Column="2" Command="{Binding PedidoAmpliarCommand}" CommandParameter="ampliar">Ampliar (+)</Button>
+            <Button Grid.Column="3" Command="{Binding PedidoAmpliarCommand}" CommandParameter="reducir" >Reducir (-)</Button>
+            <Button Grid.Column="4" Command="{Binding GuardarPedidoCommand}">Guardar pedido</Button>
+        </Grid>
+        
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" HorizontalAlignment="Right" Margin="3">Base Imponible</TextBlock>
+            <TextBox Grid.Column="1" Text="{Binding Pedido.BaseImponible, StringFormat=c, Mode=OneWay}" IsReadOnly="True" Margin="3"></TextBox>
+            <TextBlock Grid.Column="3" Margin="3">Total</TextBlock>
+            <TextBox Grid.Column="4" Text="{Binding Pedido.Total, StringFormat=c, Mode=OneWay}" IsReadOnly="True" Margin="3"></TextBox>
+        </Grid>
+    </Grid>
+</UserControl>

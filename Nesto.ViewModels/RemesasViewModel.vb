@@ -437,6 +437,7 @@ Public Class RemesasViewModel
         Return True
     End Function
     Private Async Sub OnCrearTareasPlanner()
+        Const MAX_CHECKLIST_ITEMS As Integer = 20
         Dim p As New DialogParameters
         Dim continuar As Boolean = False
         p.Add("message", "¿Desea crear las tareas en Planner?")
@@ -508,6 +509,11 @@ Public Class RemesasViewModel
                 detalles.Checklist = New PlannerChecklistItems()
                 detalles.Checklist.AddChecklistItem(Left(elementoCheckList, 100))
                 detalles.Checklist.ODataType = Nothing
+
+                'If detallesAntiguos.Checklist?.Count >= MAX_CHECKLIST_ITEMS Then
+                '    Dim elementoEliminar = detallesAntiguos.Checklist.Where(Function(c) c.Value.IsChecked).OrderBy(Function(c) c.Value.LastModifiedDateTime).First
+                '    detallesAntiguos.Checklist.AdditionalData.Remove(elementoEliminar.Key)
+                'End If
 
                 If IsNothing(detallesAntiguos) Then
                     Dim descripcion As String = String.Format("Llamar al cliente {0}/{1}. Vendedor: {2}. {3} en  {4}. Ruta: {5}. Empresa: {6}.",

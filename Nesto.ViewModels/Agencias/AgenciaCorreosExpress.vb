@@ -128,7 +128,7 @@ Public Class AgenciaCorreosExpress
             .CodPosNacRte = Left(empresa.CodPostal.ToUpper.Trim, 5),
             .TelefRte = empresa.Teléfono.Trim,
             .EmailRte = empresa.Email.Trim,
-            .NomDest = envio.Nombre.ToUpper.Trim,
+            .NomDest = Left(envio.Nombre.ToUpper.Trim, 40),
             .DirDest = envio.Direccion.ToUpper.Trim,
             .PobDest = envio.Poblacion.ToUpper.Trim,
             .CodPosNacDest = Left(envio.CodPostal.Trim, 5),

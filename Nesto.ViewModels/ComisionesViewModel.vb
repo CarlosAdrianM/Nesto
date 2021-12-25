@@ -13,23 +13,27 @@ Imports Nesto.Models.Nesto.Models
 Imports Prism.Ioc
 Imports Unity
 Imports Prism.Mvvm
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 
 Public Class ComisionesViewModel
     Inherits BindableBase
 
-    Private Shared DbContext As NestoEntities
+    Private Shared DbContext As NestoEntities = New NestoEntities
     Private container As IUnityContainer
     Private configuracion As IConfiguracion
+    Public ReadOnly Property DialogService As IDialogService
 
     Private vendedor As String
     Private datosCargados As Boolean = False
 
-    Public Sub New(container As IUnityContainer, configuracion As IConfiguracion)
+    Public Sub New(container As IUnityContainer, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
         Me.container = container
         Me.configuracion = configuracion
+        dialogService = dialogService
 
         colMeses = New Collection(Of String)
         For i = 12 To 1 Step -1
@@ -52,12 +56,19 @@ Public Class ComisionesViewModel
         Dim mainViewModel As New MainViewModel
         vendedor = Await mainViewModel.leerParametro("1", "Vendedor")
 
-        DbContext = New NestoEntities
-        If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
-            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2))
-        Else
-            listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2) And c.Número.Trim = vendedor)
-        End If
+        Try
+            If DbContext.Database.Connection.State = System.Data.ConnectionState.Open Then
+                DbContext.Database.Connection.Close()
+            End If
+            If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
+                listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2))
+            Else
+                listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2) And c.Número.Trim = vendedor)
+            End If
+        Catch ex As Exception
+            DialogService.ShowError(ex.Message)
+        End Try
+
         vendedorActual = listaVendedores.FirstOrDefault
     End Function
 
@@ -88,13 +99,28 @@ Public Class ComisionesViewModel
             End If
 
             If MostrarPanelAntiguo Then
-                Task.Run(Sub()
-                             EstaOcupado = True
-                             comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
-                             EstaOcupado = False
-                         End Sub)
+                'Task.Run(Sub()
+
+                Try
+                    EstaOcupado = True
+                    comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
+                Catch ex As Exception
+                    DialogService.ShowError(ex.Message)
+                Finally
+                    EstaOcupado = False
+                End Try
+
+
+                '         End Sub)
             Else
-                CalcularComisionAsync()
+                Try
+                    EstaOcupado = True
+                    CalcularComisionAsync()
+                Catch ex As Exception
+                    DialogService.ShowError(ex.Message)
+                Finally
+                    EstaOcupado = False
+                End Try
             End If
 
             listaPedidos = New ObservableCollection(Of vstLinPedidoVtaConVendedor)(From l In DbContext.vstLinPedidoVtaConVendedor
