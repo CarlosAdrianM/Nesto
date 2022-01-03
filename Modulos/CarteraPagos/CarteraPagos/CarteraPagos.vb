@@ -3,6 +3,7 @@ Imports Prism.Regions
 Imports Nesto.Contratos
 Imports Prism.RibbonRegionAdapter
 Imports Prism.Ioc
+Imports Nesto.Infrastructure.Contracts
 
 Public Class CarteraPagos
     Implements IModule, ICarteraPagos

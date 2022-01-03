@@ -1,10 +1,10 @@
 ﻿Imports System.Net.Http
 Imports System.Threading.Tasks
-Imports Nesto.Contratos
 Imports Newtonsoft.Json
 Imports System.DirectoryServices.AccountManagement
 Imports System.Linq
 Imports System.Globalization
+Imports Nesto.Infrastructure.Contracts
 
 Public Class Configuracion
     Implements IConfiguracion

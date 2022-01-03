@@ -1,4 +1,4 @@
-﻿using Nesto.Contratos;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.PedidoCompra.Models;
 using Newtonsoft.Json;

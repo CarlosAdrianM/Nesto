@@ -7,7 +7,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Nesto.Contratos;
+using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.PedidoCompra.Models
 {    

@@ -1,5 +1,5 @@
-﻿Imports System.Windows.Controls.Ribbon
+﻿'Imports System.Windows.Controls.Ribbon
 
-Public Interface IMainWindow
-    Property mainRibbon As Ribbon
-End Interface
+'Public Interface IMainWindow
+'    Property mainRibbon As Ribbon
+'End Interface

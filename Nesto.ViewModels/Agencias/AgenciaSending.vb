@@ -8,6 +8,7 @@ Imports System.Runtime.InteropServices
 Imports Microsoft.Win32.SafeHandles
 Imports System.Text
 Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Shared
 
 Public Class AgenciaSending
     Implements IAgencia

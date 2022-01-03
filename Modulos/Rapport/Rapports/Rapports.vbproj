@@ -74,7 +74,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Contratos\Contratos.vbproj" />
     <ProjectReference Include="..\..\..\ControlesUsuario\ControlesUsuario.csproj" />
     <ProjectReference Include="..\..\..\Nesto.ViewModels\ViewModels.vbproj" />
     <ProjectReference Include="..\..\PedidoVenta\PedidoVenta\PedidoVenta.vbproj" />
@@ -116,7 +115,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Extended.Wpf.Toolkit">
-      <Version>4.1.0</Version>
+      <Version>4.2.0</Version>
     </PackageReference>
     <PackageReference Include="Microsoft.Graph">
       <Version>4.9.0</Version>

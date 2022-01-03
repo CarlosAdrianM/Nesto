@@ -1,6 +1,6 @@
 ﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Nesto.Contratos;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos;
 
 namespace CanalesExternosTests

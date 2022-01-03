@@ -1,7 +1,6 @@
 ﻿using Claytondus.AmazonMWS.Finances;
 using Prism.Commands;
 using Microsoft.VisualBasic;
-using Nesto.Contratos;
 using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.CanalesExternos.Models;
 using System;
@@ -14,6 +13,7 @@ using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using ControlesUsuario.Dialogs;
 using System.Data.Entity.Validation;
+using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {

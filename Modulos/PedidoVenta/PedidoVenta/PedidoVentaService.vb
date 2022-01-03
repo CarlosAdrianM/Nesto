@@ -1,7 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
 Imports System.Text
-Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel

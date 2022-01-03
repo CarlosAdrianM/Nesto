@@ -7,6 +7,7 @@ using Nesto.Modulos.PedidoVenta;
 using static Nesto.Modulos.PedidoVenta.PedidoVentaModel;
 using Prism.Ioc;
 using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 
 namespace PedidoVentaTests
 {

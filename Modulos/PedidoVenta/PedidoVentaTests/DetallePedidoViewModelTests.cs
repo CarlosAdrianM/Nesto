@@ -3,10 +3,10 @@ using FakeItEasy;
 using Nesto.Modulos.PedidoVenta;
 using static Nesto.Models.PedidoVenta;
 using Prism.Regions;
-using Nesto.Contratos;
 using System.ComponentModel;
 using Prism.Events;
 using Prism.Services.Dialogs;
+using Nesto.Infrastructure.Contracts;
 
 namespace PedidoVentaTests
 {

@@ -1,9 +1,8 @@
 ﻿using Prism.Modularity;
-using Prism.Regions;
-using Nesto.Contratos;
 using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
 using Nesto.Modulos.CanalesExternos.Views;
+using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modulos.CanalesExternos
 {

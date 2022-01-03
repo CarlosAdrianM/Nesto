@@ -1,6 +1,5 @@
 ﻿using Prism.Commands;
 using Prism.Regions;
-using Nesto.Contratos;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,10 +9,12 @@ using Nesto.ViewModels;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Services.Dialogs;
 using ControlesUsuario.Dialogs;
+using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
-    public class CanalesExternosPedidosViewModel : Contratos.ViewModelBase
+    public class CanalesExternosPedidosViewModel : ViewModelBase
     {
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }

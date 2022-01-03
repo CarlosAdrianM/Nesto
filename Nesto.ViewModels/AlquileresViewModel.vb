@@ -11,6 +11,8 @@ Imports ControlesUsuario.Dialogs
 Imports Nesto.Contratos
 Imports System.IO
 Imports System.Text
+Imports Nesto.Infrastructure.Shared
+Imports Nesto.Infrastructure.Contracts
 
 Public Class AlquileresViewModel
     Inherits BindableBase

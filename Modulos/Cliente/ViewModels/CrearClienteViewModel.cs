@@ -2,7 +2,6 @@
 using Prism.Events;
 using Prism.Regions;
 using Microsoft.VisualBasic;
-using Nesto.Contratos;
 using Nesto.Models.Nesto.Models;
 using System;
 using System.Collections.ObjectModel;
@@ -13,6 +12,9 @@ using Xceed.Wpf.Toolkit;
 using Prism.Services.Dialogs;
 using ControlesUsuario.Dialogs;
 using Prism.Mvvm;
+using Nesto.Infrastructure.Events;
+using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.Cliente
 {

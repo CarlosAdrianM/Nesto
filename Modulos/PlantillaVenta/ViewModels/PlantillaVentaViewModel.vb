@@ -3,7 +3,6 @@ Imports System.Collections.ObjectModel
 Imports Newtonsoft.Json
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports System.Text
-Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
@@ -17,7 +16,9 @@ Imports Unity
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Prism.Mvvm
-Imports Nesto.Modulos.Cliente
+Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 
 Public Class PlantillaVentaViewModel
     Inherits BindableBase

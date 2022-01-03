@@ -5,7 +5,8 @@ Imports System.Net.Http
 Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Transactions
-Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json

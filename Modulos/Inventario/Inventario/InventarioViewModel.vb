@@ -4,12 +4,12 @@ Imports System.Net.Http
 Imports System.Text
 Imports Prism.Commands
 Imports Prism.Regions
-Imports Nesto.Contratos
 Imports Nesto.Modulos.Inventario.InventarioModel
 Imports Newtonsoft.Json
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Contracts
 
 Public Class InventarioViewModel
     Inherits BindableBase

@@ -1,4 +1,4 @@
-﻿using Nesto.Contratos;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoCompra.Views;
 using Prism.Commands;

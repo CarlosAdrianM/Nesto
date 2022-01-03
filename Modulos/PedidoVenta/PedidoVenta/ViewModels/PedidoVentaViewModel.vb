@@ -2,13 +2,13 @@
 Imports System.Text
 Imports Prism.Commands
 Imports Prism.Regions
-Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports Prism.Ioc
 Imports Prism.Mvvm
 Imports Unity
+Imports Nesto.Infrastructure.Contracts
 
 Public Class PedidoVentaViewModel
     Inherits BindableBase

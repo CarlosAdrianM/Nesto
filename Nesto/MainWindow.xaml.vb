@@ -1,6 +1,5 @@
 ﻿Imports Prism.Regions
-Imports Nesto.Contratos
-
+Imports Nesto.Infrastructure.Contracts
 
 Class MainWindow
     Implements IMainWindow

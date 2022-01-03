@@ -1,10 +1,11 @@
 ﻿Imports Prism.Commands
 Imports Prism.Regions
-Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 
 Public Class RapportViewModel
     Inherits BindableBase

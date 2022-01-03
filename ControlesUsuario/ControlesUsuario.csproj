@@ -49,7 +49,7 @@
     <Resource Include="Images\Direccion.jpg" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Contratos\Contratos.vbproj" />
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json">

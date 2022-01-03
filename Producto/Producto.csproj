@@ -40,8 +40,8 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Contratos\Contratos.vbproj" />
     <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\FichaProducto.png" />

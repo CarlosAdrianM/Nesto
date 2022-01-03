@@ -5,9 +5,9 @@ using MarketplaceWebServiceOrders;
 using MarketplaceWebServiceOrders.Model;
 using static Nesto.Models.PedidoVenta;
 using System.Collections.ObjectModel;
-using Nesto.Contratos;
 using Nesto.Modulos.CanalesExternos.Models;
-using System.Linq;
+using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.CanalesExternos
 {

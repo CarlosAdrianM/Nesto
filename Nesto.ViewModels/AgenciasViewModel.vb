@@ -10,7 +10,6 @@ Imports Microsoft.Win32
 Imports Prism.Regions
 Imports System.Transactions
 Imports System.Threading.Tasks
-Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Models
 Imports Prism.Services.Dialogs
@@ -19,6 +18,8 @@ Imports System.Data.Entity.Validation
 Imports System.IO
 Imports System.Reflection
 Imports Microsoft.Reporting.NETCore
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 
 Public Class AgenciasViewModel
     Inherits BindableBase

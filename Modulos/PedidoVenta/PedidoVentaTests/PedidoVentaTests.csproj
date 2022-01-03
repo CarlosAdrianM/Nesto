@@ -7,7 +7,6 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Contratos\Contratos.vbproj" />
     <ProjectReference Include="..\..\..\Nesto.Models\Models.vbproj" />
     <ProjectReference Include="..\PedidoVenta\PedidoVenta.vbproj" />
   </ItemGroup>

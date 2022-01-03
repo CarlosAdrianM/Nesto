@@ -12,6 +12,8 @@ Imports Prism.Commands
 Imports Microsoft.Graph
 Imports Prism.Services.Dialogs
 Imports Azure.Identity
+Imports Nesto.Infrastructure.Shared
+Imports Nesto.Infrastructure.Contracts
 
 Public Class RemesasViewModel
     Inherits BindableBase

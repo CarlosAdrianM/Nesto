@@ -1,11 +1,12 @@
 ﻿using Prism.Commands;
 using Prism.Regions;
-using Nesto.Contratos;
 using System.Windows.Input;
+using Nesto.Infrastructure.Shared;
+using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modulos.CanalesExternos
 {
-    public class CanalesExternosMenuBarViewModel : Contratos.ViewModelBase
+    public class CanalesExternosMenuBarViewModel : ViewModelBase
     {
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }

@@ -7,6 +7,8 @@ Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Contracts
 
 Public Class ListaPedidosVentaViewModel
     Inherits BindableBase

@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Nesto.Models;
 using Nesto.Modulos.CanalesExternos.ApisExternas;
 using static Nesto.Models.PedidoVenta;
-using Nesto.Contratos;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using Nesto.Models.Nesto.Models;
 using System.Collections.Generic;
+using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modulos.CanalesExternos
 {

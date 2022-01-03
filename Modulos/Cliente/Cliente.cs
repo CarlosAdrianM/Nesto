@@ -1,8 +1,8 @@
 ﻿using Prism.Modularity;
-using Nesto.Contratos;
 using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
 using Nesto.Modulos.Cliente.ViewModels;
+using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modulos.Cliente
 {

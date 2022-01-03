@@ -7,12 +7,10 @@ Imports System.IO
 Imports Microsoft.Win32
 Imports System.Windows.Data
 Imports System.Globalization
-Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports System.Net.Http
 Imports Newtonsoft.Json
 Imports System.Text
-Imports System.Threading.Tasks
 Imports System.Runtime.InteropServices
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
@@ -20,8 +18,9 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Unity
 Imports Prism.Mvvm
 Imports Prism.Commands
-Imports System.Transactions
 Imports Prism.Services.Dialogs
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 
 Public Interface IOService
     Function OpenFileDialog(defaultPath As String) As String
@@ -1116,10 +1115,10 @@ Public Class ClientesViewModel
         Dim p As New DialogParameters
         p.Add("message", "¿Desea reclamar la deuda?")
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
-                                                         If r.Result = ButtonResult.OK Then
-                                                             ReclamarDeudaCommand.Execute()
-                                                         End If
-                                                     End Sub)
+                                                              If r.Result = ButtonResult.OK Then
+                                                                  ReclamarDeudaCommand.Execute()
+                                                              End If
+                                                          End Sub)
     End Sub
 
 

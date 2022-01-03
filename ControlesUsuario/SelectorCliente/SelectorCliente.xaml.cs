@@ -1,5 +1,5 @@
 ﻿using ControlesUsuario.Models;
-using Nesto.Contratos;
+using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;

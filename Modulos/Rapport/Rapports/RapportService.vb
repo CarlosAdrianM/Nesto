@@ -7,6 +7,8 @@ Imports Microsoft.Graph.Auth
 Imports Microsoft.Identity.Client
 Imports Microsoft.Office.Interop
 Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Newtonsoft.Json
@@ -238,7 +240,7 @@ Public Class RapportService
         Dim planId = Constantes.Planner.GestionCobro.PLAN_ID
         Dim bucketId = Constantes.Planner.GestionCobro.BUCKET_PENDIENTES
         Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}
-        Dim graphClient As New GraphServiceClient(interactiveBrowserCredential, scopes) 'you can pass the TokenCredential directly To the GraphServiceClient
+        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes) 'you can pass the TokenCredential directly To the GraphServiceClient
 
         Dim users = Await graphClient.Users.Request().GetAsync()
 

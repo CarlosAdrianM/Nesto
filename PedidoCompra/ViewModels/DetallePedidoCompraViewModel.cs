@@ -1,5 +1,5 @@
 ﻿using ControlesUsuario.Dialogs;
-using Nesto.Contratos;
+using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto;
 using Nesto.Modulos.PedidoCompra.Models;
 using Prism.Commands;

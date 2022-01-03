@@ -22,6 +22,7 @@ Imports ControlesUsuario.Dialogs
 Imports Microsoft.Identity.Client
 Imports Azure.Identity
 Imports Nesto.Modulos.PedidoCompra
+Imports Nesto.Infrastructure.Contracts
 
 Partial Public Class Application
 

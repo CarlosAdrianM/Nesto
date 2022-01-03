@@ -8,6 +8,7 @@ Imports System.Threading.Tasks
 Imports ControlesUsuario.Dialogs
 Imports System.Text
 Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Shared
 
 Public Class AgenciaASM
     Implements IAgencia

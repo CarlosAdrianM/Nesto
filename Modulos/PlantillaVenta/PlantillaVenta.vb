@@ -1,4 +1,5 @@
 ﻿Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Contracts
 Imports Prism.Ioc
 Imports Prism.Modularity
 Imports Prism.RibbonRegionAdapter

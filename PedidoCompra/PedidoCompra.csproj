@@ -12,13 +12,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.1.0" />
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Contratos\Contratos.vbproj" />
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\Producto\Producto.csproj" />
   </ItemGroup>
 

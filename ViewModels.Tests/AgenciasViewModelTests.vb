@@ -2,7 +2,6 @@
 Imports Prism.Regions
 Imports FakeItEasy
 Imports System.Windows.Controls
-Imports Nesto.Contratos
 Imports System.Collections.ObjectModel
 Imports Nesto.Models.Nesto.Models
 Imports Prism.Ioc
@@ -11,6 +10,8 @@ Imports System.Windows
 Imports System.Runtime.CompilerServices
 Imports ControlesUsuario.Dialogs
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 
 <TestClass()>
 Public Class AgenciaViewModelTests

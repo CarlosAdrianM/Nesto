@@ -1,7 +1,6 @@
-﻿using Nesto.Contratos;
+﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra.ViewModels;
-using Prism.Ioc;
-using Prism.Modularity;
 using System.Windows.Controls;
 
 namespace Nesto.Modulos.PedidoCompra

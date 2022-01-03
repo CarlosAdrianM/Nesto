@@ -5,12 +5,13 @@ Imports System.Runtime.InteropServices
 Imports Prism.Commands
 Imports Prism.Events
 Imports Prism.Regions
-Imports Nesto.Contratos
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Contracts
 
 Public Class DetallePedidoViewModel
     Inherits BindableBase

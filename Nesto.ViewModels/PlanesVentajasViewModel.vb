@@ -10,6 +10,7 @@ Imports Nesto.Contratos
 Imports Nesto.Models.Nesto.Models
 Imports Prism.Mvvm
 Imports System.IO
+Imports Nesto.Infrastructure.Contracts
 
 Public Class PlanesVentajasViewModel
     Inherits BindableBase

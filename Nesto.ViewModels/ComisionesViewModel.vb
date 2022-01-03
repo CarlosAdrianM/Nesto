@@ -15,6 +15,8 @@ Imports Unity
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 
 Public Class ComisionesViewModel
     Inherits BindableBase

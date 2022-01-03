@@ -1,8 +1,7 @@
-﻿using Nesto.Contratos;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.PedidoCompra.Views;
 using Prism.Ioc;
 using Prism.Modularity;
-using Prism.Regions;
 using Prism.RibbonRegionAdapter;
 
 namespace Nesto.Modulos.PedidoCompra

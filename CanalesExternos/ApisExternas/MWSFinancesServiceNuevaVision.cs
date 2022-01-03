@@ -15,15 +15,12 @@
  */
 
 using Claytondus.AmazonMWS.Finances.Model;
-using Nesto.Contratos;
-using Nesto.Models.Nesto.Models;
+using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.CanalesExternos.Models;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Configuration;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Claytondus.AmazonMWS.Finances
 {

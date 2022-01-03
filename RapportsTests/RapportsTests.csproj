@@ -8,7 +8,6 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Contratos\Contratos.vbproj" />
     <ProjectReference Include="..\Modulos\Rapport\Rapports\Rapports.vbproj" />
   </ItemGroup>
   <ItemGroup>

@@ -1,11 +1,11 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Prism.Commands
 Imports Prism.Regions
-Imports Nesto.Contratos
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Prism.Mvvm
 Imports Unity
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
+Imports Nesto.Infrastructure.Contracts
 
 Public Class ListaRapportsViewModel
     Inherits BindableBase

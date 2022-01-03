@@ -1,7 +1,7 @@
 ﻿using Prism.Modularity;
-using Nesto.Contratos;
 using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
+using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modulos.Producto
 {

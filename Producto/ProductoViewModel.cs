@@ -1,7 +1,6 @@
 ﻿using Prism.Commands;
 using Prism.Events;
 using Prism.Regions;
-using Nesto.Contratos;
 using Nesto.Modules.Producto;
 using System;
 using System.Collections.Generic;
@@ -12,6 +11,8 @@ using System.Windows.Input;
 using Prism.Services.Dialogs;
 using Prism.Mvvm;
 using ControlesUsuario.Dialogs;
+using Nesto.Infrastructure.Events;
+using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modulos.Producto
 {

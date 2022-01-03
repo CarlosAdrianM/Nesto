@@ -1,6 +1,6 @@
 ﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Nesto.Contratos;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.PlantillaVenta;
 using Prism.Events;
 using Prism.Regions;

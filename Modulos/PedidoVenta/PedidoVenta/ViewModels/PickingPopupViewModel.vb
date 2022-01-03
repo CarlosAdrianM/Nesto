@@ -3,6 +3,9 @@ Imports System.Reflection
 Imports ControlesUsuario.Dialogs
 Imports Microsoft.Reporting.NETCore
 Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models.PedidoVenta
 Imports Prism.Commands
 Imports Prism.Events

@@ -1,10 +1,10 @@
 ﻿Imports System.Collections.Specialized
 Imports Prism.Commands
 Imports Prism.Regions
-Imports Nesto.Contratos
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Prism.Mvvm
+Imports Nesto.Infrastructure.Contracts
 
 Public Class CarteraPagosViewModel
     Inherits BindableBase

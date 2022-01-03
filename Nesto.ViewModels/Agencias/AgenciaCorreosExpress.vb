@@ -8,6 +8,7 @@ Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Windows
 Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Serialization

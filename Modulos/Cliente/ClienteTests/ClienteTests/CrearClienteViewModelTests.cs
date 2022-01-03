@@ -4,12 +4,11 @@ using System.ComponentModel;
 using FakeItEasy;
 using Prism.Events;
 using Prism.Regions;
-using Nesto.Contratos;
 using Nesto.Modulos.Cliente;
 using Xceed.Wpf.Toolkit;
 using Prism.Services.Dialogs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Windows;
+using Nesto.Infrastructure.Contracts;
 
 namespace ClienteTests
 {

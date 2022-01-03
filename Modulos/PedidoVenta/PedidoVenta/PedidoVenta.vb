@@ -4,6 +4,7 @@ Imports Prism.Regions
 Imports Prism.Ioc
 Imports Nesto.Contratos
 Imports Prism.RibbonRegionAdapter
+Imports Nesto.Infrastructure.Contracts
 
 Public Class PedidoVenta
     Implements IModule, IPedidoVenta

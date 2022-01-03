@@ -1,5 +1,4 @@
-﻿using Nesto.Contratos;
-using Prism.Mvvm;
+﻿using Prism.Mvvm;
 using System;
 using System.Linq;
 

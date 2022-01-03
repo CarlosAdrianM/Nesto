@@ -9,6 +9,8 @@ Imports Unity
 Imports System.IO
 Imports Microsoft.Reporting.NETCore
 Imports System.Reflection
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 
 <[Module](ModuleName:="MenuBarView")>
 Public Class MenuBarView

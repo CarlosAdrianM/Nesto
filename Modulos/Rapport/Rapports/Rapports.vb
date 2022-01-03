@@ -2,6 +2,7 @@
 Imports Nesto.Contratos
 Imports Prism.RibbonRegionAdapter
 Imports Prism.Ioc
+Imports Nesto.Infrastructure.Contracts
 
 Public Class Rapports
     Implements IModule, IRapports

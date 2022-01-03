@@ -1,5 +1,5 @@
 ﻿Imports System.Net.Http
-Imports Nesto.Contratos
+Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Modulos.CarteraPagos
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq

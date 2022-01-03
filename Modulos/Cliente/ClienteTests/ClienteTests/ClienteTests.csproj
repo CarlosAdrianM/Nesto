@@ -7,7 +7,6 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Contratos\Contratos.vbproj" />
     <ProjectReference Include="..\..\Cliente.csproj" />
   </ItemGroup>
   <ItemGroup>

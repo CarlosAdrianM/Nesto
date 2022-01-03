@@ -13,6 +13,7 @@ Imports Nesto.Contratos
 Imports Unity
 Imports System.ComponentModel
 Imports System.Data
+Imports Nesto.Infrastructure.Shared
 
 Public Class RelayCommand
     Implements ICommand
