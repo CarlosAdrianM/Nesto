@@ -13,11 +13,13 @@
 
   <ItemGroup>
     <PackageReference Include="Extended.Wpf.Toolkit" Version="4.2.0" />
+    <PackageReference Include="MaterialDesignThemes" Version="4.3.0-ci82" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\Producto\Producto.csproj" />
   </ItemGroup>

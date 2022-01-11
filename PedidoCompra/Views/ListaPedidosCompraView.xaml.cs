@@ -42,5 +42,26 @@ namespace Nesto.Modulos.PedidoCompra.Views
         {
             txtFiltro.SelectAll();
         }
+
+        private async void itmChips_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            await Task.Delay(200);
+            Keyboard.Focus(txtFiltro);
+        }
+
+        private async void txtFiltro_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                await Task.Delay(500);
+                Keyboard.Focus(txtFiltro);
+                txtFiltro.SelectAll();
+            }
+        }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            Keyboard.Focus(txtFiltro);
+        }
     }
 }

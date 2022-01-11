@@ -2,7 +2,6 @@
 Imports Prism.Commands
 Imports Prism.Events
 Imports Prism.Regions
-Imports Nesto.Contratos
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs

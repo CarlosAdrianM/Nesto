@@ -1,4 +1,5 @@
 ﻿using ControlesUsuario.Dialogs;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra.Models;
 using Prism.Commands;
@@ -9,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -25,6 +25,10 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             Servicio = servicio;
             DialogService = dialogService;
             CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
+
+            ListaPedidos = new ColeccionFiltrable(new ObservableCollection<PedidoCompraLookup>());
+            ListaPedidos.TieneDatosIniciales = true;
+            ListaPedidos.ElementoSeleccionadoChanged += (sender, args) => { CargarPedidoSeleccionado(); };
         }
 
         private bool _estaCargandoListaPedidos;
@@ -34,58 +38,45 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             set => SetProperty(ref _estaCargandoListaPedidos, value);
         }
 
-        private string _filtro;
-        public string Filtro
-        {
-            get => _filtro;
-            set
-            {
-                SetProperty(ref _filtro, value);
-                AplicarFiltro();
-            }
-        }
 
-        private ObservableCollection<PedidoCompraLookup> _listaPedidos;
-        public ObservableCollection<PedidoCompraLookup> ListaPedidos
+        private ColeccionFiltrable _listaPedidos;
+        public ColeccionFiltrable ListaPedidos
         {
             get => _listaPedidos;
             set
             {
                 SetProperty(ref _listaPedidos, value);
-                RaisePropertyChanged(nameof(ListaPedidosFiltrada));
             }
         }
-
-        public ObservableCollection<PedidoCompraLookup> ListaPedidosFiltrada
+        
+        private void ActualizarMostrados()
         {
-            get
+            /*
+            if (ListaPedidos == null)
             {
-                if (ListaPedidosOriginal == null)
-                {
-                    return new ObservableCollection<PedidoCompraLookup>();
-                }
-                if (MostrarPedidosCreados && MostrarPedidosSinCrear)
-                {
-                    return ListaPedidosOriginal;
-                } else if (MostrarPedidosSinCrear)
-                {
-                    return new ObservableCollection<PedidoCompraLookup>(ListaPedidosOriginal.Where(p => p.Pedido == 0));
-                } else if (MostrarPedidosCreados)
-                {
-                    return new ObservableCollection<PedidoCompraLookup>(ListaPedidosOriginal.Where(p => p.Pedido != 0));
-                }
-                else
-                {
-                    return new ObservableCollection<PedidoCompraLookup>();
-                }
+                ListaPedidos = new();
             }
-        }
-
-        private ObservableCollection<PedidoCompraLookup> _listaPedidosOriginal;
-        public ObservableCollection<PedidoCompraLookup> ListaPedidosOriginal
-        {
-            get => _listaPedidosOriginal;
-            set => SetProperty(ref _listaPedidosOriginal, value);
+            if (ListaPedidos.ListaOriginal == null)
+            {
+                ListaPedidos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
+            }
+            */
+            if (MostrarPedidosCreados && MostrarPedidosSinCrear)
+            {
+                ListaPedidos.ListaFijada = ListaPedidos.ListaOriginal;
+            } else if (MostrarPedidosSinCrear)
+            {
+                ListaPedidos.ListaFijada = new ObservableCollection<IFiltrableItem>(ListaPedidos.ListaOriginal.Where(p => (p as PedidoCompraLookup).Pedido == 0));
+            }
+            else if (MostrarPedidosCreados)
+            {
+                ListaPedidos.ListaFijada = new ObservableCollection<IFiltrableItem>(ListaPedidos.ListaOriginal.Where(p => (p as PedidoCompraLookup).Pedido != 0));
+            }
+            else
+            {
+                ListaPedidos.ListaFijada = new ObservableCollection<IFiltrableItem>();
+            }
+            ListaPedidos.RefrescarFiltro();
         }
 
         private List<PedidoCompraDTO> _listaPedidosSinCrear;
@@ -101,7 +92,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             get => _mostrarPedidosCreados;
             set {
                 SetProperty(ref _mostrarPedidosCreados, value);
-                AplicarFiltro();
+                ActualizarMostrados();
             }
         }
 
@@ -116,18 +107,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                     CargarPedidosAutomaticos();
                 }
                 SetProperty(ref _mostrarPedidosSinCrear, value);
-            }
-        }
-
-        private void AplicarFiltro()
-        {
-            if (Filtro != null)
-            {
-                ListaPedidos = new ObservableCollection<PedidoCompraLookup>(ListaPedidosFiltrada.Where(l => l.Nombre.ToLower().Contains(Filtro.ToLower()) || l.Proveedor == Filtro));
-            }
-            else
-            {
-                ListaPedidos = ListaPedidosFiltrada;
+                ActualizarMostrados();
             }
         }
 
@@ -139,10 +119,9 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 ListaPedidosSinCrear = await Servicio.CargarPedidosAutomaticos(Constantes.Empresas.EMPRESA_DEFECTO);
                 foreach (var pedido in ListaPedidosSinCrear)
                 {
-                    ListaPedidosOriginal.Add(new PedidoCompraLookup(pedido));
+                    ListaPedidos.ListaOriginal.Add(new PedidoCompraLookup(pedido));
                 }
-                RaisePropertyChanged(nameof(ListaPedidosFiltrada));
-                AplicarFiltro();
+                ActualizarMostrados();
             }
             catch (Exception ex)
             {
@@ -161,28 +140,28 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             set => SetProperty(ref _scopedRegionManager, value);
         }
 
-        private PedidoCompraLookup _pedidoLookupSeleccionado;
-        public PedidoCompraLookup PedidoLookupSeleccionado
-        {
-            get => _pedidoLookupSeleccionado;
-            set
-            {
-                SetProperty(ref _pedidoLookupSeleccionado, value);
-                CargarPedidoSeleccionado();
-            }
-        }
+        //private PedidoCompraLookup _pedidoLookupSeleccionado;
+        //public PedidoCompraLookup PedidoLookupSeleccionado
+        //{
+        //    get => _pedidoLookupSeleccionado;
+        //    set
+        //    {
+        //        SetProperty(ref _pedidoLookupSeleccionado, value);
+        //        CargarPedidoSeleccionado();
+        //    }
+        //}
 
         
         public ICommand CargarPedidosCommand { get; private set; }
         private async void OnCargarPedidos()
         {
-            if (ListaPedidos == null || !ListaPedidos.Any())
+            if (ListaPedidos == null || ListaPedidos.Lista == null || !ListaPedidos.Lista.Any())
             {
                 try
                 {
                     EstaCargandoListaPedidos = true;
-                    ListaPedidos = await Servicio.CargarPedidos();
-                    ListaPedidosOriginal = ListaPedidos;
+                    ListaPedidos.Lista = new ObservableCollection<IFiltrableItem>(await Servicio.CargarPedidos());
+                    ListaPedidos.ListaOriginal = ListaPedidos.Lista;
                 }
                 catch (Exception ex)
                 {
@@ -199,22 +178,21 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         private void CargarPedidoSeleccionado()
         {
             NavigationParameters parameters;
-            if (PedidoLookupSeleccionado != null && PedidoLookupSeleccionado.Pedido == 0)
+            if (ListaPedidos.ElementoSeleccionado != null && (ListaPedidos.ElementoSeleccionado as PedidoCompraLookup).Pedido == 0)
             {
                 parameters = new NavigationParameters
                 {
-                    { "PedidoParameter", ListaPedidosSinCrear.Single(p => p.Proveedor == PedidoLookupSeleccionado.Proveedor) }
+                    { "PedidoParameter", ListaPedidosSinCrear.Single(p => p.Proveedor == (ListaPedidos.ElementoSeleccionado as PedidoCompraLookup).Proveedor) }
                 };
             }
             else
             {
                 parameters = new NavigationParameters
                 {
-                    { "PedidoLookupParameter", PedidoLookupSeleccionado }
+                    { "PedidoLookupParameter", ListaPedidos.ElementoSeleccionado }
                 };
             }
             ScopedRegionManager.RequestNavigate("DetallePedidoCompraRegion", "DetallePedidoCompraView", parameters);
-
         }
     }
 }

@@ -67,15 +67,15 @@ namespace Nesto.Modulos.PedidoCompra
                     string urlConsulta = $"PedidosCompra/PedidoCompra?empresa={empresa}&pedido={pedido}";
 
                     response = await client.GetAsync(urlConsulta);
+                    string resultado = await response.Content.ReadAsStringAsync();
 
                     if (response.IsSuccessStatusCode)
-                    {
-                        string resultado = await response.Content.ReadAsStringAsync();
+                    {                        
                         pedidoActual = JsonConvert.DeserializeObject<PedidoCompraDTO>(resultado);
                     }
                     else
                     {
-                        throw new Exception($"El pedido {pedido} no se ha podido cargar correctamente");
+                        throw new Exception($"El pedido {pedido} no se ha podido cargar correctamente", new Exception(resultado));
                     }
                 }
                 catch (Exception ex)

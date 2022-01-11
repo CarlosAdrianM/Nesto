@@ -1,5 +1,6 @@
 ﻿using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
@@ -25,6 +26,16 @@ namespace ControlesUsuario
         {
             InitializeComponent();
             ControlPrincipal.DataContext = this;
+            listaClientes = new();
+            listaClientes.ElementoSeleccionadoChanged += (sender, args) => {
+                ClienteCompleto = listaClientes.ElementoSeleccionado as ClienteDTO;
+                Cliente = ClienteCompleto?.cliente;
+                Contacto = ClienteCompleto?.contacto;
+                
+                OnPropertyChanged(nameof(visibilidadDatosCliente));
+                listaClientes.ListaOriginal = null;
+            };
+            listaClientes.HayQueCargarDatos += () => { cargarCliente(); };
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -38,13 +49,13 @@ namespace ControlesUsuario
             try
             {
                 Border controlSender = (Border)sender;
-                clienteSeleccionado = (ClienteDTO)controlSender.DataContext;
-                filtro = clienteSeleccionado.cliente;
-                listaClientes = null;
+                listaClientes.ElementoSeleccionado = (ClienteDTO)controlSender.DataContext;
+                listaClientes.Filtro = ClienteCompleto.cliente;
+                listaClientes.ListaOriginal?.Clear();
                 txtFiltro.Focus();
             } catch
             {
-                filtro = "Desconectado";
+                listaClientes.Filtro = "Desconectado";
             }            
         }
         private void pnlDatosCliente_MouseUp(object sender, MouseButtonEventArgs e)
@@ -60,25 +71,27 @@ namespace ControlesUsuario
         {
             if (e.Key == Key.Enter)
             {
-                if (string.IsNullOrEmpty(filtro))
+                //if (string.IsNullOrEmpty(listaClientes.Filtro))
+                //{
+                //    listaClientes.ListaOriginal = null;
+                //    //listaClientes.Lista = null;
+                //    listaClientes.ElementoSeleccionado = null;
+                //    return;
+                //}
+                if (listaClientes.ListaOriginal == null)
                 {
-                    _listaClienteOriginal = null;
-                    listaClientes = null;
-                    clienteSeleccionado = null;
-                    return;
-                }
-                if (_listaClienteOriginal == null)
-                {
-                    cargarCliente();
+                    //cargarCliente();
+                    listaClientes.FijarFiltroCommand.Execute(txtFiltro.Text);
                 } else
                 {
-                    _listaClienteOriginal = listaClientes;
+                    //listaClientes.ListaOriginal = listaClientes.Lista;
+                    listaClientes.FijarFiltroCommand.Execute(txtFiltro.Text);
                 }
                 TraversalRequest tRequest = new TraversalRequest(FocusNavigationDirection.Next);
                 UIElement keyboardFocus = Keyboard.FocusedElement as UIElement;
                 UIElement originalUIE = keyboardFocus;
 
-                if (keyboardFocus != null && clienteSeleccionado != null && clienteSeleccionado.cliente == txtFiltro.Text)
+                if (keyboardFocus != null && ClienteCompleto != null && ClienteCompleto.cliente == txtFiltro.Text)
                 {
                     keyboardFocus.MoveFocus(tRequest);
                 } else
@@ -136,27 +149,27 @@ namespace ControlesUsuario
                 }
             }
         }
-        private ClienteDTO _clienteSeleccionado;
-        public ClienteDTO clienteSeleccionado
-        {
-            get {
-                return _clienteSeleccionado;
-            }
-            set
-            {
-                if (_clienteSeleccionado != value)
-                {
-                    _clienteSeleccionado = value;
-                    this.Cliente = value != null ? value.cliente : null;
-                    this.Contacto = value != null ? value.contacto : null;
-                    this.ClienteCompleto = _clienteSeleccionado;
-                    OnPropertyChanged("clienteSeleccionado");
-                    OnPropertyChanged("visibilidadDatosCliente");
-                    _listaClienteOriginal = null;
-                }
-            }
+        //private ClienteDTO _clienteSeleccionado;
+        //public ClienteDTO clienteSeleccionado
+        //{
+        //    get {
+        //        return _clienteSeleccionado;
+        //    }
+        //    set
+        //    {
+        //        if (_clienteSeleccionado != value)
+        //        {
+        //            _clienteSeleccionado = value;
+        //            Cliente = value?.cliente;
+        //            Contacto = value?.contacto;
+        //            ClienteCompleto = _clienteSeleccionado;
+        //            OnPropertyChanged(nameof(clienteSeleccionado));
+        //            OnPropertyChanged(nameof(visibilidadDatosCliente));
+        //            listaClientes.ListaOriginal = null;
+        //        }
+        //    }
 
-        }
+        //}
 
         private string _contactoSeleccionado;
         public string contactoSeleccionado
@@ -169,43 +182,43 @@ namespace ControlesUsuario
             {
                 _contactoSeleccionado = value;
                 OnPropertyChanged("contactoSeleccionado");
-                if (clienteSeleccionado != null && contactoSeleccionado != null && clienteSeleccionado.contacto.Trim() != contactoSeleccionado.Trim())
+                if (ClienteCompleto != null && contactoSeleccionado != null && ClienteCompleto.contacto.Trim() != contactoSeleccionado.Trim())
                 {
-                    clienteSeleccionado.contacto = contactoSeleccionado;
+                    ClienteCompleto.contacto = contactoSeleccionado;
                     cargarCliente();
                 }
             }
         }
 
-        private string _filtro;
-        public string filtro { 
-            get
-            {
-                return _filtro;
-            }
-            set
-            {
-                if (_filtro != value)
-                {
-                    _filtro = value.ToLower();
-                    OnPropertyChanged("filtro");
-                    if (listaClientes != null && listaClientes.Any())
-                    {
-                        listaClientes = new ObservableCollection<ClienteDTO>(_listaClienteOriginal.Where(l =>
-                            (
-                            (l.nombre != null && l.nombre.ToLower().Contains(filtro)) ||
-                            (l.direccion != null && l.direccion.ToLower().Contains(filtro)) ||
-                            (l.telefono != null && l.telefono.ToLower().Contains(filtro)) ||
-                            (l.poblacion != null && l.poblacion.ToLower().Contains(filtro))
-                            )
-                        ));
-                    }
-                }
-            }
-        }
+        //private string _filtro;
+        //public string filtro { 
+        //    get
+        //    {
+        //        return _filtro;
+        //    }
+        //    set
+        //    {
+        //        if (_filtro != value)
+        //        {
+        //            _filtro = value.ToLower();
+        //            OnPropertyChanged("filtro");
+        //            if (listaClientes != null && listaClientes.Any())
+        //            {
+        //                listaClientes = new ObservableCollection<ClienteDTO>(_listaClienteOriginal.Where(l =>
+        //                    (
+        //                    (l.nombre != null && l.nombre.ToLower().Contains(filtro)) ||
+        //                    (l.direccion != null && l.direccion.ToLower().Contains(filtro)) ||
+        //                    (l.telefono != null && l.telefono.ToLower().Contains(filtro)) ||
+        //                    (l.poblacion != null && l.poblacion.ToLower().Contains(filtro))
+        //                    )
+        //                ));
+        //            }
+        //        }
+        //    }
+        //}
 
-        private ObservableCollection<ClienteDTO> _listaClientes;
-        public ObservableCollection<ClienteDTO> listaClientes
+        private ColeccionFiltrable _listaClientes;
+        public ColeccionFiltrable listaClientes
         {
             get
             {
@@ -214,11 +227,11 @@ namespace ControlesUsuario
             set
             {
                 _listaClientes = value;
-                OnPropertyChanged("listaClientes");
-                OnPropertyChanged("visibilidadListaClientes");
+                OnPropertyChanged(nameof(listaClientes));
+                OnPropertyChanged(nameof(visibilidadListaClientes));
             }
         }
-        private ObservableCollection<ClienteDTO> _listaClienteOriginal;
+        //private ObservableCollection<ClienteDTO> _listaClienteOriginal;
 
         public Visibility visibilidadCargando
         {
@@ -238,7 +251,7 @@ namespace ControlesUsuario
         {
             get
             {
-                if (clienteSeleccionado != null)
+                if (listaClientes.ElementoSeleccionado != null)
                 {
                     return Visibility.Visible;
                 }
@@ -252,7 +265,7 @@ namespace ControlesUsuario
         {
             get
             {
-                if (listaClientes == null || !listaClientes.Any())
+                if (listaClientes == null || listaClientes.Lista == null || !listaClientes.Lista.Any())
                 {
                     return Visibility.Collapsed;
                 }
@@ -274,7 +287,7 @@ namespace ControlesUsuario
             set
             {
                 _visibilidadSelectorEntrega = value;
-                OnPropertyChanged("visibilidadSelectorEntrega");
+                OnPropertyChanged(nameof(visibilidadSelectorEntrega));
             }
         }
         #endregion
@@ -357,15 +370,15 @@ namespace ControlesUsuario
             }
             if (selector.Cliente == null)
             {
-                selector.clienteSeleccionado = null;
+                selector.listaClientes.ElementoSeleccionado = null;
             }
-            else if(selector.filtro != selector.Cliente.Trim())
+            else if(selector.listaClientes.Filtro != selector.Cliente.Trim())
             {
                 //if (selector.contactoSeleccionado == null && selector.Contacto != null)
                 //{
                 //    selector.contactoSeleccionado = selector.Contacto.Trim();
                 //}
-                selector.filtro = selector.Cliente.Trim();
+                selector.listaClientes.Filtro = selector.Cliente.Trim();
             }
             if (selector.ClienteCompleto == null)
             {
@@ -497,14 +510,14 @@ namespace ControlesUsuario
         #region "Funciones Auxiliares"
         private async Task buscarClientes()
         {
-            if (filtro == null || Empresa == null || Configuracion == null)
+            if (listaClientes == null || Empresa == null || Configuracion == null)
             {
                 return;
             }
 
-            clienteSeleccionado = null;
+            //listaClientes.ElementoSeleccionado = null;
 
-            if (string.IsNullOrEmpty(filtro))
+            if (string.IsNullOrEmpty(txtFiltro.Text))
             {
                 return;
             }
@@ -517,7 +530,7 @@ namespace ControlesUsuario
                 try
                 {
                     mostrarCargando(true);
-                    string urlConsulta = "Clientes?empresa=" + Empresa+ "&vendedor="+ vendedor + "&filtro=" + filtro;
+                    string urlConsulta = "Clientes?empresa=" + Empresa+ "&vendedor="+ vendedor + "&filtro=" + txtFiltro.Text;
 
 
                     response = await client.GetAsync(urlConsulta);
@@ -525,30 +538,39 @@ namespace ControlesUsuario
                     if (response.IsSuccessStatusCode)
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
-                        _listaClienteOriginal = JsonConvert.DeserializeObject<ObservableCollection<ClienteDTO>>(resultado);
-                        listaClientes = _listaClienteOriginal;
+                        listaClientes.ListaOriginal = new ObservableCollection<IFiltrableItem>(JsonConvert.DeserializeObject<ObservableCollection<ClienteDTO>>(resultado));
+                        OnPropertyChanged(nameof(visibilidadListaClientes));
+                        //listaClientes = _listaClienteOriginal;
                         if (Cliente != null)
                         {
                             //vendedorSeleccionado = listaVendedores.Where(l => l.vendedor == Seleccionado.Trim()).SingleOrDefault();
                         }
                     }
+                    else
+                    {
+                        if (listaClientes.ListaOriginal == null || !listaClientes.ListaOriginal.Any())
+                        {
+                            listaClientes.FiltrosPuestos.Clear();
+                        }
+                    }
                 }
                 catch
                 {
-                    throw new Exception("No se encontró ningún cliente con el texto " + filtro);
+                    throw new Exception("No se encontró ningún cliente con el texto " + listaClientes.Filtro);
                 } finally
                 {
                     mostrarCargando(false);
                 }
             }
         }
+
         private async void cargarCliente()
         {
-            if (filtro == null || Empresa == null || Configuracion == null)
+            if (txtFiltro.Text == null || Empresa == null || Configuracion == null)
             {
                 return;
             }
-            listaClientes = null;
+            listaClientes.Lista = null;
             visibilidadSelectorEntrega = Visibility.Collapsed;
             using (HttpClient client = new HttpClient())
             {
@@ -557,15 +579,14 @@ namespace ControlesUsuario
 
                 try
                 {
-                    string urlConsulta = "Clientes?empresa=" + Empresa + "&cliente=" + filtro + "&contacto=" + contactoSeleccionado; //contacto en blanco para que coja clientePrincipal
-
+                    string urlConsulta = "Clientes?empresa=" + Empresa + "&cliente=" + txtFiltro.Text + "&contacto=" + contactoSeleccionado; //contacto en blanco para que coja clientePrincipal
 
                     response = await client.GetAsync(urlConsulta);
 
                     if (response.IsSuccessStatusCode)
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
-                        clienteSeleccionado = JsonConvert.DeserializeObject<ClienteDTO>(resultado);
+                        listaClientes.ElementoSeleccionado = JsonConvert.DeserializeObject<ClienteDTO>(resultado);
                         if (Cliente != null)
                         {
                             //vendedorSeleccionado = listaVendedores.Where(l => l.vendedor == Seleccionado.Trim()).SingleOrDefault();
@@ -603,6 +624,12 @@ namespace ControlesUsuario
         private void txtFiltro_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             txtFiltro.SelectAll();
+        }
+
+        private async void itmChips_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            await Task.Delay(200);
+            Keyboard.Focus(txtFiltro);
         }
     }
     public class EstadoColorConverter : IValueConverter

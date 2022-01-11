@@ -1,10 +1,11 @@
-﻿using Prism.Mvvm;
+﻿using Nesto.Infrastructure.Contracts;
+using Prism.Mvvm;
 using System;
 using System.Linq;
 
 namespace Nesto.Modulos.PedidoCompra.Models
 {
-    public class PedidoCompraLookup : BindableBase
+    public class PedidoCompraLookup : BindableBase, IFiltrableItem
     {
         public PedidoCompraLookup() { }
         public PedidoCompraLookup(PedidoCompraDTO pedidoOrigen)
@@ -42,5 +43,10 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public bool EsPedidoSinCrear { get => Pedido == 0; }
         public decimal BaseImponible { get; set; }
         public decimal Total { get; set; }
+
+        public bool Contains(string filtro)
+        {
+            return Pedido.ToString() == filtro || Proveedor == filtro || Nombre.ToLower().Contains(filtro.ToLower()) || Direccion.ToLower().Contains(filtro.ToLower());
+        }
     }
 }

@@ -1,11 +1,9 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FakeItEasy;
-using Nesto.Contratos;
 using System.Collections.ObjectModel;
 using Prism.Events;
 using Nesto.Modulos.PedidoVenta;
 using static Nesto.Modulos.PedidoVenta.PedidoVentaModel;
-using Prism.Ioc;
 using Prism.Services.Dialogs;
 using Nesto.Infrastructure.Contracts;
 

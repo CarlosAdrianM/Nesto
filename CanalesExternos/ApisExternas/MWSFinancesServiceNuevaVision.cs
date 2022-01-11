@@ -94,10 +94,10 @@ namespace Claytondus.AmazonMWS.Finances
                             MonedaOriginal = grupo.OriginalTotal != null ? grupo.OriginalTotal.CurrencyCode : grupo.BeginningBalance.CurrencyCode,
                             PagoExternalId = grupo.FinancialEventGroupId,
                             Estado = grupo.ProcessingStatus,
-                            Importe = (decimal)(grupo.OriginalTotal?.CurrencyCode == Constantes.Empresas.MONEDA_CONTABILIDAD || grupo.ConvertedTotal == null ? 
-                                grupo.OriginalTotal != null ? 
+                            Importe = (decimal)(grupo.OriginalTotal?.CurrencyCode == Constantes.Empresas.MONEDA_CONTABILIDAD || grupo.ConvertedTotal == null ?
+                                grupo.OriginalTotal != null ?
                                     grupo.OriginalTotal.CurrencyAmount : 0 : grupo.ConvertedTotal?.CurrencyAmount),
-                            ImporteOriginal = (decimal)(grupo.OriginalTotal?.CurrencyAmount),
+                            ImporteOriginal = (decimal)(grupo.OriginalTotal != null ? grupo.OriginalTotal.CurrencyAmount : 0),
                             SaldoInicial = grupo.BeginningBalance.CurrencyAmount,
                             FechaPago = grupo.FundTransferDate,
                             FechaInicio = grupo.FinancialEventGroupStart,

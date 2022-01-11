@@ -1,23 +1,25 @@
-﻿using System;
+﻿using Nesto.Infrastructure.Contracts;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace ControlesUsuario.Models
 {
-    public class ClienteDTO : INotifyPropertyChanged
+    public class ClienteDTO : INotifyPropertyChanged, IFiltrableItem
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
         public string empresa { get; set; }
         private string _cliente;
         public string cliente {
-            get {
+            get 
+            {
                 return _cliente;
             }
             set {
                 _cliente = value;
-                OnPropertyChanged("cliente");
+                OnPropertyChanged(nameof(cliente));
             }
         }
         private string _contacto;
@@ -27,7 +29,7 @@ namespace ControlesUsuario.Models
             }
             set {
                 _contacto = value;
-                OnPropertyChanged("contacto");
+                OnPropertyChanged(nameof(contacto));
             }
         }
         public string nombre { get; set; }
@@ -56,6 +58,13 @@ namespace ControlesUsuario.Models
             }
         }
 
+        public bool Contains(string filtro)
+        {
+            return (nombre != null && nombre.ToLower().Contains(filtro)) ||
+                   (direccion != null && direccion.ToLower().Contains(filtro)) ||
+                   (telefono != null && telefono.ToLower().Contains(filtro)) ||
+                   (poblacion != null && poblacion.ToLower().Contains(filtro));
+        }
     }
 
     public class VendedorGrupoProductoDTO
