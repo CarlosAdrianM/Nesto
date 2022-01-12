@@ -2,11 +2,9 @@
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Nesto.Infrastructure.Shared
 {
@@ -206,6 +204,7 @@ namespace Nesto.Infrastructure.Shared
                 IFiltrableItem oldElementoSeleccionado = _elementoSeleccionado;
                 _elementoSeleccionado = value;
                 ElementoSeleccionadoChanged?.Invoke(oldElementoSeleccionado, _elementoSeleccionado);
+                //ElementoSeleccionadoChanged(oldElementoSeleccionado, _elementoSeleccionado);
                 SetProperty(ref _elementoSeleccionado, value);
             }
         }
@@ -264,6 +263,7 @@ namespace Nesto.Infrastructure.Shared
         #region Funciones
         internal ObservableCollection<IFiltrableItem> AplicarFiltro(string filtro)
         {
+            filtro = filtro.ToLower();
             if (ListaFijada == null)
             {
                 return new ObservableCollection<IFiltrableItem>();
@@ -330,7 +330,7 @@ namespace Nesto.Infrastructure.Shared
                 }
                 else
                 {
-                    ListaOriginal = null; // si hacemos Clear() no actualiza ListaFijada ni Lista
+                    ListaOriginal = new(); // si hacemos Clear() no actualiza ListaFijada ni Lista
                 }
             }
             else
@@ -339,7 +339,10 @@ namespace Nesto.Infrastructure.Shared
                 ListaFijada = ListaOriginal;
                 foreach (string filtroPuesto in FiltrosPuestos)
                 {
-                    ListaFijada = AplicarFiltro(filtroPuesto);
+                    if (TieneDatosIniciales || FiltrosPuestos.IndexOf(filtroPuesto) != 0)
+                    {
+                        ListaFijada = AplicarFiltro(filtroPuesto);
+                    }
                 }
             }
         }
@@ -348,6 +351,7 @@ namespace Nesto.Infrastructure.Shared
         #region Eventos
         public delegate void ElementoSeleccionadoChange(IFiltrableItem oldItem, IFiltrableItem newItem);
         public virtual ElementoSeleccionadoChange ElementoSeleccionadoChanged { get; set; }
+        //public event ElementoSeleccionadoChange ElementoSeleccionadoChanged;
         public event Action HayQueCargarDatos;
         #endregion
     }

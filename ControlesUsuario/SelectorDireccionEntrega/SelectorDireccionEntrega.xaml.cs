@@ -189,12 +189,10 @@ namespace ControlesUsuario
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
                         listaDireccionesEntrega = JsonConvert.DeserializeObject<ObservableCollection<DireccionesEntregaCliente>>(resultado);
-                        if (direccionEntregaSeleccionada == null && Seleccionada == null)
+                        if (direccionEntregaSeleccionada == null && Seleccionada != null)
                         {
                             direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.contacto == Seleccionada).SingleOrDefault();
-                        }
-
-                        
+                        }                        
                     }                    
                 } catch
                 {

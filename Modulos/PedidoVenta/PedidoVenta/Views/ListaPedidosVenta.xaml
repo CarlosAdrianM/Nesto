@@ -7,7 +7,9 @@
              prism:ViewModelLocator.AutoWireViewModel="True"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario" 
-             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors" 
+             xmlns:pedidoventa="clr-namespace:Nesto.Modulos.PedidoVenta" 
+             d:DataContext="{d:DesignInstance Type=pedidoventa:ListaPedidosVentaViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
     
@@ -31,9 +33,12 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
+        <!--
         <xctk:WatermarkTextBox Name="txtFiltro" Grid.Row="1" Text="{Binding filtroPedidos}" Watermark="Buscar Pedidos..."></xctk:WatermarkTextBox>
+        -->
+        <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
         <xctk:BusyIndicator Grid.Row="2" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos...">
-            <ListView ItemsSource="{Binding listaPedidos}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
+            <ListView ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" HorizontalContentAlignment="Stretch">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">

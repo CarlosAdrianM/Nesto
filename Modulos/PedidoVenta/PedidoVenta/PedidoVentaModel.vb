@@ -1,7 +1,9 @@
-﻿Imports Nesto.Models.PedidoVenta
+﻿Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Models.PedidoVenta
 
 Public Class PedidoVentaModel
     Public Class ResumenPedido
+        Implements IFiltrableItem
         Public Property empresa As String
         Public Property numero As Integer
         Public Property cliente As String
@@ -32,6 +34,18 @@ Public Class PedidoVentaModel
         Public Property total As Decimal
         Public Property vendedor As String
         Public Property ultimoSeguimiento As String
+
+        Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
+            Return (Not IsNothing(direccion) AndAlso direccion.ToLower.Contains(filtro.ToLower)) OrElse
+                    (Not IsNothing(nombre) AndAlso nombre.ToLower.Contains(filtro.ToLower)) OrElse
+                    (Not IsNothing(cliente) AndAlso cliente.Trim.ToLower.Equals(filtro.ToLower)) OrElse
+                    (numero = Me.convertirCadenaInteger(filtro))
+        End Function
+
+        Private Function convertirCadenaInteger(texto As String) As Integer
+            Dim valor As Integer
+            Return IIf(Integer.TryParse(texto, valor), valor, Nothing)
+        End Function
     End Class
 
     Public Class Producto

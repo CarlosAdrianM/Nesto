@@ -8,6 +8,7 @@ Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 
 Public Class ListaPedidosVentaViewModel
     Inherits BindableBase
@@ -29,6 +30,15 @@ Public Class ListaPedidosVentaViewModel
 
         eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
         eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
+
+        ListaPedidos = New ColeccionFiltrable With {
+            .TieneDatosIniciales = True
+        }
+
+        'AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender As Object, args As EventArgs)
+        '                                                         CargarResumenSeleccionado()
+        '                                                     End Sub
+
     End Sub
 
 #Region "Propiedades"
@@ -52,67 +62,67 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
-    Private _filtroPedidos As String
-    Public Property filtroPedidos As String
-        Get
-            Return _filtroPedidos
-        End Get
-        Set(value As String)
-            SetProperty(_filtroPedidos, value)
+    'Private _filtroPedidos As String
+    'Public Property filtroPedidos As String
+    '    Get
+    '        Return _filtroPedidos
+    '    End Get
+    '    Set(value As String)
+    '        SetProperty(_filtroPedidos, value)
 
-            If filtroPedidos = "" Then
-                listaPedidos = listaPedidosOriginal
-            Else
-                If Not IsNothing(listaPedidos) Then
-                    listaPedidos = New ObservableCollection(Of ResumenPedido)(listaPedidos.Where(Function(p) (Not IsNothing(p.direccion) AndAlso p.direccion.ToLower.Contains(filtroPedidos.ToLower)) OrElse
-                                                                                                 (Not IsNothing(p.nombre) AndAlso p.nombre.ToLower.Contains(filtroPedidos.ToLower)) OrElse
-                                                                                                 (Not IsNothing(p.cliente) AndAlso p.cliente.Trim.ToLower.Equals(filtroPedidos.ToLower)) OrElse
-                                                                                                 (p.numero = Me.convertirCadenaInteger(filtroPedidos))
-                                                                                                 ))
+    '        If filtroPedidos = "" Then
+    '            ListaPedidos.Lista = ListaPedidos.ListaOriginal
+    '        Else
+    '            If Not IsNothing(ListaPedidos) Then
+    '                ListaPedidos = New ObservableCollection(Of ResumenPedido)(ListaPedidos.Where(Function(p) (Not IsNothing(p.direccion) AndAlso p.direccion.ToLower.Contains(filtroPedidos.ToLower)) OrElse
+    '                                                                                             (Not IsNothing(p.nombre) AndAlso p.nombre.ToLower.Contains(filtroPedidos.ToLower)) OrElse
+    '                                                                                             (Not IsNothing(p.cliente) AndAlso p.cliente.Trim.ToLower.Equals(filtroPedidos.ToLower)) OrElse
+    '                                                                                             (p.numero = Me.convertirCadenaInteger(filtroPedidos))
+    '                                                                                             ))
 
-                End If
-                If Not IsNothing(listaPedidos) AndAlso listaPedidos.Count = 1 Then
-                    resumenSeleccionado = listaPedidos.FirstOrDefault
-                End If
+    '            End If
+    '            If Not IsNothing(ListaPedidos) AndAlso ListaPedidos.Count = 1 Then
+    '                resumenSeleccionado = ListaPedidos.FirstOrDefault
+    '            End If
 
-                If (Not IsNothing(listaPedidos) AndAlso listaPedidos.Count = 0) OrElse estaCargandoListaPedidos Then
-                    Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
-                        .empresa = empresaSeleccionada,
-                        .numero = filtroPedidos
-                    }
-                    resumenSeleccionado = nuevoResumen
-                End If
+    '            If (Not IsNothing(ListaPedidos) AndAlso ListaPedidos.Count = 0) OrElse estaCargandoListaPedidos Then
+    '                Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
+    '                    .empresa = empresaSeleccionada,
+    '                    .numero = filtroPedidos
+    '                }
+    '                resumenSeleccionado = nuevoResumen
+    '            End If
 
 
-            End If
+    '        End If
 
-            'p.direccion.Contains(filtroPedidos) OrElse
-            'p.nombre.Contains(filtroPedidos) OrElse
-            'p.cliente.Contains(filtroPedidos)
-            'OrElse p.numero = CInt(filtroPedidos)
-            '   ))
-        End Set
-    End Property
+    '        'p.direccion.Contains(filtroPedidos) OrElse
+    '        'p.nombre.Contains(filtroPedidos) OrElse
+    '        'p.cliente.Contains(filtroPedidos)
+    '        'OrElse p.numero = CInt(filtroPedidos)
+    '        '   ))
+    '    End Set
+    'End Property
 
-    Private _listaPedidos As ObservableCollection(Of ResumenPedido)
-    Public Property listaPedidos() As ObservableCollection(Of ResumenPedido)
+    Private _listaPedidos As ColeccionFiltrable
+    Public Property ListaPedidos() As ColeccionFiltrable
         Get
             Return _listaPedidos
         End Get
-        Set(ByVal value As ObservableCollection(Of ResumenPedido))
+        Set(ByVal value As ColeccionFiltrable)
             SetProperty(_listaPedidos, value)
         End Set
     End Property
 
-    Private _listaPedidosOriginal As ObservableCollection(Of ResumenPedido)
-    Public Property listaPedidosOriginal As ObservableCollection(Of ResumenPedido)
-        Get
-            Return _listaPedidosOriginal
-        End Get
-        Set(value As ObservableCollection(Of ResumenPedido))
-            SetProperty(_listaPedidosOriginal, value)
-        End Set
-    End Property
+    'Private _listaPedidosOriginal As ObservableCollection(Of ResumenPedido)
+    'Public Property listaPedidosOriginal As ObservableCollection(Of ResumenPedido)
+    '    Get
+    '        Return _listaPedidosOriginal
+    '    End Get
+    '    Set(value As ObservableCollection(Of ResumenPedido))
+    '        SetProperty(_listaPedidosOriginal, value)
+    '    End Set
+    'End Property
 
     Private _listaPedidosPendientes As ObservableCollection(Of ResumenPedido)
     Public Property ListaPedidosPendientes As ObservableCollection(Of ResumenPedido)
@@ -132,8 +142,9 @@ Public Class ListaPedidosVentaViewModel
         Set(value As Boolean)
             If value <> _mostrarPresupuestos Then
                 SetProperty(_mostrarPresupuestos, value)
-                listaPedidosOriginal = Nothing
-                listaPedidos = Nothing
+                'listaPedidosOriginal = Nothing
+                'ListaPedidos = Nothing
+                ListaPedidos.ListaOriginal = Nothing
                 mostrarSoloPendientes = False
                 mostrarSoloPicking = False
                 cmdCargarListaPedidos.Execute()
@@ -150,9 +161,9 @@ Public Class ListaPedidosVentaViewModel
             If value <> _mostrarSoloPendientes Then
                 SetProperty(_mostrarSoloPendientes, value)
                 If value Then
-                    listaPedidos = New ObservableCollection(Of ResumenPedido)(listaPedidos.Where(Function(l) l.tienePendientes))
+                    ListaPedidos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaPedidos.Lista.Where(Function(l) CType(l, ResumenPedido).tienePendientes))
                 Else
-                    listaPedidos = listaPedidosOriginal
+                    ListaPedidos.Lista = ListaPedidos.ListaOriginal
                 End If
 
             End If
@@ -168,9 +179,9 @@ Public Class ListaPedidosVentaViewModel
             If value <> _mostrarSoloPicking Then
                 SetProperty(_mostrarSoloPicking, value)
                 If value Then
-                    listaPedidos = New ObservableCollection(Of ResumenPedido)(listaPedidos.Where(Function(l) l.tienePicking))
+                    ListaPedidos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaPedidos.Lista.Where(Function(l) CType(l, ResumenPedido).tienePicking))
                 Else
-                    listaPedidos = listaPedidosOriginal
+                    ListaPedidos.Lista = ListaPedidos.ListaOriginal
                 End If
 
             End If
@@ -247,7 +258,7 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
     Private Async Sub OnCargarListaPedidos()
-        If Not IsNothing(listaPedidos) AndAlso listaPedidos.Any Then
+        If Not IsNothing(ListaPedidos) AndAlso Not IsNothing(ListaPedidos.Lista) AndAlso ListaPedidos.Lista.Any Then
             Return
         End If
         Try
@@ -259,8 +270,8 @@ Public Class ListaPedidosVentaViewModel
                     vendedor = ""
                 End If
             End If
-            listaPedidos = Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores, mostrarPresupuestos)
-            listaPedidosOriginal = listaPedidos
+            ListaPedidos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores, mostrarPresupuestos))
+            'listaPedidosOriginal = ListaPedidos
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
         Finally
@@ -295,10 +306,6 @@ Public Class ListaPedidosVentaViewModel
         End If
     End Function
 
-    Private Function convertirCadenaInteger(texto As String) As Integer
-        Dim valor As Integer
-        Return IIf(Integer.TryParse(texto, valor), valor, Nothing)
-    End Function
 
 
     Public Async Function cargarPedidoPorDefecto() As Task(Of ResumenPedido)
@@ -310,5 +317,6 @@ Public Class ListaPedidosVentaViewModel
         }
         Return nuevoResumen
     End Function
+
 #End Region
 End Class

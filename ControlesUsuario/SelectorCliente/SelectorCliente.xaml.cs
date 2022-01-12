@@ -31,8 +31,8 @@ namespace ControlesUsuario
                 ClienteCompleto = listaClientes.ElementoSeleccionado as ClienteDTO;
                 Cliente = ClienteCompleto?.cliente;
                 Contacto = ClienteCompleto?.contacto;
-                
-                OnPropertyChanged(nameof(visibilidadDatosCliente));
+                contactoSeleccionado = ClienteCompleto?.contacto.Trim();
+                OnPropertyChanged(string.Empty);
                 listaClientes.ListaOriginal = null;
             };
             listaClientes.HayQueCargarDatos += () => { cargarCliente(); };
@@ -185,6 +185,7 @@ namespace ControlesUsuario
                 if (ClienteCompleto != null && contactoSeleccionado != null && ClienteCompleto.contacto.Trim() != contactoSeleccionado.Trim())
                 {
                     ClienteCompleto.contacto = contactoSeleccionado;
+                    (listaClientes.ElementoSeleccionado as ClienteDTO).contacto = contactoSeleccionado;
                     cargarCliente();
                 }
             }
@@ -378,6 +379,7 @@ namespace ControlesUsuario
                 //{
                 //    selector.contactoSeleccionado = selector.Contacto.Trim();
                 //}
+                selector.txtFiltro.Text = selector.Cliente.Trim();
                 selector.listaClientes.Filtro = selector.Cliente.Trim();
             }
             if (selector.ClienteCompleto == null)
@@ -570,8 +572,10 @@ namespace ControlesUsuario
             {
                 return;
             }
-            listaClientes.Lista = null;
             visibilidadSelectorEntrega = Visibility.Collapsed;
+            string cliente = listaClientes.ElementoSeleccionado != null && listaClientes.Lista.Any() ? (listaClientes.ElementoSeleccionado as ClienteDTO).cliente : txtFiltro.Text;
+            listaClientes.Lista = new();
+
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(Configuracion.servidorAPI);
@@ -579,7 +583,7 @@ namespace ControlesUsuario
 
                 try
                 {
-                    string urlConsulta = "Clientes?empresa=" + Empresa + "&cliente=" + txtFiltro.Text + "&contacto=" + contactoSeleccionado; //contacto en blanco para que coja clientePrincipal
+                    string urlConsulta = "Clientes?empresa=" + Empresa + "&cliente=" + cliente + "&contacto=" + contactoSeleccionado; //contacto en blanco para que coja clientePrincipal
 
                     response = await client.GetAsync(urlConsulta);
 

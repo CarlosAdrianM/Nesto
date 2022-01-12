@@ -34,14 +34,14 @@
             </ItemsControl>
             -->
             <controles:BarraFiltro x:Name="txtFiltro" ListaItems="{Binding listaClientes}" ItemSeleccionado="{Binding listaClientes.ElementoSeleccionado}"></controles:BarraFiltro>
+            <StackPanel Name="pnlCargando" Visibility="{Binding visibilidadCargando}">
+                <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="10" Foreground="Blue"></TextBlock>
+            </StackPanel>
             <StackPanel Name="pnlDatosCliente" MouseUp="pnlDatosCliente_MouseUp" Visibility="{Binding visibilidadDatosCliente}">
                 <TextBlock Name="txtNombreCliente" Text="{Binding listaClientes.ElementoSeleccionado.nombre}" FontWeight="Light" FontSize="8"></TextBlock>
                 <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.direccion}" FontWeight="Light" FontSize="8"></TextBlock>
             </StackPanel>
-            <StackPanel Name="pnlCargando" Visibility="{Binding visibilidadCargando}">
-                <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="10" Foreground="Blue"></TextBlock>
-            </StackPanel>
-            <controles:SelectorDireccionEntrega Configuracion="{Binding Configuracion}" Empresa="{Binding listaClientes.ElementoSeleccionado.empresa}" Cliente="{Binding listaClientes.ElementoSeleccionado.cliente}" Seleccionada="{Binding listaClientes.ElementoSeleccionado, Mode=TwoWay}" Visibility="{Binding visibilidadSelectorEntrega}"></controles:SelectorDireccionEntrega>
+            <controles:SelectorDireccionEntrega Configuracion="{Binding Configuracion}" Empresa="{Binding listaClientes.ElementoSeleccionado.empresa}" Cliente="{Binding listaClientes.ElementoSeleccionado.cliente}" Seleccionada="{Binding contactoSeleccionado, Mode=TwoWay}" Visibility="{Binding visibilidadSelectorEntrega}"></controles:SelectorDireccionEntrega>
         </StackPanel>
         <ListView DockPanel.Dock="Bottom" ItemsSource="{Binding listaClientes.Lista}" Visibility="{Binding visibilidadListaClientes}" HorizontalContentAlignment="Stretch">
             <ListView.ItemTemplate>

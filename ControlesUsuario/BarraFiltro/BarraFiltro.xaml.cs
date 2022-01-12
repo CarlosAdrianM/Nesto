@@ -1,8 +1,4 @@
-﻿using ControlesUsuario.Models;
-using Nesto.Infrastructure.Contracts;
-using Nesto.Infrastructure.Shared;
-using System;
-using System.Collections;
+﻿using Nesto.Infrastructure.Shared;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
@@ -20,17 +16,14 @@ namespace ControlesUsuario
         {
             InitializeComponent();
             ControlPrincipal.DataContext = this;
-            /*
-            ListaItems.ElementoSeleccionadoChanged += (sender, args) => {
-                ItemSeleccionado = ListaItems.ElementoSeleccionado;
-                ListaItems.ListaOriginal = null;
-            };
-            ListaItems.HayQueCargarDatos += () => { };
-            */
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
-        public string Text { get => txtFiltro.Text; }
+        public string Text
+        { 
+            get => txtFiltro.Text;
+            set => txtFiltro.Text = value;
+        }
 
         #region "Campos de la Vista"
 
@@ -75,6 +68,18 @@ namespace ControlesUsuario
 
         private async void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
+            ListaItems.ElementoSeleccionadoChanged += (sender, args) => {
+                ItemSeleccionado = ListaItems.ElementoSeleccionado;
+                if (!ListaItems.TieneDatosIniciales)
+                {
+                    ListaItems.ListaOriginal = new();
+                    ListaItems.FiltrosPuestos.Clear();
+                }
+
+            };
+            /*
+            ListaItems.HayQueCargarDatos += () => { };
+            */
             // Para poner el foco en el primer control
             //TraversalRequest tRequest = new TraversalRequest(FocusNavigationDirection.Next);
             //this.MoveFocus(tRequest);
@@ -175,7 +180,7 @@ namespace ControlesUsuario
 
         private static void OnItemSeleccionadoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            bool pasa = true;
+            
         }
 
         #endregion
