@@ -7,7 +7,7 @@
 
     End Sub
 
-    Private Sub ListaRapportsView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+    Private Async Sub ListaRapportsView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         DataContext.cmdCargarListaRapports.Execute(Nothing)
         txtSelectorCliente.Focus()
     End Sub

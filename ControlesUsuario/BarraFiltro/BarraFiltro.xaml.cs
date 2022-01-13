@@ -73,7 +73,7 @@ namespace ControlesUsuario
                 if (!ListaItems.TieneDatosIniciales)
                 {
                     ListaItems.ListaOriginal = new();
-                    ListaItems.FiltrosPuestos.Clear();
+                    ListaItems.FiltrosPuestos?.Clear();
                 }
 
             };

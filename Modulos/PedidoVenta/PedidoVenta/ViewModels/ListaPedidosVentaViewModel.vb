@@ -35,9 +35,7 @@ Public Class ListaPedidosVentaViewModel
             .TieneDatosIniciales = True
         }
 
-        'AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender As Object, args As EventArgs)
-        '                                                         CargarResumenSeleccionado()
-        '                                                     End Sub
+        ListaPedidos.ElementoSeleccionadoChanged = New ColeccionFiltrable.ElementoSeleccionadoChange(Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado)
 
     End Sub
 
