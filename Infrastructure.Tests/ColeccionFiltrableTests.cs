@@ -109,5 +109,33 @@ namespace Infrastructure.Tests
             Assert.AreEqual(1, coleccion.FiltrosPuestos.Count);
             Assert.AreEqual(2, coleccion.Lista.Count);
         }
+
+        [TestMethod]
+        public void ColeccionFiltrable_SiSoloHayUnElementoEnListaOriginal_LoSeleccionamos()
+        {
+            // Arrange
+            ColeccionFiltrable coleccion = new();
+            coleccion.TieneDatosIniciales = false;
+            MiClaseFiltrable alejandroDumas = new MiClaseFiltrable
+            {
+                Nombre = "Alejandro",
+                Apellido = "Dumas"
+            };
+            coleccion.HayQueCargarDatos += () =>
+            {
+                coleccion.ListaOriginal = new ObservableCollection<IFiltrableItem>
+                {
+                    alejandroDumas
+                };
+            };
+
+            // Act
+            coleccion.Filtro = "alej";
+            coleccion.FijarFiltroCommand.Execute(coleccion.Filtro);
+
+            // Assert
+            Assert.AreEqual(alejandroDumas, coleccion.ElementoSeleccionado);
+        }
+
     }
 }

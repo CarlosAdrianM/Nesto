@@ -250,11 +250,10 @@ namespace Nesto.Infrastructure.Shared
             {
                 SetProperty(ref _listaOriginal, value);
                 ListaFijada = value;
-                //if (value == null || !value.Any())
-                //{
-                //    FiltrosPuestos.Clear();
-                //}
-                //FiltrosPuestos.Clear();
+                if (value != null && value.Count == 1)
+                {
+                    ElementoSeleccionado = value.First();
+                }
             }
         }
         public bool TieneDatosIniciales { get; set; }
@@ -296,8 +295,8 @@ namespace Nesto.Infrastructure.Shared
                     if (!TieneDatosIniciales)
                     {
                         FiltrosPuestos.Clear();
-                        HayQueCargarDatos(); //emite el evento
                     }
+                    HayQueCargarDatos(); //emite el evento
                 }
                 else
                 {

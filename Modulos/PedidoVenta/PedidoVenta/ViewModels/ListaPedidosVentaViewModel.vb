@@ -37,6 +37,17 @@ Public Class ListaPedidosVentaViewModel
 
         ListaPedidos.ElementoSeleccionadoChanged = New ColeccionFiltrable.ElementoSeleccionadoChange(Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado)
 
+        AddHandler ListaPedidos.HayQueCargarDatos, Sub()
+                                                       Dim numeroPedido As Integer
+                                                       If Not IsNothing(ListaPedidos) AndAlso Not ListaPedidos.Lista.Any AndAlso Integer.TryParse(ListaPedidos.Filtro, numeroPedido) Then
+                                                           Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
+                                                                    .empresa = empresaSeleccionada,
+                                                                    .numero = numeroPedido
+                                                                 }
+                                                           ListaPedidos.FiltrosPuestos.Clear()
+                                                           resumenSeleccionado = nuevoResumen
+                                                       End If
+                                                   End Sub
     End Sub
 
 #Region "Propiedades"
@@ -262,14 +273,13 @@ Public Class ListaPedidosVentaViewModel
         Try
             estaCargandoListaPedidos = True
             vendedor = Await configuracion.leerParametro("1", "Vendedor")
-            If vendedor.Trim() <> "" Then
-                Dim verTodos As Integer = Await configuracion.leerParametro("1", "PermitirVerTodosLosPedidos")
+            If String.IsNullOrWhiteSpace(vendedor) Then
+                Dim verTodos As String = Await configuracion.leerParametro("1", "PermitirVerTodosLosPedidos")
                 If verTodos = "1" Then
-                    vendedor = ""
+                    vendedor = String.Empty
                 End If
             End If
             ListaPedidos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.cargarListaPedidos(vendedor, verTodosLosVendedores, mostrarPresupuestos))
-            'listaPedidosOriginal = ListaPedidos
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
         Finally
