@@ -56,7 +56,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
-    <AssemblyVersion>1.10.0.*</AssemblyVersion>
+    <AssemblyVersion>1.10.1.*</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Informes\**" />

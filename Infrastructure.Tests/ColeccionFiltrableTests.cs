@@ -137,5 +137,33 @@ namespace Infrastructure.Tests
             Assert.AreEqual(alejandroDumas, coleccion.ElementoSeleccionado);
         }
 
+        [TestMethod]
+        public void ColeccionFiltrable_SiNoTieneDatosInicialesYPonemosUnFiltro_SeleccionamosElPrimerElementoDevuelto()
+        {
+            // Arrange
+            ColeccionFiltrable coleccion = new();
+            coleccion.TieneDatosIniciales = true;
+            MiClaseFiltrable alejandroDumas = new MiClaseFiltrable
+            {
+                Nombre = "Alejandro",
+                Apellido = "Dumas"
+            };
+            
+            coleccion.ListaOriginal = new ObservableCollection<IFiltrableItem>
+            {
+                new MiClaseFiltrable {Nombre = "Miguel", Apellido = "Cervantes"},
+                alejandroDumas,
+                new MiClaseFiltrable {Nombre = "Alejandro", Apellido = "Góngora"},
+                new MiClaseFiltrable {Nombre = "Alejo", Apellido = "Quevedo"}
+            };
+
+
+            // Act
+            coleccion.Filtro = "alej";
+            coleccion.FijarFiltroCommand.Execute(coleccion.Filtro);
+
+            // Assert
+            Assert.AreEqual(alejandroDumas, coleccion.ElementoSeleccionado);
+        }
     }
 }

@@ -273,7 +273,7 @@ Public Class ListaPedidosVentaViewModel
         Try
             estaCargandoListaPedidos = True
             vendedor = Await configuracion.leerParametro("1", "Vendedor")
-            If String.IsNullOrWhiteSpace(vendedor) Then
+            If Not String.IsNullOrWhiteSpace(vendedor) Then
                 Dim verTodos As String = Await configuracion.leerParametro("1", "PermitirVerTodosLosPedidos")
                 If verTodos = "1" Then
                     vendedor = String.Empty

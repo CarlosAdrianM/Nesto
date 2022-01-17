@@ -240,6 +240,10 @@ namespace Nesto.Infrastructure.Shared
             {
                 SetProperty(ref _listaFijada, value);
                 Lista = value;
+                if (TieneDatosIniciales && value != null)
+                {
+                    ElementoSeleccionado = value.FirstOrDefault();
+                }
             }
         }
         private ObservableCollection<IFiltrableItem> _listaOriginal;
