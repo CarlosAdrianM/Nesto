@@ -592,7 +592,7 @@
         <DataSetName>PedidoCompraLineasDataSet</DataSetName>
         <Top>2.58974cm</Top>
         <Height>1.2cm</Height>
-        <Width>20.83313cm</Width>
+        <Width>20.83314cm</Width>
         <Style>
           <Border>
             <Style>None</Style>
@@ -614,7 +614,6 @@
           </Paragraph>
         </Paragraphs>
         <rd:DefaultName>Nombre</rd:DefaultName>
-        <Top>0.89641cm</Top>
         <Height>0.6cm</Height>
         <Width>9.11458cm</Width>
         <ZIndex>1</ZIndex>
@@ -643,10 +642,39 @@
           </Paragraph>
         </Paragraphs>
         <rd:DefaultName>Direccion</rd:DefaultName>
-        <Top>1.60224cm</Top>
+        <Top>0.67056cm</Top>
         <Height>0.6cm</Height>
         <Width>9.11458cm</Width>
         <ZIndex>2</ZIndex>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <PaddingLeft>2pt</PaddingLeft>
+          <PaddingRight>2pt</PaddingRight>
+          <PaddingTop>2pt</PaddingTop>
+          <PaddingBottom>2pt</PaddingBottom>
+        </Style>
+      </Textbox>
+      <Textbox Name="CodigoPostal">
+        <CanGrow>true</CanGrow>
+        <KeepTogether>true</KeepTogether>
+        <Paragraphs>
+          <Paragraph>
+            <TextRuns>
+              <TextRun>
+                <Value>=First(Fields!CodigoPostal.Value + " " + Fields!Poblacion.Value + " (" + Fields!Provincia.Value + ")", "PedidoCompraDataSet")</Value>
+                <Style />
+              </TextRun>
+            </TextRuns>
+            <Style />
+          </Paragraph>
+        </Paragraphs>
+        <rd:DefaultName>CodigoPostal</rd:DefaultName>
+        <Top>1.30583cm</Top>
+        <Height>0.6cm</Height>
+        <Width>9.11458cm</Width>
+        <ZIndex>3</ZIndex>
         <Style>
           <Border>
             <Style>None</Style>

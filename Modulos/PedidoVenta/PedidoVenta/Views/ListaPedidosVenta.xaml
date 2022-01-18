@@ -38,7 +38,7 @@
         -->
         <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
         <xctk:BusyIndicator Grid.Row="2" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos...">
-            <ListView ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" HorizontalContentAlignment="Stretch">
+            <ListView ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">

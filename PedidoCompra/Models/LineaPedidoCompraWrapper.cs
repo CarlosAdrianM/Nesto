@@ -165,6 +165,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
                 RaisePropertyChanged(nameof(CantidadRegalo));
                 RaisePropertyChanged(nameof(PrecioUnitario));
                 RaisePropertyChanged(nameof(DescuentoProducto));
+                RaisePropertyChanged(nameof(SumaDescuentos));
                 RaisePropertyChanged(nameof(Bruto));
                 RaisePropertyChanged(nameof(ImporteDescuento));
                 RaisePropertyChanged(nameof(BaseImponible));

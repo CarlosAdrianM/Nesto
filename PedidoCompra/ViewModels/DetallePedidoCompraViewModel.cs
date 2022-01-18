@@ -255,12 +255,13 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                     var lineaMismoProducto = pedido.Lineas.FirstOrDefault(l => l.Producto == linea.Producto);
                     if (lineaMismoProducto != null && lineaMismoProducto != linea && lineaMismoProducto.Model.Ofertas.Any())
                     {
-                        lineaMismoProducto.Model.AplicarDescuentos = false;
+                        //lineaMismoProducto.Model.AplicarDescuentos = false;
                         lineaMismoProducto.Cantidad += linea.Cantidad;
                         pedido.Lineas.Remove(linea);
                         i--;
                     }
                 }
+
             }
         }
 

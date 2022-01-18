@@ -35,7 +35,7 @@ Public Class ListaPedidosVentaViewModel
             .TieneDatosIniciales = True
         }
 
-        ListaPedidos.ElementoSeleccionadoChanged = New ColeccionFiltrable.ElementoSeleccionadoChange(Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado)
+        'ListaPedidos.ElementoSeleccionadoChanged = New ColeccionFiltrable.ElementoSeleccionadoChange(Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado)
 
         AddHandler ListaPedidos.HayQueCargarDatos, Sub()
                                                        Dim numeroPedido As Integer
