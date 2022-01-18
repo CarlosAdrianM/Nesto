@@ -1,4 +1,6 @@
 ﻿using ControlesUsuario.Dialogs;
+using Microsoft.Reporting.NETCore;
+using Nesto.Informes;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra.Models;
 using Prism.Commands;
@@ -7,7 +9,10 @@ using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -28,6 +33,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             AmpliarHastaStockMaximoCommand = new DelegateCommand(OnAmpliarHastaStockMaximo);
             CargarPedidoCommand = new DelegateCommand<PedidoCompraLookup>(OnCargarPedido);
             CargarProductoCommand = new DelegateCommand<LineaPedidoCompraWrapper>(OnCargarProducto);
+            ImprimirPedidoCommand = new DelegateCommand<PedidoCompraWrapper>(OnImprimirPedido); 
             InsertarLineaCommand = new DelegateCommand(OnInsertarLinea);
             PedidoAmpliarCommand = new DelegateCommand<string>(OnPedidoAmpliar, CanPedidoAmpliar);
         }
@@ -108,6 +114,28 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 { "numeroProductoParameter", linea.Producto }
             };
             RegionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
+        }
+
+
+        public ICommand ImprimirPedidoCommand { get; private set; }
+        private async void OnImprimirPedido(PedidoCompraWrapper pedido)
+        {
+            if (pedido == null)
+            {
+                return;
+            }
+            Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.PedidoCompra.rdlc");
+            PedidoCompraModel dataSource = await PedidoCompraModel.CargarDatos(pedido.Model.Empresa, pedido.Id);
+            List<PedidoCompraModel> listaDataSource = new();
+            listaDataSource.Add(dataSource);
+            LocalReport report = new();
+            report.LoadReportDefinition(reportDefinition);
+            report.DataSources.Add(new ReportDataSource("PedidoCompraDataSet", listaDataSource));
+            report.DataSources.Add(new ReportDataSource("PedidoCompraLineasDataSet", dataSource.Lineas));
+            var pdf = report.Render("PDF");
+            string fileName = Path.GetTempPath() + $"PedidoCompra{pedido.Id}.pdf";
+            File.WriteAllBytes(fileName, pdf);
+            Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
         }
 
         public ICommand InsertarLineaCommand { get; private set; }
@@ -221,7 +249,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 var producto = await Servicio.LeerProducto(pedido.Model.Empresa, linea.Producto, pedido.Model.Proveedor, pedido.Model.CodigoIvaProveedor);
                 linea.Model.Ofertas = producto.Ofertas;
                 linea.Model.Descuentos = producto.Descuentos;
-                linea.Model.Cantidad = linea.Model.Cantidad; // para que actualice descuentos y ofertas
+                linea.Cantidad = linea.Cantidad; // para que actualice descuentos y ofertas
                 if (linea.TipoLinea == Constantes.LineasPedido.TiposLinea.PRODUCTO && linea.Cantidad != 0 && linea.BaseImponible == 0)
                 {
                     var lineaMismoProducto = pedido.Lineas.FirstOrDefault(l => l.Producto == linea.Producto);

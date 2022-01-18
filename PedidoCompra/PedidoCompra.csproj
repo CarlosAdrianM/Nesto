@@ -16,10 +16,12 @@
     <PackageReference Include="MaterialDesignThemes" Version="4.3.0-ci82" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.15" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
+    <ProjectReference Include="..\Informes\Informes.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\Producto\Producto.csproj" />
   </ItemGroup>

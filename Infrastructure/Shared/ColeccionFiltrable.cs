@@ -266,7 +266,6 @@ namespace Nesto.Infrastructure.Shared
         #region Funciones
         internal ObservableCollection<IFiltrableItem> AplicarFiltro(string filtro)
         {
-            filtro = filtro.ToLower();
             if (ListaFijada == null)
             {
                 return new ObservableCollection<IFiltrableItem>();
@@ -274,6 +273,10 @@ namespace Nesto.Infrastructure.Shared
             if (string.IsNullOrEmpty(filtro))
             {
                 return ListaFijada;
+            }
+            else
+            {
+                filtro = filtro.ToLower();
             }
             return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => l.Contains(filtro)));
         }

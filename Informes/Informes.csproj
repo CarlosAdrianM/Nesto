@@ -12,6 +12,7 @@
     <None Remove="KitsQueSePuedenMontar.rdlc" />
     <None Remove="ManifiestoAgencia.rdlc" />
     <None Remove="Packing.rdlc" />
+    <None Remove="PedidoCompra.rdlc" />
     <None Remove="Picking.rdlc" />
     <None Remove="ResumenVentas.rdlc" />
     <None Remove="UbicacionesInventario.rdlc" />
@@ -22,6 +23,7 @@
     <EmbeddedResource Include="KitsQueSePuedenMontar.rdlc" />
     <EmbeddedResource Include="ManifiestoAgencia.rdlc" />
     <EmbeddedResource Include="Packing.rdlc" />
+    <EmbeddedResource Include="PedidoCompra.rdlc" />
     <EmbeddedResource Include="Picking.rdlc" />
     <EmbeddedResource Include="UbicacionesInventario.rdlc" />
   </ItemGroup>
