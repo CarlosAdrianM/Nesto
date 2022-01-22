@@ -39,7 +39,7 @@ Public Class ListaPedidosVentaViewModel
 
         AddHandler ListaPedidos.HayQueCargarDatos, Sub()
                                                        Dim numeroPedido As Integer
-                                                       If Not IsNothing(ListaPedidos) AndAlso Not ListaPedidos.Lista.Any AndAlso Integer.TryParse(ListaPedidos.Filtro, numeroPedido) Then
+                                                       If Not IsNothing(ListaPedidos) AndAlso Not IsNothing(ListaPedidos.Lista) AndAlso Not ListaPedidos.Lista.Any AndAlso Integer.TryParse(ListaPedidos.Filtro, numeroPedido) Then
                                                            Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
                                                                     .empresa = empresaSeleccionada,
                                                                     .numero = numeroPedido
@@ -284,6 +284,7 @@ Public Class ListaPedidosVentaViewModel
             dialogService.ShowError(ex.Message)
         Finally
             estaCargandoListaPedidos = False
+            ListaPedidos.RefrescarFiltro()
         End Try
     End Sub
 
