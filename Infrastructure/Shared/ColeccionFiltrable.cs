@@ -203,8 +203,10 @@ namespace Nesto.Infrastructure.Shared
             {
                 IFiltrableItem oldElementoSeleccionado = _elementoSeleccionado;
                 _elementoSeleccionado = value;
-                ElementoSeleccionadoChanged?.Invoke(oldElementoSeleccionado, _elementoSeleccionado);
-                //ElementoSeleccionadoChanged(oldElementoSeleccionado, _elementoSeleccionado);
+                ElementoSeleccionadoChangedEventArgs args = new();
+                args.OldValue = oldElementoSeleccionado;
+                args.NewValue = value;
+                OnElementoSeleccionadoChanged(args);
                 SetProperty(ref _elementoSeleccionado, value);
             }
         }
@@ -215,8 +217,13 @@ namespace Nesto.Infrastructure.Shared
             get => _filtro;
             set
             {
+                string oldValue = _filtro;
                 SetProperty(ref _filtro, value);
                 Lista = AplicarFiltro(value);
+                FiltroChangedEventArgs args = new();
+                args.OldValue = oldValue;
+                args.NewValue = value;
+                OnFiltroChanged(args);
             }
         }
 
@@ -355,10 +362,30 @@ namespace Nesto.Infrastructure.Shared
         #endregion
 
         #region Eventos
-        public delegate void ElementoSeleccionadoChange(IFiltrableItem oldItem, IFiltrableItem newItem);
-        public virtual ElementoSeleccionadoChange ElementoSeleccionadoChanged { get; set; }
-        //public event ElementoSeleccionadoChange ElementoSeleccionadoChanged;
         public event Action HayQueCargarDatos;
+        
+        public event EventHandler<ElementoSeleccionadoChangedEventArgs> ElementoSeleccionadoChanged;
+        protected virtual void OnElementoSeleccionadoChanged(ElementoSeleccionadoChangedEventArgs e)
+        {
+            EventHandler<ElementoSeleccionadoChangedEventArgs> handler = ElementoSeleccionadoChanged;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+        
+
+
+        public event EventHandler<FiltroChangedEventArgs> FiltroChanged;
+
+        protected virtual void OnFiltroChanged(FiltroChangedEventArgs e)
+        {
+            EventHandler<FiltroChangedEventArgs> handler = FiltroChanged;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
         #endregion
     }
 }
