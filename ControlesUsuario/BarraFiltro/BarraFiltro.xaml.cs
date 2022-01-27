@@ -1,9 +1,13 @@
 ﻿using Nesto.Infrastructure.Shared;
+using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace ControlesUsuario
 {
@@ -51,13 +55,14 @@ namespace ControlesUsuario
                 if (keyboardFocus != null && ListaItems.ElementoSeleccionado != null)
                 {
                     keyboardFocus.MoveFocus(tRequest);
+                    txtFiltro.Focus();
                 }
                 else
                 {
                     txtFiltro.SelectAll();
                 }
 
-                e.Handled = true;                
+                e.Handled = true;
             }
         }
 
@@ -84,6 +89,7 @@ namespace ControlesUsuario
             //TraversalRequest tRequest = new TraversalRequest(FocusNavigationDirection.Next);
             //this.MoveFocus(tRequest);
             txtFiltro.Focus();
+            Focusable = true;
         }
 
         private void txtFiltro_PreviewMouseUp(object sender, MouseButtonEventArgs e)
@@ -119,6 +125,7 @@ namespace ControlesUsuario
         {
             get => Cargando ? Visibility.Visible : Visibility.Collapsed;
         }
+
         #endregion
 
         #region Dependency Properties
@@ -183,6 +190,7 @@ namespace ControlesUsuario
             
         }
 
+
         #endregion
         #region "Funciones Auxiliares"
         protected void OnPropertyChanged(string name)
@@ -198,7 +206,44 @@ namespace ControlesUsuario
         {
             txtFiltro.SelectAll();
         }
+
         #endregion
 
+        protected override void OnGotFocus(RoutedEventArgs e)
+        {
+            base.OnGotFocus(e);
+            txtFiltro.Focus();
+            Keyboard.Focus(txtFiltro);
+        }
+    }
+
+    public class FiltroColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            string valor = value as string;
+
+            if (valor.StartsWith("-"))
+            {
+                return Brushes.LightCoral;
+            }
+            else if (valor.Contains("|"))
+            {
+                return Brushes.LightGoldenrodYellow;
+            }
+            else if (valor.StartsWith("*") || valor.EndsWith("*"))
+            {
+                return Brushes.LightSeaGreen;
+            }
+            else
+            {
+                return Brushes.LightGray;
+            }
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

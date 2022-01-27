@@ -13,8 +13,9 @@ Public Class PlantillaVentaView
     End Sub
 
     Private Async Sub SeleccionProductos_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionProductos.Enter
-        Await Task.Delay(500)
+        Await Task.Delay(2000)
         Keyboard.Focus(txtFiltroProducto)
+        txtFiltroProducto.Focus()
     End Sub
 
     Private Async Sub txtFiltroProducto_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFiltroProducto.KeyUp
@@ -120,8 +121,9 @@ Public Class PlantillaVentaView
     End Sub
 
     Private Sub grdListaProductos_LoadingRow(sender As Object, e As DataGridRowEventArgs) Handles grdListaProductos.LoadingRow
-        If Not IsNothing(DataContext.productoSeleccionado) AndAlso DataContext.productoSeleccionado.producto = e.Row.Item.producto Then
-            grdListaProductos.ScrollIntoView(DataContext.productoSeleccionado)
+        Dim vm As PlantillaVentaViewModel = DataContext
+        If Not IsNothing(vm.ListaFiltrableProductos) AndAlso Not IsNothing(vm.ListaFiltrableProductos.ElementoSeleccionado) AndAlso CType(vm.ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaJson).producto = e.Row.Item.producto Then
+            grdListaProductos.ScrollIntoView(CType(vm.ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaJson))
         End If
 
     End Sub
@@ -135,16 +137,18 @@ Public Class PlantillaVentaView
             vm.PaginasWizard.Add(SeleccionEntrega)
             vm.PaginasWizard.Add(Finalizar)
         End If
+        IndicadorOcupado.FocusAfterBusy = txtFiltroProducto
     End Sub
 
-    Private Async Sub btnBuscar_Click(sender As Object, e As RoutedEventArgs) Handles btnBuscar.Click
-        Await Task.Delay(500)
-        Keyboard.Focus(txtFiltroProducto)
-    End Sub
 
-    Private Async Sub itmChips_PreviewMouseLeftButtonUp(sender As Object, e As MouseButtonEventArgs)
-        Await Task.Delay(200)
-        Keyboard.Focus(txtFiltroProducto)
-    End Sub
+    'Private Async Sub btnBuscar_Click(sender As Object, e As RoutedEventArgs) Handles btnBuscar.Click
+    '    Await Task.Delay(500)
+    '    Keyboard.Focus(txtFiltroProducto)
+    'End Sub
+
+    'Private Async Sub itmChips_PreviewMouseLeftButtonUp(sender As Object, e As MouseButtonEventArgs)
+    '    Await Task.Delay(200)
+    '    Keyboard.Focus(txtFiltroProducto)
+    'End Sub
 End Class
 

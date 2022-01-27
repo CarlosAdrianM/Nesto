@@ -61,4 +61,17 @@ Public Class ClienteJson
             End If
         End Get
     End Property
+
+    Public Overrides Function ToString() As String
+        Dim cadenaCliente As String = cliente + "/" + contacto + vbCrLf + nombre + vbCrLf + direccion + vbCr + codigoPostal + " " + poblacion + " (" + provincia + ")" + vbCr + telefono
+        If Not String.IsNullOrWhiteSpace(vendedor) Then
+            cadenaCliente += vbCr + "Vendedor estética: " + vendedor
+        End If
+
+        If Not IsNothing(VendedoresGrupoProducto) AndAlso Not IsNothing(VendedoresGrupoProducto.FirstOrDefault) Then
+            cadenaCliente += vbCr + "Vendedor peluquería: " + VendedoresGrupoProducto.FirstOrDefault.vendedor
+        End If
+        Return cadenaCliente
+    End Function
+
 End Class

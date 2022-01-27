@@ -9,6 +9,10 @@
              d:DataContext="{d:DesignInstance Type=controlesusuario:BarraFiltro}"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300" Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <controlesusuario:FiltroColorConverter x:Key="FiltroColorConverter"></controlesusuario:FiltroColorConverter>
+    </UserControl.Resources>
     
     <DockPanel Name="ControlPrincipal">
         <StackPanel DockPanel.Dock="Top">
@@ -26,7 +30,7 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <materialDesign:Chip Content="{Binding}" DeleteCommand="{Binding Path=DataContext.ListaItems.QuitarFiltroCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" DeleteCommandParameter="{Binding}" IsDeletable="True" Background="LightGray" Margin="2"/>
+                        <materialDesign:Chip Content="{Binding}" DeleteCommand="{Binding Path=DataContext.ListaItems.QuitarFiltroCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" DeleteCommandParameter="{Binding}" IsDeletable="True" Background="{Binding ., Converter={StaticResource FiltroColorConverter}}" Margin="2"/>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

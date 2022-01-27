@@ -83,6 +83,32 @@ namespace ControlesUsuario
         }
 
 
+        /// <summary>
+        /// Gets or sets the EMPRESA para las llamadas a la API
+        /// </summary>
+        public DireccionesEntregaCliente DireccionCompleta
+        {
+            get { return (DireccionesEntregaCliente)GetValue(DireccionCompletaProperty); }
+            set
+            {
+                SetValue(DireccionCompletaProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the EMPRESA dependency property
+        /// </summary>
+        public static readonly DependencyProperty DireccionCompletaProperty =
+            DependencyProperty.Register(nameof(DireccionCompleta), typeof(DireccionesEntregaCliente),
+              typeof(SelectorDireccionEntrega),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnDireccionCompletaChanged)));
+
+        private static void OnDireccionCompletaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+        }
+
+
+
 
         /// <summary>
         /// Gets or sets the EMPRESA para las llamadas a la API
@@ -152,6 +178,7 @@ namespace ControlesUsuario
                 {
                     Seleccionada = direccionEntregaSeleccionada.contacto;
                 }
+                DireccionCompleta = direccionEntregaSeleccionada;
             }
         }
         private ObservableCollection<DireccionesEntregaCliente> _listaDireccionesEntrega;

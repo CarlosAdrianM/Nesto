@@ -56,6 +56,10 @@ namespace Nesto.Infrastructure.Shared
         {
             public static readonly List<string> FORMAS_ONLINE = new List<string>() { "QRU", "WEB", "STK", "BLT" };
         }
+        public class Formatos
+        {
+            public const string HTML_CLIENTE_P_TAG = "<p style = \"color:DimGray; font-family:'Consolas'; font-size:10px; border-radius: 25px; border: 2px solid #73AD21; padding: 10px;\">";
+        }
         public class GruposSeguridad
         {
             public const string ADMINISTRACION = "Administración";

@@ -12,6 +12,10 @@ Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Contracts
+Imports System.Text
+Imports Nesto.Infrastructure.Shared
+Imports ControlesUsuario.Models
+Imports VendedorGrupoProductoDTO = Nesto.Models.PedidoVenta.VendedorGrupoProductoDTO
 
 Public Class DetallePedidoViewModel
     Inherits BindableBase
@@ -49,6 +53,7 @@ Public Class DetallePedidoViewModel
         cmdPonerDescuentoPedido = New DelegateCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
         EnviarCobroTarjetaCommand = New DelegateCommand(AddressOf OnEnviarCobroTarjeta, AddressOf CanEnviarCobroTarjeta)
+        CopiarAlPortapapelesCommand = New DelegateCommand(AddressOf OnCopiarAlPortapapeles)
 
         eventAggregator.GetEvent(Of ProductoSeleccionadoEvent).Subscribe(AddressOf InsertarProducto)
     End Sub
@@ -119,6 +124,8 @@ Public Class DetallePedidoViewModel
             End If
         End Set
     End Property
+
+    Public Property DireccionEntregaSeleccionada As DireccionesEntregaCliente
 
     Private _estaBloqueado As Boolean
     Public Property estaBloqueado() As Boolean
@@ -422,6 +429,24 @@ Public Class DetallePedidoViewModel
         End If
     End Function
 
+    Private _copiarAlPortapapelesCommand As DelegateCommand
+    Public Property CopiarAlPortapapelesCommand As DelegateCommand
+        Get
+            Return _copiarAlPortapapelesCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_copiarAlPortapapelesCommand, value)
+        End Set
+    End Property
+    Private Sub OnCopiarAlPortapapeles()
+        Dim html As New StringBuilder()
+        html.Append(Constantes.Formatos.HTML_CLIENTE_P_TAG)
+        html.Append(ToString.Replace(vbCr, "<br/>"))
+        html.Append("</p>")
+        ClipboardHelper.CopyToClipboard(html.ToString, ToString)
+        dialogService.ShowNotification("Datos del pedido copiados al portapapeles")
+    End Sub
+
     Private _descargarPresupuestoCommand As DelegateCommand
     Public Property DescargarPresupuestoCommand As DelegateCommand
         Get
@@ -616,4 +641,18 @@ Public Class DetallePedidoViewModel
     Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
 
     End Sub
+
+    Public Overrides Function ToString() As String
+        Dim pedidoString As String = $"Pedido {pedido.numero}" + vbCr + $"Cliente {pedido.cliente}/{pedido.contacto}"
+        If Not IsNothing(DireccionEntregaSeleccionada) Then
+            pedidoString += vbCr + DireccionEntregaSeleccionada.nombre
+            pedidoString += vbCr + DireccionEntregaSeleccionada.direccion
+            pedidoString += vbCr + $"{DireccionEntregaSeleccionada.codigoPostal} {DireccionEntregaSeleccionada.poblacion} ({DireccionEntregaSeleccionada.provincia})"
+        End If
+        pedidoString += vbCr + $"Vendedor estética: {pedido.vendedor}"
+        If Not IsNothing(vendedorPorGrupo) AndAlso pedido.vendedor <> vendedorPorGrupo.vendedor AndAlso Not String.IsNullOrWhiteSpace(vendedorPorGrupo.vendedor) Then
+            pedidoString += vbCr + $"Vendedor peluquería: {vendedorPorGrupo.vendedor}"
+        End If
+        Return pedidoString
+    End Function
 End Class

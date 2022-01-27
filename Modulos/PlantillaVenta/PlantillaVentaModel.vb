@@ -1,5 +1,6 @@
 ﻿Imports Prism.Mvvm
 Imports Newtonsoft.Json
+Imports Nesto.Infrastructure.Contracts
 
 Public Class PlantillaVentaModel
     Public Class DireccionesEntregaJson
@@ -48,6 +49,7 @@ Public Class PlantillaVentaModel
     End Class
     Public Class LineaPlantillaJson
         Inherits BindableBase
+        Implements IFiltrableItem
 
         Public Property producto() As String
         Public Property texto() As String
@@ -161,7 +163,7 @@ Public Class PlantillaVentaModel
                     Return "Vendida 1 und."
                 ElseIf fechaUltimaVenta = DateTime.MinValue Then
                     Return ""
-                ElseIf (cantidadVendida = 0 AndAlso cantidadAbonada = 0)
+                ElseIf (cantidadVendida = 0 AndAlso cantidadAbonada = 0) Then
                     Return "Ninguna unidad vendida"
                 Else
                     Return String.Format("Vendidas {0} unds. (facturadas {1} y abonadas {2}).", cantidadVendida - cantidadAbonada, cantidadVendida, cantidadAbonada)
@@ -271,6 +273,12 @@ Public Class PlantillaVentaModel
             End Get
         End Property
 
+        Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
+            Return (Not IsNothing(producto) AndAlso producto.ToLower.Contains(filtro)) OrElse
+                   (Not IsNothing(texto) AndAlso texto.ToLower.Contains(filtro)) OrElse
+                   (Not IsNothing(familia) AndAlso familia.ToLower.Contains(filtro)) OrElse
+                   (Not IsNothing(subGrupo) AndAlso subGrupo.ToLower.Contains(filtro))
+        End Function
     End Class
     Public Class PlazoPagoDTO
         Public Property plazoPago As String
@@ -284,11 +292,11 @@ Public Class PlantillaVentaModel
         Public Property financiacion As Decimal?
     End Class
     Public Class PrecioProductoDTO
-            Public Property precio As Decimal
-            Public Property descuento As Decimal
-            Public Property aplicarDescuento As Boolean
-            Public Property motivo As String
-        End Class
+        Public Property precio As Decimal
+        Public Property descuento As Decimal
+        Public Property aplicarDescuento As Boolean
+        Public Property motivo As String
+    End Class
     Public Class StockProductoDTO
         Public Property stock() As Integer
         Public Property cantidadDisponible() As Integer

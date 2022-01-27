@@ -45,7 +45,12 @@
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
+                                <StackPanel Grid.Column="0" ToolTip="Pulse el botón derecho del ratón para copiar los datos del pedido al portapapeles">
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="MouseRightButtonUp">
+                                            <i:InvokeCommandAction Command="{Binding Path=DataContext.CopiarAlPortapapelesCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=StackPanel}}" />
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
                                     <TextBlock Text="Pedido: "></TextBlock>
                                     <TextBlock Text="{Binding pedido.numero}"></TextBlock>
                                     <TextBlock Text="Cliente: "></TextBlock>
@@ -121,7 +126,7 @@
                             <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
-                        <controles:SelectorDireccionEntrega Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto, Mode=TwoWay}"></controles:SelectorDireccionEntrega>
+                        <controles:SelectorDireccionEntrega Grid.Column="0" Configuracion="{Binding configuracion}" DireccionCompleta="{Binding DireccionEntregaSeleccionada, Mode=TwoWay}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto, Mode=TwoWay}"></controles:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Fecha de Entrega:"></TextBlock>
                             <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>

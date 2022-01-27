@@ -176,6 +176,7 @@ namespace Nesto.Infrastructure.Shared
         #endregion
     }
     */
+
     public class ColeccionFiltrable : BindableBase
     {
         #region Constructores
@@ -218,7 +219,7 @@ namespace Nesto.Infrastructure.Shared
             set
             {
                 string oldValue = _filtro;
-                SetProperty(ref _filtro, value);
+                SetProperty(ref _filtro, value); // ¿value.toLower()?
                 Lista = AplicarFiltro(value);
                 FiltroChangedEventArgs args = new();
                 args.OldValue = oldValue;
@@ -251,6 +252,10 @@ namespace Nesto.Infrastructure.Shared
                 {
                     ElementoSeleccionado = value.FirstOrDefault();
                 }
+                if (ListaChanged != null)
+                {
+                    ListaChanged();
+                }
             }
         }
         private ObservableCollection<IFiltrableItem> _listaOriginal;
@@ -277,15 +282,52 @@ namespace Nesto.Infrastructure.Shared
             {
                 return new ObservableCollection<IFiltrableItem>();
             }
-            if (string.IsNullOrEmpty(filtro))
+            if (string.IsNullOrEmpty(filtro) || filtro == "-")
             {
                 return ListaFijada;
             }
             else
             {
-                filtro = filtro.ToLower();
+                filtro = FormatearFiltro(filtro);
             }
+            if (filtro.StartsWith("-"))
+            {
+                return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => !l.Contains(filtro.Substring(1))));
+            } else if (filtro.Contains("|"))
+            {
+                var partes = filtro.Split('|');
+                ObservableCollection<IFiltrableItem> listaJunta = new();
+                foreach (var parte in partes)
+                {
+                    listaJunta = new ObservableCollection<IFiltrableItem>(listaJunta.Union(ListaFijada.Where(l => l.Contains(parte.Trim()))));
+                }
+                return listaJunta;
+            }
+
             return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => l.Contains(filtro)));
+        }
+
+        private string FormatearFiltro(string filtro)
+        {
+            string filtroFormateado = filtro.ToLower();
+            if (filtroFormateado.Contains("|"))
+            {
+                var partes = filtroFormateado.Split('|');
+                string nuevoFiltro = string.Empty;
+                for (int i = 0; i < partes.Count(); i++)
+                {
+                    if (i == 0)
+                    {
+                        nuevoFiltro = partes[i];
+                    }
+                    else
+                    {
+                        nuevoFiltro += " | " + partes[i];
+                    }
+                }
+                filtroFormateado = nuevoFiltro;
+            }
+            return filtroFormateado;
         }
 
         public void RefrescarFiltro()
@@ -310,14 +352,17 @@ namespace Nesto.Infrastructure.Shared
                     {
                         FiltrosPuestos.Clear();
                     }
-                    HayQueCargarDatos(); //emite el evento
+                    if (HayQueCargarDatos != null)
+                    {
+                        HayQueCargarDatos(); //emite el evento
+                    }
                 }
                 else
                 {
                     Lista = AplicarFiltro(filtro);
                     ListaFijada = Lista;
                 }
-                FiltrosPuestos.Add(filtro);
+                FiltrosPuestos.Add(FormatearFiltro(filtro));
             }
             else
             {
@@ -373,11 +418,8 @@ namespace Nesto.Infrastructure.Shared
                 handler(this, e);
             }
         }
-        
-
 
         public event EventHandler<FiltroChangedEventArgs> FiltroChanged;
-
         protected virtual void OnFiltroChanged(FiltroChangedEventArgs e)
         {
             EventHandler<FiltroChangedEventArgs> handler = FiltroChanged;
@@ -386,6 +428,8 @@ namespace Nesto.Infrastructure.Shared
                 handler(this, e);
             }
         }
+
+        public event Action ListaChanged;
         #endregion
     }
 }
