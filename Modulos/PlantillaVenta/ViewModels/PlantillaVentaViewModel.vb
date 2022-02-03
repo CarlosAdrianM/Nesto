@@ -1603,7 +1603,7 @@ Public Class PlantillaVentaViewModel
                         .servirJunto = direccionEntregaSeleccionada.servirJunto,
                         .comentarioPicking = clienteSeleccionado.comentarioPicking,
                         .comentarios = direccionEntregaSeleccionada.comentarioRuta,
-                        .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+                        .usuario = configuracion.usuario
                     }
 
         Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
@@ -1634,7 +1634,7 @@ Public Class PlantillaVentaViewModel
                 .descuentoProducto = IIf(linea.descuento = linea.descuentoProducto, linea.descuentoProducto, 0),
                 .aplicarDescuento = IIf(linea.descuento = linea.descuentoProducto, linea.aplicarDescuento, False),
                 .vistoBueno = 0, 'calcular
-                .usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName,
+                .usuario = configuracion.usuario,
                 .almacen = almacenRutaUsuario,
                 .iva = linea.iva,
                 .delegacion = delegacionUsuario, 'pedir al usuario en alguna parte

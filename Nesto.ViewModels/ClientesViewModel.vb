@@ -780,7 +780,7 @@ Public Class ClientesViewModel
         End Get
     End Property
     Private Function CanGuardar(ByVal param As Object) As Boolean
-        Return DbContext.ChangeTracker.HasChanges()
+        Return Not IsNothing(cuentaActiva) AndAlso DbContext.ChangeTracker.HasChanges() AndAlso (File.Exists(rutaMandato) OrElse (cuentaActiva.Estado <> 5 And cuentaActiva.Estado <> 1))
     End Function
     Private Sub Guardar(ByVal param As Object)
         Try

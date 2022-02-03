@@ -421,7 +421,7 @@ Public Class DetallePedidoViewModel
             lineaCambio.aplicarDescuento = producto.aplicarDescuento
             lineaCambio.descuentoProducto = producto.descuento
             If IsNothing(lineaCambio.usuario) Then
-                lineaCambio.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+                lineaCambio.usuario = configuracion.usuario
             End If
         End If
         If pedido.EsPresupuesto Then
@@ -572,13 +572,13 @@ Public Class DetallePedidoViewModel
         ' Quitamos el vendedor por grupo ficticio que se creó al cargar el pedido (si sigue existiendo)
         If Not IsNothing(pedido.VendedoresGrupoProducto) Then
             Dim vendedorPorGrupo As VendedorGrupoProductoDTO = pedido.VendedoresGrupoProducto.FirstOrDefault
-            If Not IsNothing(vendedorPorGrupo) AndAlso vendedorPorGrupo.vendedor = "" Then
+            If Not IsNothing(vendedorPorGrupo) AndAlso vendedorPorGrupo.vendedor = String.Empty Then
                 pedido.VendedoresGrupoProducto.Remove(vendedorPorGrupo)
             End If
         End If
 
         ' Modificamos el usuario del pedido
-        pedido.usuario = System.Environment.UserDomainName + "\" + System.Environment.UserName
+        pedido.usuario = configuracion.usuario
 
 
         Try

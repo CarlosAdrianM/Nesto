@@ -138,7 +138,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
 
         private async void OnEnviarPedido(PedidoCompraWrapper pedido)
         {
-            if (pedido == null || !DialogService.ShowConfirmationAnswer("Enviar pedido", "Se va enviar el pedido por correo electrónico. ¿Desea continuar?"))
+            if (pedido == null || !DialogService.ShowConfirmationAnswer("Enviar pedido", $"Se va a enviar el pedido por correo electrónico a {pedido.Model.CorreoRecepcionPedidos}. ¿Desea continuar?"))
             {
                 return;
             }
