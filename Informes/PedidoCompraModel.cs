@@ -19,6 +19,7 @@ namespace Nesto.Informes
         public string Telefono { get; set; }
         public string Cif { get; set; }
         public DateTime Fecha { get; set; }
+        public bool PedidoValorado { get; set; }
         public List<LineaPedidoCompraModel> Lineas { get; set; }
 
 
@@ -28,7 +29,7 @@ namespace Nesto.Informes
             List<PedidoCompraModel> lista;
             using (NestoEntities db = new NestoEntities())
             {
-                string consulta = "select c.Número Id, rtrim(NºProveedor) Proveedor, rtrim(p.Nombre) Nombre, rtrim(p.Dirección) Direccion, rtrim(p.CodPostal) CodigoPostal, rtrim(p.Población) Poblacion, rtrim(p.Provincia) Provincia, rtrim(p.Teléfono) Telefono, rtrim(p.[CIF/NIF]) Cif, c.Fecha ";
+                string consulta = "select c.Número Id, rtrim(NºProveedor) Proveedor, rtrim(p.Nombre) Nombre, rtrim(p.Dirección) Direccion, rtrim(p.CodPostal) CodigoPostal, rtrim(p.Población) Poblacion, rtrim(p.Provincia) Provincia, rtrim(p.Teléfono) Telefono, rtrim(p.[CIF/NIF]) Cif, c.Fecha, p.PedidoValorado ";
                 consulta += "from CabPedidoCmp c inner ";
                 consulta += "join Proveedores p ";
                 consulta += "on c.Empresa = p.Empresa and c.NºProveedor = p.Número and c.Contacto = p.Contacto ";
@@ -48,6 +49,14 @@ namespace Nesto.Informes
                 try
                 {
                     pedidoCompra.Lineas = await db.Database.SqlQuery<LineaPedidoCompraModel>(consultaLineas).ToListAsync();
+                    if (!pedidoCompra.PedidoValorado)
+                    {
+                        foreach (var linea in pedidoCompra.Lineas) {
+                            linea.PrecioUnitario = 0;
+                            linea.SumaDescuentos = 0;
+                            linea.BaseImponible = 0;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {

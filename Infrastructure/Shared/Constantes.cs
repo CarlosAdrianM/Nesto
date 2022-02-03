@@ -28,6 +28,12 @@ namespace Nesto.Infrastructure.Shared
                 public const string EL_EDEN = "15191";
             }
         }
+
+        public class CorreosEmpresa
+        {
+            public const string COMPRAS = "compras@nuevavision.es";
+        }
+
         public class DiariosContables
         {
             public const string DIARIO_REEMBOLSOS = "_Reembolso";

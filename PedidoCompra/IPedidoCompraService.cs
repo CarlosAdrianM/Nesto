@@ -16,5 +16,6 @@ namespace Nesto.Modulos.PedidoCompra
         Task<LineaPedidoCompraDTO> LeerProducto(string empresa, string producto, string proveedor, string ivaCabecera);
         Task<PedidoCompraDTO> AmpliarHastaStockMaximo(PedidoCompraDTO model);
         Task<int> CrearPedido(PedidoCompraDTO pedido);
+        Task ModificarPedido(PedidoCompraDTO pedido);
     }
 }

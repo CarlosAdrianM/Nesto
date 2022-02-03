@@ -1,6 +1,9 @@
-﻿using ControlesUsuario.Dialogs;
+﻿using Azure.Identity;
+using ControlesUsuario.Dialogs;
+using Microsoft.Graph;
 using Microsoft.Reporting.NETCore;
 using Nesto.Informes;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra.Models;
 using Prism.Commands;
@@ -23,16 +26,21 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         public IPedidoCompraService Servicio { get; }
         public IDialogService DialogService { get; }
         public IRegionManager RegionManager { get; }
+        public IConfiguracion Configuracion { get; }
 
-        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager)
+        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion)
         {
             Servicio = servicio;
             DialogService = dialogService;
             RegionManager = regionManager;
+            InteractiveBrowserCredential = interactiveBrowserCredential;
+            Configuracion = configuracion;
 
             AmpliarHastaStockMaximoCommand = new DelegateCommand(OnAmpliarHastaStockMaximo);
             CargarPedidoCommand = new DelegateCommand<PedidoCompraLookup>(OnCargarPedido);
             CargarProductoCommand = new DelegateCommand<LineaPedidoCompraWrapper>(OnCargarProducto);
+            EnviarPedidoCommand = new DelegateCommand<PedidoCompraWrapper>(OnEnviarPedido, CanEnviarPedido);
+            GuardarPedidoCommand = new DelegateCommand(OnGuardarPedido, CanGuardarPedido);
             ImprimirPedidoCommand = new DelegateCommand<PedidoCompraWrapper>(OnImprimirPedido); 
             InsertarLineaCommand = new DelegateCommand(OnInsertarLinea);
             PedidoAmpliarCommand = new DelegateCommand<string>(OnPedidoAmpliar, CanPedidoAmpliar);
@@ -46,6 +54,8 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             get => _estaOcupado;
             set => SetProperty(ref _estaOcupado, value);
         }
+
+        public InteractiveBrowserCredential InteractiveBrowserCredential { get; }
 
         private LineaPedidoCompraWrapper _lineaSeleccionada;
         public LineaPedidoCompraWrapper LineaSeleccionada
@@ -64,7 +74,11 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         private PedidoCompraWrapper _pedido;
         public PedidoCompraWrapper Pedido {
             get => _pedido;
-            set => SetProperty(ref _pedido, value);
+            set { 
+                SetProperty(ref _pedido, value);
+                ((DelegateCommand<PedidoCompraWrapper>)EnviarPedidoCommand).RaiseCanExecuteChanged();
+                ((DelegateCommand)GuardarPedidoCommand).RaiseCanExecuteChanged();
+            }
         }
 
         public ICommand AmpliarHastaStockMaximoCommand { get; private set; }
@@ -116,6 +130,134 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             RegionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
         }
 
+        public ICommand EnviarPedidoCommand { get; private set; }
+        private bool CanEnviarPedido(PedidoCompraWrapper pedido)
+        {
+            return pedido != null && pedido.Id != 0;
+        }
+
+        private async void OnEnviarPedido(PedidoCompraWrapper pedido)
+        {
+            if (pedido == null || !DialogService.ShowConfirmationAnswer("Enviar pedido", "Se va enviar el pedido por correo electrónico. ¿Desea continuar?"))
+            {
+                return;
+            }
+            EstaOcupado = true;
+            LocalReport report = await CrearInforme(pedido);
+            var pdf = report.Render("PDF");
+            var xlsx = report.Render("EXCELOPENXML");
+
+            string[] scopes = new string[] { "Mail.Send", "Mail.ReadWrite" };
+            GraphServiceClient graphClient = new GraphServiceClient(InteractiveBrowserCredential, scopes);
+            string cuerpoCorreo = "Adjuntamos nueva orden de compra en formato PDF y formato Excel (son el mismo pedido, para que ustedes puedan elegir entre ambas opciones a la hora de gestionar el pedido).";
+            cuerpoCorreo += "\n\nRogamos nos informen a la mayor brevedad de la fecha estimada de recepción en nuestros almacenes y nos envíen el enlace de seguimiento de la agencia de transportes tan pronto como obre en su poder.";
+            cuerpoCorreo += "\n\nMuchas gracias.";
+            var message = new Message
+            {
+                Subject = $"[Nueva Visión] Pedido {pedido.Id}",
+                Body = new ItemBody
+                {
+                    ContentType = BodyType.Text,
+                    Content = cuerpoCorreo
+                },
+                ToRecipients = new List<Recipient>()
+                {
+                    new Recipient
+                    {
+                        EmailAddress = new EmailAddress
+                        {
+                            Address = !string.IsNullOrEmpty(pedido.Model.CorreoRecepcionPedidos) ? pedido.Model.CorreoRecepcionPedidos : Constantes.CorreosEmpresa.COMPRAS
+                        }
+                    }
+                },
+                Attachments = new MessageAttachmentsCollectionPage()
+                {
+                    new FileAttachment
+                    {
+                        Name = $"Pedido_{pedido.Id}.pdf",
+                        ContentType = "application/pdf",
+                        ContentBytes = pdf
+                    },
+                    new FileAttachment
+                    {
+                        Name = $"Pedido_{pedido.Id}.xlsx",
+                        ContentType = "application/vnd.ms-excel",
+                        ContentBytes = xlsx
+                    }
+                }
+            };
+
+            var saveToSentItems = true;
+
+            try
+            {
+                await graphClient.Me
+                .SendMail(message, saveToSentItems)
+                .Request()
+                .PostAsync();
+                DialogService.ShowNotification("Pedido enviado con éxito");
+            } catch
+            {
+                DialogService.ShowError("No se ha podido enviar el correo");
+                EstaOcupado = false;
+                return;
+            }
+
+            try
+            {
+                // Copiar el PDF en F:
+                string rutaPDF = await Configuracion.leerParametro(pedido.Model.Empresa, Parametros.Claves.RutaPedidosCmp);
+                string rutaCompleta = $"{rutaPDF}\\{pedido.Id}.pdf";
+                System.IO.File.WriteAllBytes(rutaCompleta, pdf);
+
+                // Actualizar cabecera PathPedido = {pedido.Id}.pdf y las líneas con enviado = 1 && FechaRecepción
+                pedido.Model.PathPedido = $"{pedido.Id}.pdf";
+                await Servicio.ModificarPedido(pedido.Model);
+            }
+            catch
+            {
+                DialogService.ShowError("No se han podido actualizar los datos del pedido");
+                EstaOcupado = false;
+                return;
+            }
+
+            EstaOcupado = false;
+            ((DelegateCommand<PedidoCompraWrapper>)EnviarPedidoCommand).RaiseCanExecuteChanged();
+            ((DelegateCommand)GuardarPedidoCommand).RaiseCanExecuteChanged();
+        }
+
+
+        //private DelegateCommand guardarPedidoCommand;
+        //public ICommand GuardarPedidoCommand => guardarPedidoCommand ??= new DelegateCommand(GuardarPedido, CanGuardarPedido);
+        public ICommand GuardarPedidoCommand { get; private set; }
+        private bool CanGuardarPedido()
+        {
+            return Pedido != null && Pedido.Id == 0;
+        }
+        private async void OnGuardarPedido()
+        {
+            bool continuar = DialogService.ShowConfirmationAnswer("Guardar pedido", "Se va a guardar el pedido. ¿Desea continuar?");
+            if (!continuar)
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                Pedido.Id = await Servicio.CrearPedido(Pedido.Model);
+                DialogService.ShowNotification($"Pedido {Pedido.Id} guardado correctamente");
+                ((DelegateCommand<PedidoCompraWrapper>)EnviarPedidoCommand).RaiseCanExecuteChanged();
+                ((DelegateCommand)GuardarPedidoCommand).RaiseCanExecuteChanged();
+            }
+            catch (Exception ex)
+            {
+                DialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
 
         public ICommand ImprimirPedidoCommand { get; private set; }
         private async void OnImprimirPedido(PedidoCompraWrapper pedido)
@@ -124,6 +266,15 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             {
                 return;
             }
+            LocalReport report = await CrearInforme(pedido);
+            var pdf = report.Render("PDF");
+            string fileName = Path.GetTempPath() + $"PedidoCompra{pedido.Id}.pdf";
+            System.IO.File.WriteAllBytes(fileName, pdf);
+            System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+        }
+
+        private static async Task<LocalReport> CrearInforme(PedidoCompraWrapper pedido)
+        {
             Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.PedidoCompra.rdlc");
             PedidoCompraModel dataSource = await PedidoCompraModel.CargarDatos(pedido.Model.Empresa, pedido.Id);
             List<PedidoCompraModel> listaDataSource = new();
@@ -132,10 +283,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             report.LoadReportDefinition(reportDefinition);
             report.DataSources.Add(new ReportDataSource("PedidoCompraDataSet", listaDataSource));
             report.DataSources.Add(new ReportDataSource("PedidoCompraLineasDataSet", dataSource.Lineas));
-            var pdf = report.Render("PDF");
-            string fileName = Path.GetTempPath() + $"PedidoCompra{pedido.Id}.pdf";
-            File.WriteAllBytes(fileName, pdf);
-            Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+            return report;
         }
 
         public ICommand InsertarLineaCommand { get; private set; }
@@ -275,30 +423,5 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             
         }
 
-        private DelegateCommand guardarPedidoCommand;
-        public ICommand GuardarPedidoCommand => guardarPedidoCommand ??= new DelegateCommand(GuardarPedido);
-
-        private async void GuardarPedido()
-        {
-            bool continuar = DialogService.ShowConfirmationAnswer("Guardar pedido", "Se va a guardar el pedido. ¿Desea continuar?");
-            if (!continuar)
-            {
-                return;
-            }
-            try
-            {
-                EstaOcupado = true;
-                Pedido.Id = await Servicio.CrearPedido(Pedido.Model);
-                DialogService.ShowNotification($"Pedido {Pedido.Id} guardado correctamente");
-            }
-            catch (Exception ex)
-            {
-                DialogService.ShowError(ex.Message);
-            }
-            finally
-            {
-                EstaOcupado = false;
-            }
-        }
     }
 }

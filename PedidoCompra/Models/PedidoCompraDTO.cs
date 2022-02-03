@@ -25,6 +25,8 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public string Nombre { get; set; }
         public string Direccion { get; set; }
         public string PeriodoFacturacion { get; set; }
+        public string PathPedido { get; set; }
+        public string CorreoRecepcionPedidos { get; set; }
         public decimal BaseImponible => Math.Round(Lineas.Sum(l => l.BaseImponible), 2, MidpointRounding.AwayFromZero);
         public decimal Total => Math.Round(Lineas.Sum(l => l.Total), 2, MidpointRounding.AwayFromZero);
         

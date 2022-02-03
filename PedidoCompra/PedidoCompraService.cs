@@ -243,5 +243,57 @@ namespace Nesto.Modulos.PedidoCompra
 
             return lineaProducto;
         }
+        public async Task ModificarPedido(PedidoCompraDTO pedido)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = $"PedidosCompra/PedidosCompra";
+
+                    pedido.Usuario = configuracion.usuario;
+
+                    HttpContent content = new StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json");
+                    response = await client.PutAsync(urlConsulta, content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                    }
+                    else
+                    {
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+
+                        string errorMostrar = $"No se ha podido modificar el pedido\n";
+                        if (requestException["exceptionMessage"] != null)
+                        {
+                            errorMostrar += requestException["exceptionMessage"] + "\n";
+                        }
+                        if (requestException["ModelState"] != null)
+                        {
+                            var firstError = requestException["ModelState"];
+                            var nodoError = firstError.LastOrDefault();
+                            errorMostrar += nodoError.FirstOrDefault()[0];
+                        }
+                        var innerException = requestException["InnerException"];
+                        while (innerException != null)
+                        {
+                            errorMostrar += "\n" + innerException["ExceptionMessage"];
+                            innerException = innerException["InnerException"];
+                        }
+                        throw new Exception(errorMostrar);
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+        }
     }
 }

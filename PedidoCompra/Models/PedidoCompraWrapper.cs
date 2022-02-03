@@ -85,7 +85,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
 
         public int Id
         {
-            get => Model.Id;
+            get => Model != null ? Model.Id : 0;
             set
             {
                 Model.Id = value;

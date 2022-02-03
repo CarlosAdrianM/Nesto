@@ -137,9 +137,16 @@ Public Class PlantillaVentaViewModel
         Set(value As tipoAlmacen)
             SetProperty(_almacenSeleccionado, value)
             If Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) Then
-                Task.Run(Async Sub()
-                             ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(New ObservableCollection(Of LineaPlantillaJson)(ListaFiltrableProductos.ListaOriginal), value.id))
-                         End Sub)
+                Application.Current.Dispatcher.Invoke(New Action(Async Sub()
+                                                                     estaOcupado = True
+                                                                     Dim listaCast As ObservableCollection(Of LineaPlantillaJson) = New ObservableCollection(Of LineaPlantillaJson)
+                                                                     For Each linea In ListaFiltrableProductos.ListaOriginal
+                                                                         listaCast.Add(linea)
+                                                                     Next
+                                                                     Dim nuevosStocks As ObservableCollection(Of LineaPlantillaJson) = Await servicio.PonerStocks(listaCast, value.id)
+                                                                     ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
+                                                                     estaOcupado = False
+                                                                 End Sub))
             End If
         End Set
     End Property
