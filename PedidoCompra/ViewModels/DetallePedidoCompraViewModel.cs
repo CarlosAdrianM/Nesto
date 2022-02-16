@@ -5,8 +5,10 @@ using Microsoft.Reporting.NETCore;
 using Nesto.Informes;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
+using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
 using Prism.Commands;
+using Prism.Events;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -27,14 +29,16 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         public IDialogService DialogService { get; }
         public IRegionManager RegionManager { get; }
         public IConfiguracion Configuracion { get; }
+        private IEventAggregator EventAggregator { get; }
 
-        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion)
+        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IEventAggregator eventAggregator)
         {
             Servicio = servicio;
             DialogService = dialogService;
             RegionManager = regionManager;
             InteractiveBrowserCredential = interactiveBrowserCredential;
             Configuracion = configuracion;
+            EventAggregator = eventAggregator;
 
             AmpliarHastaStockMaximoCommand = new DelegateCommand(OnAmpliarHastaStockMaximo);
             CargarPedidoCommand = new DelegateCommand<PedidoCompraLookup>(OnCargarPedido);
@@ -246,6 +250,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 EstaOcupado = true;
                 Pedido.Id = await Servicio.CrearPedido(Pedido.Model);
                 DialogService.ShowNotification($"Pedido {Pedido.Id} guardado correctamente");
+                EventAggregator.GetEvent<PedidoCompraModificadoEvent>().Publish(Pedido.Model);
                 ((DelegateCommand<PedidoCompraWrapper>)EnviarPedidoCommand).RaiseCanExecuteChanged();
                 ((DelegateCommand)GuardarPedidoCommand).RaiseCanExecuteChanged();
             }

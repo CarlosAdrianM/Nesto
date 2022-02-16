@@ -50,6 +50,10 @@ namespace Nesto.Modulos.Cliente
                         {
                             errorMostrar += requestException["exceptionMessage"] + "\n";
                         }
+                        if (requestException["ExceptionMessage"] != null)
+                        {
+                            errorMostrar += requestException["ExceptionMessage"] + "\n";
+                        }
                         if (requestException["ModelState"]!=null)
                         {
                             var firstError = requestException["ModelState"];

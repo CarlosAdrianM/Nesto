@@ -47,8 +47,8 @@ namespace PlantillaVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
-            vm.listaProductosOriginal = new ObservableCollection<PlantillaVentaModel.LineaPlantillaJson>();
-            vm.listaProductosOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
+            vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
             {
                 cantidad = 1,
                 precio = 4.5M,
@@ -70,8 +70,8 @@ namespace PlantillaVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
-            vm.listaProductosOriginal = new ObservableCollection<PlantillaVentaModel.LineaPlantillaJson>();
-            vm.listaProductosOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
+            vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
             {
                 cantidad = 1,
                 precio = 4.5M,

@@ -1,8 +1,10 @@
 ﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
+using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
 using Prism.Commands;
+using Prism.Events;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -19,16 +21,20 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
     {
         public IPedidoCompraService Servicio { get; }
         public IDialogService DialogService { get; }
+        private IEventAggregator EventAggregator { get; }
 
-        public ListaPedidosCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService)
+        public ListaPedidosCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IEventAggregator eventAggregator)
         {
             Servicio = servicio;
             DialogService = dialogService;
+            EventAggregator = eventAggregator;
             CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
 
             ListaPedidos = new ColeccionFiltrable(new ObservableCollection<PedidoCompraLookup>());
             ListaPedidos.TieneDatosIniciales = true;
             ListaPedidos.ElementoSeleccionadoChanged += (sender, args) => { CargarPedidoSeleccionado(); };
+
+            EventAggregator.GetEvent<PedidoCompraModificadoEvent>().Subscribe(ActualizarPedidoLookup);
         }
 
         private bool _estaCargandoListaPedidos;
@@ -173,6 +179,29 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 }
                 
             }
+        }
+        private void ActualizarPedidoLookup(PedidoCompraDTO pedido) {
+            var lookupActual = ListaPedidos.ListaOriginal.Single(p => (p as PedidoCompraLookup).Pedido == 0 && (p as PedidoCompraLookup).Proveedor == pedido.Proveedor);
+            var nuevoLookup = new PedidoCompraLookup(pedido);
+            int indexActual = ListaPedidos.ListaOriginal.IndexOf(lookupActual);
+            if (indexActual != -1)
+            {          
+                ListaPedidos.ListaOriginal.Remove(lookupActual);
+                ListaPedidos.ListaOriginal.Add(nuevoLookup);
+            }
+            indexActual = ListaPedidos.ListaFijada.IndexOf(lookupActual);
+            if (indexActual != -1)
+            {
+                ListaPedidos.ListaFijada.Remove(lookupActual);
+                ListaPedidos.ListaFijada.Add(nuevoLookup);
+            }
+            indexActual = ListaPedidos.Lista.IndexOf(lookupActual);
+            if (indexActual != -1)
+            {
+                ListaPedidos.Lista.Remove(lookupActual);
+                ListaPedidos.Lista.Add(nuevoLookup);
+            }
+            ListaPedidos.ElementoSeleccionado = nuevoLookup;
         }
 
         private void CargarPedidoSeleccionado()
