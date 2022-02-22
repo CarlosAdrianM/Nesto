@@ -1,8 +1,10 @@
 ﻿Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models.PedidoVenta
+Imports Prism.Mvvm
 
 Public Class PedidoVentaModel
     Public Class ResumenPedido
+        Inherits BindableBase
         Implements IFiltrableItem
         Public Property empresa As String
         Public Property numero As Integer
@@ -19,21 +21,85 @@ Public Class PedidoVentaModel
         Public Property poblacion As String
         Public Property provincia As String
         Public Property fecha As DateTime
+        Private _tieneProductos As Boolean
         Public Property tieneProductos As Boolean
+            Get
+                Return _tieneProductos
+            End Get
+            Set(value As Boolean)
+                SetProperty(_tieneProductos, value)
+            End Set
+        End Property
+        Private _tienePendientes As Boolean
         Public Property tienePendientes As Boolean
+            Get
+                Return _tienePendientes
+            End Get
+            Set(value As Boolean)
+                SetProperty(_tienePendientes, value)
+            End Set
+        End Property
+        Private _tienePicking As Boolean
         Public Property tienePicking As Boolean
+            Get
+                Return _tienePicking
+            End Get
+            Set(value As Boolean)
+                SetProperty(_tienePicking, value)
+            End Set
+        End Property
+        Private _tieneFechasFuturas As Boolean
         Public Property tieneFechasFuturas As Boolean
+            Get
+                Return _tieneFechasFuturas
+            End Get
+            Set(value As Boolean)
+                SetProperty(_tieneFechasFuturas, value)
+            End Set
+        End Property
+        Private _tienePresupuesto As Boolean
         Public Property tienePresupuesto As Boolean
+            Get
+                Return _tienePresupuesto
+            End Get
+            Set(value As Boolean)
+                SetProperty(_tienePresupuesto, value)
+            End Set
+        End Property
         Public ReadOnly Property tieneSeguimiento As Boolean
             Get
                 Return Not String.IsNullOrEmpty(ultimoSeguimiento)
             End Get
         End Property
 
+        Private _baseImponible As Decimal
         Public Property baseImponible As Decimal
+            Get
+                Return _baseImponible
+            End Get
+            Set(value As Decimal)
+                SetProperty(_baseImponible, value)
+            End Set
+        End Property
+        Private _total As Decimal
         Public Property total As Decimal
+            Get
+                Return _total
+            End Get
+            Set(value As Decimal)
+                SetProperty(_total, value)
+            End Set
+        End Property
         Public Property vendedor As String
+        Private _ultimoSeguimiento As String
         Public Property ultimoSeguimiento As String
+            Get
+                Return _ultimoSeguimiento
+            End Get
+            Set(value As String)
+                SetProperty(_ultimoSeguimiento, value)
+            End Set
+        End Property
 
         Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
             Return (Not IsNothing(direccion) AndAlso direccion.ToLower.Contains(filtro.ToLower)) OrElse

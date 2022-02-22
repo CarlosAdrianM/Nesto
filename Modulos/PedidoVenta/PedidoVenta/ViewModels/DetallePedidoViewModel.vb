@@ -56,8 +56,14 @@ Public Class DetallePedidoViewModel
         CopiarAlPortapapelesCommand = New DelegateCommand(AddressOf OnCopiarAlPortapapeles)
 
         eventAggregator.GetEvent(Of ProductoSeleccionadoEvent).Subscribe(AddressOf InsertarProducto)
+        eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf ActualizarLoopup)
     End Sub
 
+    Private Sub ActualizarLoopup()
+        If Not IsNothing(pedido) Then
+            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
+        End If
+    End Sub
     Private Async Sub InsertarProducto(productoSeleccionado As String)
         If Not IsNothing(lineaActual) Then
             lineaActual.producto = productoSeleccionado
@@ -188,6 +194,7 @@ Public Class DetallePedidoViewModel
             If IsNothing(pedido) Then
                 Return
             End If
+            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
             estaActualizarFechaActivo = False
             Dim linea As LineaPedidoVentaDTO = pedido.LineasPedido.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
             If Not IsNothing(linea) AndAlso Not IsNothing(linea.fechaEntrega) Then

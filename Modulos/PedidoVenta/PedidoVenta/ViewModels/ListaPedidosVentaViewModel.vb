@@ -291,12 +291,29 @@ Public Class ListaPedidosVentaViewModel
 #End Region
 
 #Region "Funciones auxiliares"
+    Private Function FechaEntregaAjustada(fecha As DateTime, ruta As String) As DateTime
+        Dim fechaMinima As DateTime
+
+        If ruta <> Constantes.Pedidos.RUTA_GLOVO AndAlso EsRutaConPortes(ruta) Then
+            fechaMinima = IIf(DateTime.Now.Hour < Constantes.Picking.HORA_MAXIMA_AMPLIAR_PEDIDOS, DateTime.Today, DateTime.Today.AddDays(1))
+        Else
+            fechaMinima = DateTime.Today
+        End If
+        Return IIf(fechaMinima < fecha, fecha, fechaMinima)
+    End Function
+    Private Function EsRutaConPortes(ruta As String) As Boolean
+        Return IsNothing(ruta) OrElse ruta.Trim = "FW" OrElse ruta.Trim = "00" OrElse ruta.Trim = "16" OrElse ruta.Trim = "AT" OrElse ruta.Trim = "OT"
+    End Function
+
     Private Sub ActualizarResumen(pedido As Models.PedidoVenta.PedidoVentaDTO)
+        If IsNothing(pedido) Then
+            Return
+        End If
         resumenSeleccionado.baseImponible = pedido.baseImponible
         resumenSeleccionado.contacto = pedido.contacto
-        resumenSeleccionado.tienePicking = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(p) p.picking > 0))
-        resumenSeleccionado.tieneFechasFuturas = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > Today))
-        resumenSeleccionado.tieneProductos = Not IsNothing(pedido.LineasPedido.FirstOrDefault(Function(l) l.tipoLinea = 1))
+        resumenSeleccionado.tienePicking = pedido.LineasPedido.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
+        resumenSeleccionado.tieneFechasFuturas = pedido.LineasPedido.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(DateTime.Now, pedido.ruta))
+        resumenSeleccionado.tieneProductos = pedido.LineasPedido.Any(Function(l) l.tipoLinea = 1)
         RaisePropertyChanged(NameOf(resumenSeleccionado))
     End Sub
 

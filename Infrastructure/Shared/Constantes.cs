@@ -76,6 +76,7 @@ namespace Nesto.Infrastructure.Shared
         }
         public class LineasPedido
         {
+            public const int ESTADO_FACTURA = 4;
             public const int ESTADO_ALBARAN = 2;
             public const int ESTADO_SIN_FACTURAR = 1;
             public const int ESTADO_LINEA_PENDIENTE = -1;
@@ -86,6 +87,14 @@ namespace Nesto.Infrastructure.Shared
                 public const string CUENTA_CONTABLE = "2";
                 public const string INMOVILIZADO = "3";
             }
+        }
+        public class Pedidos
+        {
+            public const string RUTA_GLOVO = "GLV";
+        }
+        public class Picking
+        {
+            public const int HORA_MAXIMA_AMPLIAR_PEDIDOS = 11;
         }
         public class Planner
         {
