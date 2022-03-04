@@ -83,11 +83,29 @@ namespace ControlesUsuario
         }
 
         /// <summary>
-        /// Identified the EMPRESA dependency property
+        /// Identified the ETIQUETA dependency property
         /// </summary>
         public static readonly DependencyProperty EmpresaProperty =
             DependencyProperty.Register("Empresa", typeof(string),
               typeof(SelectorFormaPago));
+
+
+        public string Etiqueta
+        {
+            get { return (string)GetValue(EtiquetaProperty); }
+            set
+            {
+                SetValue(EtiquetaProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the ETIQUETA dependency property
+        /// </summary>
+        public static readonly DependencyProperty EtiquetaProperty =
+            DependencyProperty.Register("Etiqueta", typeof(string),
+              typeof(SelectorFormaPago),
+              new UIPropertyMetadata("Seleccione una forma pago:"));
 
 
         /// <summary>
@@ -107,8 +125,35 @@ namespace ControlesUsuario
         /// </summary>
         public static readonly DependencyProperty SeleccionadaProperty =
             DependencyProperty.Register("Seleccionada", typeof(string),
-              typeof(SelectorFormaPago));
+              typeof(SelectorFormaPago), 
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnSeleccionadaChanged)));
 
+        private static void OnSeleccionadaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorFormaPago selector = (SelectorFormaPago)d;
+            if (selector == null || selector.listaFormasPago == null || !selector.listaFormasPago.Any() || e.NewValue == null)
+            {
+                return;
+            }
+            selector.formaPagoSeleccionada = selector.listaFormasPago.Single(f => f.formaPago == e.NewValue.ToString());
+        }
+
+
+        public Visibility VisibilidadEtiqueta
+        {
+            get { return (Visibility)GetValue(VisibilidadEtiquetaProperty); }
+            set
+            {
+                SetValue(VisibilidadEtiquetaProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the VISIBILIDADETIQUETA dependency property
+        /// </summary>
+        public static readonly DependencyProperty VisibilidadEtiquetaProperty =
+            DependencyProperty.Register(nameof(VisibilidadEtiqueta), typeof(Visibility),
+              typeof(SelectorFormaPago));
 
         #endregion
 

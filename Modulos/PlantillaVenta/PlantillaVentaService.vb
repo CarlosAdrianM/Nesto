@@ -5,6 +5,7 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.Cliente
+Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports Newtonsoft.Json

@@ -47,6 +47,13 @@ namespace Nesto.Infrastructure.Shared
             public const string FORMA_VENTA_DEFECTO = "VAR";
             public const string MONEDA_CONTABILIDAD = "EUR";
         }
+        public class ExtractosCliente
+        {
+            public class Estados
+            {
+                public const string RETENIDO = "RTN";
+            }
+        }
         public class Familias
         {
             public const string EVA_VISNU_NOMBRE = "Eva Visnú";
@@ -121,6 +128,11 @@ namespace Nesto.Infrastructure.Shared
             public class Estados
             {
                 public const int GESTION_ADMINISTRATIVA = 2;
+            }
+            public class Tipos
+            {
+                public const string TIPO_VISITA_PRESENCIAL = "V";
+                public const string TIPO_VISITA_TELEFONICA = "T";
             }
         }
         public class Series

@@ -62,6 +62,7 @@ Partial Public Class Application
         containerRegistry.Register(GetType(ICliente), GetType(Nesto.Modulos.Cliente.Cliente))
         containerRegistry.Register(GetType(IClienteService), GetType(ClienteService))
         containerRegistry.Register(GetType(IPedidoCompra), GetType(Nesto.Modulos.PedidoCompra.PedidoCompra))
+        containerRegistry.Register(GetType(IClienteComercialService), GetType(ClienteComercialService))
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)

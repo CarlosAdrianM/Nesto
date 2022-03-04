@@ -1,7 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Nesto.Models
 Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.Cliente
+Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 
 Public Interface IPlantillaVentaService

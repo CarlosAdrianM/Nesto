@@ -11,6 +11,7 @@
     <ProjectReference Include="..\Informes\Informes.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj" />
+    <ProjectReference Include="..\Modulos\Rapport\Rapports\Rapports.vbproj" />
     <ProjectReference Include="..\Nesto.Models\Models.vbproj" />
   </ItemGroup>
 	<ItemGroup>

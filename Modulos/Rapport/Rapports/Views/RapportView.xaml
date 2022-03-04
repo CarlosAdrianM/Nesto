@@ -104,7 +104,7 @@
         
         <DockPanel Grid.Row="10">
             <TextBlock DockPanel.Dock="Top" Text="Comentarios: "></TextBlock>
-            <TextBox DockPanel.Dock="Bottom" Text="{Binding rapport.Comentarios}" TextWrapping="WrapWithOverflow"></TextBox>
+            <TextBox DockPanel.Dock="Bottom" Text="{Binding rapport.Comentarios}" TextWrapping="WrapWithOverflow" AcceptsReturn="True" SpellCheck.IsEnabled="True"></TextBox>
         </DockPanel>
         <StackPanel Grid.Row="11" Orientation="Horizontal">
             <TextBlock Text="Usuario: "></TextBlock>

@@ -1,9 +1,10 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Nesto.Models.PedidoVenta
 Imports System.Windows.Media
-
+Imports Nesto.Infrastructure.Contracts
 
 Public Class ClienteJson
+    Implements IFiltrableItem
     Public Property empresa() As String
     Public Property cliente() As String
     Public Property contacto() As String
@@ -74,4 +75,13 @@ Public Class ClienteJson
         Return cadenaCliente
     End Function
 
+    Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
+        Return (Not IsNothing(cliente) AndAlso cliente.ToLower.Trim = filtro.ToLower) OrElse
+                (Not IsNothing(direccion) AndAlso direccion.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(nombre) AndAlso nombre.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(telefono) AndAlso telefono.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(cifNif) AndAlso cifNif.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(poblacion) AndAlso poblacion.ToLower.Contains(filtro.ToLower)) OrElse
+                (Not IsNothing(comentarios) AndAlso comentarios.ToLower.Contains(filtro.ToLower))
+    End Function
 End Class

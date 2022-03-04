@@ -130,6 +130,7 @@ Public Class SeguimientoClienteDTO
     Public Property TipoCentro As TiposCentro
     Public Property Nombre As String
     Public Property Direccion As String
+    Public Property NumOrdenExtracto As Integer?
 
     Public Enum TiposCentro
         <Description("No se sabe")>

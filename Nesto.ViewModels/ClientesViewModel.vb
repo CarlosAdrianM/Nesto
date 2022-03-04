@@ -21,6 +21,8 @@ Imports Prism.Commands
 Imports Prism.Services.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
+Imports ControlesUsuario.Dialogs
+Imports Nesto.Modulos.Rapports
 
 Public Interface IOService
     Function OpenFileDialog(defaultPath As String) As String
@@ -37,6 +39,8 @@ Public Class ClientesViewModel
     Public Property configuracion As IConfiguracion
     Private ReadOnly Property contenedor As IUnityContainer
     Private ReadOnly Property dialogService As IDialogService
+    Private ReadOnly Property servicio As IClienteComercialService
+    Private ReadOnly Property servicioRapports As IRapportService
 
     'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
@@ -63,16 +67,31 @@ Public Class ClientesViewModel
         cargarDatos()
     End Sub
 
-    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService)
+    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService)
         Me.configuracion = configuracion
         Me.contenedor = contenedor
         Me.dialogService = dialogService
+        Me.servicio = servicio
+        Me.servicioRapports = servicioRapports
         cargarDatos()
         clienteActivo = Nothing
         'inicializarListaClientesVendedor()
+        ListaClientesFiltrable = New ColeccionFiltrable(New ObservableCollection(Of ClienteJson)) With {
+            .TieneDatosIniciales = False
+        }
+        AddHandler ListaClientesFiltrable.HayQueCargarDatos, Async Sub()
+                                                                 Await Task.Delay(400)
+                                                                 inicializarListaClientesVendedor(ListaClientesFiltrable.Filtro)
+                                                             End Sub
+        AddHandler ListaClientesFiltrable.ListaChanged, Sub()
+                                                            If IsNothing(clienteActivoDTO) AndAlso Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
+                                                                clienteActivoDTO = ListaClientesFiltrable.Lista.FirstOrDefault
+                                                            End If
+                                                        End Sub
         ReclamarDeudaCommand = New DelegateCommand(AddressOf OnReclamarDeuda)
         AbrirEnlaceReclamacionCommand = New DelegateCommand(AddressOf OnAbrirEnlaceReclamacion, AddressOf CanAbrirEnlaceReclamacion)
         ConfirmarReclamarDeudaCommand = New DelegateCommand(AddressOf OnConfirmarReclamarDeuda, AddressOf CanConfirmarReclamarDeuda)
+        GuardarEfectoDeudaCommand = New DelegateCommand(AddressOf OnGuardarEfectoDeuda, AddressOf CanGuardarEfectoDeuda)
     End Sub
 
 #Region "Propiedades"
@@ -145,6 +164,17 @@ Public Class ClientesViewModel
         Set(value As ClienteJson)
             _clienteServidor = value
             RaisePropertyChanged("clienteServidor")
+        End Set
+    End Property
+
+    Private _deudaSeleccionada As ExtractoClienteDTO
+    Public Property DeudaSeleccionada As ExtractoClienteDTO
+        Get
+            Return _deudaSeleccionada
+        End Get
+        Set(value As ExtractoClienteDTO)
+            SetProperty(_deudaSeleccionada, value)
+            GuardarEfectoDeudaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -296,7 +326,7 @@ Public Class ClientesViewModel
             Dim fechaDesde As Date
             _clienteActivo = value
 
-            If Not IsNothing(listaClientesVendedor) Then
+            If Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
                 If Not IsNothing(clienteActivoDTO) Then
                     cargarVendedoresPorGrupo()
                     seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
@@ -430,19 +460,29 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private _listaClientesVendedor As ObservableCollection(Of ClienteJson)
-    Public Property listaClientesVendedor As ObservableCollection(Of ClienteJson)
+    Private _listaClientesFiltrable As ColeccionFiltrable
+    Public Property ListaClientesFiltrable As ColeccionFiltrable
         Get
-            Return _listaClientesVendedor
+            Return _listaClientesFiltrable
         End Get
-        Set(value As ObservableCollection(Of ClienteJson))
-            _listaClientesVendedor = value
-            If IsNothing(clienteActivoDTO) And Not IsNothing(_listaClientesVendedor) Then
-                clienteActivoDTO = _listaClientesVendedor.FirstOrDefault
-            End If
-            RaisePropertyChanged("listaClientesVendedor")
+        Set(value As ColeccionFiltrable)
+            SetProperty(_listaClientesFiltrable, value)
         End Set
     End Property
+
+    'Private _listaClientesVendedor As ObservableCollection(Of ClienteJson)
+    'Public Property listaClientesVendedor As ObservableCollection(Of ClienteJson)
+    '    Get
+    '        Return _listaClientesVendedor
+    '    End Get
+    '    Set(value As ObservableCollection(Of ClienteJson))
+    '        _listaClientesVendedor = value
+    '        If IsNothing(clienteActivoDTO) And Not IsNothing(_listaClientesVendedor) Then
+    '            clienteActivoDTO = _listaClientesVendedor.FirstOrDefault
+    '        End If
+    '        RaisePropertyChanged("listaClientesVendedor")
+    '    End Set
+    'End Property
 
     Private _seguimientosOrdenados As ObservableCollection(Of SeguimientoCliente)
     Public Property seguimientosOrdenados As ObservableCollection(Of SeguimientoCliente)
@@ -473,44 +513,44 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private _filtro As String
-    Public Property filtro As String
-        Get
-            Return _filtro
-        End Get
-        Set(value As String)
-            _filtro = value
-            actualizarFiltro(filtro)
-        End Set
-    End Property
+    'Private _filtro As String
+    'Public Property filtro As String
+    '    Get
+    '        Return _filtro
+    '    End Get
+    '    Set(value As String)
+    '        _filtro = value
+    '        actualizarFiltro(filtro)
+    '    End Set
+    'End Property
 
-    Public Sub actualizarFiltro(filtro As String)
-        If IsNothing(filtro) Then
-            Return
-        End If
+    'Public Sub actualizarFiltro(filtro As String)
+    '    If IsNothing(filtro) Then
+    '        Return
+    '    End If
 
-        If IsNothing(listaClientesVendedor) Then
-            inicializarListaClientesVendedor(filtro)
-            Return
-        End If
+    '    If IsNothing(listaClientesVendedor) Then
+    '        inicializarListaClientesVendedor(filtro)
+    '        Return
+    '    End If
 
-        If filtro.Trim <> "" Then
-            listaClientesVendedor = New ObservableCollection(Of ClienteJson) _
-            (From c In listaClientesVendedor Where
-                                                 (Not IsNothing(c.cliente) AndAlso c.cliente.ToLower.Trim = filtro.ToLower) OrElse
-                (Not IsNothing(c.direccion) AndAlso c.direccion.ToLower.Contains(filtro.ToLower)) OrElse
-                (Not IsNothing(c.nombre) AndAlso c.nombre.ToLower.Contains(filtro.ToLower)) OrElse
-                (Not IsNothing(c.telefono) AndAlso c.telefono.ToLower.Contains(filtro.ToLower)) OrElse
-                (Not IsNothing(c.cifNif) AndAlso c.cifNif.ToLower.Contains(filtro.ToLower)) OrElse
-                (Not IsNothing(c.poblacion) AndAlso c.poblacion.ToLower.Contains(filtro.ToLower)) OrElse
-                (Not IsNothing(c.comentarios) AndAlso c.comentarios.ToLower.Contains(filtro.ToLower)))
-        Else
-            inicializarListaClientesVendedor(filtro)
-            filtro = ""
-        End If
+    '    If filtro.Trim <> "" Then
+    '        listaClientesVendedor = New ObservableCollection(Of ClienteJson) _
+    '        (From c In listaClientesVendedor Where
+    '                                             (Not IsNothing(c.cliente) AndAlso c.cliente.ToLower.Trim = filtro.ToLower) OrElse
+    '            (Not IsNothing(c.direccion) AndAlso c.direccion.ToLower.Contains(filtro.ToLower)) OrElse
+    '            (Not IsNothing(c.nombre) AndAlso c.nombre.ToLower.Contains(filtro.ToLower)) OrElse
+    '            (Not IsNothing(c.telefono) AndAlso c.telefono.ToLower.Contains(filtro.ToLower)) OrElse
+    '            (Not IsNothing(c.cifNif) AndAlso c.cifNif.ToLower.Contains(filtro.ToLower)) OrElse
+    '            (Not IsNothing(c.poblacion) AndAlso c.poblacion.ToLower.Contains(filtro.ToLower)) OrElse
+    '            (Not IsNothing(c.comentarios) AndAlso c.comentarios.ToLower.Contains(filtro.ToLower)))
+    '    Else
+    '        inicializarListaClientesVendedor(filtro)
+    '        filtro = ""
+    '    End If
 
-        RaisePropertyChanged("filtro")
-    End Sub
+    '    RaisePropertyChanged("filtro")
+    'End Sub
 
     Private _rangoFechasVenta As String
     Public Property rangoFechasVenta As String
@@ -732,6 +772,17 @@ Public Class ClientesViewModel
         Set(value As String)
             SetProperty(_correoReclamarDeuda, value)
             ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Private _motivoCambioEstado As String
+    Public Property MotivoCambioEstado As String
+        Get
+            Return _motivoCambioEstado
+        End Get
+        Set(value As String)
+            SetProperty(_motivoCambioEstado, value)
+            GuardarEfectoDeudaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -1121,6 +1172,41 @@ Public Class ClientesViewModel
                                                           End Sub)
     End Sub
 
+    Public Property GuardarEfectoDeudaCommand As DelegateCommand
+    Private Function CanGuardarEfectoDeuda() As Boolean
+        Return Not IsNothing(DeudaSeleccionada) AndAlso EsUsuarioAdministracion AndAlso Not String.IsNullOrWhiteSpace(MotivoCambioEstado)
+    End Function
+    Private Async Sub OnGuardarEfectoDeuda()
+        Dim p As New DialogParameters
+        Dim confirmacion As Boolean
+        p.Add("message", "¿Desea guardar los cambios?")
+        dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
+                                                              confirmacion = (r.Result = ButtonResult.OK)
+                                                          End Sub)
+        If Not confirmacion Then
+            Return
+        End If
+
+        Try
+            Dim seguimientoMotivo As SeguimientoClienteDTO = New SeguimientoClienteDTO With {
+                .Empresa = DeudaSeleccionada.Empresa,
+                .Cliente = DeudaSeleccionada.Cliente,
+                .Contacto = DeudaSeleccionada.Contacto,
+                .Tipo = Constantes.Rapports.Tipos.TIPO_VISITA_TELEFONICA,
+                .Estado = Constantes.Rapports.Estados.GESTION_ADMINISTRATIVA,
+                .Comentarios = $"{configuracion.usuario.Substring(configuracion.usuario.IndexOf("\") + 1).Trim()} cambió el estado del extracto de cliente con nº orden {DeudaSeleccionada.Id} a estado {IIf(Not String.IsNullOrEmpty(DeudaSeleccionada.Estado), DeudaSeleccionada.Estado.ToUpper, "en blanco")} dando como motivo: {MotivoCambioEstado.Trim()}",
+                .Fecha = DateTime.Now,
+                .NumOrdenExtracto = DeudaSeleccionada.Id,
+                .Usuario = configuracion.usuario
+            }
+            Await servicioRapports.crearRapport(seguimientoMotivo)
+            DeudaSeleccionada.Usuario = configuracion.usuario
+            Await servicio.ModificarExtractoCliente(DeudaSeleccionada)
+            dialogService.ShowNotification("Efecto modificado correctamente")
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        End Try
+    End Sub
 
 
     Private Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
@@ -1307,7 +1393,8 @@ Public Class ClientesViewModel
         '    Return New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual And c.Estado >= 0)
         'End If
         If IsNothing(filtro) OrElse (filtro.Length < 4 AndAlso Not IsNumeric(filtro)) Then
-            listaClientesVendedor = Nothing
+            'listaClientesVendedor = Nothing
+            ListaClientesFiltrable.ListaOriginal = Nothing
             Return
         End If
 
@@ -1327,7 +1414,7 @@ Public Class ClientesViewModel
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    listaClientesVendedor = JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson)
+                    ListaClientesFiltrable.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson))
                 Else
                     mensajeError = "Se ha producido un error al cargar los clientes"
                 End If
@@ -1502,6 +1589,8 @@ Public Class ExtractoClienteDTO
     Public Property CCC As String
     Public Property Ruta As String
     Public Property Estado As String
+    Public Property FormaPago As String
+    Public Property Usuario As String
     Private _seleccionada As Boolean
     Public Property Seleccionada As Boolean
         Get
