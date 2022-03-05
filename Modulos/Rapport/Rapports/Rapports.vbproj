@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>Nesto.Modulos.Rapports</RootNamespace>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
 	<UseWPF>true</UseWPF>
     <MyType>Empty</MyType>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

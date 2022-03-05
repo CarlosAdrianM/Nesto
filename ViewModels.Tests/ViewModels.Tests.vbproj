@@ -4,7 +4,7 @@
     <RootNamespace>ViewModels.Tests</RootNamespace>
     <AssemblyName>ViewModels.Tests</AssemblyName>
     <MyType>Empty</MyType>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <ReferencePath>$(DevEnvDir)PublicAssemblies\</ReferencePath>
   </PropertyGroup>
   <PropertyGroup>
