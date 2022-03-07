@@ -27,13 +27,14 @@ namespace ControlesUsuario
             InitializeComponent();
             ControlPrincipal.DataContext = this;
             listaClientes = new();
+            listaClientes.VaciarAlSeleccionar = true;
             listaClientes.ElementoSeleccionadoChanged += (sender, args) => {
                 ClienteCompleto = listaClientes.ElementoSeleccionado as ClienteDTO;
                 Cliente = ClienteCompleto?.cliente;
                 Contacto = ClienteCompleto?.contacto;
                 contactoSeleccionado = ClienteCompleto?.contacto.Trim();
                 OnPropertyChanged(string.Empty);
-                listaClientes.ListaOriginal = null;
+                //listaClientes.ListaOriginal = null;
             };
             listaClientes.HayQueCargarDatos += () => { cargarCliente(); };
         }

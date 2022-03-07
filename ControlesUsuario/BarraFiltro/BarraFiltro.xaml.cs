@@ -75,12 +75,6 @@ namespace ControlesUsuario
         {
             ListaItems.ElementoSeleccionadoChanged += (sender, args) => {
                 ItemSeleccionado = ListaItems.ElementoSeleccionado;
-                if (!ListaItems.TieneDatosIniciales)
-                {
-                    ListaItems.ListaOriginal = new();
-                    ListaItems.FiltrosPuestos?.Clear();
-                }
-
             };
             /*
             ListaItems.HayQueCargarDatos += () => { };

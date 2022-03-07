@@ -135,6 +135,7 @@ namespace Infrastructure.Tests
 
             // Assert
             Assert.AreEqual(alejandroDumas, coleccion.ElementoSeleccionado);
+            Assert.AreEqual(1, coleccion.ListaOriginal.Count);
         }
 
         [TestMethod]

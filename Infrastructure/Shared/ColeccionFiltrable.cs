@@ -209,6 +209,11 @@ namespace Nesto.Infrastructure.Shared
                 args.NewValue = value;
                 OnElementoSeleccionadoChanged(args);
                 SetProperty(ref _elementoSeleccionado, value);
+                if (!TieneDatosIniciales && VaciarAlSeleccionar)
+                {
+                    ListaOriginal = new();
+                    FiltrosPuestos?.Clear();
+                }
             }
         }
 
@@ -273,6 +278,9 @@ namespace Nesto.Infrastructure.Shared
             }
         }
         public bool TieneDatosIniciales { get; set; }
+
+        // Hay sitios donde al seleccionar un elemento hay que vacíar las listas
+        public bool VaciarAlSeleccionar { get; set; }
         #endregion
 
         #region Funciones

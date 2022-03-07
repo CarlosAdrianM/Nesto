@@ -262,6 +262,7 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
                                             <TextBlock Grid.Row="0" Grid.Column="0" Text="Correo-e:" TextAlignment="Right" Margin="3"></TextBlock>
                                             <TextBlock Grid.Row="1" Grid.Column="0" Text="Móvil:" TextAlignment="Right" Margin="3"></TextBlock>
@@ -273,12 +274,12 @@
                                             <TextBox Name="txtReclamarDeudaImporte" Grid.Row="2" Grid.Column="1" Text="{Binding ImporteReclamarDeuda, StringFormat=c, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                                             <TextBox Name="txtReclamarDeudaAsunto" Grid.Row="3" Grid.Column="1" Text="{Binding AsuntoReclamarDeuda}"></TextBox>
                                             <TextBox Name="txtReclamarDeudaNombre" Grid.Row="4" Grid.Column="1" Text="{Binding NombreReclamarDeuda}"></TextBox>
-                                            <TextBlock Grid.Row="5" Grid.ColumnSpan="2" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                            <Hyperlink Name="txtEnlaceReclamacion" Command="{Binding AbrirEnlaceReclamacionCommand}" ToolTip="Clic con el botón derecho para copiar al portapapeles">
-                                                <Run Text="{Binding EnlaceReclamarDeuda}" MouseRightButtonUp="Run_MouseRightButtonUp"/>
-                                            </Hyperlink>
+                                            <Button Name="btnReclamarDeuda" Grid.Row="5" Grid.ColumnSpan="2" Command="{Binding ConfirmarReclamarDeudaCommand}" Margin="3,0,0,0">Reclamar Deuda</Button>
+                                            <TextBlock Grid.Row="6" Grid.ColumnSpan="2" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                <Hyperlink Name="txtEnlaceReclamacion" Command="{Binding AbrirEnlaceReclamacionCommand}" ToolTip="Clic con el botón derecho para copiar al portapapeles">
+                                                    <Run Text="{Binding EnlaceReclamarDeuda}" MouseRightButtonUp="Run_MouseRightButtonUp"/>
+                                                </Hyperlink>
                                             </TextBlock>
-                                            <Button Name="btnReclamarDeuda" Grid.Row="6" Grid.ColumnSpan="2" Command="{Binding ConfirmarReclamarDeudaCommand}" Margin="3,0,0,0">Reclamar Deuda</Button>
                                         </Grid>
                                         <Grid Grid.Row="2">
                                             <Grid.ColumnDefinitions>

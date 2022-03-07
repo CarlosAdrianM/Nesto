@@ -1414,7 +1414,8 @@ Public Class ClientesViewModel
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    ListaClientesFiltrable.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson))
+                    Dim coleccionJson = JsonConvert.DeserializeObject(Of ObservableCollection(Of ClienteJson))(cadenaJson)
+                    ListaClientesFiltrable.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(coleccionJson)
                 Else
                     mensajeError = "Se ha producido un error al cargar los clientes"
                 End If
