@@ -34,6 +34,7 @@ Public Class ClienteJson
     Public Property noComisiona() As Double
     Public Property servirJunto() As Boolean
     Public Property mantenerJunto() As Boolean
+    Public Property usuario As String
 
     Public Overridable Property VendedoresGrupoProducto As ObservableCollection(Of VendedorGrupoProductoDTO)
 

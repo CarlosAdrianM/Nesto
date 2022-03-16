@@ -1008,6 +1008,7 @@ Public Class ClientesViewModel
                 Dim respuesta As String = ""
 
                 Dim urlConsulta As String = "Clientes/ClienteComercial"
+                clienteServidor.usuario = configuracion.usuario
                 Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(clienteServidor), Encoding.UTF8, "application/json")
 
                 response = client.PutAsync(urlConsulta, content).Result
@@ -1031,6 +1032,7 @@ Public Class ClientesViewModel
                 mensajeError = ex.InnerException.Message
             Else
                 mensajeError = ex.Message
+                dialogService.ShowError(mensajeError)
             End If
         End Try
 
