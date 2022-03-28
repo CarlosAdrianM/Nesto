@@ -94,7 +94,10 @@ namespace Nesto.Modulos.Cliente
                     txtNif.Focus();
                     Keyboard.Focus(txtNif);
                 }
-                
+                if (ccvm.EsUnaModificacion && ccvm.PaginaAnterior == DatosFiscales)
+                {
+                    ccvm.PaginaActual = DatosGenerales;
+                }
             }));
         }
 
@@ -142,6 +145,23 @@ namespace Nesto.Modulos.Cliente
                 e.Handled = true;
                 uiElement.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
             }
+        }
+
+        private void DatosComisiones_Enter(object sender, RoutedEventArgs e)
+        {
+            Dispatcher.BeginInvoke(DispatcherPriority.Input,
+                new Action(delegate ()
+                {
+                    CrearClienteViewModel ccvm = (CrearClienteViewModel)DataContext;
+                    if (ccvm.EsUnaModificacion && ccvm.PaginaAnterior != DatosPago)
+                    {
+                        ccvm.PaginaActual = DatosPago;
+                    }
+                    if (ccvm.EsUnaModificacion && ccvm.PaginaAnterior == DatosPago)
+                    {
+                        ccvm.PaginaActual = DatosGenerales;
+                    }
+                }));
         }
     }
 }

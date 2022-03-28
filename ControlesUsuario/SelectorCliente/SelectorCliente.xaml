@@ -4,35 +4,16 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:controles="clr-namespace:ControlesUsuario" 
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" d:DataContext="{d:DesignInstance Type=controles:SelectorCliente}"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" 
+             d:DataContext="{d:DesignInstance Type=controles:SelectorCliente}"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300" Loaded="UserControl_Loaded">
     <UserControl.Resources>
         <controles:EstadoColorConverter x:Key="estadoColorConverter" />
     </UserControl.Resources>
     
-    <DockPanel Name="ControlPrincipal">
+    <DockPanel Name="ControlPrincipal" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
         <StackPanel DockPanel.Dock="Top">
-            <!--
-            <Border HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
-                <DockPanel HorizontalAlignment="Stretch">
-                    <TextBlock Name="btnBuscar" DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎"/>
-                    <TextBox Name="txtFiltro" DockPanel.Dock="Left" Text="{Binding listaClientes.Filtro, UpdateSourceTrigger=PropertyChanged, Delay=400}" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0" KeyUp="txtFiltro_KeyUp" GotFocus="txtFiltro_GotFocus" MouseUp="txtFiltro_MouseUp" PreviewMouseUp="txtFiltro_PreviewMouseUp"/>
-                </DockPanel>
-            </Border>
-            <ItemsControl Name="itmChips" ItemsSource="{Binding listaClientes.FiltrosPuestos}" PreviewMouseLeftButtonUp="itmChips_PreviewMouseLeftButtonUp">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <materialDesign:Chip Content="{Binding}" DeleteCommand="{Binding Path=DataContext.listaClientes.QuitarFiltroCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" DeleteCommandParameter="{Binding}" IsDeletable="True" Background="LightGray" Margin="2"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-            -->
             <controles:BarraFiltro x:Name="txtFiltro" ListaItems="{Binding listaClientes}" ItemSeleccionado="{Binding listaClientes.ElementoSeleccionado}"></controles:BarraFiltro>
             <StackPanel Name="pnlCargando" Visibility="{Binding visibilidadCargando}">
                 <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="10" Foreground="Blue"></TextBlock>
@@ -43,22 +24,31 @@
             </StackPanel>
             <controles:SelectorDireccionEntrega Configuracion="{Binding Configuracion}" Empresa="{Binding listaClientes.ElementoSeleccionado.empresa}" Cliente="{Binding listaClientes.ElementoSeleccionado.cliente}" Seleccionada="{Binding contactoSeleccionado, Mode=TwoWay}" Visibility="{Binding visibilidadSelectorEntrega}"></controles:SelectorDireccionEntrega>
         </StackPanel>
-        <ListView DockPanel.Dock="Bottom" ItemsSource="{Binding listaClientes.Lista}" Visibility="{Binding visibilidadListaClientes}" HorizontalContentAlignment="Stretch">
+        <ListView Name="lstClientes" DockPanel.Dock="Bottom" ItemsSource="{Binding listaClientes.Lista}" Visibility="{Binding visibilidadListaClientes}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False" ScrollViewer.VerticalScrollBarVisibility="Auto" >
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Border Name="brdCliente" BorderThickness="2" CornerRadius="5"  BorderBrush="{Binding estado, Converter={StaticResource estadoColorConverter}}"  MouseUp="brdCliente_MouseUp">
-                        <StackPanel Margin="6">
-                            <TextBlock Text="{Binding nombre}" FontWeight="Black" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding direccion}" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding poblacionConCodigoPostal}" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding cliente}" FontStyle="Italic" TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Text="{Binding comentarios}" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel Name="pnlDatosCliente" Grid.Column="0" Margin="6">
+                                <TextBlock DockPanel.Dock="Top" Text="{Binding nombre}" FontWeight="Black" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock DockPanel.Dock="Top" Text="{Binding direccion}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock DockPanel.Dock="Top" Text="{Binding poblacionConCodigoPostal}" MaxHeight="60" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock DockPanel.Dock="Top" Text="{Binding cliente}" FontStyle="Italic" TextTrimming="CharacterEllipsis"/>
+                                <StackPanel DockPanel.Dock="Top" MaxWidth="{Binding ActualWidth, ElementName=pnlDatosCliente}">
+                                    <TextBlock Text="{Binding comentarios}" MaxHeight="60" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" HorizontalAlignment="Stretch"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                <Button x:Name="btnButtonEditar" Margin="3" Padding="3,0" Click="btnButtonEditar_Click" FontFamily="Segoe UI Symbol" Content="&#xE104;" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"></Button>
+                            </StackPanel>
+                        </Grid>
                     </Border>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        
-        
     </DockPanel>
 </UserControl>

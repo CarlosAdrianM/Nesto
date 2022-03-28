@@ -63,9 +63,9 @@ Public Class ComisionesViewModel
                 DbContext.Database.Connection.Close()
             End If
             If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
-                listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2))
+                listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9))
             Else
-                listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2) And c.Número.Trim = vendedor)
+                listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9) And c.Número.Trim = vendedor)
             End If
         Catch ex As Exception
             DialogService.ShowError(ex.Message)

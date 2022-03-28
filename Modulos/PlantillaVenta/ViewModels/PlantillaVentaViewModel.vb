@@ -112,7 +112,7 @@ Public Class PlantillaVentaViewModel
     End Sub
 
     Private Sub ActualizarCliente(cliente As Clientes)
-        Dim clienteEncontrado As ClienteJson = listaClientes.SingleOrDefault(Function(c) c.empresa = cliente.Empresa.Trim() AndAlso c.cliente = cliente.Nº_Cliente.Trim() AndAlso c.contacto = cliente.Contacto.Trim())
+        Dim clienteEncontrado As ClienteJson = listaClientes?.SingleOrDefault(Function(c) c.empresa = cliente.Empresa.Trim() AndAlso c.cliente = cliente.Nº_Cliente.Trim() AndAlso c.contacto = cliente.Contacto.Trim())
         If Not IsNothing(clienteEncontrado) Then
             clienteEncontrado.nombre = cliente.Nombre
             clienteEncontrado.direccion = cliente.Dirección

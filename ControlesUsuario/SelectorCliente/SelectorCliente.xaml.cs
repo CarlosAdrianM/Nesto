@@ -2,6 +2,7 @@
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json;
+using Prism.Regions;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -14,6 +15,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using Prism.Ioc;
 
 namespace ControlesUsuario
 {
@@ -22,6 +24,7 @@ namespace ControlesUsuario
     /// </summary>
     public partial class SelectorCliente : UserControl, INotifyPropertyChanged
     {
+        private readonly IRegionManager regionManager;
         public SelectorCliente()
         {
             InitializeComponent();
@@ -37,6 +40,8 @@ namespace ControlesUsuario
                 //listaClientes.ListaOriginal = null;
             };
             listaClientes.HayQueCargarDatos += () => { cargarCliente(); };
+
+            regionManager = Prism.Ioc.ContainerLocator.Container.Resolve<IRegionManager>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -293,6 +298,10 @@ namespace ControlesUsuario
             }
         }
         #endregion
+
+        #region Comandos
+        
+        #endregion Comandos
 
         #region Dependency Properties
 
@@ -635,6 +644,16 @@ namespace ControlesUsuario
         {
             await Task.Delay(200);
             Keyboard.Focus(txtFiltro);
+        }
+
+        private void btnButtonEditar_Click(object sender, RoutedEventArgs e)
+        {
+            var parameters = new NavigationParameters();
+            ClienteDTO curItem = ((ListViewItem)lstClientes.ContainerFromElement((Button)sender)).Content as ClienteDTO;
+            parameters.Add("empresaParameter", curItem.empresa);
+            parameters.Add("clienteParameter", curItem.cliente);
+            parameters.Add("contactoParameter", curItem.contacto);
+            regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters);
         }
     }
     public class EstadoColorConverter : IValueConverter

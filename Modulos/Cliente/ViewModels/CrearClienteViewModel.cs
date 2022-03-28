@@ -44,6 +44,7 @@ namespace Nesto.Modulos.Cliente
             AnnadirPersonaContactoCommand = new DelegateCommand(OnAnnadirPersonaContacto);
             BorrarPersonaContactoCommand = new DelegateCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
             CrearClienteCommand = new DelegateCommand(OnCrearCliente);
+            LimpiarDireccionCommand = new DelegateCommand(OnLimpiarDireccion);
 
             Titulo = "Crear Cliente";
             PersonasContacto = new ObservableCollection<PersonaContactoDTO>()
@@ -63,8 +64,12 @@ namespace Nesto.Modulos.Cliente
         public bool ClienteDatosPagoValidados { get; set; }
         private string clienteDireccion;
         public string ClienteDireccion {
-            get { return clienteDireccion; }
-            set { SetProperty(ref clienteDireccion, value); }
+            get => clienteDireccion; 
+            set { 
+                SetProperty(ref clienteDireccion, value);
+                RaisePropertyChanged(nameof(TieneDireccion));
+                RaisePropertyChanged(nameof(NoTieneDireccion));
+            }
         }
         private string clienteDireccionAdicional;
         public string ClienteDireccionAdicional {
@@ -85,8 +90,11 @@ namespace Nesto.Modulos.Cliente
         public string ClienteEmpresa { get; set; }
         private bool clienteEsContacto;
         public bool ClienteEsContacto {
-            get { return clienteEsContacto; }
-            set { SetProperty(ref clienteEsContacto, value); }
+            get => clienteEsContacto;
+            set { 
+                SetProperty(ref clienteEsContacto, value);
+                RaisePropertyChanged(nameof(EsCreandoContacto));
+            }
         }
         public short? ClienteEstado { get; set; }
         private string clienteFormaPago;
@@ -181,8 +189,19 @@ namespace Nesto.Modulos.Cliente
                 RaisePropertyChanged(nameof(VendedorPeluqueriaMostrar));
             }
         }
+        public bool EsCreandoContacto
+        {
+            get => ClienteEsContacto && !EsUnaModificacion;
+        }
         public bool EstaOcupado { get; set; }
-        private bool EsUnaModificacion { get; set; } = false;
+        private bool esUnaModificacion = false;
+        public bool EsUnaModificacion { 
+            get => esUnaModificacion;
+            set { 
+                SetProperty(ref esUnaModificacion, value);
+                RaisePropertyChanged(nameof(EsCreandoContacto));
+            }
+        }
         private bool formaPagoEfectivo;
         public bool FormaPagoEfectivo
         {
@@ -221,6 +240,10 @@ namespace Nesto.Modulos.Cliente
                 return NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789YX".Contains(ClienteNif.Trim().ToUpper()[0]));
             }
         }
+        public bool NoTieneDireccion
+        {
+            get => !TieneDireccion;
+        }
         private WizardPage paginaActual;
         public WizardPage PaginaActual {
             get
@@ -235,6 +258,7 @@ namespace Nesto.Modulos.Cliente
                     a.ContinueWith((t1)=>{
                         if (NifValidado)
                         {
+                            PaginaAnterior = paginaActual;
                             SetProperty(ref paginaActual, value);
                         }
                     });
@@ -245,6 +269,7 @@ namespace Nesto.Modulos.Cliente
                     a.ContinueWith((t1) => {
                         if (ClienteDireccionValidada)
                         {
+                            PaginaAnterior = paginaActual;
                             SetProperty(ref paginaActual, value);
                         }
                     });
@@ -255,17 +280,20 @@ namespace Nesto.Modulos.Cliente
                     {
                         if (ClienteDatosPagoValidados)
                         {
+                            PaginaAnterior = paginaActual;
                             SetProperty(ref paginaActual, value);
                         }
                     });
                 }
                 else
                 {
+                    PaginaAnterior = paginaActual;
                     SetProperty(ref paginaActual, value);
                 }
                 
             }
         }
+        public WizardPage PaginaAnterior { get; set; }
         private ObservableCollection<PersonaContactoDTO> personasContacto;
         public ObservableCollection<PersonaContactoDTO> PersonasContacto
         {
@@ -278,6 +306,16 @@ namespace Nesto.Modulos.Cliente
             {
                 return (!NombreIsEnabled && !string.IsNullOrWhiteSpace(ClienteNif)) || (NombreIsEnabled && !string.IsNullOrWhiteSpace(ClienteNombre));
             }
+        }
+        public bool TieneDireccion
+        {
+            get => !string.IsNullOrEmpty(ClienteDireccion);
+        }
+        private string _titulo;
+        public string Titulo
+        {
+            get => _titulo;
+            set => SetProperty(ref _titulo, value);
         }
         public string VendedorPeluqueriaMostrar
         {
@@ -312,8 +350,6 @@ namespace Nesto.Modulos.Cliente
             PersonasContacto.Remove(persona);
         }
         public ICommand CrearClienteCommand { get; private set; }
-        public string Titulo { get; private set; }
-
         private async void OnCrearCliente()
         {
             ClienteCrear cliente = new ClienteCrear
@@ -373,7 +409,11 @@ namespace Nesto.Modulos.Cliente
             }           
         }
         #endregion
-
+        public ICommand LimpiarDireccionCommand { get; private set; }
+        private void OnLimpiarDireccion()
+        {
+            ClienteDireccion = String.Empty;
+        }
 
         public async new void OnNavigatedTo(NavigationContext navigationContext)
         {
@@ -389,12 +429,11 @@ namespace Nesto.Modulos.Cliente
                 string empresa = navigationContext.Parameters["empresaParameter"].ToString();
                 string cliente = navigationContext.Parameters["clienteParameter"].ToString();
                 string contacto = navigationContext.Parameters["contactoParameter"].ToString();
+                EsUnaModificacion = true;
 
                 ClienteCrear clienteCrear = await Servicio.LeerClienteCrear(empresa, cliente, contacto);
 
                 Titulo = String.Format("Editar Cliente {1}/{2}", empresa, cliente, contacto);
-
-                EsUnaModificacion = true;
 
                 ClienteEmpresa = clienteCrear.Empresa;
                 ClienteNumero = clienteCrear.Cliente;
@@ -411,12 +450,16 @@ namespace Nesto.Modulos.Cliente
                 ClienteTienePeluqueria = clienteCrear.Peluqueria;
                 ClienteFormaPago = clienteCrear.FormaPago;
                 ClientePlazosPago = clienteCrear.PlazosPago;
+                FormaPagoEfectivo = clienteFormaPago == Constantes.FormasPago.EFECTIVO;
+                FormaPagoTarjeta = clienteFormaPago == Constantes.FormasPago.TARJETA;
+                FormaPagoRecibo = clienteFormaPago == Constantes.FormasPago.RECIBO;
                 ClienteIban = clienteCrear.Iban;
                 PersonasContacto = new ObservableCollection<PersonaContactoDTO>();
                 foreach (var persona in clienteCrear.PersonasContacto)
                 {
                     PersonasContacto.Add(persona);
                 }
+                await GoToDatosGenerales();
             }
 
             if (navigationContext.Parameters["nifParameter"] != null &&
@@ -433,6 +476,12 @@ namespace Nesto.Modulos.Cliente
             if (clienteTelefono == "undefined")
             {
                 clienteTelefono = string.Empty;
+            }
+
+            if (!string.IsNullOrEmpty(ClienteDireccion) && string.IsNullOrEmpty(clienteDireccionCalleNumero)) 
+            {
+                ClienteDireccionValidada = true;
+                return;
             }
 
             try

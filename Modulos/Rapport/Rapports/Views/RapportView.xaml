@@ -15,7 +15,7 @@
     </UserControl.Resources>
     
     
-    <Grid>
+    <Grid x:Name="grdRapport">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" MinHeight="50"/>
             <RowDefinition Height="Auto"/>
@@ -34,7 +34,7 @@
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Stretch" Width="Auto">
             <TextBlock Text="Cliente: "></TextBlock>
-            <controles:SelectorCliente Name="txtSelectorClienteRapport" Configuracion="{Binding configuracion}" Empresa="1" Contacto="{Binding rapport.Contacto, Mode=TwoWay}" Cliente="{Binding rapport.Cliente, Mode=TwoWay}" ClienteCompleto="{Binding ClienteCompleto, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"></controles:SelectorCliente>
+            <controles:SelectorCliente Name="txtSelectorClienteRapport" Configuracion="{Binding configuracion}" Empresa="1" Contacto="{Binding rapport.Contacto, Mode=TwoWay}" Cliente="{Binding rapport.Cliente, Mode=TwoWay}" ClienteCompleto="{Binding ClienteCompleto, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350"></controles:SelectorCliente>
         </StackPanel>
         <StackPanel Grid.Row="1" Orientation="Horizontal" ToolTip="{Binding ClienteCompleto.nombre}">
             <TextBlock Text="Nombre: "></TextBlock>

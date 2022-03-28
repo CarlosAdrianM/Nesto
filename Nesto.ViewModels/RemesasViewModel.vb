@@ -491,7 +491,13 @@ Public Class RemesasViewModel
                     detallesAntiguos = Await graphClient.Planner.Tasks(plannerTask.Id).Details.Request().GetAsync()
                     If plannerTask.PercentComplete = 100 Then
                         Dim nuevaTask As New PlannerTask With {
-                            .PercentComplete = 50 ' en curso
+                            .PercentComplete = 50, ' en curso
+                            .DueDateTime = DateTime.Today
+                        }
+                        Await graphClient.Planner.Tasks(plannerTask.Id).Request().Header("Prefer", "return=representation").Header("If-Match", plannerTask.GetEtag).UpdateAsync(nuevaTask)
+                    Else
+                        Dim nuevaTask As New PlannerTask With {
+                            .DueDateTime = DateTime.Today
                         }
                         Await graphClient.Planner.Tasks(plannerTask.Id).Request().Header("Prefer", "return=representation").Header("If-Match", plannerTask.GetEtag).UpdateAsync(nuevaTask)
                     End If

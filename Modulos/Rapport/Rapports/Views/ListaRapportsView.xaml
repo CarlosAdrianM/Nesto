@@ -13,8 +13,8 @@
     <UserControl.Resources>
         <CollectionViewSource x:Key="ListaEstados" Source="{Binding listaEstadosRapport}"/>
         <CollectionViewSource x:Key="ListaTipos" Source="{Binding listaTiposRapports}"/>
-    </UserControl.Resources>    
-    
+    </UserControl.Resources>
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
@@ -61,5 +61,4 @@
         </xctk:BusyIndicator>
         <ContentControl Grid.Column="2" prism:RegionManager.RegionName="RapportDetailRegion" Margin="3"></ContentControl>
     </Grid>
-    
 </UserControl>
