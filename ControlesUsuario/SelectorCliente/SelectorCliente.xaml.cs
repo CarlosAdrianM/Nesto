@@ -41,7 +41,7 @@ namespace ControlesUsuario
             };
             listaClientes.HayQueCargarDatos += () => { cargarCliente(); };
 
-            regionManager = Prism.Ioc.ContainerLocator.Container.Resolve<IRegionManager>();
+            regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -67,6 +67,11 @@ namespace ControlesUsuario
         private void pnlDatosCliente_MouseUp(object sender, MouseButtonEventArgs e)
         {
             visibilidadSelectorEntrega = visibilidadSelectorEntrega == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+            if (visibilidadSelectorEntrega == Visibility.Visible)
+            {
+                selectorEntrega.Focus();
+            }
+
         }
         private void txtFiltro_GotFocus(object sender, RoutedEventArgs e)
         {

@@ -25,7 +25,7 @@ Public Class PlantillaVentaViewModel
     Inherits BindableBase
     Implements INavigationAware
 
-    Private ReadOnly configuracion As IConfiguracion
+    Public Property configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IPlantillaVentaService
@@ -59,7 +59,6 @@ Public Class PlantillaVentaViewModel
         cmdActualizarProductosPedido = New DelegateCommand(Of LineaPlantillaJson)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
         cmdBuscarEnTodosLosProductos = New DelegateCommand(Of String)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
-        cmdCargarDireccionesEntrega = New DelegateCommand(Of Object)(AddressOf OnCargarDireccionesEntrega, AddressOf CanCargarDireccionesEntrega)
         cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
         cmdCargarPlazosPago = New DelegateCommand(Of Object)(AddressOf OnCargarPlazosPago, AddressOf CanCargarPlazosPago)
@@ -108,7 +107,7 @@ Public Class PlantillaVentaViewModel
                                                                         End Sub
 
 
-        eventAggregator.GetEvent(Of ClienteModificadoEvent).Subscribe(AddressOf ActualizarCliente)
+        eventAggregator.GetEvent(Of ClienteCreadoEvent).Subscribe(AddressOf ActualizarCliente)
     End Sub
 
     Private Sub ActualizarCliente(cliente As Clientes)
@@ -261,6 +260,8 @@ Public Class PlantillaVentaViewModel
             End If
         End Set
     End Property
+
+    Public Property DireccionEntregaSeleccionadaContacto As String
 
     Private _direccionGoogleMaps As String
     Public Property DireccionGoogleMaps As String
@@ -488,27 +489,6 @@ Public Class PlantillaVentaViewModel
             listaClientes = listaClientesOriginal
         End Set
     End Property
-
-    Private _listaDireccionesEntrega As ObservableCollection(Of DireccionesEntregaJson)
-    Public Property listaDireccionesEntrega As ObservableCollection(Of DireccionesEntregaJson)
-        Get
-            Return _listaDireccionesEntrega
-        End Get
-        Set(ByVal value As ObservableCollection(Of DireccionesEntregaJson))
-            SetProperty(_listaDireccionesEntrega, value)
-            direccionEntregaSeleccionada = (From d In listaDireccionesEntrega Where d.esDireccionPorDefecto).SingleOrDefault
-        End Set
-    End Property
-
-    'Private _listaFiltrosProducto As ObservableCollection(Of String)
-    'Public Property ListaFiltrosProducto As ObservableCollection(Of String)
-    '    Get
-    '        Return _listaFiltrosProducto
-    '    End Get
-    '    Set(value As ObservableCollection(Of String))
-    '        SetProperty(_listaFiltrosProducto, value)
-    '    End Set
-    'End Property
 
     Private _listaFormasPago As ObservableCollection(Of FormaPagoDTO)
     Public Property listaFormasPago() As ObservableCollection(Of FormaPagoDTO)
@@ -1094,49 +1074,6 @@ Public Class PlantillaVentaViewModel
         If String.IsNullOrEmpty(CobroTarjetaCorreo) Then
             CobroTarjetaCorreo = correo.CorreoAgencia
         End If
-    End Sub
-
-    Private _cmdCargarDireccionesEntrega As DelegateCommand(Of Object)
-    Public Property cmdCargarDireccionesEntrega As DelegateCommand(Of Object)
-        Get
-            Return _cmdCargarDireccionesEntrega
-        End Get
-        Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdCargarDireccionesEntrega, value)
-        End Set
-    End Property
-    Private Function CanCargarDireccionesEntrega(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Sub OnCargarDireccionesEntrega(arg As Object)
-
-        If IsNothing(clienteSeleccionado) Then
-            Return
-        End If
-
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
-
-            estaOcupado = True
-
-            Try
-                response = Await client.GetAsync("PlantillaVentas/DireccionesEntrega?empresa=" + clienteSeleccionado.empresa + "&clienteDirecciones=" + clienteSeleccionado.cliente)
-
-                If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    listaDireccionesEntrega = JsonConvert.DeserializeObject(Of ObservableCollection(Of DireccionesEntregaJson))(cadenaJson)
-                Else
-                    dialogService.ShowError("Se ha producido un error al cargar las direcciones de entrega")
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                estaOcupado = False
-            End Try
-
-        End Using
-
     End Sub
 
     Private _cmdCargarFormasPago As DelegateCommand(Of Object)

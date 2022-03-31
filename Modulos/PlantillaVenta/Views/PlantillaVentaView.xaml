@@ -337,28 +337,7 @@
                             <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
-
-                        <ListView Grid.Column="0" ItemsSource="{Binding listaDireccionesEntrega}" SelectedItem="{Binding direccionEntregaSeleccionada}">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Height="55" Margin="6" >
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-
-                                        <StackPanel Grid.Column="0" Width="55" Height="55" >
-                                            <Image Source="pack://application:,,,/PlantillaVenta;component/Images/Direccion.jpg"/>
-                                        </StackPanel>
-
-                                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0" >
-                                            <TextBlock Text="{Binding direccion}" TextWrapping="NoWrap"/>
-                                            <TextBlock Text="{Binding textoPoblacion}" MaxHeight="60"/>
-                                        </StackPanel>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
+                        <controlesusuario:SelectorDireccionEntrega Grid.Column="0" x:Name="selectorEntrega" Configuracion="{Binding configuracion}" Empresa="{Binding clienteSeleccionado.empresa}" Cliente="{Binding clienteSeleccionado.cliente}" DireccionCompleta="{Binding direccionEntregaSeleccionada, Mode=TwoWay}" VerticalContentAlignment="Stretch"></controlesusuario:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
                             <TextBlock TextWrapping="Wrap" Margin="3,0">Este comentario lo leerá la agencia y también el cliente, porque aparecerá en la factura:</TextBlock>
                             <TextBox TextWrapping="Wrap" Text="{Binding direccionEntregaSeleccionada.comentarioRuta}" Margin="3,0"/>

@@ -237,7 +237,7 @@ namespace Nesto.Modulos.Cliente
         {
             get
             {
-                return NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789YX".Contains(ClienteNif.Trim().ToUpper()[0]));
+                return NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789YX".Contains(ClienteNif.Trim().ToUpper()[0])) ||(ClienteEsContacto && EsUnaModificacion);
             }
         }
         public bool NoTieneDireccion
@@ -386,7 +386,7 @@ namespace Nesto.Modulos.Cliente
                     if (clienteCreado != null)
                     {
                         DialogService.ShowNotification("Cliente Modificado", "Se ha modificado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
-                        EventAggregator.GetEvent<ClienteModificadoEvent>().Publish(clienteCreado);
+                        EventAggregator.GetEvent<ClienteCreadoEvent>().Publish(clienteCreado);
                     }
                 } else
                 {
@@ -394,6 +394,7 @@ namespace Nesto.Modulos.Cliente
                     if (clienteCreado!=null)
                     {
                         DialogService.ShowNotification("Cliente Creado", "Se ha creado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
+                        EventAggregator.GetEvent<ClienteCreadoEvent>().Publish(clienteCreado);
                     }
                 }
                 
@@ -439,6 +440,7 @@ namespace Nesto.Modulos.Cliente
                 ClienteNumero = clienteCrear.Cliente;
                 ClienteContacto = clienteCrear.Contacto;
 
+                ClienteEsContacto = clienteCrear.EsContacto;
                 ClienteNif = clienteCrear.Nif;
                 ClienteNombre = clienteCrear.Nombre;
                 ClienteDireccion = clienteCrear.Direccion;
@@ -515,6 +517,10 @@ namespace Nesto.Modulos.Cliente
         }
         private async Task GoToDatosGenerales()
         {
+            if (EsUnaModificacion && ClienteEsContacto)
+            {
+                nifValidado = true;
+            }
             if (NifValidado)
             {
                 return;

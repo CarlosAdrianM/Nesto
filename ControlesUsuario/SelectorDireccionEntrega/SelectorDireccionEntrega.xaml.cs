@@ -1,6 +1,7 @@
 ﻿using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
+using Prism.Regions;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -8,6 +9,11 @@ using System.Linq;
 using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
+using Prism.Ioc;
+using Prism.Events;
+using Nesto.Infrastructure.Events;
+using Nesto.Models.Nesto.Models;
+using System.Threading.Tasks;
 
 namespace ControlesUsuario
 {
@@ -16,11 +22,31 @@ namespace ControlesUsuario
     /// </summary>
     public partial class SelectorDireccionEntrega : UserControl, INotifyPropertyChanged
     {
+        private readonly IRegionManager regionManager;
+        private readonly IEventAggregator eventAggregator;
+
         public SelectorDireccionEntrega()
         {
             InitializeComponent();
 
             GridPrincipal.DataContext = this;
+
+            regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
+            eventAggregator = ContainerLocator.Container.Resolve<IEventAggregator>();
+        }
+
+        private async void OnClienteCreado(Clientes clienteCreado)
+        {
+            if (Empresa == null)
+            {
+                Empresa = clienteCreado.Empresa.Trim();
+            }
+            if (Cliente == null)
+            {
+                Cliente = clienteCreado.Nº_Cliente.Trim();
+            }
+            await cargarDatos();
+            direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.contacto == clienteCreado.Contacto.Trim()).Single();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -197,9 +223,9 @@ namespace ControlesUsuario
         #endregion
 
         #region "Funciones Auxiliares"
-        private async void cargarDatos()
+        private async Task cargarDatos()
         {
-            if(Configuracion == null || Empresa == null || Cliente == null)
+            if (Configuracion == null || Empresa == null || Cliente == null)
             {
                 return;
             }
@@ -215,12 +241,16 @@ namespace ControlesUsuario
                     if (response.IsSuccessStatusCode)
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
-                        listaDireccionesEntrega = JsonConvert.DeserializeObject<ObservableCollection<DireccionesEntregaCliente>>(resultado);
+                        listaDireccionesEntrega = JsonConvert.DeserializeObject<ObservableCollection<DireccionesEntregaCliente>>(resultado); 
                         if (direccionEntregaSeleccionada == null && Seleccionada != null)
                         {
                             direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.contacto == Seleccionada).SingleOrDefault();
-                        }                        
-                    }                    
+                        }
+                        if (direccionEntregaSeleccionada == null && Seleccionada == null)
+                        {
+                            direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.esDireccionPorDefecto).SingleOrDefault();
+                        }
+                    }
                 } catch
                 {
                     throw new Exception("No se pudieron leer las direcciones de entrega");
@@ -238,5 +268,34 @@ namespace ControlesUsuario
         }
         #endregion
 
+        private void btnButtonEditar_Click(object sender, RoutedEventArgs e)
+        {
+            var parameters = new NavigationParameters();
+            DireccionesEntregaCliente curItem = ((ListViewItem)lstDirecciones.ContainerFromElement((Button)sender)).Content as DireccionesEntregaCliente;
+            parameters.Add("empresaParameter", Empresa);
+            parameters.Add("clienteParameter", Cliente.Trim());
+            parameters.Add("contactoParameter", curItem.contacto);
+            regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters);
+        }
+
+        private void btnCrearContacto_Click(object sender, RoutedEventArgs e)
+        {
+            var parameters = new NavigationParameters();
+            parameters.Add("nifParameter", DireccionCompleta.nif);
+            parameters.Add("nombreParameter", DireccionCompleta.nombre);
+            regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters);
+        }
+
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            eventAggregator.GetEvent<ClienteCreadoEvent>().Subscribe(OnClienteCreado);
+            eventAggregator.GetEvent<ClienteModificadoEvent>().Subscribe(OnClienteCreado); //hacemos lo mismo que al crear
+        }
+
+        private void UserControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            eventAggregator.GetEvent<ClienteCreadoEvent>().Unsubscribe(OnClienteCreado);
+            eventAggregator.GetEvent<ClienteModificadoEvent>().Unsubscribe(OnClienteCreado); //hacemos lo mismo que al crear
+        }
     }
 }

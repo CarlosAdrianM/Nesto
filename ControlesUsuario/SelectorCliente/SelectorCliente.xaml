@@ -22,7 +22,7 @@
                 <TextBlock Name="txtNombreCliente" Text="{Binding listaClientes.ElementoSeleccionado.nombre}" FontWeight="Light" FontSize="8"></TextBlock>
                 <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.direccion}" FontWeight="Light" FontSize="8"></TextBlock>
             </StackPanel>
-            <controles:SelectorDireccionEntrega Configuracion="{Binding Configuracion}" Empresa="{Binding listaClientes.ElementoSeleccionado.empresa}" Cliente="{Binding listaClientes.ElementoSeleccionado.cliente}" Seleccionada="{Binding contactoSeleccionado, Mode=TwoWay}" Visibility="{Binding visibilidadSelectorEntrega}"></controles:SelectorDireccionEntrega>
+            <controles:SelectorDireccionEntrega x:Name="selectorEntrega" Configuracion="{Binding Configuracion}" Empresa="{Binding listaClientes.ElementoSeleccionado.empresa}" Cliente="{Binding listaClientes.ElementoSeleccionado.cliente}" Seleccionada="{Binding contactoSeleccionado, Mode=TwoWay}" Visibility="{Binding visibilidadSelectorEntrega}"></controles:SelectorDireccionEntrega>
         </StackPanel>
         <ListView Name="lstClientes" DockPanel.Dock="Bottom" ItemsSource="{Binding listaClientes.Lista}" Visibility="{Binding visibilidadListaClientes}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False" ScrollViewer.VerticalScrollBarVisibility="Auto" >
             <ListView.ItemTemplate>

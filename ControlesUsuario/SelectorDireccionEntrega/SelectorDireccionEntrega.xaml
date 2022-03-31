@@ -4,30 +4,57 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="300" d:DesignWidth="300" Loaded="UserControl_Loaded" Unloaded="UserControl_Unloaded">
 
-    <StackPanel Name="GridPrincipal">
-        <TextBlock>Seleccione una dirección de entrega:</TextBlock>
-        <ListView ItemsSource="{Binding listaDireccionesEntrega}" SelectedItem="{Binding direccionEntregaSeleccionada}">
+    <Grid Name="GridPrincipal">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0">Seleccione una dirección de entrega:</TextBlock>
+
+        <ListView Grid.Row="1" Name="lstDirecciones" ItemsSource="{Binding listaDireccionesEntrega}" SelectedItem="{Binding direccionEntregaSeleccionada}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="False">
+            <ListView.Resources>
+                <Style TargetType="{x:Type ListViewItem}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding esDireccionPorDefecto}" Value="True">
+                            <Setter Property="BorderBrush" Value="LightGray"/>
+                        </DataTrigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="BorderThickness" Value="10" />
+                            <Setter Property="BorderBrush" Value="Blue"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </ListView.Resources>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Height="55" Margin="6" ToolTip="{Binding nombre}">
+                    <Grid Height="55" Margin="6" ToolTip="{Binding nombre}" HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Width="55" Height="55" >
+                        <StackPanel Grid.Column="0" Width="55" Height="55">
                             <Image Source="pack://application:,,,/ControlesUsuario;component/Images/Direccion.jpg"/>
                         </StackPanel>
 
-                        <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0" >
-                            <TextBlock Text="{Binding direccion}" TextWrapping="NoWrap"/>
-                            <TextBlock Text="{Binding textoPoblacion}" MaxHeight="60"/>
+                        <DockPanel Grid.Column="1" VerticalAlignment="Top" Margin="10,0,0,0" HorizontalAlignment="Stretch">
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding direccion}" TextWrapping="NoWrap"/>
+                            <TextBlock DockPanel.Dock="Top" Text="{Binding textoPoblacion}" MaxHeight="60"/>
+                        </DockPanel>
+
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                            <Button x:Name="btnButtonEditar" Margin="3" Padding="3,0" Click="btnButtonEditar_Click" FontFamily="Segoe UI Symbol" Content="&#xE104;" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"></Button>
                         </StackPanel>
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-    </StackPanel>
+
+        <Button x:Name="btnCrearContacto" Grid.Row="2" Click="btnCrearContacto_Click">Crear nueva dirección</Button>
+    </Grid>
 </UserControl>

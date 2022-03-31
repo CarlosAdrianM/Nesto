@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Nesto.Models.Nesto.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,5 +40,6 @@ namespace ControlesUsuario.Models
         }
         public bool tieneCorreoElectronico { get; set; }
         public bool tieneFacturacionElectronica { get; set; }
+        public string nif { get; set; }
     }
 }
