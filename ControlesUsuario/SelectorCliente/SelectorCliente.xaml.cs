@@ -547,7 +547,16 @@ namespace ControlesUsuario
                 try
                 {
                     mostrarCargando(true);
-                    string urlConsulta = "Clientes?empresa=" + Empresa+ "&vendedor="+ vendedor + "&filtro=" + txtFiltro.Text;
+                    string urlConsulta;
+                    if (Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION))
+                    {
+                        urlConsulta = "Clientes?empresa=" + Empresa + "&vendedor=&filtro=" + txtFiltro.Text;
+                    }
+                    else
+                    {
+                        urlConsulta = "Clientes?empresa=" + Empresa + "&vendedor=" + vendedor + "&filtro=" + txtFiltro.Text;
+                    }
+                    
 
 
                     response = await client.GetAsync(urlConsulta);

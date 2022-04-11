@@ -11,4 +11,5 @@ Public Interface IRapportService
     Function cargarListaRapportsFiltrada(vendedor As String, filtro As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO))
     Function CargarListaEstados() As List(Of idShortDescripcion)
     Function CargarListaTipos() As List(Of idDescripcion)
+    Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String) As Task(Of Boolean)
 End Interface

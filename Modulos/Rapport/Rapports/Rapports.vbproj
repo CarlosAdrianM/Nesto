@@ -75,6 +75,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\ControlesUsuario\ControlesUsuario.csproj" />
+    <ProjectReference Include="..\..\Cliente\Cliente.csproj" />
     <ProjectReference Include="..\..\PedidoVenta\PedidoVenta\PedidoVenta.vbproj" />
   </ItemGroup>
   <ItemGroup>

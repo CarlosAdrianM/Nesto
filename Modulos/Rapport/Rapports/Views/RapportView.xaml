@@ -31,6 +31,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Stretch" Width="Auto">
             <TextBlock Text="Cliente: "></TextBlock>
@@ -114,7 +115,10 @@
             <TextBlock Text="Tipo de Centro:"></TextBlock>
             <ComboBox Name="cmbTiposCentro" ItemsSource="{Binding listaTiposCentros}" SelectedValue="{Binding rapport.TipoCentro}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
         </StackPanel>
-        <StackPanel Grid.Row="13" HorizontalAlignment="Stretch">
+        <StackPanel Grid.Row="13">
+            <CheckBox IsChecked="{Binding QuitarDeMiListado}" Content="Quitar de mi listado"></CheckBox>
+        </StackPanel>
+        <StackPanel Grid.Row="14" HorizontalAlignment="Stretch">
             <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding cmdGuardarCambios}">Guardar Cambios</Button>
         </StackPanel>
     </Grid>

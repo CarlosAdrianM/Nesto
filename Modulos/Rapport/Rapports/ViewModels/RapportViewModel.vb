@@ -110,6 +110,16 @@ Public Class RapportViewModel
         End Set
     End Property
 
+    Private _quitarDeMiListado As Boolean
+    Public Property QuitarDeMiListado As Boolean
+        Get
+            Return _quitarDeMiListado
+        End Get
+        Set(value As Boolean)
+            SetProperty(_quitarDeMiListado, value)
+        End Set
+    End Property
+
     Private _rapport As SeguimientoClienteDTO
     Public Property rapport As SeguimientoClienteDTO
         Get
@@ -225,6 +235,10 @@ Public Class RapportViewModel
             texto = Await servicio.crearRapport(rapport)
             If rapport.Estado = Constantes.Rapports.Estados.GESTION_ADMINISTRATIVA Then
                 texto += vbCrLf + Await servicio.CrearTareaPlanner(rapport)
+            End If
+            If QuitarDeMiListado Then
+                Await servicio.QuitarDeMiListado(rapport, VendedorEstetica, VendedorPeluqueria)
+                QuitarDeMiListado = False
             End If
             dialogService.ShowNotification("Rapport", texto)
         Catch ex As Exception

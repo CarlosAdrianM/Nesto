@@ -20,6 +20,7 @@ Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports System.Text.Encodings.Web
+Imports ControlesUsuario.Models
 
 Public Class PlantillaVentaViewModel
     Inherits BindableBase
@@ -240,12 +241,12 @@ Public Class PlantillaVentaViewModel
         regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters)
     End Sub
 
-    Private _direccionEntregaSeleccionada As DireccionesEntregaJson
-    Public Property direccionEntregaSeleccionada As DireccionesEntregaJson
+    Private _direccionEntregaSeleccionada As DireccionesEntregaCliente
+    Public Property direccionEntregaSeleccionada As DireccionesEntregaCliente
         Get
             Return _direccionEntregaSeleccionada
         End Get
-        Set(ByVal value As DireccionesEntregaJson)
+        Set(ByVal value As DireccionesEntregaCliente)
             SetProperty(_direccionEntregaSeleccionada, value)
             If fechaMinimaEntrega > fechaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
@@ -260,8 +261,6 @@ Public Class PlantillaVentaViewModel
             End If
         End Set
     End Property
-
-    Public Property DireccionEntregaSeleccionadaContacto As String
 
     Private _direccionGoogleMaps As String
     Public Property DireccionGoogleMaps As String

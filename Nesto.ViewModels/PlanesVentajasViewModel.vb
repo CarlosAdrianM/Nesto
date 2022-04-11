@@ -478,8 +478,8 @@ Public Class PlanesVentajasViewModel
                 newTask.Subject = "Finaliza el Plan de Ventajas " + planActual.Numero.ToString.Trim
                 newTask.Body = "El día " + planActual.FechaFin.ToShortDateString + " finaliza el Plan de Ventajas nº " + planActual.Numero.ToString.Trim + "." + vbCrLf +
                     "Importe Compromiso: " + FormatCurrency(planActual.Importe) + vbCrLf
-                For Each cliente In planActual.PlanVentajasCliente
-                    newTask.Body = newTask.Body + "Cliente " + cliente.Cliente.ToString.Trim + vbCrLf
+                For Each plan In planActual.PlanVentajasCliente
+                    newTask.Body = newTask.Body + "Cliente " + plan.Cliente.ToString.Trim + vbCrLf
                 Next
                 newTask.Start = planActual.FechaFin
                 newTask.AllDayEvent = True

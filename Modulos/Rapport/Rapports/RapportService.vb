@@ -9,6 +9,7 @@ Imports Microsoft.Office.Interop
 Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
+Imports Nesto.Modulos.Cliente
 Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Newtonsoft.Json
@@ -310,5 +311,48 @@ Public Class RapportService
         Catch ex As Exception
             Throw
         End Try
+    End Function
+
+    Public Async Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String) As Task(Of Boolean) Implements IRapportService.QuitarDeMiListado
+        Dim clienteCrear As ClienteCrear = New ClienteCrear With {
+            .Empresa = rapport.Empresa,
+            .Cliente = rapport.Cliente,
+            .Contacto = rapport.Contacto,
+            .Usuario = rapport.Usuario
+        }
+
+        Dim vendedorUsuario As String = Await configuracion.leerParametro(rapport.Empresa, Parametros.Claves.Vendedor)
+
+        If vendedorEstetica = vendedorUsuario Then
+            clienteCrear.VendedorEstetica = Constantes.Vendedores.VENDEDOR_POR_DEFECTO
+        End If
+        If vendedorPeluqueria = Await configuracion.leerParametro(rapport.Empresa, Parametros.Claves.Vendedor) Then
+            clienteCrear.VendedorPeluqueria = Constantes.Vendedores.VENDEDOR_POR_DEFECTO
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(clienteCrear), Encoding.UTF8, "application/json")
+
+            Try
+                response = Await client.PutAsync("Clientes/DejarDeVisitar", content)
+
+                If Not response.IsSuccessStatusCode Then
+                    Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+                    Throw New Exception("Se ha producido un error al quitar el cliente del listado" + vbCr + contenido)
+                End If
+            Catch ex As Exception
+                Throw New Exception("Se ha producido un error al quitar el cliente del listado", ex)
+            End Try
+
+        End Using
     End Function
 End Class

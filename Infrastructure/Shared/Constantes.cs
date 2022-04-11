@@ -156,6 +156,11 @@ namespace Nesto.Infrastructure.Shared
             public const string CLIENTE = "2";
             public const string PROVEEDOR = "3";
         }
+
+        public class Vendedores
+        {
+            public const string VENDEDOR_POR_DEFECTO = "NV";
+        }
     }
 
 }
