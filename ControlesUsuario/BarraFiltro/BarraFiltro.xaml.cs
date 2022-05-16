@@ -40,14 +40,19 @@ namespace ControlesUsuario
         {
             if (e.Key == Key.Enter)
             {
-                if (ListaItems.ListaOriginal == null)
+                //if (ListaItems.ListaOriginal == null)
+                //{
+                //    ListaItems.FijarFiltroCommand.Execute(txtFiltro.Text);
+                //}
+                //else
+                //{
+                //    ListaItems.FijarFiltroCommand.Execute(txtFiltro.Text);
+                //}
+                if (ListaItems.Filtro != txtFiltro.Text)
                 {
-                    ListaItems.FijarFiltroCommand.Execute(txtFiltro.Text);
+                    ListaItems.Filtro = txtFiltro.Text;
                 }
-                else
-                {
-                    ListaItems.FijarFiltroCommand.Execute(txtFiltro.Text);
-                }
+                ListaItems.FijarFiltroCommand.Execute(txtFiltro.Text);
                 TraversalRequest tRequest = new TraversalRequest(FocusNavigationDirection.Next);
                 UIElement keyboardFocus = Keyboard.FocusedElement as UIElement;
                 UIElement originalUIE = keyboardFocus;
@@ -73,6 +78,10 @@ namespace ControlesUsuario
 
         private async void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
+            if (ListaItems == null)
+            {
+                return;
+            }
             ListaItems.ElementoSeleccionadoChanged += (sender, args) => {
                 ItemSeleccionado = ListaItems.ElementoSeleccionado;
             };

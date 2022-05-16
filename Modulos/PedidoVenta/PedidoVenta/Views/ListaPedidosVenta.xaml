@@ -16,29 +16,25 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
-    
+
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding cmdCargarListaPedidos}" />
         </i:EventTrigger>
     </i:Interaction.Triggers>
-    
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
-        <!--
-        <xctk:WatermarkTextBox Name="txtFiltro" Grid.Row="1" Text="{Binding filtroPedidos}" Watermark="Buscar Pedidos..."></xctk:WatermarkTextBox>
-        -->
-        <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
-        <xctk:BusyIndicator Grid.Row="2" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos...">
-            <ListView ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
+    <xctk:BusyIndicator Grid.Row="2" IsBusy="{Binding estaCargandoListaPedidos}" BusyContent="Cargando Lista Pedidos..." FocusAfterBusy="{Binding ElementName=txtFiltro}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
+            <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
+            <ListView Grid.Row="2" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">
@@ -105,10 +101,12 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
+            <CheckBox Grid.Row="3" IsChecked="{Binding mostrarPresupuestos}">Mostrar Presupuestos</CheckBox>
+            <CheckBox Grid.Row="4" IsChecked="{Binding mostrarSoloPendientes}">Mostrar Sólo Pendientes</CheckBox>
+            <CheckBox Grid.Row="5" IsChecked="{Binding mostrarSoloPicking}">Mostrar Sólo Picking</CheckBox>
+        </Grid>
         </xctk:BusyIndicator>
-        <CheckBox Grid.Row="3" IsChecked="{Binding mostrarPresupuestos}">Mostrar Presupuestos</CheckBox>
-        <CheckBox Grid.Row="4" IsChecked="{Binding mostrarSoloPendientes}">Mostrar Sólo Pendientes</CheckBox>
-        <CheckBox Grid.Row="5" IsChecked="{Binding mostrarSoloPicking}">Mostrar Sólo Picking</CheckBox>
-    </Grid>
+        
+    
 
 </UserControl>

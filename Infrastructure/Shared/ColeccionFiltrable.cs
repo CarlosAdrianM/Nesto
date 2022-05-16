@@ -253,7 +253,7 @@ namespace Nesto.Infrastructure.Shared
             {
                 SetProperty(ref _listaFijada, value);
                 Lista = value;
-                if (TieneDatosIniciales && value != null)
+                if (TieneDatosIniciales && value != null && value.Any())
                 {
                     ElementoSeleccionado = value.FirstOrDefault();
                 }

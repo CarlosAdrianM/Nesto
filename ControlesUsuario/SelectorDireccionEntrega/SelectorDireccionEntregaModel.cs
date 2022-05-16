@@ -1,4 +1,5 @@
-﻿using Nesto.Models.Nesto.Models;
+﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Models.Nesto.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ControlesUsuario.Models
 {
-    public class DireccionesEntregaCliente
+    public class DireccionesEntregaCliente : IFiltrableItem
     {
         public string contacto { get; set; }
         public bool clientePrincipal { get; set; }
@@ -41,5 +42,12 @@ namespace ControlesUsuario.Models
         public bool tieneCorreoElectronico { get; set; }
         public bool tieneFacturacionElectronica { get; set; }
         public string nif { get; set; }
+
+        public bool Contains(string filtro)
+        {
+            return (nombre != null && nombre.ToLower().Contains(filtro)) ||
+                   (direccion != null && direccion.ToLower().Contains(filtro)) ||
+                   (poblacion != null && poblacion.ToLower().Contains(filtro));
+        }
     }
 }

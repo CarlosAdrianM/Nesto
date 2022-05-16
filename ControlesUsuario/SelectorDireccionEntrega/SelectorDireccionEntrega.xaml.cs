@@ -14,6 +14,7 @@ using Prism.Events;
 using Nesto.Infrastructure.Events;
 using Nesto.Models.Nesto.Models;
 using System.Threading.Tasks;
+using Nesto.Infrastructure.Shared;
 
 namespace ControlesUsuario
 {
@@ -31,6 +32,18 @@ namespace ControlesUsuario
 
             GridPrincipal.DataContext = this;
 
+            listaDireccionesEntrega = new();
+            listaDireccionesEntrega.TieneDatosIniciales = true;
+            listaDireccionesEntrega.VaciarAlSeleccionar = false;
+            //listaDireccionesEntrega.ElementoSeleccionadoChanged += (sender, args) =>
+            //{
+            //    if (listaDireccionesEntrega.ElementoSeleccionado != null)
+            //    {
+            //        direccionEntregaSeleccionada = listaDireccionesEntrega.ElementoSeleccionado as DireccionesEntregaCliente;
+            //    }
+            //};
+            //listaDireccionesEntrega.HayQueCargarDatos += async () => { await cargarDatos(); };
+
             regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
             eventAggregator = ContainerLocator.Container.Resolve<IEventAggregator>();
         }
@@ -46,7 +59,7 @@ namespace ControlesUsuario
                 Cliente = clienteCreado.Nº_Cliente.Trim();
             }
             await cargarDatos();
-            direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.contacto == clienteCreado.Contacto.Trim()).Single();
+            direccionEntregaSeleccionada = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.Single(l => (l as DireccionesEntregaCliente).contacto == clienteCreado.Contacto.Trim());
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -207,8 +220,8 @@ namespace ControlesUsuario
                 DireccionCompleta = direccionEntregaSeleccionada;
             }
         }
-        private ObservableCollection<DireccionesEntregaCliente> _listaDireccionesEntrega;
-        public ObservableCollection<DireccionesEntregaCliente> listaDireccionesEntrega {
+        private ColeccionFiltrable _listaDireccionesEntrega;
+        public ColeccionFiltrable listaDireccionesEntrega {
             get
             {
                 return _listaDireccionesEntrega;
@@ -241,14 +254,14 @@ namespace ControlesUsuario
                     if (response.IsSuccessStatusCode)
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
-                        listaDireccionesEntrega = JsonConvert.DeserializeObject<ObservableCollection<DireccionesEntregaCliente>>(resultado); 
+                        listaDireccionesEntrega.ListaOriginal = new ObservableCollection<IFiltrableItem>(JsonConvert.DeserializeObject<ObservableCollection<DireccionesEntregaCliente>>(resultado)); 
                         if (direccionEntregaSeleccionada == null && Seleccionada != null)
                         {
-                            direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.contacto == Seleccionada).SingleOrDefault();
+                            direccionEntregaSeleccionada = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).contacto == Seleccionada);
                         }
                         if (direccionEntregaSeleccionada == null && Seleccionada == null)
                         {
-                            direccionEntregaSeleccionada = listaDireccionesEntrega.Where(l => l.esDireccionPorDefecto).SingleOrDefault();
+                            direccionEntregaSeleccionada = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).esDireccionPorDefecto);
                         }
                     }
                 } catch
