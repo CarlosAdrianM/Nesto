@@ -12,13 +12,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.5.0" />
-    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.2.0" />
-    <PackageReference Include="MaterialDesignThemes" Version="4.3.0" />
-    <PackageReference Include="Microsoft.Graph" Version="4.20.0" />
+    <PackageReference Include="Azure.Identity" Version="1.6.0" />
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.3.0" />
+    <PackageReference Include="MaterialDesignThemes" Version="4.5.0" />
+    <PackageReference Include="Microsoft.Graph" Version="4.28.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
-    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.15" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.16" />
   </ItemGroup>
 
   <ItemGroup>

@@ -84,7 +84,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Extended.Wpf.Toolkit">
-      <Version>4.2.0</Version>
+      <Version>4.3.0</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.1</Version>
@@ -96,6 +96,6 @@
       <Version>8.1.97</Version>
     </PackageReference>
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
-    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.15" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.16" />
   </ItemGroup>
 </Project>
