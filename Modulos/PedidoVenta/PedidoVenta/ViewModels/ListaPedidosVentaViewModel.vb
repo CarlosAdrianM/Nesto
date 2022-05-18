@@ -32,7 +32,8 @@ Public Class ListaPedidosVentaViewModel
         eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
 
         ListaPedidos = New ColeccionFiltrable With {
-            .TieneDatosIniciales = True
+            .TieneDatosIniciales = True,
+            .SeleccionarPrimerElemento = False
         }
 
         'ListaPedidos.ElementoSeleccionadoChanged = New ColeccionFiltrable.ElementoSeleccionadoChange(Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado)
@@ -329,6 +330,7 @@ Public Class ListaPedidosVentaViewModel
                 .empresa = resumenSeleccionado.empresa,
                 .numero = p
                                                                                                                                                    }))
+            'ListaPedidos.ElementoSeleccionado = ListaPedidos.Lista.FirstOrDefault(Function(p) CType(p, ResumenPedido).numero = resumenSeleccionado.numero)
             RaisePropertyChanged(NameOf(TextoUnirPedido))
         End If
     End Function

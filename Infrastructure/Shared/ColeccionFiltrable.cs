@@ -202,6 +202,9 @@ namespace Nesto.Infrastructure.Shared
             get => _elementoSeleccionado;
             set
             {
+                if (_elementoSeleccionado == value) {
+                    return;
+                }
                 IFiltrableItem oldElementoSeleccionado = _elementoSeleccionado;
                 _elementoSeleccionado = value;
                 ElementoSeleccionadoChangedEventArgs args = new();
@@ -253,7 +256,7 @@ namespace Nesto.Infrastructure.Shared
             {
                 SetProperty(ref _listaFijada, value);
                 Lista = value;
-                if (TieneDatosIniciales && value != null && value.Any())
+                if (SeleccionarPrimerElemento && TieneDatosIniciales && value != null && value.Any())
                 {
                     ElementoSeleccionado = value.FirstOrDefault();
                 }
@@ -277,6 +280,10 @@ namespace Nesto.Infrastructure.Shared
                 }
             }
         }
+
+        // Determina si queremos que seleccione el primer elemento por defecto o no
+        public bool SeleccionarPrimerElemento { get; set; } = true;
+
         public bool TieneDatosIniciales { get; set; }
 
         // Hay sitios donde al seleccionar un elemento hay que vacíar las listas

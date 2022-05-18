@@ -55,7 +55,6 @@ Public Class AgenciasViewModel
         Me.dialogService = dialogService
 
         Titulo = "Agencias"
-        PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS, .Header = "Temporal"}
 
         ' Prism
         cmdCargarDatos = New DelegateCommand(AddressOf OnCargarDatos)
@@ -174,10 +173,10 @@ Public Class AgenciasViewModel
                 SetProperty(_agenciaSeleccionada, value)
                 If Not IsNothing(value) Then
                     agenciaEspecifica = factory(value.Nombre).Invoke
-                    If IsNothing(PestañaSeleccionada) Then
+                    If String.IsNullOrEmpty(PestannaNombre) Then
                         Return
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.PEDIDOS OrElse PestañaSeleccionada.Name = Pestannas.EN_CURSO OrElse PestañaSeleccionada.Name = Pestannas.ETIQUETAS Then
+                    If PestannaNombre = Pestannas.PEDIDOS OrElse PestannaNombre = Pestannas.EN_CURSO OrElse PestannaNombre = Pestannas.ETIQUETAS Then
                         ActualizarListas()
                         Dim nombrePais As String = paisActual?.Nombre
                         If Not IsNothing(nombrePais) AndAlso value.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL Then
@@ -189,7 +188,7 @@ Public Class AgenciasViewModel
                         servicioActual = listaServicios.Single(Function(s) s.id = agenciaEspecifica.ServicioDefecto)
                         horarioActual = listaHorarios.Single(Function(h) h.id = agenciaEspecifica.HorarioDefecto)
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.PENDIENTES Then
+                    If PestannaNombre = Pestannas.PENDIENTES Then
                         ActualizarListas()
                         If Not IsNothing(EnvioPendienteSeleccionado) Then
                             EnvioPendienteSeleccionado.Pais = agenciaEspecifica.paisDefecto
@@ -203,22 +202,22 @@ Public Class AgenciasViewModel
                             envioCreandose.Agencia = agenciaSeleccionada.Numero
                         End If
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.PEDIDOS AndAlso Not IsNothing(empresaSeleccionada) AndAlso Not IsNothing(pedidoSeleccionado) Then
+                    If PestannaNombre = Pestannas.PEDIDOS AndAlso Not IsNothing(empresaSeleccionada) AndAlso Not IsNothing(pedidoSeleccionado) Then
                         listaEnviosPedido = servicio.CargarListaEnviosPedido(empresaSeleccionada.Número, pedidoSeleccionado.Número)
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.EN_CURSO Then
+                    If PestannaNombre = Pestannas.EN_CURSO Then
                         listaEnvios = servicio.CargarListaEnvios(value.Numero)
                         If Not IsNothing(envioActual) AndAlso envioActual.Agencia <> value.Numero Then
                             envioActual = listaEnvios.FirstOrDefault
                         End If
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.REEMBOLSOS Then
+                    If PestannaNombre = Pestannas.REEMBOLSOS Then
                         listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, value.Numero)
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.RETORNOS Then
+                    If PestannaNombre = Pestannas.RETORNOS Then
                         listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, value.Numero, agenciaEspecifica.retornoSinRetorno)
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.TRAMITADOS AndAlso String.IsNullOrEmpty(nombreFiltro) Then
+                    If PestannaNombre = Pestannas.TRAMITADOS AndAlso String.IsNullOrEmpty(nombreFiltro) Then
                         listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, value.Numero, fechaFiltro)
                     End If
 
@@ -261,16 +260,16 @@ Public Class AgenciasViewModel
                     agenciaSeleccionada = listaAgencias.FirstOrDefault
                 End If
                 If Not IsNothing(agenciaSeleccionada) Then
-                    If PestañaSeleccionada.Name = Pestannas.EN_CURSO Then
+                    If PestannaNombre = Pestannas.EN_CURSO Then
                         listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.REEMBOLSOS Then
+                    If PestannaNombre = Pestannas.REEMBOLSOS Then
                         listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, agenciaSeleccionada.Numero)
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.RETORNOS Then
+                    If PestannaNombre = Pestannas.RETORNOS Then
                         listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, agenciaEspecifica.retornoSinRetorno)
                     End If
-                    If PestañaSeleccionada.Name = Pestannas.TRAMITADOS Then
+                    If PestannaNombre = Pestannas.TRAMITADOS Then
                         listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
                     End If
                 Else
@@ -702,7 +701,7 @@ Public Class AgenciasViewModel
         Set(value As Date)
             SetProperty(_fechaFiltro, value)
             listaEnviosTramitados = servicio.CargarListaEnviosTramitadosPorFecha(empresaSeleccionada.Número, fechaFiltro)
-            If Not IsNothing(PestañaSeleccionada) AndAlso PestañaSeleccionada.Name = Pestannas.TRAMITADOS Then
+            If PestannaNombre = Pestannas.TRAMITADOS Then
                 envioActual = listaEnviosTramitados.FirstOrDefault(Function(e) e.Agencia = agenciaSeleccionada.Numero)
                 If IsNothing(envioActual) Then
                     envioActual = listaEnviosTramitados.FirstOrDefault()
@@ -719,7 +718,7 @@ Public Class AgenciasViewModel
         Set(value As String)
             SetProperty(_clienteFiltro, value)
             listaEnviosTramitados = servicio.CargarListaEnviosTramitadosPorCliente(empresaSeleccionada.Número, clienteFiltro)
-            If PestañaSeleccionada.Name = "tabTramitados" Then
+            If PestannaNombre = Pestannas.TRAMITADOS Then
                 envioActual = listaEnviosTramitados.FirstOrDefault
             End If
         End Set
@@ -830,20 +829,20 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private _PestañaSeleccionada As TabItem
-    Public Property PestañaSeleccionada As TabItem
+    Private _pestannaNombre As String
+    Public Property PestannaNombre As String
         Get
-            Return _PestañaSeleccionada
+            Return _pestannaNombre
         End Get
-        Set(value As TabItem)
-            SetProperty(_PestañaSeleccionada, value)
-            If PestañaSeleccionada.Header = "Temporal" Then
+        Set(value As String)
+            SetProperty(_pestannaNombre, value)
+            If String.IsNullOrEmpty(value) Then
                 Return
             End If
-            If PestañaSeleccionada.Name = Pestannas.PEDIDOS Then
+            If PestannaNombre = Pestannas.PEDIDOS Then
                 numeroPedido = numeroPedido 'para que ejecute el código
             End If
-            If PestañaSeleccionada.Name = Pestannas.PENDIENTES Then
+            If PestannaNombre = Pestannas.PENDIENTES Then
                 Dim listaNueva As IEnumerable(Of EnvioAgenciaWrapper) = servicio.CargarListaPendientes()
                 If Not IsNothing(listaPendientes) Then
                     listaPendientes.Clear()
@@ -861,20 +860,35 @@ Public Class AgenciasViewModel
                     ActualizarEstadoComandos()
                 End If
             End If
-            If PestañaSeleccionada.Name = Pestannas.EN_CURSO AndAlso Not IsNothing(agenciaSeleccionada) Then
+            If PestannaNombre = Pestannas.EN_CURSO AndAlso Not IsNothing(agenciaSeleccionada) Then
                 ActualizarListas()
                 listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
             End If
 
-            If PestañaSeleccionada.Name = Pestannas.REEMBOLSOS AndAlso Not IsNothing(empresaSeleccionada) Then
+            If PestannaNombre = Pestannas.REEMBOLSOS AndAlso Not IsNothing(empresaSeleccionada) Then
                 listaReembolsos = servicio.CargarListaReembolsos(empresaSeleccionada.Número, agenciaSeleccionada.Numero)
             End If
 
-            If PestañaSeleccionada.Name = Pestannas.RETORNOS AndAlso Not IsNothing(empresaSeleccionada) Then
+            If PestannaNombre = Pestannas.RETORNOS AndAlso Not IsNothing(empresaSeleccionada) Then
                 listaRetornos = servicio.CargarListaRetornos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, agenciaEspecifica.retornoSinRetorno)
             End If
-            If PestañaSeleccionada.Name = Pestannas.TRAMITADOS AndAlso Not IsNothing(empresaSeleccionada) Then
+            If PestannaNombre = Pestannas.TRAMITADOS AndAlso Not IsNothing(empresaSeleccionada) Then
                 listaEnviosTramitados = servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+            End If
+        End Set
+    End Property
+
+    Private _PestañaSeleccionada As TabItem
+    Public Property PestañaSeleccionada As TabItem
+        Get
+            Return _PestañaSeleccionada
+        End Get
+        Set(value As TabItem)
+            SetProperty(_PestañaSeleccionada, value)
+            If IsNothing(value) Then
+                PestannaNombre = String.Empty
+            Else
+                PestannaNombre = value.Name
             End If
         End Set
     End Property
@@ -1872,8 +1886,8 @@ Public Class AgenciasViewModel
         If IsNothing(listaPendientes) Then
             listaPendientes = New ObservableCollection(Of EnvioAgenciaWrapper)
         End If
-        If IsNothing(PestañaSeleccionada) Then
-            PestañaSeleccionada = New TabItem With {.Name = Pestannas.PENDIENTES}
+        If String.IsNullOrEmpty(PestannaNombre) Then
+            PestannaNombre = Pestannas.PENDIENTES
         End If
         If IsNothing(empresaSeleccionada) AndAlso Not IsNothing(listaEmpresas) Then
             empresaSeleccionada = listaEmpresas.FirstOrDefault
