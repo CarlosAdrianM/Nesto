@@ -92,4 +92,12 @@ Public Class ClienteComercial
         Dim vm As ClientesViewModel = DataContext
         Clipboard.SetText(vm.EnlaceReclamarDeuda)
     End Sub
+
+    Private Sub dgrPersonasContacto_MouseRightButtonUp(sender As Object, e As MouseButtonEventArgs) Handles dgrPersonasContacto.MouseRightButtonUp
+        If e.OriginalSource.GetType() = GetType(TextBlock) Then
+            Dim texto As String = e.OriginalSource.Text.Trim()
+            Clipboard.SetText(texto)
+            MsgBox("Copiado al portapapeles: " & texto)
+        End If
+    End Sub
 End Class

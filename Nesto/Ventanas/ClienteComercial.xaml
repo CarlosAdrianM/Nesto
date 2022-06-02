@@ -23,14 +23,6 @@
             </Grid.ColumnDefinitions>
             <DockPanel Grid.Column="0" HorizontalAlignment="Stretch" >
                 <controles:BarraFiltro Name="txtFiltro" DockPanel.Dock="Top" ListaItems="{Binding ListaClientesFiltrable}"></controles:BarraFiltro>
-                <!--
-                <Border DockPanel.Dock="Top" HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
-                    <DockPanel HorizontalAlignment="Stretch">
-                        <TextBlock DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎" />
-                        <TextBox Name="txtFiltro" DockPanel.Dock="Left" Text="{Binding filtro}" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0"/>
-                    </DockPanel>
-                </Border>
-                -->
                 <ListView Name="listaIzda" DockPanel.Dock="Bottom" ItemsSource="{Binding Path=ListaClientesFiltrable.Lista}" SelectedItem="{Binding clienteActivoDTO,Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Stretch">
                     <ListView.ItemTemplate>
                         <DataTemplate>
@@ -86,7 +78,7 @@
                     <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor Peluquería:</TextBlock>
                     <controles:SelectorVendedor Grid.Row="1" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding vendedorPorGrupo, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
                     <Button Grid.Row="2" Grid.Column="4" Command="{Binding cmdGuardarVendedores}" Margin="2">Guardar</Button>
-                    <DataGrid Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContactoCliente}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
+                    <DataGrid Name="dgrPersonasContacto" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContactoCliente}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" SelectionUnit="Cell">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
