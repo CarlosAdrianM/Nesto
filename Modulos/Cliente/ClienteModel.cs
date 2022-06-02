@@ -6,6 +6,9 @@ namespace Nesto.Modulos.Cliente
     {
         public string Cliente { get; set; }
         public string CodigoPostal { get; set; }
+        public string Comentarios { get; set; }
+        public string ComentariosPicking { get; set; }
+        public string ComentariosRuta { get; set; }
         public string Contacto { get; set; }
         public string Direccion { get; set; }
         public string Empresa { get; set; }

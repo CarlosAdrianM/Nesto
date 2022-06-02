@@ -19,6 +19,7 @@ Public Class PedidoVentaView
     Private Async Sub PedidoVentaView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         If Not cargado Then
             Dim view As ListaPedidosVenta = container.Resolve(Of ListaPedidosVenta)
+            Dim viewModel As ListaPedidosVentaViewModel = CType(view.DataContext, ListaPedidosVentaViewModel)
             view.cambiarRegionManager(scopedRegionManager)
             Dim region As IRegion = scopedRegionManager.Regions("ListaPedidosRegion")
             region.Add(view, "ListaPedidosVenta")
@@ -27,9 +28,9 @@ Public Class PedidoVentaView
                     .empresa = Me.DataContext.empresaInicial,
                     .numero = Me.DataContext.pedidoInicial
                     }
-                view.DataContext.resumenSeleccionado = resumen
+                viewModel.ListaPedidos.ElementoSeleccionado = resumen
             Else
-                view.DataContext.resumenSeleccionado = Await view.DataContext.cargarPedidoPorDefecto()
+                viewModel.ListaPedidos.ElementoSeleccionado = Await viewModel.cargarPedidoPorDefecto()
             End If
             region.Activate(view)
             cargado = True

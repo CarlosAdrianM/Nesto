@@ -34,7 +34,7 @@
             </Grid.RowDefinitions>
             <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
             <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
-            <ListView Grid.Row="2" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding resumenSeleccionado}" HorizontalContentAlignment="Stretch">
+            <ListView Grid.Row="2" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" HorizontalContentAlignment="Stretch">
                 <ListView.ItemTemplate>
                     <DataTemplate>
                         <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">

@@ -36,8 +36,8 @@ Public Class ListaPedidosVentaViewModel
             .SeleccionarPrimerElemento = False
         }
 
-        'ListaPedidos.ElementoSeleccionadoChanged = New ColeccionFiltrable.ElementoSeleccionadoChange(Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado)
-        AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado
+        'AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado
+        AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender, args) CargarResumenSeleccionado()
 
         AddHandler ListaPedidos.HayQueCargarDatos, Sub()
                                                        Dim numeroPedido As Integer
@@ -47,7 +47,7 @@ Public Class ListaPedidosVentaViewModel
                                                                     .numero = numeroPedido
                                                                  }
                                                            ListaPedidos.FiltrosPuestos.Clear()
-                                                           resumenSeleccionado = nuevoResumen
+                                                           ListaPedidos.ElementoSeleccionado = nuevoResumen
                                                        End If
                                                    End Sub
     End Sub
@@ -73,48 +73,6 @@ Public Class ListaPedidosVentaViewModel
         End Set
     End Property
 
-    'Private _filtroPedidos As String
-    'Public Property filtroPedidos As String
-    '    Get
-    '        Return _filtroPedidos
-    '    End Get
-    '    Set(value As String)
-    '        SetProperty(_filtroPedidos, value)
-
-    '        If filtroPedidos = "" Then
-    '            ListaPedidos.Lista = ListaPedidos.ListaOriginal
-    '        Else
-    '            If Not IsNothing(ListaPedidos) Then
-    '                ListaPedidos = New ObservableCollection(Of ResumenPedido)(ListaPedidos.Where(Function(p) (Not IsNothing(p.direccion) AndAlso p.direccion.ToLower.Contains(filtroPedidos.ToLower)) OrElse
-    '                                                                                             (Not IsNothing(p.nombre) AndAlso p.nombre.ToLower.Contains(filtroPedidos.ToLower)) OrElse
-    '                                                                                             (Not IsNothing(p.cliente) AndAlso p.cliente.Trim.ToLower.Equals(filtroPedidos.ToLower)) OrElse
-    '                                                                                             (p.numero = Me.convertirCadenaInteger(filtroPedidos))
-    '                                                                                             ))
-
-    '            End If
-    '            If Not IsNothing(ListaPedidos) AndAlso ListaPedidos.Count = 1 Then
-    '                resumenSeleccionado = ListaPedidos.FirstOrDefault
-    '            End If
-
-    '            If (Not IsNothing(ListaPedidos) AndAlso ListaPedidos.Count = 0) OrElse estaCargandoListaPedidos Then
-    '                Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
-    '                    .empresa = empresaSeleccionada,
-    '                    .numero = filtroPedidos
-    '                }
-    '                resumenSeleccionado = nuevoResumen
-    '            End If
-
-
-    '        End If
-
-    '        'p.direccion.Contains(filtroPedidos) OrElse
-    '        'p.nombre.Contains(filtroPedidos) OrElse
-    '        'p.cliente.Contains(filtroPedidos)
-    '        'OrElse p.numero = CInt(filtroPedidos)
-    '        '   ))
-    '    End Set
-    'End Property
-
     Private _listaPedidos As ColeccionFiltrable
     Public Property ListaPedidos() As ColeccionFiltrable
         Get
@@ -124,16 +82,6 @@ Public Class ListaPedidosVentaViewModel
             SetProperty(_listaPedidos, value)
         End Set
     End Property
-
-    'Private _listaPedidosOriginal As ObservableCollection(Of ResumenPedido)
-    'Public Property listaPedidosOriginal As ObservableCollection(Of ResumenPedido)
-    '    Get
-    '        Return _listaPedidosOriginal
-    '    End Get
-    '    Set(value As ObservableCollection(Of ResumenPedido))
-    '        SetProperty(_listaPedidosOriginal, value)
-    '    End Set
-    'End Property
 
     Private _listaPedidosPendientes As ObservableCollection(Of ResumenPedido)
     Public Property ListaPedidosPendientes As ObservableCollection(Of ResumenPedido)
@@ -207,32 +155,21 @@ Public Class ListaPedidosVentaViewModel
         Set(value As ResumenPedido)
             SetProperty(_pedidoPendienteUnir, value)
             If Not IsNothing(value) Then
-                Dim mensajeError As String = String.Format("Se van a unir los pedidos {0} y {1}, manteniendo los datos de cabecera del {0}", value.numero, resumenSeleccionado.numero)
+                Dim mensajeError As String = String.Format("Se van a unir los pedidos {0} y {1}, manteniendo los datos de cabecera del {0}", value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero)
                 Dim continuar As Boolean
                 dialogService.ShowConfirmation("Faltan datos en el cliente", mensajeError, Sub(r)
                                                                                                continuar = (r.Result = ButtonResult.OK)
                                                                                            End Sub)
                 If continuar Then
                     Try
-                        servicio.UnirPedidos(value.empresa, value.numero, resumenSeleccionado.numero)
+                        servicio.UnirPedidos(value.empresa, value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero)
                         CargarResumenSeleccionado()
-                        dialogService.ShowDialog(String.Format("Se han unido los pedidos {0} y {1} correctamente", value.numero, resumenSeleccionado.numero))
+                        dialogService.ShowDialog(String.Format("Se han unido los pedidos {0} y {1} correctamente", value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero))
                     Catch ex As Exception
                         dialogService.ShowError(ex.Message)
                     End Try
                 End If
             End If
-        End Set
-    End Property
-
-    Private _resumenSeleccionado As ResumenPedido
-    Public Property resumenSeleccionado() As ResumenPedido
-        Get
-            Return _resumenSeleccionado
-        End Get
-        Set(ByVal value As ResumenPedido)
-            SetProperty(_resumenSeleccionado, value)
-            CargarResumenSeleccionado()
         End Set
     End Property
 
@@ -308,26 +245,25 @@ Public Class ListaPedidosVentaViewModel
     End Function
 
     Private Sub ActualizarResumen(pedido As Models.PedidoVenta.PedidoVentaDTO)
-        If IsNothing(pedido) Then
+        If IsNothing(pedido) OrElse IsNothing(ListaPedidos.ElementoSeleccionado) OrElse pedido.numero <> CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero Then
             Return
         End If
-        resumenSeleccionado.baseImponible = pedido.baseImponible
-        resumenSeleccionado.contacto = pedido.contacto
-        resumenSeleccionado.tienePicking = pedido.LineasPedido.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
-        resumenSeleccionado.tieneFechasFuturas = pedido.LineasPedido.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(DateTime.Now, pedido.ruta))
-        resumenSeleccionado.tieneProductos = pedido.LineasPedido.Any(Function(l) l.tipoLinea = 1)
-        RaisePropertyChanged(NameOf(resumenSeleccionado))
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).baseImponible = pedido.baseImponible
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).contacto = pedido.contacto
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tienePicking = pedido.LineasPedido.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneFechasFuturas = pedido.LineasPedido.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(DateTime.Now, pedido.ruta))
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneProductos = pedido.LineasPedido.Any(Function(l) l.tipoLinea = 1)
     End Sub
 
     Private Async Function CargarResumenSeleccionado() As Task
         Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("resumenPedidoParameter", resumenSeleccionado)
+        parameters.Add("resumenPedidoParameter", CType(ListaPedidos.ElementoSeleccionado, ResumenPedido))
         scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
-        If Not IsNothing(resumenSeleccionado) Then
-            empresaSeleccionada = resumenSeleccionado.empresa
-            Dim pendientes As ObservableCollection(Of Integer) = Await servicio.CargarPedidosPendientes(resumenSeleccionado.empresa, resumenSeleccionado.cliente)
-            ListaPedidosPendientes = New ObservableCollection(Of ResumenPedido)(pendientes.Where(Function(p) p <> resumenSeleccionado.numero).Select(Function(p) New ResumenPedido With {
-                .empresa = resumenSeleccionado.empresa,
+        If Not IsNothing(ListaPedidos.ElementoSeleccionado) Then
+            empresaSeleccionada = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).empresa
+            Dim pendientes As ObservableCollection(Of Integer) = Await servicio.CargarPedidosPendientes(CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).empresa, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).cliente)
+            ListaPedidosPendientes = New ObservableCollection(Of ResumenPedido)(pendientes.Where(Function(p) p <> CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero).Select(Function(p) New ResumenPedido With {
+                .empresa = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).empresa,
                 .numero = p
                                                                                                                                                    }))
             'ListaPedidos.ElementoSeleccionado = ListaPedidos.Lista.FirstOrDefault(Function(p) CType(p, ResumenPedido).numero = resumenSeleccionado.numero)

@@ -190,10 +190,10 @@ Public Class DetallePedidoViewModel
             Return _pedido
         End Get
         Set(ByVal value As PedidoVentaDTO)
-            SetProperty(_pedido, value)
-            If IsNothing(pedido) Then
+            If IsNothing(value) OrElse _pedido?.Equals(value) Then
                 Return
             End If
+            SetProperty(_pedido, value)
             eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
             estaActualizarFechaActivo = False
             Dim linea As LineaPedidoVentaDTO = pedido.LineasPedido.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)

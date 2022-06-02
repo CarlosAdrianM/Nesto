@@ -252,7 +252,9 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="3"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="2*"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -313,6 +315,12 @@
                                     <TextBlock Text="{Binding ClienteNif}"></TextBlock>
                                 </StackPanel>
                             </Border>
+                            <TextBlock Grid.Row="7" Grid.Column="3" Margin="3">Comentarios</TextBlock>
+                            <TextBox Grid.Row="8" Grid.Column="3" Background="LightYellow" Text="{Binding ClienteComentarios, UpdateSourceTrigger=PropertyChanged}" TextWrapping="WrapWithOverflow" AcceptsReturn="True" SpellCheck.IsEnabled="True"></TextBox>
+                            <TextBlock Grid.Row="7" Grid.Column="4" Margin="3">Comentarios Picking</TextBlock>
+                            <TextBox Grid.Row="8" Grid.Column="4" Background="LightYellow" Text="{Binding ClienteComentariosPicking, UpdateSourceTrigger=PropertyChanged}" TextWrapping="WrapWithOverflow" AcceptsReturn="True" SpellCheck.IsEnabled="True"></TextBox>
+                            <TextBlock Grid.Row="7" Grid.Column="5" Margin="3">Comentarios Ruta</TextBlock>
+                            <TextBox Grid.Row="8" Grid.Column="5" Background="LightYellow" Text="{Binding ClienteComentariosRuta, UpdateSourceTrigger=PropertyChanged}" TextWrapping="WrapWithOverflow" AcceptsReturn="True" SpellCheck.IsEnabled="True"></TextBox>
                         </Grid>
                     </xctk:WizardPage>
                     <xctk:WizardPage x:Name="Finalizar" PageType="Interior"

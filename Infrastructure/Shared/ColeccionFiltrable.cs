@@ -258,7 +258,11 @@ namespace Nesto.Infrastructure.Shared
                 Lista = value;
                 if (SeleccionarPrimerElemento && TieneDatosIniciales && value != null && value.Any())
                 {
-                    ElementoSeleccionado = value.FirstOrDefault();
+                    ElementoSeleccionado = value.First();
+                }
+                if (value != null && value.Count == 1)
+                {
+                    ElementoSeleccionado = value.First();
                 }
                 if (ListaChanged != null)
                 {
@@ -274,10 +278,6 @@ namespace Nesto.Infrastructure.Shared
             {
                 SetProperty(ref _listaOriginal, value);
                 ListaFijada = value;
-                if (value != null && value.Count == 1)
-                {
-                    ElementoSeleccionado = value.First();
-                }
             }
         }
 

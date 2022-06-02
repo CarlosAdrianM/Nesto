@@ -82,6 +82,24 @@ namespace Nesto.Modulos.Cliente
             get { return clienteDireccionCalleNumero; }
             set { SetProperty(ref clienteDireccionCalleNumero, value); }
         }
+        private string clienteComentarios;
+        public string ClienteComentarios
+        {
+            get { return clienteComentarios; }
+            set { SetProperty(ref clienteComentarios, value); }
+        }
+        private string clienteComentariosPicking;
+        public string ClienteComentariosPicking
+        {
+            get { return clienteComentariosPicking; }
+            set { SetProperty(ref clienteComentariosPicking, value); }
+        }
+        private string clienteComentariosRuta;
+        public string ClienteComentariosRuta
+        {
+            get { return clienteComentariosRuta; }
+            set { SetProperty(ref clienteComentariosRuta, value); }
+        }
         private bool clienteDireccionValidada;
         public bool ClienteDireccionValidada {
             get { return clienteDireccionValidada; }
@@ -356,6 +374,9 @@ namespace Nesto.Modulos.Cliente
             {
                 Cliente = ClienteNumero,
                 CodigoPostal = ClienteCodigoPostal,
+                Comentarios = ClienteComentarios,
+                ComentariosPicking = ClienteComentariosPicking,
+                ComentariosRuta = ClienteComentariosRuta,
                 Direccion = ClienteDireccion,
                 Empresa = ClienteEmpresa,
                 EsContacto = ClienteEsContacto,
@@ -440,6 +461,9 @@ namespace Nesto.Modulos.Cliente
                 ClienteNumero = clienteCrear.Cliente;
                 ClienteContacto = clienteCrear.Contacto;
 
+                ClienteComentarios = clienteCrear.Comentarios;
+                ClienteComentariosPicking = clienteCrear.ComentariosPicking;
+                ClienteComentariosRuta = clienteCrear.ComentariosRuta;
                 ClienteEsContacto = clienteCrear.EsContacto;
                 ClienteNif = clienteCrear.Nif;
                 ClienteNombre = clienteCrear.Nombre;
@@ -506,8 +530,11 @@ namespace Nesto.Modulos.Cliente
                 ClienteProvincia = respuesta.Provincia;
                 ClienteRuta = respuesta.Ruta;
                 ClienteTelefono = respuesta.TelefonoFormateado;
-                ClienteVendedorEstetica = respuesta.VendedorEstetica;
-                ClienteVendedorPeluqueria = respuesta.VendedorPeluqueria;
+                if (!esUnaModificacion || ClienteCodigoPostal != respuesta.CodigoPostal)
+                {
+                    ClienteVendedorEstetica = respuesta.VendedorEstetica;
+                    ClienteVendedorPeluqueria = respuesta.VendedorPeluqueria;
+                }
                 ClienteDireccionValidada = true;
             }
             catch (Exception ex)
