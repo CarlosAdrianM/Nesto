@@ -25,6 +25,7 @@ namespace ControlesUsuario
     {
         private readonly IRegionManager regionManager;
         private readonly IEventAggregator eventAggregator;
+        private readonly IConfiguracion configuracion;
 
         public SelectorDireccionEntrega()
         {
@@ -35,17 +36,10 @@ namespace ControlesUsuario
             listaDireccionesEntrega = new();
             listaDireccionesEntrega.TieneDatosIniciales = true;
             listaDireccionesEntrega.VaciarAlSeleccionar = false;
-            //listaDireccionesEntrega.ElementoSeleccionadoChanged += (sender, args) =>
-            //{
-            //    if (listaDireccionesEntrega.ElementoSeleccionado != null)
-            //    {
-            //        direccionEntregaSeleccionada = listaDireccionesEntrega.ElementoSeleccionado as DireccionesEntregaCliente;
-            //    }
-            //};
-            //listaDireccionesEntrega.HayQueCargarDatos += async () => { await cargarDatos(); };
 
             regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
             eventAggregator = ContainerLocator.Container.Resolve<IEventAggregator>();
+            configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
         }
 
         private async void OnClienteCreado(Clientes clienteCreado)
@@ -93,37 +87,37 @@ namespace ControlesUsuario
         }
 
 
-        /// <summary>
-        /// Gets or sets the Configuracion para las llamadas a la API
-        /// </summary>
-        public IConfiguracion Configuracion
-        {
-            get { return (IConfiguracion)GetValue(ConfiguracionProperty); }
-            set {
-                SetValue(ConfiguracionProperty, value);
-            }
-        }
+        ///// <summary>
+        ///// Gets or sets the Configuracion para las llamadas a la API
+        ///// </summary>
+        //public IConfiguracion Configuracion
+        //{
+        //    get { return (IConfiguracion)GetValue(ConfiguracionProperty); }
+        //    set {
+        //        SetValue(ConfiguracionProperty, value);
+        //    }
+        //}
+
+        ///// <summary>
+        ///// Identified the Configuracion dependency property
+        ///// </summary>
+        //public static readonly DependencyProperty ConfiguracionProperty =
+        //    DependencyProperty.Register("Configuracion", typeof(IConfiguracion),
+        //      typeof(SelectorDireccionEntrega),
+        //      new FrameworkPropertyMetadata(new PropertyChangedCallback(OnConfiguracionChanged)));
+
+        //private static void OnConfiguracionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        //{
+        //    SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
+        //    if (selector != null && selector.Configuracion != null)
+        //    {
+        //        selector.cargarDatos();
+        //    }
+        //}
+
 
         /// <summary>
-        /// Identified the Configuracion dependency property
-        /// </summary>
-        public static readonly DependencyProperty ConfiguracionProperty =
-            DependencyProperty.Register("Configuracion", typeof(IConfiguracion),
-              typeof(SelectorDireccionEntrega),
-              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnConfiguracionChanged)));
-
-        private static void OnConfiguracionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        {
-            SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
-            if (selector != null && selector.Configuracion != null)
-            {
-                selector.cargarDatos();
-            }
-        }
-
-
-        /// <summary>
-        /// Gets or sets the EMPRESA para las llamadas a la API
+        /// Gets or sets the DireccionCompleta para las llamadas a la API
         /// </summary>
         public DireccionesEntregaCliente DireccionCompleta
         {
@@ -135,7 +129,7 @@ namespace ControlesUsuario
         }
 
         /// <summary>
-        /// Identified the EMPRESA dependency property
+        /// Identified the DireccionCompleta dependency property
         /// </summary>
         public static readonly DependencyProperty DireccionCompletaProperty =
             DependencyProperty.Register(nameof(DireccionCompleta), typeof(DireccionesEntregaCliente),
@@ -196,8 +190,14 @@ namespace ControlesUsuario
         /// </summary>
         public static readonly DependencyProperty SeleccionadaProperty =
             DependencyProperty.Register("Seleccionada", typeof(string),
-              typeof(SelectorDireccionEntrega));
-        
+              typeof(SelectorDireccionEntrega),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnSeleccionadaChanged)));
+
+        private static void OnSeleccionadaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            
+        }
+
 
         #endregion
 
@@ -238,13 +238,13 @@ namespace ControlesUsuario
         #region "Funciones Auxiliares"
         private async Task cargarDatos()
         {
-            if (Configuracion == null || Empresa == null || Cliente == null)
+            if (configuracion == null || Empresa == null || Cliente == null)
             {
                 return;
             }
             using (HttpClient client = new HttpClient())
             {
-                client.BaseAddress = new Uri(Configuracion.servidorAPI);
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try

@@ -115,7 +115,8 @@
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
+                                <DataGridCheckBoxColumn Header="Aplicar Dto." Width="Auto" Binding="{Binding aplicarDescuento}"/>
+                                <DataGridTextColumn Header="Almacén" Width="Auto" Binding="{Binding almacen}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>
@@ -126,7 +127,7 @@
                             <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
-                        <controles:SelectorDireccionEntrega Grid.Column="0" Configuracion="{Binding configuracion}" DireccionCompleta="{Binding DireccionEntregaSeleccionada, Mode=TwoWay}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto, Mode=TwoWay}"></controles:SelectorDireccionEntrega>
+                        <controles:SelectorDireccionEntrega Grid.Column="0" DireccionCompleta="{Binding DireccionEntregaSeleccionada, Mode=TwoWay}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto, Mode=TwoWay}"></controles:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Fecha de Entrega:"></TextBlock>
                             <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>

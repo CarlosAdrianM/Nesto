@@ -23,6 +23,8 @@ Imports Microsoft.Identity.Client
 Imports Azure.Identity
 Imports Nesto.Modulos.PedidoCompra
 Imports Nesto.Infrastructure.Contracts
+Imports ControlesUsuario.ViewModels
+Imports ControlesUsuario.Services
 
 Partial Public Class Application
 
@@ -63,6 +65,7 @@ Partial Public Class Application
         containerRegistry.Register(GetType(IClienteService), GetType(ClienteService))
         containerRegistry.Register(GetType(IPedidoCompra), GetType(Nesto.Modulos.PedidoCompra.PedidoCompra))
         containerRegistry.Register(GetType(IClienteComercialService), GetType(ClienteComercialService))
+        containerRegistry.Register(GetType(ISelectorClienteService), GetType(SelectorClienteService))
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
@@ -114,5 +117,6 @@ Partial Public Class Application
         MyBase.ConfigureViewModelLocator()
         ViewModelLocationProvider.Register(GetType(Remesas).ToString, GetType(RemesasViewModel))
         ViewModelLocationProvider.Register(GetType(Alquileres).ToString, GetType(AlquileresViewModel))
+        ViewModelLocationProvider.Register(GetType(SelectorCliente).ToString, GetType(SelectorClienteViewModel))
     End Sub
 End Class

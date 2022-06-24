@@ -16,6 +16,7 @@ namespace Nesto.Modulos.CanalesExternos
         private IConfiguracion configuracion;
         private const string EMPRESA_DEFECTO = "1";
         private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
+        private const string FORMA_PAGO_CONTRAREEMBOLSO_INGLES = "Cash on delivery";
         private const string FORMA_PAGO_PAYPAL = "PayPal";
         private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
         private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay (Checkout v2)";
@@ -82,7 +83,7 @@ namespace Nesto.Modulos.CanalesExternos
             decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
             decimal totalEmbalaje = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl")?.Value) / 1000000, 4);
             decimal totalAPagar = totalPedido + totalPortes - totalDescuentos;
-            if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO)
+            if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO || formaPago == FORMA_PAGO_CONTRAREEMBOLSO_INGLES)
             {
                 pedidoSalida.formaPago = "EFC";
                 pedidoSalida.plazosPago = "CONTADO";
