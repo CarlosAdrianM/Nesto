@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:prism="http://prismlibrary.com/"
-             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:rapports="clr-namespace:Nesto.Modulos.Rapports" d:DataContext="{d:DesignInstance Type=rapports:RapportViewModel}"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:rapports="clr-namespace:Nesto.Modulos.Rapports" d:DataContext="{d:DesignInstance Type=rapports:ListaRapportsViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300"
              prism:ViewModelLocator.AutoWireViewModel="True">
@@ -31,7 +31,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <controles:SelectorCliente Grid.Row="0" Name="txtSelectorCliente" Configuracion="{Binding configuracion}" Empresa="1" Cliente="{Binding clienteSeleccionado, Mode=TwoWay}" Contacto="{Binding contactoSeleccionado, Mode=TwoWay}"></controles:SelectorCliente>
+            <controles:SelectorCliente Grid.Row="0" Name="txtSelectorCliente" Empresa="1" Cliente="{Binding Path=DataContext.clienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Contacto="{Binding DataContext.contactoSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}"></controles:SelectorCliente>
             <TextBlock Grid.Row="1"></TextBlock>
             <StackPanel Grid.Row="2">
                 <DatePicker SelectedDate="{Binding fechaSeleccionada}"></DatePicker>

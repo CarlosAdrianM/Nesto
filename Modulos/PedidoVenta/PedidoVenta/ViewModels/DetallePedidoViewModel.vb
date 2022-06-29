@@ -385,6 +385,9 @@ Public Class DetallePedidoViewModel
         If Not arg.Row.DataContext.Equals(lineaActual) Then
             lineaActual = arg.Row.DataContext
         End If
+        If IsNothing(lineaActual.almacen) Then
+            lineaActual.almacen = pedido.LineasPedido.FirstOrDefault()?.almacen
+        End If
         If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = DateTime.MinValue Then
             lineaActual.fechaEntrega = fechaEntrega
         End If

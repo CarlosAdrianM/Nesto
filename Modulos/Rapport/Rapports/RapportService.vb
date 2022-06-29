@@ -234,6 +234,10 @@ Public Class RapportService
             .id = "T",
             .descripcion = "Teléfono"
         })
+        listaTiposRapports.Add(New idDescripcion With {
+            .id = "W",
+            .descripcion = "WhatsApp"
+        })
         Return listaTiposRapports
     End Function
 

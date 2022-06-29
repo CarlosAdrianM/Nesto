@@ -145,26 +145,6 @@ namespace ControlesUsuario
         #region Dependency Properties
 
         /// <summary>
-        /// Gets or sets the Configuracion para las llamadas a la API
-        /// </summary>
-        public IConfiguracion Configuracion
-        {
-            get { return (IConfiguracion)GetValue(ConfiguracionProperty); }
-            set
-            {
-                SetValue(ConfiguracionProperty, value);
-            }
-        }
-
-        /// <summary>
-        /// Identified the Configuracion dependency property
-        /// </summary>
-        public static readonly DependencyProperty ConfiguracionProperty =
-            DependencyProperty.Register("Configuracion", typeof(IConfiguracion),
-              typeof(SelectorCliente));
-
-
-        /// <summary>
         /// Gets or sets the EMPRESA para las llamadas a la API
         /// </summary>
         public string Empresa
@@ -236,7 +216,6 @@ namespace ControlesUsuario
             {
                 vm.cargarCliente(selector.Empresa, selector.txtFiltro.Text, vm.contactoSeleccionado);
             }
-
         }
 
         /// <summary>
