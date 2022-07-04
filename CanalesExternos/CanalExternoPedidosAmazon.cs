@@ -21,9 +21,11 @@ namespace Nesto.Modulos.CanalesExternos
         private const string DELEGACION_AMAZON = "ALG";
         private const string VENDEDOR_AMAZON = "NV";
         private const string IVA_GENERAL = "G21";
+        private const string IVA_REDUCIDO = "R10";
         private const string IVA_EXPORTACION = "IM";
         private const string IVA_EXENTO = "EX";
         private decimal PORCENTAJE_IVA_GENERAL = 1.21M;
+        private decimal PORCENTAJE_IVA_REDUCIDO = 1.10M;
 
         private IConfiguracion configuracion;
 
@@ -172,7 +174,12 @@ namespace Nesto.Modulos.CanalesExternos
                 if (iva == IVA_EXPORTACION)
                 {
                     porcentajeIva = 1;
-                } else
+                }
+                else if (orderItem.SellerSKU == "42203" || orderItem.SellerSKU == "42204" || orderItem.SellerSKU == "42205")
+                {
+                    porcentajeIva = PORCENTAJE_IVA_REDUCIDO;
+                }
+                else
                 {
                     porcentajeIva = PORCENTAJE_IVA_GENERAL; 
                 }
@@ -186,7 +193,7 @@ namespace Nesto.Modulos.CanalesExternos
                     formaVenta = FORMA_VENTA_AMAZON,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
-                    iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL, 
+                    iva = iva == IVA_EXPORTACION ? IVA_EXENTO : porcentajeIva == PORCENTAJE_IVA_REDUCIDO ? IVA_REDUCIDO : IVA_GENERAL, 
                     precio = orderItem.QuantityOrdered != 0 ? baseImponible / orderItem.QuantityOrdered : baseImponible,
                     producto = orderItem.SellerSKU.EndsWith("FBA") ? orderItem.SellerSKU.Substring(0, orderItem.SellerSKU.Length-3) : orderItem.SellerSKU,
                     texto = orderItem.Title.ToUpper(),
