@@ -153,8 +153,17 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
 
             string[] scopes = new string[] { "Mail.Send", "Mail.ReadWrite" };
             GraphServiceClient graphClient = new GraphServiceClient(InteractiveBrowserCredential, scopes);
-            string cuerpoCorreo = "Adjuntamos nueva orden de compra en formato PDF y formato Excel (son el mismo pedido, para que ustedes puedan elegir entre ambas opciones a la hora de gestionar el pedido).";
-            cuerpoCorreo += "\n\nRogamos nos informen a la mayor brevedad de la fecha estimada de recepción en nuestros almacenes y nos envíen el enlace de seguimiento de la agencia de transportes tan pronto como obre en su poder.";
+            string cuerpoCorreo;
+            if (!string.IsNullOrEmpty(pedido.Model.Comentarios))
+            {
+                cuerpoCorreo = pedido.Model.Comentarios + "\n\n";
+            }
+            else
+            {
+                cuerpoCorreo = string.Empty;
+            }
+            cuerpoCorreo += "Adjuntamos nueva orden de compra en formato PDF y formato Excel (son el mismo pedido, para que ustedes puedan elegir entre ambas opciones a la hora de gestionar el pedido).";
+            cuerpoCorreo += "\n\nRogamos nos informen a la mayor brevedad de la fecha estimada de recepción en nuestros almacenes y nos envíen el enlace de seguimiento de la agencia de transportes tan pronto como obre en su poder.";            
             cuerpoCorreo += "\n\nMuchas gracias.";
             var message = new Message
             {

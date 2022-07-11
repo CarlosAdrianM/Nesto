@@ -18,7 +18,11 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <xctk:BusyIndicator Grid.Row="0" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando...">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <xctk:BusyIndicator Grid.Row="0" Grid.ColumnSpan="2" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando...">
             <DataGrid Name="grdLineas" ItemsSource="{Binding Pedido.Lineas}" SelectedItem="{Binding LineaSeleccionada}" AutoGenerateColumns="False" IsSynchronizedWithCurrentItem="True">
                 <DataGrid.ItemContainerStyle>
                     <Style TargetType="{x:Type DataGridRow}">
@@ -140,7 +144,7 @@
                 </DataGrid.Columns>
             </DataGrid>
         </xctk:BusyIndicator>
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Grid.Column="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition/>
@@ -154,7 +158,7 @@
             <Button Grid.Column="3" Command="{Binding PedidoAmpliarCommand}" CommandParameter="reducir" >Reducir (-)</Button>
             <Button Grid.Column="4" Command="{Binding GuardarPedidoCommand}">Guardar pedido</Button>
         </Grid>
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="2" Grid.Column="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition/>
@@ -162,7 +166,7 @@
             <Button Grid.Column="0" Command="{Binding ImprimirPedidoCommand}" CommandParameter="{Binding Pedido}">Imprimir pedido</Button>
             <Button Grid.Column="1" Command="{Binding EnviarPedidoCommand}" CommandParameter="{Binding Pedido}">Enviar pedido</Button>
         </Grid>        
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="3" Grid.Column="0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -175,5 +179,8 @@
             <TextBlock Grid.Column="3" Margin="3">Total</TextBlock>
             <TextBox Grid.Column="4" Text="{Binding Pedido.Total, StringFormat=c, Mode=OneWay}" IsReadOnly="True" Margin="3"></TextBox>
         </Grid>
+        <StackPanel Grid.Column="1" Grid.Row="1" Grid.RowSpan="3" Margin="3">
+            <TextBox Text="{Binding Pedido.Model.Comentarios, UpdateSourceTrigger=PropertyChanged}" Background="LightYellow" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"></TextBox>
+        </StackPanel>
     </Grid>
 </UserControl>

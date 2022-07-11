@@ -80,7 +80,7 @@
                   <Width>1.56514cm</Width>
                 </TablixColumn>
                 <TablixColumn>
-                  <Width>8.90919cm</Width>
+                  <Width>8.93565cm</Width>
                 </TablixColumn>
                 <TablixColumn>
                   <Width>1.20354cm</Width>
@@ -592,7 +592,7 @@
                   </TablixCells>
                 </TablixRow>
                 <TablixRow>
-                  <Height>3.07938cm</Height>
+                  <Height>3cm</Height>
                   <TablixCells>
                     <TablixCell>
                       <CellContents>
@@ -645,41 +645,8 @@
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox80</rd:DefaultName>
-                              <Left>0cm</Left>
                               <Height>0.6cm</Height>
                               <Width>8.90919cm</Width>
-                              <Style>
-                                <Border>
-                                  <Style>None</Style>
-                                </Border>
-                                <PaddingLeft>2pt</PaddingLeft>
-                                <PaddingRight>2pt</PaddingRight>
-                                <PaddingTop>2pt</PaddingTop>
-                                <PaddingBottom>2pt</PaddingBottom>
-                              </Style>
-                            </Textbox>
-                            <Textbox Name="Textbox81">
-                              <CanGrow>true</CanGrow>
-                              <KeepTogether>true</KeepTogether>
-                              <Paragraphs>
-                                <Paragraph>
-                                  <TextRuns>
-                                    <TextRun>
-                                      <Value>="Acumulado mes: " &amp; Max(Fields!AcumuladoMes.Value)</Value>
-                                      <Style>
-                                        <FontWeight>Bold</FontWeight>
-                                      </Style>
-                                    </TextRun>
-                                  </TextRuns>
-                                  <Style />
-                                </Paragraph>
-                              </Paragraphs>
-                              <rd:DefaultName>Textbox80</rd:DefaultName>
-                              <Top>0.6cm</Top>
-                              <Left>0cm</Left>
-                              <Height>0.6cm</Height>
-                              <Width>8.90919cm</Width>
-                              <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -707,11 +674,11 @@
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox80</rd:DefaultName>
-                              <Top>1.2cm</Top>
-                              <Left>0cm</Left>
+                              <Top>0.6cm</Top>
+                              <Left>0.02646cm</Left>
                               <Height>0.6cm</Height>
                               <Width>8.90919cm</Width>
-                              <ZIndex>2</ZIndex>
+                              <ZIndex>1</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -739,11 +706,11 @@
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox80</rd:DefaultName>
-                              <Top>1.8cm</Top>
-                              <Left>0cm</Left>
+                              <Top>1.2cm</Top>
+                              <Left>0.02646cm</Left>
                               <Height>0.6cm</Height>
                               <Width>8.90919cm</Width>
-                              <ZIndex>3</ZIndex>
+                              <ZIndex>2</ZIndex>
                               <Style>
                                 <Border>
                                   <Style>None</Style>
@@ -771,7 +738,40 @@
                                 </Paragraph>
                               </Paragraphs>
                               <rd:DefaultName>Textbox80</rd:DefaultName>
-                              <Top>2.4cm</Top>
+                              <Top>2.37354cm</Top>
+                              <Left>0.02646cm</Left>
+                              <Height>0.6cm</Height>
+                              <Width>8.90919cm</Width>
+                              <ZIndex>3</ZIndex>
+                              <Style>
+                                <Border>
+                                  <Style>None</Style>
+                                </Border>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                            <Textbox Name="Textbox85">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>="Total visitas WhatsApp: " &amp; Sum(IIf(Fields!Tipo.Value.Trim = "W", 1, 0))</Value>
+                                      <Style>
+                                        <FontWeight>Bold</FontWeight>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <rd:DefaultName>Textbox80</rd:DefaultName>
+                              <Top>1.8cm</Top>
+                              <Left>0.02646cm</Left>
                               <Height>0.6cm</Height>
                               <Width>8.90919cm</Width>
                               <ZIndex>4</ZIndex>
@@ -1014,8 +1014,8 @@
             <FixedColumnHeaders>true</FixedColumnHeaders>
             <FixedRowHeaders>true</FixedRowHeaders>
             <DataSetName>DetalleRapportsDataSet</DataSetName>
-            <Height>4.8762cm</Height>
-            <Width>28.71362cm</Width>
+            <Height>4.79683cm</Height>
+            <Width>28.74008cm</Width>
             <Style>
               <Border>
                 <Style>None</Style>
@@ -1023,10 +1023,10 @@
             </Style>
           </Tablix>
         </ReportItems>
-        <Height>2.24235in</Height>
+        <Height>1.88852in</Height>
         <Style />
       </Body>
-      <Width>11.31052in</Width>
+      <Width>11.31499in</Width>
       <Page>
         <PageHeader>
           <Height>0.9525cm</Height>
