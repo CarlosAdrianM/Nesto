@@ -10,6 +10,7 @@ Partial Public Class PedidoVenta
         Public Sub New()
             Me.LineasPedido = New ObservableCollection(Of LineaPedidoVentaDTO)()
             Me.Prepagos = New ObservableCollection(Of PrepagoDTO)
+            Me.Efectos = New ListaEfectos()
         End Sub
 
         Public Property empresa() As String
@@ -27,7 +28,19 @@ Partial Public Class PedidoVenta
             End Set
         End Property
         Public Property fecha() As Nullable(Of System.DateTime)
+        Private _formaPago As String
         Public Property formaPago() As String
+            Get
+                Return _formaPago
+            End Get
+            Set(value As String)
+                If _formaPago <> value Then
+                    _formaPago = value
+                    OnPropertyChanged(NameOf(formaPago))
+                    Efectos.FormaPagoCliente = value
+                End If
+            End Set
+        End Property
         Public Property plazosPago() As String
         Public Property primerVencimiento() As Nullable(Of System.DateTime)
         Public Property iva() As String
@@ -44,10 +57,34 @@ Partial Public Class PedidoVenta
         End Property
         Public Property comentarios() As String
         Public Property comentarioPicking() As String
+        Private _crearEfectosManualmente As Boolean
+        Public Property CrearEfectosManualmente As Boolean
+            Get
+                Return _crearEfectosManualmente
+            End Get
+            Set(value As Boolean)
+                If _crearEfectosManualmente <> value Then
+                    _crearEfectosManualmente = value
+                    OnPropertyChanged(NameOf(CrearEfectosManualmente))
+                End If
+            End Set
+        End Property
         Public Property periodoFacturacion() As String
         Public Property ruta() As String
         Public Property serie() As String
+        Private _ccc As String
         Public Property ccc() As String
+            Get
+                Return _ccc
+            End Get
+            Set(value As String)
+                If _ccc <> value Then
+                    _ccc = value
+                    OnPropertyChanged(NameOf(ccc))
+                    Efectos.CccCliente = value
+                End If
+            End Set
+        End Property
         Public Property origen() As String
         Public Property contactoCobro() As String
         Public Property noComisiona() As Decimal
@@ -153,6 +190,7 @@ Partial Public Class PedidoVenta
         End Function
 
         Public Overridable Property LineasPedido() As ObservableCollection(Of LineaPedidoVentaDTO)
+        Public Overridable Property Efectos As ListaEfectos
         Public Overridable Property Prepagos() As ObservableCollection(Of PrepagoDTO)
         Public Overridable Property VendedoresGrupoProducto As ObservableCollection(Of VendedorGrupoProductoDTO)
 

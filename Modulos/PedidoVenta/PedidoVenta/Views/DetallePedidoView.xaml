@@ -8,7 +8,7 @@
              prism:ViewModelLocator.AutoWireViewModel="True"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
-             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" d:DataContext="{d:DesignInstance Type=local:DetallePedidoViewModel}"
              mc:Ignorable="d" 
              d:DesignHeight="300" d:DesignWidth="300">
 
@@ -185,6 +185,41 @@
                                 <xctk:WatermarkTextBox Grid.Row="2" Text="{Binding CobroTarjetaImporte, StringFormat=c}" Watermark="Imprte para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
                                 <Button Grid.Row="3" Command="{Binding EnviarCobroTarjetaCommand}">Mandar enlace pago</Button>
                             </Grid>
+                            <CheckBox IsChecked="{Binding pedido.CrearEfectosManualmente}">Crear vencimientos manualmente</CheckBox>
+                            <StackPanel Visibility="{Binding pedido.CrearEfectosManualmente, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ListBox ItemsSource="{Binding pedido.Efectos}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" >
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Margin="3,0" VerticalAlignment="Center">Vencimiento:</TextBlock>
+                                                <DatePicker Grid.Column="1" VerticalContentAlignment="Center" SelectedDate="{Binding FechaVencimiento, StringFormat=d}"></DatePicker>
+                                                <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="3,0">Importe:</TextBlock>
+                                                <TextBox Grid.Column="3" VerticalContentAlignment="Center" Text="{Binding Importe, StringFormat=c}"></TextBox>
+                                                <TextBlock Grid.Column="4" VerticalAlignment="Center" Margin="3,0">Forma Pago:</TextBlock>
+                                                <TextBox Grid.Column="5" VerticalContentAlignment="Center" Text="{Binding FormaPago}"></TextBox>
+                                                <TextBlock Grid.Column="6" VerticalAlignment="Center" Margin="3,0">CCC:</TextBlock>
+                                                <TextBox Grid.Column="7" VerticalContentAlignment="Center" Text="{Binding CCC}"></TextBox>
+                                                <Button Grid.Column="8" Margin="3" Command="{Binding RelativeSource={RelativeSource FindAncestor, 
+                                                    AncestorType={x:Type ListBox}}, Path=ItemsSource.BorrarEfectoCommand}" 
+                                                    CommandParameter="{Binding}"
+                                                    VerticalAlignment="Center">🗑</Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <Button Command="{Binding Path=pedido.Efectos.AnnadirEfectoCommand}">Añadir Nuevo Efecto</Button>
+                            </StackPanel>
                         </StackPanel>
                         <DataGrid Grid.Column="1" ItemsSource="{Binding pedido.Prepagos}" AutoGenerateColumns="False" Margin="3">
                             <DataGrid.Columns>

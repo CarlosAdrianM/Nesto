@@ -16,6 +16,7 @@ Imports System.Text
 Imports Nesto.Infrastructure.Shared
 Imports ControlesUsuario.Models
 Imports VendedorGrupoProductoDTO = Nesto.Models.PedidoVenta.VendedorGrupoProductoDTO
+Imports Nesto.Models
 
 Public Class DetallePedidoViewModel
     Inherits BindableBase
@@ -101,6 +102,11 @@ Public Class DetallePedidoViewModel
         Set(value As Decimal)
             SetProperty(_cobroTarjetaImporte, value)
             EnviarCobroTarjetaCommand.RaiseCanExecuteChanged()
+            If IsNothing(pedido.Efectos) Then
+                pedido.Efectos = New ListaEfectos(value, pedido.formaPago, pedido.ccc)
+            Else
+                pedido.Efectos.ImporteTotal = value
+            End If
         End Set
     End Property
 

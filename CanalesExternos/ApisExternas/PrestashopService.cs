@@ -20,7 +20,7 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
             // estado 2 = Pago Aceptamos
             // estado 3 = Preparación en curso
             // estado 10 = En espera de pago por transferencia
-            string urlPrestashop = "http://www.productosdeesteticaypeluqueriaprofesional.com/api/orders?filter[current_state]=[2|3|10]";
+            string urlPrestashop = "http://www.productosdeesteticaypeluqueriaprofesional.com/api/orders?filter[current_state]=[2|3|10|58]";
 
 
             List<string> listaPrestashop = new List<string>();
