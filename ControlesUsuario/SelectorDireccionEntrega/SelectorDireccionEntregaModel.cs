@@ -1,4 +1,5 @@
 ﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
 using System;
 using System.Collections.Generic;
@@ -42,7 +43,7 @@ namespace ControlesUsuario.Models
         public bool tieneCorreoElectronico { get; set; }
         public bool tieneFacturacionElectronica { get; set; }
         public string nif { get; set; }
-
+        public bool esDireccionNoVisitable { get => estado == Constantes.Clientes.ESTADO_NO_VISITABLE; }
         public bool Contains(string filtro)
         {
             return (nombre != null && nombre.ToLower().Contains(filtro)) ||

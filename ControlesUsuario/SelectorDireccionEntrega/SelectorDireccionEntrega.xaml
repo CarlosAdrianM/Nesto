@@ -22,7 +22,11 @@
                 <Style TargetType="{x:Type ListViewItem}">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding esDireccionPorDefecto}" Value="True">
+                            <Setter Property="BorderThickness" Value="2" />
                             <Setter Property="BorderBrush" Value="LightGray"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding esDireccionNoVisitable}" Value="True">
+                            <Setter Property="Background" Value="LightGoldenrodYellow"/>
                         </DataTrigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="BorderThickness" Value="10" />
@@ -41,7 +45,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Width="55" Height="55">
+                        <StackPanel Grid.Column="0" Width="55" Height="55" ToolTip="{Binding contacto}">
                             <Image Source="pack://application:,,,/ControlesUsuario;component/Images/Direccion.jpg"/>
                         </StackPanel>
 
