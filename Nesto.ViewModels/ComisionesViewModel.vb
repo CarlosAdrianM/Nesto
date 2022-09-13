@@ -43,6 +43,8 @@ Public Class ComisionesViewModel
             _colMeses.Add(nombreMes)
         Next
 
+        _colMeses.Add($"{Now.AddMonths(12).ToString("MMMM")} de {DateTime.Today.AddYears(-1).Year}")
+
         mesActual = colMeses(0)
 
         Titulo = "Comisiones"
@@ -175,7 +177,11 @@ Public Class ComisionesViewModel
             SetProperty(_mesActual, value)
             RaisePropertyChanged("MostrarPanelAntiguo")
             RaisePropertyChanged("MostrarPanelComisionAnual")
-            fechaDesde = DateSerial(Year(Now), Date.ParseExact(value, "MMMM", CultureInfo.CurrentCulture).Month, 1)
+            If colMeses.LastOrDefault.Equals(mesActual) Then
+                fechaDesde = New Date(DateTime.Today.AddYears(-1).Year, DateTime.Today.Month, 1)
+            Else
+                fechaDesde = DateSerial(Year(Now), Date.ParseExact(value, "MMMM", CultureInfo.CurrentCulture).Month, 1)
+            End If
             If fechaDesde > Now Then
                 fechaDesde = fechaDesde.AddYears(-1)
             End If

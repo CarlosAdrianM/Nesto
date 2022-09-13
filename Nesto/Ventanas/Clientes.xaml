@@ -64,6 +64,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -94,6 +95,7 @@
                     <ComboBox Grid.Column="1" Grid.Row="10" Margin="0,3" ItemsSource="{Binding listaSecuencias}" DisplayMemberPath="descripcion" SelectedValuePath="id" SelectedValue="{Binding Path=SelectedItem.Secuencia, ElementName=cmbCuentas}" VerticalAlignment="Center"/>
                     <Button Grid.Row="11" Grid.Column="0" Content="Ver Mandato" Command="{Binding cmdVerMandato}" Margin="3" Name="btnVerMandato"/>
                     <Button Grid.Row="11" Grid.Column="1" Content="Asignar Mandato" Command="{Binding cmdAsignarMandato}" Margin="3" Name="btnAsignarMandato"/>
+                    <Button Grid.Row="12" Grid.ColumnSpan="2" Content="Imprimir" Command="{Binding ImprimirMandatoCommand}" Margin="3" Name="btnImprimirMandato"></Button>
                 </Grid>
             </StackPanel>
             <DockPanel Grid.Column="2" Margin="3,0" Visibility="{Binding estaVisibleExtractoCCC}">

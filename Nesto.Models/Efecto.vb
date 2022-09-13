@@ -3,6 +3,7 @@ Imports System.Runtime.CompilerServices
 
 Public Class Efecto
     Implements INotifyPropertyChanged
+    Public Property Id As Integer
     Private _fechaVencimiento As Date
     Public Property FechaVencimiento As Date
         Get

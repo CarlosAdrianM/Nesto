@@ -65,6 +65,7 @@ Public Class ClientesViewModel
         ' Deberíamos separarlo en dos ViewModels diferentes, uno para Clientes y otro para ClientesComercial
         '***************************
         cargarDatos()
+        Me.configuracion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IConfiguracion))
     End Sub
 
     Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService)
@@ -1102,6 +1103,58 @@ Public Class ClientesViewModel
     End Sub
 
 
+    Private _imprimirMandatoCommand As ICommand
+    Public ReadOnly Property ImprimirMandatoCommand() As ICommand
+        Get
+            If _imprimirMandatoCommand Is Nothing Then
+                _imprimirMandatoCommand = New RelayCommand(AddressOf OnImprimirMandato, AddressOf CanImprimirMandato)
+            End If
+            Return _imprimirMandatoCommand
+        End Get
+    End Property
+    Private Function CanImprimirMandato(ByVal param As Object) As Boolean
+        Return Not String.IsNullOrEmpty(empresaActual) AndAlso Not String.IsNullOrEmpty(clienteActual) AndAlso
+            Not String.IsNullOrEmpty(contactoActual) AndAlso Not IsNothing(cuentaActiva) AndAlso Not String.IsNullOrEmpty(cuentaActiva.Número)
+    End Function
+    Private Async Sub OnImprimirMandato(ByVal param As Object)
+        estaOcupado = True
+        Try
+            'Dim np As IntPtr
+            'SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
+            'Dim path As String = Marshal.PtrToStringUni(np)
+            'Marshal.FreeCoTaskMem(np)
+
+            'Dim mandato As Byte() = Await CargarMandato(empresaActual.Trim, clienteActual.Trim, contactoActual.Trim, cuentaActiva.Número.Trim).ConfigureAwait(True)
+            'Dim ms As New MemoryStream(mandato)
+            ''write to file
+            'Dim file As New FileStream(path + "\Mandato_" + empresaActual.Trim + "_" + clienteActual.Trim + "_" + cuentaActiva.Número.Trim + ".pdf", FileMode.Create, FileAccess.Write)
+            'ms.WriteTo(file)
+            'file.Close()
+            'ms.Close()
+
+            '' Abrimos la carpeta de descargas
+            'Process.Start(New ProcessStartInfo(path) With {
+            '    .UseShellExecute = True
+            '})
+            Dim urlPdf As String = $"{configuracion.servidorAPI}Clientes/MandatoPDF?empresa={empresaActual.Trim}&cliente={clienteActual.Trim}&contacto={contactoActual.Trim}&ccc={cuentaActiva.Número.Trim}"
+            Process.Start(New ProcessStartInfo(urlPdf) With {
+                .UseShellExecute = True
+            })
+        Catch ex As Exception
+            If IsNothing(ex.InnerException) Then
+                mensajeError = ex.Message
+            Else
+                mensajeError = ex.InnerException.Message
+            End If
+        Finally
+            estaOcupado = False
+        End Try
+
+
+    End Sub
+
+
+
     Private _reclamarDeudaCommand As DelegateCommand
     Public Property ReclamarDeudaCommand As DelegateCommand
         Get
@@ -1290,6 +1343,40 @@ Public Class ClientesViewModel
 
 
     End Sub
+
+    Private Async Function CargarMandato(empresa As String, cliente As String, contacto As String, ccc As String) As Task(Of Byte())
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As Byte()
+
+            Try
+                Dim urlConsulta As String = "Clientes"
+                urlConsulta += "?empresa=" + empresa.Trim
+                urlConsulta += "&cliente=" + cliente.Trim
+                urlConsulta += "&contacto=" + contacto.Trim
+                urlConsulta += "&ccc=" + ccc.Trim
+
+                response = Await client.GetAsync(urlConsulta).ConfigureAwait(True)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsByteArrayAsync()
+                Else
+                    respuesta = Nothing
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido cargar el mandato desde el servidor")
+            Finally
+
+            End Try
+
+            Return respuesta
+        End Using
+
+
+    End Function
 
     Private Async Sub CargarPedidos()
         If IsNothing(clienteActivo) OrElse (ListaPedidos IsNot Nothing AndAlso clienteActivo.Nº_Cliente?.Trim() = ListaPedidos.FirstOrDefault()?.cliente) Then
