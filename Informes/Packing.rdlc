@@ -1764,7 +1764,15 @@
                       </Style>
                     </TextRun>
                     <TextRun>
-                      <Value>)</Value>
+                      <Value>) - </Value>
+                      <Style>
+                        <FontFamily>Arial Black</FontFamily>
+                        <FontSize>12pt</FontSize>
+                        <FontWeight>Bold</FontWeight>
+                      </Style>
+                    </TextRun>
+                    <TextRun>
+                      <Value>=Globals!ExecutionTime</Value>
                       <Style>
                         <FontFamily>Arial Black</FontFamily>
                         <FontSize>12pt</FontSize>

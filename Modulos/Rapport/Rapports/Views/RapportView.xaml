@@ -45,8 +45,8 @@
             <TextBlock Text="Dirección: "></TextBlock>
             <TextBlock Text="{Binding ClienteCompleto.direccion}"></TextBlock>
         </StackPanel>
-        <TextBlock Grid.Row="3" Text="Población: ">
-            <Run Text="{Binding ClienteCompleto.poblacion}"></Run>
+        <TextBlock Grid.Row="3" Text="Población: ">            
+            <Run Text="{Binding ClienteCompleto.poblacionConCodigoPostal,Mode=OneWay}"></Run>
         </TextBlock>
         <TextBlock Grid.Row="4" Text="Teléfono: ">
             <Run Text="{Binding ClienteCompleto.telefono}"></Run>

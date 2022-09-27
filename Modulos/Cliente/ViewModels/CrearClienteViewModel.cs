@@ -134,6 +134,7 @@ namespace Nesto.Modulos.Cliente
             }
             set {
                 SetProperty(ref clienteNif, value);
+                NifValidado = false;
                 RaisePropertyChanged(nameof(NombreIsEnabled));
                 RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
             }
@@ -249,7 +250,7 @@ namespace Nesto.Modulos.Cliente
         }
         public bool NifSinValidar
         {
-            get { return !NifValidado; }
+            get { return !NifValidado || string.IsNullOrWhiteSpace(ClienteNif); }
         }
         public bool NombreIsEnabled
         {

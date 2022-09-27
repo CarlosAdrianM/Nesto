@@ -24,6 +24,9 @@ Public Class PlantillaVentaView
             Keyboard.Focus(txtFiltroProducto)
             txtFiltroProducto.SelectAll()
         End If
+        If IsNothing(lstProductos) OrElse lstProductos.Items.Count = 0 Then
+            Return
+        End If
         If e.Key = Key.D1 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 0 Then
             lstProductos.SelectedItem = lstProductos.Items(0)
         End If

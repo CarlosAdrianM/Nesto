@@ -128,9 +128,13 @@
                                         <i:InvokeCommandAction Command="{Binding Path=DataContext.CopiarClientePortapapelesCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=StackPanel}}" />
                                     </i:EventTrigger>
                                 </i:Interaction.Triggers>
-                                <TextBlock Text="{Binding clienteSeleccionado.cliente}"></TextBlock>
-                                <TextBlock Text="{Binding clienteSeleccionado.nombre}"></TextBlock>
+                                <TextBlock>                                    
+                                    <Run Text="{Binding clienteSeleccionado.cliente}"></Run>
+                                    <Run Text=" - "></Run>
+                                    <Run Text="{Binding clienteSeleccionado.nombre}"></Run>
+                                </TextBlock>                                
                                 <TextBlock Text="{Binding clienteSeleccionado.direccion}"></TextBlock>
+                                <TextBlock Text="{Binding clienteSeleccionado.poblacionConCodigoPostal}"></TextBlock>
                                 <TextBlock Text="{Binding clienteSeleccionado.telefono}"></TextBlock>
                             </StackPanel>
                             <StackPanel Grid.Column="1">

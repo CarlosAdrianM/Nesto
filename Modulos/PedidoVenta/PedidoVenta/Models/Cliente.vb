@@ -34,6 +34,11 @@ Public Class ClienteJson
     Public Property noComisiona() As Double
     Public Property servirJunto() As Boolean
     Public Property mantenerJunto() As Boolean
+    Public ReadOnly Property poblacionConCodigoPostal As String
+        Get
+            Return String.Format("{0} {1} ({2})", codigoPostal?.Trim(), poblacion?.Trim(), provincia?.Trim())
+        End Get
+    End Property
     Public Property usuario As String
 
     Public Overridable Property VendedoresGrupoProducto As ObservableCollection(Of VendedorGrupoProductoDTO)

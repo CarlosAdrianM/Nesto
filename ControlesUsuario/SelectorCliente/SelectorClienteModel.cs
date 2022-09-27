@@ -45,7 +45,7 @@ namespace ControlesUsuario.Models
         public string poblacionConCodigoPostal {
             get
             {
-                return string.Format("{0} {1} ({2})", codigoPostal, poblacion, provincia);
+                return string.Format("{0} {1} ({2})", codigoPostal?.Trim(), poblacion?.Trim(), provincia?.Trim());
             } 
         }
         public List<VendedorGrupoProductoDTO> VendedoresGrupoProducto { get; set; }
