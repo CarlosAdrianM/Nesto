@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
 Imports System.Text
+Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
 Imports Nesto.Models.PedidoVenta
@@ -288,5 +289,29 @@ Public Class PlantillaVentaService
             End Try
 
         End Using
+    End Function
+
+    Private Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaJson)) As List(Of LineaPlantillaJson) Implements IPlantillaVentaService.CargarProductosBonificables
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Try
+                Dim parametro = (cliente, lineas)
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
+                Dim urlConsulta As String = "PlantillaVentas/ProductosBonificables"
+                response = client.PostAsync(urlConsulta, content).Result
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = response.Content.ReadAsStringAsync().Result
+                    Dim productos As List(Of LineaPlantillaJson) = JsonConvert.DeserializeObject(Of List(Of LineaPlantillaJson))(cadenaJson)
+                    Return productos
+                Else
+                    Throw New Exception("Se ha producido un error al cargar los productos bonificables")
+                End If
+            Catch ex As Exception
+                Throw New Exception("Se ha producido un error al cargar los productos bonificables", ex)
+            End Try
+        End Using
+
     End Function
 End Class

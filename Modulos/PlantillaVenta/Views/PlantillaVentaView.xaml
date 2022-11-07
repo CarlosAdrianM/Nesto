@@ -101,21 +101,105 @@
                             <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Row="0" Grid.Column="0" >
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition/>
-                                </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
-                                    <AccessText>_Buscar en todos los productos</AccessText>
-                                </Button>
-                                <Button Grid.Column="1" Name="btnSoloConStock" Command="{Binding SoloConStockCommand}">
-                                    <AccessText>Mostrar solo con _Stock</AccessText>
-                                </Button>
-                            </Grid>
-                            <controlesusuario:BarraFiltro Name="txtFiltroProducto" ListaItems="{Binding ListaFiltrableProductos}"></controlesusuario:BarraFiltro>
-                        </StackPanel>
+
+                        <Grid Grid.Row="0" Grid.RowSpan="3" Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <StackPanel Grid.Row="0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition/>
+                                        <!--ColumnDefinition/-->
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
+                                        <AccessText>_Buscar en todos los productos</AccessText>
+                                    </Button>
+                                    <Button Grid.Column="1" Name="btnSoloConStock" Command="{Binding SoloConStockCommand}">
+                                        <AccessText>Mostrar solo con _Stock</AccessText>
+                                    </Button>
+                                    <!--ToggleButton Grid.Column="2" Name="btnGanavisiones" IsChecked="{Binding EstanGanavisionesMostrados}">
+                                        <AccessText>_Ganavisiones</AccessText>
+                                    </ToggleButton-->
+                                </Grid>
+                                <controlesusuario:BarraFiltro Name="txtFiltroProducto" ListaItems="{Binding ListaFiltrableProductos}"></controlesusuario:BarraFiltro>
+                            </StackPanel>
+                            <ListView x:Name="lstProductos" Grid.Row="1" ItemsSource="{Binding ListaFiltrableProductos.Lista}" SelectedItem="{Binding ListaFiltrableProductos.ElementoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Height="110" Margin="6" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Hidden">
+                                            <StackPanel DockPanel.Dock="Left" Grid.Column="0" Width="110" MinWidth="110" Height="110" >
+
+                                                <Image Source="{Binding imagen}" Height="100" Width="100" Visibility="{Binding imagenVisible}" Margin="0,0,10,0">
+                                                    <xctk:MagnifierManager.Magnifier>
+                                                        <xctk:Magnifier Radius="100" ZoomFactor=".3" />
+                                                    </xctk:MagnifierManager.Magnifier>
+                                                </Image>
+                                                <Border Background="{Binding colorEstado}" Height="110" Width="110" HorizontalAlignment="Left" Margin="0,0,10,0">
+                                                    <TextBlock Text="{Binding clasificacionMasVendidos}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="24" Visibility="{Binding clasificacionVisible}"></TextBlock>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
+
+                                                <Grid DockPanel.Dock="Right" Width="110" MinWidth="110" Height="110" HorizontalAlignment="Stretch">
+
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition/>
+                                                        <ColumnDefinition/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition/>
+                                                    </Grid.RowDefinitions>
+
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Margin="3" TextWrapping="WrapWithOverflow" Text="Cantidad Cobrada"></TextBlock>
+                                                        <xctk:ShortUpDown Value="{Binding cantidad}" Margin="3">
+                                                            <i:Interaction.Triggers>
+                                                                <i:EventTrigger EventName="ValueChanged">
+                                                                    <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                                                </i:EventTrigger>
+                                                            </i:Interaction.Triggers>
+                                                        </xctk:ShortUpDown>
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Column="1">
+                                                        <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
+                                                        <xctk:ShortUpDown Value="{Binding cantidadOferta}" Margin="3" IsEnabled="{Binding aplicarDescuentoFicha}" >
+                                                            <i:Interaction.Triggers>
+                                                                <i:EventTrigger EventName="ValueChanged">
+                                                                    <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
+                                                                </i:EventTrigger>
+                                                            </i:Interaction.Triggers>
+                                                        </xctk:ShortUpDown>
+                                                    </StackPanel>
+
+                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center">
+                                                        <TextBlock Text="{Binding textoUnidadesDisponibles}" Foreground="{Binding colorStock}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
+                                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Top" Margin="10,0,0,0" HorizontalAlignment="Stretch">
+                                                        <TextBlock Text="{Binding textoNombreProducto}" FontWeight="Bold" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                        <TextBlock Text="{Binding producto}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                        <TextBlock Text="{Binding familia}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                        <TextBlock Text="{Binding subGrupo}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                        <TextBlock Text="{Binding precio, StringFormat=c}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                        <TextBlock Text="{Binding textoFechaUltimaVenta}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                        <TextBlock Text="{Binding textoUnidadesVendidas}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DockPanel>
+
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </Grid>
+
                         <Grid  Grid.Row="0" Grid.Column="1" Margin="3,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="2*"/>
@@ -132,7 +216,7 @@
                                     <Run Text="{Binding clienteSeleccionado.cliente}"></Run>
                                     <Run Text=" - "></Run>
                                     <Run Text="{Binding clienteSeleccionado.nombre}"></Run>
-                                </TextBlock>                                
+                                </TextBlock>
                                 <TextBlock Text="{Binding clienteSeleccionado.direccion}"></TextBlock>
                                 <TextBlock Text="{Binding clienteSeleccionado.poblacionConCodigoPostal}"></TextBlock>
                                 <TextBlock Text="{Binding clienteSeleccionado.telefono}"></TextBlock>
@@ -155,78 +239,7 @@
                                 <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="descripcion" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
                             </StackPanel>
                         </Grid>
-                        <ListView x:Name="lstProductos" Grid.Row="2" Grid.RowSpan="2" Grid.Column="0" ItemsSource="{Binding ListaFiltrableProductos.Lista}" SelectedItem="{Binding ListaFiltrableProductos.ElementoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <DockPanel Height="110" Margin="6" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Hidden">
-                                        <StackPanel DockPanel.Dock="Left" Grid.Column="0" Width="110" MinWidth="110" Height="110" >
 
-                                            <Image Source="{Binding imagen}" Height="100" Width="100" Visibility="{Binding imagenVisible}" Margin="0,0,10,0">
-                                                <xctk:MagnifierManager.Magnifier>
-                                                    <xctk:Magnifier Radius="100" ZoomFactor=".3" />
-                                                </xctk:MagnifierManager.Magnifier>
-                                            </Image>
-                                            <Border Background="{Binding colorEstado}" Height="110" Width="110" HorizontalAlignment="Left" Margin="0,0,10,0">
-                                                <TextBlock Text="{Binding clasificacionMasVendidos}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="24" Visibility="{Binding clasificacionVisible}"></TextBlock>
-                                            </Border>
-                                        </StackPanel>
-
-                                        <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
-                                            
-                                            <Grid DockPanel.Dock="Right" Width="110" MinWidth="110" Height="110" HorizontalAlignment="Stretch">
-
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition/>
-                                                    <ColumnDefinition/>
-                                                </Grid.ColumnDefinitions>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition/>
-                                                </Grid.RowDefinitions>
-
-                                                <StackPanel Grid.Column="0">
-                                                    <TextBlock Margin="3" TextWrapping="WrapWithOverflow" Text="Cantidad Cobrada"></TextBlock>
-                                                    <xctk:ShortUpDown Value="{Binding cantidad}" Margin="3">
-                                                        <i:Interaction.Triggers>
-                                                            <i:EventTrigger EventName="ValueChanged">
-                                                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                                                            </i:EventTrigger>
-                                                        </i:Interaction.Triggers>
-                                                    </xctk:ShortUpDown>
-                                                </StackPanel>
-
-                                                <StackPanel Grid.Column="1">
-                                                    <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
-                                                    <xctk:ShortUpDown Value="{Binding cantidadOferta}" Margin="3" IsEnabled="{Binding aplicarDescuentoFicha}" >
-                                                        <i:Interaction.Triggers>
-                                                            <i:EventTrigger EventName="ValueChanged">
-                                                                <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
-                                                            </i:EventTrigger>
-                                                        </i:Interaction.Triggers>
-                                                    </xctk:ShortUpDown>
-                                                </StackPanel>
-
-                                                <StackPanel Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center">
-                                                    <TextBlock Text="{Binding textoUnidadesDisponibles}" Foreground="{Binding colorStock}"/>
-                                                </StackPanel>
-                                            </Grid>
-                                            <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
-                                                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Top" Margin="10,0,0,0" HorizontalAlignment="Stretch">
-                                                    <TextBlock Text="{Binding textoNombreProducto}" FontWeight="Bold" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                    <TextBlock Text="{Binding producto}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                    <TextBlock Text="{Binding familia}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                    <TextBlock Text="{Binding subGrupo}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                    <TextBlock Text="{Binding precio, StringFormat=c}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                    <TextBlock Text="{Binding textoFechaUltimaVenta}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                    <TextBlock Text="{Binding textoUnidadesVendidas}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                </StackPanel>
-                                            </DockPanel>
-                                        </DockPanel>
-                                        
-                                    </DockPanel>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
                         <DockPanel Grid.Row="2" Grid.Column="1" >
                             <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaUltimasVentas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                                 <DataGrid.Columns>

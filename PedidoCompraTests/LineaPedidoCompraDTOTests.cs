@@ -43,6 +43,36 @@ namespace PedidoCompraTests
         }
 
         [TestMethod]
+        public void LineaPedidoCompraDTO_SiLaCantidadMinimaEsMayorQueCantidad_LeeBienLosPreciosYDescuentos()
+        {
+            // Arrange
+            var lineaDTO = new LineaPedidoCompraDTO
+            {
+                Cantidad = 0,
+                PrecioUnitario = 1
+            };
+            var descuentos = new List<DescuentoCantidadCompra> {
+                new DescuentoCantidadCompra
+                {
+                    CantidadMinima = 1,
+                    Precio = 10
+                },
+                new DescuentoCantidadCompra
+                {
+                    CantidadMinima = 5,
+                    Precio = 1
+                }
+            };
+            lineaDTO.Descuentos = descuentos;
+
+            // Act
+            lineaDTO.Cantidad = 1;
+
+            // Assert
+            Assert.AreEqual(10, lineaDTO.PrecioUnitario);
+        }
+        
+        [TestMethod]
         public void LineaPedidoCompraDTO_SiLaCantidadEsMenorALaOferta_NoSeRegalaNada()
         {
             // Arrange

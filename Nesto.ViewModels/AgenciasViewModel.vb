@@ -109,18 +109,32 @@ Public Class AgenciasViewModel
         agenciasVM.EnvioPendienteSeleccionado.Atencion = etiqueta.Nombre
         agenciasVM.EnvioPendienteSeleccionado.Observaciones = Left(etiqueta.Observaciones, 80)
         agenciasVM.EnvioPendienteSeleccionado.Reembolso = etiqueta.Reembolso
-        Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = etiqueta.PaisISO)
+
+        'Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = etiqueta.PaisISO)
+        'If Not IsNothing(pais) Then
+        '    agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
+        'End If
+        'agenciasVM.EnvioPendienteSeleccionado.Horario = 0
+        'If etiqueta.PaisISO = "ES" Then
+        '    agenciasVM.EnvioPendienteSeleccionado.Servicio = 93 ' Epaq 24
+        'ElseIf etiqueta.PaisISO = "PT" Then
+        '    agenciasVM.EnvioPendienteSeleccionado.Servicio = 63 ' Paq24
+        'Else
+        '    agenciasVM.EnvioPendienteSeleccionado.Servicio = 90 ' Internacional monobulto
+        'End If
+
+        Dim codigoAlfaEtiqueta As String = String.Empty
+        If etiqueta.PaisISO = "ES" Then
+            codigoAlfaEtiqueta = "034"
+        ElseIf etiqueta.PaisISO = "PT" Then
+            codigoAlfaEtiqueta = "035"
+        End If
+        Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = codigoAlfaEtiqueta)
         If Not IsNothing(pais) Then
             agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
         End If
-        agenciasVM.EnvioPendienteSeleccionado.Horario = 0
-        If etiqueta.PaisISO = "ES" Then
-            agenciasVM.EnvioPendienteSeleccionado.Servicio = 93 ' Epaq 24
-        ElseIf etiqueta.PaisISO = "PT" Then
-            agenciasVM.EnvioPendienteSeleccionado.Servicio = 63 ' Paq24
-        Else
-            agenciasVM.EnvioPendienteSeleccionado.Servicio = 90 ' Internacional monobulto
-        End If
+        agenciasVM.EnvioPendienteSeleccionado.Horario = 0 ' Solo tiene uno 
+        agenciasVM.EnvioPendienteSeleccionado.Servicio = 0 ' Solo tiene uno
 
         agenciasVM.GuardarEnvioPendienteCommand.Execute()
     End Sub

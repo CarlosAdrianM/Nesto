@@ -1249,7 +1249,7 @@ Public Class ClientesViewModel
                 .Contacto = DeudaSeleccionada.Contacto,
                 .Tipo = Constantes.Rapports.Tipos.TIPO_VISITA_TELEFONICA,
                 .Estado = Constantes.Rapports.Estados.GESTION_ADMINISTRATIVA,
-                .Comentarios = $"{configuracion.usuario.Substring(configuracion.usuario.IndexOf("\") + 1).Trim()} cambió el estado del extracto de cliente con nº orden {DeudaSeleccionada.Id} a estado {IIf(Not String.IsNullOrEmpty(DeudaSeleccionada.Estado), DeudaSeleccionada.Estado.ToUpper, "en blanco")} dando como motivo: {MotivoCambioEstado.Trim()}",
+                .Comentarios = $"{configuracion.usuario.Substring(configuracion.usuario.IndexOf("\") + 1).Trim()} cambió el estado del extracto de cliente con nº orden {DeudaSeleccionada.Id} a estado {If(String.IsNullOrEmpty(DeudaSeleccionada.Estado), "en blanco", DeudaSeleccionada.Estado.ToUpper)} dando como motivo: {MotivoCambioEstado.Trim()}",
                 .Fecha = DateTime.Now,
                 .NumOrdenExtracto = DeudaSeleccionada.Id,
                 .Usuario = configuracion.usuario

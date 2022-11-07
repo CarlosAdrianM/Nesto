@@ -19,7 +19,7 @@
       <Fields>
         <Field Name="AcumuladoMes">
           <DataField>AcumuladoMes</DataField>
-          <rd:TypeName>System.Int32</rd:TypeName>
+          <rd:TypeName>System.Nullable`1[[System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
         <Field Name="Cliente">
           <DataField>Cliente</DataField>
@@ -39,11 +39,11 @@
         </Field>
         <Field Name="EstadoCliente">
           <DataField>EstadoCliente</DataField>
-          <rd:TypeName>System.Int32</rd:TypeName>
+          <rd:TypeName>System.Nullable`1[[System.Int16, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
         <Field Name="HoraLlamada">
           <DataField>HoraLlamada</DataField>
-          <rd:TypeName>System.DateTime</rd:TypeName>
+          <rd:TypeName>System.Nullable`1[[System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
         <Field Name="NombreEmpresa">
           <DataField>NombreEmpresa</DataField>
@@ -51,7 +51,7 @@
         </Field>
         <Field Name="Pedido">
           <DataField>Pedido</DataField>
-          <rd:TypeName>System.Boolean</rd:TypeName>
+          <rd:TypeName>System.Nullable`1[[System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
         <Field Name="Tipo">
           <DataField>Tipo</DataField>
@@ -59,6 +59,10 @@
         </Field>
         <Field Name="Usuario">
           <DataField>Usuario</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Vendedor">
+          <DataField>Vendedor</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
       </Fields>
@@ -372,7 +376,9 @@
                               <TextRuns>
                                 <TextRun>
                                   <Value>=Iif(Fields!Cliente.Value Is Nothing, "", Fields!Cliente.Value).ToString().Trim()</Value>
-                                  <Style />
+                                  <Style>
+                                    <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
+                                  </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style />
@@ -403,7 +409,9 @@
                               <TextRuns>
                                 <TextRun>
                                   <Value>=Iif(Fields!Direccion.Value Is Nothing, "", Fields!Direccion.Value).ToString().Trim()</Value>
-                                  <Style />
+                                  <Style>
+                                    <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
+                                  </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style />
@@ -434,7 +442,9 @@
                               <TextRuns>
                                 <TextRun>
                                   <Value>=Fields!Tipo.Value</Value>
-                                  <Style />
+                                  <Style>
+                                    <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
+                                  </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style>
@@ -467,7 +477,9 @@
                               <TextRuns>
                                 <TextRun>
                                   <Value>=Fields!EstadoCliente.Value</Value>
-                                  <Style />
+                                  <Style>
+                                    <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
+                                  </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style>
@@ -500,7 +512,9 @@
                               <TextRuns>
                                 <TextRun>
                                   <Value>=Iif(Fields!Comentarios.Value Is Nothing, "", Fields!Comentarios.Value).ToString().Trim()</Value>
-                                  <Style />
+                                  <Style>
+                                    <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
+                                  </Style>
                                 </TextRun>
                               </TextRuns>
                               <Style />
@@ -533,6 +547,7 @@
                                   <Value>=IIf(Fields!Pedido.Value, Chr(82), Chr(163))</Value>
                                   <Style>
                                     <FontFamily>Wingdings 2</FontFamily>
+                                    <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
                                 </TextRun>
                               </TextRuns>
@@ -568,6 +583,7 @@
                                   <Value>=Fields!HoraLlamada.Value</Value>
                                   <Style>
                                     <Format>g</Format>
+                                    <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
                                 </TextRun>
                               </TextRuns>

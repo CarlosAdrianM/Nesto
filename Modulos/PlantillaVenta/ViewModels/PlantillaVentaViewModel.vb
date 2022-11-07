@@ -76,6 +76,7 @@ Public Class PlantillaVentaViewModel
         NoAmpliarPedidoCommand = New DelegateCommand(AddressOf OnNoAmpliarPedido, AddressOf CanNoAmpliarPedido)
         SoloConStockCommand = New DelegateCommand(AddressOf OnSoloConStock, AddressOf CanSoloConStock)
         CopiarClientePortapapelesCommand = New DelegateCommand(AddressOf OnCopiarClientePortapapeles)
+        MostrarGanavisionesCommand = New DelegateCommand(AddressOf OnMostrarGanavisiones, AddressOf CanMostrarGanavisiones)
 
         ' Al leer los clientes lo lee del parámetro PermitirVerClientesTodosLosVendedores
         todosLosVendedores = False
@@ -303,6 +304,25 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    Private _estanGanavisionesMostrados As Boolean
+    Public Property EstanGanavisionesMostrados As Boolean
+        Get
+            Return _estanGanavisionesMostrados
+        End Get
+        Set(value As Boolean)
+            Try
+                If value Then
+                    MostrarGanavisionesCommand.Execute()
+                End If
+                Dim listaIntermedia As ObservableCollection(Of IFiltrableItem) = ListaFiltrableProductos.Lista
+                ListaFiltrableProductos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaProductosGanavisiones)
+                ListaProductosGanavisiones = listaIntermedia
+                SetProperty(_estanGanavisionesMostrados, value)
+            Catch ex As Exception
+                dialogService.ShowError(ex.Message)
+            End Try
+        End Set
+    End Property
 
     Private _estaOcupado As Boolean = False
     Public Property estaOcupado As Boolean
@@ -536,45 +556,15 @@ Public Class PlantillaVentaViewModel
             SetProperty(_listaFiltrableProductos, value)
         End Set
     End Property
-
-
-    'Private _listaProductos As ObservableCollection(Of LineaPlantillaJson)
-    'Public Property listaProductos As ObservableCollection(Of LineaPlantillaJson)
-    '    Get
-    '        Return _listaProductos
-    '    End Get
-    '    Set(ByVal value As ObservableCollection(Of LineaPlantillaJson))
-    '        SetProperty(_listaProductos, value)
-    '        RaisePropertyChanged(NameOf(listaProductosPedido))
-    '        RaisePropertyChanged(NameOf(baseImponiblePedido))
-    '        RaisePropertyChanged(NameOf(totalPedido))
-    '        SoloConStockCommand.RaiseCanExecuteChanged()
-    '    End Set
-    'End Property
-
-    'Private _listaProductosFijada As ObservableCollection(Of LineaPlantillaJson)
-    'Public Property listaProductosFijada As ObservableCollection(Of LineaPlantillaJson)
-    '    Get
-    '        Return _listaProductosFijada
-    '    End Get
-    '    Set(ByVal value As ObservableCollection(Of LineaPlantillaJson))
-    '        SetProperty(_listaProductosFijada, value)
-    '        'listaProductos = listaProductosFijada
-    '        ListaFiltrable.Lista = New ObservableCollection(Of IFiltrableItem)(value)
-    '    End Set
-    'End Property
-
-    'Private _listaProductosOriginal As ObservableCollection(Of LineaPlantillaJson)
-    'Public Property listaProductosOriginal As ObservableCollection(Of LineaPlantillaJson)
-    '    Get
-    '        Return _listaProductosOriginal
-    '    End Get
-    '    Set(ByVal value As ObservableCollection(Of LineaPlantillaJson))
-    '        SetProperty(_listaProductosOriginal, value)
-    '        ListaFiltrable.ListaFijada = New ObservableCollection(Of IFiltrableItem)(value)
-    '    End Set
-    'End Property
-
+    Private _listaProductosGanavisiones As ObservableCollection(Of IFiltrableItem)
+    Public Property ListaProductosGanavisiones As ObservableCollection(Of IFiltrableItem)
+        Get
+            Return _listaProductosGanavisiones
+        End Get
+        Set(value As ObservableCollection(Of IFiltrableItem))
+            SetProperty(_listaProductosGanavisiones, value)
+        End Set
+    End Property
     Public ReadOnly Property listaProductosPedido() As ObservableCollection(Of LineaPlantillaJson)
         Get
             If Not IsNothing(ListaFiltrableProductos.ListaOriginal) Then
@@ -1501,8 +1491,28 @@ Public Class PlantillaVentaViewModel
         dialogService.ShowNotification("Datos del cliente copiados al portapapeles")
     End Sub
 
-
-
+    Private _mostrarGanavisionesCommand As DelegateCommand
+    Public Property MostrarGanavisionesCommand As DelegateCommand
+        Get
+            Return _mostrarGanavisionesCommand
+        End Get
+        Set(value As DelegateCommand)
+            SetProperty(_mostrarGanavisionesCommand, value)
+        End Set
+    End Property
+    Private Function CanMostrarGanavisiones() As Boolean
+        Return True
+    End Function
+    Private Sub OnMostrarGanavisiones()
+        If IsNothing(ListaProductosGanavisiones) Then
+            Try
+                Dim lista = servicio.CargarProductosBonificables(clienteSeleccionado.cliente, listaProductosPedido.ToList)
+                ListaProductosGanavisiones = New ObservableCollection(Of IFiltrableItem)(lista)
+            Catch ex As Exception
+                dialogService.ShowError("No se han podido cargar los Ganavisiones")
+            End Try
+        End If
+    End Sub
 
 
 

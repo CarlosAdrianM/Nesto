@@ -1,5 +1,9 @@
-﻿using System;
+﻿using Nesto.Modulos.PedidoCompra.Models;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +27,27 @@ namespace Nesto.Modulos.PedidoCompra.Views
         public DetallePedidoCompraView()
         {
             InitializeComponent();
+        }
+    }
+
+    public class LineaMaximaConverter : IMultiValueConverter
+    {        
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            //DataRowView drv = values[0] as DataRowView;
+            string producto = values[0] as string;
+            LineaPedidoCompraWrapper linea = values[1] as LineaPedidoCompraWrapper;
+            if (!string.IsNullOrEmpty(producto) && linea != null)
+            {
+                return producto == linea.Producto;
+            }
+            return false;
+        }
+
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
         }
     }
 }

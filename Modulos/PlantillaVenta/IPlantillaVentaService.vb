@@ -13,4 +13,5 @@ Public Interface IPlantillaVentaService
     Sub EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, cliente As String)
     Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaJson), almacen As String) As Task(Of ObservableCollection(Of LineaPlantillaJson))
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO)
+    Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaJson)) As List(Of LineaPlantillaJson)
 End Interface

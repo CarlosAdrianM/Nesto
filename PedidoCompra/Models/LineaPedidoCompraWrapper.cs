@@ -81,6 +81,15 @@ namespace Nesto.Modulos.PedidoCompra.Models
                 RaisePropertyChanged(nameof(Estado));
             }
         }
+        public int EstadoProducto
+        {
+            get => Model.EstadoProducto;
+            set
+            {
+                Model.EstadoProducto = value;
+                RaisePropertyChanged(nameof(EstadoProducto));
+            }
+        }
         public string TipoLinea
         {
             get => Model.TipoLinea;

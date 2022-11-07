@@ -32,8 +32,8 @@ namespace Nesto.Modulos.PedidoCompra.Models
                         };
                     }
 
-                    //if (PrecioUnitario != descuentoNuevo.Precio)
-                    if (descuentoActual != null && PrecioUnitario == descuentoActual.Precio)
+                    if (PrecioUnitario != descuentoNuevo.Precio)
+                    //if (descuentoActual != null && PrecioUnitario == descuentoActual.Precio)
                     {
                         PrecioUnitario = descuentoNuevo.Precio;
                     }

@@ -61,6 +61,13 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
 
         public InteractiveBrowserCredential InteractiveBrowserCredential { get; }
 
+        private LineaPedidoCompraWrapper _lineaMaximaCantidad;
+        public LineaPedidoCompraWrapper LineaMaximaCantidad
+        {
+            get => _lineaMaximaCantidad;
+            set => SetProperty(ref _lineaMaximaCantidad, value);
+        }
+
         private LineaPedidoCompraWrapper _lineaSeleccionada;
         public LineaPedidoCompraWrapper LineaSeleccionada
         {
@@ -330,60 +337,45 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         {
             try
             {
-                var lineaMaximaCantidad = Pedido.Lineas
-                    .Where(l => l.Model.Subgrupo != Constantes.Productos.Grupos.MUESTRAS)
-                    .OrderByDescending(l => l.Model.StockMaximo).FirstOrDefault();
-                if (lineaMaximaCantidad.Model.StockMaximo <= 0)
+                EstaOcupado = true;
+                await Task.Run(() =>
                 {
-                    return;
-                }
-                decimal ratioIncremento = (decimal)(lineaMaximaCantidad.Model.CantidadBruta - lineaMaximaCantidad.CantidadOriginal + lineaMaximaCantidad.Model.Multiplos) / lineaMaximaCantidad.Model.StockMaximo;
-
-                if (ampliarReducir == "reducir")
-                {
-                    ratioIncremento = (decimal)(lineaMaximaCantidad.Model.CantidadBruta - lineaMaximaCantidad.CantidadOriginal - lineaMaximaCantidad.Model.Multiplos) / lineaMaximaCantidad.Model.StockMaximo;
-                }
-
-                foreach (var linea in Pedido.Lineas)
-                {
-                    linea.Model.CantidadBruta = (int)Math.Round((decimal)linea.Model.StockMaximo * ratioIncremento) + linea.CantidadOriginal;
-                    linea.Cantidad = linea.Model.CantidadBruta > 0 ? linea.Model.CantidadBruta : 0;
-                    if (linea.Model.Multiplos != 0)
+                    LineaMaximaCantidad = Pedido.Lineas
+                        .Where(l => l.Model.Subgrupo != Constantes.Productos.Grupos.MUESTRAS)
+                        .OrderByDescending(l => l.Model.StockMaximo).FirstOrDefault();
+                    if (LineaMaximaCantidad.Model.StockMaximo <= 0)
                     {
-                        linea.Cantidad = (int)(linea.Cantidad % linea.Model.Multiplos == 0 ? linea.Cantidad : Math.Ceiling((double)linea.Cantidad / linea.Model.Multiplos) * linea.Model.Multiplos);
+                        return;
                     }
-                }
-                RaisePropertyChanged(string.Empty);
-                RaisePropertyChanged(nameof(Pedido));
+                    decimal ratioIncremento = (decimal)(LineaMaximaCantidad.Model.CantidadBruta - LineaMaximaCantidad.CantidadOriginal + LineaMaximaCantidad.Model.Multiplos) / LineaMaximaCantidad.Model.StockMaximo;
+
+                    if (ampliarReducir == "reducir")
+                    {
+                        ratioIncremento = (decimal)(LineaMaximaCantidad.Model.CantidadBruta - LineaMaximaCantidad.CantidadOriginal - LineaMaximaCantidad.Model.Multiplos) / LineaMaximaCantidad.Model.StockMaximo;
+                    }
+
+                    foreach (var linea in Pedido.Lineas)
+                    {
+                        linea.Model.CantidadBruta = (int)Math.Round((decimal)linea.Model.StockMaximo * ratioIncremento) + linea.CantidadOriginal;
+                        linea.Cantidad = linea.Model.CantidadBruta > 0 ? linea.Model.CantidadBruta : 0;
+                        if (linea.Model.Multiplos != 0)
+                        {
+                            linea.Cantidad = (int)(linea.Cantidad % linea.Model.Multiplos == 0 ? linea.Cantidad : Math.Ceiling((double)linea.Cantidad / linea.Model.Multiplos) * linea.Model.Multiplos);
+                        }
+                    }
+                    RaisePropertyChanged(string.Empty);
+                    RaisePropertyChanged(nameof(Pedido));
+                });
             }
             catch (Exception ex)
             {
                 DialogService.ShowError(ex.Message);
             }
-        }
-        /*
-        public ICommand PedidoReducirCommand { get; private set; }
-        private async void OnPedidoReducir()
-        {
-            try
+            finally
             {
-                var lineaMaximaCantidad = Pedido.Model.Lineas.OrderByDescending(l => l.Cantidad).FirstOrDefault();
-                var ratioIncremento = lineaMaximaCantidad.Multiplos / lineaMaximaCantidad.Cantidad;
-                
-                foreach (var linea in Pedido.Lineas)
-                {
-                    linea.Cantidad = (int)Math.Round((decimal)linea.Cantidad / (1 + ratioIncremento));
-                    linea.Cantidad = (int)(linea.Cantidad % linea.Model.Multiplos == 0 ? linea.Cantidad : Math.Ceiling((double)(linea.Cantidad / linea.Model.Multiplos)) * linea.Model.Multiplos);
-                }
-                RaisePropertyChanged(string.Empty);
-                RaisePropertyChanged(nameof(Pedido));
-            }
-            catch (Exception ex)
-            {
-                DialogService.ShowError(ex.Message);
+                EstaOcupado = false;
             }
         }
-        */
 
         public void OnNavigatedTo(NavigationContext navigationContext)
         {
