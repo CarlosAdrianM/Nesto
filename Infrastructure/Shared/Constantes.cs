@@ -10,9 +10,9 @@ namespace Nesto.Infrastructure.Shared
     {
         public class Agencias
         {
-            public const string AGENCIA_DEFECTO = "Correos Express";
+            public const string AGENCIA_DEFECTO = "Sending"; 
             public const string AGENCIA_INTERNACIONAL = "Sending"; // String.Empty para no usar ninguna
-            public const string AGENCIA_REEMBOLSOS = "Sending"; // String.Empty para no usar ninguna
+            public const string AGENCIA_REEMBOLSOS = "Correos Express"; // String.Empty para no usar ninguna
             public const int ESTADO_INICIAL_ENVIO = 0;
             public const int ESTADO_TRAMITADO_ENVIO = 1;
             public const Int16 ESTADO_PENDIENTE_ENVIO = -1; // Etiqueta pendiente de envío

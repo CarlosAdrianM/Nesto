@@ -2219,9 +2219,8 @@ Public Class AgenciasViewModel
             Return agenciaSeleccionada
         End If
 
-        ' Toledo lo sacamos siempre por la agencia defecto
         Dim cliente As Clientes = servicio.CargarCliente(pedidoSeleccionado.Empresa, pedidoSeleccionado.Nº_Cliente, pedidoSeleccionado.Contacto)
-        If cliente.CodPostal.StartsWith("45") Then
+        If cliente.CodPostal.StartsWith("280") Then
             Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_DEFECTO)
         End If
 
