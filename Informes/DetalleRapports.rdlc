@@ -25,6 +25,10 @@
           <DataField>Cliente</DataField>
           <rd:TypeName>System.String</rd:TypeName>
         </Field>
+        <Field Name="CodigoPostal">
+          <DataField>CodigoPostal</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
         <Field Name="Comentarios">
           <DataField>Comentarios</DataField>
           <rd:TypeName>System.String</rd:TypeName>
@@ -52,6 +56,10 @@
         <Field Name="Pedido">
           <DataField>Pedido</DataField>
           <rd:TypeName>System.Nullable`1[[System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
+        </Field>
+        <Field Name="Poblacion">
+          <DataField>Poblacion</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
         </Field>
         <Field Name="Tipo">
           <DataField>Tipo</DataField>
@@ -408,7 +416,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=Iif(Fields!Direccion.Value Is Nothing, "", Fields!Direccion.Value).ToString().Trim()</Value>
+                                  <Value>=Iif(Fields!Direccion.Value Is Nothing OrElse Fields!CodigoPostal Is Nothing OrElse Fields!Poblacion Is Nothing, "", Fields!Direccion.Value &amp; vbCrLf &amp; Fields!CodigoPostal.Value &amp; ", " &amp; Fields!Poblacion.Value).ToString().Trim()</Value>
                                   <Style>
                                     <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
