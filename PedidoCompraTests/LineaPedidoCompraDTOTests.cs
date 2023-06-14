@@ -182,6 +182,6 @@ namespace PedidoCompraTests
             // Assert
             Assert.AreEqual(13, lineaDTO.CantidadCobrada);
             Assert.AreEqual(2, lineaDTO.CantidadRegalo);
-        }
+        }        
     }
 }

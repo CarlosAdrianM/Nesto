@@ -1,6 +1,7 @@
 ﻿Imports Prism.Mvvm
 Imports Newtonsoft.Json
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.[Shared]
 
 Public Class PlantillaVentaModel
     Public Class DireccionesEntregaJson

@@ -5,6 +5,7 @@ Imports System.Net.Http
 Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Transactions
+Imports System.Windows.Documents
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
@@ -469,6 +470,20 @@ Public Class AgenciaService
             Dim lineas = contexto.LinPedidoVta.Where(Function(l) l.Empresa = empresa AndAlso l.Número = pedido)
             Dim todoOnline = lineas.All(Function(l) Constantes.FormasVenta.FORMAS_ONLINE.Contains(l.Forma_Venta))
             Return todoOnline
+        End Using
+    End Function
+
+    Public Async Function GuardarLlamadaAgencia(respuesta As RespuestaAgencia) As Task Implements IAgenciaService.GuardarLlamadaAgencia
+        respuesta.Usuario = configuracion.usuario
+        Using client As New HttpClient
+            Try
+                client.BaseAddress = New Uri(configuracion.servidorAPI)
+                Dim response As HttpResponseMessage
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(respuesta), Encoding.UTF8, "application/json")
+                response = Await client.PostAsync("AgenciasLlamadasWeb", content)
+            Catch ex As Exception
+                Throw ex
+            End Try
         End Using
     End Function
 End Class

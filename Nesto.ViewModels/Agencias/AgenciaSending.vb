@@ -9,6 +9,8 @@ Imports Microsoft.Win32.SafeHandles
 Imports System.Text
 Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Shared
+Imports Nesto.Models
+Imports System.Xml
 
 Public Class AgenciaSending
     Implements IAgencia
@@ -123,6 +125,8 @@ Public Class AgenciaSending
             Return xml
         End If
 
+        Dim envioTramitar As String = IIf(String.IsNullOrWhiteSpace(envio.Movil), envio.Telefono, envio.Movil)
+
         'Añadimos el nodo raíz (Servicios)
         xml.AddFirst(
         <Expediciones>
@@ -141,7 +145,7 @@ Public Class AgenciaSending
                 <CodigoPostalDestinatario><%= envio.CodPostal %></CodigoPostalDestinatario>
                 <PoblacionDestinatario><%= envio.Poblacion %></PoblacionDestinatario>
                 <PersonaContactoDestinatario><%= envio.Atencion %></PersonaContactoDestinatario>
-                <TelefonoContactoDestinatario><%= envio.Movil %></TelefonoContactoDestinatario>
+                <TelefonoContactoDestinatario><%= envioTramitar %></TelefonoContactoDestinatario>
                 <EnviarMail>S</EnviarMail>
                 <MailDestinatario><%= envio.Email %></MailDestinatario>
                 <ProductoServicio>01</ProductoServicio>
@@ -161,7 +165,7 @@ Public Class AgenciaSending
 
         Return xml
     End Function
-    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) Implements IAgencia.LlamadaWebService
+    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
         XMLdeSalida = construirXMLdeSalida(envio, servicio)
 
         'Comenzamos la llamada
@@ -184,6 +188,14 @@ Public Class AgenciaSending
         req.Accept = "text/xml"
         req.Method = "POST"
 
+        Dim respuesta As New RespuestaAgencia With {
+            .Agencia = "Sending",
+            .Fecha = DateTime.Now,
+            .UrlLlamada = req.Address.ToString,
+            .CuerpoLlamada = soap,
+            .CuerpoRespuesta = String.Empty
+        }
+
         Try
             Using stm As Stream = Await req.GetRequestStreamAsync()
                 Using stmw As StreamWriter = New StreamWriter(stm)
@@ -195,8 +207,11 @@ Public Class AgenciaSending
             Dim responseStream As New StreamReader(response.GetResponseStream())
             soap = responseStream.ReadToEnd
             XMLdeEntrada = XDocument.Parse(soap)
+            respuesta.CuerpoRespuesta = soap
         Catch ex As Exception
-            Return "El servidor de la agencia no está respondiendo"
+            respuesta.Exito = False
+            respuesta.TextoRespuestaError = "El servidor de la agencia no está respondiendo"
+            Return respuesta
         End Try
 
 
@@ -207,10 +222,12 @@ Public Class AgenciaSending
         XMLdeEntrada.AddFirst(elementoXML)
 
         If elementoXML.Value().StartsWith("OK ") OrElse elementoXML.Value().StartsWith("TERMINADO CON ERRORES") Then
-            Return "OK"
+            respuesta.Exito = True
+            respuesta.TextoRespuestaError = "OK"
         Else
-            Return elementoXML.Value
+            respuesta.TextoRespuestaError = elementoXML.Value
         End If
+        Return respuesta
     End Function
 
     Public Async Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta

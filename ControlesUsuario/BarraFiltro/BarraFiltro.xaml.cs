@@ -234,6 +234,10 @@ namespace ControlesUsuario
             {
                 return Brushes.LightGoldenrodYellow;
             }
+            else if (valor.Contains(":"))
+            {
+                return Brushes.LightSkyBlue;
+            }
             else if (valor.StartsWith("*") || valor.EndsWith("*"))
             {
                 return Brushes.LightSeaGreen;

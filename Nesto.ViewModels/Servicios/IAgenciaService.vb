@@ -49,4 +49,5 @@ Public Interface IAgenciaService
     Function GenerarConcepto(envio As EnviosAgencia) As String
     Function EnviarCorreoEntregaAgencia(envioActual As EnvioAgenciaWrapper) As Task
     Function EsTodoElPedidoOnline(empresa As String, pedido As Integer) As Boolean
+    Function GuardarLlamadaAgencia(respuesta As RespuestaAgencia) As Task
 End Interface

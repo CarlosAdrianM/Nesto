@@ -9,6 +9,7 @@ Imports System.Threading.Tasks
 Imports System.Windows
 Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Shared
+Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Serialization
@@ -114,7 +115,7 @@ Public Class AgenciaCorreosExpress
         emailPlaza = "am-cabelloandres@correosexpress.com"
     End Sub
 
-    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) Implements IAgencia.LlamadaWebService
+    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
         Dim empresa = servicio.CargarListaEmpresas().Single(Function(e) e.Número = envio.Empresa)
         Dim envioCEX As New EnvioCEX With {
             .Solicitante = "I" + envio.AgenciasTransporte.Identificador,
@@ -185,7 +186,13 @@ Public Class AgenciaCorreosExpress
             'https://www.correosexpress.com/wpsc/apiRestGrabacionEnvio/json/grabacionEnvio
             'https://test.correosexpress.com/wspsc/apiRestGrabacionEnvio/json/grabacionEnvio
             Dim response As HttpResponseMessage
-            Dim respuesta As String = ""
+            Dim textoRespuesta As String = String.Empty
+            Dim respuesta As New RespuestaAgencia With {
+                .Agencia = "CorreosExpress",
+                .Fecha = DateTime.Now,
+                .UrlLlamada = client.BaseAddress.ToString,
+                .CuerpoRespuesta = String.Empty
+            }
 
             Try
                 Dim urlConsulta As String = "json/grabacionEnvio"
@@ -193,28 +200,41 @@ Public Class AgenciaCorreosExpress
                     .ContractResolver = New CamelCasePropertyNamesContractResolver
                 }
                 Dim cadenaJson As String = JsonConvert.SerializeObject(envioCEX, Formatting.Indented, settings)
+                respuesta.CuerpoLlamada = cadenaJson
                 Dim content As HttpContent = New StringContent(cadenaJson, Encoding.UTF8, "application/json")
                 response = Await client.PostAsync(urlConsulta, content)
 
                 If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                    Dim respuestaCEX As RespuestaCEX = JsonConvert.DeserializeObject(Of RespuestaCEX)(respuesta)
+                    textoRespuesta = Await response.Content.ReadAsStringAsync()
+                    respuesta.CuerpoRespuesta = textoRespuesta
+                    Dim respuestaCEX As RespuestaCEX = JsonConvert.DeserializeObject(Of RespuestaCEX)(textoRespuesta)
                     If respuestaCEX.CodigoRetorno = 0 Then
-                        Return "OK"
+                        respuesta.Exito = True
+                        respuesta.TextoRespuestaError = "OK"
+                        Return respuesta
                     Else
-                        Return respuestaCEX.MensajeRetorno
+                        respuesta.Exito = False
+                        respuesta.TextoRespuestaError = respuestaCEX.MensajeRetorno
+                        Return respuesta
                     End If
                 Else
-                    Return "Error en la llamada al Webservice"
+                    respuesta.Exito = False
+                    respuesta.TextoRespuestaError = "Error en la llamada al Webservice"
+                    Return respuesta
                 End If
 
             Catch ex As Exception
-                Return ex.Message
+                respuesta.Exito = False
+                respuesta.TextoRespuestaError = ex.Message
+                Return respuesta
             Finally
 
             End Try
 
-            Return "Nunca debería salir este error"
+            respuesta.Exito = False
+            respuesta.TextoRespuestaError = "Nunca debería salir este error"
+            Return respuesta
+
         End Using
 
     End Function

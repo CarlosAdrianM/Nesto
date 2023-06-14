@@ -18,7 +18,7 @@
         <StackPanel DockPanel.Dock="Top">
             <Border HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
                 <DockPanel HorizontalAlignment="Stretch">
-                    <TextBlock Name="btnBuscar" DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎"/>
+                    <TextBlock Name="btnBuscar" DockPanel.Dock="Right"  Margin="3" HorizontalAlignment="Right" Width="16" FontFamily="Segoe UI Symbol" Text="🔎" ToolTip="{Binding ListaItems.CamposFiltrables}"/>
                     <xctk:WatermarkTextBox Name="txtFiltro" DockPanel.Dock="Left" Text="{Binding ListaItems.Filtro, UpdateSourceTrigger=PropertyChanged, Delay=400}" Watermark="Introduzca el filtro..." VerticalContentAlignment="Center" HorizontalAlignment="Stretch" Width="Auto" BorderThickness="0" KeyUp="txtFiltro_KeyUp" GotFocus="txtFiltro_GotFocus" MouseUp="txtFiltro_MouseUp" PreviewMouseUp="txtFiltro_PreviewMouseUp"/>
                 </DockPanel>
             </Border>

@@ -4,6 +4,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Infrastructure.Tests;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Infrastructure.Tests
 {
@@ -165,6 +166,100 @@ namespace Infrastructure.Tests
 
             // Assert
             Assert.AreEqual(alejandroDumas, coleccion.ElementoSeleccionado);
+        }
+
+        [TestMethod]
+        public void ColeccionFiltrable_SiSePoneUnFiltroConSignoMenos_FiltraLosValoresAlReves()
+        {
+            // Arrange
+            ColeccionFiltrable coleccion = new();
+            coleccion.TieneDatosIniciales = true;
+            MiClaseFiltrable alejandroDumas = new MiClaseFiltrable
+            {
+                Nombre = "Alejandro",
+                Apellido = "Dumas"
+            };
+            coleccion.ListaOriginal = new ObservableCollection<IFiltrableItem>
+            {
+                new MiClaseFiltrable {Nombre = "Miguel", Apellido = "Cervantes"},
+                alejandroDumas,
+                new MiClaseFiltrable {Nombre = "Luis", Apellido = "Góngora"},
+                new MiClaseFiltrable {Nombre = "Alejo", Apellido = "Quevedo"}
+            };
+
+            // Act
+            coleccion.Filtro = "-alejandro";
+
+            // Assert
+            Assert.AreEqual(3, coleccion.Lista.Count);
+            Assert.IsFalse(coleccion.Lista.Contains(alejandroDumas));
+        }
+
+
+        [TestMethod]
+        public void ColeccionFiltrable_SiSePoneUnFiltroConBarraVertical_FiltraLosValoresDeTodasLasOpciones()
+        {
+            // Arrange
+            ColeccionFiltrable coleccion = new();
+            coleccion.TieneDatosIniciales = true;
+            MiClaseFiltrable alejandroDumas = new MiClaseFiltrable
+            {
+                Nombre = "Alejandro",
+                Apellido = "Dumas"
+            };
+            MiClaseFiltrable quevedo = new MiClaseFiltrable
+            {
+                Nombre = "Francisco",
+                Apellido = "Quevedo"
+            };
+            coleccion.ListaOriginal = new ObservableCollection<IFiltrableItem>
+            {
+                new MiClaseFiltrable {Nombre = "Miguel", Apellido = "Cervantes"},
+                alejandroDumas,
+                new MiClaseFiltrable {Nombre = "Luis", Apellido = "Góngora"},
+                quevedo
+            };
+
+            // Act
+            coleccion.Filtro = "miguel|alejandro";
+
+            // Assert
+            Assert.AreEqual(2, coleccion.Lista.Count);
+            Assert.IsTrue(coleccion.Lista.Contains(alejandroDumas));
+            Assert.IsFalse(coleccion.Lista.Contains(quevedo));
+        }
+
+        [TestMethod]
+        public void ColeccionFiltrable_SiSePoneUnFiltroConDosPuntos_FiltraLosValoresSoloPorEseCampo()
+        {
+            // Arrange
+            ColeccionFiltrable coleccion = new();
+            coleccion.TieneDatosIniciales = true;
+            MiClaseFiltrable alejandroDumas = new MiClaseFiltrable
+            {
+                Nombre = "Alejandro",
+                Apellido = "Dumas"
+            };
+            MiClaseFiltrable quevedo = new MiClaseFiltrable
+            {
+                Nombre = "Francisco",
+                Apellido = "Quevedo"
+            };
+            coleccion.ListaOriginal = new ObservableCollection<IFiltrableItem>
+            {
+                new MiClaseFiltrable {Nombre = "Miguel", Apellido = "Cervantes"},
+                alejandroDumas,
+                new MiClaseFiltrable {Nombre = "Luis", Apellido = "Góngora"},
+                quevedo
+            };
+
+            // Act
+            coleccion.Filtro = "Nombre:francisco";
+
+            // Assert
+            Assert.AreEqual(1, coleccion.Lista.Count);
+            Assert.IsTrue(coleccion.Lista.Contains(quevedo));
+            Assert.IsFalse(coleccion.Lista.Contains(alejandroDumas));
         }
     }
 }

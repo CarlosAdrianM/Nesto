@@ -12,7 +12,7 @@ Public Interface IAgencia
     Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String
     Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
     ' Carlos 14/02/2020: el parámetro servicio de LlamadaWebService hay que quitarlo cuando EF solucione el error de Numero y Número (solo se usa para coger la empresa)
-    Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) ' Devuelve "OK" en caso de que no haya error o el texto del error
+    Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) ' Devuelve "OK" en caso de que no haya error o el texto del error
     Sub imprimirEtiqueta(envio As EnviosAgencia)
     ReadOnly Property visibilidadSoloImprimir As Visibility
     ReadOnly Property retornoSoloCobros As Byte

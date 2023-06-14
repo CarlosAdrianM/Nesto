@@ -2,6 +2,7 @@
 Imports System.Windows
 Imports Nesto.Models.Nesto.Models
 Imports System.Threading.Tasks
+Imports Nesto.Models
 
 Public Class AgenciaGlovo
     Implements IAgencia
@@ -68,8 +69,17 @@ Public Class AgenciaGlovo
         Throw New NotImplementedException()
     End Sub
 
-    Public Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) Implements IAgencia.LlamadaWebService
-        Return Task.FromResult(Of String)("OK")
+    Public Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
+        Dim respuesta As New RespuestaAgencia With {
+            .Agencia = "Glovo",
+            .Fecha = DateTime.Now,
+            .UrlLlamada = String.Empty,
+            .Exito = True,
+            .CuerpoLlamada = String.Empty,
+            .CuerpoRespuesta = String.Empty,
+            .TextoRespuestaError = "OK"
+        }
+        Return Task.FromResult(Of RespuestaAgencia)(respuesta)
     End Function
 
     Public Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta

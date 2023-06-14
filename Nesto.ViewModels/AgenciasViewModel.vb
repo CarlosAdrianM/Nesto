@@ -133,8 +133,8 @@ Public Class AgenciasViewModel
         If Not IsNothing(pais) Then
             agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
         End If
-        agenciasVM.EnvioPendienteSeleccionado.Horario = 0 ' Solo tiene uno 
-        agenciasVM.EnvioPendienteSeleccionado.Servicio = 0 ' Solo tiene uno
+        agenciasVM.EnvioPendienteSeleccionado.Horario = agenciasVM.listaHorarios.FirstOrDefault().id
+        agenciasVM.EnvioPendienteSeleccionado.Servicio = agenciasVM.listaServicios.FirstOrDefault().id
 
         agenciasVM.GuardarEnvioPendienteCommand.Execute()
     End Sub
@@ -1278,12 +1278,16 @@ Public Class AgenciasViewModel
         End If
         Try
             Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioActual, servicio)
-            If respuesta = "OK" OrElse agenciaEspecifica.RespuestaYaTramitada(respuesta) Then
+
+            ' Guardamos la llamada
+            Await servicio.GuardarLlamadaAgencia(respuesta)
+
+            If respuesta.Exito OrElse agenciaEspecifica.RespuestaYaTramitada(respuesta.TextoRespuestaError) Then
                 mensajeError = servicio.TramitarEnvio(envioActual)
                 listaEnvios = servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
                 envioActual = listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
             Else
-                mensajeError = respuesta
+                mensajeError = respuesta.TextoRespuestaError
             End If
         Catch ex As Exception
             mensajeError = ex.Message
@@ -1915,7 +1919,9 @@ Public Class AgenciasViewModel
             .Agencia = agenciaSeleccionada.Numero,
             .Empresa = empresaSeleccionada.Número,
             .Estado = Constantes.Agencias.ESTADO_PENDIENTE_ENVIO,
-            .TieneCambios = True
+            .TieneCambios = True,
+            .Horario = listaHorarios.FirstOrDefault().id,
+            .Servicio = listaHorarios.FirstOrDefault().id
         }
         listaPendientes.Add(envioNuevo)
         EnvioPendienteSeleccionado = envioNuevo

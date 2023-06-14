@@ -1494,7 +1494,7 @@ Public Class ClientesViewModel
 
             Try
                 estaOcupado = True
-                If vendedor = "" Then
+                If Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores) Then
                     response = Await client.GetAsync("Clientes?empresa=1&filtro=" + filtro)
                 Else
                     response = Await client.GetAsync("Clientes?empresa=1&vendedor=" + vendedor + "&filtro=" + filtro)

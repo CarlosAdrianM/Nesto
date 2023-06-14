@@ -9,6 +9,7 @@ Imports ControlesUsuario.Dialogs
 Imports System.Text
 Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Shared
+Imports Nesto.Models
 
 Public Class AgenciaASM
     Implements IAgencia
@@ -266,7 +267,7 @@ Public Class AgenciaASM
 
         Return xml
     End Function
-    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of String) Implements IAgencia.LlamadaWebService
+    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
         XMLdeSalida = construirXMLdeSalida(envio, servicio)
 
         'Comenzamos la llamada
@@ -287,6 +288,13 @@ Public Class AgenciaASM
         req.Accept = "text/xml"
         req.Method = "POST"
 
+        Dim respuesta As New RespuestaAgencia With {
+            .Agencia = "ASM",
+            .Fecha = DateTime.Now,
+            .CuerpoLlamada = soap,
+            .UrlLlamada = req.Address.ToString
+        }
+
         Try
             Using stm As Stream = Await req.GetRequestStreamAsync()
                 Using stmw As StreamWriter = New StreamWriter(stm)
@@ -298,8 +306,11 @@ Public Class AgenciaASM
             Dim responseStream As New StreamReader(response.GetResponseStream())
             soap = responseStream.ReadToEnd
             XMLdeEntrada = XDocument.Parse(soap)
+            respuesta.CuerpoRespuesta = soap
         Catch ex As Exception
-            Return "El servidor de la agencia no está respondiendo"
+            respuesta.Exito = False
+            respuesta.TextoRespuestaError = "El servidor de la agencia no está respondiendo"
+            Return respuesta
         End Try
 
 
@@ -310,13 +321,18 @@ Public Class AgenciaASM
         XMLdeEntrada.AddFirst(elementoXML)
 
         If elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value <> "0" Then
+            respuesta.Exito = False
             If elementoXML.Element("Envio").Element("Errores").HasElements Then
-                Return elementoXML.Element("Envio").Element("Errores").Element("Error").Value
+                respuesta.TextoRespuestaError = elementoXML.Element("Envio").Element("Errores").Element("Error").Value
+                Return respuesta
             Else
-                Return calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
+                respuesta.TextoRespuestaError = calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
+                Return respuesta
             End If
         Else
-            Return "OK"
+            respuesta.Exito = True
+            respuesta.TextoRespuestaError = "OK"
+            Return respuesta
         End If
     End Function
     Public Async Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta

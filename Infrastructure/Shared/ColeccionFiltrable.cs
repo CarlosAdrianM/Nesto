@@ -5,6 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using static System.Net.Mime.MediaTypeNames;
+using System.Xml.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Globalization;
 
 namespace Nesto.Infrastructure.Shared
 {
@@ -196,6 +201,29 @@ namespace Nesto.Infrastructure.Shared
 
         #region Propiedades
 
+        public string CamposFiltrables
+        {
+            get
+            {
+                if (ListaOriginal == null)
+                {
+                    return "No hay ningún campo filtrable";
+                }
+                string textoCampos = "La lista de campos filtrables es: \n";
+                var primerElemento = ListaOriginal.FirstOrDefault();
+                if (primerElemento == null) {
+                    return "No hay ningún campo filtrable";
+                }
+                Type tipo = primerElemento.GetType();
+                var campos = tipo.GetProperties();
+                foreach (var campo in campos)
+                {
+                    textoCampos += "  - " + campo.Name + "\n";
+                }
+                return textoCampos;
+            }
+        }
+
         private IFiltrableItem _elementoSeleccionado;
         public IFiltrableItem ElementoSeleccionado
         {
@@ -278,6 +306,7 @@ namespace Nesto.Infrastructure.Shared
             {
                 SetProperty(ref _listaOriginal, value);
                 ListaFijada = value;
+                RaisePropertyChanged(nameof(CamposFiltrables));
             }
         }
 
@@ -308,7 +337,8 @@ namespace Nesto.Infrastructure.Shared
             if (filtro.StartsWith("-"))
             {
                 return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => !l.Contains(filtro.Substring(1))));
-            } else if (filtro.Contains("|"))
+            } 
+            else if (filtro.Contains("|"))
             {
                 var partes = filtro.Split('|');
                 ObservableCollection<IFiltrableItem> listaJunta = new();
@@ -317,6 +347,32 @@ namespace Nesto.Infrastructure.Shared
                     listaJunta = new ObservableCollection<IFiltrableItem>(listaJunta.Union(ListaFijada.Where(l => l.Contains(parte.Trim()))));
                 }
                 return listaJunta;
+            } 
+            else if (filtro.Contains(":"))
+            {
+                var partes = filtro.Split(':');
+                if (partes.Count() != 2 || string.IsNullOrEmpty(partes[0]) || string.IsNullOrEmpty(partes[1])) {
+                    return ListaFijada;
+                }
+                var nombreCampo = partes[0];
+                var valorCampo = partes[1];
+                
+                try
+                {
+                    return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => {
+                        var valorPropiedad = l.GetType().GetProperty(nombreCampo, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(l);
+                        if (valorPropiedad == null)
+                        {
+                            return false;
+                        }
+                        return valorPropiedad.ToString().ToLower().Equals(valorCampo);
+                        }
+                    ));
+                }
+                catch 
+                {
+                    return ListaFijada;
+                }
             }
 
             return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => l.Contains(filtro)));
