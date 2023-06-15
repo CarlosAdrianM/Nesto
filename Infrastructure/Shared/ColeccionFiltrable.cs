@@ -334,7 +334,43 @@ namespace Nesto.Infrastructure.Shared
             {
                 filtro = FormatearFiltro(filtro);
             }
-            if (filtro.StartsWith("-"))
+            if (filtro.Contains(":"))
+            {
+                var partes = filtro.Split(':');
+                if (partes.Count() != 2 || string.IsNullOrEmpty(partes[0]) || string.IsNullOrEmpty(partes[1]))
+                {
+                    return ListaFijada;
+                }
+                
+                var nombreCampo = partes[0];
+                var valorCampo = partes[1];
+                bool esFiltroNegativo = filtro.StartsWith("-");
+
+                if (esFiltroNegativo)
+                {
+                    nombreCampo = nombreCampo.Substring(1).Trim();
+                }
+
+                try
+                {
+                    return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => {
+                        var valorPropiedad = l.GetType().GetProperty(nombreCampo, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(l);
+                        if (valorPropiedad == null)
+                        {
+                            return false;
+                        }
+                        bool esIgual = valorPropiedad.ToString().ToLower().Equals(valorCampo);
+
+                        return esFiltroNegativo ? !esIgual : esIgual;
+                    }
+                    ));
+                }
+                catch
+                {
+                    return ListaFijada;
+                }
+            }
+            else if (filtro.StartsWith("-"))
             {
                 return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => !l.Contains(filtro.Substring(1))));
             } 
@@ -347,32 +383,6 @@ namespace Nesto.Infrastructure.Shared
                     listaJunta = new ObservableCollection<IFiltrableItem>(listaJunta.Union(ListaFijada.Where(l => l.Contains(parte.Trim()))));
                 }
                 return listaJunta;
-            } 
-            else if (filtro.Contains(":"))
-            {
-                var partes = filtro.Split(':');
-                if (partes.Count() != 2 || string.IsNullOrEmpty(partes[0]) || string.IsNullOrEmpty(partes[1])) {
-                    return ListaFijada;
-                }
-                var nombreCampo = partes[0];
-                var valorCampo = partes[1];
-                
-                try
-                {
-                    return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => {
-                        var valorPropiedad = l.GetType().GetProperty(nombreCampo, BindingFlags.IgnoreCase | BindingFlags.Public | BindingFlags.Instance).GetValue(l);
-                        if (valorPropiedad == null)
-                        {
-                            return false;
-                        }
-                        return valorPropiedad.ToString().ToLower().Equals(valorCampo);
-                        }
-                    ));
-                }
-                catch 
-                {
-                    return ListaFijada;
-                }
             }
 
             return new ObservableCollection<IFiltrableItem>(ListaFijada.Where(l => l.Contains(filtro)));
@@ -397,6 +407,16 @@ namespace Nesto.Infrastructure.Shared
                     }
                 }
                 filtroFormateado = nuevoFiltro;
+            }
+            if (filtroFormateado.Contains(":"))
+            {
+                var partes = filtroFormateado.Split(':');
+                if (partes.Count() == 2 && !string.IsNullOrEmpty(partes[0]) && !string.IsNullOrEmpty(partes[1]))
+                {
+                    string nuevoFiltro = partes[0].Trim() + ":" + partes[1].Trim();
+                    
+                    filtroFormateado = nuevoFiltro;
+                }
             }
             return filtroFormateado;
         }
