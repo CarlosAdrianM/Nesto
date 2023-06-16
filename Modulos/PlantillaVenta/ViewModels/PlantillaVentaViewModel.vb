@@ -3,7 +3,6 @@ Imports System.Collections.ObjectModel
 Imports Newtonsoft.Json
 Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports System.Text
-Imports Nesto.Models.PedidoVenta
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json.Linq
@@ -19,7 +18,6 @@ Imports Prism.Mvvm
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
-Imports System.Text.Encodings.Web
 Imports ControlesUsuario.Models
 
 Public Class PlantillaVentaViewModel
@@ -1588,7 +1586,7 @@ Public Class PlantillaVentaViewModel
                 .oferta = ofertaLinea
             }
             If linea.cantidad <> 0 Then
-                pedido.LineasPedido.Add(lineaPedido)
+                pedido.Lineas.Add(lineaPedido)
             End If
 
             If linea.cantidadOferta <> 0 Then
@@ -1596,7 +1594,7 @@ Public Class PlantillaVentaViewModel
                 lineaPedidoOferta.cantidad = linea.cantidadOferta
                 lineaPedidoOferta.precio = 0
                 lineaPedidoOferta.oferta = lineaPedido.oferta
-                pedido.LineasPedido.Add(lineaPedidoOferta)
+                pedido.Lineas.Add(lineaPedidoOferta)
             End If
 
         Next

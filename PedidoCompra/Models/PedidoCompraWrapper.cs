@@ -23,7 +23,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             Lineas.CollectionChanged += ContentCollectionChanged;
             foreach (var linea in Model.Lineas)
             {
-                var lineaNueva = new LineaPedidoCompraWrapper(linea, servicio);
+                var lineaNueva = new LineaPedidoCompraWrapper(linea as LineaPedidoCompraDTO, servicio);
                 lineaNueva.Pedido = this;
                 Lineas.Add(lineaNueva);
             }

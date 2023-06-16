@@ -6,7 +6,8 @@ Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Shared
-Imports Nesto.Models.PedidoVenta
+Imports Nesto.Models
+Imports Nesto.Models.LineaPedidoVentaDTO
 Imports Prism.Commands
 Imports Prism.Events
 Imports Prism.Mvvm

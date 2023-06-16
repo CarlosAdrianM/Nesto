@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Nesto.Models;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Nesto.Modulos.PedidoCompra.Models
 {
-    public class PedidoCompraDTO
+    public class PedidoCompraDTO : PedidoBase<LineaPedidoCompraDTO>
     {
         public PedidoCompraDTO()
         {
@@ -27,12 +27,14 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public string PeriodoFacturacion { get; set; }
         public string PathPedido { get; set; }
         public string CorreoRecepcionPedidos { get; set; }
+        /*
         public decimal BaseImponible => Math.Round(Lineas.Sum(l => l.BaseImponible), 2, MidpointRounding.AwayFromZero);
         public decimal Total => Math.Round(Lineas.Sum(l => l.Total), 2, MidpointRounding.AwayFromZero);
         
         public string Usuario { get; set; }
+        */
 
-        public ICollection<LineaPedidoCompraDTO> Lineas { get; set; }
-        public IEnumerable<ParametrosIvaCompra> ParametrosIva { get; set; }
+        public override ICollection<LineaPedidoCompraDTO> Lineas { get; set; }
+        public new IEnumerable<ParametrosIvaBase> ParametrosIva { get; set; }
     }
 }

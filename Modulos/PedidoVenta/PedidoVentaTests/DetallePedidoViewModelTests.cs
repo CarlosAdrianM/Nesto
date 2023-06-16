@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FakeItEasy;
 using Nesto.Modulos.PedidoVenta;
-using static Nesto.Models.PedidoVenta;
+using static Nesto.Models.LineaPedidoVentaDTO;
 using Prism.Regions;
 using System.ComponentModel;
 using Prism.Events;
@@ -28,7 +28,7 @@ namespace PedidoVentaTests
             lineaFake.descuentoProducto = (decimal).4;
             lineaFake.cantidad = 1;
             lineaFake.precio = 100;
-            pedido.LineasPedido.Add(lineaFake);
+            pedido.Lineas.Add(lineaFake);
             detallePedidoViewModel.pedido = pedido;
 
             // Act
@@ -54,7 +54,7 @@ namespace PedidoVentaTests
             lineaFake.aplicarDescuento = false;
             lineaFake.cantidad = 1;
             lineaFake.precio = 100;
-            pedido.LineasPedido.Add(lineaFake);
+            pedido.Lineas.Add(lineaFake);
             detallePedidoViewModel.pedido = pedido;
 
             // Act
@@ -80,7 +80,7 @@ namespace PedidoVentaTests
             lineaFake.aplicarDescuento = true;
             lineaFake.cantidad = 1;
             lineaFake.precio = 100;
-            pedido.LineasPedido.Add(lineaFake);
+            pedido.Lineas.Add(lineaFake);
             detallePedidoViewModel.pedido = pedido;
             var handler = A.Fake<PropertyChangedEventHandler>();
             lineaFake.PropertyChanged += handler;

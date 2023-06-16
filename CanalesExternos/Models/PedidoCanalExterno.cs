@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Nesto.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Nesto.Models.PedidoVenta;
+using static Nesto.Models.LineaPedidoVentaDTO;
 
 namespace Nesto.Modulos.CanalesExternos
 {

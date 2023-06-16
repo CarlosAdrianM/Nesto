@@ -1,5 +1,6 @@
 ﻿Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Models.PedidoVenta
+Imports Nesto.Models
+Imports Nesto.Models.LineaPedidoVentaDTO
 Imports Prism.Mvvm
 
 Public Class PedidoVentaModel

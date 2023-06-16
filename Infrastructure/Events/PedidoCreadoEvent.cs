@@ -1,5 +1,5 @@
-﻿using Prism.Events;
-using static Nesto.Models.PedidoVenta;
+﻿using Nesto.Models;
+using Prism.Events;
 
 namespace Nesto.Infrastructure.Events
 {

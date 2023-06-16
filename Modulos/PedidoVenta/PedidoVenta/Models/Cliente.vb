@@ -1,7 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Nesto.Models.PedidoVenta
-Imports System.Windows.Media
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Models
 
 Public Class ClienteJson
     Implements IFiltrableItem

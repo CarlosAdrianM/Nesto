@@ -4,13 +4,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using static Nesto.Models.PedidoVenta;
 using Nesto.ViewModels;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Services.Dialogs;
 using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
+using Nesto.Models;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {

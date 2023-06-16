@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using Nesto.Models;
-using static Nesto.Models.PedidoVenta;
+using static Nesto.Models.LineaPedidoVentaDTO;
 
 namespace Nesto.Modulos.CanalesExternos.ApisExternas
 {

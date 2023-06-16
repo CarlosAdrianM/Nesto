@@ -7,7 +7,7 @@ Imports System.IO
 Imports Microsoft.Win32
 Imports System.Windows.Data
 Imports System.Globalization
-Imports Nesto.Models.PedidoVenta
+Imports Nesto.Models.LineaPedidoVentaDTO
 Imports System.Net.Http
 Imports Newtonsoft.Json
 Imports System.Text

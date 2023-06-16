@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using MarketplaceWebServiceOrders;
 using MarketplaceWebServiceOrders.Model;
-using static Nesto.Models.PedidoVenta;
 using System.Collections.ObjectModel;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
+using Nesto.Models;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -65,7 +65,7 @@ namespace Nesto.Modulos.CanalesExternos
                     pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
                     pedidoExterno.Observaciones += " " + pedidoExterno.PedidoCanalId;
                     List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
-                    pedidoExterno.Pedido.LineasPedido = TransformarLineas(lineasAmazon, order.FulfillmentChannel, pedidoExterno.Pedido.iva);
+                    pedidoExterno.Pedido.Lineas = TransformarLineas(lineasAmazon, order.FulfillmentChannel, pedidoExterno.Pedido.iva);
                     listaNesto.Add(pedidoExterno);
                 }
             });

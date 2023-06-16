@@ -3,7 +3,7 @@ Imports System.Net.Http
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
-Imports Nesto.Models.PedidoVenta
+Imports Nesto.Models.LineaPedidoVentaDTO
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq

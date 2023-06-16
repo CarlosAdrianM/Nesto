@@ -2,12 +2,12 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Nesto.Modulos.CanalesExternos.ApisExternas;
-using static Nesto.Models.PedidoVenta;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using Nesto.Models.Nesto.Models;
 using System.Collections.Generic;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Models;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -156,7 +156,7 @@ namespace Nesto.Modulos.CanalesExternos
                     lineaNesto.precio = Math.Round(lineaNesto.precio / (decimal)(1+porcentajeIva), 4);
                 }
 
-                pedidoSalida.LineasPedido.Add(lineaNesto);
+                pedidoSalida.Lineas.Add(lineaNesto);
             }
 
             // Añadir portes
@@ -184,7 +184,7 @@ namespace Nesto.Modulos.CanalesExternos
                     lineaPortes.precio = lineaPortes.precio / (decimal)1.21;
                 }
 
-                pedidoSalida.LineasPedido.Add(lineaPortes);
+                pedidoSalida.Lineas.Add(lineaPortes);
             }
 
             // Añadir embalaje
@@ -212,7 +212,7 @@ namespace Nesto.Modulos.CanalesExternos
                     lineaEmbalaje.precio = lineaEmbalaje.precio / (decimal)1.21;
                 }
 
-                pedidoSalida.LineasPedido.Add(lineaEmbalaje);
+                pedidoSalida.Lineas.Add(lineaEmbalaje);
             }
 
             // Añadir cupones de descuento
@@ -240,7 +240,7 @@ namespace Nesto.Modulos.CanalesExternos
                     lineaCupon.precio = lineaCupon.precio / (decimal)1.21;
                 }
 
-                pedidoSalida.LineasPedido.Add(lineaCupon);
+                pedidoSalida.Lineas.Add(lineaCupon);
             }
 
             pedidoExterno.Pedido = pedidoSalida;

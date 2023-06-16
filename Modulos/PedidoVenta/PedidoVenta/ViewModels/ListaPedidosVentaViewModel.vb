@@ -9,6 +9,7 @@ Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
+Imports Nesto.Models
 
 Public Class ListaPedidosVentaViewModel
     Inherits BindableBase
@@ -244,15 +245,15 @@ Public Class ListaPedidosVentaViewModel
         Return IsNothing(ruta) OrElse ruta.Trim = "FW" OrElse ruta.Trim = "00" OrElse ruta.Trim = "16" OrElse ruta.Trim = "AT" OrElse ruta.Trim = "OT"
     End Function
 
-    Private Sub ActualizarResumen(pedido As Models.PedidoVenta.PedidoVentaDTO)
+    Private Sub ActualizarResumen(pedido As PedidoVentaDTO)
         If IsNothing(pedido) OrElse IsNothing(ListaPedidos.ElementoSeleccionado) OrElse pedido.numero <> CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero Then
             Return
         End If
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).baseImponible = pedido.baseImponible
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).contacto = pedido.contacto
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tienePicking = pedido.LineasPedido.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneFechasFuturas = pedido.LineasPedido.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(DateTime.Now, pedido.ruta))
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneProductos = pedido.LineasPedido.Any(Function(l) l.tipoLinea = 1)
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(DateTime.Now, pedido.ruta))
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea = 1)
     End Sub
 
     Private Async Function CargarResumenSeleccionado() As Task

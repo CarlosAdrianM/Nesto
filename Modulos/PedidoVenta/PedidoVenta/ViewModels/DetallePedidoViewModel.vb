@@ -5,7 +5,6 @@ Imports System.Runtime.InteropServices
 Imports Prism.Commands
 Imports Prism.Events
 Imports Prism.Regions
-Imports Nesto.Models.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
@@ -13,9 +12,8 @@ Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Contracts
 Imports System.Text
-Imports Nesto.Infrastructure.Shared
 Imports ControlesUsuario.Models
-Imports VendedorGrupoProductoDTO = Nesto.Models.PedidoVenta.VendedorGrupoProductoDTO
+Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 Imports Nesto.Models
 
 Public Class DetallePedidoViewModel
@@ -202,7 +200,7 @@ Public Class DetallePedidoViewModel
             SetProperty(_pedido, value)
             eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
             estaActualizarFechaActivo = False
-            Dim linea As LineaPedidoVentaDTO = pedido.LineasPedido.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
+            Dim linea As LineaPedidoVentaDTO = pedido.Lineas.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
             If Not IsNothing(linea) AndAlso Not IsNothing(linea.fechaEntrega) Then
                 fechaEntrega = linea.fechaEntrega
             End If
@@ -314,7 +312,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Sub OnCambiarFechaEntrega()
-        For Each linea In pedido.LineasPedido
+        For Each linea In pedido.Lineas
             linea.fechaEntrega = fechaEntrega
         Next
 
@@ -392,7 +390,7 @@ Public Class DetallePedidoViewModel
             lineaActual = arg.Row.DataContext
         End If
         If IsNothing(lineaActual.almacen) Then
-            lineaActual.almacen = pedido.LineasPedido.FirstOrDefault()?.almacen
+            lineaActual.almacen = pedido.Lineas.FirstOrDefault()?.almacen
         End If
         If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = DateTime.MinValue Then
             lineaActual.fechaEntrega = fechaEntrega
@@ -624,10 +622,10 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Function CanPonerDescuentoPedido() As Boolean
-        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.LineasPedido)
+        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas)
     End Function
     Private Sub OnPonerDescuentoPedido()
-        For Each linea In pedido.LineasPedido.Where(Function(l) l.aplicarDescuento AndAlso l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
+        For Each linea In pedido.Lineas.Where(Function(l) l.aplicarDescuento AndAlso l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
             linea.descuento = descuentoPedido
         Next
         RaisePropertyChanged(NameOf(pedido))

@@ -1,15 +1,19 @@
-﻿using System;
+﻿using Nesto.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Nesto.Modulos.PedidoCompra.Models
 {
-    public class LineaPedidoCompraDTO
+    public class LineaPedidoCompraDTO : LineaPedidoBase
     {
+        public LineaPedidoCompraDTO() : base() {
+            
+        }
         public int Id { get; set; }
         public int Estado { get; set; }
         public string TipoLinea { get; set; }
-        public string Producto { get; set; }
+        //public string Producto { get; set; }
         public string Texto { get; set; }
         public DateTime FechaRecepcion { get; set; }
         private int _cantidad;
@@ -55,7 +59,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public decimal DescuentoProveedor { get; set; }
         public decimal DescuentoProducto { get; set; }
         public string CodigoIvaProducto { get; set; }
-        public decimal PorcentajeIva { get; set; }
+        //public decimal PorcentajeIva { get; set; }
         public int StockMaximo { get; set; }
         public int PendienteEntregar { get; set; }
         public int PendienteRecibir { get; set; }
@@ -89,9 +93,9 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public decimal SumaDescuentos { get => AplicarDescuentos ? 1 - (1 - DescuentoProveedor) * (1 - DescuentoProducto) * (1 - DescuentoLinea) : 0; }
         public bool AplicarDescuentos { get; set; } = true;
         public decimal ImporteDescuento { get => Bruto * SumaDescuentos; }
-        public decimal BaseImponible { get => Bruto - ImporteDescuento; }
-        public decimal ImporteIva { get => BaseImponible * PorcentajeIva; }
-        public decimal Total { get => BaseImponible + ImporteIva; }
+        public override decimal BaseImponible { get => Bruto - ImporteDescuento; } // Esta hay que cambiarla por la de LineaPedidoBase cuando esté implementada
+        //public decimal ImporteIva { get => BaseImponible * PorcentajeIva; }
+        //public decimal Total { get => BaseImponible + ImporteIva; }
         public int? CantidadCobrada { get; set; }
         public int? CantidadRegalo { get; set; }
 

@@ -4,7 +4,7 @@ Imports System.Text
 Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
-Imports Nesto.Models.PedidoVenta
+Imports Nesto.Models.LineaPedidoVentaDTO
 Imports Nesto.Modulos.Cliente
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
@@ -202,7 +202,7 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    Public Async Function CrearPedido(pedido As Models.PedidoVenta.PedidoVentaDTO) As Task(Of String) Implements IPlantillaVentaService.CrearPedido
+    Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of String) Implements IPlantillaVentaService.CrearPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage

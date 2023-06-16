@@ -1,5 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Nesto.Models.PedidoVenta
+Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
 Public Interface IPedidoVentaService
