@@ -3,6 +3,7 @@ Imports System.Runtime.CompilerServices
 
 
 Public Class LineaPedidoVentaDTO
+    Inherits LineaPedidoBase
     Implements INotifyPropertyChanged
 
 
@@ -102,16 +103,16 @@ Public Class LineaPedidoVentaDTO
             OnPropertyChanged("total")
         End Set
     End Property
-    Private _producto As String
-    Public Property producto() As String
-        Get
-            Return _producto
-        End Get
-        Set(value As String)
-            _producto = value
-            OnPropertyChanged(NameOf(producto))
-        End Set
-    End Property
+    'Private _producto As String
+    'Public Property Producto() As String
+    '    Get
+    '        Return _producto
+    '    End Get
+    '    Set(value As String)
+    '        _producto = value
+    '        OnPropertyChanged(NameOf(Producto))
+    '    End Set
+    'End Property
     Private _texto As String
     Public Property texto As String
         Get
@@ -123,7 +124,7 @@ Public Class LineaPedidoVentaDTO
         End Set
     End Property
     Public Property tipoLinea() As Nullable(Of Byte) = 1
-    Public Property usuario() As String
+    'Public Property Usuario() As String
     Public Property vistoBueno() As Boolean
 
 

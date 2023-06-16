@@ -1,4 +1,5 @@
 ﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -30,8 +31,18 @@ namespace Nesto.Modules.Producto
 
                 try
                 {
-                    string vendedor = await configuracion.leerParametro(EmpresaDefecto, "Vendedor");
-                    string urlConsulta = "Productos?empresa=" + EmpresaDefecto + "&id=" + producto + "&vendedor=" + vendedor;
+                    string vendedor = await configuracion.leerParametro(EmpresaDefecto, Parametros.Claves.Vendedor);
+                    string todosLosClientes = await configuracion.leerParametro(EmpresaDefecto, Parametros.Claves.PermitirVerClientesTodosLosVendedores);
+                    string urlConsulta;
+                    if (todosLosClientes == "1")
+                    {
+                        urlConsulta = "Productos?empresa=" + EmpresaDefecto + "&id=" + producto + "&vendedor=";
+                    }
+                    else
+                    {
+                        urlConsulta = "Productos?empresa=" + EmpresaDefecto + "&id=" + producto + "&vendedor=" + vendedor;
+                    }
+                        
 
 
                     response = await client.GetAsync(urlConsulta);

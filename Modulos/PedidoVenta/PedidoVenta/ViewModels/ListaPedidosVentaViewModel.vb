@@ -249,7 +249,7 @@ Public Class ListaPedidosVentaViewModel
         If IsNothing(pedido) OrElse IsNothing(ListaPedidos.ElementoSeleccionado) OrElse pedido.numero <> CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero Then
             Return
         End If
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).baseImponible = pedido.baseImponible
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).baseImponible = pedido.BaseImponible
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).contacto = pedido.contacto
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(DateTime.Now, pedido.ruta))

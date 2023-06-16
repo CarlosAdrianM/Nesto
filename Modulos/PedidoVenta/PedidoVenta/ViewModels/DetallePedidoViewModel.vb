@@ -65,7 +65,7 @@ Public Class DetallePedidoViewModel
     End Sub
     Private Async Sub InsertarProducto(productoSeleccionado As String)
         If Not IsNothing(lineaActual) Then
-            lineaActual.producto = productoSeleccionado
+            lineaActual.Producto = productoSeleccionado
             Await CargarDatosProducto(productoSeleccionado, lineaActual.cantidad)
         End If
     End Sub
@@ -299,7 +299,7 @@ Public Class DetallePedidoViewModel
     End Property
     Private Sub OnActualizarTotales()
         RaisePropertyChanged(NameOf(pedido))
-        CobroTarjetaImporte = pedido.total
+        CobroTarjetaImporte = pedido.Total
     End Sub
 
     Private _cmdCambiarFechaEntrega As DelegateCommand
@@ -352,7 +352,7 @@ Public Class DetallePedidoViewModel
             ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(resumen.empresa, resumen.numero)
             If Not IsNothing(pedido) Then
                 ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
-                CobroTarjetaImporte = pedido.total
+                CobroTarjetaImporte = pedido.Total
             End If
         Else
             Me.Titulo = "Lista de Pedidos"
@@ -371,7 +371,7 @@ Public Class DetallePedidoViewModel
     Private Sub OnCargarProducto(linea As LineaPedidoVentaDTO)
         Dim parameters As NavigationParameters = New NavigationParameters()
         'parameters.Add("numeroProductoParameter", lineaActual.producto)
-        parameters.Add("numeroProductoParameter", linea.producto)
+        parameters.Add("numeroProductoParameter", linea.Producto)
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
@@ -395,11 +395,11 @@ Public Class DetallePedidoViewModel
         If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = DateTime.MinValue Then
             lineaActual.fechaEntrega = fechaEntrega
         End If
-        If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.producto Then
+        If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.Producto Then
             Await CargarDatosProducto(arg.EditingElement.Text, lineaActual.cantidad)
         End If
         If arg.Column.Header = "Cantidad" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.cantidad Then
-            Await CargarDatosProducto(lineaActual.producto, arg.EditingElement.Text)
+            Await CargarDatosProducto(lineaActual.Producto, arg.EditingElement.Text)
         End If
         If arg.Column.Header = "Precio" OrElse arg.Column.Header = "Descuento" Then
             Dim textBox As TextBox = arg.EditingElement
@@ -434,8 +434,8 @@ Public Class DetallePedidoViewModel
             lineaCambio.texto = producto.nombre
             lineaCambio.aplicarDescuento = producto.aplicarDescuento
             lineaCambio.descuentoProducto = producto.descuento
-            If IsNothing(lineaCambio.usuario) Then
-                lineaCambio.usuario = configuracion.usuario
+            If IsNothing(lineaCambio.Usuario) Then
+                lineaCambio.Usuario = configuracion.usuario
             End If
         End If
         If pedido.EsPresupuesto Then
@@ -592,7 +592,7 @@ Public Class DetallePedidoViewModel
         End If
 
         ' Modificamos el usuario del pedido
-        pedido.usuario = configuracion.usuario
+        pedido.Usuario = configuracion.usuario
 
 
         Try

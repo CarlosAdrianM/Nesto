@@ -102,7 +102,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.periodoFacturacion = "NRM";
             pedidoSalida.servirJunto = true;
 
-            pedidoSalida.usuario = configuracion.usuario;
+            pedidoSalida.Usuario = configuracion.usuario;
 
 
             // añadir líneas
@@ -145,10 +145,10 @@ namespace Nesto.Modulos.CanalesExternos
                     fechaEntrega = DateTime.Today,
                     iva = tipoIva,
                     precio = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
-                    producto = linea.Element("product_reference").Value,
+                    Producto = linea.Element("product_reference").Value,
                     texto = linea.Element("product_name").Value.ToUpper(),
                     tipoLinea = 1, // producto
-                    usuario = configuracion.usuario
+                    Usuario = configuracion.usuario
                 };
 
                 if (pedidoSalida.iva != null)
@@ -173,10 +173,10 @@ namespace Nesto.Modulos.CanalesExternos
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
                     precio = totalPortes,
-                    producto = "62400003",
+                    Producto = "62400003",
                     texto = "GASTOS DE TRANSPORTE",
                     tipoLinea = 2, // cuenta contable
-                    usuario = configuracion.usuario
+                    Usuario = configuracion.usuario
                 };
 
                 if (pedidoSalida.iva != null)
@@ -201,10 +201,10 @@ namespace Nesto.Modulos.CanalesExternos
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
                     precio = totalEmbalaje,
-                    producto = "62700020",
+                    Producto = "62700020",
                     texto = "EMBALAJE DE REGALO",
                     tipoLinea = 2, // cuenta contable
-                    usuario = configuracion.usuario
+                    Usuario = configuracion.usuario
                 };
 
                 if (pedidoSalida.iva != null)
@@ -229,10 +229,10 @@ namespace Nesto.Modulos.CanalesExternos
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
                     precio = totalDescuentos,
-                    producto = "TiCKET",
+                    Producto = "TiCKET",
                     texto = "CUPÓN DE DESCUENTO",
                     tipoLinea = 1, // producto
-                    usuario = configuracion.usuario
+                    Usuario = configuracion.usuario
                 };
 
                 if (pedidoSalida.iva != null)
@@ -273,7 +273,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 PrepagoDTO prepago = new PrepagoDTO
                 {
-                    Importe = totalPagado != 0 ? totalPagado : pedidoSalida.total,
+                    Importe = totalPagado != 0 ? totalPagado : pedidoSalida.Total,
                     CuentaContable = cuentasFormaPago[formaPago],
                     ConceptoAdicional = string.Format("Tienda Online {0}", formaPago)
                 };

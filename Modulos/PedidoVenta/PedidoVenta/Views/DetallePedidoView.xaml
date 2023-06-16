@@ -90,7 +90,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
                                 <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
-                                <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding producto}" />
+                                <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding Producto}" />
                                 <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
 
                                 <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding cantidad}" />
@@ -182,7 +182,7 @@
                                 </Grid.RowDefinitions>
                                 <xctk:WatermarkTextBox Grid.Row="0" Text="{Binding CobroTarjetaCorreo, UpdateSourceTrigger=PropertyChanged}" Watermark="Correo electrónico para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
                                 <xctk:WatermarkTextBox Grid.Row="1" Text="{Binding CobroTarjetaMovil, UpdateSourceTrigger=PropertyChanged}" Watermark="Móvil para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
-                                <xctk:WatermarkTextBox Grid.Row="2" Text="{Binding CobroTarjetaImporte, StringFormat=c}" Watermark="Imprte para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
+                                <xctk:WatermarkTextBox Grid.Row="2" Text="{Binding CobroTarjetaImporte, StringFormat=c}" Watermark="Importe para el cobro con tarjeta" Margin="0,3"></xctk:WatermarkTextBox>
                                 <Button Grid.Row="3" Command="{Binding EnviarCobroTarjetaCommand}">Mandar enlace pago</Button>
                             </Grid>
                             <CheckBox IsChecked="{Binding pedido.CrearEfectosManualmente}">Crear vencimientos manualmente</CheckBox>
@@ -248,7 +248,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
                                 <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
-                                <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding producto}" />
+                                <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding Producto}" />
                                 <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
 
                                 <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding cantidad}" />
@@ -312,11 +312,11 @@
                                 <xctk:PropertyDefinition TargetProperties="oferta" DisplayName="Nº de Oferta"/>
                                 <xctk:PropertyDefinition TargetProperties="picking" DisplayName="Picking"/>
                                 <xctk:PropertyDefinition TargetProperties="precio" DisplayName="Precio Unitario"/>
-                                <xctk:PropertyDefinition TargetProperties="producto" DisplayName="Producto"/>
+                                <xctk:PropertyDefinition TargetProperties="Producto" DisplayName="Producto"/>
                                 <xctk:PropertyDefinition TargetProperties="texto" DisplayName="Texto"/>
                                 <xctk:PropertyDefinition TargetProperties="tienePicking" DisplayName="¿Tiene Picking?"/>
                                 <xctk:PropertyDefinition TargetProperties="tipoLinea" DisplayName="Tipo de Línea"/>
-                                <xctk:PropertyDefinition TargetProperties="usuario" DisplayName="Usuario"/>
+                                <xctk:PropertyDefinition TargetProperties="Usuario" DisplayName="Usuario"/>
                                 <xctk:PropertyDefinition TargetProperties="vistoBueno" DisplayName="Visto Bueno"/>
                             </xctk:PropertyGrid.PropertyDefinitions>
                         </xctk:PropertyGrid>
@@ -346,8 +346,8 @@
                     <TextBlock Grid.Column="1" Grid.Row="0">Picking</TextBlock>
                     <TextBlock Grid.Column="2" Grid.Row="0">Total</TextBlock>
 
-                    <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding pedido.baseImponible, StringFormat=c}"></TextBlock>
-                    <TextBlock Grid.Column="2" Grid.Row="2" Text="{Binding pedido.total, StringFormat=c}"></TextBlock>
+                    <TextBlock Grid.Column="2" Grid.Row="1" Text="{Binding pedido.BaseImponible, StringFormat=c}"></TextBlock>
+                    <TextBlock Grid.Column="2" Grid.Row="2" Text="{Binding pedido.Total, StringFormat=c}"></TextBlock>
 
                     <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding pedido.baseImponiblePicking, StringFormat=c}"></TextBlock>
                     <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding pedido.totalPicking, StringFormat=c}"></TextBlock>

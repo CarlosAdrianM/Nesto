@@ -1547,7 +1547,7 @@ Public Class PlantillaVentaViewModel
                         .servirJunto = direccionEntregaSeleccionada.servirJunto,
                         .comentarioPicking = clienteSeleccionado.comentarioPicking,
                         .comentarios = direccionEntregaSeleccionada.comentarioRuta,
-                        .usuario = configuracion.usuario
+                        .Usuario = configuracion.usuario
                     }
 
         Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
@@ -1569,7 +1569,7 @@ Public Class PlantillaVentaViewModel
             lineaPedido = New LineaPedidoVentaDTO With {
                 .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO), '¿Pongo 0 para tener que validar?
                 .tipoLinea = 1, ' Producto
-                .producto = linea.producto,
+                .Producto = linea.producto,
                 .texto = linea.texto,
                 .cantidad = linea.cantidad,
                 .fechaEntrega = fechaEntrega,
@@ -1578,7 +1578,7 @@ Public Class PlantillaVentaViewModel
                 .descuentoProducto = IIf(linea.descuento = linea.descuentoProducto, linea.descuentoProducto, 0),
                 .aplicarDescuento = IIf(linea.descuento = linea.descuentoProducto, linea.aplicarDescuento, False),
                 .vistoBueno = 0, 'calcular
-                .usuario = configuracion.usuario,
+                .Usuario = configuracion.usuario,
                 .almacen = almacenRutaUsuario,
                 .iva = linea.iva,
                 .delegacion = delegacionUsuario, 'pedir al usuario en alguna parte

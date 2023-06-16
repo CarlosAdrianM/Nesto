@@ -195,7 +195,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 
                 if (pedido.Pedido.formaPago == Constantes.FormasPago.EFECTIVO)
                 {
-                    etiqueta.Reembolso = pedido.Pedido.total;
+                    etiqueta.Reembolso = pedido.Pedido.Total;
                 }
                 
                 AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion, DialogService);

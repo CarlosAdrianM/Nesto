@@ -35,7 +35,7 @@ namespace PedidoVentaTests
             lineaFake.aplicarDescuento = false;
 
             // Assert
-            Assert.AreEqual(100, detallePedidoViewModel.pedido.baseImponible);
+            Assert.AreEqual(100, detallePedidoViewModel.pedido.BaseImponible);
         }
 
         [TestMethod]
@@ -61,7 +61,7 @@ namespace PedidoVentaTests
             lineaFake.aplicarDescuento = true;
 
             // Assert
-            Assert.AreEqual(60, detallePedidoViewModel.pedido.baseImponible);
+            Assert.AreEqual(60, detallePedidoViewModel.pedido.BaseImponible);
         }
 
         [TestMethod]

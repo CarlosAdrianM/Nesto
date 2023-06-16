@@ -6,6 +6,7 @@ Imports Prism.Mvvm
 Imports Unity
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.[Shared]
 
 Public Class ListaRapportsViewModel
     Inherits BindableBase
@@ -213,9 +214,15 @@ Public Class ListaRapportsViewModel
         If IsNothing(vendedor) Then
             vendedor = Await configuracion.leerParametro(empresaPorDefecto, "Vendedor")
         End If
+        Dim todosLosClientes As String = Await configuracion.leerParametro(empresaPorDefecto, Parametros.Claves.PermitirVerClientesTodosLosVendedores)
         Try
             EstaOcupado = True
-            listaRapports = Await servicio.cargarListaRapportsFiltrada(vendedor, Filtro)
+            If todosLosClientes = "1" Then
+                listaRapports = Await servicio.cargarListaRapportsFiltrada(String.Empty, Filtro)
+            Else
+                listaRapports = Await servicio.cargarListaRapportsFiltrada(vendedor, Filtro)
+            End If
+
             rapportSeleccionado = listaRapports.FirstOrDefault
         Catch ex As Exception
             Throw ex

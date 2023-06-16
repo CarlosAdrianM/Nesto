@@ -127,7 +127,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.periodoFacturacion = "NRM";
             pedidoSalida.servirJunto = true;
 
-            pedidoSalida.usuario = configuracion.usuario;
+            pedidoSalida.Usuario = configuracion.usuario;
 
             pedidoExterno.Pedido = pedidoSalida;
             pedidoExterno.PedidoCanalId = numeroOrderAmazon;
@@ -195,11 +195,11 @@ namespace Nesto.Modulos.CanalesExternos
                     fechaEntrega = DateTime.Today,
                     iva = iva == IVA_EXPORTACION ? IVA_EXENTO : porcentajeIva == PORCENTAJE_IVA_REDUCIDO ? IVA_REDUCIDO : IVA_GENERAL, 
                     precio = orderItem.QuantityOrdered != 0 ? baseImponible / orderItem.QuantityOrdered : baseImponible,
-                    producto = orderItem.SellerSKU.EndsWith("FBA") ? orderItem.SellerSKU.Substring(0, orderItem.SellerSKU.Length-3) : orderItem.SellerSKU,
+                    Producto = orderItem.SellerSKU.EndsWith("FBA") ? orderItem.SellerSKU.Substring(0, orderItem.SellerSKU.Length-3) : orderItem.SellerSKU,
                     texto = orderItem.Title.ToUpper(),
                     tipoLinea = 1, // producto
                     vistoBueno = true,
-                    usuario = configuracion.usuario
+                    Usuario = configuracion.usuario
                 };
                 lineasNesto.Add(lineaNesto);
 
@@ -217,11 +217,11 @@ namespace Nesto.Modulos.CanalesExternos
                         fechaEntrega = DateTime.Today,
                         iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL,
                         precio = baseImponiblePortes,
-                        producto = "62400003",
+                        Producto = "62400003",
                         texto = "PORTES " + orderItem.Title.ToUpper(),
                         tipoLinea = 2, // cuenta contable
                         vistoBueno = true,
-                        usuario = configuracion.usuario
+                        Usuario = configuracion.usuario
                     };
                     lineasNesto.Add(lineaPortes);
                 }
@@ -240,11 +240,11 @@ namespace Nesto.Modulos.CanalesExternos
                         fechaEntrega = DateTime.Today,
                         iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL,
                         precio = baseImponibleDescuentoPortes,
-                        producto = "62400003",
+                        Producto = "62400003",
                         texto = "DESCUENTO PORTES " + orderItem.Title.ToUpper(),
                         tipoLinea = 2, // cuenta contable
                         vistoBueno = true,
-                        usuario = configuracion.usuario
+                        Usuario = configuracion.usuario
                     };
                     lineasNesto.Add(lineaDescuentoPortes);
                 }
