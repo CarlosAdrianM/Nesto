@@ -1,14 +1,9 @@
-﻿using Nesto.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static Nesto.Models.LineaPedidoVentaDTO;
+﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Models;
 
 namespace Nesto.Modulos.CanalesExternos
 {
-    public class PedidoCanalExterno
+    public class PedidoCanalExterno : IFiltrableItem
     {
         public string PedidoCanalId { get; set; }
         public int PedidoNestoId { get; set; }
@@ -24,5 +19,12 @@ namespace Nesto.Modulos.CanalesExternos
         public string Observaciones { get; set; }
         public PedidoVentaDTO Pedido { get; set; }
 
+        public bool Contains(string filtro)
+        {
+            return (PedidoNestoId.ToString() == filtro) || (Nombre != null && Nombre.ToLower().ToString().Contains(filtro)) || 
+                (Observaciones != null && Observaciones.ToLower().ToString().Contains(filtro)) || (Direccion != null && Direccion.ToLower().ToString().Contains(filtro)) || 
+                (CodigoPostal != null && CodigoPostal.ToString() == filtro) || (Poblacion != null && Poblacion.ToLower().ToString().Contains(filtro)) ||
+                (TelefonoFijo != null && TelefonoFijo.ToString() == filtro) || (TelefonoMovil != null && TelefonoMovil.ToString() == filtro);
+        }
     }
 }

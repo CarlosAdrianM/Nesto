@@ -8,6 +8,7 @@ using Nesto.Models.Nesto.Models;
 using System.Collections.Generic;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
+using System.Transactions;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -154,6 +155,8 @@ namespace Nesto.Modulos.CanalesExternos
                 if (pedidoSalida.iva != null)
                 {
                     lineaNesto.precio = Math.Round(lineaNesto.precio / (decimal)(1+porcentajeIva), 4);
+                    lineaNesto.BaseImponible = lineaNesto.precio * lineaNesto.cantidad;
+                    lineaNesto.PorcentajeIva = porcentajeIva;
                 }
 
                 pedidoSalida.Lineas.Add(lineaNesto);
@@ -288,7 +291,6 @@ namespace Nesto.Modulos.CanalesExternos
 
             return pedidoExterno;
         }
-
         private Clientes BuscarCliente(string dniCliente)
         {
             Clientes CLIENTE_TIENDA_ONLINE = new Clientes

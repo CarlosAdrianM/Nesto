@@ -23,7 +23,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         public event EventHandler CanalSeleccionadoHaCambiado;
 
         private ICanalExternoPedidos _canalSeleccionado;
-        private ObservableCollection<PedidoCanalExterno> _listaPedidos;
+        private ColeccionFiltrable _listaPedidos;
         private PedidoCanalExterno _pedidoSeleccionado;
 
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
@@ -39,11 +39,30 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
             CrearComandos();
 
+            ListaPedidos = new ColeccionFiltrable(new ObservableCollection<PedidoCanalExterno>());
+            ListaPedidos.TieneDatosIniciales = true;
+            ListaPedidos.ElementoSeleccionadoChanged += (sender, args) => { CargarPedidoSeleccionado(); };
+
             Titulo = "Canales Externos Pedidos";
         }
 
+        private void CargarPedidoSeleccionado()
+        {
+            if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.fecha != null && !(bool)(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.comentarios.StartsWith("FBA"))
+            {
+                FechaDesde = (DateTime)(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.fecha;
+            }
+            RaisePropertyChanged(nameof(PedidoSeleccionadoDireccion));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoNombre));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoFijo));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoMovil));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoPoblacion));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoObservaciones));
+            CrearPedidoCommand.RaiseCanExecuteChanged();
+        }
+
         #region "Propiedades Nesto"
-        
+
         public ICanalExternoPedidos CanalSeleccionado
         {
             get { return _canalSeleccionado; }
@@ -81,61 +100,80 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set { SetProperty(ref _numeroMaxPedidos, value); }
         }
 
-        public ObservableCollection<PedidoCanalExterno> ListaPedidos
+        public ColeccionFiltrable ListaPedidos
         {
             get { return _listaPedidos; }
             set { SetProperty(ref _listaPedidos, value); }
         }
         
-        public PedidoCanalExterno PedidoSeleccionado
-        {
-            get { return _pedidoSeleccionado; }
-            set {
-                SetProperty(ref _pedidoSeleccionado, value);
-                if (PedidoSeleccionado?.Pedido.fecha != null && !(bool)PedidoSeleccionado?.Pedido.comentarios.StartsWith("FBA"))
-                {
-                    FechaDesde = (DateTime)PedidoSeleccionado.Pedido.fecha;
-                }
-                RaisePropertyChanged(nameof(PedidoSeleccionadoDireccion));
-                RaisePropertyChanged(nameof(PedidoSeleccionadoNombre));
-                RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoFijo));
-                RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoMovil));
-                CrearPedidoCommand.RaiseCanExecuteChanged();
-            }
-        }
+        //public PedidoCanalExterno PedidoSeleccionado
+        //{
+        //    get { return _pedidoSeleccionado; }
+        //    set {
+        //        SetProperty(ref _pedidoSeleccionado, value);
+                
+        //    }
+        //}
         public string PedidoSeleccionadoDireccion
         {
-            get { return PedidoSeleccionado?.Direccion; }
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Direccion; }
             set
             {
-                PedidoSeleccionado.Direccion = value;
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Direccion = value;
                 CrearPedidoCommand.RaiseCanExecuteChanged();
             }
         }
         public string PedidoSeleccionadoNombre
         {
-            get { return PedidoSeleccionado?.Nombre; }
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Nombre; }
             set
             {
-                PedidoSeleccionado.Nombre = value;
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Nombre = value;
                 CrearPedidoCommand.RaiseCanExecuteChanged();
             }
         }
         public string PedidoSeleccionadoTelefonoFijo
         {
-            get { return PedidoSeleccionado?.TelefonoFijo; }
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.TelefonoFijo; }
             set
             {
-                PedidoSeleccionado.TelefonoFijo = value;
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).TelefonoFijo = value;
                 CrearPedidoCommand.RaiseCanExecuteChanged();
             }
         }
         public string PedidoSeleccionadoTelefonoMovil
         {
-            get { return PedidoSeleccionado?.TelefonoMovil; }
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.TelefonoMovil; }
             set
             {
-                PedidoSeleccionado.TelefonoMovil = value;
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).TelefonoMovil = value;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
+            }
+        }
+        public string PedidoSeleccionadoPoblacion
+        {
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Poblacion; }
+            set
+            {
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Poblacion = value;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
+            }
+        }
+        public string PedidoSeleccionadoObservaciones
+        {
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Observaciones; }
+            set
+            {
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Observaciones = value;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
+            }
+        }
+        public ICollection<LineaPedidoVentaDTO> PedidoSeleccionadoLineas
+        {
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.Lineas; }
+            set
+            {
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.Lineas = value;
                 CrearPedidoCommand.RaiseCanExecuteChanged();
             }
         }
@@ -155,7 +193,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             try
             {
                 EstaOcupado = true;
-                ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos);
+                ListaPedidos.Lista = new ObservableCollection<IFiltrableItem>(await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos));
+                ListaPedidos.ListaOriginal = ListaPedidos.Lista;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
             } catch (Exception ex)
             {
                 DialogService.ShowError(ex.Message);
@@ -226,7 +266,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
                 EstaOcupado = false;
                 DialogService.ShowNotification("Crear Pedido", resultado);
-                PedidoSeleccionado.PedidoNestoId = Int32.Parse(resultado.Split(' ')[1]);
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).PedidoNestoId = Int32.Parse(resultado.Split(' ')[1]);
                 CrearEtiquetaCommand.RaiseCanExecuteChanged();
             } catch(Exception ex)
             {
@@ -254,7 +294,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             try
             {
                 EstaOcupado = true;
-                ListaPedidos = await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos);
+                ListaPedidos.Lista = new ObservableCollection<IFiltrableItem>(await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos));
+                ListaPedidos.ListaOriginal = ListaPedidos.Lista;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
             } catch (Exception ex)
             {
                 DialogService.ShowError(ex.Message);

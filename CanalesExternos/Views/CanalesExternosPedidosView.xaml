@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:prism="http://prismlibrary.com/"
         prism:ViewModelLocator.AutoWireViewModel="True"
-        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-        mc:Ignorable="d" Loaded="UserControl_Loaded">
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             mc:Ignorable="d" Loaded="UserControl_Loaded">
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -18,13 +18,15 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <ComboBox Grid.Row="0" ItemsSource="{Binding Factory}" DisplayMemberPath="Key" SelectedValuePath="Value" SelectedValue="{Binding CanalSeleccionado}"></ComboBox>
-                <DataGrid Grid.Row="1" ItemsSource="{Binding ListaPedidos}" SelectedItem="{Binding PedidoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
+                <controlesusuario:BarraFiltro Grid.Row="1" Name="txtFiltro" ListaItems="{Binding ListaPedidos}" ItemSeleccionado="{Binding ListaPedidos.ElementoSeleccionado}" Etiqueta="{Binding ListaPedidos.Filtro}"></controlesusuario:BarraFiltro>
+                <DataGrid Grid.Row="2" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Fecha" Binding="{Binding Pedido.fecha}" IsReadOnly="True" />
                         <DataGridTextColumn Header="Comentarios" Binding="{Binding Pedido.comentarios}" IsReadOnly="True" Width="*"/>
@@ -40,16 +42,16 @@
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
-                <DockPanel Grid.Row="2">
+                <DockPanel Grid.Row="3">
                     <TextBlock DockPanel.Dock="Left" Text="Fecha desde:"></TextBlock>
                     <xctk:DateTimePicker DockPanel.Dock="Right" Value="{Binding FechaDesde}"></xctk:DateTimePicker>
                 </DockPanel>
 
-                <DockPanel Grid.Row="3">
+                <DockPanel Grid.Row="4">
                     <TextBlock DockPanel.Dock="Left" Text="Nº Máximo de pedidos:"></TextBlock>
                     <xctk:IntegerUpDown DockPanel.Dock="Right" Value="{Binding NumeroMaxPedidos}"></xctk:IntegerUpDown>
                 </DockPanel>
-                <Button Grid.Row="4" Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
+                <Button Grid.Row="5" Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
             </Grid>
         </xctk:BusyIndicator>
         <Grid Grid.Column="1">
@@ -57,9 +59,9 @@
                 <ColumnDefinition Width="2*"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <DataGrid Grid.Column="0" ItemsSource="{Binding PedidoSeleccionado.Pedido.LineasPedido}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+            <DataGrid Grid.Column="0" ItemsSource="{Binding PedidoSeleccionadoLineas}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Producto" Binding="{Binding producto}"/>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
                     <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>
                     <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}"/>
                     <DataGridTextColumn Header="Precio" Binding="{Binding precio, StringFormat=c}">
@@ -93,10 +95,10 @@
                 <TextBox Name="txtTelefonoMovil" Text="{Binding PedidoSeleccionadoTelefonoMovil, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                 <TextBlock/>
                 <TextBlock>Población:</TextBlock>
-                <TextBox Name="txtPoblacion" Text="{Binding PedidoSeleccionado.Poblacion}"></TextBox>
+                <TextBox Name="txtPoblacion" Text="{Binding PedidoSeleccionadoPoblacion, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                 <TextBlock/>
                 <TextBlock>Observaciones:</TextBlock>
-                <TextBox Name="txtObservaciones" Text="{Binding PedidoSeleccionado.Observaciones}"></TextBox>
+                <TextBox Name="txtObservaciones" Text="{Binding PedidoSeleccionadoObservaciones, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                 <TextBlock/>
             </StackPanel>
         </Grid>
