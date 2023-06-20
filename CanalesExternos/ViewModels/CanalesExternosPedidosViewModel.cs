@@ -58,6 +58,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoMovil));
             RaisePropertyChanged(nameof(PedidoSeleccionadoPoblacion));
             RaisePropertyChanged(nameof(PedidoSeleccionadoObservaciones));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoLineas));
             CrearPedidoCommand.RaiseCanExecuteChanged();
         }
 
@@ -114,6 +115,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 
         //    }
         //}
+
+
+        // Todas estas propiedades se podrían evitar creando un wrapper de PedidoCanalExterno que implemente INotifyPropertyChanged
         public string PedidoSeleccionadoDireccion
         {
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Direccion; }

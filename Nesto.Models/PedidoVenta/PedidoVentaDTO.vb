@@ -175,19 +175,23 @@ Public Class PedidoVentaDTO
     End Property
 
     Private Function calcularBaseImponibleLinea(linea As LineaPedidoVentaDTO)
-        Return linea.bruto * (1 - sumaDescuentos(linea)) * (1 - DescuentoPP)
+        ' Una vez veamos que funciona, eliminar esta función y usar el campo directamente
+        'Return linea.bruto * (1 - sumaDescuentos(linea)) * (1 - DescuentoPP)
+        Return linea.BaseImponible
     End Function
 
     Private Function calcularTotalLinea(linea As LineaPedidoVentaDTO)
-        If IsNothing(Me.iva) Then
-            Return calcularBaseImponibleLinea(linea)
-        ElseIf Me.iva = "R10" Then
-            Return calcularBaseImponibleLinea(linea) * 1.1
-        ElseIf Me.iva = "SR4" Then
-            Return calcularBaseImponibleLinea(linea) * 1.04
-        Else
-            Return calcularBaseImponibleLinea(linea) * 1.21
-        End If
+        ' Una vez veamos que funciona, eliminar esta función y usar el campo directamente
+        'If IsNothing(Me.iva) OrElse (iva = "EX") Then
+        '    Return calcularBaseImponibleLinea(linea)
+        'ElseIf Me.iva = "R10" Then
+        '    Return calcularBaseImponibleLinea(linea) * 1.1
+        'ElseIf Me.iva = "SR4" Then
+        '    Return calcularBaseImponibleLinea(linea) * 1.04
+        'Else
+        '    Return calcularBaseImponibleLinea(linea) * 1.21
+        'End If
+        Return linea.Total
     End Function
 
     'Public Overridable Property Lineas() As ObservableCollection(Of LineaPedidoVentaDTO)

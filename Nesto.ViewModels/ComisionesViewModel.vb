@@ -44,6 +44,7 @@ Public Class ComisionesViewModel
         Next
 
         _colMeses.Add($"{Now.AddMonths(12).ToString("MMMM")} de {DateTime.Today.AddYears(-1).Year}")
+        _colMeses.Add($"{Now.AddMonths(11).ToString("MMMM")} de {DateTime.Today.AddYears(-1).Year}")
 
         mesActual = colMeses(0)
 
