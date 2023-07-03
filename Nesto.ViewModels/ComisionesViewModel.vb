@@ -29,6 +29,8 @@ Public Class ComisionesViewModel
     Private vendedor As String
     Private datosCargados As Boolean = False
 
+    Private mismoMesAnnoPasado As String
+    Private mesAnteriorAnnoPasado As String
     Public Sub New(container As IUnityContainer, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
@@ -43,8 +45,10 @@ Public Class ComisionesViewModel
             _colMeses.Add(nombreMes)
         Next
 
-        _colMeses.Add($"{Now.AddMonths(12).ToString("MMMM")} de {DateTime.Today.AddYears(-1).Year}")
-        _colMeses.Add($"{Now.AddMonths(11).ToString("MMMM")} de {DateTime.Today.AddYears(-1).Year}")
+        mismoMesAnnoPasado = $"{Now.AddMonths(12).ToString("MMMM")} de {DateTime.Today.AddYears(-1).Year}"
+        mesAnteriorAnnoPasado = $"{Now.AddMonths(11).ToString("MMMM")} de {DateTime.Today.AddYears(-1).Year}"
+        _colMeses.Add(mismoMesAnnoPasado)
+        _colMeses.Add(mesAnteriorAnnoPasado)
 
         mesActual = colMeses(0)
 
@@ -178,8 +182,10 @@ Public Class ComisionesViewModel
             SetProperty(_mesActual, value)
             RaisePropertyChanged("MostrarPanelAntiguo")
             RaisePropertyChanged("MostrarPanelComisionAnual")
-            If colMeses.LastOrDefault.Equals(mesActual) Then
+            If mesActual = mismoMesAnnoPasado Then
                 fechaDesde = New Date(DateTime.Today.AddYears(-1).Year, DateTime.Today.Month, 1)
+            ElseIf mesActual = mesAnteriorAnnoPasado Then
+                fechaDesde = New Date(DateTime.Today.AddYears(-1).Year, DateTime.Today.AddMonths(-1).Month, 1)
             Else
                 fechaDesde = DateSerial(Year(Now), Date.ParseExact(value, "MMMM", CultureInfo.CurrentCulture).Month, 1)
             End If

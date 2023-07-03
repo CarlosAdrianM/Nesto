@@ -423,9 +423,9 @@ Public Class AgenciaViewModelTests
 
         viewModel.InsertarEnvioPendienteCommand.Execute()
 
-        Assert.AreEqual(New AgenciaSending().ServicioDefecto(), viewModel.servicioActual.id)
-        Assert.AreEqual(New AgenciaSending().HorarioDefecto, viewModel.horarioActual.id)
-        Assert.AreEqual(New AgenciaSending().paisDefecto, viewModel.paisActual.Id)
+        Assert.AreEqual(New AgenciaCorreosExpress().ServicioDefecto(), viewModel.servicioActual.id)
+        Assert.AreEqual(New AgenciaCorreosExpress().HorarioDefecto, viewModel.horarioActual.id)
+        Assert.AreEqual(New AgenciaCorreosExpress().paisDefecto, viewModel.paisActual.Id)
     End Sub
 
     <TestMethod>
@@ -530,6 +530,7 @@ Public Class AgenciaViewModelTests
         }
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        'A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("36")
         Dim empresa = A.Fake(Of Empresas)
         empresa.Número = "1  "
         Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
@@ -787,7 +788,7 @@ Public Class AgenciaViewModelTests
         Dim agencia1 = A.Fake(Of AgenciasTransporte)
         agencia1.Empresa = "1"
         agencia1.Numero = 1
-        agencia1.Nombre = "Correos Express"
+        agencia1.Nombre = "Sending"
         agencia1.Ruta = "YYY"
         Dim agencia2 = A.Fake(Of AgenciasTransporte)
         agencia2.Empresa = "1"

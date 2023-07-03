@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MarketplaceWebServiceOrders;
-using MarketplaceWebServiceOrders.Model;
 using System.Collections.ObjectModel;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
+using FikaAmazonAPI.AmazonSpApiSDK.Models.Orders;
+using static FikaAmazonAPI.AmazonSpApiSDK.Models.Orders.Order;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -93,13 +94,13 @@ namespace Nesto.Modulos.CanalesExternos
 
             pedidoSalida.iva = IVA_GENERAL;
             string numeroOrderAmazon = order.AmazonOrderId;
-            if (order.FulfillmentChannel == "AFN")
+            if (order.FulfillmentChannel == FulfillmentChannelEnum.AFN)
             {
                 numeroOrderAmazon = "FBA " + numeroOrderAmazon;
             }
             pedidoSalida.comentarios = numeroOrderAmazon + " \r\n";
             pedidoSalida.comentarios += order.ShippingAddress?.Name?.ToString().ToUpper() + "\r\n";
-            pedidoSalida.comentarios += order.BuyerEmail?.ToString() + "\r\n";
+            pedidoSalida.comentarios += order.BuyerInfo.BuyerEmail?.ToString() + "\r\n";
             pedidoSalida.comentarios += order.ShippingAddress?.AddressLine1?.ToString().ToUpper() + "\r\n";
             pedidoSalida.comentarios += order.ShippingAddress?.AddressLine2 != null ? order.ShippingAddress?.AddressLine2?.ToString().ToUpper() + "\r\n" : "";
             pedidoSalida.comentarios += order.ShippingAddress?.AddressLine3 != null ? order.ShippingAddress?.AddressLine3?.ToString().ToUpper() + "\r\n" : "";
@@ -108,7 +109,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.comentarios += order.ShippingAddress?.StateOrRegion?.ToString().ToUpper() + ")\r\n";
             
             pedidoSalida.comentarios += order.ShippingAddress?.Phone != null ? order.ShippingAddress?.Phone?.ToString().ToUpper() + "\r\n" : "";
-            pedidoSalida.comentarios += "Cumplimiento por " + (order.FulfillmentChannel == "AFN" ? "Amazon" : "Nueva Visión") + "\r\n";
+            pedidoSalida.comentarios += "Cumplimiento por " + (order.FulfillmentChannel == FulfillmentChannelEnum.AFN ? "Amazon" : "Nueva Visión") + "\r\n";
             if (!string.IsNullOrWhiteSpace(order.SellerOrderId) && order.SellerOrderId != order.AmazonOrderId)
             {
                 pedidoSalida.comentarios += "N/ Pedido: " + order.SellerOrderId + "\r\n";
@@ -119,7 +120,7 @@ namespace Nesto.Modulos.CanalesExternos
             }
             pedidoSalida.comentarios += "TOTAL PEDIDO: " + orderTotal.ToString("C");
                         
-            pedidoSalida.fecha = order.PurchaseDate;
+            pedidoSalida.fecha = DateTimeOffset.Parse(order.PurchaseDate).UtcDateTime;
             pedidoSalida.formaPago = "TRN";
             pedidoSalida.plazosPago = "PRE";
             pedidoSalida.ruta = "00";
@@ -132,7 +133,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoExterno.Pedido = pedidoSalida;
             pedidoExterno.PedidoCanalId = numeroOrderAmazon;
             pedidoExterno.Nombre = order.ShippingAddress?.Name?.ToString().ToUpper();
-            pedidoExterno.CorreoElectronico = order.BuyerEmail?.ToString();
+            pedidoExterno.CorreoElectronico = order.BuyerInfo.BuyerEmail?.ToString();
             pedidoExterno.Direccion = order.ShippingAddress?.AddressLine1?.ToString().ToUpper();
             pedidoExterno.Direccion += order.ShippingAddress?.AddressLine2 != null ? " " + order.ShippingAddress?.AddressLine2?.ToString().ToUpper() : "";
             pedidoExterno.Direccion += order.ShippingAddress?.AddressLine3 != null ? " " + order.ShippingAddress?.AddressLine3?.ToString().ToUpper() : "";
@@ -165,7 +166,7 @@ namespace Nesto.Modulos.CanalesExternos
             return pedidoExterno;
         }
 
-        private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, string canalCumplimiento, string iva)
+        private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, FulfillmentChannelEnum? canalCumplimiento, string iva)
         {
             ObservableCollection<LineaPedidoVentaDTO> lineasNesto = new ObservableCollection<LineaPedidoVentaDTO>();
             foreach (OrderItem orderItem in lineasAmazon)
@@ -181,21 +182,22 @@ namespace Nesto.Modulos.CanalesExternos
                 }
                 else
                 {
-                    porcentajeIva = PORCENTAJE_IVA_GENERAL; 
+                    porcentajeIva = PORCENTAJE_IVA_GENERAL;
                 }
-                decimal baseImponible = Convert.ToDecimal(orderItem.ItemPrice?.Amount) / 100 / porcentajeIva * CambioDivisas;
+                decimal baseImponible = Math.Round(Convert.ToDecimal(orderItem.ItemPrice?.Amount) / 100 / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
+                short cantidad = ProcesarCantidad(orderItem);
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
-                    almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
+                    almacen = canalCumplimiento == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV,
                     aplicarDescuento = false,
-                    cantidad = (short)orderItem.QuantityOrdered,
+                    cantidad = cantidad,
                     delegacion = DELEGACION_AMAZON,
                     formaVenta = FORMA_VENTA_AMAZON,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
-                    iva = iva == IVA_EXPORTACION ? IVA_EXENTO : porcentajeIva == PORCENTAJE_IVA_REDUCIDO ? IVA_REDUCIDO : IVA_GENERAL, 
-                    precio = orderItem.QuantityOrdered != 0 ? baseImponible / orderItem.QuantityOrdered : baseImponible,
-                    Producto = orderItem.SellerSKU.EndsWith("FBA") ? orderItem.SellerSKU.Substring(0, orderItem.SellerSKU.Length-3) : orderItem.SellerSKU,
+                    iva = iva == IVA_EXPORTACION ? IVA_EXENTO : porcentajeIva == PORCENTAJE_IVA_REDUCIDO ? IVA_REDUCIDO : IVA_GENERAL,
+                    precio = cantidad != 0 ? baseImponible / cantidad : baseImponible,
+                    Producto = ProcesarSKU(orderItem),
                     texto = orderItem.Title.ToUpper(),
                     tipoLinea = 1, // producto
                     vistoBueno = true,
@@ -205,10 +207,10 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (Convert.ToDecimal(orderItem.ShippingPrice?.Amount) != 0)
                 {
-                    decimal baseImponiblePortes = Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / porcentajeIva * CambioDivisas;
+                    decimal baseImponiblePortes = Math.Round(Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
                     LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                     {
-                        almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
+                        almacen = canalCumplimiento == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV,
                         aplicarDescuento = false,
                         cantidad = (short)1,
                         delegacion = DELEGACION_AMAZON,
@@ -228,10 +230,10 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (Convert.ToDecimal(orderItem.ShippingDiscount?.Amount) != 0)
                 {
-                    decimal baseImponibleDescuentoPortes = Convert.ToDecimal(orderItem.ShippingDiscount.Amount) / 100 / porcentajeIva * CambioDivisas;
+                    decimal baseImponibleDescuentoPortes = Math.Round(Convert.ToDecimal(orderItem.ShippingDiscount.Amount) / 100 / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
                     LineaPedidoVentaDTO lineaDescuentoPortes = new LineaPedidoVentaDTO
                     {
-                        almacen = canalCumplimiento == "AFN" ? ALMACEN_AMAZON : ALMACEN_NV,
+                        almacen = canalCumplimiento == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV,
                         aplicarDescuento = false,
                         cantidad = (short)-1,
                         delegacion = DELEGACION_AMAZON,
@@ -251,6 +253,35 @@ namespace Nesto.Modulos.CanalesExternos
             }
 
             return lineasNesto;
+        }
+
+        private static short ProcesarCantidad(OrderItem orderItem)
+        {
+            string producto = orderItem.SellerSKU;
+            short cantidadDevolver = (short)orderItem.QuantityOrdered;
+            if (producto.Contains("x"))
+            {
+                short cantidadReferencia;
+                if (short.TryParse(producto.Split("x")[1], out cantidadReferencia))
+                {
+                    cantidadDevolver = (short)(cantidadDevolver * cantidadReferencia);
+                }
+            }
+            return cantidadDevolver;
+        }
+
+        private static string ProcesarSKU(OrderItem orderItem)
+        {
+            string productoDevolver = orderItem.SellerSKU.EndsWith("FBA") ? orderItem.SellerSKU.Substring(0, orderItem.SellerSKU.Length - 3) : orderItem.SellerSKU;
+            if (productoDevolver.Contains("/"))
+            {
+                productoDevolver = productoDevolver.Split("/")[0];
+            }
+            if (productoDevolver.Contains("x"))
+            {
+                productoDevolver = productoDevolver.Split("x")[0];
+            }
+            return productoDevolver;
         }
 
         private decimal CambioDivisas { get; set; } = 1;

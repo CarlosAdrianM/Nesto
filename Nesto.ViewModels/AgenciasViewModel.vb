@@ -95,9 +95,13 @@ Public Class AgenciasViewModel
     Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
         Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion), configuracion, dialogService)
         agenciasVM.InsertarEnvioPendienteCommand.Execute()
-        agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL)
+        If etiqueta.Agencia = 0 Then
+            agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+        Else
+            agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Numero = etiqueta.Agencia)
+        End If
         agenciasVM.EnvioPendienteSeleccionado.Pedido = etiqueta.Pedido
-        agenciasVM.EnvioPendienteSeleccionado.Agencia = agenciasVM.listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL).Numero
+        agenciasVM.EnvioPendienteSeleccionado.Agencia = agenciasVM.agenciaSeleccionada.Numero
         agenciasVM.EnvioPendienteSeleccionado.Nombre = etiqueta.Nombre
         agenciasVM.EnvioPendienteSeleccionado.Direccion = etiqueta.Direccion
         agenciasVM.EnvioPendienteSeleccionado.CodPostal = etiqueta.CodPostal
@@ -110,31 +114,34 @@ Public Class AgenciasViewModel
         agenciasVM.EnvioPendienteSeleccionado.Observaciones = Left(etiqueta.Observaciones, 80)
         agenciasVM.EnvioPendienteSeleccionado.Reembolso = etiqueta.Reembolso
 
-        'Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = etiqueta.PaisISO)
-        'If Not IsNothing(pais) Then
-        '    agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
-        'End If
-        'agenciasVM.EnvioPendienteSeleccionado.Horario = 0
-        'If etiqueta.PaisISO = "ES" Then
-        '    agenciasVM.EnvioPendienteSeleccionado.Servicio = 93 ' Epaq 24
-        'ElseIf etiqueta.PaisISO = "PT" Then
-        '    agenciasVM.EnvioPendienteSeleccionado.Servicio = 63 ' Paq24
-        'Else
-        '    agenciasVM.EnvioPendienteSeleccionado.Servicio = 90 ' Internacional monobulto
-        'End If
-
-        Dim codigoAlfaEtiqueta As String = String.Empty
-        If etiqueta.PaisISO = "ES" Then
-            codigoAlfaEtiqueta = "034"
-        ElseIf etiqueta.PaisISO = "PT" Then
-            codigoAlfaEtiqueta = "035"
+        ' Esto hay que refactorizarlo para llevar la lógica a cada agencia
+        If agenciasVM.EnvioPendienteSeleccionado.Agencia = 8 Then 'CEX
+            Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = etiqueta.PaisISO)
+            If Not IsNothing(pais) Then
+                agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
+            End If
+            agenciasVM.EnvioPendienteSeleccionado.Horario = 0
+            If etiqueta.PaisISO = "ES" Then
+                agenciasVM.EnvioPendienteSeleccionado.Servicio = 93 ' Epaq 24
+            ElseIf etiqueta.PaisISO = "PT" Then
+                agenciasVM.EnvioPendienteSeleccionado.Servicio = 63 ' Paq24
+            Else
+                agenciasVM.EnvioPendienteSeleccionado.Servicio = 90 ' Internacional monobulto
+            End If
+        Else 'Sending
+            Dim codigoAlfaEtiqueta As String = String.Empty
+            If etiqueta.PaisISO = "ES" Then
+                codigoAlfaEtiqueta = "034"
+            ElseIf etiqueta.PaisISO = "PT" Then
+                codigoAlfaEtiqueta = "035"
+            End If
+            Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = codigoAlfaEtiqueta)
+            If Not IsNothing(pais) Then
+                agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
+            End If
+            agenciasVM.EnvioPendienteSeleccionado.Horario = agenciasVM.listaHorarios.FirstOrDefault().id
+            agenciasVM.EnvioPendienteSeleccionado.Servicio = agenciasVM.listaServicios.FirstOrDefault().id
         End If
-        Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = codigoAlfaEtiqueta)
-        If Not IsNothing(pais) Then
-            agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
-        End If
-        agenciasVM.EnvioPendienteSeleccionado.Horario = agenciasVM.listaHorarios.FirstOrDefault().id
-        agenciasVM.EnvioPendienteSeleccionado.Servicio = agenciasVM.listaServicios.FirstOrDefault().id
 
         agenciasVM.GuardarEnvioPendienteCommand.Execute()
     End Sub
