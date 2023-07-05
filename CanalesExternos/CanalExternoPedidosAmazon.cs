@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using MarketplaceWebServiceOrders;
 using System.Collections.ObjectModel;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Infrastructure.Contracts;
@@ -37,7 +36,7 @@ namespace Nesto.Modulos.CanalesExternos
 
         public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
         {
-            List<Order> listaAmazon = MarketplaceWebServiceOrdersNuevaVision.Ejecutar(fechaDesde, numeroMaxPedidos);
+            List<Order> listaAmazon = AmazonApiOrdersService.Ejecutar(fechaDesde, numeroMaxPedidos);
 
 
             ObservableCollection<PedidoCanalExterno> listaNesto = new ObservableCollection<PedidoCanalExterno>();
@@ -49,7 +48,7 @@ namespace Nesto.Modulos.CanalesExternos
                     {
                         try
                         {
-                            CambioDivisas = MarketplaceWebServiceOrdersNuevaVision.CalculaDivisa(order.OrderTotal.CurrencyCode, Constantes.Empresas.MONEDA_CONTABILIDAD);
+                            CambioDivisas = AmazonApiOrdersService.CalculaDivisa(order.OrderTotal.CurrencyCode, Constantes.Empresas.MONEDA_CONTABILIDAD);
                         }
                         catch
                         {
@@ -65,7 +64,7 @@ namespace Nesto.Modulos.CanalesExternos
                     pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoFijo) ? " " + pedidoExterno.TelefonoFijo : "";
                     pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
                     pedidoExterno.Observaciones += " " + pedidoExterno.PedidoCanalId;
-                    List<OrderItem> lineasAmazon = MarketplaceWebServiceOrdersNuevaVision.CargarLineas(order.AmazonOrderId);
+                    List<OrderItem> lineasAmazon = AmazonApiOrdersService.CargarLineas(order.AmazonOrderId);
                     pedidoExterno.Pedido.Lineas = TransformarLineas(lineasAmazon, order.FulfillmentChannel, pedidoExterno.Pedido.iva);
                     listaNesto.Add(pedidoExterno);
                 }
@@ -132,6 +131,10 @@ namespace Nesto.Modulos.CanalesExternos
 
             pedidoExterno.Pedido = pedidoSalida;
             pedidoExterno.PedidoCanalId = numeroOrderAmazon;
+            if (Int32.TryParse(order.SellerOrderId, out int numValue))
+            {
+                pedidoExterno.PedidoNestoId = numValue;
+            }
             pedidoExterno.Nombre = order.ShippingAddress?.Name?.ToString().ToUpper();
             pedidoExterno.CorreoElectronico = order.BuyerInfo.BuyerEmail?.ToString();
             pedidoExterno.Direccion = order.ShippingAddress?.AddressLine1?.ToString().ToUpper();
@@ -282,6 +285,12 @@ namespace Nesto.Modulos.CanalesExternos
                 productoDevolver = productoDevolver.Split("x")[0];
             }
             return productoDevolver;
+        }
+
+        public bool EjecutarTrasCrearPedido(PedidoCanalExterno pedido)
+        {
+            AmazonApiOrdersService.ActualizarSellerOrderId(pedido.PedidoCanalId, pedido.PedidoNestoId);
+            return true;
         }
 
         private decimal CambioDivisas { get; set; } = 1;

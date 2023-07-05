@@ -11,8 +11,8 @@ namespace Nesto.Modulos.CanalesExternos.Models
         public decimal Importe { get; set; }
         public decimal SaldoInicial { get; set; }
         public DateTime FechaPago { get; set; }
-        public DateTime FechaInicio { get; set; }
-        public DateTime FechaFinal { get; set; }
+        public DateTime? FechaInicio { get; set; }
+        public DateTime? FechaFinal { get; set; }
         public decimal AjusteRetencion { get; set; }
         public decimal RestoAjustes { get; set; }
         public decimal Comision { get; set; }

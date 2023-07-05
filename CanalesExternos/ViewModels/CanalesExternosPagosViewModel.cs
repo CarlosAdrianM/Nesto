@@ -1,5 +1,4 @@
-﻿using Claytondus.AmazonMWS.Finances;
-using Prism.Commands;
+﻿using Prism.Commands;
 using Microsoft.VisualBasic;
 using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.CanalesExternos.Models;
@@ -94,7 +93,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 EstaOcupado = true;
                 await Task.Run(() =>
                 {
-                    CabeceraDetallePagoCanalExterno cabeceraPago = MWSFinancesServiceSample.LeerFinancialEvents(PagoSeleccionado.PagoExternalId, NumeroMaxGruposEventos);
+                    CabeceraDetallePagoCanalExterno cabeceraPago = AmazonApiFinancesService.LeerFinancialEvents(PagoSeleccionado.PagoExternalId, NumeroMaxGruposEventos);
                     PagoSeleccionado.AjusteRetencion = cabeceraPago.AjusteRetencion;
                     PagoSeleccionado.RestoAjustes = cabeceraPago.RestoAjustes;
                     PagoSeleccionado.Comision = cabeceraPago.Comision;
@@ -144,7 +143,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             try
             {
                 EstaOcupado = true;
-                ListaPagos = MWSFinancesServiceSample.LeerFinancialEventGroups(FechaDesde, NumeroMaxGruposEventos);
+                ListaPagos = AmazonApiFinancesService.LeerFinancialEventGroups(FechaDesde, NumeroMaxGruposEventos);
             }
             catch (Exception ex)
             {

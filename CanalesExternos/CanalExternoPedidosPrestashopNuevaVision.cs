@@ -8,7 +8,6 @@ using Nesto.Models.Nesto.Models;
 using System.Collections.Generic;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
-using System.Transactions;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -340,6 +339,11 @@ namespace Nesto.Modulos.CanalesExternos
         public PedidoCanalExterno GetPedido(int Id)
         {
             throw new NotImplementedException();
+        }
+
+        public bool EjecutarTrasCrearPedido(PedidoCanalExterno pedido)
+        {
+            return false;
         }
     }
 }

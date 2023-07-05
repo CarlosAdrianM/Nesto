@@ -60,6 +60,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             RaisePropertyChanged(nameof(PedidoSeleccionadoObservaciones));
             RaisePropertyChanged(nameof(PedidoSeleccionadoLineas));
             CrearPedidoCommand.RaiseCanExecuteChanged();
+            CrearEtiquetaCommand.RaiseCanExecuteChanged();
         }
 
         #region "Propiedades Nesto"
@@ -207,6 +208,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             finally
             {
                 EstaOcupado = false;
+                CrearPedidoCommand.RaiseCanExecuteChanged();
             }
             
         }
@@ -268,10 +270,14 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 EstaOcupado = true;
                 PedidoVentaDTO pedido = pedidoExterno.Pedido;
                 string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
-                EstaOcupado = false;
-                DialogService.ShowNotification("Crear Pedido", resultado);
+                EstaOcupado = false;                
                 (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).PedidoNestoId = Int32.Parse(resultado.Split(' ')[1]);
+                if (CanalSeleccionado.EjecutarTrasCrearPedido(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno))
+                {
+                    resultado += "\nCompletado el proceso";
+                }
                 CrearEtiquetaCommand.RaiseCanExecuteChanged();
+                DialogService.ShowNotification("Crear Pedido", resultado);
             } catch(Exception ex)
             {
                 DialogService.ShowError(ex.Message);
