@@ -18,6 +18,17 @@
     
     <DockPanel Name="ControlPrincipal" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
         <StackPanel DockPanel.Dock="Top">
+            <TextBlock Text="{Binding Etiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                            <Trigger Property="Text" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
             <controles:BarraFiltro x:Name="txtFiltro" ListaItems="{Binding listaClientes}" ItemSeleccionado="{Binding listaClientes.ElementoSeleccionado}" KeyUp="txtFiltro_KeyUp"></controles:BarraFiltro>
             <StackPanel Name="pnlCargando" Visibility="{Binding visibilidadCargando, Converter={StaticResource BoolToVisibilityConverter}}">
                 <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="10" Foreground="Blue"></TextBlock>

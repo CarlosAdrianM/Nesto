@@ -4,7 +4,7 @@ Public Class Telefono
     Dim telefonos() As String = {}
     Dim stringSeparators() As String = {"/"}
 
-    Public Sub New(listaTelefonos As String)
+    Public Sub New(listaTelefonos As String, Optional quitarPrefijos As Boolean = False)
         If IsNothing(listaTelefonos) Then
             Return
         End If
@@ -13,7 +13,20 @@ Public Class Telefono
         listaTelefonos = Replace(listaTelefonos, " ", String.Empty)
         listaTelefonos = Replace(listaTelefonos, "-", String.Empty)
         telefonos = listaTelefonos?.Split(stringSeparators, StringSplitOptions.RemoveEmptyEntries)
+        If quitarPrefijos Then
+            For t = 0 To telefonos.Length - 1
+                If telefonos(t).StartsWith("+") OrElse telefonos(t).StartsWith("00") Then
+                    telefonos(t) = Right(telefonos(t), 9)
+                End If
+            Next
+        End If
     End Sub
+
+    Public ReadOnly Property TodosLosTelefonos As List(Of String)
+        Get
+            Return New List(Of String)(telefonos)
+        End Get
+    End Property
 
     Public Function FijoUnico() As String
         For Each t As String In telefonos

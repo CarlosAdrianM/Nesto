@@ -37,7 +37,7 @@
     <Resource Include="Images\CanalesExternosPagos.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CSharpAmazonSpAPI" Version="1.6.9" />
+    <PackageReference Include="CSharpAmazonSpAPI" Version="1.6.11" />
     <PackageReference Include="EntityFramework">
       <Version>6.4.4</Version>
     </PackageReference>

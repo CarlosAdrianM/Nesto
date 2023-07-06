@@ -34,8 +34,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Stretch" Width="Auto">
-            <TextBlock Text="Cliente: "></TextBlock>
-            <controles:SelectorCliente Name="txtSelectorClienteRapport" Empresa="1" Contacto="{Binding DataContext.rapport.Contacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" Cliente="{Binding DataContext.rapport.Cliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" ClienteCompleto="{Binding DataContext.ClienteCompleto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350"></controles:SelectorCliente>
+            <controles:SelectorCliente Name="txtSelectorClienteRapport" Empresa="1" Contacto="{Binding DataContext.rapport.Contacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" Cliente="{Binding DataContext.rapport.Cliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" ClienteCompleto="{Binding DataContext.ClienteCompleto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350" Etiqueta="Cliente:"></controles:SelectorCliente>
         </StackPanel>
         <StackPanel Grid.Row="1" Orientation="Horizontal" ToolTip="{Binding ClienteCompleto.nombre}">
             <TextBlock Text="Nombre: "></TextBlock>

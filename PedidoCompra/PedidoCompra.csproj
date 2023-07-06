@@ -14,11 +14,11 @@
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.9.0" />
     <PackageReference Include="Extended.Wpf.Toolkit" Version="4.5.0" />
-    <PackageReference Include="MaterialDesignThemes" Version="4.5.0" />
-    <PackageReference Include="Microsoft.Graph" Version="4.28.0" />
+    <PackageReference Include="MaterialDesignThemes" Version="4.9.0" />
+    <PackageReference Include="Microsoft.Graph" Version="4.54.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
-    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.16" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.17" />
   </ItemGroup>
 
   <ItemGroup>

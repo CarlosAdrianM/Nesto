@@ -16,7 +16,16 @@ Public Class PedidoVentaDTO
 
     Public Property empresa() As String
     Public Property numero() As Integer
+    Private _cliente As String
     Public Property cliente() As String
+        Get
+            Return _cliente
+        End Get
+        Set(value As String)
+            _cliente = value
+            OnPropertyChanged(NameOf(cliente))
+        End Set
+    End Property
 
     Private _contacto As String
     Public Property contacto() As String
@@ -25,7 +34,7 @@ Public Class PedidoVentaDTO
         End Get
         Set(value As String)
             _contacto = value
-            OnPropertyChanged("contacto")
+            OnPropertyChanged(NameOf(contacto))
         End Set
     End Property
     Public Property fecha() As Nullable(Of System.DateTime)

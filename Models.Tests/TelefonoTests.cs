@@ -53,5 +53,14 @@ namespace Models.Tests
 
             Assert.AreEqual("", telefono.MovilUnico());
         }
+
+        [TestMethod]
+        public void Telefono_SiQuitarPrefijos_SeLoQuitamos()
+        {
+            Telefono telefono = new Telefono("+34916281914/+34616546878", true);
+
+            Assert.AreEqual("616546878", telefono.MovilUnico());
+            Assert.AreEqual("916281914", telefono.FijoUnico());
+        }
     }
 }

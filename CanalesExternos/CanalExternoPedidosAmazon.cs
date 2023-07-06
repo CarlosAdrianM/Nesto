@@ -8,13 +8,15 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Models;
 using FikaAmazonAPI.AmazonSpApiSDK.Models.Orders;
 using static FikaAmazonAPI.AmazonSpApiSDK.Models.Orders.Order;
+using Nesto.Models.Nesto.Models;
+using System.Linq;
 
 namespace Nesto.Modulos.CanalesExternos
 {
     public class CanalExternoPedidosAmazon : ICanalExternoPedidos
     {
-        private const string CLIENTE_AMAZON = "32624";
-        private const string CONTACTO_AMAZON = "0";
+
+        private const string EMPRESA_DEFECTO = "1";
         private const string FORMA_VENTA_AMAZON = "STK";
         private const string ALMACEN_NV = "ALG";
         private const string ALMACEN_AMAZON = "AMZ";
@@ -86,12 +88,14 @@ namespace Nesto.Modulos.CanalesExternos
 
             pedidoSalida.empresa = "1";
             pedidoSalida.origen = "1";
-            pedidoSalida.cliente = CLIENTE_AMAZON;
-            pedidoSalida.contacto = CONTACTO_AMAZON;
-            pedidoSalida.contactoCobro = CONTACTO_AMAZON;
-            pedidoSalida.vendedor = VENDEDOR_AMAZON;
+            string telefonoCliente = order.ShippingAddress?.Phone;
+            Clientes cliente = BuscarCliente(telefonoCliente);
+            pedidoSalida.cliente = cliente.Nº_Cliente;
+            pedidoSalida.contacto = cliente.Contacto;
+            pedidoSalida.contactoCobro = cliente.ContactoCobro;
+            pedidoSalida.vendedor = cliente.Vendedor;
 
-            pedidoSalida.iva = IVA_GENERAL;
+            pedidoSalida.iva = cliente.IVA;
             string numeroOrderAmazon = order.AmazonOrderId;
             if (order.FulfillmentChannel == FulfillmentChannelEnum.AFN)
             {
@@ -107,7 +111,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.comentarios += order.ShippingAddress?.City?.ToString().ToUpper() + " (";
             pedidoSalida.comentarios += order.ShippingAddress?.StateOrRegion?.ToString().ToUpper() + ")\r\n";
             
-            pedidoSalida.comentarios += order.ShippingAddress?.Phone != null ? order.ShippingAddress?.Phone?.ToString().ToUpper() + "\r\n" : "";
+            pedidoSalida.comentarios += telefonoCliente != null ? telefonoCliente.ToUpper() + "\r\n" : "";
             pedidoSalida.comentarios += "Cumplimiento por " + (order.FulfillmentChannel == FulfillmentChannelEnum.AFN ? "Amazon" : "Nueva Visión") + "\r\n";
             if (!string.IsNullOrWhiteSpace(order.SellerOrderId) && order.SellerOrderId != order.AmazonOrderId)
             {
@@ -167,6 +171,41 @@ namespace Nesto.Modulos.CanalesExternos
             
 
             return pedidoExterno;
+        }
+
+        private Clientes BuscarCliente(string telefonoCliente)
+        {
+            Clientes CLIENTE_AMAZON = new Clientes
+            {
+                Nº_Cliente = "32624",
+                Contacto = "0",
+                ContactoDefecto = "0",
+                ContactoCobro = "0",
+                Vendedor = "NV",
+                IVA = "G21"
+            };
+
+            Telefono telefono = new(telefonoCliente, true);
+            List<Clientes> listaPosiblesClientes = new();
+            using (NestoEntities db = new NestoEntities())
+            {                
+                foreach (string t in telefono.TodosLosTelefonos)
+                {
+                    var clientesEncontrados = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.Estado >= 0 && c.Teléfono.Contains(t));
+                    listaPosiblesClientes.AddRange(clientesEncontrados);
+                }                
+            }
+            if (listaPosiblesClientes.Any())
+            {
+                return listaPosiblesClientes.First();
+            }
+
+            return CLIENTE_AMAZON;
+    }
+
+        private string LimpiarTelefono(string telefonoCliente)
+        {
+            return telefonoCliente;
         }
 
         private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, FulfillmentChannelEnum? canalCumplimiento, string iva)

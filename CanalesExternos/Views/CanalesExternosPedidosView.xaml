@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
         xmlns:prism="http://prismlibrary.com/"
         prism:ViewModelLocator.AutoWireViewModel="True"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
@@ -81,26 +82,33 @@
                     <DataGridTextColumn Header="Picking" Binding="{Binding picking}"/>
                 </DataGrid.Columns>
             </DataGrid>
-            <StackPanel Grid.Column="1" Margin="3,0">
-                <TextBlock>Nombre:</TextBlock>
-                <TextBox Name="txtNombre" Text="{Binding PedidoSeleccionadoNombre, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-                <TextBlock/>
-                <TextBlock>Dirección:</TextBlock>
-                <TextBox Name="txtDireccion" Text="{Binding PedidoSeleccionadoDireccion, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-                <TextBlock/>
-                <TextBlock>Teléfono Fijo:</TextBlock>
-                <TextBox Name="txtTelefonoFijo" Text="{Binding PedidoSeleccionadoTelefonoFijo, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-                <TextBlock/>
-                <TextBlock>Teléfono Móvil:</TextBlock>
-                <TextBox Name="txtTelefonoMovil" Text="{Binding PedidoSeleccionadoTelefonoMovil, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-                <TextBlock/>
-                <TextBlock>Población:</TextBlock>
-                <TextBox Name="txtPoblacion" Text="{Binding PedidoSeleccionadoPoblacion, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-                <TextBlock/>
-                <TextBlock>Observaciones:</TextBlock>
-                <TextBox Name="txtObservaciones" Text="{Binding PedidoSeleccionadoObservaciones, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-                <TextBlock/>
-            </StackPanel>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Margin="3,0">
+                    <TextBlock>Nombre:</TextBlock>
+                    <TextBox Name="txtNombre" Text="{Binding PedidoSeleccionadoNombre, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                    <TextBlock/>
+                    <TextBlock>Dirección:</TextBlock>
+                    <TextBox Name="txtDireccion" Text="{Binding PedidoSeleccionadoDireccion, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                    <TextBlock/>
+                    <TextBlock>Teléfono Fijo:</TextBlock>
+                    <TextBox Name="txtTelefonoFijo" Text="{Binding PedidoSeleccionadoTelefonoFijo, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                    <TextBlock/>
+                    <TextBlock>Teléfono Móvil:</TextBlock>
+                    <TextBox Name="txtTelefonoMovil" Text="{Binding PedidoSeleccionadoTelefonoMovil, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                    <TextBlock/>
+                    <TextBlock>Población:</TextBlock>
+                    <TextBox Name="txtPoblacion" Text="{Binding PedidoSeleccionadoPoblacion, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                    <TextBlock/>
+                    <TextBlock>Observaciones:</TextBlock>
+                    <TextBox Name="txtObservaciones" Text="{Binding PedidoSeleccionadoObservaciones, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                    <TextBlock/>
+                </StackPanel>
+                <controles:SelectorCliente Grid.Row="1" Margin="3,0" Name="txtSelectorCliente" Etiqueta="Cliente al que se factura:" Empresa="1" Contacto="{Binding DataContext.PedidoSeleccionadoContacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" Cliente="{Binding DataContext.PedidoSeleccionadoCliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350"></controles:SelectorCliente>
+            </Grid>
         </Grid>
         
     </Grid>

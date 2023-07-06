@@ -212,7 +212,7 @@ namespace ControlesUsuario
                 selector.txtFiltro.Text = selector.Cliente.Trim();
                 vm.listaClientes.Filtro = selector.Cliente.Trim();
             }
-            if (selector.ClienteCompleto == null)
+            if (selector.ClienteCompleto == null || selector.ClienteCompleto.cliente.Trim() != selector.txtFiltro.Text || selector.ClienteCompleto.contacto != vm.contactoSeleccionado)
             {
                 vm.cargarCliente(selector.Empresa, selector.txtFiltro.Text, vm.contactoSeleccionado);
             }

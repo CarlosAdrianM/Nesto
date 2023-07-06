@@ -11,6 +11,8 @@ using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
+using System.IO.Packaging;
+using Nesto.Models.Nesto.Models;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -59,6 +61,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             RaisePropertyChanged(nameof(PedidoSeleccionadoPoblacion));
             RaisePropertyChanged(nameof(PedidoSeleccionadoObservaciones));
             RaisePropertyChanged(nameof(PedidoSeleccionadoLineas));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoContacto));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoCliente));
             CrearPedidoCommand.RaiseCanExecuteChanged();
             CrearEtiquetaCommand.RaiseCanExecuteChanged();
         }
@@ -96,6 +100,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         }
 
         private int _numeroMaxPedidos = 20;
+        private object _clienteCompleto;
+
         public int NumeroMaxPedidos
         {
             get { return _numeroMaxPedidos; }
@@ -183,6 +189,23 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
         }
 
+        public string PedidoSeleccionadoCliente
+        {
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.cliente; }
+            set
+            {
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.cliente = value;
+            }
+        }
+
+        public string PedidoSeleccionadoContacto
+        {
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.contacto; }
+            set
+            {
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.contacto = value;
+            }
+        }
         #endregion
 
         #region "Comandos"
