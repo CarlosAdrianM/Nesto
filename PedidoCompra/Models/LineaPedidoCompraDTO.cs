@@ -55,9 +55,12 @@ namespace Nesto.Modulos.PedidoCompra.Models
         }
         public int CantidadBruta { get; set; }
         public decimal PrecioUnitario { get; set; }
-        public decimal DescuentoLinea { get; set; }
-        public decimal DescuentoProveedor { get; set; }
-        public decimal DescuentoProducto { get; set; }
+        //public decimal DescuentoLinea { get; set; }
+        public decimal DescuentoProveedor { 
+            get => DescuentoEntidad; 
+            set => DescuentoEntidad = value; 
+        }
+        //public decimal DescuentoProducto { get; set; }
         public string CodigoIvaProducto { get; set; }
         //public decimal PorcentajeIva { get; set; }
         public int StockMaximo { get; set; }
@@ -89,11 +92,11 @@ namespace Nesto.Modulos.PedidoCompra.Models
         }
 
 
-        public decimal Bruto { get => (decimal)(CantidadCobrada == null ? Cantidad * PrecioUnitario : CantidadCobrada * PrecioUnitario); }
-        public decimal SumaDescuentos { get => AplicarDescuentos ? 1 - (1 - DescuentoProveedor) * (1 - DescuentoProducto) * (1 - DescuentoLinea) : 0; }
-        public bool AplicarDescuentos { get; set; } = true;
-        public decimal ImporteDescuento { get => Bruto * SumaDescuentos; }
-        public override decimal BaseImponible { get => Bruto - ImporteDescuento; } // Esta hay que cambiarla por la de LineaPedidoBase cuando esté implementada
+        public override decimal Bruto { get => (decimal)(CantidadCobrada == null ? Cantidad * PrecioUnitario : CantidadCobrada * PrecioUnitario); }
+        //public decimal SumaDescuentos { get => AplicarDescuento ? 1 - (1 - DescuentoProveedor) * (1 - DescuentoProducto) * (1 - DescuentoLinea) : 0; }
+        //public bool AplicarDescuento { get; set; } = true;
+        //public decimal ImporteDescuento { get => Bruto * SumaDescuentos; }
+        //public override decimal BaseImponible { get => Bruto - ImporteDescuento; } // Esta hay que cambiarla por la de LineaPedidoBase cuando esté implementada
         //public decimal ImporteIva { get => BaseImponible * PorcentajeIva; }
         //public decimal Total { get => BaseImponible + ImporteIva; }
         public int? CantidadCobrada { get; set; }

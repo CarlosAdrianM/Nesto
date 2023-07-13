@@ -128,7 +128,7 @@
                             </Style>
                         </DataGridTextColumn.CellStyle>
                     </DataGridTextColumn>
-                    <DataGridCheckBoxColumn Header="Aplicar Dtos." Binding="{Binding AplicarDescuentos, UpdateSourceTrigger=PropertyChanged}" />
+                    <DataGridCheckBoxColumn Header="Aplicar Dtos." Binding="{Binding AplicarDescuento, UpdateSourceTrigger=PropertyChanged}" />
                     <DataGridTextColumn Header="Importe Descuento" Binding="{Binding ImporteDescuento, StringFormat=c}" IsReadOnly="True">
                         <DataGridTextColumn.CellStyle>
                             <Style>

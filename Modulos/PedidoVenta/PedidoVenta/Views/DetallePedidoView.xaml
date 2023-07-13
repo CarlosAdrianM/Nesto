@@ -93,29 +93,29 @@
                                 <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding Producto}" />
                                 <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
 
-                                <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding cantidad}" />
-                                <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding precio, StringFormat=c}">
+                                <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding Cantidad}" />
+                                <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding PrecioUnitario, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding descuento, Converter={StaticResource porcentajeConverter}}" >
+                                <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding DescuentoLinea, Converter={StaticResource porcentajeConverter}}" >
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Descuento Producto" Width="3*" Binding="{Binding descuentoProducto, Converter={StaticResource porcentajeConverter}}" IsReadOnly="True" >
+                                <DataGridTextColumn Header="Descuento Producto" Width="3*" Binding="{Binding DescuentoProducto, Converter={StaticResource porcentajeConverter}}" IsReadOnly="True" >
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridCheckBoxColumn Header="Aplicar Dto." Width="Auto" Binding="{Binding aplicarDescuento}"/>
+                                <DataGridCheckBoxColumn Header="Aplicar Dto." Width="Auto" Binding="{Binding AplicarDescuento, UpdateSourceTrigger=PropertyChanged}"/>
                                 <DataGridTextColumn Header="Almacén" Width="Auto" Binding="{Binding almacen}"/>
                             </DataGrid.Columns>
                         </DataGrid>
@@ -251,42 +251,49 @@
                                 <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding Producto}" />
                                 <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
 
-                                <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding cantidad}" />
-                                <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding precio, StringFormat=c}">
+                                <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding Cantidad}" />
+                                <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding PrecioUnitario, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding descuento, Converter={StaticResource porcentajeConverter}}" >
+                                <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding DescuentoLinea, Converter={StaticResource porcentajeConverter}}" >
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Descuento Producto" Width="3*" Binding="{Binding descuentoProducto, Converter={StaticResource porcentajeConverter}}" IsReadOnly="True" >
+                                <DataGridTextColumn Header="Descuento Producto" Width="3*" Binding="{Binding DescuentoProducto, Converter={StaticResource porcentajeConverter}}" IsReadOnly="True" >
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding aplicarDescuento}"/>
+                                <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding AplicarDescuento, UpdateSourceTrigger=PropertyChanged}"/>
+                                <DataGridTextColumn Header="BI" Width="3*" Binding="{Binding BaseImponible, StringFormat=c}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 
                         <xctk:PropertyGrid Grid.Column="1" x:Name="_propertyGrid" AutoGenerateProperties="False" SelectedObject="{Binding lineaActual}" IsReadOnly="True">
                             <xctk:PropertyGrid.EditorDefinitions>
-                                <xctk:EditorTemplateDefinition TargetProperties="descuento,descuentoProducto">
+                                <xctk:EditorTemplateDefinition TargetProperties="DescuentoLinea,DescuentoProducto">
                                     <xctk:EditorTemplateDefinition.EditingTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Value, StringFormat=p}" />
                                         </DataTemplate>
                                     </xctk:EditorTemplateDefinition.EditingTemplate>
                                 </xctk:EditorTemplateDefinition>
-                                <xctk:EditorTemplateDefinition TargetProperties="bruto,precio">
+                                <xctk:EditorTemplateDefinition TargetProperties="Bruto,PrecioUnitario">
                                     <xctk:EditorTemplateDefinition.EditingTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Value, StringFormat=c}" />
@@ -296,12 +303,12 @@
                             </xctk:PropertyGrid.EditorDefinitions>
                             <xctk:PropertyGrid.PropertyDefinitions>
                                 <xctk:PropertyDefinition TargetProperties="almacen" DisplayName="Almacén"/>
-                                <xctk:PropertyDefinition TargetProperties="aplicarDescuento" DisplayName="Aplicar Descuento" />
-                                <xctk:PropertyDefinition TargetProperties="bruto" DisplayName="Importe Bruto"/>
-                                <xctk:PropertyDefinition TargetProperties="cantidad" DisplayName="Cantidad"/>
+                                <xctk:PropertyDefinition TargetProperties="AplicarDescuento" DisplayName="Aplicar Descuento" />
+                                <xctk:PropertyDefinition TargetProperties="Bruto" DisplayName="Importe Bruto"/>
+                                <xctk:PropertyDefinition TargetProperties="Cantidad" DisplayName="Cantidad"/>
                                 <xctk:PropertyDefinition TargetProperties="delegacion" DisplayName="Delegación"/>
-                                <xctk:PropertyDefinition TargetProperties="descuento" DisplayName="Descuento"/>
-                                <xctk:PropertyDefinition TargetProperties="descuentoProducto" DisplayName="Descuento del Producto"/>
+                                <xctk:PropertyDefinition TargetProperties="DescuentoLinea" DisplayName="Descuento"/>
+                                <xctk:PropertyDefinition TargetProperties="DescuentoProducto" DisplayName="Descuento del Producto"/>
                                 <xctk:PropertyDefinition TargetProperties="estaAlbaraneada" DisplayName="¿Tiene Albarán?"/>
                                 <xctk:PropertyDefinition TargetProperties="estado" DisplayName="Estado"/>
                                 <xctk:PropertyDefinition TargetProperties="estaFacturada" DisplayName="¿Está Facturada?"/>
@@ -311,7 +318,7 @@
                                 <xctk:PropertyDefinition TargetProperties="iva" DisplayName="Tipo de IVA"/>
                                 <xctk:PropertyDefinition TargetProperties="oferta" DisplayName="Nº de Oferta"/>
                                 <xctk:PropertyDefinition TargetProperties="picking" DisplayName="Picking"/>
-                                <xctk:PropertyDefinition TargetProperties="precio" DisplayName="Precio Unitario"/>
+                                <xctk:PropertyDefinition TargetProperties="PrecioUnitario" DisplayName="Precio Unitario"/>
                                 <xctk:PropertyDefinition TargetProperties="Producto" DisplayName="Producto"/>
                                 <xctk:PropertyDefinition TargetProperties="texto" DisplayName="Texto"/>
                                 <xctk:PropertyDefinition TargetProperties="tienePicking" DisplayName="¿Tiene Picking?"/>

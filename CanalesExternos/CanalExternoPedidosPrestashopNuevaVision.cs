@@ -137,14 +137,14 @@ namespace Nesto.Modulos.CanalesExternos
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
                     almacen = "ALG",
-                    aplicarDescuento = false,
-                    cantidad = short.Parse(linea.Element("product_quantity").Value),
+                    AplicarDescuento = false,
+                    Cantidad = short.Parse(linea.Element("product_quantity").Value),
                     delegacion = "ALG",
                     formaVenta = "WEB",
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = tipoIva,
-                    precio = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
+                    PrecioUnitario = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
                     Producto = linea.Element("product_reference").Value,
                     texto = linea.Element("product_name").Value.ToUpper(),
                     tipoLinea = 1, // producto
@@ -153,8 +153,8 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaNesto.precio = Math.Round(lineaNesto.precio / (decimal)(1+porcentajeIva), 4);
-                    lineaNesto.BaseImponible = lineaNesto.precio * lineaNesto.cantidad;
+                    lineaNesto.PrecioUnitario = Math.Round(lineaNesto.PrecioUnitario / (decimal)(1+porcentajeIva), 4);
+                    //lineaNesto.BaseImponible = lineaNesto.precio * lineaNesto.cantidad;
                     lineaNesto.PorcentajeIva = porcentajeIva;
                 }
 
@@ -167,14 +167,14 @@ namespace Nesto.Modulos.CanalesExternos
                 LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                 {
                     almacen = "ALG",
-                    aplicarDescuento = false,
-                    cantidad = (short)1,
+                    AplicarDescuento = false,
+                    Cantidad = (short)1,
                     delegacion = "ALG",
                     formaVenta = "WEB",
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
-                    precio = totalPortes,
+                    PrecioUnitario = totalPortes,
                     Producto = "62400003",
                     texto = "GASTOS DE TRANSPORTE",
                     tipoLinea = 2, // cuenta contable
@@ -183,7 +183,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaPortes.precio = lineaPortes.precio / (decimal)1.21;
+                    lineaPortes.PrecioUnitario = lineaPortes.PrecioUnitario / (decimal)1.21;
                 }
 
                 pedidoSalida.Lineas.Add(lineaPortes);
@@ -195,14 +195,14 @@ namespace Nesto.Modulos.CanalesExternos
                 LineaPedidoVentaDTO lineaEmbalaje = new LineaPedidoVentaDTO
                 {
                     almacen = "ALG",
-                    aplicarDescuento = false,
-                    cantidad = (short)1,
+                    AplicarDescuento = false,
+                    Cantidad = (short)1,
                     delegacion = "ALG",
                     formaVenta = "WEB",
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
-                    precio = totalEmbalaje,
+                    PrecioUnitario = totalEmbalaje,
                     Producto = "62700020",
                     texto = "EMBALAJE DE REGALO",
                     tipoLinea = 2, // cuenta contable
@@ -211,7 +211,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaEmbalaje.precio = lineaEmbalaje.precio / (decimal)1.21;
+                    lineaEmbalaje.PrecioUnitario = lineaEmbalaje.PrecioUnitario / (decimal)1.21;
                 }
 
                 pedidoSalida.Lineas.Add(lineaEmbalaje);
@@ -223,14 +223,14 @@ namespace Nesto.Modulos.CanalesExternos
                 LineaPedidoVentaDTO lineaCupon = new LineaPedidoVentaDTO
                 {
                     almacen = "ALG",
-                    aplicarDescuento = false,
-                    cantidad = (short)-1,
+                    AplicarDescuento = false,
+                    Cantidad = (short)-1,
                     delegacion = "ALG",
                     formaVenta = "WEB",
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
-                    precio = totalDescuentos,
+                    PrecioUnitario = totalDescuentos,
                     Producto = "TiCKET",
                     texto = "CUPÓN DE DESCUENTO",
                     tipoLinea = 1, // producto
@@ -239,7 +239,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaCupon.precio = lineaCupon.precio / (decimal)1.21;
+                    lineaCupon.PrecioUnitario = lineaCupon.PrecioUnitario / (decimal)1.21;
                 }
 
                 pedidoSalida.Lineas.Add(lineaCupon);

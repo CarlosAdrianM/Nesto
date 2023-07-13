@@ -1,16 +1,13 @@
-﻿using Nesto.Modules.Producto;
-using Prism.Mvvm;
+﻿using Prism.Mvvm;
 using System;
 using Prism.Ioc;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.PedidoCompra.Models
-{    
+{
     public class LineaPedidoCompraWrapper : BindableBase
     {
         IPedidoCompraService Servicio;
@@ -280,13 +277,13 @@ namespace Nesto.Modulos.PedidoCompra.Models
         }
         */
 
-        public bool AplicarDescuentos
+        public bool AplicarDescuento
         {
-            get => Model.AplicarDescuentos;
+            get => Model.AplicarDescuento;
             set
             {
-                Model.AplicarDescuentos = value;
-                RaisePropertyChanged(nameof(AplicarDescuentos));
+                Model.AplicarDescuento = value;
+                RaisePropertyChanged(nameof(AplicarDescuento));
                 RaisePropertyChanged(nameof(SumaDescuentos));
                 RaisePropertyChanged(nameof(ImporteDescuento));
                 RaisePropertyChanged(nameof(BaseImponible));

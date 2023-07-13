@@ -1533,6 +1533,7 @@ Public Class PlantillaVentaViewModel
                         .fecha = Today,
                         .formaPago = formaPagoSeleccionada.formaPago,
                         .plazosPago = plazoPagoSeleccionado.plazoPago,
+                        .DescuentoPP = plazoPagoSeleccionado.descuentoPP,
                         .primerVencimiento = Today, 'se calcula en la API
                         .iva = clienteSeleccionado.iva,
                         .vendedor = direccionEntregaSeleccionada.vendedor,
@@ -1567,16 +1568,17 @@ Public Class PlantillaVentaViewModel
             'End If
 
             lineaPedido = New LineaPedidoVentaDTO With {
+                .Pedido = pedido,
                 .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO), '¿Pongo 0 para tener que validar?
                 .tipoLinea = 1, ' Producto
                 .Producto = linea.producto,
                 .texto = linea.texto,
-                .cantidad = linea.cantidad,
+                .Cantidad = linea.cantidad,
                 .fechaEntrega = fechaEntrega,
-                .precio = linea.precio,
-                .descuento = IIf(linea.descuento = linea.descuentoProducto, 0, linea.descuento),
-                .descuentoProducto = IIf(linea.descuento = linea.descuentoProducto, linea.descuentoProducto, 0),
-                .aplicarDescuento = IIf(linea.descuento = linea.descuentoProducto, linea.aplicarDescuento, False),
+                .PrecioUnitario = linea.precio,
+                .DescuentoLinea = IIf(linea.descuento = linea.descuentoProducto, 0, linea.descuento),
+                .DescuentoProducto = IIf(linea.descuento = linea.descuentoProducto, linea.descuentoProducto, 0),
+                .AplicarDescuento = IIf(linea.descuento = linea.descuentoProducto, linea.aplicarDescuento, False),
                 .vistoBueno = 0, 'calcular
                 .Usuario = configuracion.usuario,
                 .almacen = almacenRutaUsuario,
@@ -1591,8 +1593,8 @@ Public Class PlantillaVentaViewModel
 
             If linea.cantidadOferta <> 0 Then
                 lineaPedidoOferta = lineaPedido.ShallowCopy
-                lineaPedidoOferta.cantidad = linea.cantidadOferta
-                lineaPedidoOferta.precio = 0
+                lineaPedidoOferta.Cantidad = linea.cantidadOferta
+                lineaPedidoOferta.PrecioUnitario = 0
                 lineaPedidoOferta.oferta = lineaPedido.oferta
                 pedido.Lineas.Add(lineaPedidoOferta)
             End If

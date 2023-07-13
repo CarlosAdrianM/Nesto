@@ -231,14 +231,14 @@ namespace Nesto.Modulos.CanalesExternos
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
                     almacen = canalCumplimiento == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV,
-                    aplicarDescuento = false,
-                    cantidad = cantidad,
+                    AplicarDescuento = false,
+                    Cantidad = cantidad,
                     delegacion = DELEGACION_AMAZON,
                     formaVenta = FORMA_VENTA_AMAZON,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = iva == IVA_EXPORTACION ? IVA_EXENTO : porcentajeIva == PORCENTAJE_IVA_REDUCIDO ? IVA_REDUCIDO : IVA_GENERAL,
-                    precio = cantidad != 0 ? baseImponible / cantidad : baseImponible,
+                    PrecioUnitario = cantidad != 0 ? baseImponible / cantidad : baseImponible,
                     Producto = ProcesarSKU(orderItem),
                     texto = orderItem.Title.ToUpper(),
                     tipoLinea = 1, // producto
@@ -253,14 +253,14 @@ namespace Nesto.Modulos.CanalesExternos
                     LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                     {
                         almacen = canalCumplimiento == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV,
-                        aplicarDescuento = false,
-                        cantidad = (short)1,
+                        AplicarDescuento = false,
+                        Cantidad = (short)1,
                         delegacion = DELEGACION_AMAZON,
                         formaVenta = FORMA_VENTA_AMAZON,
                         estado = 1,
                         fechaEntrega = DateTime.Today,
                         iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL,
-                        precio = baseImponiblePortes,
+                        PrecioUnitario = baseImponiblePortes,
                         Producto = "62400003",
                         texto = "PORTES " + orderItem.Title.ToUpper(),
                         tipoLinea = 2, // cuenta contable
@@ -276,14 +276,14 @@ namespace Nesto.Modulos.CanalesExternos
                     LineaPedidoVentaDTO lineaDescuentoPortes = new LineaPedidoVentaDTO
                     {
                         almacen = canalCumplimiento == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV,
-                        aplicarDescuento = false,
-                        cantidad = (short)-1,
+                        AplicarDescuento = false,
+                        Cantidad = (short)-1,
                         delegacion = DELEGACION_AMAZON,
                         formaVenta = FORMA_VENTA_AMAZON,
                         estado = 1,
                         fechaEntrega = DateTime.Today,
                         iva = iva == IVA_EXPORTACION ? IVA_EXENTO : IVA_GENERAL,
-                        precio = baseImponibleDescuentoPortes,
+                        PrecioUnitario = baseImponibleDescuentoPortes,
                         Producto = "62400003",
                         texto = "DESCUENTO PORTES " + orderItem.Title.ToUpper(),
                         tipoLinea = 2, // cuenta contable

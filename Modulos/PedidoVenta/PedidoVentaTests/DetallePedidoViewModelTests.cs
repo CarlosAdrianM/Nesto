@@ -25,9 +25,9 @@ namespace PedidoVentaTests
             DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
             PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
             LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
-            lineaFake.descuentoProducto = (decimal).4;
-            lineaFake.cantidad = 1;
-            lineaFake.precio = 100;
+            lineaFake.DescuentoProducto = (decimal).4;
+            lineaFake.Cantidad = 1;
+            lineaFake.PrecioUnitario = 100;
             pedido.Lineas.Add(lineaFake);
             detallePedidoViewModel.pedido = pedido;
 
@@ -50,10 +50,10 @@ namespace PedidoVentaTests
             DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
             PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
             LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
-            lineaFake.descuentoProducto = (decimal).4;
+            lineaFake.DescuentoProducto = (decimal).4;
             lineaFake.aplicarDescuento = false;
-            lineaFake.cantidad = 1;
-            lineaFake.precio = 100;
+            lineaFake.Cantidad = 1;
+            lineaFake.PrecioUnitario = 100;
             pedido.Lineas.Add(lineaFake);
             detallePedidoViewModel.pedido = pedido;
 
@@ -76,17 +76,17 @@ namespace PedidoVentaTests
             DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
             PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
             LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
-            lineaFake.descuentoProducto = (decimal).4;
+            lineaFake.DescuentoProducto = (decimal).4;
             lineaFake.aplicarDescuento = true;
-            lineaFake.cantidad = 1;
-            lineaFake.precio = 100;
+            lineaFake.Cantidad = 1;
+            lineaFake.PrecioUnitario = 100;
             pedido.Lineas.Add(lineaFake);
             detallePedidoViewModel.pedido = pedido;
             var handler = A.Fake<PropertyChangedEventHandler>();
             lineaFake.PropertyChanged += handler;
 
             // Act
-            lineaFake.descuentoProducto = (decimal).3;
+            lineaFake.DescuentoProducto = (decimal).3;
 
             // Assert
             A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "descuentoProducto"))).MustHaveHappenedOnceExactly();

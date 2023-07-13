@@ -1,6 +1,7 @@
 ﻿using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
+using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -184,7 +185,7 @@ namespace ControlesUsuario
                 }
                 catch
                 {
-                    throw new Exception("No se pudieron leer las empresas");
+                    MessageBox.Show("No se pudieron leer las empresas");
                 }
             }
         }

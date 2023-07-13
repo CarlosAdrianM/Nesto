@@ -47,7 +47,7 @@ Public Class DetallePedidoViewModel
         cmdCambiarIva = New DelegateCommand(AddressOf OnCambiarIva)
         cmdCargarPedido = New DelegateCommand(Of ResumenPedido)(AddressOf OnCargarPedido)
         CargarProductoCommand = New DelegateCommand(Of LineaPedidoVentaDTO)(AddressOf OnCargarProducto)
-        cmdCeldaModificada = New DelegateCommand(Of Object)(AddressOf OnCeldaModificada)
+        cmdCeldaModificada = New DelegateCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
         cmdModificarPedido = New DelegateCommand(AddressOf OnModificarPedido)
         cmdPonerDescuentoPedido = New DelegateCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
@@ -60,7 +60,7 @@ Public Class DetallePedidoViewModel
 
     Private Sub ActualizarLoopup()
         If Not IsNothing(pedido) Then
-            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
+            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
         End If
     End Sub
     Private Async Sub InsertarProducto(productoSeleccionado As String)
@@ -161,12 +161,12 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-    Private _lineaActual As LineaPedidoVentaDTO
-    Public Property lineaActual As LineaPedidoVentaDTO
+    Private _lineaActual As LineaPedidoVentaWrapper
+    Public Property lineaActual As LineaPedidoVentaWrapper
         Get
             Return _lineaActual
         End Get
-        Set(value As LineaPedidoVentaDTO)
+        Set(value As LineaPedidoVentaWrapper)
             SetProperty(_lineaActual, value)
             RaisePropertyChanged(NameOf(pedido))
         End Set
@@ -188,19 +188,19 @@ Public Class DetallePedidoViewModel
         End Get
     End Property
 
-    Private _pedido As PedidoVentaDTO
-    Public Property pedido As PedidoVentaDTO
+    Private _pedido As PedidoVentaWrapper
+    Public Property pedido As PedidoVentaWrapper
         Get
             Return _pedido
         End Get
-        Set(ByVal value As PedidoVentaDTO)
+        Set(ByVal value As PedidoVentaWrapper)
             If IsNothing(value) OrElse _pedido?.Equals(value) Then
                 Return
             End If
             SetProperty(_pedido, value)
-            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
+            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
             estaActualizarFechaActivo = False
-            Dim linea As LineaPedidoVentaDTO = pedido.Lineas.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
+            Dim linea As LineaPedidoVentaDTO = pedido.Model.Lineas.FirstOrDefault(Function(l) l.estado >= -1 And l.estado <= 1)
             If Not IsNothing(linea) AndAlso Not IsNothing(linea.fechaEntrega) Then
                 fechaEntrega = linea.fechaEntrega
             End If
@@ -346,17 +346,22 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Async Sub OnCargarPedido(resumen As ResumenPedido)
-        If Not IsNothing(resumen) AndAlso Not IsNothing(resumen.numero) Then
-            Me.Titulo = "Pedido Venta (" + resumen.numero.ToString + ")"
-            pedido = Await servicio.cargarPedido(resumen.empresa, resumen.numero)
-            ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(resumen.empresa, resumen.numero)
-            If Not IsNothing(pedido) Then
-                ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
-                CobroTarjetaImporte = pedido.Total
+        Try
+            If Not IsNothing(resumen) AndAlso Not IsNothing(resumen.numero) Then
+                Me.Titulo = "Pedido Venta (" + resumen.numero.ToString + ")"
+                Dim pedidoDTO As PedidoVentaDTO = Await servicio.cargarPedido(resumen.empresa, resumen.numero)
+                pedido = New PedidoVentaWrapper(pedidoDTO)
+                ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(resumen.empresa, resumen.numero)
+                If Not IsNothing(pedido) Then
+                    ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
+                    CobroTarjetaImporte = pedido.Total
+                End If
+            Else
+                Me.Titulo = "Lista de Pedidos"
             End If
-        Else
-            Me.Titulo = "Lista de Pedidos"
-        End If
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        End Try
     End Sub
 
     Private _cargarProductoCommand As DelegateCommand(Of LineaPedidoVentaDTO)
@@ -370,24 +375,23 @@ Public Class DetallePedidoViewModel
     End Property
     Private Sub OnCargarProducto(linea As LineaPedidoVentaDTO)
         Dim parameters As NavigationParameters = New NavigationParameters()
-        'parameters.Add("numeroProductoParameter", lineaActual.producto)
         parameters.Add("numeroProductoParameter", linea.Producto)
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
-    Private _cmdCeldaModificada As DelegateCommand(Of Object)
-    Public Property cmdCeldaModificada As DelegateCommand(Of Object)
+    Private _cmdCeldaModificada As DelegateCommand(Of DataGridCellEditEndingEventArgs)
+    Public Property cmdCeldaModificada As DelegateCommand(Of DataGridCellEditEndingEventArgs)
         Get
             Return _cmdCeldaModificada
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand(Of DataGridCellEditEndingEventArgs))
             SetProperty(_cmdCeldaModificada, value)
         End Set
     End Property
-    Private Async Sub OnCeldaModificada(arg As Object)
-        arg = CType(arg, DataGridCellEditEndingEventArgs)
-        If Not arg.Row.DataContext.Equals(lineaActual) Then
-            lineaActual = arg.Row.DataContext
+    Private Async Sub OnCeldaModificada(eventArgs As DataGridCellEditEndingEventArgs)
+        Dim lineaEditada As LineaPedidoVentaWrapper = CType(eventArgs.Row.DataContext, LineaPedidoVentaWrapper)
+        If Not lineaEditada.Equals(lineaActual) Then
+            lineaActual = lineaEditada
         End If
         If IsNothing(lineaActual.almacen) Then
             lineaActual.almacen = pedido.Lineas.FirstOrDefault()?.almacen
@@ -395,45 +399,53 @@ Public Class DetallePedidoViewModel
         If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = DateTime.MinValue Then
             lineaActual.fechaEntrega = fechaEntrega
         End If
-        If arg.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.Producto Then
-            Await CargarDatosProducto(arg.EditingElement.Text, lineaActual.cantidad)
+        Dim textoNuevo As String = String.Empty
+        Dim esTextBox As Boolean = False
+        If TypeOf eventArgs.EditingElement Is TextBox Then
+            Dim textBox As TextBox = DirectCast(eventArgs.EditingElement, TextBox)
+            textoNuevo = textBox.Text
+            esTextBox = True
         End If
-        If arg.Column.Header = "Cantidad" AndAlso Not IsNothing(lineaActual) AndAlso arg.EditingElement.Text <> lineaActual.cantidad Then
-            Await CargarDatosProducto(lineaActual.Producto, arg.EditingElement.Text)
+
+        If esTextBox AndAlso eventArgs.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso textoNuevo <> lineaActual.Producto Then
+            Await CargarDatosProducto(textoNuevo, lineaActual.cantidad)
         End If
-        If arg.Column.Header = "Precio" OrElse arg.Column.Header = "Descuento" Then
-            Dim textBox As TextBox = arg.EditingElement
+        If esTextBox AndAlso eventArgs.Column.Header = "Cantidad" AndAlso Not IsNothing(lineaActual) AndAlso CType(textoNuevo, Short) <> lineaActual.cantidad Then
+            Await CargarDatosProducto(lineaActual.Producto, CType(textoNuevo, Short))
+        End If
+        If esTextBox AndAlso eventArgs.Column.Header = "Precio" OrElse eventArgs.Column.Header = "Descuento" Then
+            Dim textBox As TextBox = eventArgs.EditingElement
             ' Windows debería hacer que el teclado numérico escribiese coma en vez de punto
             ' pero como no lo hace, lo cambiamos nosotros
             textBox.Text = Replace(textBox.Text, ".", ",")
             Dim style As NumberStyles = NumberStyles.Number Or NumberStyles.AllowCurrencySymbol
             Dim culture As CultureInfo = CultureInfo.CurrentCulture
 
-            If arg.Column.Header = "Precio" Then
-                If Not Double.TryParse(textBox.Text, style, CType(culture, IFormatProvider), (lineaActual.precio)) Then
+            If eventArgs.Column.Header = "Precio" Then
+                If Not Double.TryParse(textBox.Text, style, CType(culture, IFormatProvider), (lineaActual.PrecioUnitario)) Then
                     Return
                 End If
             Else
-                If Not Double.TryParse(textBox.Text, style, CType(culture, IFormatProvider), (lineaActual.descuento)) Then
+                If Not Double.TryParse(textBox.Text, style, CType(culture, IFormatProvider), (lineaActual.DescuentoLinea)) Then
                     Return
                 Else
-                    lineaActual.descuento = lineaActual.descuento / 100
+                    lineaActual.DescuentoLinea = lineaActual.DescuentoLinea / 100
                 End If
             End If
         End If
-        If arg.Column.Header = "Aplicar Dto." Then
+        If eventArgs.Column.Header = "Aplicar Dto." Then
             cmdActualizarTotales.Execute() ' ¿por qué no llamar directamente a raisepropertychanged?
         End If
     End Sub
 
     Private Async Function CargarDatosProducto(numeroProducto As String, cantidad As Short) As Task
-        Dim lineaCambio As LineaPedidoVentaDTO = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
+        Dim lineaCambio As LineaPedidoVentaWrapper = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
         Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, cantidad)
         If Not IsNothing(producto) Then
-            lineaCambio.precio = producto.precio
+            lineaCambio.PrecioUnitario = producto.precio
             lineaCambio.texto = producto.nombre
-            lineaCambio.aplicarDescuento = producto.aplicarDescuento
-            lineaCambio.descuentoProducto = producto.descuento
+            lineaCambio.AplicarDescuento = producto.aplicarDescuento
+            lineaCambio.DescuentoProducto = producto.descuento
             If IsNothing(lineaCambio.Usuario) Then
                 lineaCambio.Usuario = configuracion.usuario
             End If
@@ -592,19 +604,19 @@ Public Class DetallePedidoViewModel
         End If
 
         ' Modificamos el usuario del pedido
-        pedido.Usuario = configuracion.usuario
+        pedido.Model.Usuario = configuracion.usuario
 
 
         Try
             Await Task.Run(Sub()
                                Try
-                                   servicio.modificarPedido(pedido)
+                                   servicio.modificarPedido(pedido.Model)
                                Catch ex As Exception
                                    Throw New Exception(ex.Message)
                                End Try
                            End Sub)
             dialogService.ShowNotification("Pedido Modificado", "Pedido " + pedido.numero.ToString + " modificado correctamente")
-            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
+            eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
         Finally
@@ -625,8 +637,8 @@ Public Class DetallePedidoViewModel
         Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas)
     End Function
     Private Sub OnPonerDescuentoPedido()
-        For Each linea In pedido.Lineas.Where(Function(l) l.aplicarDescuento AndAlso l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
-            linea.descuento = descuentoPedido
+        For Each linea In pedido.Lineas.Where(Function(l) l.AplicarDescuento AndAlso l.estado >= -1 AndAlso l.estado <= 1 AndAlso Not l.picking > 0)
+            linea.DescuentoLinea = descuentoPedido
         Next
         RaisePropertyChanged(NameOf(pedido))
     End Sub

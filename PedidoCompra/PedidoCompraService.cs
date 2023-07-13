@@ -130,7 +130,7 @@ namespace Nesto.Modulos.PedidoCompra
 
                 try
                 {
-                    string urlConsulta = $"PedidosCompra/PedidosCompraAutomasticos?empresa={empresa}";
+                    string urlConsulta = $"PedidosCompra/PedidosCompraAutomaticos?empresa={empresa}";
 
                     response = await client.GetAsync(urlConsulta);
 

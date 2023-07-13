@@ -70,7 +70,7 @@ Public Class DetallePedidoView
         End If
 
         If src.[GetType]() = GetType(ScrollContentPresenter) Then
-            DataContext.CargarProductoCommand.Execute(grdLineas.SelectedItem)
+            DataContext.CargarProductoCommand.Execute(grdLineas.SelectedItem.Model)
         End If
     End Sub
 
@@ -82,7 +82,13 @@ Public Class DetallePedidoView
         End If
 
         If src.[GetType]() = GetType(ContentPresenter) Then
-            DataContext.CargarProductoCommand.Execute(grdLineas.SelectedItem)
+            Dim vm As DetallePedidoViewModel = CType(DataContext, DetallePedidoViewModel)
+            'Dim lineaSeleccionada As LineaPedidoVentaWrapper = CType(grdLineas.SelectedItem, LineaPedidoVentaWrapper)
+            Dim dataGrid As DataGrid = CType(sender, DataGrid)
+            Dim lineaSeleccionada As LineaPedidoVentaWrapper = CType(dataGrid.SelectedItem, LineaPedidoVentaWrapper)
+            If Not IsNothing(lineaSeleccionada) Then
+                vm.CargarProductoCommand.Execute(lineaSeleccionada.Model)
+            End If
         End If
     End Sub
 
