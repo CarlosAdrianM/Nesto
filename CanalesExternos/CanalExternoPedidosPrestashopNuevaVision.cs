@@ -8,6 +8,7 @@ using Nesto.Models.Nesto.Models;
 using System.Collections.Generic;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
+using Nesto.Modulos.CanalesExternos.Models;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -72,6 +73,10 @@ namespace Nesto.Modulos.CanalesExternos
 
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("phone")?.Value != "" ? "Tel.: " + pedidoEntrada.Direccion.Element("phone")?.Value.ToString().ToUpper() + "\r\n" : "";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("phone_mobile")?.Value != "" ? "Móvil: " + pedidoEntrada.Direccion.Element("phone_mobile")?.Value.ToString().ToUpper() + "\r\n" : "";
+            if (pedidoEntrada.PedidoNestoId != 0)
+            {
+                pedidoSalida.comentarios += "N/ Pedido: " + pedidoEntrada.PedidoNestoId + "\r\n";
+            }
             decimal totalPagado = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_paid_real")?.Value) / 1000000, 4);
             pedidoSalida.comentarios += "TOTAL PEDIDO: " + totalPagado.ToString("c");
 
@@ -136,6 +141,7 @@ namespace Nesto.Modulos.CanalesExternos
                 }
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
+                    Pedido = pedidoSalida,
                     almacen = "ALG",
                     AplicarDescuento = false,
                     Cantidad = short.Parse(linea.Element("product_quantity").Value),
@@ -247,6 +253,7 @@ namespace Nesto.Modulos.CanalesExternos
 
             pedidoExterno.Pedido = pedidoSalida;
             pedidoExterno.PedidoCanalId = pedidoEntrada.Pedido.Element("reference").Value;
+            pedidoExterno.PedidoNestoId = pedidoEntrada.PedidoNestoId;
             pedidoExterno.Nombre = pedidoEntrada.Direccion.Element("firstname").Value.ToString().ToUpper() + " ";
             pedidoExterno.Nombre += pedidoEntrada.Direccion.Element("lastname").Value.ToString().ToUpper();
             pedidoExterno.Direccion = pedidoEntrada.Direccion.Element("address1")?.Value.ToString().ToUpper();
@@ -341,9 +348,72 @@ namespace Nesto.Modulos.CanalesExternos
             throw new NotImplementedException();
         }
 
-        public bool EjecutarTrasCrearPedido(PedidoCanalExterno pedido)
+        public async Task<bool> EjecutarTrasCrearPedido(PedidoCanalExterno pedido)
         {
-            return false;
+            return await PrestashopService.CambiarEstadoPedidoAsync(pedido.PedidoCanalId, 3, true); //Preparación en curo
+        }
+
+        public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
+        {
+            DatosEnvioConfirmarPrestashop datosEnvio = LeerDatosEnvio(pedido.UltimoSeguimiento);
+            string resultado = string.Empty;
+            if (await PrestashopService.ConfirmarPedidoAsync(pedido.PedidoCanalId, datosEnvio.AgenciaId, datosEnvio.NumeroSeguimiento, true))
+            {
+                resultado = $"Se ha añadido el número de seguimiento {datosEnvio.NumeroSeguimiento} al pedido {pedido.PedidoCanalId}";
+                if (await PrestashopService.CambiarEstadoPedidoAsync(pedido.PedidoCanalId, 4, false))
+                {
+                    resultado += " y se ha pasado a estado Enviado.";
+                } else
+                {
+                    resultado += " pero NO se ha podido pasar a estado Enviado.";
+                }
+            }
+            else
+            {
+                resultado = $"No se ha podido añadir el número de seguimiento {datosEnvio.NumeroSeguimiento} al pedido {pedido.PedidoCanalId}";
+            }
+            return resultado;
+        }
+
+        private DatosEnvioConfirmarPrestashop LeerDatosEnvio(string seguimiento)
+        {
+            if (seguimiento.Contains("correosexpress"))
+            {
+                int indiceIgual = seguimiento.IndexOf("="); // Obtiene el índice del símbolo "="
+
+                if (indiceIgual == -1) // Verifica si se encuentra el símbolo "=" en la cadena
+                {
+                    throw new Exception("El seguimiento de CEX tiene que incluir el símbolo = (igual)");
+                }
+                return new DatosEnvioConfirmarPrestashop
+                {
+                    AgenciaId = "105",
+                    NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
+                };
+            }
+            else if (seguimiento.Contains("sending"))
+            {
+                int indiceIgual = seguimiento.LastIndexOf("=");
+
+                if (indiceIgual == -1) // Verifica si se encuentra el símbolo "=" en la cadena
+                {
+                    throw new Exception("El seguimiento de Sending tiene que incluir el símbolo = (igual)");
+                }
+                return new DatosEnvioConfirmarPrestashop
+                {
+                    AgenciaId = "103",
+                    NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
+                };
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+        private class DatosEnvioConfirmarPrestashop
+        {
+            public string AgenciaId { get; set; }
+            public string NumeroSeguimiento { get; set; }
         }
     }
 }

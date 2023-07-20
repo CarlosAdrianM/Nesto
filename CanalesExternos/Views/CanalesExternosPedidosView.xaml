@@ -64,15 +64,15 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
                     <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>
-                    <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}"/>
-                    <DataGridTextColumn Header="Precio" Binding="{Binding precio, StringFormat=c}">
+                    <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}"/>
+                    <DataGridTextColumn Header="Precio" Binding="{Binding PrecioUnitario, StringFormat=c}">
                         <DataGridTextColumn.CellStyle>
                             <Style>
                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                             </Style>
                         </DataGridTextColumn.CellStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Bruto" Binding="{Binding bruto, StringFormat=c}">
+                    <DataGridTextColumn Header="Bruto" Binding="{Binding Bruto, StringFormat=c}">
                         <DataGridTextColumn.CellStyle>
                             <Style>
                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -106,6 +106,11 @@
                     <TextBlock>Observaciones:</TextBlock>
                     <TextBox Name="txtObservaciones" Text="{Binding PedidoSeleccionadoObservaciones, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                     <TextBlock/>
+                    <TextBlock>Último seguimiento:</TextBlock>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" x:Name="btnTramitar" Command="{Binding ConfirmarEnvioCommand}" CommandParameter="{Binding ListaPedidos.ElementoSeleccionado}" >Confirmar envío</Button>
+                        <TextBox DockPanel.Dock="Left" Name="txtUltimoSeguimiento" Text="{Binding PedidoSeleccionadoUltimoSeguimiento, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True" IsReadOnlyCaretVisible="True"></TextBox>
+                    </DockPanel>
                 </StackPanel>
                 <controles:SelectorCliente Grid.Row="1" Margin="3,0" Name="txtSelectorCliente" Etiqueta="Cliente al que se factura:" Empresa="1" Contacto="{Binding DataContext.PedidoSeleccionadoContacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" Cliente="{Binding DataContext.PedidoSeleccionadoCliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350"></controles:SelectorCliente>
             </Grid>

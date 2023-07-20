@@ -326,12 +326,64 @@ namespace Nesto.Modulos.CanalesExternos
             return productoDevolver;
         }
 
-        public bool EjecutarTrasCrearPedido(PedidoCanalExterno pedido)
+        public async Task<bool> EjecutarTrasCrearPedido(PedidoCanalExterno pedido)
         {
-            AmazonApiOrdersService.ActualizarSellerOrderId(pedido.PedidoCanalId, pedido.PedidoNestoId);
-            return true;
+            return await AmazonApiOrdersService.ActualizarSellerOrderId(pedido.PedidoCanalId, pedido.PedidoNestoId);            
+        }
+
+        public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
+        {
+            DatosEnvioConfirmarAmazon datosEnvio = LeerDatosEnvio(pedido.UltimoSeguimiento);
+            return await AmazonApiOrdersService.ConfirmarPedido(pedido.PedidoCanalId, datosEnvio.NombreAgencia, datosEnvio.NombreServicio, datosEnvio.NumeroSeguimiento);
         }
 
         private decimal CambioDivisas { get; set; } = 1;
+
+        private DatosEnvioConfirmarAmazon LeerDatosEnvio(string seguimiento)
+        {
+            if (seguimiento.Contains("correosexpress"))
+            {
+                int indiceIgual = seguimiento.IndexOf("="); // Obtiene el índice del símbolo "="
+
+                if (indiceIgual == -1) // Verifica si se encuentra el símbolo "=" en la cadena
+                {
+                    throw new Exception("El seguimiento de CEX tiene que incluir el símbolo = (igual)");
+                }
+                return new DatosEnvioConfirmarAmazon
+                {
+                    NombreAgencia = "Correos Express",
+                    NombreServicio = "ePaq",
+                    NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
+                };
+            }
+            else if (seguimiento.Contains("sending"))
+            {
+                int indiceIgual = seguimiento.LastIndexOf("=");
+
+                if (indiceIgual == -1) // Verifica si se encuentra el símbolo "=" en la cadena
+                {
+                    throw new Exception("El seguimiento de Sending tiene que incluir el símbolo = (igual)");
+                }
+                return new DatosEnvioConfirmarAmazon
+                {
+                    NombreAgencia = "Sending",
+                    NombreServicio = "Send Exprés",
+                    NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
+                };
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+        private class DatosEnvioConfirmarAmazon
+        {
+            public string AmazonOrderId { get; set; }
+            public string NombreAgencia { get; set; }
+            public string NombreServicio { get; set; }
+            public string NumeroSeguimiento { get; set; }
+        }
+
     }
 }
+

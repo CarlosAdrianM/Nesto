@@ -10,6 +10,8 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
+Imports Nesto.Modulos.PedidoVenta
+Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
@@ -486,4 +488,5 @@ Public Class AgenciaService
             End Try
         End Using
     End Function
+
 End Class

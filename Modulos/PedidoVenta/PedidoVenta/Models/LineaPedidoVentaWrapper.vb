@@ -3,6 +3,12 @@ Imports Prism.Mvvm
 
 Public Class LineaPedidoVentaWrapper
     Inherits BindableBase
+    Public Sub New()
+        ' Este constructor solo permite la entrada desde el Datagrid
+        Model = New LineaPedidoVentaDTO() With {
+            .Cantidad = 1
+        }
+    End Sub
     Public Sub New(model As LineaPedidoVentaDTO)
         Me.Model = model
     End Sub

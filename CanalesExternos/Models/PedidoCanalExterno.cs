@@ -17,6 +17,7 @@ namespace Nesto.Modulos.CanalesExternos
         public string CorreoElectronico { get; set; }
         public string PaisISO { get; set; }
         public string Observaciones { get; set; }
+        public string UltimoSeguimiento { get; set; }
         public PedidoVentaDTO Pedido { get; set; }
 
         public bool Contains(string filtro)

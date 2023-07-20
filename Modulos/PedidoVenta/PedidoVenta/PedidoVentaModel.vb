@@ -131,6 +131,7 @@ Public Class PedidoVentaModel
         Public Property Fecha As DateTime
         Public Property AgenciaNombre As String
         Public Property EnlaceSeguimiento As String
+        Public Property Estado As Short
     End Class
 
     Public Class ParametroStringIntInt

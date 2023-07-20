@@ -12,7 +12,7 @@ using System.Globalization;
 using System.Linq;
 using System.Xml;
 using static FikaAmazonAPI.Utils.Constants;
-
+using System.Threading.Tasks;
 
 public class AmazonApiOrdersService
 {
@@ -48,7 +48,7 @@ public class AmazonApiOrdersService
 
     public static List<OrderItem> InvokeListOrderItems(string pedidoAmazon)
     {
-        var conexion = ConexionAmazon();
+        var conexion = AmazonApiOrdersService.ConexionAmazon();
         var orderItems = conexion.Orders.GetOrderItems(pedidoAmazon);
         return orderItems;
     }
@@ -71,7 +71,7 @@ public class AmazonApiOrdersService
         searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
         searchOrderList.IsNeedRestrictedDataToken = true;
 
-        var conexion = ConexionAmazon();
+        var conexion = AmazonApiOrdersService.ConexionAmazon();
         var orders = conexion.Orders.GetOrders(searchOrderList);
         return orders;
     }
@@ -98,16 +98,16 @@ public class AmazonApiOrdersService
         searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
         searchOrderList.IsNeedRestrictedDataToken = true;
 
-        var conexion = ConexionAmazon();
+        var conexion = AmazonApiOrdersService.ConexionAmazon();
         var orders = conexion.Orders.GetOrders(searchOrderList);
         return orders;
     }
 
-    public static bool ActualizarSellerOrderId(string amazonOrderId, int sellerOrderId)
+    public static async Task<bool> ActualizarSellerOrderId(string amazonOrderId, int sellerOrderId)
     {
         try
         {
-            var conexion = ConexionAmazon();
+            var conexion = AmazonApiOrdersService.ConexionAmazon();
             ConstructFeedService createDocument = new ConstructFeedService(conexion.GetCurrentSellerID, "1.02");
             var list = new List<OrderAcknowledgementMessage>();
             list.Add(new OrderAcknowledgementMessage()
@@ -120,18 +120,46 @@ public class AmazonApiOrdersService
             var xml = createDocument.GetXML();
 
             
-            var feedID = conexion.Feed.SubmitFeed(xml, FeedType.POST_ORDER_ACKNOWLEDGEMENT_DATA);
+            var feedID = await conexion.Feed.SubmitFeedAsync(xml, FeedType.POST_ORDER_ACKNOWLEDGEMENT_DATA);
             //GetFeedDetails(feedID);
             return true;
         } catch
         {
             return false;
-        }
-
-
-        
+        }        
     }
-                
+
+    public static async Task<string> ConfirmarPedido(string amazonOrderId, string nombreAgencia, string nombreServicio, string numeroSeguimiento)
+    {
+        try
+        {
+            var conexion = AmazonApiOrdersService.ConexionAmazon();
+            ConstructFeedService createDocument = new ConstructFeedService(conexion.GetCurrentSellerID, "1.02");
+            var list = new List<OrderFulfillmentMessage>();
+            list.Add(new OrderFulfillmentMessage()
+            {
+                AmazonOrderID = amazonOrderId,
+                FulfillmentDate = DateTime.Now.ToString("yyyy-MM-dd'T'HH:mm:ss.fffK"),
+                FulfillmentData = new FulfillmentData()
+                {
+                    CarrierName = nombreAgencia, // "Correos Express",
+                    ShippingMethod = nombreServicio, // "ePaq",
+                    ShipperTrackingNumber = numeroSeguimiento// "{trackingNumber}"
+                }
+            }); 
+            
+            createDocument.AddOrderFulfillmentMessage(list);
+            var xml = createDocument.GetXML();
+            var feedID = await conexion.Feed.SubmitFeedAsync(xml, FeedType.POST_ORDER_FULFILLMENT_DATA);
+
+            return $"Se ha confirmado correctamente el pedido {amazonOrderId}";
+        }
+        catch
+        {
+            return $"No se ha pedido confirmar el pedido {amazonOrderId}";
+        }
+    }
+
     public static decimal CalculaDivisa(string monedaOrigen, string monedaDestino)
     {
         if (monedaDestino != "EUR")

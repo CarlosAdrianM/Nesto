@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Nesto.Modulos.CanalesExternos.Models;
+using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
@@ -8,6 +9,7 @@ namespace Nesto.Modulos.CanalesExternos
     {
         Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos);
         PedidoCanalExterno GetPedido(int Id);
-        bool EjecutarTrasCrearPedido(PedidoCanalExterno pedido);
+        Task<bool> EjecutarTrasCrearPedido(PedidoCanalExterno pedido);
+        Task<string> ConfirmarPedido(PedidoCanalExterno pedido);
     }
 }

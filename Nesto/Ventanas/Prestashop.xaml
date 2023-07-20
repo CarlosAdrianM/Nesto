@@ -16,12 +16,12 @@
             <TabItem Name="tabProductos" Header="Productos">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition />
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="4*"/>
                         <RowDefinition Height="7*"/>
-                        <RowDefinition />
-                        <RowDefinition Height="3*"/>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="15*"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
@@ -40,7 +40,7 @@
                     <TextBox Grid.Column="1" Grid.Row="3" Margin="3" Text="{Binding Path=SelectedItem.Descripción, Mode=TwoWay, ElementName=dgrProductos, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Stretch" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
                     <TextBox Grid.Column="1" Grid.Row="4" Margin="3" Text="{Binding Path=SelectedItem.PVP_IVA_Incluido, Mode=TwoWay, ElementName=dgrProductos, UpdateSourceTrigger=PropertyChanged, TargetNullValue={x:Static sys:String.Empty},StringFormat=c, Delay=350}" VerticalAlignment="Top" ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Self}}"/>
                     
-                    <Grid Grid.Column="1" Grid.Row="5">
+                    <Grid Grid.Column="1" Grid.Row="5" Margin="3">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
                             <ColumnDefinition/>
@@ -54,9 +54,8 @@
                         </TextBox>
                         <Button Grid.Column="1" Name="btnCrear" Command="{Binding cmdAñadir}">Añadir</Button>
                         <Button Grid.Column="2" Name="btnGuardarCambios" Command="{Binding cmdGuardarCambios}">Guardar Cambios</Button>
-                        
                     </Grid>
-                    <DataGrid Name="dgrProductos" Grid.Column="1" Grid.Row="6" ItemsSource="{Binding Path=Producto, Mode=OneWay}" AutoGenerateColumns="False" IsTextSearchEnabled="True" CanUserSortColumns="True" SelectedItem ="{Binding LineaSeleccionada}" SelectionMode="Single" SelectionUnit="FullRow">
+                    <DataGrid Name="dgrProductos" Grid.Column="1" Grid.Row="6" Margin="3" ItemsSource="{Binding Path=Producto, Mode=OneWay}" AutoGenerateColumns="False" IsTextSearchEnabled="True" CanUserSortColumns="True" SelectedItem ="{Binding LineaSeleccionada}" SelectionMode="Single" SelectionUnit="FullRow">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />

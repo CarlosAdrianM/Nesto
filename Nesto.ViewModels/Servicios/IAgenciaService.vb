@@ -4,6 +4,7 @@ Imports System.Threading.Tasks
 Imports Nesto.Contratos
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
+Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
 Public Interface IAgenciaService
     Function CargarListaPendientes() As IEnumerable(Of EnvioAgenciaWrapper)

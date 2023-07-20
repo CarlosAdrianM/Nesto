@@ -13,6 +13,8 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Models;
 using System.IO.Packaging;
 using Nesto.Models.Nesto.Models;
+using System.Linq;
+using Nesto.Modulos.CanalesExternos.Models;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -21,6 +23,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
         private IDialogService DialogService { get; }
+        public IPedidoVentaService PedidoVentaService { get; }
 
         public event EventHandler CanalSeleccionadoHaCambiado;
 
@@ -30,11 +33,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
         
-        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService)
+        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
             DialogService = dialogService;
+            PedidoVentaService = pedidoVentaService;
 
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
@@ -48,11 +52,14 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             Titulo = "Canales Externos Pedidos";
         }
 
-        private void CargarPedidoSeleccionado()
+        private async void CargarPedidoSeleccionado()
         {
-            if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.fecha != null && !(bool)(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.comentarios.StartsWith("FBA"))
+            PedidoCanalExterno pedidoSeleccionado = (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno);
+            if (pedidoSeleccionado?.Pedido.fecha != null && !(bool)pedidoSeleccionado?.Pedido.comentarios.StartsWith("FBA"))
             {
                 FechaDesde = (DateTime)(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.fecha;
+                List<PedidoVentaModel.EnvioAgenciaDTO> listaEnlaces = await PedidoVentaService.CargarEnlacesSeguimiento(pedidoSeleccionado.Pedido.empresa, pedidoSeleccionado.PedidoNestoId);
+                pedidoSeleccionado.UltimoSeguimiento = listaEnlaces.Where(e => e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO).OrderByDescending(e => e.Fecha).FirstOrDefault()?.EnlaceSeguimiento;
             }
             RaisePropertyChanged(nameof(PedidoSeleccionadoDireccion));
             RaisePropertyChanged(nameof(PedidoSeleccionadoNombre));
@@ -60,11 +67,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             RaisePropertyChanged(nameof(PedidoSeleccionadoTelefonoMovil));
             RaisePropertyChanged(nameof(PedidoSeleccionadoPoblacion));
             RaisePropertyChanged(nameof(PedidoSeleccionadoObservaciones));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoUltimoSeguimiento));
             RaisePropertyChanged(nameof(PedidoSeleccionadoLineas));
             RaisePropertyChanged(nameof(PedidoSeleccionadoContacto));
             RaisePropertyChanged(nameof(PedidoSeleccionadoCliente));
             CrearPedidoCommand.RaiseCanExecuteChanged();
             CrearEtiquetaCommand.RaiseCanExecuteChanged();
+            ConfirmarEnvioCommand.RaiseCanExecuteChanged();
         }
 
         #region "Propiedades Nesto"
@@ -130,8 +139,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Direccion; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Direccion = value;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Direccion = value;
+                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                }
             }
         }
         public string PedidoSeleccionadoNombre
@@ -139,8 +151,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Nombre; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Nombre = value;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Nombre = value;
+                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                }
             }
         }
         public string PedidoSeleccionadoTelefonoFijo
@@ -148,8 +163,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.TelefonoFijo; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).TelefonoFijo = value;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).TelefonoFijo = value;
+                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                }
             }
         }
         public string PedidoSeleccionadoTelefonoMovil
@@ -157,8 +175,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.TelefonoMovil; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).TelefonoMovil = value;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).TelefonoMovil = value;
+                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                }
             }
         }
         public string PedidoSeleccionadoPoblacion
@@ -166,8 +187,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Poblacion; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Poblacion = value;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Poblacion = value;
+                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                }
             }
         }
         public string PedidoSeleccionadoObservaciones
@@ -175,8 +199,23 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Observaciones; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Observaciones = value;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Observaciones = value;
+                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+        public string PedidoSeleccionadoUltimoSeguimiento
+        {
+            get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.UltimoSeguimiento; }
+            set
+            {
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).UltimoSeguimiento = value;
+                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                }
             }
         }
         public ICollection<LineaPedidoVentaDTO> PedidoSeleccionadoLineas
@@ -184,8 +223,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.Lineas; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.Lineas = value;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.Lineas = value;
+                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                }
             }
         }
 
@@ -194,7 +236,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.cliente; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.cliente = value;
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.cliente = value;
+                }
             }
         }
 
@@ -203,7 +248,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.contacto; }
             set
             {
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.contacto = value;
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null)
+                {
+                    (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.contacto = value;
+                }
             }
         }
         #endregion
@@ -235,6 +283,39 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
             
         }
+
+        public DelegateCommand<object> ConfirmarEnvioCommand { get; private set; }
+        private bool CanConfirmarEnvio(object pedidoExternoObj)
+        {
+            PedidoCanalExterno pedidoExterno = ListaPedidos.ElementoSeleccionado as PedidoCanalExterno;
+            return pedidoExterno != null && pedidoExterno.PedidoNestoId != 0 && !string.IsNullOrEmpty(PedidoSeleccionadoUltimoSeguimiento);
+        }
+        private async void OnConfirmarEnvioAsync(object pedidoExternoObj)
+        {
+            try
+            {
+                PedidoCanalExterno pedidoExterno = ListaPedidos.ElementoSeleccionado as PedidoCanalExterno;
+                bool continuar = DialogService.ShowConfirmationAnswer("Confirmar envío", "¿Desea confirmar el envío?");
+                if (!continuar)
+                {
+                    return;
+                }
+
+                EstaOcupado = true;
+                string resultado = await CanalSeleccionado.ConfirmarPedido(pedidoExterno);
+                EstaOcupado = false;
+                DialogService.ShowNotification("Confirmar envío", resultado);
+            }
+            catch (Exception ex)
+            {
+                DialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
 
         public DelegateCommand<PedidoCanalExterno> CrearEtiquetaCommand { get; private set; }
         private bool CanCrearEtiqueta(PedidoCanalExterno pedido)
@@ -295,7 +376,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
                 EstaOcupado = false;                
                 (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).PedidoNestoId = Int32.Parse(resultado.Split(' ')[1]);
-                if (CanalSeleccionado.EjecutarTrasCrearPedido(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno))
+                if (await CanalSeleccionado.EjecutarTrasCrearPedido(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno))
                 {
                     resultado += "\nCompletado el proceso";
                 }
@@ -320,6 +401,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
             CrearEtiquetaCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearEtiquetaAsync, CanCrearEtiqueta);
             CrearPedidoCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearPedidoAsync, CanCrearPedido);
+            ConfirmarEnvioCommand = new DelegateCommand<object>(OnConfirmarEnvioAsync, CanConfirmarEnvio);
         }
         
         async void OnCanalSeleccionadoHaCambiadoAsync(object sender, EventArgs e)

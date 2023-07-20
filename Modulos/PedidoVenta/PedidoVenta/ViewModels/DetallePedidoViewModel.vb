@@ -267,7 +267,7 @@ Public Class DetallePedidoViewModel
     End Property
     Private Sub OnAbrirPicking()
         dialogService.ShowDialog("PickingPopupView", New DialogParameters From {
-            {"pedidoPicking", pedido}
+            {"pedidoPicking", pedido.Model}
         }, Nothing)
     End Sub
 
