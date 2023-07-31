@@ -15,10 +15,21 @@
         <controles:EstadoColorConverter x:Key="estadoColorConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
-    
-    <DockPanel Name="ControlPrincipal" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
-        <StackPanel DockPanel.Dock="Top">
-            <TextBlock Text="{Binding Etiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}">
+
+    <Grid Name="ControlPrincipal" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="{Binding Etiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
                         <Style.Triggers>
@@ -29,17 +40,35 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            <controles:BarraFiltro x:Name="txtFiltro" ListaItems="{Binding listaClientes}" ItemSeleccionado="{Binding listaClientes.ElementoSeleccionado}" KeyUp="txtFiltro_KeyUp"></controles:BarraFiltro>
-            <StackPanel Name="pnlCargando" Visibility="{Binding visibilidadCargando, Converter={StaticResource BoolToVisibilityConverter}}">
+            <controles:BarraFiltro Grid.Row="1" x:Name="txtFiltro" ListaItems="{Binding listaClientes}" ItemSeleccionado="{Binding listaClientes.ElementoSeleccionado}" KeyUp="txtFiltro_KeyUp"></controles:BarraFiltro>
+            <StackPanel Grid.Row="2" Name="pnlCargando" Visibility="{Binding visibilidadCargando, Converter={StaticResource BoolToVisibilityConverter}}">
                 <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="10" Foreground="Blue"></TextBlock>
             </StackPanel>
-            <StackPanel Name="pnlDatosCliente" MouseUp="pnlDatosCliente_MouseUp" Visibility="{Binding visibilidadDatosCliente, Converter={StaticResource BoolToVisibilityConverter}}">
+            <StackPanel Grid.Row="3" Name="pnlDatosCliente" MouseUp="pnlDatosCliente_MouseUp" Visibility="{Binding visibilidadDatosCliente, Converter={StaticResource BoolToVisibilityConverter}}">
                 <TextBlock Name="txtNombreCliente" Text="{Binding listaClientes.ElementoSeleccionado.nombre}" FontWeight="Light" FontSize="10"></TextBlock>
                 <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.direccion}" FontWeight="Light" FontSize="10"></TextBlock>
             </StackPanel>
-            <controles:SelectorDireccionEntrega x:Name="selectorEntrega" Empresa="{Binding listaClientes.ElementoSeleccionado.empresa, Mode=TwoWay}" Cliente="{Binding listaClientes.ElementoSeleccionado.cliente, Mode=TwoWay}" Seleccionada="{Binding contactoSeleccionado, Mode=TwoWay}" Visibility="{Binding visibilidadSelectorEntrega, Mode=TwoWay, Converter={StaticResource BoolToVisibilityConverter}}"></controles:SelectorDireccionEntrega>
-        </StackPanel>
-        <ListView Name="lstClientes" DockPanel.Dock="Bottom" ItemsSource="{Binding listaClientes.Lista}" Visibility="{Binding visibilidadListaClientes, Converter={StaticResource BoolToVisibilityConverter}}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False" ScrollViewer.VerticalScrollBarVisibility="Auto" >
+            <Popup x:Name="popupListView" StaysOpen="False" IsOpen="{Binding visibilidadSelectorEntrega, Mode=TwoWay}">
+                <!-- Establecemos el PlacementTarget -->
+                <Popup.PlacementTarget>
+                    <Binding ElementName="pnlDatosCliente" />
+                </Popup.PlacementTarget>
+
+                <!-- Establecemos el DataContext del contenido del Popup utilizando el PlacementTarget -->
+                <Popup.DataContext>
+                    <Binding Path="PlacementTarget.DataContext" RelativeSource="{RelativeSource Self}" />
+                </Popup.DataContext>
+
+                <Grid Background="{x:Static SystemColors.ControlBrush}">
+                    <controles:SelectorDireccionEntrega Grid.Row="4" x:Name="selectorEntrega" 
+                                        Empresa="{Binding listaClientes.ElementoSeleccionado.empresa, Mode=TwoWay}" 
+                                        Cliente="{Binding listaClientes.ElementoSeleccionado.cliente, Mode=TwoWay}" 
+                                        Seleccionada="{Binding contactoSeleccionado, Mode=TwoWay}">
+                    </controles:SelectorDireccionEntrega>
+                </Grid>
+            </Popup>
+        </Grid>
+        <ListView Name="lstClientes" Grid.Row="1" ItemsSource="{Binding listaClientes.Lista}" Visibility="{Binding visibilidadListaClientes, Converter={StaticResource BoolToVisibilityConverter}}" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="False" ScrollViewer.VerticalScrollBarVisibility="Auto" >
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Border Name="brdCliente" BorderThickness="2" CornerRadius="5"  BorderBrush="{Binding estado, Converter={StaticResource estadoColorConverter}}"  MouseUp="brdCliente_MouseUp">
@@ -65,5 +94,5 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-    </DockPanel>
+    </Grid>
 </UserControl>

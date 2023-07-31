@@ -179,10 +179,7 @@ namespace ControlesUsuario
         public string Seleccionada
         {
             get { return (string)GetValue(SeleccionadaProperty); }
-            set
-            {
-                SetValue(SeleccionadaProperty, value);
-            }
+            set { SetValue(SeleccionadaProperty, value); }
         }
 
         /// <summary>
@@ -195,9 +192,12 @@ namespace ControlesUsuario
 
         private static void OnSeleccionadaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            
+            if (d is SelectorDireccionEntrega selector)
+            {
+                string newValue = e.NewValue as string;
+                selector.Seleccionada = newValue?.Trim();
+            }
         }
-
 
         #endregion
 
@@ -293,6 +293,10 @@ namespace ControlesUsuario
 
         private void btnCrearContacto_Click(object sender, RoutedEventArgs e)
         {
+            if (DireccionCompleta == null)
+            {
+                return;
+            }
             var parameters = new NavigationParameters();
             parameters.Add("nifParameter", DireccionCompleta.nif);
             parameters.Add("nombreParameter", DireccionCompleta.nombre);

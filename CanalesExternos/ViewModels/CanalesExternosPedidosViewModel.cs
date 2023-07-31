@@ -15,6 +15,7 @@ using System.IO.Packaging;
 using Nesto.Models.Nesto.Models;
 using System.Linq;
 using Nesto.Modulos.CanalesExternos.Models;
+using ControlesUsuario.Models;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -84,6 +85,23 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set {
                 SetProperty(ref _canalSeleccionado, value);
                 CanalSeleccionadoHaCambiado?.Invoke(this, new EventArgs());
+            }
+        }
+
+        private ClienteDTO _clienteSeleccionado;
+        public ClienteDTO ClienteSeleccionado { 
+            get => _clienteSeleccionado; 
+            set {
+                _clienteSeleccionado = value;
+                if (ListaPedidos == null || ListaPedidos.ElementoSeleccionado == null)
+                {
+                    return;
+                }
+                PedidoVentaDTO pedido = (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido;
+                if (pedido.vendedor?.Trim() != _clienteSeleccionado.vendedor?.Trim())
+                {
+                    pedido.vendedor = _clienteSeleccionado.vendedor?.Trim();
+                }
             }
         }
 

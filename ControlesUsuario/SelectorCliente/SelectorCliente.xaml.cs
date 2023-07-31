@@ -1,14 +1,8 @@
 ﻿using ControlesUsuario.Models;
-using Nesto.Infrastructure.Contracts;
-using Nesto.Infrastructure.Shared;
-using Newtonsoft.Json;
 using Prism.Regions;
 using System;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
-using System.Linq;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,7 +10,6 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using Prism.Ioc;
-using ControlesUsuario.Services;
 using ControlesUsuario.ViewModels;
 
 namespace ControlesUsuario
