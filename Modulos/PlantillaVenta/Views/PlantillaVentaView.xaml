@@ -388,7 +388,7 @@
                         <i:EventTrigger EventName="Enter">
                             <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
                             <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasVenta, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
-                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarPlazosPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                            <!--i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarPlazosPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" /-->
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                     <Grid>
@@ -423,7 +423,7 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Row="0" Margin="3">Seleccione la forma de pago y los plazos:</TextBlock>
                             <ComboBox Grid.Row="1" MinWidth="300" ItemsSource="{Binding listaFormasPago}" SelectedItem="{Binding formaPagoSeleccionada}" DisplayMemberPath="descripcion" Margin="3"></ComboBox>
-                            <ComboBox Grid.Row="2" MinWidth="300" ItemsSource="{Binding listaPlazosPago}" SelectedItem="{Binding plazoPagoSeleccionado}" DisplayMemberPath="descripcion" Margin="3"></ComboBox>
+                            <controlesusuario:SelectorPlazosPago Grid.Row="2" MinWidth="300" Configuracion="{Binding configuracion}" Empresa="{Binding clienteSeleccionado.empresa}" Cliente="{Binding clienteSeleccionado.cliente}" Seleccionada="{Binding PlazoPagoCliente, Mode=TwoWay}" PlazoPagoCompleto="{Binding plazoPagoSeleccionado, Mode=TwoWay}" FormaPago="{Binding formaPagoSeleccionada.formaPago, Mode=TwoWay}" TotalPedido="{Binding TotalPedidoPlazosPago}" Margin="3"></controlesusuario:SelectorPlazosPago>
                             <TextBlock Grid.Row="3" Grid.Column="0" Margin="3,10,0,0" Visibility="{Binding TienePedidosPendientes, Converter={StaticResource BooleanToVisibilityConverter}}">Ampliar en el pedido:</TextBlock>
                             <ComboBox Grid.Row="4"  Grid.Column="0" ItemsSource="{Binding ListaPedidosPendientes}" SelectedItem="{Binding PedidoPendienteSeleccionado}" Margin="3"  Visibility="{Binding TienePedidosPendientes, Converter={StaticResource BooleanToVisibilityConverter}}"></ComboBox>
                             <Button Grid.Row="5" Grid.Column="0" Margin="3" Command="{Binding NoAmpliarPedidoCommand}"  Visibility="{Binding TienePedidosPendientes, Converter={StaticResource BooleanToVisibilityConverter}}">No Ampliar Pedido</Button>

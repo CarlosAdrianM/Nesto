@@ -30,7 +30,6 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly servicio As IPlantillaVentaService
     Private ReadOnly eventAggregator As IEventAggregator
     Private ReadOnly dialogService As IDialogService
-    Public Property Titulo As String
     Private Const ESTADO_LINEA_CURSO As Integer = 1
     Private Const ESTADO_LINEA_PRESUPUESTO As Integer = -3
 
@@ -60,7 +59,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarClientesVendedor = New DelegateCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
-        cmdCargarPlazosPago = New DelegateCommand(Of Object)(AddressOf OnCargarPlazosPago, AddressOf CanCargarPlazosPago)
+        'cmdCargarPlazosPago = New DelegateCommand(Of Object)(AddressOf OnCargarPlazosPago, AddressOf CanCargarPlazosPago)
         CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
         cmdCargarProductosPlantilla = New DelegateCommand(AddressOf OnCargarProductosPlantilla)
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
@@ -229,6 +228,7 @@ Public Class PlantillaVentaViewModel
         cmdComprobarPendientes.Execute()
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
+        listaFormasPago = Nothing ' para que la vuelva a cargar con el nuevo cliente
         RaisePropertyChanged(NameOf(clienteSeleccionado))
     End Sub
 
@@ -247,6 +247,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As DireccionesEntregaCliente)
             SetProperty(_direccionEntregaSeleccionada, value)
+            PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
             If fechaMinimaEntrega > fechaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If
@@ -535,15 +536,15 @@ Public Class PlantillaVentaViewModel
             RaisePropertyChanged(NameOf(TienePedidosPendientes))
         End Set
     End Property
-    Private _listaPlazosPago As ObservableCollection(Of PlazoPagoDTO)
-    Public Property listaPlazosPago() As ObservableCollection(Of PlazoPagoDTO)
-        Get
-            Return _listaPlazosPago
-        End Get
-        Set(ByVal value As ObservableCollection(Of PlazoPagoDTO))
-            SetProperty(_listaPlazosPago, value)
-        End Set
-    End Property
+    'Private _listaPlazosPago As ObservableCollection(Of PlazoPagoDTO)
+    'Public Property listaPlazosPago() As ObservableCollection(Of PlazoPagoDTO)
+    '    Get
+    '        Return _listaPlazosPago
+    '    End Get
+    '    Set(ByVal value As ObservableCollection(Of PlazoPagoDTO))
+    '        SetProperty(_listaPlazosPago, value)
+    '    End Set
+    'End Property
 
     Private _listaFiltrableProductos As ColeccionFiltrable
     Public Property ListaFiltrableProductos As ColeccionFiltrable
@@ -636,12 +637,21 @@ Public Class PlantillaVentaViewModel
             NoAmpliarPedidoCommand.RaiseCanExecuteChanged()
         End Set
     End Property
-    Private _plazoPagoSeleccionado As PlazoPagoDTO
-    Public Property plazoPagoSeleccionado As PlazoPagoDTO
+    Private _plazoPagoCliente As String
+    Public Property PlazoPagoCliente As String
+        Get
+            Return _plazoPagoCliente
+        End Get
+        Set(value As String)
+            SetProperty(_plazoPagoCliente, value)
+        End Set
+    End Property
+    Private _plazoPagoSeleccionado As PlazosPago
+    Public Property plazoPagoSeleccionado As PlazosPago
         Get
             Return _plazoPagoSeleccionado
         End Get
-        Set(ByVal value As PlazoPagoDTO)
+        Set(ByVal value As PlazosPago)
             SetProperty(_plazoPagoSeleccionado, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
@@ -732,6 +742,16 @@ Public Class PlantillaVentaViewModel
             Return Not IsNothing(ListaPedidosPendientes) AndAlso ListaPedidosPendientes.Where(Function(f) f <> 0).Any
         End Get
     End Property
+    Private _titulo As String
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(value As String)
+            SetProperty(_titulo, value)
+        End Set
+    End Property
+
     Private _todosLosVendedores As Boolean
     Public Property todosLosVendedores As Boolean
         Get
@@ -750,6 +770,13 @@ Public Class PlantillaVentaViewModel
             Return IIf(Not IsNothing(clienteSeleccionado.iva), baseImponiblePedido * 1.21, baseImponiblePedido)
         End Get
     End Property
+
+    Public ReadOnly Property TotalPedidoPlazosPago As Decimal
+        Get
+            Return totalPedido
+        End Get
+    End Property
+
 
     'Enum PaginasWizard
     '    SeleccionCliente
@@ -1077,7 +1104,7 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Async Sub OnCargarFormasPago(arg As Object)
 
-        If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) Then
+        If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) OrElse Not IsNothing(listaFormasPago) Then
             Return
         End If
 
@@ -1125,6 +1152,8 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
+        RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
+
         vendedorUsuario = Await leerParametro("Vendedor")
         If vendedorUsuario = clienteSeleccionado.vendedor Then
             formaVentaSeleccionada = 1 ' Directa
@@ -1157,49 +1186,49 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Private _cmdCargarPlazosPago As DelegateCommand(Of Object)
-    Public Property cmdCargarPlazosPago As DelegateCommand(Of Object)
-        Get
-            Return _cmdCargarPlazosPago
-        End Get
-        Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdCargarPlazosPago, value)
-        End Set
-    End Property
-    Private Function CanCargarPlazosPago(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Sub OnCargarPlazosPago(arg As Object)
+    'Private _cmdCargarPlazosPago As DelegateCommand(Of Object)
+    'Public Property cmdCargarPlazosPago As DelegateCommand(Of Object)
+    '    Get
+    '        Return _cmdCargarPlazosPago
+    '    End Get
+    '    Private Set(value As DelegateCommand(Of Object))
+    '        SetProperty(_cmdCargarPlazosPago, value)
+    '    End Set
+    'End Property
+    'Private Function CanCargarPlazosPago(arg As Object) As Boolean
+    '    Return True
+    'End Function
+    'Private Async Sub OnCargarPlazosPago(arg As Object)
 
-        If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) Then
-            Return
-        End If
+    '    If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) Then
+    '        Return
+    '    End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
+    '    Using client As New HttpClient
+    '        client.BaseAddress = New Uri(configuracion.servidorAPI)
+    '        Dim response As HttpResponseMessage
 
-            estaOcupado = True
+    '        estaOcupado = True
 
-            Try
-                response = Await client.GetAsync("PlazosPago?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
+    '        Try
+    '            response = Await client.GetAsync("PlazosPago?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
 
-                If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    listaPlazosPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of PlazoPagoDTO))(cadenaJson)
-                    plazoPagoSeleccionado = listaPlazosPago.Where(Function(l) l.plazoPago = direccionEntregaSeleccionada.plazosPago).SingleOrDefault
-                Else
-                    dialogService.ShowError("Se ha producido un error al cargar los plazos de pago")
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                estaOcupado = False
-            End Try
+    '            If response.IsSuccessStatusCode Then
+    '                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+    '                listaPlazosPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of PlazoPagoDTO))(cadenaJson)
+    '                plazoPagoSeleccionado = listaPlazosPago.Where(Function(l) l.plazoPago = direccionEntregaSeleccionada.plazosPago).SingleOrDefault
+    '            Else
+    '                dialogService.ShowError("Se ha producido un error al cargar los plazos de pago")
+    '            End If
+    '        Catch ex As Exception
+    '            dialogService.ShowError(ex.Message)
+    '        Finally
+    '            estaOcupado = False
+    '        End Try
 
-        End Using
+    '    End Using
 
-    End Sub
+    'End Sub
 
     Private _cargarProductoCommand As DelegateCommand(Of Object)
     Public Property CargarProductoCommand As DelegateCommand(Of Object)

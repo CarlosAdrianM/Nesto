@@ -18,8 +18,7 @@
         <controles:BarraFiltro x:Name="txtFiltro" Grid.Row="1"  ListaItems="{Binding listaDireccionesEntrega}" ItemSeleccionado="{Binding listaDireccionesEntrega.ElementoSeleccionado}"></controles:BarraFiltro>
 
         <ListView Grid.Row="2" Name="lstDirecciones" ItemsSource="{Binding listaDireccionesEntrega.Lista}" SelectedItem="{Binding direccionEntregaSeleccionada}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="False">
-            <Setter Property="MinHeight" Value="55" />
-            <ListView.Resources>
+            <ListView.ItemContainerStyle>
                 <Style TargetType="{x:Type ListViewItem}">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding esDireccionPorDefecto}" Value="True">
@@ -29,6 +28,10 @@
                         <DataTrigger Binding="{Binding esDireccionNoVisitable}" Value="True">
                             <Setter Property="Background" Value="LightGoldenrodYellow"/>
                         </DataTrigger>
+                        <Trigger Property="IsSelected" Value="False">
+                            <Setter Property="MinHeight" Value="55" />
+                            <Setter Property="Margin" Value="0" />
+                        </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter Property="MinHeight" Value="65" />
                             <Setter Property="BorderThickness" Value="10" />
@@ -36,7 +39,7 @@
                         </Trigger>
                     </Style.Triggers>
                 </Style>
-            </ListView.Resources>
+            </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Grid Height="55" Margin="6" ToolTip="{Binding nombre}" HorizontalAlignment="Stretch">

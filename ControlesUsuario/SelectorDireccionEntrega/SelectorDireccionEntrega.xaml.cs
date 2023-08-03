@@ -15,6 +15,7 @@ using Nesto.Infrastructure.Events;
 using Nesto.Models.Nesto.Models;
 using System.Threading.Tasks;
 using Nesto.Infrastructure.Shared;
+using Newtonsoft.Json.Linq;
 
 namespace ControlesUsuario
 {
@@ -194,8 +195,12 @@ namespace ControlesUsuario
         {
             if (d is SelectorDireccionEntrega selector)
             {
-                string newValue = e.NewValue as string;
+                string newValue = e.NewValue as string;                
                 selector.Seleccionada = newValue?.Trim();
+                if (selector.direccionEntregaSeleccionada != null && selector.Seleccionada != selector.direccionEntregaSeleccionada.contacto)
+                {
+                    selector.direccionEntregaSeleccionada = selector.listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).contacto == selector.Seleccionada) as DireccionesEntregaCliente;
+                }
             }
         }
 

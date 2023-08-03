@@ -281,17 +281,17 @@ Public Class PlantillaVentaModel
                    (Not IsNothing(subGrupo) AndAlso subGrupo.ToLower.Contains(filtro))
         End Function
     End Class
-    Public Class PlazoPagoDTO
-        Public Property plazoPago As String
-        Public Property descripcion As String
-        Public Property numeroPlazos As Short
-        Public Property diasPrimerPlazo As Short
-        Public Property diasEntrePlazos As Short
-        Public Property mesesPrimerPlazo As Short
-        Public Property mesesEntrePlazos As Short
-        Public Property descuentoPP As Decimal
-        Public Property financiacion As Decimal?
-    End Class
+    'Public Class PlazoPagoDTO
+    '    Public Property plazoPago As String
+    '    Public Property descripcion As String
+    '    Public Property numeroPlazos As Short
+    '    Public Property diasPrimerPlazo As Short
+    '    Public Property diasEntrePlazos As Short
+    '    Public Property mesesPrimerPlazo As Short
+    '    Public Property mesesEntrePlazos As Short
+    '    Public Property descuentoPP As Decimal
+    '    Public Property financiacion As Decimal?
+    'End Class
     Public Class PrecioProductoDTO
         Public Property precio As Decimal
         Public Property descuento As Decimal

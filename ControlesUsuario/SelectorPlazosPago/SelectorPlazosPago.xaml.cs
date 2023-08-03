@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Windows;
@@ -129,6 +130,77 @@ namespace ControlesUsuario
               typeof(SelectorPlazosPago));
 
 
+
+        /// <summary>
+        /// Gets or sets the FormaPago para las llamadas a la API
+        /// </summary>
+        public string FormaPago
+        {
+            get { return (string)GetValue(FormaPagoProperty); }
+            set
+            {
+                SetValue(FormaPagoProperty, value);
+            }
+        }        
+        /// <summary>
+        /// Identified the FormaPago dependency property
+        /// </summary>
+        public static readonly DependencyProperty FormaPagoProperty =
+            DependencyProperty.Register(nameof(FormaPago), typeof(string),
+              typeof(SelectorPlazosPago),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnFormaPagoChanged)));
+
+        private static void OnFormaPagoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorPlazosPago selector = (SelectorPlazosPago)d;
+            selector.cargarDatos();
+        }
+
+        /// <summary>
+        /// Gets or sets the TotalPedido para las llamadas a la API
+        /// </summary>
+        public decimal TotalPedido
+        {
+            get { return (decimal)GetValue(TotalPedidoProperty); }
+            set
+            {
+                SetValue(TotalPedidoProperty, value);
+            }
+        }
+        /// <summary>
+        /// Identified the TotalPedido dependency property
+        /// </summary>
+        public static readonly DependencyProperty TotalPedidoProperty =
+            DependencyProperty.Register(nameof(TotalPedido), typeof(decimal),
+              typeof(SelectorPlazosPago),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnTotalPedidoChanged)));
+
+        private static void OnTotalPedidoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorPlazosPago selector = (SelectorPlazosPago)d;
+            selector.cargarDatos();
+        }
+
+
+        /// <summary>
+        /// Gets or sets the SELECCIONADA para las llamadas a la API
+        /// </summary>
+        public PlazosPago PlazoPagoCompleto
+        {
+            get { return (PlazosPago)GetValue(PlazoPagoCompletoProperty); }
+            set
+            {
+                SetValue(PlazoPagoCompletoProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the SELECCIONADA dependency property
+        /// </summary>
+        public static readonly DependencyProperty PlazoPagoCompletoProperty =
+            DependencyProperty.Register(nameof(PlazoPagoCompleto), typeof(PlazosPago),
+              typeof(SelectorPlazosPago));
+
         #endregion
 
         #region "Propiedades"
@@ -147,6 +219,7 @@ namespace ControlesUsuario
                 {
                     Seleccionada = plazosPagoSeleccionado.plazoPago;
                     Descuento = plazosPagoSeleccionado.descuentoPP;
+                    PlazoPagoCompleto = plazosPagoSeleccionado;
                 }
             }
         }
@@ -177,9 +250,13 @@ namespace ControlesUsuario
                 try
                 {
                     string urlConsulta = "PlazosPago?empresa=" + Empresa;
-                    if (Cliente != "")
+                    if (Cliente != string.Empty)
                     {
                         urlConsulta += "&cliente=" + Cliente;
+                    }
+                    if (!string.IsNullOrEmpty(FormaPago) && TotalPedido != 0)
+                    {
+                        urlConsulta += $"&formaPago={FormaPago}&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}";
                     }
 
                     response = await client.GetAsync(urlConsulta);
