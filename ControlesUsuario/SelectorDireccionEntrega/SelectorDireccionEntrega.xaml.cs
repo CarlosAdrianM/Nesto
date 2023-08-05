@@ -16,6 +16,7 @@ using Nesto.Models.Nesto.Models;
 using System.Threading.Tasks;
 using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json.Linq;
+using System.Globalization;
 
 namespace ControlesUsuario
 {
@@ -204,6 +205,31 @@ namespace ControlesUsuario
             }
         }
 
+        /// <summary>
+        /// Gets or sets the TotalPedido para las llamadas a la API
+        /// </summary>
+        public decimal TotalPedido
+        {
+            get { return (decimal)GetValue(TotalPedidoProperty); }
+            set
+            {
+                SetValue(TotalPedidoProperty, value);
+            }
+        }
+        /// <summary>
+        /// Identified the TotalPedido dependency property
+        /// </summary>
+        public static readonly DependencyProperty TotalPedidoProperty =
+            DependencyProperty.Register(nameof(TotalPedido), typeof(decimal),
+              typeof(SelectorDireccionEntrega),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnTotalPedidoChanged)));
+
+        private static void OnTotalPedidoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
+            selector.cargarDatos();
+        }
+
         #endregion
 
         #region "Propiedades"
@@ -254,7 +280,12 @@ namespace ControlesUsuario
 
                 try
                 {
-                    response = await client.GetAsync("PlantillaVentas/DireccionesEntrega?empresa=" + Empresa + "&clienteDirecciones=" + Cliente);
+                    string urlConsulta = "PlantillaVentas/DireccionesEntrega?empresa=" + Empresa + "&clienteDirecciones=" + Cliente;
+                    if (TotalPedido != 0)
+                    {
+                        urlConsulta += $"&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}";
+                    }
+                    response = await client.GetAsync(urlConsulta);
 
                     if (response.IsSuccessStatusCode)
                     {

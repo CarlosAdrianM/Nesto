@@ -393,6 +393,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 PedidoVentaDTO pedido = pedidoExterno.Pedido;
                 string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
                 EstaOcupado = false;                
+                if (!resultado.StartsWith("Pedido"))
+                {
+                    DialogService.ShowError(resultado);
+                    return;
+                }
                 (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).PedidoNestoId = Int32.Parse(resultado.Split(' ')[1]);
                 if (await CanalSeleccionado.EjecutarTrasCrearPedido(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno))
                 {

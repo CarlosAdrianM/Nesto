@@ -238,7 +238,7 @@ namespace Nesto.Modulos.CanalesExternos
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = iva == IVA_EXPORTACION ? IVA_EXENTO : porcentajeIva == PORCENTAJE_IVA_REDUCIDO ? IVA_REDUCIDO : IVA_GENERAL,
-                    PrecioUnitario = cantidad != 0 ? baseImponible / cantidad : baseImponible,
+                    PrecioUnitario = cantidad != 0 ? Math.Round(baseImponible / cantidad, 4) : baseImponible,
                     Producto = ProcesarSKU(orderItem),
                     texto = orderItem.Title.ToUpper(),
                     tipoLinea = 1, // producto

@@ -109,6 +109,9 @@ Public Class PedidoVentaViewModel
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
                     Dim contenido As String = detallesError("ExceptionMessage")
+                    If IsNothing(contenido) Then
+                        contenido = detallesError.ToString
+                    End If
                     While Not IsNothing(detallesError("InnerException"))
                         detallesError = detallesError("InnerException")
                         Dim contenido2 As String = detallesError("ExceptionMessage")
