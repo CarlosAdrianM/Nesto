@@ -57,7 +57,7 @@ Public Class PlantillaVentaViewModel
         cmdActualizarProductosPedido = New DelegateCommand(Of LineaPlantillaJson)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
         cmdBuscarEnTodosLosProductos = New DelegateCommand(Of String)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
-        cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
+        'cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
         'cmdCargarPlazosPago = New DelegateCommand(Of Object)(AddressOf OnCargarPlazosPago, AddressOf CanCargarPlazosPago)
         CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
@@ -228,7 +228,7 @@ Public Class PlantillaVentaViewModel
         cmdComprobarPendientes.Execute()
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
-        listaFormasPago = Nothing ' para que la vuelva a cargar con el nuevo cliente
+        'listaFormasPago = Nothing ' para que la vuelva a cargar con el nuevo cliente
         RaisePropertyChanged(NameOf(clienteSeleccionado))
     End Sub
 
@@ -248,6 +248,7 @@ Public Class PlantillaVentaViewModel
         Set(ByVal value As DireccionesEntregaCliente)
             SetProperty(_direccionEntregaSeleccionada, value)
             PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
+            FormaPagoCliente = _direccionEntregaSeleccionada?.formaPago
             If fechaMinimaEntrega > fechaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If
@@ -297,8 +298,8 @@ Public Class PlantillaVentaViewModel
     End Property
     Public ReadOnly Property EsTarjetaPrepago As Boolean
         Get
-            Return Not IsNothing(formaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
-                formaPagoSeleccionada.formaPago = Constantes.FormasPago.TARJETA AndAlso
+            Return Not IsNothing(FormaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
+                FormaPagoSeleccionada.formaPago = Constantes.FormasPago.TARJETA AndAlso
                 plazoPagoSeleccionado.plazoPago = Constantes.PlazosPago.PREPAGO
         End Get
     End Property
@@ -383,26 +384,27 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    'Private Function AplicarFiltro(filtro As String) As ObservableCollection(Of LineaPlantillaJson)
-    '    If Not IsNothing(listaProductosFijada) Then
-    '        Return New ObservableCollection(Of LineaPlantillaJson)(From l In listaProductosFijada Where
-    '                         l IsNot Nothing AndAlso
-    '                         (((l.producto IsNot Nothing) AndAlso (l.producto.ToLower.Contains(filtro)))) OrElse
-    '                         (((l.texto IsNot Nothing) AndAlso (l.texto.ToLower.Contains(filtro)))) OrElse
-    '                         (((l.familia IsNot Nothing) AndAlso (l.familia.ToLower.Contains(filtro)))) OrElse
-    '                         (((l.subGrupo IsNot Nothing) AndAlso (l.subGrupo.ToLower.Contains(filtro))))
-    '                    )
-    '    Else
-    '        Return New ObservableCollection(Of LineaPlantillaJson)
-    '    End If
-    'End Function
 
-    Private _formaPagoSeleccionada As FormaPagoDTO
-    Public Property formaPagoSeleccionada() As FormaPagoDTO
+    Private _formaPagoCliente As String
+    Public Property FormaPagoCliente As String
+        Get
+            Return _formaPagoCliente
+        End Get
+        Set(value As String)
+            SetProperty(_formaPagoCliente, value)
+            cmdCrearPedido.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Private _formaPagoSeleccionada As FormaPago
+    Public Property FormaPagoSeleccionada() As FormaPago
         Get
             Return _formaPagoSeleccionada
         End Get
-        Set(ByVal value As FormaPagoDTO)
+        Set(ByVal value As FormaPago)
+            If IsNothing(_formaPagoSeleccionada) AndAlso IsNothing(value) Then
+                Return
+            End If
             SetProperty(_formaPagoSeleccionada, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
@@ -644,6 +646,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As String)
             SetProperty(_plazoPagoCliente, value)
+            cmdCrearPedido.RaiseCanExecuteChanged()
         End Set
     End Property
     Private _plazoPagoSeleccionado As PlazosPago
@@ -1090,49 +1093,49 @@ Public Class PlantillaVentaViewModel
         End If
     End Sub
 
-    Private _cmdCargarFormasPago As DelegateCommand(Of Object)
-    Public Property cmdCargarFormasPago As DelegateCommand(Of Object)
-        Get
-            Return _cmdCargarFormasPago
-        End Get
-        Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdCargarFormasPago, value)
-        End Set
-    End Property
-    Private Function CanCargarFormasPago(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Sub OnCargarFormasPago(arg As Object)
+    'Private _cmdCargarFormasPago As DelegateCommand(Of Object)
+    'Public Property cmdCargarFormasPago As DelegateCommand(Of Object)
+    '    Get
+    '        Return _cmdCargarFormasPago
+    '    End Get
+    '    Private Set(value As DelegateCommand(Of Object))
+    '        SetProperty(_cmdCargarFormasPago, value)
+    '    End Set
+    'End Property
+    'Private Function CanCargarFormasPago(arg As Object) As Boolean
+    '    Return True
+    'End Function
+    'Private Async Sub OnCargarFormasPago(arg As Object)
 
-        If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) OrElse Not IsNothing(listaFormasPago) Then
-            Return
-        End If
+    '    If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) OrElse Not IsNothing(listaFormasPago) Then
+    '        Return
+    '    End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
+    '    Using client As New HttpClient
+    '        client.BaseAddress = New Uri(configuracion.servidorAPI)
+    '        Dim response As HttpResponseMessage
 
-            estaOcupado = True
+    '        estaOcupado = True
 
-            Try
-                response = Await client.GetAsync("FormasPago?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
+    '        Try
+    '            response = Await client.GetAsync("FormasPago?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
 
-                If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    listaFormasPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaPagoDTO))(cadenaJson)
-                    formaPagoSeleccionada = listaFormasPago.Where(Function(l) l.formaPago = direccionEntregaSeleccionada.formaPago).SingleOrDefault
-                Else
-                    dialogService.ShowError("Se ha producido un error al cargar las formas de pago")
-                End If
-            Catch ex As Exception
-                dialogService.ShowError(ex.Message)
-            Finally
-                estaOcupado = False
-            End Try
+    '            If response.IsSuccessStatusCode Then
+    '                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+    '                listaFormasPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaPagoDTO))(cadenaJson)
+    '                formaPagoSeleccionada = listaFormasPago.Where(Function(l) l.formaPago = direccionEntregaSeleccionada.formaPago).SingleOrDefault
+    '            Else
+    '                dialogService.ShowError("Se ha producido un error al cargar las formas de pago")
+    '            End If
+    '        Catch ex As Exception
+    '            dialogService.ShowError(ex.Message)
+    '        Finally
+    '            estaOcupado = False
+    '        End Try
 
-        End Using
+    '    End Using
 
-    End Sub
+    'End Sub
 
     Private _cmdCargarFormasVenta As DelegateCommand(Of Object)
     Public Property cmdCargarFormasVenta As DelegateCommand(Of Object)
@@ -1153,6 +1156,7 @@ Public Class PlantillaVentaViewModel
         End If
 
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
+        RaisePropertyChanged(NameOf(SePuedeFinalizar))
 
         vendedorUsuario = Await leerParametro("Vendedor")
         If vendedorUsuario = clienteSeleccionado.vendedor Then
@@ -1418,12 +1422,12 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Function CanCrearPedido() As Boolean
-        Return Not IsNothing(formaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
+        Return Not IsNothing(FormaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
             (Not String.IsNullOrEmpty(clienteSeleccionado.cifNif) OrElse String.IsNullOrEmpty(clienteSeleccionado.iva) OrElse EsPresupuesto)
     End Function
     Private Async Sub OnCrearPedido()
 
-        If IsNothing(formaPagoSeleccionada) OrElse IsNothing(plazoPagoSeleccionado) OrElse IsNothing(clienteSeleccionado) Then
+        If IsNothing(FormaPagoSeleccionada) OrElse IsNothing(plazoPagoSeleccionado) OrElse IsNothing(clienteSeleccionado) Then
             dialogService.ShowError("Compruebe que tiene seleccionados plazos y forma de pago, por favor.")
             Return
         End If
@@ -1544,13 +1548,13 @@ Public Class PlantillaVentaViewModel
 
 
     Private Function PrepararPedido() As PedidoVentaDTO
-        If IsNothing(formaPagoSeleccionada) Then
-            If IsNothing(listaFormasPago) Then
-                formaPagoSeleccionada = New FormaPagoDTO With {.formaPago = "RCB", .cccObligatorio = True}
-            Else
-                formaPagoSeleccionada = listaFormasPago.First
-            End If
-        End If
+        'If IsNothing(formaPagoSeleccionada) Then
+        '    If IsNothing(listaFormasPago) Then
+        '        formaPagoSeleccionada = New FormaPagoDTO With {.formaPago = "RCB", .cccObligatorio = True}
+        '    Else
+        '        formaPagoSeleccionada = listaFormasPago.First
+        '    End If
+        'End If
 
         almacenRutaUsuario = almacenSeleccionado.id
 
@@ -1560,16 +1564,16 @@ Public Class PlantillaVentaViewModel
                         .contacto = direccionEntregaSeleccionada.contacto,
                         .EsPresupuesto = EsPresupuesto,
                         .fecha = Today,
-                        .formaPago = formaPagoSeleccionada.formaPago,
-                        .plazosPago = plazoPagoSeleccionado.plazoPago,
-                        .DescuentoPP = plazoPagoSeleccionado.descuentoPP,
+                        .formaPago = If(IsNothing(FormaPagoSeleccionada), String.Empty, FormaPagoSeleccionada.formaPago),
+                        .plazosPago = If(IsNothing(plazoPagoSeleccionado), String.Empty, plazoPagoSeleccionado.plazoPago),
+                        .DescuentoPP = If(IsNothing(plazoPagoSeleccionado), 0, plazoPagoSeleccionado.descuentoPP),
                         .primerVencimiento = Today, 'se calcula en la API
                         .iva = clienteSeleccionado.iva,
                         .vendedor = direccionEntregaSeleccionada.vendedor,
                         .periodoFacturacion = direccionEntregaSeleccionada.periodoFacturacion,
                         .ruta = IIf(EnviarPorGlovo, "GLV", direccionEntregaSeleccionada.ruta),
                         .serie = CalcularSerie(),
-                        .ccc = IIf(formaPagoSeleccionada.cccObligatorio, direccionEntregaSeleccionada.ccc, Nothing),
+                        .ccc = If(Not IsNothing(FormaPagoSeleccionada) AndAlso FormaPagoSeleccionada.cccObligatorio, direccionEntregaSeleccionada.ccc, Nothing),
                         .origen = clienteSeleccionado.empresa,
                         .contactoCobro = clienteSeleccionado.contacto, 'calcular
                         .noComisiona = direccionEntregaSeleccionada.noComisiona,

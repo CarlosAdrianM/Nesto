@@ -183,7 +183,7 @@ namespace ControlesUsuario
 
 
         /// <summary>
-        /// Gets or sets the SELECCIONADA para las llamadas a la API
+        /// Gets or sets the PlazoPagoCompleto para las llamadas a la API
         /// </summary>
         public PlazosPago PlazoPagoCompleto
         {
@@ -195,11 +195,47 @@ namespace ControlesUsuario
         }
 
         /// <summary>
-        /// Identified the SELECCIONADA dependency property
+        /// Identified the PlazoPagoCompleto dependency property
         /// </summary>
         public static readonly DependencyProperty PlazoPagoCompletoProperty =
             DependencyProperty.Register(nameof(PlazoPagoCompleto), typeof(PlazosPago),
               typeof(SelectorPlazosPago));
+
+
+        
+        public string Etiqueta
+        {
+            get { return (string)GetValue(EtiquetaProperty); }
+            set
+            {
+                SetValue(EtiquetaProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the ETIQUETA dependency property
+        /// </summary>
+        public static readonly DependencyProperty EtiquetaProperty =
+            DependencyProperty.Register(nameof(Etiqueta), typeof(string),
+              typeof(SelectorPlazosPago),
+              new UIPropertyMetadata("Seleccione unos plazos de pago:"));
+
+        public Visibility VisibilidadEtiqueta
+        {
+            get { return (Visibility)GetValue(VisibilidadEtiquetaProperty); }
+            set
+            {
+                SetValue(VisibilidadEtiquetaProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the VISIBILIDADETIQUETA dependency property
+        /// </summary>
+        public static readonly DependencyProperty VisibilidadEtiquetaProperty =
+            DependencyProperty.Register(nameof(VisibilidadEtiqueta), typeof(Visibility),
+              typeof(SelectorPlazosPago));
+
 
         #endregion
 
@@ -213,12 +249,15 @@ namespace ControlesUsuario
 
             set
             {
-                _plazosPagoSeleccionado = value;
-                OnPropertyChanged("plazosPagoSeleccionado");
-                if (plazosPagoSeleccionado != null)
+                if (_plazosPagoSeleccionado != value)
                 {
-                    Seleccionada = plazosPagoSeleccionado.plazoPago;
-                    Descuento = plazosPagoSeleccionado.descuentoPP;
+                    _plazosPagoSeleccionado = value;
+                    OnPropertyChanged("plazosPagoSeleccionado");
+                    if (plazosPagoSeleccionado != null)
+                    {
+                        Seleccionada = plazosPagoSeleccionado.plazoPago;
+                        Descuento = plazosPagoSeleccionado.descuentoPP;
+                    }
                     PlazoPagoCompleto = plazosPagoSeleccionado;
                 }
             }
@@ -269,7 +308,7 @@ namespace ControlesUsuario
                     }                    
                 } catch
                 {
-                    throw new Exception("No se pudieron leer los plazos de pago");
+                    MessageBox.Show("No se pudieron leer los plazos de pago");
                 }
             }
         }

@@ -4,15 +4,18 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace ControlesUsuario
 {
     /// <summary>
-    /// Lógica de interacción para SelectorDireccionEntrega.xaml
+    /// Lógica de interacción para SelectorFormaPago.xaml
     /// </summary>
     public partial class SelectorFormaPago : UserControl, INotifyPropertyChanged
     {
@@ -47,10 +50,10 @@ namespace ControlesUsuario
               typeof(SelectorFormaPago),
               new FrameworkPropertyMetadata(new PropertyChangedCallback(OnClienteChanged)));
 
-        private static void OnClienteChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static async void OnClienteChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorFormaPago selector = (SelectorFormaPago)d;
-            selector.cargarDatos();
+            await selector.cargarDatos();
         }
         /// <summary>
         /// Gets or sets the Configuracion para las llamadas a la API
@@ -83,13 +86,15 @@ namespace ControlesUsuario
         }
 
         /// <summary>
-        /// Identified the ETIQUETA dependency property
+        /// Identified the EMPRESA dependency property
         /// </summary>
         public static readonly DependencyProperty EmpresaProperty =
             DependencyProperty.Register("Empresa", typeof(string),
               typeof(SelectorFormaPago));
 
-
+        /// <summary>
+        /// Gets or sets the Etiqueta para las llamadas a la API
+        /// </summary>
         public string Etiqueta
         {
             get { return (string)GetValue(EtiquetaProperty); }
@@ -124,18 +129,18 @@ namespace ControlesUsuario
         /// Identified the SELECCIONADA dependency property
         /// </summary>
         public static readonly DependencyProperty SeleccionadaProperty =
-            DependencyProperty.Register("Seleccionada", typeof(string),
+            DependencyProperty.Register(nameof(Seleccionada), typeof(string),
               typeof(SelectorFormaPago), 
               new FrameworkPropertyMetadata(new PropertyChangedCallback(OnSeleccionadaChanged)));
 
         private static void OnSeleccionadaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorFormaPago selector = (SelectorFormaPago)d;
-            if (selector == null || selector.listaFormasPago == null || !selector.listaFormasPago.Any() || e.NewValue == null)
+            if (selector == null || selector.listaFormasPago == null || !selector.listaFormasPago.Any() || e.NewValue == null || (selector.formaPagoSeleccionada != null && selector.formaPagoSeleccionada.formaPago == e.NewValue.ToString()))
             {
                 return;
             }
-            selector.formaPagoSeleccionada = selector.listaFormasPago.Single(f => f.formaPago == e.NewValue.ToString());
+            selector.formaPagoSeleccionada = selector.listaFormasPago.SingleOrDefault(f => f.formaPago == e.NewValue.ToString());
         }
 
 
@@ -155,6 +160,101 @@ namespace ControlesUsuario
             DependencyProperty.Register(nameof(VisibilidadEtiqueta), typeof(Visibility),
               typeof(SelectorFormaPago));
 
+
+        /// <summary>
+        /// Gets or sets the TotalPedido para las llamadas a la API
+        /// </summary>
+        public decimal TotalPedido
+        {
+            get { return (decimal)GetValue(TotalPedidoProperty); }
+            set
+            {
+                SetValue(TotalPedidoProperty, value);
+            }
+        }
+        /// <summary>
+        /// Identified the TotalPedido dependency property
+        /// </summary>
+        public static readonly DependencyProperty TotalPedidoProperty =
+            DependencyProperty.Register(nameof(TotalPedido), typeof(decimal),
+              typeof(SelectorFormaPago),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnTotalPedidoChanged)));
+
+        private static async void OnTotalPedidoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorFormaPago selector = (SelectorFormaPago)d;
+            await selector.cargarDatos();
+        }
+
+        /// <summary>
+        /// Gets or sets the FormaPagoCompleta para las llamadas a la API
+        /// </summary>
+        public FormaPago FormaPagoCompleta
+        {
+            get { return (FormaPago)GetValue(FormaPagoCompletaProperty); }
+            set
+            {
+                SetValue(FormaPagoCompletaProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the FormaPagoCompleta dependency property
+        /// </summary>
+        public static readonly DependencyProperty FormaPagoCompletaProperty =
+            DependencyProperty.Register(nameof(FormaPagoCompleta), typeof(FormaPago),
+              typeof(SelectorFormaPago),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnFormaPagoCompletaChanged)));
+
+        private static void OnFormaPagoCompletaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            //SelectorFormaPago selector = (SelectorFormaPago)d;
+            //if (selector == null)
+            //{
+            //    return;
+            //}
+
+            //if (selector.DataContext != null)
+            //{
+            //    BindingExpression bindingExpr = selector.GetBindingExpression(FormaPagoCompletaProperty);
+            //    if (bindingExpr != null)
+            //    {
+            //        bindingExpr.UpdateTarget(); // Forzar la actualización del binding
+            //    }
+            //}
+        }
+
+
+
+        /// <summary>
+        /// Gets or sets the TipoIva para las llamadas a la API
+        /// </summary>
+        public string TipoIva
+        {
+            get { return (string)GetValue(TipoIvaProperty); }
+            set
+            {
+                SetValue(TipoIvaProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the TipoIva dependency property
+        /// </summary>
+        public static readonly DependencyProperty TipoIvaProperty =
+            DependencyProperty.Register(nameof(TipoIva), typeof(string),
+              typeof(SelectorFormaPago),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnTipoIvaChanged)));
+
+        private static async void OnTipoIvaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorFormaPago selector = (SelectorFormaPago)d;
+            await selector.cargarDatos();
+        }
+
+
+
+
         #endregion
 
         #region "Propiedades"
@@ -167,11 +267,18 @@ namespace ControlesUsuario
 
             set
             {
-                _formaPagoSeleccionada = value;
-                OnPropertyChanged("formaPagoSeleccionada");
-                if (formaPagoSeleccionada != null)
+                if (_formaPagoSeleccionada != value && _formaPagoSeleccionada?.formaPago != value?.formaPago)
                 {
-                    Seleccionada = formaPagoSeleccionada.formaPago;
+                    _formaPagoSeleccionada = value;
+                    
+                    if (formaPagoSeleccionada != null && Seleccionada != formaPagoSeleccionada.formaPago)
+                    {
+                        Seleccionada = formaPagoSeleccionada.formaPago;
+                    }
+                    FormaPagoCompleta = formaPagoSeleccionada;
+                    OnPropertyChanged(nameof(formaPagoSeleccionada));
+                    //OnPropertyChanged(nameof(Seleccionada));
+                    //OnPropertyChanged(nameof(FormaPagoCompleta));
                 }
             }
         }
@@ -192,7 +299,7 @@ namespace ControlesUsuario
         #endregion
 
         #region "Funciones Auxiliares"
-        private async void cargarDatos()
+        private async Task cargarDatos()
         {
             using (HttpClient client = new HttpClient())
             {
@@ -202,9 +309,13 @@ namespace ControlesUsuario
                 try
                 {
                     string urlConsulta = "FormasPago?empresa=" + Empresa;
-                    if (Cliente != "")
+                    if (!string.IsNullOrEmpty(Cliente))
                     {
                         urlConsulta += "&cliente=" + Cliente;
+                        if (TotalPedido > 0)
+                        {
+                            urlConsulta += $"&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}&tipoIva={TipoIva}";
+                        }
                     }
 
                     response = await client.GetAsync(urlConsulta);
@@ -213,11 +324,13 @@ namespace ControlesUsuario
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
                         listaFormasPago = JsonConvert.DeserializeObject<ObservableCollection<FormaPago>>(resultado);
-                        formaPagoSeleccionada = listaFormasPago.Where(l => l.formaPago == Seleccionada).SingleOrDefault();
+                        if (formaPagoSeleccionada?.formaPago != Seleccionada) {
+                            formaPagoSeleccionada = listaFormasPago.Where(l => l.formaPago == Seleccionada).SingleOrDefault();
+                        }
                     }                    
                 } catch
                 {
-                    throw new Exception("No se pudieron leer las formas de pago");
+                    MessageBox.Show("No se pudieron leer las formas de pago");
                 }
             }
         }

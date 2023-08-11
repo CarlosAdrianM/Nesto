@@ -7,7 +7,7 @@
              d:DesignHeight="300" d:DesignWidth="300">
 
     <StackPanel Name="GridPrincipal">
-        <TextBlock>Seleccione una forma pago:</TextBlock>
+        <TextBlock Text="{Binding Etiqueta}" Visibility="{Binding VisibilidadEtiqueta}"></TextBlock>
         <ComboBox MinWidth="300" ItemsSource="{Binding listaPlazosPago}" SelectedItem="{Binding plazosPagoSeleccionado}" DisplayMemberPath="descripcion"></ComboBox>
     </StackPanel>
 </UserControl>
