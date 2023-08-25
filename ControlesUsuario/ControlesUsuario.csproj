@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Remove="BarraFiltro\BarraFiltro.xaml" />
+    <None Remove="SelectorSede\SelectorSede.xaml" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="BarraFiltro\BarraFiltro.xaml">
@@ -36,6 +37,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="SelectorDireccionEntrega\SelectorDireccionEntrega.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="SelectorSede\SelectorSede.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

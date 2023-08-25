@@ -250,4 +250,19 @@ Public Class MenuBarView
             region.Add(view, "MenuBar")
         End If
     End Sub
+
+    Private Sub RibbonApplicationMenuItem_Click(sender As Object, e As RoutedEventArgs)
+        Dim maquina As String = Environment.GetEnvironmentVariable("CLIENTNAME")
+        Dim usuario As String = Environment.GetEnvironmentVariable("USERNAME")
+        Dim delegacion As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto)
+        Dim almacenPedidoVta As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta)
+        Dim almacenRepo As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenReposición)
+        Dim almacenInventario As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenInventario)
+        Dim textoMensaje As String = $"{usuario} en {maquina}" + vbCr
+        textoMensaje += $"Delegación por defecto en {delegacion}" + vbCr
+        textoMensaje += $"Almacén pedidos en {almacenPedidoVta}" + vbCr
+        textoMensaje += $"Almacén reposición en {almacenRepo}" + vbCr
+        textoMensaje += $"Almacén inventario en {almacenInventario}" + vbCr
+        MessageBox.Show(textoMensaje, "Paramétros usuario")
+    End Sub
 End Class

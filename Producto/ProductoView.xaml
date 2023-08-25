@@ -62,7 +62,7 @@
                     <Border BorderBrush="PaleVioletRed" BorderThickness="3">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
@@ -83,7 +83,7 @@
                             <TextBlock Text="{Binding PendienteRecibir}" Grid.Column="1" Grid.Row="3" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
                             <TextBlock Text="Fecha Estimada de Recepción" Grid.Column="0" Grid.Row="4" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
                             <TextBlock Text="{Binding FechaEstimadaRecepcion,StringFormat=d}" Grid.Column="1" Grid.Row="4" Visibility="{Binding HayPendienteDeRecibir, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
-                            <TextBlock Text="Pendientes de Reposición" Grid.Column="0" Grid.Row="5"></TextBlock>
+                            <TextBlock Text="Pendientes de Reposición" Grid.Column="0" Grid.Row="5" Margin="0, 0, 10, 0"></TextBlock>
                             <TextBlock Text="{Binding PendienteReposicion}" Grid.Column="1" Grid.Row="5"></TextBlock>
                             <TextBlock Text="Cantidad Disponible" Grid.Column="0" Grid.Row="6"></TextBlock>
                             <TextBlock Text="{Binding CantidadDisponible}" Grid.Column="1" Grid.Row="6"></TextBlock>

@@ -9,5 +9,6 @@ namespace Nesto.Infrastructure.Contracts
         string usuario { get; }
         bool UsuarioEnGrupo(string grupo);
         string LeerParametroSync(string empresa, string clave);
+        void GuardarParametroSync(string empresa, string clave, string valor);
     }
 }

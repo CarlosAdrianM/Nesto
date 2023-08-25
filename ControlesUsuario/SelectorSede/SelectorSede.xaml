@@ -1,0 +1,59 @@
+﻿<UserControl x:Class="ControlesUsuario.SelectorSede"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ControlesUsuario"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="300">
+    <UserControl.Resources>
+        <local:SedeMatchConverter x:Key="SedeMatchConverter"/>
+        <BooleanToVisibilityConverter x:Key="boolToVisibility"/>
+        <Style x:Key="SedeButtonStyle" TargetType="Button">
+            <Style.Triggers>
+                <DataTrigger Value="True">
+                    <DataTrigger.Binding>
+                        <MultiBinding Converter="{StaticResource SedeMatchConverter}">
+                            <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=UserControl}" Path="Seleccionado" />
+                            <Binding RelativeSource="{RelativeSource Self}" Path="Tag"/>
+                        </MultiBinding>
+                    </DataTrigger.Binding>
+                    <Setter Property="Background" Value="Green"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="BorderBrush" Value="LightGreen"/>
+                </DataTrigger>
+            </Style.Triggers>
+            <Setter Property="Background" Value="LightGray"/>
+            <Setter Property="Foreground" Value="DarkSlateGray"/>
+            <Setter Property="BorderThickness" Value="4"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Padding" Value="8"/>
+        </Style>
+    </UserControl.Resources>
+
+
+    <StackPanel>
+        <TextBlock Text="{Binding Etiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+               Foreground="{Binding ColorEtiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+               Visibility="{Binding EtiquetaNoVacia, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource boolToVisibility}}"
+               HorizontalAlignment="Center"/>
+        <ItemsControl ItemsSource="{Binding Sedes, RelativeSource={RelativeSource AncestorType=UserControl}}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Rows="1" Columns="3"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Content="{Binding Nombre}" 
+                        Style="{StaticResource SedeButtonStyle}" 
+                        Click="SedeButton_Click" 
+                        Tag="{Binding Codigo}"
+                        IsHitTestVisible="{Binding IsEnabledProperty}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

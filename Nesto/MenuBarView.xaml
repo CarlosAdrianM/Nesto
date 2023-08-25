@@ -68,8 +68,9 @@
         <Ribbon.ApplicationMenu>
             <RibbonApplicationMenu Label="Nesto">
                 <RibbonApplicationMenu.ControlSizeDefinition>
-                    <RibbonControlSizeDefinition IsLabelVisible="False" />
+                    <RibbonControlSizeDefinition IsLabelVisible="True" />
                 </RibbonApplicationMenu.ControlSizeDefinition>
+                <RibbonApplicationMenuItem Header="Parámetros" KeyTip="P" Click="RibbonApplicationMenuItem_Click" />
             </RibbonApplicationMenu>
         </Ribbon.ApplicationMenu>
         <RibbonTab x:Name="tabClientes"

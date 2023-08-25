@@ -183,15 +183,16 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             DateTime fechaPago = new DateTime(PagoSeleccionado.FechaPago.Year, PagoSeleccionado.FechaPago.Month, PagoSeleccionado.FechaPago.Day);
             int asiento = 0;
             bool success = false;
+            const int TIEMPO_ESPERA = 360;
             TransactionOptions transactionOptions = new TransactionOptions
             {
-                Timeout = TimeSpan.FromSeconds(300)
+                Timeout = TimeSpan.FromSeconds(TIEMPO_ESPERA + 10) //para asegurarnos que la transacción se deshace aunque prdContabilizar tarde mucho
             };
             using (var scope = new TransactionScope(TransactionScopeOption.Required, transactionOptions))
             {
                 using (var db = new NestoEntities())
                 {
-                    db.Database.CommandTimeout = 300;
+                    db.Database.CommandTimeout = TIEMPO_ESPERA;
 
                     if (PagoSeleccionado.Importe != 0)
                     {

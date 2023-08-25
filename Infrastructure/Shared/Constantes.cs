@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nesto.Infrastructure.Shared
 {
@@ -136,6 +133,15 @@ namespace Nesto.Infrastructure.Shared
                 public const string TIPO_VISITA_PRESENCIAL = "V";
                 public const string TIPO_VISITA_TELEFONICA = "T";
             }
+        }
+        public class Sedes
+        {
+            public static List<Sede> ListaSedes = new List<Sede>
+            {
+                new Sede { Nombre = "Algete", Codigo = "ALG" },
+                new Sede { Nombre = "Reina", Codigo = "REI" },
+                new Sede { Nombre = "Alcobendas", Codigo = "ALC" }
+            };
         }
         public class Series
         {
