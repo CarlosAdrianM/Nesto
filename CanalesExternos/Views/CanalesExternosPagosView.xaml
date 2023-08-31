@@ -17,7 +17,7 @@
     </i:Interaction.Triggers>
 
 
-    <Grid>
+    <Grid Background="White">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>

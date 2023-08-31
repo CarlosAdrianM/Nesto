@@ -1,4 +1,5 @@
-﻿<UserControl x:Class="PlantillaVentaView" Name="Plantilla"
+﻿<UserControl x:Class="PlantillaVentaView" 
+             Name="Plantilla"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
@@ -236,7 +237,7 @@
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Base Imponible para Portes"></TextBlock>
                                 <TextBlock Text="{Binding baseImponibleParaPortes, StringFormat=c}"></TextBlock>
-                                <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="descripcion" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
+                                <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="Nombre" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
                             </StackPanel>
                         </Grid>
 

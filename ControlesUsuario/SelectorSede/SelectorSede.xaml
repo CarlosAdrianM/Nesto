@@ -50,8 +50,7 @@
                     <Button Content="{Binding Nombre}" 
                         Style="{StaticResource SedeButtonStyle}" 
                         Click="SedeButton_Click" 
-                        Tag="{Binding Codigo}"
-                        IsHitTestVisible="{Binding IsEnabledProperty}"/>
+                        Tag="{Binding Codigo}"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

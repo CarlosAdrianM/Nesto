@@ -11,7 +11,7 @@
     </UserControl.DataContext>
     -->
     
-    <Grid>
+    <Grid Background="White">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="5*"/>
             <ColumnDefinition Width="2*"/>

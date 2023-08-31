@@ -6,7 +6,7 @@
     prism:ViewModelLocator.AutoWireViewModel="True">
    
 
-    <Grid>
+    <Grid Background="White">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
@@ -58,7 +58,7 @@
         <TextBox Grid.Column="1" Grid.Row="1" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.Cliente, Mode=TwoWay, ElementName=dgrRelacion}"/>
         <TextBox Grid.Column="1" Grid.Row="2" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.Contacto, Mode=TwoWay, ElementName=dgrRelacion}"/>
         <TextBox Grid.Column="1" Grid.Row="3" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.Producto, Mode=TwoWay, ElementName=dgrRelacion}"/>
-        <TextBox Grid.Column="1" Grid.Row="4" Style="{StaticResource campoTexto}"  Text="{Binding  Path=SelectedItem.Inmovilizado, Mode=TwoWay, ElementName=dgrRelacion}"/>
+        <TextBox Grid.Column="1" Grid.Row="4" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.Inmovilizado, Mode=TwoWay, ElementName=dgrRelacion}"/>
         <TextBox Grid.Column="1" Grid.Row="5" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.Cuotas, Mode=TwoWay, ElementName=dgrRelacion}"/>
         <TextBox Grid.Column="1" Grid.Row="6" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.FechaEntrega, Mode=TwoWay, ElementName=dgrRelacion}"/>
         <TextBox Grid.Column="1" Grid.Row="7" Style="{StaticResource campoTexto}" Text="{Binding  Path=SelectedItem.FechaSeñal, Mode=TwoWay, ElementName=dgrRelacion}"/>

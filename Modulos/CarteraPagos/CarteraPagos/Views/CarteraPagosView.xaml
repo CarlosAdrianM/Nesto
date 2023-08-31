@@ -9,7 +9,7 @@
 
 
 
-    <StackPanel>
+    <StackPanel Background="White">
         <TextBlock>Remesa: </TextBlock>
         <TextBox Name="txtRemesa" Text="{Binding numeroRemesa, UpdateSourceTrigger=PropertyChanged}"></TextBox>
         <TextBlock></TextBlock>

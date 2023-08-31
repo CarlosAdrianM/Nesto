@@ -11,7 +11,7 @@
         mc:Ignorable="d">
 
 
-    <Grid Name="grdEntradaDatos" FocusManager.FocusedElement="{Binding ElementName=txtFecha}">
+    <Grid Name="grdEntradaDatos" FocusManager.FocusedElement="{Binding ElementName=txtFecha}" Background="White">
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
             <ColumnDefinition/>

@@ -1,15 +1,7 @@
-﻿using ControlesUsuario.Models;
-using Nesto.Infrastructure.Contracts;
-using Nesto.Infrastructure.Shared;
-using Newtonsoft.Json;
+﻿using Nesto.Infrastructure.Shared;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Globalization;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -29,11 +21,11 @@ namespace ControlesUsuario
         }
 
         public static readonly DependencyProperty SeleccionadoProperty =
-    DependencyProperty.Register(
-        nameof(Seleccionado),
-        typeof(string),
-        typeof(SelectorSede),
-        new PropertyMetadata(null, OnSeleccionadoChanged));
+            DependencyProperty.Register(
+                nameof(Seleccionado),
+                typeof(string),
+                typeof(SelectorSede),
+                new PropertyMetadata(null, OnSeleccionadoChanged));
 
         private static void OnSeleccionadoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -83,8 +75,16 @@ namespace ControlesUsuario
             }
         }
 
+        private bool isLoaded = false;
         private void SelectorSede_Loaded(object sender, RoutedEventArgs e)
         {
+            if (isLoaded)
+            {
+                return;
+            } else
+            {
+                isLoaded = true;
+            }
             // Si IsEnabled=False salen los botones el gris, por eso usamos IsHitTestVisible
             if (!IsEnabled)
             {

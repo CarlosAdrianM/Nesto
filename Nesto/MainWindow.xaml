@@ -10,7 +10,7 @@
 		Icon="/Icono2_NV_256x256.ico" WindowState="Maximized"  VerticalContentAlignment="Center" VerticalAlignment="Center">
     
     <Window.Resources>
-        
+
     </Window.Resources>
 
     <Grid>
@@ -21,7 +21,7 @@
         <Ribbon Grid.Column="0" DockPanel.Dock="Top" x:Name="MainMenu" x:FieldModifier="Public"
                 prism:RegionManager.RegionName="MainMenuRegion"/>
         <!-- MainRegion -->
-        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" >
+        <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
             <TextBlock Text="{Binding Usuario, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="72" Foreground="DarkSlateGray"></TextBlock>
             <TextBlock Text="{Binding Maquina, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="96" Foreground="DarkSlateGray"></TextBlock>
             <cu:SelectorSede Seleccionado="{Binding Delegacion, RelativeSource={RelativeSource AncestorType=Window}}" Etiqueta="Delegación:" ColorEtiqueta="DarkSlateGray" IsEnabled="False"></cu:SelectorSede>

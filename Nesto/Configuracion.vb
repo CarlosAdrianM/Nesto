@@ -1,11 +1,8 @@
 ﻿Imports System.Net.Http
-Imports System.Threading.Tasks
 Imports Newtonsoft.Json
 Imports System.DirectoryServices.AccountManagement
-Imports System.Linq
 Imports System.Globalization
 Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Infrastructure.Shared.Constantes
 Imports Newtonsoft.Json.Linq
 Imports System.Text
 

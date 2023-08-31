@@ -112,7 +112,7 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    Public Async Function CargarProductosPlantilla(clienteSeleccionado As ClienteJson) As Task(Of ObservableCollection(Of LineaPlantillaJson)) Implements IPlantillaVentaService.CargarProductosPlantilla
+    Public Async Function CargarProductosPlantilla(clienteSeleccionado As ClienteJson) As Task(Of ObservableCollection(Of LineaPlantillaVenta)) Implements IPlantillaVentaService.CargarProductosPlantilla
         If IsNothing(clienteSeleccionado) Then
             Return Nothing
         End If
@@ -126,7 +126,7 @@ Public Class PlantillaVentaService
 
             If response.IsSuccessStatusCode Then
                 Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                Return JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson)
+                Return JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaVenta))(cadenaJson)
             Else
                 Dim respuestaError = response.Content.ReadAsStringAsync().Result
                 Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
@@ -147,7 +147,7 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    Public Async Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaJson), almacen As String) As Task(Of ObservableCollection(Of LineaPlantillaJson)) Implements IPlantillaVentaService.PonerStocks
+    Public Async Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String) As Task(Of ObservableCollection(Of LineaPlantillaVenta)) Implements IPlantillaVentaService.PonerStocks
         Dim param As PonerStockParam = New PonerStockParam()
         param.Lineas = lineas.ToList()
         param.Almacen = almacen
@@ -165,7 +165,7 @@ Public Class PlantillaVentaService
 
                 If response.IsSuccessStatusCode Then
                     respuesta = Await response.Content.ReadAsStringAsync()
-                    Return JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(respuesta)
+                    Return JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaVenta))(respuesta)
                     'If reclamacion.TramitadoOK Then
                     '   EnlaceReclamarDeuda = reclamacion.Enlace
                     'End If
@@ -291,7 +291,7 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    Private Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaJson)) As List(Of LineaPlantillaJson) Implements IPlantillaVentaService.CargarProductosBonificables
+    Private Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta) Implements IPlantillaVentaService.CargarProductosBonificables
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -303,7 +303,7 @@ Public Class PlantillaVentaService
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = response.Content.ReadAsStringAsync().Result
-                    Dim productos As List(Of LineaPlantillaJson) = JsonConvert.DeserializeObject(Of List(Of LineaPlantillaJson))(cadenaJson)
+                    Dim productos As List(Of LineaPlantillaVenta) = JsonConvert.DeserializeObject(Of List(Of LineaPlantillaVenta))(cadenaJson)
                     Return productos
                 Else
                     Throw New Exception("Se ha producido un error al cargar los productos bonificables")

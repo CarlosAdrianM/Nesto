@@ -8,6 +8,7 @@
             public const string AlmacenInventario = "AlmacénInventario";
             public const string AlmacenPedidoVta = "AlmacénPedidoVta";
             public const string AlmacenReposición = "AlmacénReposición";
+            public const string AlmacenRuta = "AlmacénRuta";
             public const string DelegacionDefecto = "DelegaciónDefecto";
             public const string EmpresaPorDefecto = "EmpresaPorDefecto";
             public const string ImpresoraAgencia = "ImpresoraAgencia";

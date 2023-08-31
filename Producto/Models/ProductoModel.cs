@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Nesto.Modules.Producto
+namespace Nesto.Modules.Producto.Models
 {
     public class ProductoModel
     {

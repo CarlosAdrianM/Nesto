@@ -16,7 +16,7 @@
     </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Espere, por favor...">
-        <Grid>
+        <Grid Background="White">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="4*"/>

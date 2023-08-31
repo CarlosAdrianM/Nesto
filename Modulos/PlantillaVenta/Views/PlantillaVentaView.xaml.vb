@@ -1,8 +1,6 @@
-﻿Imports System.Globalization
-Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
-Imports Xceed.Wpf.Toolkit
+﻿Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 
-Public Class PlantillaVentaView
+Partial Public Class PlantillaVentaView
     Public Sub New()
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
@@ -40,7 +38,7 @@ Public Class PlantillaVentaView
             If IsNothing(lstProductos.SelectedItem) Then
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
-            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
             linea.cantidad += 1
             txtFiltroProducto.SelectAll()
         End If
@@ -48,7 +46,7 @@ Public Class PlantillaVentaView
             If IsNothing(lstProductos.SelectedItem) Then
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
-            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
             If linea.aplicarDescuentoFicha Then
                 linea.cantidadOferta += 1
                 txtFiltroProducto.SelectAll()
@@ -58,7 +56,7 @@ Public Class PlantillaVentaView
             If IsNothing(lstProductos.SelectedItem) Then
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
-            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
             If (linea.cantidad > 0) Then
                 linea.cantidad -= 1
             End If
@@ -68,7 +66,7 @@ Public Class PlantillaVentaView
             If IsNothing(lstProductos.SelectedItem) Then
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
-            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
             If linea.aplicarDescuentoFicha AndAlso linea.cantidadOferta > 0 Then
                 linea.cantidadOferta -= 1
                 txtFiltroProducto.SelectAll()
@@ -78,7 +76,7 @@ Public Class PlantillaVentaView
             If IsNothing(lstProductos.SelectedItem) Then
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
-            Dim linea As LineaPlantillaJson = lstProductos.SelectedItem
+            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
             If linea.aplicarDescuentoFicha Then
                 linea.cantidad = 6
                 linea.cantidadOferta = 1
@@ -104,7 +102,7 @@ Public Class PlantillaVentaView
 
     Private Sub grdListaProductos_CellEditEnding(sender As Object, e As DataGridCellEditEndingEventArgs) Handles grdListaProductos.CellEditEnding
         If e.Column.Header = "Precio" OrElse e.Column.Header = "% Dto." Then
-            Dim linea As LineaPlantillaJson = e.EditingElement.DataContext
+            Dim linea As LineaPlantillaVenta = e.EditingElement.DataContext
             Dim textBox As TextBox = e.EditingElement
             ' Windows debería hacer que el teclado numérico escribiese coma en vez de punto
             ' pero como no lo hace, lo cambiamos nosotros
@@ -125,8 +123,8 @@ Public Class PlantillaVentaView
 
     Private Sub grdListaProductos_LoadingRow(sender As Object, e As DataGridRowEventArgs) Handles grdListaProductos.LoadingRow
         Dim vm As PlantillaVentaViewModel = DataContext
-        If Not IsNothing(vm.ListaFiltrableProductos) AndAlso Not IsNothing(vm.ListaFiltrableProductos.ElementoSeleccionado) AndAlso CType(vm.ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaJson).producto = e.Row.Item.producto Then
-            grdListaProductos.ScrollIntoView(CType(vm.ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaJson))
+        If Not IsNothing(vm.ListaFiltrableProductos) AndAlso Not IsNothing(vm.ListaFiltrableProductos.ElementoSeleccionado) AndAlso CType(vm.ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaVenta).producto = e.Row.Item.producto Then
+            grdListaProductos.ScrollIntoView(CType(vm.ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaVenta))
         End If
 
     End Sub
@@ -142,16 +140,5 @@ Public Class PlantillaVentaView
         End If
         IndicadorOcupado.FocusAfterBusy = txtFiltroProducto
     End Sub
-
-
-    'Private Async Sub btnBuscar_Click(sender As Object, e As RoutedEventArgs) Handles btnBuscar.Click
-    '    Await Task.Delay(500)
-    '    Keyboard.Focus(txtFiltroProducto)
-    'End Sub
-
-    'Private Async Sub itmChips_PreviewMouseLeftButtonUp(sender As Object, e As MouseButtonEventArgs)
-    '    Await Task.Delay(200)
-    '    Keyboard.Focus(txtFiltroProducto)
-    'End Sub
 End Class
 

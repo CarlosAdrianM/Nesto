@@ -1,5 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
+using Nesto.Modules.Producto.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;

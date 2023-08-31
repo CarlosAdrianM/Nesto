@@ -6,7 +6,7 @@
 
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Cargando comisiones...">
 
-        <Grid>
+        <Grid Background="White">
             <Grid.Resources>
                 <BooleanToVisibilityConverter x:Key="BoolToVis"/>
                 <local:GroupsToTotalConverter x:Key="groupsConverter" />

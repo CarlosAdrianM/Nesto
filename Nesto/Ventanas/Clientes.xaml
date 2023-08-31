@@ -8,7 +8,7 @@
         <vm:ClientesViewModel/>
     </UserControl.DataContext>
 
-    <Grid FocusManager.FocusedElement="{Binding ElementName=txtCliente}">
+    <Grid FocusManager.FocusedElement="{Binding ElementName=txtCliente}" Background="White">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>

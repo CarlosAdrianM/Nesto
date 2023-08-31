@@ -1,7 +1,6 @@
 ﻿Imports System.Net.Http
 Imports System.Collections.ObjectModel
 Imports Newtonsoft.Json
-Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports System.Text
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
@@ -54,12 +53,10 @@ Public Class PlantillaVentaViewModel
 
         cmdAbrirPlantillaVenta = New DelegateCommand(Of Object)(AddressOf OnAbrirPlantillaVenta, AddressOf CanAbrirPlantillaVenta)
         cmdActualizarPrecioProducto = New DelegateCommand(Of Object)(AddressOf OnActualizarPrecioProducto, AddressOf CanActualizarPrecioProducto)
-        cmdActualizarProductosPedido = New DelegateCommand(Of LineaPlantillaJson)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
+        cmdActualizarProductosPedido = New DelegateCommand(Of LineaPlantillaVenta)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
         cmdBuscarEnTodosLosProductos = New DelegateCommand(Of String)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
-        'cmdCargarFormasPago = New DelegateCommand(Of Object)(AddressOf OnCargarFormasPago, AddressOf CanCargarFormasPago)
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
-        'cmdCargarPlazosPago = New DelegateCommand(Of Object)(AddressOf OnCargarPlazosPago, AddressOf CanCargarPlazosPago)
         CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
         cmdCargarProductosPlantilla = New DelegateCommand(AddressOf OnCargarProductosPlantilla)
         cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
@@ -78,17 +75,14 @@ Public Class PlantillaVentaViewModel
         ' Al leer los clientes lo lee del parámetro PermitirVerClientesTodosLosVendedores
         todosLosVendedores = False
 
-        listaAlmacenes = New ObservableCollection(Of tipoAlmacen)
-        almacenSeleccionado = New tipoAlmacen("ALG", "Algete")
-        listaAlmacenes.Add(almacenSeleccionado)
-        listaAlmacenes.Add(New tipoAlmacen("REI", "Reina"))
+        listaAlmacenes = New ObservableCollection(Of Sede)(Constantes.Sedes.ListaSedes)
+        Dim almacenRuta As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)
+        almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = almacenRuta)
 
-        'ListaFiltrosProducto = New ObservableCollection(Of String)
-        ListaFiltrableProductos = New ColeccionFiltrable(New ObservableCollection(Of LineaPlantillaJson)) With {
+        ListaFiltrableProductos = New ColeccionFiltrable(New ObservableCollection(Of LineaPlantillaVenta)) With {
             .TieneDatosIniciales = True
         }
         AddHandler ListaFiltrableProductos.FiltroChanged, Sub(sender As Object, args As EventArgs)
-                                                              'listaProductos = AplicarFiltro(ListaFiltrable.Filtro)
                                                               cmdBuscarEnTodosLosProductos.RaiseCanExecuteChanged()
                                                           End Sub
         AddHandler ListaFiltrableProductos.HayQueCargarDatos, Async Sub()
@@ -127,21 +121,21 @@ Public Class PlantillaVentaViewModel
     Private vendedor As String
     Private ultimaOferta As Integer = 0
 
-    Private _almacenSeleccionado As tipoAlmacen
-    Public Property almacenSeleccionado As tipoAlmacen
+    Private _almacenSeleccionado As Sede
+    Public Property almacenSeleccionado As Sede
         Get
             Return _almacenSeleccionado
         End Get
-        Set(value As tipoAlmacen)
+        Set(value As Sede)
             SetProperty(_almacenSeleccionado, value)
             If Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) Then
                 Application.Current.Dispatcher.Invoke(New Action(Async Sub()
                                                                      estaOcupado = True
-                                                                     Dim listaCast As ObservableCollection(Of LineaPlantillaJson) = New ObservableCollection(Of LineaPlantillaJson)
+                                                                     Dim listaCast As ObservableCollection(Of LineaPlantillaVenta) = New ObservableCollection(Of LineaPlantillaVenta)
                                                                      For Each linea In ListaFiltrableProductos.ListaOriginal
                                                                          listaCast.Add(linea)
                                                                      Next
-                                                                     Dim nuevosStocks As ObservableCollection(Of LineaPlantillaJson) = Await servicio.PonerStocks(listaCast, value.id)
+                                                                     Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo)
                                                                      ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
                                                                      estaOcupado = False
                                                                  End Sub))
@@ -228,7 +222,6 @@ Public Class PlantillaVentaViewModel
         cmdComprobarPendientes.Execute()
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
-        'listaFormasPago = Nothing ' para que la vuelva a cargar con el nuevo cliente
         RaisePropertyChanged(NameOf(clienteSeleccionado))
     End Sub
 
@@ -249,7 +242,7 @@ Public Class PlantillaVentaViewModel
             SetProperty(_direccionEntregaSeleccionada, value)
             PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
             FormaPagoCliente = _direccionEntregaSeleccionada?.formaPago
-            If fechaMinimaEntrega > fechaEntrega Then
+            If fechaEntrega < fechaMinimaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If
             RaisePropertyChanged(NameOf(textoFacturacionElectronica))
@@ -257,9 +250,9 @@ Public Class PlantillaVentaViewModel
             ' Se hace así para que coja la fecha de hoy cuando se pueda
             ' Si lo hacemos en otro orden, da error porque ponemos una fecha
             ' menor a la que nos permite el datapicker
-            If fechaMinimaEntrega < fechaEntrega Then
-                fechaEntrega = fechaMinimaEntrega
-            End If
+            'If fechaMinimaEntrega < fechaEntrega Then
+            '    fechaEntrega = fechaMinimaEntrega
+            'End If
         End Set
     End Property
 
@@ -281,7 +274,7 @@ Public Class PlantillaVentaViewModel
         Set(value As Boolean)
             SetProperty(_enviarPorGlovo, value)
             If _enviarPorGlovo Then
-                almacenSeleccionado = listaAlmacenes.Single(Function(a) a.id = "REI")
+                almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = "REI")
             End If
         End Set
     End Property
@@ -478,12 +471,12 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
-    Private _listaAlmacenes As ObservableCollection(Of tipoAlmacen)
-    Public Property listaAlmacenes As ObservableCollection(Of tipoAlmacen)
+    Private _listaAlmacenes As ObservableCollection(Of Sede)
+    Public Property listaAlmacenes As ObservableCollection(Of Sede)
         Get
             Return _listaAlmacenes
         End Get
-        Set(value As ObservableCollection(Of tipoAlmacen))
+        Set(value As ObservableCollection(Of Sede))
             SetProperty(_listaAlmacenes, value)
         End Set
     End Property
@@ -538,15 +531,6 @@ Public Class PlantillaVentaViewModel
             RaisePropertyChanged(NameOf(TienePedidosPendientes))
         End Set
     End Property
-    'Private _listaPlazosPago As ObservableCollection(Of PlazoPagoDTO)
-    'Public Property listaPlazosPago() As ObservableCollection(Of PlazoPagoDTO)
-    '    Get
-    '        Return _listaPlazosPago
-    '    End Get
-    '    Set(ByVal value As ObservableCollection(Of PlazoPagoDTO))
-    '        SetProperty(_listaPlazosPago, value)
-    '    End Set
-    'End Property
 
     Private _listaFiltrableProductos As ColeccionFiltrable
     Public Property ListaFiltrableProductos As ColeccionFiltrable
@@ -566,11 +550,11 @@ Public Class PlantillaVentaViewModel
             SetProperty(_listaProductosGanavisiones, value)
         End Set
     End Property
-    Public ReadOnly Property listaProductosPedido() As ObservableCollection(Of LineaPlantillaJson)
+    Public ReadOnly Property listaProductosPedido() As ObservableCollection(Of LineaPlantillaVenta)
         Get
             If Not IsNothing(ListaFiltrableProductos.ListaOriginal) Then
-                Dim listaDevuelta As New ObservableCollection(Of LineaPlantillaJson)
-                Dim lista = From l In ListaFiltrableProductos.ListaOriginal Where CType(l, LineaPlantillaJson).cantidad > 0 OrElse CType(l, LineaPlantillaJson).cantidadOferta > 0 Order By CType(l, LineaPlantillaJson).fechaInsercion
+                Dim listaDevuelta As New ObservableCollection(Of LineaPlantillaVenta)
+                Dim lista = From l In ListaFiltrableProductos.ListaOriginal Where CType(l, LineaPlantillaVenta).cantidad > 0 OrElse CType(l, LineaPlantillaVenta).cantidadOferta > 0 Order By CType(l, LineaPlantillaVenta).fechaInsercion
                 For Each item In lista
                     listaDevuelta.Add(item)
                 Next
@@ -676,26 +660,15 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _productoPedidoSeleccionado As LineaPlantillaJson
-    Public Property productoPedidoSeleccionado As LineaPlantillaJson
+    Private _productoPedidoSeleccionado As LineaPlantillaVenta
+    Public Property productoPedidoSeleccionado As LineaPlantillaVenta
         Get
             Return _productoPedidoSeleccionado
         End Get
-        Set(ByVal value As LineaPlantillaJson)
+        Set(ByVal value As LineaPlantillaVenta)
             SetProperty(_productoPedidoSeleccionado, value)
         End Set
     End Property
-
-    'Private _productoSeleccionado As LineaPlantillaJson
-    'Public Property productoSeleccionado As LineaPlantillaJson
-    '    Get
-    '        Return _productoSeleccionado
-    '    End Get
-    '    Set(ByVal value As LineaPlantillaJson)
-    '        SetProperty(_productoSeleccionado, value)
-    '        cmdCargarUltimasVentas.Execute(productoSeleccionado)
-    '    End Set
-    'End Property
 
     Private _respuestaGlovo As RespuestaAgencia
     Public Property RespuestaGlovo As RespuestaAgencia
@@ -863,7 +836,6 @@ Public Class PlantillaVentaViewModel
                 'Await cmdComprobarCondicionesPrecio.Execute(arg)
 
                 RaisePropertyChanged(NameOf(listaProductosPedido))
-                'RaisePropertyChanged(NameOf(listaProductos))
                 RaisePropertyChanged(NameOf(baseImponiblePedido))
                 RaisePropertyChanged(NameOf(totalPedido))
             Catch ex As Exception
@@ -876,19 +848,19 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Private _cmdActualizarProductosPedido As DelegateCommand(Of LineaPlantillaJson)
-    Public Property cmdActualizarProductosPedido As DelegateCommand(Of LineaPlantillaJson)
+    Private _cmdActualizarProductosPedido As DelegateCommand(Of LineaPlantillaVenta)
+    Public Property cmdActualizarProductosPedido As DelegateCommand(Of LineaPlantillaVenta)
         Get
             Return _cmdActualizarProductosPedido
         End Get
-        Private Set(value As DelegateCommand(Of LineaPlantillaJson))
+        Private Set(value As DelegateCommand(Of LineaPlantillaVenta))
             SetProperty(_cmdActualizarProductosPedido, value)
         End Set
     End Property
-    Private Function CanActualizarProductosPedido(arg As LineaPlantillaJson) As Boolean
+    Private Function CanActualizarProductosPedido(arg As LineaPlantillaVenta) As Boolean
         Return True
     End Function
-    Private Sub OnActualizarProductosPedido(arg As LineaPlantillaJson)
+    Private Sub OnActualizarProductosPedido(arg As LineaPlantillaVenta)
         If IsNothing(arg) Then
             Return
         End If
@@ -904,40 +876,14 @@ Public Class PlantillaVentaViewModel
         End If
         RaisePropertyChanged(NameOf(hayProductosEnElPedido))
         RaisePropertyChanged(NameOf(NoHayProductosEnElPedido))
-        If Not IsNothing(ListaFiltrableProductos) AndAlso (IsNothing(ListaFiltrableProductos.ElementoSeleccionado) OrElse CType(ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaJson).producto <> arg.producto) Then
+        If Not IsNothing(ListaFiltrableProductos) AndAlso (IsNothing(ListaFiltrableProductos.ElementoSeleccionado) OrElse CType(ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaVenta).producto <> arg.producto) Then
             ListaFiltrableProductos.ElementoSeleccionado = arg
         End If
 
-        'RaisePropertyChanged(NameOf(productoSeleccionado))
-        'RaisePropertyChanged(NameOf(listaProductos))
         RaisePropertyChanged(NameOf(listaProductosPedido))
         RaisePropertyChanged(NameOf(baseImponiblePedido))
         RaisePropertyChanged(NameOf(totalPedido))
-
     End Sub
-
-    'Private _quitarFiltroProductoCommand As DelegateCommand(Of String)
-    'Public Property QuitarFiltroProductoCommand As DelegateCommand(Of String)
-    '    Get
-    '        Return _quitarFiltroProductoCommand
-    '    End Get
-    '    Set(value As DelegateCommand(Of String))
-    '        SetProperty(_quitarFiltroProductoCommand, value)
-    '    End Set
-    'End Property
-    'Private Sub OnQuitarFiltroProducto(filtro As String)
-    '    filtro = filtro.ToLower
-    '    If ListaFiltrosProducto.Count = 1 OrElse Not listaProductosOriginal.Any Then
-    '        ListaFiltrosProducto.Clear()
-    '        listaProductosFijada = listaProductosOriginal
-    '    Else
-    '        ListaFiltrosProducto.Remove(filtro)
-    '        listaProductosFijada = listaProductosOriginal
-    '        For Each filtroFijado In ListaFiltrosProducto
-    '            listaProductosFijada = AplicarFiltro(filtroFijado)
-    '        Next
-    '    End If
-    'End Sub
 
     Private _soloConStockCommand As DelegateCommand
     Public Property SoloConStockCommand As DelegateCommand
@@ -952,7 +898,7 @@ Public Class PlantillaVentaViewModel
         Return Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) AndAlso ListaFiltrableProductos.Lista.Any
     End Function
     Private Sub OnSoloConStock()
-        ListaFiltrableProductos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaFiltrableProductos.Lista.Where(Function(l) CType(l, LineaPlantillaJson).cantidadDisponible > 0))
+        ListaFiltrableProductos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaFiltrableProductos.Lista.Where(Function(l) CType(l, LineaPlantillaVenta).cantidadDisponible > 0))
     End Sub
 
     Private _cmdBuscarEnTodosLosProductos As DelegateCommand(Of String)
@@ -980,28 +926,26 @@ Public Class PlantillaVentaViewModel
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaJson))(cadenaJson))
-                    Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaJson)()
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaVenta))(cadenaJson))
+                    Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaVenta)()
                     For Each item In ListaFiltrableProductos.ListaFijada
                         listaPlantilla.Add(item)
                     Next
-                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.id))
-                    Dim productoOriginal As LineaPlantillaJson
-                    Dim producto As LineaPlantillaJson
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo))
+                    Dim productoOriginal As LineaPlantillaVenta
+                    Dim producto As LineaPlantillaVenta
                     For i = 0 To ListaFiltrableProductos.ListaFijada.Count - 1
                         producto = ListaFiltrableProductos.ListaFijada(i)
                         If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR Then
                             producto.aplicarDescuento = True
                             producto.aplicarDescuentoFicha = True
                         End If
-                        productoOriginal = ListaFiltrableProductos.ListaOriginal.Where(Function(p) CType(p, LineaPlantillaJson).producto = producto.producto).FirstOrDefault
+                        productoOriginal = ListaFiltrableProductos.ListaOriginal.Where(Function(p) CType(p, LineaPlantillaVenta).producto = producto.producto).FirstOrDefault
                         If Not IsNothing(productoOriginal) Then
                             ListaFiltrableProductos.ListaFijada(i) = productoOriginal
                         End If
                     Next
                     estaOcupado = False
-                    'ListaFiltrosProducto.Clear()
-                    'ListaFiltrosProducto.Add(ListaFiltrable.Filtro)
                 Else
                     dialogService.ShowError("Se ha producido un error al cargar los productos")
                 End If
@@ -1025,7 +969,6 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Sub OnCambiarIva()
-        'this.direccionSeleccionada.iva = this.direccionSeleccionada.iva ? undefined : this.iva;
         clienteSeleccionado.iva = IIf(Not String.IsNullOrWhiteSpace(clienteSeleccionado.iva), Nothing, iva)
         RaisePropertyChanged(NameOf(clienteSeleccionado))
         RaisePropertyChanged(NameOf(totalPedido))
@@ -1093,50 +1036,6 @@ Public Class PlantillaVentaViewModel
         End If
     End Sub
 
-    'Private _cmdCargarFormasPago As DelegateCommand(Of Object)
-    'Public Property cmdCargarFormasPago As DelegateCommand(Of Object)
-    '    Get
-    '        Return _cmdCargarFormasPago
-    '    End Get
-    '    Private Set(value As DelegateCommand(Of Object))
-    '        SetProperty(_cmdCargarFormasPago, value)
-    '    End Set
-    'End Property
-    'Private Function CanCargarFormasPago(arg As Object) As Boolean
-    '    Return True
-    'End Function
-    'Private Async Sub OnCargarFormasPago(arg As Object)
-
-    '    If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) OrElse Not IsNothing(listaFormasPago) Then
-    '        Return
-    '    End If
-
-    '    Using client As New HttpClient
-    '        client.BaseAddress = New Uri(configuracion.servidorAPI)
-    '        Dim response As HttpResponseMessage
-
-    '        estaOcupado = True
-
-    '        Try
-    '            response = Await client.GetAsync("FormasPago?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
-
-    '            If response.IsSuccessStatusCode Then
-    '                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-    '                listaFormasPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaPagoDTO))(cadenaJson)
-    '                formaPagoSeleccionada = listaFormasPago.Where(Function(l) l.formaPago = direccionEntregaSeleccionada.formaPago).SingleOrDefault
-    '            Else
-    '                dialogService.ShowError("Se ha producido un error al cargar las formas de pago")
-    '            End If
-    '        Catch ex As Exception
-    '            dialogService.ShowError(ex.Message)
-    '        Finally
-    '            estaOcupado = False
-    '        End Try
-
-    '    End Using
-
-    'End Sub
-
     Private _cmdCargarFormasVenta As DelegateCommand(Of Object)
     Public Property cmdCargarFormasVenta As DelegateCommand(Of Object)
         Get
@@ -1190,50 +1089,6 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    'Private _cmdCargarPlazosPago As DelegateCommand(Of Object)
-    'Public Property cmdCargarPlazosPago As DelegateCommand(Of Object)
-    '    Get
-    '        Return _cmdCargarPlazosPago
-    '    End Get
-    '    Private Set(value As DelegateCommand(Of Object))
-    '        SetProperty(_cmdCargarPlazosPago, value)
-    '    End Set
-    'End Property
-    'Private Function CanCargarPlazosPago(arg As Object) As Boolean
-    '    Return True
-    'End Function
-    'Private Async Sub OnCargarPlazosPago(arg As Object)
-
-    '    If IsNothing(direccionEntregaSeleccionada) OrElse IsNothing(clienteSeleccionado) Then
-    '        Return
-    '    End If
-
-    '    Using client As New HttpClient
-    '        client.BaseAddress = New Uri(configuracion.servidorAPI)
-    '        Dim response As HttpResponseMessage
-
-    '        estaOcupado = True
-
-    '        Try
-    '            response = Await client.GetAsync("PlazosPago?empresa=" + clienteSeleccionado.empresa + "&cliente=" + clienteSeleccionado.cliente)
-
-    '            If response.IsSuccessStatusCode Then
-    '                Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-    '                listaPlazosPago = JsonConvert.DeserializeObject(Of ObservableCollection(Of PlazoPagoDTO))(cadenaJson)
-    '                plazoPagoSeleccionado = listaPlazosPago.Where(Function(l) l.plazoPago = direccionEntregaSeleccionada.plazosPago).SingleOrDefault
-    '            Else
-    '                dialogService.ShowError("Se ha producido un error al cargar los plazos de pago")
-    '            End If
-    '        Catch ex As Exception
-    '            dialogService.ShowError(ex.Message)
-    '        Finally
-    '            estaOcupado = False
-    '        End Try
-
-    '    End Using
-
-    'End Sub
-
     Private _cargarProductoCommand As DelegateCommand(Of Object)
     Public Property CargarProductoCommand As DelegateCommand(Of Object)
         Get
@@ -1269,11 +1124,11 @@ Public Class PlantillaVentaViewModel
         Try
             estaOcupado = True
             ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.CargarProductosPlantilla(clienteSeleccionado))
-            Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaJson)
+            Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaVenta)
             For Each item In ListaFiltrableProductos.ListaOriginal
                 listaPlantilla.Add(item)
             Next
-            ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.id))
+            ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo))
             estaOcupado = False
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
@@ -1310,7 +1165,7 @@ Public Class PlantillaVentaViewModel
             Dim datosStock As StockProductoDTO
 
             Try
-                response = Await client.GetAsync("PlantillaVentas/CargarStocks?empresa=" + clienteSeleccionado.empresa + "&almacen=" + almacenSeleccionado.id + "&productoStock=" + arg.producto)
+                response = Await client.GetAsync("PlantillaVentas/CargarStocks?empresa=" + clienteSeleccionado.empresa + "&almacen=" + almacenSeleccionado.Codigo + "&productoStock=" + arg.producto)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
@@ -1322,8 +1177,6 @@ Public Class PlantillaVentaViewModel
                     arg.stockActualizado = True
                     arg.fechaInsercion = Now
                     RaisePropertyChanged(NameOf(listaProductosPedido))
-                    'RaisePropertyChanged(NameOf(listaProductos))
-                    'RaisePropertyChanged(NameOf(productoSeleccionado))
                     RaisePropertyChanged(NameOf(baseImponiblePedido))
                 Else
                     dialogService.ShowError("Se ha producido un error al cargar el stock del producto")
@@ -1432,7 +1285,7 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        delegacionUsuario = Await leerParametro("DelegaciónDefecto")
+        delegacionUsuario = Await leerParametro(Parametros.Claves.DelegacionDefecto)
 
         If formaVentaSeleccionada = 1 Then
             formaVentaPedido = "DIR"
@@ -1548,15 +1401,8 @@ Public Class PlantillaVentaViewModel
 
 
     Private Function PrepararPedido() As PedidoVentaDTO
-        'If IsNothing(formaPagoSeleccionada) Then
-        '    If IsNothing(listaFormasPago) Then
-        '        formaPagoSeleccionada = New FormaPagoDTO With {.formaPago = "RCB", .cccObligatorio = True}
-        '    Else
-        '        formaPagoSeleccionada = listaFormasPago.First
-        '    End If
-        'End If
 
-        almacenRutaUsuario = almacenSeleccionado.id
+        almacenRutaUsuario = almacenSeleccionado.Codigo
 
         Dim pedido As New PedidoVentaDTO With {
                         .empresa = clienteSeleccionado.empresa,
@@ -1663,16 +1509,12 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Sub OnInsertarProducto(arg As Object)
         ' Solo insertamos si es un producto que no está en listaProductosOrigina
-        If IsNothing(arg) OrElse Not IsNothing(ListaFiltrableProductos.ListaOriginal.Where(Function(p) CType(p, LineaPlantillaJson).producto = arg.producto).FirstOrDefault) Then
+        If IsNothing(arg) OrElse Not IsNothing(ListaFiltrableProductos.ListaOriginal.Where(Function(p) CType(p, LineaPlantillaVenta).producto = arg.producto).FirstOrDefault) Then
             Return
         End If
         'arg.cantidadVendida = arg.cantidad + arg.cantidadOferta
         ListaFiltrableProductos.ListaOriginal.Add(arg)
-        'listaProductos = listaProductosOriginal
-        'filtroProducto = ""
         RaisePropertyChanged(NameOf(baseImponiblePedido))
-        'RaisePropertyChanged(NameOf(listaProductos))
-        'RaisePropertyChanged(NameOf(listaProductosOriginal))
     End Sub
 
     Private _cmdCalcularSePuedeServirPorGlovo As DelegateCommand
@@ -1786,21 +1628,7 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-
 #End Region
-
-    Public Structure tipoAlmacen
-        Public Sub New(
-       ByVal _id As String,
-       ByVal _descripcion As String
-       )
-            id = _id
-            descripcion = _descripcion
-        End Sub
-        Property id As String
-        Property descripcion As String
-    End Structure
-
     Public Class RespuestaAgencia
         Public Property DireccionFormateada As String
         Public Property Longitud As Double

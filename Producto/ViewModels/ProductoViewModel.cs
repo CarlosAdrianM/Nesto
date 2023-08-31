@@ -1,7 +1,6 @@
 ﻿using Prism.Commands;
 using Prism.Events;
 using Prism.Regions;
-using Nesto.Modules.Producto;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,8 +12,10 @@ using Prism.Mvvm;
 using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Modulos.Producto;
+using Nesto.Modules.Producto.Models;
 
-namespace Nesto.Modulos.Producto
+namespace Nesto.Modules.Producto.ViewModels
 {
     public class ProductoViewModel : BindableBase, INavigationAware
     {
@@ -56,16 +57,17 @@ namespace Nesto.Modulos.Producto
             try
             {
                 ProductoActual = await Servicio.LeerProducto(ReferenciaBuscar);
-                if ((ReferenciaBuscar == "" || ReferenciaBuscar ==  null) && ProductoActual != null)
+                if ((ReferenciaBuscar == "" || ReferenciaBuscar == null) && ProductoActual != null)
                 {
                     ReferenciaBuscar = ProductoActual.Producto;
                 }
                 Titulo = "Producto " + ProductoActual.Producto;
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 DialogService.ShowError(ex.Message);
-                
-            }            
+
+            }
         }
 
         #region "Propiedades Nesto"
@@ -77,7 +79,8 @@ namespace Nesto.Modulos.Producto
         public string FiltroFamilia
         {
             get { return _filtroFamilia; }
-            set {
+            set
+            {
                 SetProperty(ref _filtroFamilia, value);
                 BuscarProductoCommand.RaiseCanExecuteChanged();
             }
@@ -86,7 +89,8 @@ namespace Nesto.Modulos.Producto
         public string FiltroNombre
         {
             get { return _filtroNombre; }
-            set {
+            set
+            {
                 SetProperty(ref _filtroNombre, value);
                 BuscarProductoCommand.RaiseCanExecuteChanged();
             }
@@ -95,7 +99,8 @@ namespace Nesto.Modulos.Producto
         public string FiltroSubgrupo
         {
             get { return _filtroSubgrupo; }
-            set {
+            set
+            {
                 SetProperty(ref _filtroSubgrupo, value);
                 BuscarProductoCommand.RaiseCanExecuteChanged();
             }
@@ -104,17 +109,21 @@ namespace Nesto.Modulos.Producto
         public TabItem PestannaSeleccionada
         {
             get { return _pestannaSeleccionada; }
-            set { 
-                SetProperty(ref _pestannaSeleccionada, value); 
-                if (PestannaSeleccionada?.Header?.ToString() == "Clientes") {
+            set
+            {
+                SetProperty(ref _pestannaSeleccionada, value);
+                if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
+                {
                     BuscarClientesCommand.Execute();
                 }
             }
         }
 
-        public ProductoModel ProductoActual {
+        public ProductoModel ProductoActual
+        {
             get { return _productoActual; }
-            set { 
+            set
+            {
                 SetProperty(ref _productoActual, value);
                 if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
                 {
@@ -126,9 +135,10 @@ namespace Nesto.Modulos.Producto
         public ProductoModel ProductoResultadoSeleccionado
         {
             get { return _productoResultadoSeleccionado; }
-            set {
+            set
+            {
                 SetProperty(ref _productoResultadoSeleccionado, value);
-                if (ProductoResultadoSeleccionado!= null)
+                if (ProductoResultadoSeleccionado != null)
                 {
                     ReferenciaBuscar = ProductoResultadoSeleccionado.Producto;
                 }
@@ -140,11 +150,12 @@ namespace Nesto.Modulos.Producto
             get { return _productosResultadoBusqueda; }
             set { SetProperty(ref _productosResultadoBusqueda, value); }
         }
-        
+
         public string ReferenciaBuscar
         {
             get { return _referenciaBuscar; }
-            set {
+            set
+            {
                 SetProperty(ref _referenciaBuscar, value);
                 CargarProducto();
             }
@@ -180,7 +191,7 @@ namespace Nesto.Modulos.Producto
         public DelegateCommand BuscarProductoCommand { get; private set; }
         private bool CanBuscarProducto()
         {
-            return (FiltroNombre != null && FiltroNombre.Trim() != "") || (FiltroFamilia != null && FiltroFamilia.Trim() != "") || (FiltroSubgrupo != null && FiltroSubgrupo.Trim()!="");
+            return FiltroNombre != null && FiltroNombre.Trim() != "" || FiltroFamilia != null && FiltroFamilia.Trim() != "" || FiltroSubgrupo != null && FiltroSubgrupo.Trim() != "";
         }
         private async void OnBuscarProducto()
         {
@@ -210,11 +221,12 @@ namespace Nesto.Modulos.Producto
                     ProductoView view = (ProductoView)RegionManager.Regions["MainRegion"].ActiveViews.FirstOrDefault();
                     Grid grid = (Grid)view.Content;
                     ProductoViewModel vm = (ProductoViewModel)grid.DataContext;
-                    if (vm.Titulo == this.Titulo)
+                    if (vm.Titulo == Titulo)
                     {
                         RegionManager.Regions["MainRegion"].Remove(view);
                     }
-                } finally
+                }
+                finally
                 {
 
                 }
@@ -229,7 +241,8 @@ namespace Nesto.Modulos.Producto
             if (parametro != null)
             {
                 ReferenciaBuscar = parametro.ToString();
-            } else
+            }
+            else
             {
                 ReferenciaBuscar = "";
             }
@@ -242,7 +255,7 @@ namespace Nesto.Modulos.Producto
 
         public void OnNavigatedFrom(NavigationContext navigationContext)
         {
-            
+
         }
     }
 }
