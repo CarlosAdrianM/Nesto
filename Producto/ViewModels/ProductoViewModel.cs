@@ -14,11 +14,13 @@ using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Producto;
 using Nesto.Modules.Producto.Models;
+using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
     public class ProductoViewModel : BindableBase, INavigationAware
     {
+        public event EventHandler DatosCargados;
         private IRegionManager RegionManager { get; }
         private IConfiguracion Configuracion { get; }
         private IProductoService Servicio { get; }
@@ -34,6 +36,10 @@ namespace Nesto.Modules.Producto.ViewModels
         private ObservableCollection<ProductoClienteModel> _clientesResultadoBusqueda;
         private ObservableCollection<ProductoModel> _productosResultadoBusqueda;
         private string _referenciaBuscar;
+        public bool EsDelGrupoCompras { get; }
+        public bool EsDelGrupoTiendas { get; }
+        public bool EsDeGrupoPermitido => EsDelGrupoCompras || EsDelGrupoTiendas;
+        public string AlmacenDefecto { get; set; }
 
 
         public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IEventAggregator eventAggregator, IDialogService dialogService)
@@ -47,34 +53,62 @@ namespace Nesto.Modules.Producto.ViewModels
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
             BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
             BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
+            GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
             SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
 
             Titulo = "Producto";
+
+            EsDelGrupoCompras = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS);
+            EsDelGrupoTiendas = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS);
         }
 
-        public async void CargarProducto()
+        public async void CargarProducto(string productoId)
         {
             try
             {
-                ProductoActual = await Servicio.LeerProducto(ReferenciaBuscar);
-                if ((ReferenciaBuscar == "" || ReferenciaBuscar == null) && ProductoActual != null)
-                {
-                    ReferenciaBuscar = ProductoActual.Producto;
-                }
+                EstaCargandoControlesStock = true;
+                ControlStock = null;
+                ProductoActual = await Servicio.LeerProducto(productoId);
                 Titulo = "Producto " + ProductoActual.Producto;
+                if (ProductoActual.Estado == Constantes.Productos.Estados.EN_STOCK && (EsDelGrupoCompras || EsDelGrupoTiendas))
+                {
+                    ControlStock = new ControlStockProductoWrapper(await Servicio.LeerControlStock(ProductoActual.Producto).ConfigureAwait(true));
+                    foreach (var controlAlmacen in ControlStock.ControlesStocksAlmacen)
+                    {
+                        controlAlmacen.IsActive = EsDelGrupoCompras || controlAlmacen.Model.Almacen == AlmacenDefecto;
+                    }
+                    ControlStock.DesbloquearControlesStock = EsDelGrupoCompras;
+                }
+                else
+                {
+                    ControlStock = new ControlStockProductoWrapper(new ControlStockProductoModel());
+                }
+                DatosCargados?.Invoke(this, EventArgs.Empty);
+                ControlStock.StockChanged += ControlStockChanged;
             }
             catch (Exception ex)
             {
                 DialogService.ShowError(ex.Message);
-
+                EstaCargandoControlesStock = false;
+            } 
+            finally
+            {
+                EstaCargandoControlesStock = false;
             }
         }
+
 
         #region "Propiedades Nesto"
         public ObservableCollection<ProductoClienteModel> ClientesResultadoBusqueda
         {
             get { return _clientesResultadoBusqueda; }
             set { SetProperty(ref _clientesResultadoBusqueda, value); }
+        }
+        public ControlStockProductoWrapper ControlStock { get; set; }
+        private bool _estaCargandoControlesStock;
+        public bool EstaCargandoControlesStock { 
+            get => _estaCargandoControlesStock;
+            set => SetProperty(ref _estaCargandoControlesStock, value); 
         }
         public string FiltroFamilia
         {
@@ -156,8 +190,11 @@ namespace Nesto.Modules.Producto.ViewModels
             get { return _referenciaBuscar; }
             set
             {
-                SetProperty(ref _referenciaBuscar, value);
-                CargarProducto();
+                if (value != _referenciaBuscar)
+                {
+                    CargarProducto(value);
+                    SetProperty(ref _referenciaBuscar, value);
+                }
             }
         }
         #endregion
@@ -203,6 +240,30 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
+        public DelegateCommand GuardarProductoCommand { get; private set; }
+        private bool CanGuardarProducto()
+        {
+            return ControlStock != null && 
+                (ControlStock.Model.StockMinimoActual != ControlStock.Model.StockMinimoInicial || ControlStock.Model.ControlesStocksAlmacen.Any(c => c.StockMaximoInicial != c.StockMaximoActual));
+        }
+        private async void OnGuardarProducto()
+        {
+            var modificados = ControlStock.ToListModificados;
+            foreach (var controlStock in modificados)
+            {
+                if (controlStock.YaExiste)
+                {
+                    await Servicio.GuardarControlStock(controlStock);
+                } 
+                else
+                {
+                    await Servicio.CrearControlStock(controlStock);
+                }
+                ControlStock.Model.ControlesStocksAlmacen.Single(c => c.Almacen == controlStock.Almacén).StockMaximoInicial = controlStock.StockMáximo;
+            }
+            GuardarProductoCommand.RaiseCanExecuteChanged();
+        }
+
 
         public ICommand SeleccionarProductoCommand { get; private set; }
         public string Titulo { get; private set; }
@@ -235,7 +296,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         #endregion
 
-        public new void OnNavigatedTo(NavigationContext navigationContext)
+        public new async void OnNavigatedTo(NavigationContext navigationContext)
         {
             var parametro = navigationContext.Parameters["numeroProductoParameter"];
             if (parametro != null)
@@ -244,8 +305,9 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             else
             {
-                ReferenciaBuscar = "";
+                ReferenciaBuscar = await Configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltNumProducto);
             }
+            AlmacenDefecto = await Configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
         }
 
         public bool IsNavigationTarget(NavigationContext navigationContext)
@@ -256,6 +318,11 @@ namespace Nesto.Modules.Producto.ViewModels
         public void OnNavigatedFrom(NavigationContext navigationContext)
         {
 
+        }
+
+        private void ControlStockChanged(object sender, EventArgs e)
+        {
+            GuardarProductoCommand.RaiseCanExecuteChanged();
         }
     }
 }

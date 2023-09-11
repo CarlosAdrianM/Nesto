@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Nesto.Infrastructure.Contracts;
+using System;
 using System.Collections.Generic;
 
 namespace Nesto.Modules.Producto.Models
 {
-    public class ProductoModel
+    public class ProductoModel : IFiltrableItem
     {
         public ProductoModel()
         {
@@ -21,6 +22,12 @@ namespace Nesto.Modules.Producto.Models
         public string UrlFoto { get; set; }
         public bool RoturaStockProveedor { get; set; }
         public ICollection<StockProducto> Stocks { get; set; }
+
+        public bool Contains(string filtro)
+        {
+            // Está sin implementar
+            return Familia.Contains(filtro) || Nombre.Contains(filtro) || Subgrupo.Contains(filtro);
+        }
 
         public class StockProducto
         {

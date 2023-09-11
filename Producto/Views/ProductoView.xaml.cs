@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Globalization;
-using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -23,13 +22,26 @@ namespace Nesto.Modulos.Producto
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            if (((ProductoViewModel)DataContext).PestannaSeleccionada == null)
+            ProductoViewModel viewModel = (ProductoViewModel)DataContext;
+            if (viewModel.PestannaSeleccionada == null)
             {
-                ((ProductoViewModel)DataContext).PestannaSeleccionada = (TabItem)tabProducto.Items[0];
+                viewModel.PestannaSeleccionada = (TabItem)tabProducto.Items[0];
             }
             txtFiltroNombre.Focus();
             Keyboard.Focus(txtFiltroNombre);
             txtReferencia.SelectAll();
+
+            // En el código de la vista, suscríbete al evento
+            viewModel.DatosCargados += (sender, args) =>
+            {
+                // Realiza la actualización de la interfaz de usuario aquí
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    itcControlStock.ItemsSource = viewModel.ControlStock.ControlesStocksAlmacen;
+                    grdStockMinimo.DataContext = viewModel.ControlStock;
+                });
+            };
+
         }
 
         private void txtReferencia_GotFocus(object sender, RoutedEventArgs e)

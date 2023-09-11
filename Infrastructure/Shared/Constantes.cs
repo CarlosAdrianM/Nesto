@@ -14,6 +14,10 @@ namespace Nesto.Infrastructure.Shared
             public const int ESTADO_TRAMITADO_ENVIO = 1;
             public const Int16 ESTADO_PENDIENTE_ENVIO = -1; // Etiqueta pendiente de envío
         }
+        public class Almacenes
+        {
+            public const string ALMACEN_CENTRAL = "ALG";
+        }
         public class Clientes
         {
             public const int ESTADO_NORMAL = 0;
@@ -76,9 +80,11 @@ namespace Nesto.Infrastructure.Shared
         {
             public const string ADMINISTRACION = "Administración";
             public const string ALMACEN = "Almacén";
+            public const string COMPRAS = "Compras";
             public const string DIRECCION = "Dirección";
             public const string FACTURACION = "Facturación";
             public const string TIENDA_ON_LINE = "TiendaOnline";
+            public const string TIENDAS = "Tiendas";
         }
         public class LineasPedido
         {
@@ -117,6 +123,10 @@ namespace Nesto.Infrastructure.Shared
         }
         public class Productos
         {
+            public class Estados
+            {
+                public const short EN_STOCK = 0;
+            }
             public class Grupos
             {
                 public const string MUESTRAS = "MMP";

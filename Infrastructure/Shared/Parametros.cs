@@ -16,7 +16,8 @@
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";
             public const string PathNorma19 = "PathNorma19";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
-            public const string RutaPedidosCmp = "RutaPedidosCmp"; 
+            public const string RutaPedidosCmp = "RutaPedidosCmp";
+            public const string UltNumProducto = "UltNumProducto";
             public const string UsuarioAvisoImpagadoDefecto = "UsuarioAvisoImpagadoDefecto";
             public const string Vendedor = "Vendedor";
         }
