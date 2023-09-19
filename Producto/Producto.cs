@@ -2,6 +2,7 @@
 using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Modules.Producto.Views;
 
 namespace Nesto.Modulos.Producto
 {
@@ -10,6 +11,7 @@ namespace Nesto.Modulos.Producto
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.Register<object, ProductoView>("ProductoView");
+            containerRegistry.Register<object, ReposicionView>("ReposicionView");
         }
 
         public void OnInitialized(IContainerProvider containerProvider)

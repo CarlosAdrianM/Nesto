@@ -11,7 +11,11 @@
                             Header="Productos">
             <RibbonGroup x:Name="grpMantenimiento"
                                 Header="Mantenimiento">
-                <RibbonButton Label="Ficha" LargeImageSource="Images/FichaProducto.png" Command="{Binding AbrirModuloCommand}" />
+                <RibbonButton Label="Ficha" LargeImageSource="Images/FichaProducto.png" Command="{Binding AbrirModuloFichaCommand}" />
+            </RibbonGroup>
+            <RibbonGroup x:Name="grpReposicion"
+                                Header="Reposición">
+                <RibbonButton Label="Diarios" LargeImageSource="Images/FichaProducto.png" Command="{Binding AbrirModuloReposicionCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

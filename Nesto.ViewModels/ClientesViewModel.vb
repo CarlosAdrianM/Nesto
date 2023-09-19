@@ -1392,7 +1392,12 @@ Public Class ClientesViewModel
             Try
                 Dim urlConsulta As String = "PedidosVenta"
                 Dim mainViewModel As New MainViewModel
-                urlConsulta += "?vendedor=" + Await mainViewModel.leerParametro(empresaActual, "Vendedor")
+                Dim permitirTodosClientes As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PermitirVerClientesTodosLosVendedores)
+                If permitirTodosClientes.Trim <> "1" Then
+                    urlConsulta += "?vendedor=" + Await mainViewModel.leerParametro(empresaActual, "Vendedor")
+                Else
+                    urlConsulta += "?vendedor="
+                End If
                 urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
 
                 response = Await client.GetAsync(urlConsulta)
