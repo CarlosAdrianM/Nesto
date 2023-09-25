@@ -1,6 +1,7 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Nesto.Modules.Producto.Models
 {
@@ -21,12 +22,13 @@ namespace Nesto.Modules.Producto.Models
         public string Subgrupo { get; set; }
         public string UrlFoto { get; set; }
         public bool RoturaStockProveedor { get; set; }
+        public int Stock => Stocks?.Sum(s => s.Stock) ?? 0;
         public ICollection<StockProducto> Stocks { get; set; }
 
         public bool Contains(string filtro)
         {
             // Está sin implementar
-            return Familia.Contains(filtro) || Nombre.Contains(filtro) || Subgrupo.Contains(filtro);
+            return Producto == filtro || Familia.ToLower().Contains(filtro, StringComparison.OrdinalIgnoreCase) || Nombre.ToLower().Contains(filtro, StringComparison.InvariantCultureIgnoreCase) || Subgrupo.ToLower().Contains(filtro, StringComparison.OrdinalIgnoreCase);
         }
 
         public class StockProducto

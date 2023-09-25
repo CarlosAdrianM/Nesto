@@ -6,13 +6,12 @@
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:prism="http://prismlibrary.com/"
         xmlns:local="clr-namespace:Nesto.Modulos.Producto" 
-        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-        prism:ViewModelLocator.AutoWireViewModel="True"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             prism:ViewModelLocator.AutoWireViewModel="True"
         mc:Ignorable="d" Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <local:EstadoToBorderBrushConverter x:Key="EstadoToBorderBrushConverter"/>
     </UserControl.Resources>
 
     
@@ -162,8 +161,10 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
@@ -177,30 +178,46 @@
                     <TextBox Name="txtFiltroSubgrupo" Grid.Column="1" Grid.Row="2" Text="{Binding FiltroSubgrupo}" KeyUp="txtFiltroSubgrupo_KeyUp"/>
 
                     <Button Grid.Column="2" Grid.RowSpan="3" Command="{Binding BuscarProductoCommand}" >
-                        <Image MaxHeight="64" Source="Images/BuscarProducto.png"></Image>
+                        <Image MaxHeight="64" Source="pack://application:,,,/Producto;component/Images/BuscarProducto.png"></Image>
                     </Button>
 
-                    <ListView Grid.Row="3" Grid.ColumnSpan="9999" ItemsSource="{Binding ProductosResultadoBusqueda}" SelectedItem="{Binding ProductoResultadoSeleccionado}">
-                        <i:Interaction.Triggers>
-                            <i:EventTrigger EventName="MouseDoubleClick">
-                                <i:InvokeCommandAction Command="{Binding Path=DataContext.SeleccionarProductoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                            </i:EventTrigger>
-                        </i:Interaction.Triggers>
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Nombre}"/>
-                                    <TextBlock Text="{Binding Familia}"/>
-                                    <TextBlock Text="{Binding Subgrupo}"/>
-                                    <TextBlock Text="{Binding PrecioProfesional, StringFormat=c}"/>
-                                    <TextBlock>
-                                    <Run Text="Estado"/>
-                                    <Run Text="{Binding Estado}"/>
-                                    </TextBlock>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
+                    <Button Grid.Column="3" Grid.RowSpan="3" Command="{Binding ImprimirEtiquetasProductoCommand}" Visibility="{Binding EsDeGrupoPermitido, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Image MaxHeight="64" Source="pack://application:,,,/Producto;component/Images/Imprimir.png"></Image>
+                    </Button>
+
+                    <controlesusuario:BarraFiltro Grid.Row="3" Grid.ColumnSpan="3"  ListaItems="{Binding ProductosResultadoBusqueda}" Visibility="{Binding MostrarBarraBusqueda, Converter={StaticResource BooleanToVisibilityConverter}}"></controlesusuario:BarraFiltro>
+                    <ComboBox Grid.Row="3" Grid.Column="3" ItemsSource="{Binding EtiquetasPosibles}" SelectedItem="{Binding EtiquetaPrimera, Mode=TwoWay}" IsEditable="True" Visibility="{Binding MostrarBarraBusqueda, Converter={StaticResource BooleanToVisibilityConverter}}"></ComboBox>
+                    <xctk:BusyIndicator Grid.Row="4" Grid.ColumnSpan="9999" IsBusy="{Binding EstaCargandoProductos}" BusyContent="Procesando...">
+                        <ListView ItemsSource="{Binding ProductosResultadoBusqueda.Lista}" SelectedItem="{Binding ProductoResultadoSeleccionado}">
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseDoubleClick">
+                                    <i:InvokeCommandAction Command="{Binding Path=DataContext.SeleccionarProductoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Nombre}"/>
+                                        <TextBlock Text="{Binding Familia}"/>
+                                        <TextBlock Text="{Binding Subgrupo}"/>
+                                        <TextBlock Text="{Binding PrecioProfesional, StringFormat=c}"/>
+                                        <TextBlock>
+                                            <Run Text="Estado"/>
+                                            <Run Text="{Binding Estado}"/>
+                                            <Run Text="- Stock"/>
+                                            <Run Text="{Binding Stocks[0].Stock}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Setter Property="BorderBrush" Value="LightGray"/>
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                        </ListView>
+                    </xctk:BusyIndicator>
                 </Grid>
             </TabItem>
             <TabItem Header="Clientes">

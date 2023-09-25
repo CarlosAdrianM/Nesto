@@ -3,7 +3,6 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -72,6 +71,7 @@ namespace Nesto.Modules.Producto
         public async Task<ICollection<ProductoModel>> BuscarProductos(string filtroNombre, string filtroFamilia, string filtroSubgrupo)
         {
             ICollection<ProductoModel> productos;
+            var almacen = await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
@@ -79,7 +79,7 @@ namespace Nesto.Modules.Producto
 
                 try
                 {
-                    string urlConsulta = "Productos?empresa=" + EmpresaDefecto + "&filtroNombre=" + filtroNombre + "&filtroFamilia=" + filtroFamilia + "&filtroSubgrupo=" + filtroSubgrupo;
+                    string urlConsulta = $"Productos?empresa={EmpresaDefecto}&filtroNombre={filtroNombre}&filtroFamilia={filtroFamilia}&filtroSubgrupo={filtroSubgrupo}&almacen={almacen}";
 
 
                     response = await client.GetAsync(urlConsulta);

@@ -29,10 +29,10 @@ namespace PedidoVentaTests
             lineaFake.Cantidad = 1;
             lineaFake.PrecioUnitario = 100;
             pedido.Lineas.Add(lineaFake);
-            detallePedidoViewModel.pedido = pedido;
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedido);
 
             // Act
-            lineaFake.aplicarDescuento = false;
+            lineaFake.AplicarDescuento = false;
 
             // Assert
             Assert.AreEqual(100, detallePedidoViewModel.pedido.BaseImponible);
@@ -51,14 +51,14 @@ namespace PedidoVentaTests
             PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
             LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
             lineaFake.DescuentoProducto = (decimal).4;
-            lineaFake.aplicarDescuento = false;
+            lineaFake.AplicarDescuento = false;
             lineaFake.Cantidad = 1;
             lineaFake.PrecioUnitario = 100;
             pedido.Lineas.Add(lineaFake);
-            detallePedidoViewModel.pedido = pedido;
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedido);
 
             // Act
-            lineaFake.aplicarDescuento = true;
+            lineaFake.AplicarDescuento = true;
 
             // Assert
             Assert.AreEqual(60, detallePedidoViewModel.pedido.BaseImponible);
@@ -74,10 +74,10 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
-            PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
-            LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
+            PedidoVentaWrapper pedido = A.Fake<PedidoVentaWrapper>();
+            LineaPedidoVentaWrapper lineaFake = A.Fake<LineaPedidoVentaWrapper>();
             lineaFake.DescuentoProducto = (decimal).4;
-            lineaFake.aplicarDescuento = true;
+            lineaFake.AplicarDescuento = true;
             lineaFake.Cantidad = 1;
             lineaFake.PrecioUnitario = 100;
             pedido.Lineas.Add(lineaFake);
@@ -89,7 +89,7 @@ namespace PedidoVentaTests
             lineaFake.DescuentoProducto = (decimal).3;
 
             // Assert
-            A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "descuentoProducto"))).MustHaveHappenedOnceExactly();
+            A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "DescuentoProducto"))).MustHaveHappenedOnceExactly();
         }
     }
 }

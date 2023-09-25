@@ -22,7 +22,7 @@ namespace Nesto.Modules.Producto
         public ICommand AbrirModuloFichaCommand { get; private set; }
         private bool CanAbrirModuloFicha()
         {
-            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN);
+            return true;
         }
         private void OnAbrirModuloFicha()
         {

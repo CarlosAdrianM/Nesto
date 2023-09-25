@@ -48,7 +48,7 @@ namespace PlantillaVentaTests
             IDialogService dialogService = A.Fake<IDialogService>();
             PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
-            vm.ListaFiltrableProductos.ListaOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
                 cantidad = 1,
                 precio = 4.5M,
@@ -71,7 +71,7 @@ namespace PlantillaVentaTests
             IDialogService dialogService = A.Fake<IDialogService>();
             PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
-            vm.ListaFiltrableProductos.ListaOriginal.Add(new PlantillaVentaModel.LineaPlantillaJson
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
                 cantidad = 1,
                 precio = 4.5M,

@@ -30,6 +30,9 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Images\Imprimir.png" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -41,13 +44,21 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
+    <ProjectReference Include="..\Informes\Informes.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\FichaProducto.png" />
+    <Resource Include="Images\FichaProducto.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Images\BuscarProducto.png" />
+    <Resource Include="Images\BuscarProducto.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\Imprimir.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json">
@@ -60,5 +71,6 @@
       <Version>8.1.97</Version>
     </PackageReference>
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
+    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.17" />
   </ItemGroup>
  </Project>

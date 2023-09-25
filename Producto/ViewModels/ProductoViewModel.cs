@@ -15,6 +15,10 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Infrastructure.Shared;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
+using Microsoft.Reporting.NETCore;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
@@ -34,7 +38,7 @@ namespace Nesto.Modules.Producto.ViewModels
         private ProductoModel _productoActual;
         private ProductoModel _productoResultadoSeleccionado;
         private ObservableCollection<ProductoClienteModel> _clientesResultadoBusqueda;
-        private ObservableCollection<ProductoModel> _productosResultadoBusqueda;
+        private ColeccionFiltrable _productosResultadoBusqueda;
         private string _referenciaBuscar;
         public bool EsDelGrupoCompras { get; }
         public bool EsDelGrupoTiendas { get; }
@@ -54,6 +58,7 @@ namespace Nesto.Modules.Producto.ViewModels
             BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
             BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
             GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
+            ImprimirEtiquetasProductoCommand = new DelegateCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
             SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
 
             Titulo = "Producto";
@@ -110,6 +115,21 @@ namespace Nesto.Modules.Producto.ViewModels
             get => _estaCargandoControlesStock;
             set => SetProperty(ref _estaCargandoControlesStock, value); 
         }
+        
+        private bool _estaCargandoProductos;
+        public bool EstaCargandoProductos { 
+            get => _estaCargandoProductos; 
+            private set => SetProperty(ref _estaCargandoProductos, value);
+        }
+
+        private int _etiquetaPrimera = 1;
+        public int EtiquetaPrimera { 
+            get => _etiquetaPrimera; 
+            set => SetProperty(ref _etiquetaPrimera, value); 
+        }
+        public List<int> EtiquetasPosibles { get; set; } = Enumerable.Range(1, 18).ToList();
+
+
         public string FiltroFamilia
         {
             get { return _filtroFamilia; }
@@ -139,6 +159,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 BuscarProductoCommand.RaiseCanExecuteChanged();
             }
         }
+
+        public bool MostrarBarraBusqueda => ProductosResultadoBusqueda != null && ProductosResultadoBusqueda.Lista != null && ProductosResultadoBusqueda.Lista.Any();
 
         public TabItem PestannaSeleccionada
         {
@@ -179,7 +201,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public ObservableCollection<ProductoModel> ProductosResultadoBusqueda
+        public ColeccionFiltrable ProductosResultadoBusqueda
         {
             get { return _productosResultadoBusqueda; }
             set { SetProperty(ref _productosResultadoBusqueda, value); }
@@ -197,6 +219,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
             }
         }
+        public string Titulo { get; private set; }
         #endregion
 
         #region "Comandos"
@@ -232,12 +255,32 @@ namespace Nesto.Modules.Producto.ViewModels
         }
         private async void OnBuscarProducto()
         {
-            ICollection<ProductoModel> resultadoBusqueda = await Servicio.BuscarProductos(FiltroNombre, FiltroFamilia, FiltroSubgrupo);
-            ProductosResultadoBusqueda = new ObservableCollection<ProductoModel>();
-            foreach (var producto in resultadoBusqueda)
+            EstaCargandoProductos = true;
+            try
             {
-                ProductosResultadoBusqueda.Add(producto);
+                ICollection<ProductoModel> resultadoBusqueda = await Servicio.BuscarProductos(FiltroNombre, FiltroFamilia, FiltroSubgrupo);
+                var listaResultadoBusqueda = new ObservableCollection<ProductoModel>();
+                foreach (var producto in resultadoBusqueda)
+                {
+                    listaResultadoBusqueda.Add(producto);
+                }
+                ProductosResultadoBusqueda = new ColeccionFiltrable(listaResultadoBusqueda)
+                {
+                    TieneDatosIniciales = true
+                };
+                ProductosResultadoBusqueda.FijarFiltroCommand.Execute("-stock:0");
+                RaisePropertyChanged(nameof(MostrarBarraBusqueda));
+                ImprimirEtiquetasProductoCommand.RaiseCanExecuteChanged();
             }
+            catch (Exception ex)
+            {
+                DialogService.ShowError($"Se ha producido un error al cargar los productos:\n{ex.Message}");
+            }
+            finally
+            {
+                EstaCargandoProductos = false;
+            }
+
         }
 
         public DelegateCommand GuardarProductoCommand { get; private set; }
@@ -265,8 +308,47 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
 
-        public ICommand SeleccionarProductoCommand { get; private set; }
-        public string Titulo { get; private set; }
+        public DelegateCommand ImprimirEtiquetasProductoCommand { get; private set; }
+        private bool CanImprimirEtiquetasProducto()
+        {
+            return ProductosResultadoBusqueda != null && ProductosResultadoBusqueda.Lista != null && ProductosResultadoBusqueda.Lista.Any();
+        }
+        private async void OnImprimirEtiquetasProducto()
+        {
+            EstaCargandoProductos = true;
+            try
+            {
+                Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.EtiquetasTienda.rdlc");
+                List<string> listaDeProductos = ProductosResultadoBusqueda.Lista.Select(item => (item as ProductoModel).Producto).ToList();
+                List<Informes.FilaEtiquetasModel> dataSource = await Informes.FilaEtiquetasModel.CargarDatos(listaDeProductos, EtiquetaPrimera);
+                LocalReport report = new LocalReport();
+                report.LoadReportDefinition(reportDefinition);
+                report.DataSources.Add(new ReportDataSource("FilaEtiquetasDataSet", dataSource));
+                /*
+                List<ReportParameter> listaParametros = new List<ReportParameter>
+                {
+                    new ReportParameter("Fecha", "21/09/23"),
+                    new ReportParameter("NombreAgencia", "Agencia Prueba")
+                };
+                report.SetParameters(listaParametros);
+                */
+                byte[] pdf = report.Render("PDF");
+                string fileName = Path.GetTempPath() + "InformeEtiquetasTienda.pdf";
+                File.WriteAllBytes(fileName, pdf);
+                Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                DialogService.ShowError($"No se han podido imprimir las etiquetas.\n{ex.Message}");
+            }
+            finally
+            {
+                EstaCargandoProductos = false;
+            }
+
+        }
+
+        public ICommand SeleccionarProductoCommand { get; private set; }        
 
         private bool CanSeleccionarProducto()
         {
