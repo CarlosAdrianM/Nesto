@@ -55,6 +55,7 @@ namespace Nesto.Modules.Producto.ViewModels
             DialogService = dialogService;
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
+            AbrirProductoWebCommand = new DelegateCommand(OnAbrirProductoWeb, CanAbrirProductoWeb);
             BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
             BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
             GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
@@ -185,6 +186,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     BuscarClientesCommand.Execute();
                 }
+                AbrirProductoWebCommand.RaiseCanExecuteChanged();
             }
         }
 
@@ -233,6 +235,17 @@ namespace Nesto.Modules.Producto.ViewModels
             RegionManager.RequestNavigate("MainRegion", "ProductoView");
         }
 
+        public DelegateCommand AbrirProductoWebCommand { get; private set; }
+        private bool CanAbrirProductoWeb()
+        {
+            return ProductoActual != null && !string.IsNullOrEmpty(ProductoActual.UrlEnlace);
+        }
+        private async void OnAbrirProductoWeb()
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ProductoActual.UrlEnlace + "utm_medium=ficha_producto") { UseShellExecute = true });
+        }
+
+
         public DelegateCommand BuscarClientesCommand { get; private set; }
         private bool CanBuscarClientes()
         {
@@ -269,6 +282,10 @@ namespace Nesto.Modules.Producto.ViewModels
                     TieneDatosIniciales = true
                 };
                 ProductosResultadoBusqueda.FijarFiltroCommand.Execute("-stock:0");
+                if (!ProductosResultadoBusqueda.Lista.Any())
+                {
+                    ProductosResultadoBusqueda.QuitarFiltroCommand.Execute("-stock:0");
+                }
                 RaisePropertyChanged(nameof(MostrarBarraBusqueda));
                 ImprimirEtiquetasProductoCommand.RaiseCanExecuteChanged();
             }

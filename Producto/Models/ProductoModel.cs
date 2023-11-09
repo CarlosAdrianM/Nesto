@@ -17,9 +17,11 @@ namespace Nesto.Modules.Producto.Models
         public string UnidadMedida { get; set; }
         public string Familia { get; set; }
         public decimal PrecioProfesional { get; set; }
+        public decimal PrecioPublicoFinal { get; set; }
         public short Estado { get; set; }
         public string Grupo { get; set; }
         public string Subgrupo { get; set; }
+        public string UrlEnlace { get; set; }
         public string UrlFoto { get; set; }
         public bool RoturaStockProveedor { get; set; }
         public int Stock => Stocks?.Sum(s => s.Stock) ?? 0;

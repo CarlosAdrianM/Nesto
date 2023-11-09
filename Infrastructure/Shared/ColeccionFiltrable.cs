@@ -466,7 +466,7 @@ namespace Nesto.Infrastructure.Shared
         private void OnQuitarFiltro(string filtro)
         {
             filtro = filtro.ToLower();
-            if (Filtro.ToLower() == filtro)
+            if (Filtro != null && Filtro.ToLower() == filtro)
             {
                 Filtro = string.Empty;
             }
