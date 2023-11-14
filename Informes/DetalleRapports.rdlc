@@ -688,7 +688,7 @@
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Value>="Total visitas presenciales: " &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "V", 1, 0))</Value>
+                                      <Value>="Total visitas presenciales: " &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "V", 1, 0)) &amp; " (" &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "V" AndAlso Fields!Pedido.Value = True, 1, 0)) &amp;")"</Value>
                                       <Style>
                                         <FontWeight>Bold</FontWeight>
                                       </Style>
@@ -720,7 +720,7 @@
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Value>="Total visitas teléfonicas: " &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "T", 1, 0))</Value>
+                                      <Value>="Total visitas teléfonicas: " &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "T", 1, 0)) &amp; " (" &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "T" AndAlso Fields!Pedido.Value = True, 1, 0)) &amp;")"</Value>
                                       <Style>
                                         <FontWeight>Bold</FontWeight>
                                       </Style>
@@ -784,7 +784,7 @@
                                 <Paragraph>
                                   <TextRuns>
                                     <TextRun>
-                                      <Value>="Total visitas WhatsApp: " &amp; Sum(IIf(Fields!Tipo.Value.Trim = "W", 1, 0))</Value>
+                                      <Value>="Total visitas WhatsApp: " &amp; Sum(IIf(Fields!Tipo.Value.Trim = "W", 1, 0)) &amp; " (" &amp; Sum(IIf(Fields!Tipo.Value.Trim() = "W" AndAlso Fields!Pedido.Value = True, 1, 0)) &amp;")"</Value>
                                       <Style>
                                         <FontWeight>Bold</FontWeight>
                                       </Style>

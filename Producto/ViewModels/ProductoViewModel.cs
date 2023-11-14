@@ -242,7 +242,7 @@ namespace Nesto.Modules.Producto.ViewModels
         }
         private async void OnAbrirProductoWeb()
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ProductoActual.UrlEnlace + "utm_medium=ficha_producto") { UseShellExecute = true });
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ProductoActual.UrlEnlace + "&utm_medium=ficha_producto") { UseShellExecute = true });
         }
 
 
@@ -271,6 +271,7 @@ namespace Nesto.Modules.Producto.ViewModels
             EstaCargandoProductos = true;
             try
             {
+                
                 ICollection<ProductoModel> resultadoBusqueda = await Servicio.BuscarProductos(FiltroNombre, FiltroFamilia, FiltroSubgrupo);
                 var listaResultadoBusqueda = new ObservableCollection<ProductoModel>();
                 foreach (var producto in resultadoBusqueda)
