@@ -61,7 +61,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="2*"/>
                 </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0" Name="vendedor" ItemsSource="{Binding Path=listaVendedores}" DisplayMemberPath="Descripción" SelectedValue="{Binding Path=vendedorActual}" VerticalAlignment="Center" SelectedItem="{Binding vendedorActual}" Margin="3" ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Self}}"/>
+                <ComboBox Grid.Column="0" Name="vendedor" ItemsSource="{Binding Path=listaVendedores}" DisplayMemberPath="Nombre" SelectedValue="{Binding Path=vendedorActual}" VerticalAlignment="Center" SelectedItem="{Binding vendedorActual}" Margin="3" ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Self}}"/>
                 <ComboBox Grid.Column="1" ItemsSource="{Binding Path=colMeses}" SelectedValue="{Binding mesActual}" VerticalAlignment="Center" Margin="3"/>
                 <StackPanel Grid.Column="2" Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" Orientation="Horizontal">
                     <CheckBox  IsChecked="{Binding IncluirAlbaranes}" VerticalAlignment="Center" VerticalContentAlignment="Center" IsEnabled="{Binding EsMesEnCurso}" Margin="0,0,15,0">Incluir Albaranes</CheckBox>

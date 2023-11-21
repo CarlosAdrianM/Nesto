@@ -10,6 +10,7 @@ Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.[Shared]
 
 Public Class InventarioViewModel
     Inherits BindableBase
@@ -36,7 +37,13 @@ Public Class InventarioViewModel
         cantidad = 1
 
         movimientosDia = New ObservableCollection(Of Movimiento)
+
+        CargarAlmacenInventario()
     End Sub
+
+    Private Async Function CargarAlmacenInventario() As Task
+        almacen = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenInventario)
+    End Function
 
 
 #Region "Propiedades de Prism"
@@ -45,7 +52,7 @@ Public Class InventarioViewModel
 #End Region
 
 #Region "Propiedades"
-    Private _almacen As String = "REI"
+    Private _almacen As String
     Public Property almacen As String
         Get
             Return _almacen

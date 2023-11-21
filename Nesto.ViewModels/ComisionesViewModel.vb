@@ -17,6 +17,8 @@ Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
+Imports Nesto.Models
+Imports ControlesUsuario.Models
 
 Public Class ComisionesViewModel
     Inherits BindableBase
@@ -31,6 +33,7 @@ Public Class ComisionesViewModel
 
     Private mismoMesAnnoPasado As String
     Private mesAnteriorAnnoPasado As String
+    Private ReadOnly Property Servicio As ComisionesService
     Public Sub New(container As IUnityContainer, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
@@ -38,6 +41,7 @@ Public Class ComisionesViewModel
         Me.container = container
         Me.configuracion = configuracion
         dialogService = dialogService
+        Servicio = New ComisionesService(configuracion)
 
         colMeses = New Collection(Of String)
         For i = 12 To 1 Step -1
@@ -62,18 +66,17 @@ Public Class ComisionesViewModel
             Return
         End If
         datosCargados = True
-        Dim mainViewModel As New MainViewModel
-        vendedor = Await mainViewModel.leerParametro("1", "Vendedor")
 
         Try
             If DbContext.Database.Connection.State = System.Data.ConnectionState.Open Then
                 DbContext.Database.Connection.Close()
             End If
-            If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
-                listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9))
-            Else
-                listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9) And c.Número.Trim = vendedor)
-            End If
+            'If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
+            '    listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9))
+            'Else
+            '    listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9) And c.Número.Trim = vendedor)
+            'End If
+            listaVendedores = New ObservableCollection(Of VendedorDTO)(Await Servicio.LeerVendedores())
         Catch ex As Exception
             DialogService.ShowError(ex.Message)
         End Try
@@ -81,23 +84,23 @@ Public Class ComisionesViewModel
         vendedorActual = listaVendedores.FirstOrDefault
     End Function
 
-    Private _listaVendedores As ObservableCollection(Of Vendedores)
-    Public Property listaVendedores As ObservableCollection(Of Vendedores)
+    Private _listaVendedores As ObservableCollection(Of VendedorDTO)
+    Public Property listaVendedores As ObservableCollection(Of VendedorDTO)
         Get
             Return _listaVendedores
         End Get
-        Set(value As ObservableCollection(Of Vendedores))
+        Set(value As ObservableCollection(Of VendedorDTO))
             _listaVendedores = value
-            RaisePropertyChanged("listaVendedores")
+            RaisePropertyChanged(NameOf(listaVendedores))
         End Set
     End Property
 
-    Private _vendedorActual As Vendedores
-    Public Property vendedorActual As Vendedores
+    Private _vendedorActual As VendedorDTO
+    Public Property vendedorActual As VendedorDTO
         Get
             Return _vendedorActual
         End Get
-        Set(value As Vendedores)
+        Set(value As VendedorDTO)
 
             _vendedorActual = value
             RaisePropertyChanged("vendedorActual")
@@ -112,7 +115,7 @@ Public Class ComisionesViewModel
 
                 Try
                     EstaOcupado = True
-                    comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
+                    comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Vendedor, 0).FirstOrDefault
                 Catch ex As Exception
                     DialogService.ShowError(ex.Message)
                 Finally
@@ -133,7 +136,7 @@ Public Class ComisionesViewModel
             End If
 
             listaPedidos = New ObservableCollection(Of vstLinPedidoVtaConVendedor)(From l In DbContext.vstLinPedidoVtaConVendedor
-                                                                                   Where (l.Empresa = "1" Or l.Empresa = "3") And l.Estado >= -1 And l.Estado <= 1 And l.Vendedor = vendedorActual.Número
+                                                                                   Where (l.Empresa = "1" Or l.Empresa = "3") And l.Estado >= -1 And l.Estado <= 1 And l.Vendedor = vendedorActual.Vendedor
                                                                                    Order By l.Número, l.Nº_Orden
                                                                                    Select l)
             ActualizarListadosAgrupados()
@@ -199,7 +202,7 @@ Public Class ComisionesViewModel
 
             If vendedorActual IsNot Nothing Then
                 If MostrarPanelAntiguo Then
-                    comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Número, 0).FirstOrDefault
+                    comisionesActual = DbContext.Comisiones("1", fechaDesde, fechaHasta, vendedorActual.Vendedor, 0).FirstOrDefault
                 Else
                     CalcularComisionAsync()
                 End If
@@ -214,19 +217,19 @@ Public Class ComisionesViewModel
             listaVentasComision = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
                                                                                          Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
                                                                                          (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
-                                                                                         l.Vendedor = vendedorActual.Número)
+                                                                                         l.Vendedor = vendedorActual.Vendedor)
                                                                                          Order By l.Grupo, l.Dirección
                                                                                          Select l)
             listaVentasFamilia = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
                                                                                         Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
                                                                                          (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
-                                                                                         l.Vendedor = vendedorActual.Número)
+                                                                                         l.Vendedor = vendedorActual.Vendedor)
                                                                                         Order By l.Familia
                                                                                         Select l)
             Dim preListaVentasFecha = New ObservableCollection(Of vstLinPedidoVtaComisiones)(From l In DbContext.vstLinPedidoVtaComisiones
                                                                                              Where (((l.Estado = 4 AndAlso l.Fecha_Factura >= fechaDesde AndAlso l.Fecha_Factura <= fechaHasta) OrElse
                                                                                              (l.Estado = 2 AndAlso l.Fecha_Albarán >= fechaDesde AndAlso l.Fecha_Albarán <= fechaHasta)) AndAlso
-                                                                                             l.Vendedor = vendedorActual.Número)
+                                                                                             l.Vendedor = vendedorActual.Vendedor)
                                                                                              Order By l.Fecha_Albarán
                                                                                              Select l)
             For Each l In preListaVentasFecha
@@ -320,7 +323,7 @@ Public Class ComisionesViewModel
 
     Public ReadOnly Property MostrarPanelAntiguo() As Boolean
         Get
-            Return Not IsNothing(vendedorActual) AndAlso (((vendedorActual.Número = "JE " OrElse vendedorActual.Número = "DV ") AndAlso fechaDesde >= New Date(2019, 1, 1)))
+            Return Not IsNothing(vendedorActual) AndAlso (((vendedorActual.Vendedor.Trim() = "JE" OrElse vendedorActual.Vendedor.Trim() = "DV   ") AndAlso fechaDesde >= New Date(2019, 1, 1)))
         End Get
     End Property
 
@@ -421,7 +424,7 @@ Public Class ComisionesViewModel
 #End Region
 
     Private Async Function CalcularComisionAsync() As Task
-        ComisionAnualResumenActual = Await CalcularComisionAnual(vendedorActual.Número, fechaDesde.Year, fechaDesde.Month, IncluirAlbaranes, IncluirPicking)
+        ComisionAnualResumenActual = Await CalcularComisionAnual(vendedorActual.Vendedor, fechaDesde.Year, fechaDesde.Month, IncluirAlbaranes, IncluirPicking)
     End Function
 
 

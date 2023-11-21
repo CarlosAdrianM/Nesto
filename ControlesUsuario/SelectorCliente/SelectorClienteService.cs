@@ -23,7 +23,7 @@ namespace ControlesUsuario.Services
                 try
                 {
                     string urlConsulta;
-                    if (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION))
+                    if (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) || configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
                     {
                         urlConsulta = "Clientes?empresa=" + empresa + "&vendedor=&filtro=" + filtro;
                     }
