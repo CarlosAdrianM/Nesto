@@ -542,11 +542,22 @@ Public Class AgenciaViewModelTests
             .Número = 1,
             .Clientes = New Clientes()
         }
+        'A.CallTo(Sub() dialogService.
+        '             ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
+        '             Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c) c(New DialogResult(ButtonResult.OK)))
         A.CallTo(Sub() dialogService.
-                     ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
-                     Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c) c(New DialogResult(ButtonResult.OK)))
+             ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
+             Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c)
+                                                                                 If c IsNot Nothing Then
+                                                                                     c(New DialogResult(ButtonResult.OK))
+                                                                                 End If
+                                                                             End Sub)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
         viewModel.cmdCargarDatos.Execute()
+        Dim horario As tipoIdDescripcion = New tipoIdDescripcion With {.id = 1, .descripcion = "horario estándar"}
+        viewModel.listaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
+            horario
+        }
         viewModel.PestannaNombre = Pestannas.PENDIENTES
 
         viewModel.InsertarEnvioPendienteCommand.Execute()

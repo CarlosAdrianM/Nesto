@@ -23,8 +23,8 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
-            PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
-            LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
+            PedidoVentaDTO pedido = new PedidoVentaDTO();
+            LineaPedidoVentaDTO lineaFake = new LineaPedidoVentaDTO() { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
             lineaFake.Cantidad = 1;
             lineaFake.PrecioUnitario = 100;
@@ -48,8 +48,8 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
-            PedidoVentaDTO pedido = A.Fake<PedidoVentaDTO>();
-            LineaPedidoVentaDTO lineaFake = A.Fake<LineaPedidoVentaDTO>();
+            PedidoVentaDTO pedido = new PedidoVentaDTO();
+            LineaPedidoVentaDTO lineaFake = new LineaPedidoVentaDTO { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
             lineaFake.AplicarDescuento = false;
             lineaFake.Cantidad = 1;
@@ -74,8 +74,8 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
-            PedidoVentaWrapper pedido = A.Fake<PedidoVentaWrapper>();
-            LineaPedidoVentaWrapper lineaFake = A.Fake<LineaPedidoVentaWrapper>();
+            PedidoVentaWrapper pedido = new PedidoVentaWrapper(new PedidoVentaDTO());
+            LineaPedidoVentaWrapper lineaFake = new LineaPedidoVentaWrapper { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
             lineaFake.AplicarDescuento = true;
             lineaFake.Cantidad = 1;

@@ -38,7 +38,11 @@ namespace Nesto.Informes
                 {
                     Value = fechaHasta
                 };
-                lista = await db.Database.SqlQuery<DetalleRapportsModel>("prdInformeRapportEstado9 @FechaDesde, @FechaHasta", fechaDesdeParam, fechaHastaParam).ToListAsync();
+                SqlParameter listaVendedores = new SqlParameter("@ListaVendedores", System.Data.SqlDbType.NVarChar)
+                {
+                    Value = ""
+                };
+                lista = await db.Database.SqlQuery<DetalleRapportsModel>("prdInformeRapportEstado9 @FechaDesde, @FechaHasta, @ListaVendedores", fechaDesdeParam, fechaHastaParam, listaVendedores).ToListAsync();
             };
             return lista;
         }

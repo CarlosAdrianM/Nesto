@@ -1,6 +1,7 @@
 ﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PlantillaVenta;
 using Prism.Events;
 using Prism.Regions;
@@ -46,6 +47,7 @@ namespace PlantillaVentaTests
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
+            A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
             PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
@@ -69,6 +71,7 @@ namespace PlantillaVentaTests
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
+            A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
             PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta

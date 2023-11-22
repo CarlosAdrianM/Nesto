@@ -39,7 +39,11 @@ Public Class RapportService
 
             Try
                 Dim urlConsulta As String = "SeguimientosClientes"
-                urlConsulta += "?vendedor=" + vendedor
+                If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
+                    urlConsulta += "?vendedor="
+                Else
+                    urlConsulta += "?vendedor=" + vendedor
+                End If
                 urlConsulta += "&fecha=" + fecha.ToString("O").Substring(0, 19)
 
                 response = Await client.GetAsync(urlConsulta)

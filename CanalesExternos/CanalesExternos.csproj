@@ -37,12 +37,12 @@
     <Resource Include="Images\CanalesExternosPagos.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CSharpAmazonSpAPI" Version="1.6.11" />
+    <PackageReference Include="CSharpAmazonSpAPI" Version="1.7.8" />
     <PackageReference Include="EntityFramework">
       <Version>6.4.4</Version>
     </PackageReference>
     <PackageReference Include="Extended.Wpf.Toolkit">
-      <Version>4.5.0</Version>
+      <Version>4.5.1</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.3</Version>

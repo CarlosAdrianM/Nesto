@@ -76,7 +76,7 @@ Public Class ComisionesViewModel
             'Else
             '    listaVendedores = New ObservableCollection(Of Vendedores)(From c In DbContext.Vendedores Where c.Empresa = "1" And (c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9) And c.Número.Trim = vendedor)
             'End If
-            listaVendedores = New ObservableCollection(Of VendedorDTO)(Await Servicio.LeerVendedores())
+            listaVendedores = New ObservableCollection(Of VendedorDTO)((Await Servicio.LeerVendedores()).Where(Function(c) c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9))
         Catch ex As Exception
             DialogService.ShowError(ex.Message)
         End Try
@@ -323,7 +323,7 @@ Public Class ComisionesViewModel
 
     Public ReadOnly Property MostrarPanelAntiguo() As Boolean
         Get
-            Return Not IsNothing(vendedorActual) AndAlso (((vendedorActual.Vendedor.Trim() = "JE" OrElse vendedorActual.Vendedor.Trim() = "DV   ") AndAlso fechaDesde >= New Date(2019, 1, 1)))
+            Return Not IsNothing(vendedorActual) AndAlso (((vendedorActual.Vendedor.Trim() = "JE" OrElse vendedorActual.Vendedor.Trim() = "DV") AndAlso fechaDesde >= New Date(2019, 1, 1)))
         End Get
     End Property
 

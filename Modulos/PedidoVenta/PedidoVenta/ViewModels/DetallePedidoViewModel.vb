@@ -15,6 +15,7 @@ Imports System.Text
 Imports ControlesUsuario.Models
 Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 Imports Nesto.Models
+Imports System.Collections.ObjectModel
 
 Public Class DetallePedidoViewModel
     Inherits BindableBase
@@ -66,7 +67,7 @@ Public Class DetallePedidoViewModel
     Private Async Sub InsertarProducto(productoSeleccionado As String)
         If Not IsNothing(lineaActual) Then
             lineaActual.Producto = productoSeleccionado
-            Await CargarDatosProducto(productoSeleccionado, lineaActual.cantidad)
+            Await CargarDatosProducto(productoSeleccionado, lineaActual.Cantidad)
         End If
     End Sub
 
@@ -205,7 +206,7 @@ Public Class DetallePedidoViewModel
                 fechaEntrega = linea.fechaEntrega
             End If
             estaActualizarFechaActivo = True
-            vendedorPorGrupo = pedido.VendedoresGrupoProducto.FirstOrDefault
+            vendedorPorGrupo = pedido.VendedoresGrupoProducto?.FirstOrDefault
             If IsNothing(vendedorPorGrupo) Then
                 vendedorPorGrupo = New VendedorGrupoProductoDTO With {
                     .vendedor = Nothing,
@@ -247,7 +248,10 @@ Public Class DetallePedidoViewModel
             If IsNothing(pedido) Then
                 Return
             End If
-            If IsNothing(pedido.VendedoresGrupoProducto) OrElse IsNothing(pedido.VendedoresGrupoProducto.Count = 0) Then
+            If IsNothing(pedido.VendedoresGrupoProducto) Then
+                pedido.VendedoresGrupoProducto = New ObservableCollection(Of VendedorGrupoProductoDTO)
+            End If
+            If IsNothing(pedido.VendedoresGrupoProducto.Count = 0) Then
                 pedido.VendedoresGrupoProducto.Add(vendedorPorGrupo)
             End If
         End Set
@@ -408,9 +412,9 @@ Public Class DetallePedidoViewModel
         End If
 
         If esTextBox AndAlso eventArgs.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso textoNuevo <> lineaActual.Producto Then
-            Await CargarDatosProducto(textoNuevo, lineaActual.cantidad)
+            Await CargarDatosProducto(textoNuevo, lineaActual.Cantidad)
         End If
-        If esTextBox AndAlso eventArgs.Column.Header = "Cantidad" AndAlso Not IsNothing(lineaActual) AndAlso CType(textoNuevo, Short) <> lineaActual.cantidad Then
+        If esTextBox AndAlso eventArgs.Column.Header = "Cantidad" AndAlso Not IsNothing(lineaActual) AndAlso CType(textoNuevo, Short) <> lineaActual.Cantidad Then
             Await CargarDatosProducto(lineaActual.Producto, CType(textoNuevo, Short))
         End If
         If esTextBox AndAlso eventArgs.Column.Header = "Precio" OrElse eventArgs.Column.Header = "Descuento" Then
