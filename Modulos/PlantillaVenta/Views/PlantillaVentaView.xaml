@@ -358,7 +358,7 @@
                         <controlesusuario:SelectorDireccionEntrega Grid.Column="0" x:Name="selectorEntrega" Empresa="{Binding clienteSeleccionado.empresa}" Cliente="{Binding clienteSeleccionado.cliente}" DireccionCompleta="{Binding direccionEntregaSeleccionada, Mode=TwoWay}" TotalPedido="{Binding TotalPedidoPlazosPago}" VerticalContentAlignment="Stretch"></controlesusuario:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
                             <TextBlock TextWrapping="Wrap" Margin="3,0">Este comentario lo leerá la agencia y también el cliente, porque aparecerá en la factura:</TextBlock>
-                            <TextBox TextWrapping="Wrap" Text="{Binding direccionEntregaSeleccionada.comentarioRuta}" Margin="3,0"/>
+                            <TextBox TextWrapping="Wrap" Text="{Binding ComentarioRuta}" Margin="3,0"/>
                             <CheckBox Content="Servir Junto" IsChecked="{Binding direccionEntregaSeleccionada.servirJunto}" Margin="3,0"/>
                             <CheckBox Content="Mantener Junto" IsChecked="{Binding direccionEntregaSeleccionada.mantenerJunto}" Margin="3,0"/>
                             <TextBlock Margin="3,0">

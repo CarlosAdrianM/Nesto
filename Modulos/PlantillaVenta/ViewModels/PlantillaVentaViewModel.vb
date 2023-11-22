@@ -103,17 +103,6 @@ Public Class PlantillaVentaViewModel
         eventAggregator.GetEvent(Of ClienteCreadoEvent).Subscribe(AddressOf ActualizarCliente)
     End Sub
 
-    Private Sub ActualizarCliente(cliente As Clientes)
-        Dim clienteEncontrado As ClienteJson = listaClientes?.SingleOrDefault(Function(c) c.empresa = cliente.Empresa.Trim() AndAlso c.cliente = cliente.Nº_Cliente.Trim() AndAlso c.contacto = cliente.Contacto.Trim())
-        If Not IsNothing(clienteEncontrado) Then
-            clienteEncontrado.nombre = cliente.Nombre
-            clienteEncontrado.direccion = cliente.Dirección
-            clienteEncontrado.poblacion = cliente.Población
-            clienteEncontrado.comentarios = cliente.Comentarios
-            clienteEncontrado.estado = cliente.Estado
-            clienteEncontrado.cifNif = cliente.CIF_NIF
-        End If
-    End Sub
 
 
 #Region "Propiedades"
@@ -214,24 +203,15 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private Sub SeleccionarElCliente(value As ClienteJson)
-        SetProperty(_clienteSeleccionado, value)
-        RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
-        Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
-        cmdCargarProductosPlantilla.Execute()
-        cmdComprobarPendientes.Execute()
-        iva = clienteSeleccionado.iva
-        PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
-        RaisePropertyChanged(NameOf(clienteSeleccionado))
-    End Sub
-
-    Private Sub NavegarAClienteCrear(value As ClienteJson)
-        Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("empresaParameter", value.empresa)
-        parameters.Add("clienteParameter", value.cliente)
-        parameters.Add("contactoParameter", value.contacto)
-        regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters)
-    End Sub
+    Private _comentarioRuta As String
+    Public Property ComentarioRuta As String
+        Get
+            Return _comentarioRuta
+        End Get
+        Set(value As String)
+            SetProperty(_comentarioRuta, value)
+        End Set
+    End Property
 
     Private _direccionEntregaSeleccionada As DireccionesEntregaCliente
     Public Property direccionEntregaSeleccionada As DireccionesEntregaCliente
@@ -239,9 +219,15 @@ Public Class PlantillaVentaViewModel
             Return _direccionEntregaSeleccionada
         End Get
         Set(ByVal value As DireccionesEntregaCliente)
+            If ComentarioRuta = _direccionEntregaSeleccionada?.comentarioRuta Then
+                ComentarioRuta = String.Empty
+            End If
             SetProperty(_direccionEntregaSeleccionada, value)
             PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
             FormaPagoCliente = _direccionEntregaSeleccionada?.formaPago
+            If String.IsNullOrEmpty(ComentarioRuta) AndAlso Not IsNothing(_direccionEntregaSeleccionada) Then
+                ComentarioRuta = _direccionEntregaSeleccionada.comentarioRuta
+            End If
             If fechaEntrega < fechaMinimaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If
@@ -1426,7 +1412,7 @@ Public Class PlantillaVentaViewModel
                         .mantenerJunto = direccionEntregaSeleccionada.mantenerJunto,
                         .servirJunto = direccionEntregaSeleccionada.servirJunto,
                         .comentarioPicking = clienteSeleccionado.comentarioPicking,
-                        .comentarios = direccionEntregaSeleccionada.comentarioRuta,
+                        .comentarios = ComentarioRuta,
                         .Usuario = configuracion.usuario
                     }
 
@@ -1615,6 +1601,34 @@ Public Class PlantillaVentaViewModel
         End While
         Return nombreAmpliado
     End Function
+    Private Sub SeleccionarElCliente(value As ClienteJson)
+        SetProperty(_clienteSeleccionado, value)
+        RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
+        Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
+        cmdCargarProductosPlantilla.Execute()
+        cmdComprobarPendientes.Execute()
+        iva = clienteSeleccionado.iva
+        PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
+        RaisePropertyChanged(NameOf(clienteSeleccionado))
+    End Sub
+    Private Sub NavegarAClienteCrear(value As ClienteJson)
+        Dim parameters As NavigationParameters = New NavigationParameters()
+        parameters.Add("empresaParameter", value.empresa)
+        parameters.Add("clienteParameter", value.cliente)
+        parameters.Add("contactoParameter", value.contacto)
+        regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters)
+    End Sub
+    Private Sub ActualizarCliente(cliente As Clientes)
+        Dim clienteEncontrado As ClienteJson = listaClientes?.SingleOrDefault(Function(c) c.empresa = cliente.Empresa.Trim() AndAlso c.cliente = cliente.Nº_Cliente.Trim() AndAlso c.contacto = cliente.Contacto.Trim())
+        If Not IsNothing(clienteEncontrado) Then
+            clienteEncontrado.nombre = cliente.Nombre
+            clienteEncontrado.direccion = cliente.Dirección
+            clienteEncontrado.poblacion = cliente.Población
+            clienteEncontrado.comentarios = cliente.Comentarios
+            clienteEncontrado.estado = cliente.Estado
+            clienteEncontrado.cifNif = cliente.CIF_NIF
+        End If
+    End Sub
 
     Public Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
 

@@ -226,7 +226,7 @@ namespace Nesto.Modulos.CanalesExternos
                 {
                     porcentajeIva = PORCENTAJE_IVA_GENERAL;
                 }
-                decimal baseImponible = Math.Round(Convert.ToDecimal(orderItem.ItemPrice?.Amount) / 100 / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
+                decimal baseImponible = Math.Round(Convert.ToDecimal(orderItem.ItemPrice?.Amount) / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
                 short cantidad = ProcesarCantidad(orderItem);
                 LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
                 {
