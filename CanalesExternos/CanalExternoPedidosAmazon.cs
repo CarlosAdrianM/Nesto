@@ -82,7 +82,7 @@ namespace Nesto.Modulos.CanalesExternos
 
         private PedidoCanalExterno TransformarPedido(Order order)
         {
-            decimal orderTotal = Convert.ToDecimal(order.OrderTotal?.Amount) /100 * CambioDivisas;
+            decimal orderTotal = Convert.ToDecimal(order.OrderTotal?.Amount) * CambioDivisas;
             PedidoCanalExterno pedidoExterno = new PedidoCanalExterno();
             PedidoVentaDTO pedidoSalida = new PedidoVentaDTO();
 
@@ -121,7 +121,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 pedidoSalida.comentarios += string.Format("Importe original: {0} {1} (cambio {2})", order.OrderTotal.Amount.ToString(), order.OrderTotal.CurrencyCode, CambioDivisas.ToString()) + "\r\n";
             }
-            pedidoSalida.comentarios += "TOTAL PEDIDO: " + orderTotal.ToString("C");
+            pedidoSalida.comentarios += "TOTAL PEDIDO: " + orderTotal.ToString("C", new System.Globalization.CultureInfo("es-ES"));
                         
             pedidoSalida.fecha = DateTimeOffset.Parse(order.PurchaseDate).UtcDateTime;
             pedidoSalida.formaPago = "TRN";
@@ -249,7 +249,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (Convert.ToDecimal(orderItem.ShippingPrice?.Amount) != 0)
                 {
-                    decimal baseImponiblePortes = Math.Round(Convert.ToDecimal(orderItem.ShippingPrice.Amount) / 100 / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
+                    decimal baseImponiblePortes = Math.Round(Convert.ToDecimal(orderItem.ShippingPrice.Amount) / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
                     LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
                     {
                         almacen = canalCumplimiento == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV,
@@ -272,7 +272,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (Convert.ToDecimal(orderItem.ShippingDiscount?.Amount) != 0)
                 {
-                    decimal baseImponibleDescuentoPortes = Math.Round(Convert.ToDecimal(orderItem.ShippingDiscount.Amount) / 100 / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
+                    decimal baseImponibleDescuentoPortes = Math.Round(Convert.ToDecimal(orderItem.ShippingDiscount.Amount) / porcentajeIva * CambioDivisas, 2, MidpointRounding.AwayFromZero);
                     LineaPedidoVentaDTO lineaDescuentoPortes = new LineaPedidoVentaDTO
                     {
                         almacen = canalCumplimiento == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV,
