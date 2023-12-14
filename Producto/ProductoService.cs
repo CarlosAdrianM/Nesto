@@ -304,6 +304,72 @@ namespace Nesto.Modules.Producto
             return productoActual;
         }
 
+        public async Task<int> MontarKit(string producto, int cantidad)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = "Productos/MontarKit";
+                    var almacen = await configuracion.leerParametro(EmpresaDefecto, Parametros.Claves.AlmacenInventario);
+
+                    var parametros = new
+                    {
+                        empresa = EmpresaDefecto,
+                        almacen = almacen,
+                        producto = producto,
+                        cantidad = cantidad,
+                        usuario = configuracion.usuario
+                    };
+
+                    string jsonParametros = JsonConvert.SerializeObject(parametros);
+
+                    HttpContent content = new StringContent(jsonParametros, Encoding.UTF8, "application/json");
+                    //var content = new StringContent("{\"empresa\":\"1\",\"almacen\":\"ALG\",\"producto\":\"38697\",\"cantidad\":1}", Encoding.UTF8, "application/json");
+
+                    response = await client.PostAsync(urlConsulta, content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string contenido = await response.Content.ReadAsStringAsync();
+                        int traspaso = JsonConvert.DeserializeObject<int>(contenido);
+                        return traspaso;
+                    }
+                    else
+                    {
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+
+                        string errorMostrar = $"No se han podido traspasar los movimientos de producto\n";
+                        if (requestException != null && requestException["exceptionMessage"] != null)
+                        {
+                            errorMostrar += requestException["exceptionMessage"] + "\n";
+                        }
+                        if (requestException != null && requestException["ModelState"] != null)
+                        {
+                            var firstError = requestException["ModelState"];
+                            var nodoError = firstError.LastOrDefault();
+                            errorMostrar += nodoError.FirstOrDefault()[0];
+                        }
+                        var innerException = requestException != null ? requestException["InnerException"] : null;
+                        while (innerException != null)
+                        {
+                            errorMostrar += "\n" + innerException["ExceptionMessage"];
+                            innerException = innerException["InnerException"];
+                        }
+                        throw new Exception(errorMostrar);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+        }
+
         public async Task<bool> TraspasarDiario(string diarioOrigen, string diarioDestino, string almacenOrigen)
         {
             using (HttpClient client = new HttpClient())

@@ -12,6 +12,7 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <local:TabConverter x:Key="TabConverter"/>
     </UserControl.Resources>
 
     
@@ -155,7 +156,7 @@
 
         <Image Grid.Row="13" Grid.Column="1" Source="{Binding ProductoActual.UrlFoto}" Height="Auto" Width="Auto" Margin="0,0,10,0"/>
 
-        <TabControl Name="tabProducto" Grid.Column="2" Grid.RowSpan="99999" Margin="3,0" SelectedItem="{Binding PestannaSeleccionada}">
+        <TabControl Name="tabProducto" Grid.Column="2" Grid.RowSpan="99999" Margin="3,0" SelectedIndex="{Binding PestannaSeleccionada, Converter={StaticResource TabConverter}}">
             <TabItem Header="Filtros">
                 <Grid Margin="3">
                     <Grid.ColumnDefinitions>
@@ -223,6 +224,24 @@
             </TabItem>
             <TabItem Header="Clientes">
                 <DataGrid ItemsSource="{Binding ClientesResultadoBusqueda}" CanUserAddRows="False" IsReadOnly="True"/>
+            </TabItem>
+            <TabItem Header="Kit" IsEnabled="{Binding ProductoActual.EsKit}" Visibility="{Binding ProductoActual.EsKit,Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Kits a montar (negativo para desmontar)" HorizontalAlignment="Right" Margin="3"></TextBlock>
+                    <xctk:IntegerUpDown Grid.Row="1" Grid.Column="1" Margin="3" Value="{Binding CantidadKitMontar, UpdateSourceTrigger=PropertyChanged}"></xctk:IntegerUpDown>
+                    <Button Grid.Row="2" Grid.Column="1" Margin="3" Command="{Binding MontarKitCommand}">Montar kit</Button>
+                </Grid>
             </TabItem>
         </TabControl>
     </Grid>

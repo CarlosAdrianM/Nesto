@@ -25,7 +25,7 @@ namespace Nesto.Informes
         public string CodigoPostal { get; set; }
         public string Poblacion { get; set; }
 
-        public static async Task<List<DetalleRapportsModel>> CargarDatos(DateTime fechaDesde, DateTime fechaHasta)
+        public static async Task<List<DetalleRapportsModel>> CargarDatos(DateTime fechaDesde, DateTime fechaHasta, string cadenaVendedores)
         {
             List<DetalleRapportsModel> lista;
             using (NestoEntities db = new NestoEntities())
@@ -40,7 +40,7 @@ namespace Nesto.Informes
                 };
                 SqlParameter listaVendedores = new SqlParameter("@ListaVendedores", System.Data.SqlDbType.NVarChar)
                 {
-                    Value = ""
+                    Value = cadenaVendedores
                 };
                 lista = await db.Database.SqlQuery<DetalleRapportsModel>("prdInformeRapportEstado9 @FechaDesde, @FechaHasta, @ListaVendedores", fechaDesdeParam, fechaHastaParam, listaVendedores).ToListAsync();
             };

@@ -2,7 +2,6 @@
 Imports Prism.Regions
 Imports Prism.Modularity
 Imports Prism.RibbonRegionAdapter
-Imports Nesto.Contratos
 Imports Prism.Ioc
 Imports Prism.Unity
 Imports Unity
@@ -11,6 +10,7 @@ Imports Microsoft.Reporting.NETCore
 Imports System.Reflection
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
+Imports Nesto.Models
 
 <[Module](ModuleName:="MenuBarView")>
 Public Class MenuBarView
@@ -18,6 +18,8 @@ Public Class MenuBarView
     Private container As IUnityContainer
     Private regionManager As IRegionManager
     Private configuracion As IConfiguracion
+    Private servicioComisiones As ComisionesService
+    Private listaVendedoresEquipo As List(Of VendedorDTO)
 
     Private Sub btnVentasEmpresas_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVentasEmpresas.Click
         Select Case cmbOpciones.Text
@@ -61,7 +63,14 @@ Public Class MenuBarView
         End If
     End Sub
 
-    Private Sub btnRapport_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnRapport.Click
+    Private Async Function ComprobarSiEsJefeDeVentas() As Task
+        listaVendedoresEquipo = Await servicioComisiones.LeerVendedores()
+        If listaVendedoresEquipo.Any() Then
+            btnRapport.Visibility = Visibility.Visible
+        End If
+    End Function
+
+    Private Sub btnRapport_Click(sender As Object, e As RoutedEventArgs) Handles btnRapport.Click
         Select Case cmbOpciones.Text
             Case "Actual"
                 GenerarInformeRapports(Today, Today)
@@ -72,9 +81,16 @@ Public Class MenuBarView
         End Select
     End Sub
     Private Async Sub GenerarInformeRapports(FechaDesde As Date, FechaHasta As Date)
+        Dim cadenaVendedores As String
+        If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) Then
+            cadenaVendedores = String.Empty
+        Else
+            cadenaVendedores = String.Join(",", listaVendedoresEquipo.Select(Function(v) v.Vendedor))
+        End If
+
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.DetalleRapports.rdlc")
         'Dim nada = Assembly.LoadFrom("Informes").GetManifestResourceNames()
-        Dim dataSource As List(Of Informes.DetalleRapportsModel) = Await Informes.DetalleRapportsModel.CargarDatos(FechaDesde, FechaHasta)
+        Dim dataSource As List(Of Informes.DetalleRapportsModel) = Await Informes.DetalleRapportsModel.CargarDatos(FechaDesde, FechaHasta, cadenaVendedores)
         Dim report As LocalReport = New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("DetalleRapportsDataSet", dataSource))
@@ -236,9 +252,11 @@ Public Class MenuBarView
         Me.container = containerProvider.GetContainer()
         Me.regionManager = container.Resolve(Of IRegionManager)
         Me.configuracion = container.Resolve(Of Configuracion)
+        servicioComisiones = New ComisionesService(configuracion)
         Me.DataContext = New MainViewModel(container, regionManager)
         DataContext.Titulo = "Sin Título"
 
+        ComprobarSiEsJefeDeVentas()
 
         Dim view = Me
         If Not IsNothing(view) Then

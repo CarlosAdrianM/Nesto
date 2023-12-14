@@ -127,6 +127,8 @@ Public Class PlantillaVentaViewModel
                                                                      Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo)
                                                                      ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
                                                                      estaOcupado = False
+                                                                     fechaMinimaEntrega = Await ObtenerFechaMinimaEntregaAsync()
+                                                                     fechaEntrega = fechaMinimaEntrega
                                                                  End Sub))
             End If
         End Set
@@ -232,7 +234,7 @@ Public Class PlantillaVentaViewModel
                 fechaEntrega = fechaMinimaEntrega
             End If
             RaisePropertyChanged(NameOf(textoFacturacionElectronica))
-            RaisePropertyChanged(NameOf(fechaMinimaEntrega))
+            'RaisePropertyChanged(NameOf(fechaMinimaEntrega))
             ' Se hace así para que coja la fecha de hoy cuando se pueda
             ' Si lo hacemos en otro orden, da error porque ponemos una fecha
             ' menor a la que nos permite el datapicker
@@ -329,21 +331,23 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Public ReadOnly Property fechaMinimaEntrega As DateTime
+    Private _fechaMinimaEntrega As DateTime
+    Public Property fechaMinimaEntrega As DateTime
         Get
-            Dim fechaMinima As DateTime = IIf(Now.Hour < 11, Today, Today.AddDays(1))
-            If Not IsNothing(direccionEntregaSeleccionada) AndAlso Not IsNothing(direccionEntregaSeleccionada.ruta) Then
-                If direccionEntregaSeleccionada.ruta <> "FW" AndAlso
-                    direccionEntregaSeleccionada.ruta <> "00" AndAlso
-                    direccionEntregaSeleccionada.ruta <> "16" AndAlso
-                    direccionEntregaSeleccionada.ruta <> "AT" AndAlso
-                    direccionEntregaSeleccionada.ruta <> "OT" Then
-                    fechaMinima = Today
-                End If
-            End If
-            Return fechaMinima
+            Return _fechaMinimaEntrega
         End Get
+        Set
+            SetProperty(_fechaMinimaEntrega, Value)
+        End Set
     End Property
+
+    Public Async Function ObtenerFechaMinimaEntregaAsync() As Task(Of DateTime)
+        Try
+            Return Await servicio.CalcularFechaEntrega(DateTime.Now, direccionEntregaSeleccionada?.ruta, almacenSeleccionado?.Codigo)
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        End Try
+    End Function
 
     Private _filtroCliente As String
     Public Property filtroCliente As String
@@ -630,9 +634,9 @@ Public Class PlantillaVentaViewModel
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
             RaisePropertyChanged(NameOf(MandarCobroTarjeta))
-            If (Not IsNothing(_plazoPagoSeleccionado)) Then
-                cmdCalcularSePuedeServirPorGlovo.Execute()
-            End If
+            'If (Not IsNothing(_plazoPagoSeleccionado)) Then
+            '    cmdCalcularSePuedeServirPorGlovo.Execute()
+            'End If
         End Set
     End Property
 
@@ -993,6 +997,7 @@ Public Class PlantillaVentaViewModel
             estaOcupado = False
         End Try
 
+        fechaMinimaEntrega = Await ObtenerFechaMinimaEntregaAsync()
     End Sub
 
     Private _cargarCorreoYMovilTarjeta As DelegateCommand
@@ -1039,6 +1044,7 @@ Public Class PlantillaVentaViewModel
         If IsNothing(clienteSeleccionado) Then
             Return
         End If
+        fechaMinimaEntrega = Await ObtenerFechaMinimaEntregaAsync()
 
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
         RaisePropertyChanged(NameOf(SePuedeFinalizar))
@@ -1174,7 +1180,6 @@ Public Class PlantillaVentaViewModel
             End Try
 
         End Using
-
     End Sub
 
     Private _cmdCargarUltimasVentas As DelegateCommand(Of Object)
@@ -1504,6 +1509,7 @@ Public Class PlantillaVentaViewModel
     End Sub
 
     Private _cmdCalcularSePuedeServirPorGlovo As DelegateCommand
+
     Public Property cmdCalcularSePuedeServirPorGlovo As DelegateCommand
         Get
             Return _cmdCalcularSePuedeServirPorGlovo

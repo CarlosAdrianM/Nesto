@@ -24,10 +24,10 @@ namespace Nesto.Modulos.Producto
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
             ProductoViewModel viewModel = (ProductoViewModel)DataContext;
-            if (viewModel.PestannaSeleccionada == null)
-            {
-                viewModel.PestannaSeleccionada = (TabItem)tabProducto.Items[0];
-            }
+            //if (viewModel.PestannaSeleccionada == null)
+            //{
+            //    viewModel.PestannaSeleccionada = (TabItem)tabProducto.Items[0];
+            //}
             txtFiltroNombre.Focus();
             Keyboard.Focus(txtFiltroNombre);
             txtReferencia.SelectAll();
@@ -113,6 +113,19 @@ namespace Nesto.Modulos.Producto
             object parameter, CultureInfo culture)
         {
             return null;
+        }
+    }
+
+    public class TabConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return (int)value;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            return (Pestannas)value;
         }
     }
 }

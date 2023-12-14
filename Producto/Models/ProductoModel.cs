@@ -9,6 +9,7 @@ namespace Nesto.Modules.Producto.Models
     {
         public ProductoModel()
         {
+            ProductosKit = new List<ProductoKit>();
             Stocks = new List<StockProducto>();
         }
         public string Producto { get; set; }
@@ -18,6 +19,7 @@ namespace Nesto.Modules.Producto.Models
         public string Familia { get; set; }
         public decimal PrecioProfesional { get; set; }
         public decimal PrecioPublicoFinal { get; set; }
+        public bool EsKit { get => ProductosKit != null && ProductosKit.Any(); }
         public short Estado { get; set; }
         public string Grupo { get; set; }
         public string Subgrupo { get; set; }
@@ -25,6 +27,8 @@ namespace Nesto.Modules.Producto.Models
         public string UrlFoto { get; set; }
         public bool RoturaStockProveedor { get; set; }
         public int Stock => Stocks?.Sum(s => s.Stock) ?? 0;
+        
+        public ICollection<ProductoKit> ProductosKit { get; set; }
         public ICollection<StockProducto> Stocks { get; set; }
 
         public bool Contains(string filtro)

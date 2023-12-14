@@ -4,21 +4,16 @@ Imports System.Windows
 Imports System.Globalization
 Imports Prism.Commands
 Imports Nesto.Modulos.PedidoVenta
-Imports System.Threading.Tasks
 Imports System.Net.Http
-Imports Nesto.Contratos
 Imports Newtonsoft.Json
 Imports System.Windows.Media
 Imports Nesto.Models.Nesto.Models
-Imports Prism.Ioc
 Imports Unity
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
-Imports ControlesUsuario.Models
 
 Public Class ComisionesViewModel
     Inherits BindableBase
@@ -101,7 +96,9 @@ Public Class ComisionesViewModel
             Return _vendedorActual
         End Get
         Set(value As VendedorDTO)
-
+            If _vendedorActual?.Vendedor = value?.Vendedor Then
+                Return
+            End If
             _vendedorActual = value
             RaisePropertyChanged("vendedorActual")
             RaisePropertyChanged("MostrarPanelAntiguo")

@@ -19,6 +19,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using Microsoft.Reporting.NETCore;
+using System.Threading.Tasks;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
@@ -34,7 +35,7 @@ namespace Nesto.Modules.Producto.ViewModels
         private string _filtroNombre;
         private string _filtroFamilia;
         private string _filtroSubgrupo;
-        private TabItem _pestannaSeleccionada;
+        private Pestannas _pestannaSeleccionada;
         private ProductoModel _productoActual;
         private ProductoModel _productoResultadoSeleccionado;
         private ObservableCollection<ProductoClienteModel> _clientesResultadoBusqueda;
@@ -60,6 +61,7 @@ namespace Nesto.Modules.Producto.ViewModels
             BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
             GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
             ImprimirEtiquetasProductoCommand = new DelegateCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
+            MontarKitCommand = new DelegateCommand(OnMontarKit, CanMontarKit);
             SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
 
             Titulo = "Producto";
@@ -68,7 +70,7 @@ namespace Nesto.Modules.Producto.ViewModels
             EsDelGrupoTiendas = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS);
         }
 
-        public async void CargarProducto(string productoId)
+        public async Task CargarProducto(string productoId)
         {
             try
             {
@@ -76,6 +78,10 @@ namespace Nesto.Modules.Producto.ViewModels
                 ControlStock = null;
                 ProductoActual = await Servicio.LeerProducto(productoId);
                 Titulo = "Producto " + ProductoActual.Producto;
+                if (PestannaSeleccionada == Pestannas.Kits && !ProductoActual.EsKit)
+                {
+                    PestannaSeleccionada = Pestannas.Filtros;
+                }
                 if (ProductoActual.Estado == Constantes.Productos.Estados.EN_STOCK && (EsDelGrupoCompras || EsDelGrupoTiendas))
                 {
                     ControlStock = new ControlStockProductoWrapper(await Servicio.LeerControlStock(ProductoActual.Producto).ConfigureAwait(true));
@@ -105,6 +111,16 @@ namespace Nesto.Modules.Producto.ViewModels
 
 
         #region "Propiedades Nesto"
+        private int _cantidadKitMontar = 1;
+        public int CantidadKitMontar
+        {
+            get => _cantidadKitMontar;
+            set 
+            { 
+                SetProperty(ref _cantidadKitMontar, value);
+                MontarKitCommand.RaiseCanExecuteChanged();
+            }
+        }
         public ObservableCollection<ProductoClienteModel> ClientesResultadoBusqueda
         {
             get { return _clientesResultadoBusqueda; }
@@ -163,13 +179,17 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public bool MostrarBarraBusqueda => ProductosResultadoBusqueda != null && ProductosResultadoBusqueda.Lista != null && ProductosResultadoBusqueda.Lista.Any();
 
-        public TabItem PestannaSeleccionada
+        public Pestannas PestannaSeleccionada
         {
             get { return _pestannaSeleccionada; }
             set
             {
                 SetProperty(ref _pestannaSeleccionada, value);
-                if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
+                //if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
+                //{
+                //    BuscarClientesCommand.Execute();
+                //}
+                if (PestannaSeleccionada == Pestannas.Clientes)
                 {
                     BuscarClientesCommand.Execute();
                 }
@@ -182,7 +202,11 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 SetProperty(ref _productoActual, value);
-                if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
+                //if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
+                //{
+                //    BuscarClientesCommand.Execute();
+                //}
+                if (PestannaSeleccionada == Pestannas.Clientes)
                 {
                     BuscarClientesCommand.Execute();
                 }
@@ -366,6 +390,32 @@ namespace Nesto.Modules.Producto.ViewModels
 
         }
 
+        public DelegateCommand MontarKitCommand { get; private set; }
+        private bool CanMontarKit()
+        {
+            return CantidadKitMontar != 0;
+        }
+        private async void OnMontarKit()
+        {
+            try
+            {
+                var traspaso = await Servicio.MontarKit(ProductoActual.Producto, CantidadKitMontar);
+                if (traspaso != 0)
+                {
+                    ProductoActual = await Servicio.LeerProducto(ProductoActual.Producto);
+                    DialogService.ShowNotification($"Creado el kit con nº de traspaso {traspaso}");
+                }
+                else
+                {
+                    DialogService.ShowError("No se ha podido crear el kit");
+                }
+            }
+            catch (Exception ex)
+            {
+                DialogService.ShowError(ex.Message);
+            }            
+        }
+
         public ICommand SeleccionarProductoCommand { get; private set; }        
 
         private bool CanSeleccionarProducto()
@@ -424,5 +474,12 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             GuardarProductoCommand.RaiseCanExecuteChanged();
         }
+    }
+
+    public enum Pestannas
+    {
+        Filtros = 0,
+        Clientes = 1,
+        Kits = 2
     }
 }

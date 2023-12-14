@@ -25,6 +25,7 @@ Public Class InventarioModel
         Public Property Pasillo As String
         Public Property Fila As String
         Public Property Columna As String
+        Public Property Usuario As String
     End Class
 
     Public Class Movimiento

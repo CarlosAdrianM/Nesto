@@ -1,6 +1,4 @@
-﻿Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
-
-Partial Public Class PlantillaVentaView
+﻿Partial Public Class PlantillaVentaView
     Public Sub New()
         ' Llamada necesaria para el diseñador.
         InitializeComponent()

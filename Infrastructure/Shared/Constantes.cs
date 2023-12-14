@@ -175,6 +175,12 @@ namespace Nesto.Infrastructure.Shared
             public const string PROVEEDOR = "3";
         }
 
+        public class Ubicaciones {
+            public const int ESTADO_A_BORRAR = -100;
+            public const int ESTADO_A_MODIFICAR = -101;
+            public const int ESTADO_REGISTRO_MONTAR_KITS = -102;
+        }
+
         public class Vendedores
         {
             public const string VENDEDOR_POR_DEFECTO = "NV";

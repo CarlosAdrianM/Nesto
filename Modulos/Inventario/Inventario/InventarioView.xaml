@@ -59,10 +59,10 @@
             <TabItem Name="tabRecientes" Header="Recientes">
                 <DataGrid Name="dgrRecientes" ItemsSource="{Binding movimientosDia}" AutoGenerateColumns="False" IsReadOnly="True" SelectedItem="{Binding movimientoActual, Mode=TwoWay}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
-                        <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="2*" />
-                        <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
-                        <DataGridTextColumn Header="Stock" Binding="{Binding Cantidad}" />
+                        <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" Width="Auto"/>
+                        <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" />
+                        <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" Width="Auto"/>
+                        <DataGridTextColumn Header="Stock" Binding="{Binding Cantidad}" Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
@@ -72,10 +72,10 @@
                         <Button DockPanel.Dock="Top" Command="{Binding cmdActualizarMovimientos}">Actualizar</Button>
                         <DataGrid DockPanel.Dock="Bottom" Name="dgrCompleto" ItemsSource="{Binding movimientosTotal}" AutoGenerateColumns="False" IsReadOnly="True">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
-                                <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="2*" />
-                                <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
-                                <DataGridTextColumn Header="Stock" Binding="{Binding StockReal}" />
+                                <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" Width="Auto"/>
+                                <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" />
+                                <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" Width="Auto"/>
+                                <DataGridTextColumn Header="Stock" Binding="{Binding StockReal}" Width="Auto"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>

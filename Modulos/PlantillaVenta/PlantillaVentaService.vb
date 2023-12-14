@@ -3,12 +3,11 @@ Imports System.Net.Http
 Imports System.Text
 Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.[Shared]
 Imports Nesto.Models
-Imports Nesto.Models.LineaPedidoVentaDTO
 Imports Nesto.Modulos.Cliente
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
@@ -288,6 +287,27 @@ Public Class PlantillaVentaService
 
             End Try
 
+        End Using
+    End Function
+
+    Public Async Function CalcularFechaEntrega(fecha As Date, ruta As String, almacen As String) As Task(Of Date) Implements IPlantillaVentaService.CalcularFechaEntrega
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Try
+                Dim urlConsulta As String = $"PedidosVenta/FechaAjustada?fecha={fecha.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}&ruta={ruta}&almacen={almacen}"
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    Dim fechaAjustada As DateTime = JsonConvert.DeserializeObject(Of DateTime)(cadenaJson)
+                    Return fechaAjustada
+                Else
+                    Throw New Exception("Se ha producido un error al calcular la fecha de entrega")
+                End If
+            Catch ex As Exception
+                Throw New Exception(ex.Message)
+            End Try
         End Using
     End Function
 

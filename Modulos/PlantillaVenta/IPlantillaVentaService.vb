@@ -2,7 +2,6 @@
 Imports Nesto.Models
 Imports Nesto.Modulos.Cliente
 Imports Nesto.Modulos.PedidoVenta
-Imports Nesto.Modulos.PlantillaVenta.PlantillaVentaModel
 
 Public Interface IPlantillaVentaService
     Function CargarCliente(empresa As String, cliente As String, contacto As String) As Task(Of ClienteCrear)
@@ -14,4 +13,5 @@ Public Interface IPlantillaVentaService
     Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO)
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
+    Function CalcularFechaEntrega(fecha As DateTime, ruta As String, almacen As String) As Task(Of DateTime)
 End Interface

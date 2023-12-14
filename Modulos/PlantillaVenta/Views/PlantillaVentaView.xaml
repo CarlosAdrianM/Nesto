@@ -347,7 +347,7 @@
                                        Description="¿Dónde quiere que le entreguemos el pedido?">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="Enter">
-                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarDireccionesEntrega, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasVenta, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                     <Grid>
@@ -388,7 +388,7 @@
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="Enter">
                             <!--i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" /-->
-                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasVenta, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                            
                             <!--i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarPlazosPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" /-->
                         </i:EventTrigger>
                     </i:Interaction.Triggers>

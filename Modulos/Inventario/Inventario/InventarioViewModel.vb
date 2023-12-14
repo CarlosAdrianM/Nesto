@@ -25,11 +25,12 @@ Public Class InventarioViewModel
         Me.configuracion = configuracion
         Me.dialogService = dialogService
 
-        cmdAbrirInventario = New DelegateCommand(Of Object)(AddressOf OnAbrirInventario, AddressOf CanAbrirInventario)
-        cmdActualizarLineaInventario = New DelegateCommand(Of Object)(AddressOf OnActualizarLineaInventario, AddressOf CanActualizarLineaInventario)
-        cmdActualizarMovimientos = New DelegateCommand(Of Object)(AddressOf OnActualizarMovimientos, AddressOf CanActualizarMovimientos)
-        cmdCrearLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnCrearLineaInventario, AddressOf CanCrearLineaInventario)
-        cmdInsertarProducto = New DelegateCommand(Of String)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
+        cmdAbrirInventario = New DelegateCommand(AddressOf OnAbrirInventario)
+        cmdActualizarLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnActualizarLineaInventario)
+        cmdActualizarMovimientos = New DelegateCommand(AddressOf OnActualizarMovimientos)
+
+        cmdCrearLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnCrearLineaInventario)
+        cmdInsertarProducto = New DelegateCommand(Of String)(AddressOf OnInsertarProducto)
 
         Titulo = "Inventario Tienda"
 
@@ -146,35 +147,29 @@ Public Class InventarioViewModel
 
 #Region "Comandos"
 
-    Private _cmdAbrirInventario As DelegateCommand(Of Object)
-    Public Property cmdAbrirInventario As DelegateCommand(Of Object)
+    Private _cmdAbrirInventario As DelegateCommand
+    Public Property cmdAbrirInventario As DelegateCommand
         Get
             Return _cmdAbrirInventario
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdAbrirInventario, value)
         End Set
     End Property
-    Private Function CanAbrirInventario(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Sub OnAbrirInventario(arg As Object)
+    Private Sub OnAbrirInventario()
         regionManager.RequestNavigate("MainRegion", "InventarioView")
     End Sub
 
-    Private _cmdActualizarMovimientos As DelegateCommand(Of Object)
-    Public Property cmdActualizarMovimientos As DelegateCommand(Of Object)
+    Private _cmdActualizarMovimientos As DelegateCommand
+    Public Property cmdActualizarMovimientos As DelegateCommand
         Get
             Return _cmdActualizarMovimientos
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand)
             SetProperty(_cmdActualizarMovimientos, value)
         End Set
     End Property
-    Private Function CanActualizarMovimientos(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Sub OnActualizarMovimientos(arg As Object)
+    Private Async Sub OnActualizarMovimientos()
         Using client As New HttpClient
             estaOcupado = True
 
@@ -205,29 +200,23 @@ Public Class InventarioViewModel
 
     End Sub
 
-    Private _cmdActualizarLineaInventario As DelegateCommand(Of Object)
-    Public Property cmdActualizarLineaInventario As DelegateCommand(Of Object)
+    Private _cmdActualizarLineaInventario As DelegateCommand(Of InventarioDTO)
+    Public Property cmdActualizarLineaInventario As DelegateCommand(Of InventarioDTO)
         Get
             Return _cmdActualizarLineaInventario
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand(Of InventarioDTO))
             SetProperty(_cmdActualizarLineaInventario, value)
         End Set
     End Property
-    Private Function CanActualizarLineaInventario(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Function OnActualizarLineaInventario(arg As Object) As Task(Of Movimiento)
+    Private Async Function OnActualizarLineaInventario(linea As InventarioDTO) As Task(Of Movimiento)
         Using client As New HttpClient
             'estaOcupado = True
 
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
-
-            Dim linea As InventarioDTO = arg
-
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
-
+            linea.Usuario = configuracion.usuario
             Try
                 response = Await client.PutAsync("Inventarios/" + linea.NumOrden.ToString, content)
 
@@ -267,16 +256,13 @@ Public Class InventarioViewModel
             SetProperty(_cmdInsertarProducto, value)
         End Set
     End Property
-    Private Function CanInsertarProducto(prod As String) As Boolean
-        Return True
-    End Function
     Private Async Function OnInsertarProducto(prod As String) As Task(Of Movimiento)
 
         Dim linea As InventarioDTO
         Try
             linea = Await buscarInventario(EMPRESA_DEFECTO, almacen, fechaSeleccionada, prod).ConfigureAwait(True)
         Catch ex As Exception
-
+            Exit Function
         End Try
 
         Dim movimientoModificado As Movimiento
@@ -308,17 +294,14 @@ Public Class InventarioViewModel
             SetProperty(_cmdCrearLineaInventario, value)
         End Set
     End Property
-    Private Function CanCrearLineaInventario(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Function OnCrearLineaInventario(arg As Object) As Task(Of Movimiento)
+    Private Async Function OnCrearLineaInventario(linea As InventarioDTO) As Task(Of Movimiento)
         Using client As New HttpClient
             'estaOcupado = True
 
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
-            Dim linea As InventarioDTO = arg
+            'Dim linea As InventarioDTO = arg
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
 
@@ -326,7 +309,7 @@ Public Class InventarioViewModel
                 Dim nuevoMovimiento As Movimiento
                 response = Await client.PostAsync("Inventarios", content)
 
-                Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
+                Dim cadenaError As String = Await response.Content.ReadAsStringAsync()
                 Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
 
                 If Not response.IsSuccessStatusCode Then

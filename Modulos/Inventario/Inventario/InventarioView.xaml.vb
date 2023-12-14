@@ -1,6 +1,4 @@
-﻿Imports Nesto.Contratos
-
-Class InventarioView
+﻿Class InventarioView
 
 
 
@@ -12,9 +10,7 @@ Class InventarioView
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.DataContext = viewModel
 
-        ' Ponemos el foco inicial en Fecha
-        'Keyboard.Focus(txtFecha)
-        txtFecha.Focus()
+
     End Sub
 
     Dim teclaSuelta As Boolean = False
@@ -79,7 +75,23 @@ Class InventarioView
 
     Private Sub tclMovimientos_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles tclMovimientos.SelectionChanged
         If tabCompleto.IsSelected Then
-            DataContext.cmdActualizarMovimientos.Execute(Nothing)
+            DataContext.cmdActualizarMovimientos.Execute
+        End If
+    End Sub
+
+    Private Sub txtProducto_Loaded(sender As Object, e As RoutedEventArgs) Handles txtProducto.Loaded
+        ' Ponemos el foco inicial en Fecha
+        'Keyboard.Focus(txtFecha)
+        txtFecha.Focus()
+    End Sub
+
+    Private Sub txtFecha_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtFecha.GotFocus
+        txtFecha.SelectAll()
+    End Sub
+
+    Private Sub txtFecha_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFecha.KeyUp
+        If e.Key = Key.Return Then
+            txtProducto.Focus()
         End If
     End Sub
 End Class
