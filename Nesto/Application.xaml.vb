@@ -25,6 +25,8 @@ Imports Nesto.Modulos.PedidoCompra
 Imports Nesto.Infrastructure.Contracts
 Imports ControlesUsuario.ViewModels
 Imports ControlesUsuario.Services
+Imports Cajas
+Imports Nesto.Modulos.Cajas
 
 Partial Public Class Application
 
@@ -66,6 +68,8 @@ Partial Public Class Application
         containerRegistry.Register(GetType(IPedidoCompra), GetType(Nesto.Modulos.PedidoCompra.PedidoCompra))
         containerRegistry.Register(GetType(IClienteComercialService), GetType(ClienteComercialService))
         containerRegistry.Register(GetType(ISelectorClienteService), GetType(SelectorClienteService))
+        containerRegistry.Register(GetType(ICajas), GetType(Cajas))
+        containerRegistry.Register(GetType(IContabilidadService), GetType(ContabilidadService))
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
@@ -106,6 +110,9 @@ Partial Public Class Application
 
         ' Pedido de Compra - 17/11/21
         moduleCatalog.AddModule(GetType(IPedidoCompra))
+
+        ' Cajas - 19/12/23
+        moduleCatalog.AddModule(GetType(ICajas))
     End Sub
 
     Protected Overrides Sub ConfigureRegionAdapterMappings(regionAdapterMappings As RegionAdapterMappings)

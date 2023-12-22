@@ -14,6 +14,7 @@ Imports Prism.Services.Dialogs
 Imports Azure.Identity
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Infrastructure.Contracts
+Imports System.Collections.Specialized
 
 Public Class RemesasViewModel
     Inherits BindableBase
@@ -288,7 +289,7 @@ Public Class RemesasViewModel
         Return Not remesaActual Is Nothing
     End Function
     Private Async Sub CrearFicheroRemesa(ByVal param As Object)
-        Dim strContenido As String
+        Dim strContenido As String = String.Empty
         Dim listaContenido As List(Of String)
         Dim codigo As String
         codigo = tipoRemesaActual.id
@@ -302,15 +303,22 @@ Public Class RemesasViewModel
             Await Task.Run(Sub()
                                listaContenido = crearFicheroRemesa(remesaActual.Número, codigo, fechaCobro)
                                DbContext.Database.CommandTimeout = 180
-                               strContenido = ""
                                For Each linea In listaContenido
-                                   strContenido = strContenido + linea
+                                   strContenido += linea
                                Next
-                               contenidoFichero = XDocument.Parse(strContenido)
-                               contenidoFichero.Save(nombreFichero)
-                               mensajeError = "Fichero " + nombreFichero + " creado correctamente"
                            End Sub)
+            contenidoFichero = XDocument.Parse(strContenido)
+            contenidoFichero.Save(nombreFichero)
+            Dim listaClipboard As StringCollection
+            If Clipboard.ContainsFileDropList Then
+                listaClipboard = Clipboard.GetFileDropList()
+            Else
+                listaClipboard = New StringCollection
+            End If
 
+            listaClipboard.Add(nombreFichero)
+            Clipboard.SetFileDropList(listaClipboard)
+            mensajeError = "Fichero " + nombreFichero + " creado correctamente (copiado al portapapeles)"
         Catch ex As Exception
             If IsNothing(ex.InnerException) Then
                 mensajeError = ex.Message

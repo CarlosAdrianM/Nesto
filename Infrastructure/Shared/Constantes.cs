@@ -36,11 +36,16 @@ namespace Nesto.Infrastructure.Shared
         {
             public const string COMPRAS = "compras@nuevavision.es";
         }
+        public class Cuentas
+        {
+            public const string CAJA_PENDIENTE_RECIBIR_TIENDAS = "57000016";
+        }
 
         public class DiariosContables
-        {
-            public const string DIARIO_REEMBOLSOS = "_Reembolso";
+        {            
             public const string DIARIO_PAGO_REEMBOLSOS = "_PagoReemb";
+            public const string DIARIO_REEMBOLSOS = "_Reembolso";
+            public const string DIARIO_TRASPASOS_CAJA = "_TraspCaja";
         }
         public class Empresas
         {

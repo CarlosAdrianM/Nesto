@@ -167,6 +167,7 @@
     <ProjectReference Include="..\CanalesExternos\CanalesExternos.csproj" />
     <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
     <ProjectReference Include="..\Informes\Informes.csproj" />
+    <ProjectReference Include="..\Modulos\Cajas\Cajas.csproj" />
     <ProjectReference Include="..\Modulos\CarteraPagos\CarteraPagos\CarteraPagos.vbproj" />
     <ProjectReference Include="..\Modulos\Cliente\Cliente.csproj" />
     <ProjectReference Include="..\Modulos\Inventario\Inventario\Inventario.vbproj" />

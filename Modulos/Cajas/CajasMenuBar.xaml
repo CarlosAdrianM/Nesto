@@ -1,0 +1,20 @@
+﻿<UserControl x:Class="Nesto.Modulos.Cajas.CajasMenuBar"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Nesto.Modulos.Cajas"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800">
+
+    <Ribbon x:Name="MainMenu" x:FieldModifier="protected internal">
+        <RibbonTab x:Name="tabContabilidad"
+                        Header="Contabilidad">
+            <RibbonGroup x:Name="grpCajas"
+                            Header="Cajas">
+                <RibbonButton Label="Cajas" LargeImageSource="Images/Cajas.png"  Command="{Binding AbrirModuloCajasCommand}" />
+
+            </RibbonGroup>
+        </RibbonTab>
+    </Ribbon>
+</UserControl>

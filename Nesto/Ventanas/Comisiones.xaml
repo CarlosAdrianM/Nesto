@@ -255,107 +255,48 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Grid Grid.Column="0">
-                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10" Margin="3">
-                            <Grid ToolTip="General (sin Unión Láser, ni Otros Aparatos)">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[0].Nombre, Mode=OneWay}"></TextBlock>
-                                <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                                <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                                <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[0].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            </Grid>
-                        </Border>
-                    </Grid>
+                    <ScrollViewer Grid.Column="0" Grid.ColumnSpan="4" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Hidden">
+                        <ItemsControl ItemsSource="{Binding Path=ComisionAnualResumenActual.Etiquetas}" Margin="3">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10" Margin="3" MinWidth="250">
+                                        <Grid ToolTip="{Binding Nombre}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Nombre, Mode=OneWay}"></TextBlock>
+                                            <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
+                                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                            <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
+                                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                                            <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
+                                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                    
 
-                    <Grid Grid.Column="1">
-                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
-                            <Grid ToolTip="Unión Láser">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[1].Nombre, Mode=OneWay}"></TextBlock>
-                                <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                                <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                                <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[1].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            </Grid>
-                        </Border>
-                    </Grid>
-
-                    <Grid Grid.Column="2" Visibility="{Binding MostrarColumnaTres, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
-                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
-                            <Grid ToolTip="Eva Visnú">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[2].Nombre, Mode=OneWay}"></TextBlock>
-                                <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                                <Label Grid.Row="2" Grid.Column="0" Content="% Extra:"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                                <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[2].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            </Grid>
-                        </Border>
-                    </Grid>
-
-                    <Grid Grid.Column="3" Visibility="{Binding MostrarColumnaCuatro, Converter={StaticResource BoolToVis}, FallbackValue=Visible}">
-                        <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3">
-                            <Grid ToolTip="Otros Aparatos">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Path=ComisionAnualResumenActual.Etiquetas[3].Nombre, Mode=OneWay}"></TextBlock>
-                                <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                                <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
-                                <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                                <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                                <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding  Path=ComisionAnualResumenActual.Etiquetas[3].Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                            </Grid>
-                        </Border>
-                    </Grid>
 
                     <Grid Grid.Column="4">
                         <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3" Background="AliceBlue">
                             <Grid ToolTip="Totales Año">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
@@ -379,7 +320,7 @@
                         <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10"  Margin="3" Background="AliceBlue">
                             <Grid ToolTip="Totales Mes">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>

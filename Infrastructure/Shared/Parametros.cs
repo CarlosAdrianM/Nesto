@@ -9,8 +9,10 @@
             public const string AlmacenPedidoVta = "AlmacénPedidoVta";
             public const string AlmacenReposición = "AlmacénReposición";
             public const string AlmacenRuta = "AlmacénRuta";
+            public const string CajaDefecto = "CajaDefecto";
             public const string DelegacionDefecto = "DelegaciónDefecto";
             public const string EmpresaPorDefecto = "EmpresaPorDefecto";
+            public const string FormaVentaDefecto = "FormaVentaDefecto";
             public const string ImpresoraAgencia = "ImpresoraAgencia";
             public const string ImpresoraBolsas = "ImpresoraBolsas";
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";
