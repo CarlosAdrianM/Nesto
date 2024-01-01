@@ -2,7 +2,64 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-    xmlns:local="clr-namespace:Nesto.Views">
+    xmlns:local="clr-namespace:Nesto.Views"
+    xmlns:models="clr-namespace:Nesto.Models;assembly=Models">
+
+    <UserControl.Resources>
+        <!-- Plantilla para IEtiquetaVenta -->
+        <DataTemplate DataType="{x:Type models:EtiquetaComisionVenta}">
+            <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10" Margin="3" MinWidth="250">
+                <Grid ToolTip="{Binding Nombre}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Nombre, Mode=OneWay}"></TextBlock>
+                    <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                    <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
+                    <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Plantilla para IEtiquetaClientes -->
+        <DataTemplate DataType="{x:Type models:EtiquetaComisionClientes}">
+            <!-- ... Tu plantilla para IEtiquetaClientes ... -->
+            <Border BorderBrush="BlueViolet" BorderThickness="2" CornerRadius="10" Margin="3" MinWidth="250">
+                <Grid ToolTip="{Binding Nombre}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Nombre, Mode=OneWay}"></TextBlock>
+                    <Label Grid.Row="1" Grid.Column="0" Content="Conseguidos:"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding Recuento, Mode=OneWay}" HorizontalContentAlignment="Right"/>
+                    <Label Grid.Row="2" Grid.Column="0" Content="Comisión (€):"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding Tipo, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                    <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
+                    <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Selector de DataTemplate -->
+        
+    </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Cargando comisiones...">
 
@@ -262,31 +319,6 @@
                                     <StackPanel Orientation="Horizontal"/>
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderBrush="Blue" BorderThickness="2" CornerRadius="10" Margin="3" MinWidth="250">
-                                        <Grid ToolTip="{Binding Nombre}">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14" Text="{Binding Nombre, Mode=OneWay}"></TextBlock>
-                                            <Label Grid.Row="1" Grid.Column="0" Content="Total Venta:"/>
-                                            <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding Venta, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                                            <Label Grid.Row="2" Grid.Column="0" Content="% Comisión:"/>
-                                            <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding Tipo, Mode=OneWay, StringFormat=P}" HorizontalContentAlignment="Right"/>
-                                            <Label Grid.Row="3" Grid.Column="0" Content="Total Comisión:"/>
-                                            <TextBox Grid.Row="3" Grid.Column="1" Margin="3" Text="{Binding Comision, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
                     

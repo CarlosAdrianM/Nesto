@@ -1,8 +1,9 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Globalization
+Imports Nesto.Models
 Imports Nesto.ViewModels
 
-Public Class Comisiones
+Partial Public Class Comisiones
     Public Sub New(viewModel As ComisionesViewModel)
 
         ' Esta llamada es exigida por el diseñador.
