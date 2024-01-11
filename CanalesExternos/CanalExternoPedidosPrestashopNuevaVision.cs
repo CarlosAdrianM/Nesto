@@ -190,6 +190,7 @@ namespace Nesto.Modulos.CanalesExternos
                 if (pedidoSalida.iva != null)
                 {
                     lineaPortes.PrecioUnitario = lineaPortes.PrecioUnitario / (decimal)1.21;
+                    lineaPortes.PorcentajeIva = .21M;
                 }
 
                 pedidoSalida.Lineas.Add(lineaPortes);
@@ -218,6 +219,7 @@ namespace Nesto.Modulos.CanalesExternos
                 if (pedidoSalida.iva != null)
                 {
                     lineaEmbalaje.PrecioUnitario = lineaEmbalaje.PrecioUnitario / (decimal)1.21;
+                    lineaEmbalaje.PorcentajeIva = .21M;
                 }
 
                 pedidoSalida.Lineas.Add(lineaEmbalaje);
@@ -246,6 +248,7 @@ namespace Nesto.Modulos.CanalesExternos
                 if (pedidoSalida.iva != null)
                 {
                     lineaCupon.PrecioUnitario = lineaCupon.PrecioUnitario / (decimal)1.21;
+                    lineaCupon.PorcentajeIva = .21M;
                 }
 
                 pedidoSalida.Lineas.Add(lineaCupon);

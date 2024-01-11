@@ -14,6 +14,6 @@ namespace Nesto.Modules.Producto
         Task GuardarControlStock(ControlStock controlStock);
         Task CrearControlStock(ControlStock controlStock);
         Task<bool> TraspasarDiario(string id1, string id2, string almacenOrigen);
-        Task<int> MontarKit(string producto, int cantidad);
+        Task<int> MontarKit(string almacen, string producto, int cantidad);
     }
 }

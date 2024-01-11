@@ -12,6 +12,7 @@
     <None Remove="EtiquetasTienda.rdlc" />
     <None Remove="KitsQueSePuedenMontar.rdlc" />
     <None Remove="ManifiestoAgencia.rdlc" />
+    <None Remove="MontarKitProductos.rdlc" />
     <None Remove="Packing.rdlc" />
     <None Remove="PedidoCompra.rdlc" />
     <None Remove="Picking.rdlc" />
@@ -24,6 +25,7 @@
     <EmbeddedResource Include="EtiquetasTienda.rdlc" />
     <EmbeddedResource Include="KitsQueSePuedenMontar.rdlc" />
     <EmbeddedResource Include="ManifiestoAgencia.rdlc" />
+    <EmbeddedResource Include="MontarKitProductos.rdlc" />
     <EmbeddedResource Include="Packing.rdlc" />
     <EmbeddedResource Include="PedidoCompra.rdlc" />
     <EmbeddedResource Include="Picking.rdlc" />

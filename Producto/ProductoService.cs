@@ -304,7 +304,7 @@ namespace Nesto.Modules.Producto
             return productoActual;
         }
 
-        public async Task<int> MontarKit(string producto, int cantidad)
+        public async Task<int> MontarKit(string almacen, string producto, int cantidad)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -314,7 +314,6 @@ namespace Nesto.Modules.Producto
                 try
                 {
                     string urlConsulta = "Productos/MontarKit";
-                    var almacen = await configuracion.leerParametro(EmpresaDefecto, Parametros.Claves.AlmacenInventario);
 
                     var parametros = new
                     {
