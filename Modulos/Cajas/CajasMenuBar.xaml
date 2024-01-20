@@ -13,7 +13,7 @@
             <RibbonGroup x:Name="grpCajas"
                             Header="Cajas">
                 <RibbonButton Label="Cajas" LargeImageSource="Images/Cajas.png"  Command="{Binding AbrirModuloCajasCommand}" />
-
+                <RibbonButton Label="Bancos" LargeImageSource="Images/Cajas.png"  Command="{Binding AbrirModuloBancosCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

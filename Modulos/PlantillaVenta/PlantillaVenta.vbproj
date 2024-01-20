@@ -47,6 +47,9 @@
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Images\entrega_urgente.png" />
+  </ItemGroup>
+  <ItemGroup>
     <Import Include="System.Threading.Tasks" />
     <Import Include="System.Linq" />
     <Import Include="System.Xml.Linq" />
@@ -77,6 +80,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Images\entrega_urgente.png" />
     <Resource Include="Images\Plantilla.png" />
   </ItemGroup>
   <ItemGroup>
@@ -112,5 +116,8 @@
       <Version>8.1.97</Version>
     </PackageReference>
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="AgenciasUrgentes\" />
   </ItemGroup>
 </Project>

@@ -70,6 +70,8 @@ Partial Public Class Application
         containerRegistry.Register(GetType(ISelectorClienteService), GetType(SelectorClienteService))
         containerRegistry.Register(GetType(ICajas), GetType(Cajas))
         containerRegistry.Register(GetType(IContabilidadService), GetType(ContabilidadService))
+        containerRegistry.Register(GetType(IBancosService), GetType(BancosService))
+
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)

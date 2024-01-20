@@ -24,6 +24,7 @@ namespace Nesto.Modulos.Cajas
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.Register<object, CajasView>("CajasView");
+            containerRegistry.Register<object, BancosView>("BancosView");
         }
     }
 }

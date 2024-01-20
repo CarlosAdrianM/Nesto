@@ -16,6 +16,7 @@ namespace Nesto.Modulos.Cajas
             Configuracion = configuracion;
 
             AbrirModuloCajasCommand = new DelegateCommand(OnAbrirCajasModulo, CanAbrirModuloCajas);
+            AbrirModuloBancosCommand = new DelegateCommand(OnAbrirBancosModulo, CanAbrirModuloBancos);
         }
 
         public ICommand AbrirModuloCajasCommand { get; private set; }
@@ -26,6 +27,16 @@ namespace Nesto.Modulos.Cajas
         private void OnAbrirCajasModulo()
         {
             RegionManager.RequestNavigate("MainRegion", "CajasView");
+        }
+
+        public ICommand AbrirModuloBancosCommand { get; private set; }
+        private bool CanAbrirModuloBancos()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
+        }
+        private void OnAbrirBancosModulo()
+        {
+            //RegionManager.RequestNavigate("MainRegion", "BancosView");
         }
     }
 }

@@ -13,6 +13,7 @@ Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
+Imports Application = System.Windows.Application
 
 Public Class ComisionesViewModel
     Inherits BindableBase
@@ -117,12 +118,9 @@ Public Class ComisionesViewModel
                 '         End Sub)
             Else
                 Try
-                    EstaOcupado = True
                     CalcularComisionAsync()
                 Catch ex As Exception
                     DialogService.ShowError(ex.Message)
-                Finally
-                    EstaOcupado = False
                 End Try
             End If
 
@@ -360,7 +358,7 @@ Public Class ComisionesViewModel
         Get
             Return _estaOcupado
         End Get
-        Set(ByVal value As Boolean) ' el ByVal es necesario para que actualice
+        Set(ByVal value As Boolean)
             SetProperty(_estaOcupado, value)
         End Set
     End Property
@@ -393,15 +391,13 @@ Public Class ComisionesViewModel
 
 
     Private Async Function CalcularComisionAnual(vendedor As String, anno As Integer, mes As Integer, incluirAlbaranes As Boolean, incluirPicking As Boolean) As Task(Of ComisionAnualResumen)
-        EstaOcupado = True
-
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
-            Dim respuesta As String = ""
-
+            Dim respuesta As String = String.Empty
 
             Try
+                EstaOcupado = True
                 Dim urlConsulta As String = "Comisiones"
                 urlConsulta += "?vendedor=" + vendedor.Trim
                 urlConsulta += "&anno=" + anno.ToString
@@ -409,7 +405,7 @@ Public Class ComisionesViewModel
                 urlConsulta += "&incluirAlbaranes=" + incluirAlbaranes.ToString
                 urlConsulta += "&incluirPicking=" + incluirPicking.ToString
 
-                response = Await client.GetAsync(urlConsulta)
+                response = Await client.GetAsync(urlConsulta).ConfigureAwait(False)
 
                 If response.IsSuccessStatusCode Then
                     respuesta = Await response.Content.ReadAsStringAsync()
@@ -423,9 +419,6 @@ Public Class ComisionesViewModel
             Finally
                 EstaOcupado = False
             End Try
-
-
-
         End Using
     End Function
 End Class

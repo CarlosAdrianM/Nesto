@@ -110,6 +110,18 @@ Public Class PlantillaVentaViewModel
     Private vendedor As String
     Private ultimaOferta As Integer = 0
 
+    Public Property AlmacenAnterior As String
+
+    Private _almacenEntregaUrgente As String
+    Public Property AlmacenEntregaUrgente As String
+        Get
+            Return _almacenEntregaUrgente
+        End Get
+        Set(value As String)
+            SetProperty(_almacenEntregaUrgente, value)
+        End Set
+    End Property
+
     Private _almacenSeleccionado As Sede
     Public Property almacenSeleccionado As Sede
         Get
@@ -127,8 +139,9 @@ Public Class PlantillaVentaViewModel
                                                                      Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo)
                                                                      ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
                                                                      estaOcupado = False
-                                                                     fechaMinimaEntrega = Await ObtenerFechaMinimaEntregaAsync()
-                                                                     fechaEntrega = fechaMinimaEntrega
+                                                                     Dim fechaPuente = Await ObtenerFechaMinimaEntregaAsync()
+                                                                     fechaMinimaEntrega = fechaPuente
+                                                                     fechaEntrega = fechaPuente
                                                                  End Sub))
             End If
         End Set
@@ -224,8 +237,14 @@ Public Class PlantillaVentaViewModel
             If ComentarioRuta = _direccionEntregaSeleccionada?.comentarioRuta Then
                 ComentarioRuta = String.Empty
             End If
+            Dim codigoPostalAnterior = _direccionEntregaSeleccionada?.codigoPostal
             SetProperty(_direccionEntregaSeleccionada, value)
-            PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
+            If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
+                PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
+            ElseIf _direccionEntregaSeleccionada.codigoPostal <> codigoPostalAnterior Then
+                cmdCalcularSePuedeServirPorGlovo.Execute()
+            End If
+
             FormaPagoCliente = _direccionEntregaSeleccionada?.formaPago
             If String.IsNullOrEmpty(ComentarioRuta) AndAlso Not IsNothing(_direccionEntregaSeleccionada) Then
                 ComentarioRuta = _direccionEntregaSeleccionada.comentarioRuta
@@ -262,7 +281,10 @@ Public Class PlantillaVentaViewModel
         Set(value As Boolean)
             SetProperty(_enviarPorGlovo, value)
             If _enviarPorGlovo Then
-                almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = "REI")
+                AlmacenAnterior = almacenSeleccionado.Codigo
+                almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenEntregaUrgente)
+            Else
+                almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenAnterior)
             End If
         End Set
     End Property
@@ -318,15 +340,9 @@ Public Class PlantillaVentaViewModel
     Private _fechaEntrega As DateTime = DateTime.MinValue
     Public Property fechaEntrega As DateTime
         Get
-            If _fechaEntrega < fechaMinimaEntrega Then
-                _fechaEntrega = fechaMinimaEntrega
-            End If
             Return _fechaEntrega
         End Get
         Set(ByVal value As DateTime)
-            If value < fechaMinimaEntrega Then
-                value = fechaMinimaEntrega
-            End If
             SetProperty(_fechaEntrega, value)
         End Set
     End Property
@@ -337,7 +353,12 @@ Public Class PlantillaVentaViewModel
             Return _fechaMinimaEntrega
         End Get
         Set
-            SetProperty(_fechaMinimaEntrega, Value)
+            If _fechaMinimaEntrega <> Value Then
+                SetProperty(_fechaMinimaEntrega, Value)
+                If fechaEntrega < Value Then
+                    fechaEntrega = Value
+                End If
+            End If
         End Set
     End Property
 
@@ -629,14 +650,18 @@ Public Class PlantillaVentaViewModel
             Return _plazoPagoSeleccionado
         End Get
         Set(ByVal value As PlazosPago)
+            If (Not IsNothing(value) AndAlso Not IsNothing(_plazoPagoSeleccionado) AndAlso value.plazoPago = _plazoPagoSeleccionado.plazoPago) OrElse
+            (IsNothing(value) AndAlso IsNothing(_plazoPagoSeleccionado)) Then
+                Return
+            End If
             SetProperty(_plazoPagoSeleccionado, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
             RaisePropertyChanged(NameOf(MandarCobroTarjeta))
-            'If (Not IsNothing(_plazoPagoSeleccionado)) Then
-            '    cmdCalcularSePuedeServirPorGlovo.Execute()
-            'End If
+            If (Not IsNothing(_plazoPagoSeleccionado)) Then
+                cmdCalcularSePuedeServirPorGlovo.Execute()
+            End If
         End Set
     End Property
 
@@ -676,6 +701,16 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    Private _sePodriaServirConGlovoEnPrepago As Boolean = False
+    Public Property SePodriaServirConGlovoEnPrepago As Boolean
+        Get
+            Return _sePodriaServirConGlovoEnPrepago
+        End Get
+        Set(value As Boolean)
+            SetProperty(_sePodriaServirConGlovoEnPrepago, value AndAlso Not SePuedeServirConGlovo)
+        End Set
+    End Property
+
     Private _sePuedeServirConGlovo As Boolean = False
     Public Property SePuedeServirConGlovo As Boolean
         Get
@@ -683,7 +718,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As Boolean)
             SetProperty(_sePuedeServirConGlovo, value)
-            If Not _sePuedeServirConGlovo Then
+            If Not _sePuedeServirConGlovo AndAlso EnviarPorGlovo Then
                 EnviarPorGlovo = False
             End If
         End Set
@@ -1040,11 +1075,13 @@ Public Class PlantillaVentaViewModel
         Return True
     End Function
     Private Async Sub OnCargarFormasVenta(arg As Object)
-
         If IsNothing(clienteSeleccionado) Then
             Return
         End If
-        fechaMinimaEntrega = Await ObtenerFechaMinimaEntregaAsync()
+        If almacenSeleccionado.Codigo = Constantes.Almacenes.ALMACEN_CENTRAL Then
+            fechaMinimaEntrega = Await ObtenerFechaMinimaEntregaAsync()
+        End If
+
 
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
         RaisePropertyChanged(NameOf(SePuedeFinalizar))
@@ -1519,6 +1556,9 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Async Sub OnCalcularSePuedeServirPorGlovo()
+        If PaginaActual.Name <> PAGINA_FINALIZAR Then
+            Return
+        End If
         Using client As New HttpClient
             estaOcupado = True
 
@@ -1537,13 +1577,17 @@ Public Class PlantillaVentaViewModel
                     Dim respuestaString As String = Await response.Content.ReadAsStringAsync()
                     RespuestaGlovo = JsonConvert.DeserializeObject(Of RespuestaAgencia)(respuestaString)
                     If Not IsNothing(RespuestaGlovo) Then
-                        SePuedeServirConGlovo = True
+                        SePuedeServirConGlovo = RespuestaGlovo.CondicionesPagoValidas
+                        SePodriaServirConGlovoEnPrepago = True
                         DireccionGoogleMaps = RespuestaGlovo.DireccionFormateada
                         PortesGlovo = RespuestaGlovo.Coste
+                        AlmacenEntregaUrgente = RespuestaGlovo.Almacen
                     Else
                         SePuedeServirConGlovo = False
-                        DireccionGoogleMaps = ""
+                        SePodriaServirConGlovoEnPrepago = False
+                        DireccionGoogleMaps = String.Empty
                         PortesGlovo = 0
+                        AlmacenEntregaUrgente = String.Empty
                     End If
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
@@ -1650,10 +1694,12 @@ Public Class PlantillaVentaViewModel
 
 #End Region
     Public Class RespuestaAgencia
-        Public Property DireccionFormateada As String
-        Public Property Longitud As Double
-        Public Property Latitud As Double
+        Public Property DireccionFormateada As String ' no se usa para servir en 2h ¿vale para algo?
+        Public Property Longitud As Double ' no se usa para servir en 2h ¿vale para algo?
+        Public Property Latitud As Double ' no se usa para servir en 2h ¿vale para algo?
         Public Property Coste As Decimal
+        Public Property Almacen As String
+        Public Property CondicionesPagoValidas As Boolean
     End Class
 End Class
 

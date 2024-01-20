@@ -388,10 +388,11 @@
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="Enter">
                             <!--i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarFormasPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" /-->
-                            
+                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCalcularSePuedeServirPorGlovo, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
                             <!--i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarPlazosPago, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" /-->
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
+
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -446,19 +447,22 @@
                                 </Grid.RowDefinitions>
 
                                 <StackPanel Grid.Row="0"  Orientation="Horizontal" Visibility="{Binding SePuedeServirConGlovo, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <Image Source="../Images/logo_glovo.png"/>
+                                    <Image Source="../Images/entrega_urgente.png"/>
                                 </StackPanel>
-                                <CheckBox Grid.Row="1" IsChecked="{Binding EnviarPorGlovo}" Visibility="{Binding SePuedeServirConGlovo, Converter={StaticResource BooleanToVisibilityConverter}}">Enviar por Glovo</CheckBox>
-                                <StackPanel Grid.Row="3" Visibility="{Binding EnviarPorGlovo, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock>Dirección a tramitar:</TextBlock>
-                                        <TextBox IsEnabled="False" Text="{Binding DireccionGoogleMaps}"></TextBox>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock>Portes:</TextBlock>
-                                        <TextBox IsEnabled="False" Text="{Binding PortesGlovo, StringFormat=c}"></TextBox>
-                                    </StackPanel>
-                                </StackPanel>
+                                <TextBlock Grid.Row="0" Foreground="Red" Visibility="{Binding SePodriaServirConGlovoEnPrepago, Converter={StaticResource BooleanToVisibilityConverter}}">Si hay PREPAGO podría servirse en 2 horas</TextBlock>
+                                <CheckBox Grid.Row="1" IsChecked="{Binding EnviarPorGlovo}" Visibility="{Binding SePuedeServirConGlovo, Converter={StaticResource BooleanToVisibilityConverter}}">Entrega en 2 horas</CheckBox>
+
+                                <Grid Grid.Row="3" Visibility="{Binding EnviarPorGlovo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="3,0">Portes:</TextBlock>
+                                    <TextBox Grid.Row="0" Grid.Column="1" IsEnabled="False" Text="{Binding PortesGlovo, StringFormat=c}"></TextBox>
+                                </Grid>
                             </Grid>
                         </StackPanel>
                     </Grid>

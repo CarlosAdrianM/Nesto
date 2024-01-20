@@ -17,6 +17,7 @@
             public const string ImpresoraBolsas = "ImpresoraBolsas";
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";
             public const string PathNorma19 = "PathNorma19";
+            public const string PathNorma43 = "PathNorma43";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
             public const string UltNumProducto = "UltNumProducto";
