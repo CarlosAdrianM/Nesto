@@ -54,6 +54,7 @@ namespace Nesto.Infrastructure.Shared
             public const string DELEGACION_DEFECTO = "ALG";
             public const string FORMA_VENTA_DEFECTO = "VAR";
             public const string MONEDA_CONTABILIDAD = "EUR";
+            public const string IVA_DEFECTO = "G21";
         }
         public class ExtractosCliente
         {
@@ -72,6 +73,7 @@ namespace Nesto.Infrastructure.Shared
             public const string EFECTIVO = "EFC";
             public const string RECIBO = "RCB";
             public const string TARJETA = "TAR";
+            public const string TRANSFERENCIA = "TRN";
         }
         public class FormasVenta
         {
@@ -108,6 +110,11 @@ namespace Nesto.Infrastructure.Shared
         public class Pedidos
         {
             public const string RUTA_GLOVO = "GLV";
+        }
+        public class PeriodosFacturacion
+        {
+            public const string FIN_DE_MES = "FDM";
+            public const string NORMAL = "NRM";
         }
         public class Picking
         {

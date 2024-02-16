@@ -9,14 +9,15 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using static Nesto.Infrastructure.Shared.Constantes;
 
 namespace Nesto.Modulos.Cajas
 {
     public class ContabilidadService : IContabilidadService
     {
-        public IConfiguracion Configuracion { get; }
+        private readonly IConfiguracion _configuracion;
         public ContabilidadService(IConfiguracion configuracion) {
-            Configuracion = configuracion;
+            _configuracion = configuracion;
         }
                 
 
@@ -25,7 +26,7 @@ namespace Nesto.Modulos.Cajas
             List<CuentaContableDTO> cuentas;
             using (HttpClient client = new HttpClient())
             {
-                client.BaseAddress = new Uri(Configuracion.servidorAPI);
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try
@@ -55,9 +56,13 @@ namespace Nesto.Modulos.Cajas
 
         public async Task<int> Contabilizar(List<PreContabilidadDTO> lineas)
         {
+            foreach (var linea in lineas)
+            {
+                linea.Usuario = _configuracion.usuario;
+            }
             using (HttpClient client = new HttpClient())
             {
-                client.BaseAddress = new Uri(Configuracion.servidorAPI);
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try
@@ -118,6 +123,101 @@ namespace Nesto.Modulos.Cajas
         {
             var lineas = new List<PreContabilidadDTO> { linea };
             return await Contabilizar(lineas);
+        }
+
+        public async Task<List<ContabilidadDTO>> LeerAsientoContable(string empresa, int asiento)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = $"Contabilidades?empresa={empresa.Trim()}&asiento={asiento}";
+
+                    response = await client.GetAsync(urlConsulta).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var apuntes = JsonConvert.DeserializeObject<List<ContabilidadDTO>>(resultado);
+                        return apuntes;
+                    }
+                    else
+                    {
+                        throw new Exception("No se han podido cargar el asiento contable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("No se han podido cargar el asiento contable", ex);
+                }
+            }
+        }
+        public async Task<List<ContabilidadDTO>> LeerApuntesContabilidad(string empresa, string cuenta, DateTime fechaDesde, DateTime fechaHasta)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string fechaDesdeFormateada = fechaDesde.ToString("yyyy-MM-dd");
+                    string fechaHastaFormateada = fechaHasta.ToString("yyyy-MM-dd");
+                    string urlConsulta = $"Contabilidades?empresa={empresa.Trim()}&cuenta={cuenta.Trim()}&fechaDesde={fechaDesdeFormateada}&fechaHasta={fechaHastaFormateada}";
+
+                    response = await client.GetAsync(urlConsulta).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var apuntes = JsonConvert.DeserializeObject<List<ContabilidadDTO>>(resultado);
+                        return apuntes;
+                    }
+                    else
+                    {
+                        throw new Exception("No se han podido cargar los apuntes de la contabilidad");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+        }
+
+        public async Task<decimal> SaldoCuenta(string empresa, string cuenta, DateTime fecha)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string fechaFormateada = fecha.ToString("yyyy-MM-dd");
+                    string urlConsulta = $"Contabilidades?empresa={empresa}&cuenta={cuenta}&fecha={fechaFormateada}";
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var saldo = JsonConvert.DeserializeObject<decimal>(resultado);
+                        return saldo;
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido calcular el saldo de la cuenta");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
         }
     }
 }

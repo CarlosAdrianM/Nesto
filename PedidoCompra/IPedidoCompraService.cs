@@ -1,9 +1,6 @@
 ﻿using Nesto.Modulos.PedidoCompra.Models;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Nesto.Modulos.PedidoCompra
@@ -17,5 +14,6 @@ namespace Nesto.Modulos.PedidoCompra
         Task<PedidoCompraDTO> AmpliarHastaStockMaximo(PedidoCompraDTO model);
         Task<int> CrearPedido(PedidoCompraDTO pedido);
         Task ModificarPedido(PedidoCompraDTO pedido);
+        Task<CrearFacturaCmpResponse> CrearAlbaranYFactura(CrearFacturaCmpRequest request);
     }
 }

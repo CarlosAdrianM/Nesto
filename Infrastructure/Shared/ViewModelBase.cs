@@ -22,7 +22,7 @@ namespace Nesto.Infrastructure.Shared
         {
         }
 
-        public void OnNavigatedTo(NavigationContext navigationContext)
+        public virtual void OnNavigatedTo(NavigationContext navigationContext)
         {
         }
 

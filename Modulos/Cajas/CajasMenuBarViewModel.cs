@@ -36,7 +36,7 @@ namespace Nesto.Modulos.Cajas
         }
         private void OnAbrirBancosModulo()
         {
-            //RegionManager.RequestNavigate("MainRegion", "BancosView");
+            RegionManager.RequestNavigate("MainRegion", "BancosView");
         }
     }
 }

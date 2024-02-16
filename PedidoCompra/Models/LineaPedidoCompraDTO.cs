@@ -1,4 +1,5 @@
-﻿using Nesto.Models;
+﻿using Nesto.Infrastructure.Shared;
+using Nesto.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             
         }
         public int Id { get; set; }
-        public int Estado { get; set; }
+        public int Estado { get; set; } = Constantes.LineasPedido.ESTADO_SIN_FACTURAR;
         public string TipoLinea { get; set; }
         //public string Producto { get; set; }
         public string Texto { get; set; }
@@ -72,6 +73,10 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public string Subgrupo { get; set; }
         public decimal PrecioTarifa { get; set; }
         public int EstadoProducto { get; set; }
+        public string Delegacion { get; set; }
+        public string CentroCoste { get; set; }
+        public string Departamento { get; set; }
+        public bool Enviado { get; set; }
 
 
         public List<DescuentoCantidadCompra> Descuentos { get; set; }

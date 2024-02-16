@@ -5,22 +5,244 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Nesto.Modulos.Cajas.Views"
              xmlns:prism="http://prismlibrary.com/" xmlns:viewmodels="clr-namespace:Nesto.Modulos.Cajas.ViewModels" 
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"             
              d:DataContext="{d:DesignInstance Type=viewmodels:BancosViewModel}"
              prism:ViewModelLocator.AutoWireViewModel="True"             
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800"
              Background="White">
+    
+
+    
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
-            <ColumnDefinition/>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition/>
-            <RowDefinition/>
-            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <Button Grid.Column="1" Grid.Row="1" Command="{Binding CargarArchivoCommand}">Cargar archivo</Button>
+
+
+        <Grid Grid.Column="0" Grid.Row="0">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <xctk:BusyIndicator Grid.Row="0" IsBusy="{Binding IsBusyApuntesBanco}">
+                <DataGrid Name="dgrApuntesBanco" ItemsSource="{Binding ApuntesBancoCollectionView}" SelectedItem="{Binding ApunteBancoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="SelectionChanged">
+                            <i:InvokeCommandAction Command="{Binding SeleccionarApuntesBancoCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgrApuntesBanco}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding EstadoPunteo}" Value="CompletamentePunteado">
+                                    <Setter Property="Background" Value="Green"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding EstadoPunteo}" Value="ParcialmentePunteado">
+                                    <Setter Property="Background" Value="Red"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Oficina Origen" Binding="{Binding ClaveOficinaOrigen}" />
+                        <DataGridTextColumn Header="Fecha Operación" Binding="{Binding FechaOperacion,StringFormat=d}" />
+                        <DataGridTextColumn Header="Concepto Común" Binding="{Binding TextoConceptoComun}" />
+                        <DataGridTextColumn Header="Concepto Propio" Binding="{Binding ConceptoPropio}" />
+                        <DataGridTextColumn Header="Importe Movimiento" Binding="{Binding ImporteMovimiento,StringFormat=c}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Nº Documento" Binding="{Binding NumeroDocumento}" />
+                        <DataGridTextColumn Header="Referencia1" Binding="{Binding Referencia1}" />
+                        <DataGridTextColumn Header="Referencia2" Binding="{Binding Referencia2}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+            </xctk:BusyIndicator>
+            
+            <DataGrid Grid.Row="1" ItemsSource="{Binding MovimientosRelacionados}" IsReadOnly="True">
+                <DataGrid.Style>
+                    <Style TargetType="DataGrid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding MovimientosRelacionados.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Style>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Modo Captura" Binding="{Binding ModoCaptura}" />
+                    <DataGridTextColumn Header="Texto Modo Captura" Binding="{Binding TextoModoCaptura}" />
+                    <DataGridTextColumn Header="Sesión" Binding="{Binding Sesion}" />
+                    <DataGridTextColumn Header="Terminal" Binding="{Binding Terminal}" />
+                    <DataGridTextColumn Header="Fecha Operación" Binding="{Binding FechaOperacion}"/>
+                    <DataGridTextColumn Header="Fecha Captura" Binding="{Binding FechaCaptura, StringFormat=d}"/>
+                    <DataGridTextColumn Header="Importe Operación" Binding="{Binding ImporteOperacion, StringFormat=C, ConverterCulture='es-ES'}">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style>
+                                <Setter Property="TextBlock.HorizontalAlignment" Value="Right"/>
+                                <Setter Property="TextBlock.FontWeight" Value="Bold"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Importe Comisión" Binding="{Binding ImporteComision, StringFormat=C, ConverterCulture='es-ES'}" >
+                        <DataGridTextColumn.ElementStyle>
+                            <Style>
+                                <Setter Property="TextBlock.HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Importe Abono" Binding="{Binding ImporteAbono, StringFormat=C, ConverterCulture='es-ES'}" >
+                        <DataGridTextColumn.ElementStyle>
+                            <Style>
+                                <Setter Property="TextBlock.HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Código Moneda" Binding="{Binding CodigoMoneda}" />
+                    <DataGridTextColumn Header="Comentarios" Binding="{Binding Comentarios}" />
+                    <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" />
+                    <DataGridTextColumn Header="Fecha Creación" Binding="{Binding FechaCreacion}" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+
+            <ItemsControl Grid.Row="2" ItemsSource="{Binding ApunteBancoSeleccionado.RegistrosConcepto}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel>
+                            <TextBlock Text="{Binding ConceptoCompleto}" FontFamily="Courier New"></TextBlock>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+        <xctk:BusyIndicator Grid.Column="1" Grid.Row="0" IsBusy="{Binding IsBusyApuntesContabilidad}">
+            <DataGrid Name="dgrApuntesContabilidad" ItemsSource="{Binding ApuntesContabilidadCollectionView}" SelectedItem="{Binding ApunteContabilidadSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="SelectionChanged">
+                    <i:InvokeCommandAction Command="{Binding SeleccionarApuntesContabilidadCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgrApuntesContabilidad}" />
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding EstadoPunteo}" Value="CompletamentePunteado">
+                            <Setter Property="Background" Value="Green"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding EstadoPunteo}" Value="ParcialmentePunteado">
+                            <Setter Property="Background" Value="Red"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" />
+                <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
+                <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" />
+                <DataGridTextColumn Header="Diario" Binding="{Binding Diario}" />
+            </DataGrid.Columns>
+        </DataGrid>
+        </xctk:BusyIndicator>
+        <UniformGrid Grid.Row="1" Grid.ColumnSpan="2" Columns="6">
+            <Button Command="{Binding CargarArchivoCommand}">Cargar archivo Cuaderno 43</Button>
+            <Button Command="{Binding CargarArchivoTarjetasCommand}">Cargar archivo tarjetas FB 500</Button>
+            <Button Command="{Binding RegularizarDiferenciaCommand}" ToolTip="Debe tener marcado un apunte de banco y uno de contabilidad">Regularizar diferencia</Button>
+            <Button Command="{Binding ContabilizarApunteCommand}">Contabilizar apunte</Button>
+            <Button Command="{Binding PuntearAutomaticamenteCommand}">Puntear automáticamente</Button>
+            <Button Command="{Binding PuntearApuntesCommand}">Puntear seleccionados</Button>
+        </UniformGrid>
+
+        <!-- Panel en la tercera fila -->
+        <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" BorderBrush="Black" BorderThickness="1" Margin="5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- Agrega más ColumnDefinitions si es necesario -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Agrega RowDefinitions -->
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Margin="5" FontWeight="Bold" >Banco:</TextBlock>
+                <TextBlock Grid.Column="0" Grid.Row="2" Margin="5" FontWeight="Bold" >Desde:</TextBlock>
+                <TextBlock Grid.Column="0" Grid.Row="3" Margin="5" FontWeight="Bold" >Hasta:</TextBlock>
+
+                <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding Banco.Nombre}" Margin="5"></TextBlock>
+                <DatePicker Grid.Column="1" Grid.Row="2" SelectedDate="{Binding FechaDesde}" Margin="5"/>
+                <DatePicker Grid.Column="1" Grid.Row="3" SelectedDate="{Binding FechaHasta}" Margin="5"/>
+
+                <!-- Títulos de columnas -->
+                <TextBlock Grid.Column="3" Grid.Row="0" Text="" HorizontalAlignment="Left" Margin="5"/>
+                <TextBlock Grid.Column="4" Grid.Row="0" Text="Saldo Inicial" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+                <TextBlock Grid.Column="5" Grid.Row="0" Text="Saldo Final" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+
+                <!-- Títulos de filas -->
+                <TextBlock Grid.Column="3" Grid.Row="1" Text="Banco" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+                <TextBlock Grid.Column="3" Grid.Row="2" Text="Contabilidad" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+                <TextBlock Grid.Column="3" Grid.Row="3" Text="Descuadre" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+
+                <!-- Contenido -->
+                <TextBlock Grid.Column="4" Grid.Row="1" Text="{Binding SaldoInicialBanco, StringFormat='{}{0:C}'}" Margin="5" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Column="5" Grid.Row="1" Text="{Binding SaldoFinalBanco, StringFormat='{}{0:C}'}" Margin="5" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Column="4" Grid.Row="2" Text="{Binding SaldoInicialContabilidad, StringFormat='{}{0:C}'}" Margin="5" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Column="5" Grid.Row="2" Text="{Binding SaldoFinalContabilidad, StringFormat='{}{0:C}'}" Margin="5" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Column="4" Grid.Row="3" Text="{Binding DescuadreSaldoInicial, StringFormat=c}" Margin="5" HorizontalAlignment="Right"/>
+                <TextBlock Grid.Column="5" Grid.Row="3" Text="{Binding DescuadreSaldoFinal, StringFormat=c}"  Margin="5" HorizontalAlignment="Right"/>
+
+                <TextBlock Grid.Column="8" Grid.Row="0" Text="Saldo Punteo" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+                <TextBlock Grid.Column="7" Grid.Row="1" Text="Apuntes Banco" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+                <TextBlock Grid.Column="8" Grid.Row="1" Text="{Binding SaldoPunteoApuntesBanco, StringFormat=c}" HorizontalAlignment="Right" Margin="5"/>
+                <TextBlock Grid.Column="7" Grid.Row="2" Text="Apuntes Contabilidad" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+                <TextBlock Grid.Column="8" Grid.Row="2" Text="{Binding SaldoPunteoApuntesContabilidad, StringFormat=c}" HorizontalAlignment="Right" Margin="5"/>
+                <TextBlock Grid.Column="7" Grid.Row="3" Text="Descuadre" FontWeight="Bold" HorizontalAlignment="Left" Margin="5"/>
+                <TextBlock Grid.Column="8" Grid.Row="3" Text="{Binding DescuadrePunteo, StringFormat=c}" HorizontalAlignment="Right" Margin="5"/>
+                
+                <CheckBox Grid.Column="11" Grid.Row="1" Margin="5" Content="Sin Puntear" IsChecked="{Binding MostrarSinPuntear}" />
+                <CheckBox Grid.Column="11" Grid.Row="2" Margin="5" Content="Completamente Punteado" IsChecked="{Binding MostrarCompletamentePunteado}" />
+                <CheckBox Grid.Column="11" Grid.Row="3" Margin="5" Content="Parcialmente Punteado" IsChecked="{Binding MostrarParcialmentePunteado}" />
+
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

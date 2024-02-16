@@ -10,6 +10,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using static Nesto.Infrastructure.Shared.Constantes;
 
 namespace Nesto.Modulos.PedidoCompra
 {
@@ -151,6 +152,63 @@ namespace Nesto.Modulos.PedidoCompra
             }
 
             return pedidos;
+        }
+
+        public async Task<CrearFacturaCmpResponse> CrearAlbaranYFactura(CrearFacturaCmpRequest request)
+        {
+            CrearFacturaCmpResponse respuesta;
+
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = $"PedidosCompra/CrearAlbaranYFactura";
+                    request.Pedido.Usuario = configuracion.usuario;
+
+                    HttpContent content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");
+                    response = await client.PostAsync(urlConsulta, content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        respuesta = JsonConvert.DeserializeObject<CrearFacturaCmpResponse>(resultado);
+                    }
+                    else
+                    {
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+
+                        string errorMostrar = $"No se ha podido crear la factura o el albarán\n";
+                        if (requestException["exceptionMessage"] != null)
+                        {
+                            errorMostrar += requestException["exceptionMessage"] + "\n";
+                        }
+                        if (requestException["ModelState"] != null)
+                        {
+                            var firstError = requestException["ModelState"];
+                            var nodoError = firstError.LastOrDefault();
+                            errorMostrar += nodoError.FirstOrDefault()[0];
+                        }
+                        var innerException = requestException["InnerException"];
+                        while (innerException != null)
+                        {
+                            errorMostrar += "\n" + innerException["ExceptionMessage"];
+                            innerException = innerException["InnerException"];
+                        }
+                        throw new Exception(errorMostrar);
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("No se han podido crear el albarán y la factura de compras", ex);
+                }
+            }
+
+            return respuesta;
         }
 
         public async Task<int> CrearPedido(PedidoCompraDTO pedido)

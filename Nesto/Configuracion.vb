@@ -29,7 +29,49 @@ Public Class Configuracion
             'Return System.Environment.UserDomainName + "\manuel"
         End Get
     End Property
+    Public Async Function GuardarParametro(empresa As String, clave As String, valor As String) As Task Implements IConfiguracion.GuardarParametro
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = String.Empty
+            Dim urlConsulta As String = "ParametrosUsuario"
+            Dim parametro As New ParametroUsuario With {
+                .Empresa = empresa,
+                .Usuario = Environment.UserName,
+                .Clave = clave,
+                .Valor = valor,
+                .Usuario2 = Me.usuario,
+                .Fecha_Modificación = DateTime.Now
+            }
 
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
+
+            response = Await client.PutAsync(urlConsulta, content)
+
+            If response.IsSuccessStatusCode Then
+                respuesta = response.Content.ReadAsStringAsync().Result
+            Else
+                Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                Dim detallesError As JObject
+                Dim contenido As String
+                Try
+                    detallesError = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    contenido = detallesError("ExceptionMessage")
+                Catch ex As Exception
+                    detallesError = New JObject()
+                    contenido = respuestaError
+                End Try
+
+                While Not IsNothing(detallesError("InnerException"))
+                    detallesError = detallesError("InnerException")
+                    Dim contenido2 As String = detallesError("ExceptionMessage")
+                    contenido = contenido + vbCr + contenido2
+                End While
+                Throw New Exception(contenido)
+            End If
+
+        End Using
+    End Function
     Public Sub GuardarParametroSync(empresa As String, clave As String, valor As String) Implements IConfiguracion.GuardarParametroSync
         Using client As New HttpClient
             client.BaseAddress = New Uri(servidorAPI)

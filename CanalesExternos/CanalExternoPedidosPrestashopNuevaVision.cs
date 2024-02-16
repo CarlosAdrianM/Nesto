@@ -22,6 +22,7 @@ namespace Nesto.Modulos.CanalesExternos
         private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
         private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay";
         private const string FORMA_PAGO_BIZUM = "Bizum - Pago online";
+        private const string FORMA_PAGO_APLAZAME = "Aplazame";
 
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)
         {
@@ -279,7 +280,8 @@ namespace Nesto.Modulos.CanalesExternos
             cuentasFormaPago.Add(FORMA_PAGO_PAYPAL, "57200020"); 
             cuentasFormaPago.Add(FORMA_PAGO_REDSYS, "57200013");
             cuentasFormaPago.Add(FORMA_PAGO_BIZUM, "57200013");
-            cuentasFormaPago.Add(FORMA_PAGO_AMAZON_PAY, "57200022"); 
+            cuentasFormaPago.Add(FORMA_PAGO_AMAZON_PAY, "57200013");
+            cuentasFormaPago.Add(FORMA_PAGO_APLAZAME, "57200013");
 
             if (cuentasFormaPago.ContainsKey(formaPago))
             {
