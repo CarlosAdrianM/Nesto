@@ -11,6 +11,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Prism.Ioc;
 using ControlesUsuario.ViewModels;
+using Nesto.Infrastructure.Shared;
+using Prism.Mvvm;
 
 namespace ControlesUsuario
 {
@@ -33,7 +35,12 @@ namespace ControlesUsuario
         {
             SelectorClienteViewModel vm = DataContext as SelectorClienteViewModel;
             //ControlPrincipal.DataContext = this;
-            
+            vm.listaClientes.ElementoSeleccionadoChanging += (sender, args) =>
+            {
+                //vm.listaClientes.Reiniciar();
+            };
+
+
             vm.listaClientes.ElementoSeleccionadoChanged += (sender, args) =>
             {
                 ClienteCompleto = vm.listaClientes.ElementoSeleccionado as ClienteDTO;
@@ -42,9 +49,10 @@ namespace ControlesUsuario
                 vm.contactoSeleccionado = ClienteCompleto?.contacto.Trim();
                 OnPropertyChanged(string.Empty);
                 vm.ActualizarPropertyChanged();
-                //listaClientes.ListaOriginal = null;
             };
-            vm.listaClientes.HayQueCargarDatos += () => { vm.cargarCliente(Empresa, txtFiltro.Text, vm.contactoSeleccionado); };
+            vm.listaClientes.HayQueCargarDatos += () => { 
+                vm.cargarCliente(Empresa, txtFiltro.Text, vm.contactoSeleccionado); 
+            };
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -153,9 +161,9 @@ namespace ControlesUsuario
         /// Identified the EMPRESA dependency property
         /// </summary>
         public static readonly DependencyProperty EmpresaProperty =
-            DependencyProperty.Register("Empresa", typeof(string),
+            DependencyProperty.Register(nameof(Empresa), typeof(string),
               typeof(SelectorCliente),
-                new FrameworkPropertyMetadata(new PropertyChangedCallback(OnEmpresaChanged)));
+                new FrameworkPropertyMetadata(Constantes.Empresas.EMPRESA_DEFECTO, new PropertyChangedCallback(OnEmpresaChanged)));
 
         private static void OnEmpresaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -181,7 +189,9 @@ namespace ControlesUsuario
         public static readonly DependencyProperty ClienteProperty =
             DependencyProperty.Register("Cliente", typeof(string),
               typeof(SelectorCliente),
-              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnClienteChanged)));
+              new FrameworkPropertyMetadata(null,
+                  FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                  new PropertyChangedCallback(OnClienteChanged)));
 
         private static void OnClienteChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -229,7 +239,9 @@ namespace ControlesUsuario
         public static readonly DependencyProperty ContactoProperty =
             DependencyProperty.Register("Contacto", typeof(string),
               typeof(SelectorCliente),
-              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnContactoChanged)));
+              new FrameworkPropertyMetadata(null, 
+                  FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                  new PropertyChangedCallback(OnContactoChanged)));
 
         private static void OnContactoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
@@ -265,7 +277,7 @@ namespace ControlesUsuario
         }
 
         /// <summary>
-        /// Identified the EMPRESA dependency property
+        /// Identified the ETIQUETA dependency property
         /// </summary>
         public static readonly DependencyProperty EtiquetaProperty =
             DependencyProperty.Register("Etiqueta", typeof(string),
@@ -283,52 +295,17 @@ namespace ControlesUsuario
         }
 
         /// <summary>
-        /// Identified the EMPRESA dependency property
+        /// Identified the CLIENTECOMPLETO dependency property
         /// </summary>
         public static readonly DependencyProperty ClienteCompletoProperty =
-            DependencyProperty.Register("ClienteCompleto", typeof(ClienteDTO),
+            DependencyProperty.Register(nameof(ClienteCompleto), typeof(ClienteDTO),
               typeof(SelectorCliente),
               new FrameworkPropertyMetadata(new PropertyChangedCallback(OnClienteCompletoChanged)));
 
         private static void OnClienteCompletoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorCliente selector = (SelectorCliente)d;
-
-
-            //if (selector == null)
-            //{
-            //    return;
-            //}
-            //if (selector.ClienteCompleto == null)
-            //{
-            //    return;
-            //}
-            //else
-            //{
-            //    if (selector.contactoSeleccionado == null || (selector.contactoSeleccionado.Trim() != selector.Contacto.Trim()))
-            //    {
-            //        selector.contactoSeleccionado = selector.Contacto.Trim();
-            //    }
-            //}
-
         }
-
-        ///// <summary>
-        ///// Identified the ClienteCompleto dependency property
-        ///// </summary>
-        //private static readonly DependencyPropertyKey ClienteCompletoPropertyKey
-        //= DependencyProperty.RegisterReadOnly("ClienteCompleto", typeof(ClienteDTO), typeof(SelectorCliente),
-        //    new FrameworkPropertyMetadata((ClienteDTO)new ClienteDTO(),
-        //        FrameworkPropertyMetadataOptions.None));
-
-        //public static readonly DependencyProperty ClienteCompletoProperty
-        //    = ClienteCompletoPropertyKey.DependencyProperty;
-
-        //public ClienteDTO ClienteCompleto
-        //{
-        //    get { return (ClienteDTO)GetValue(ClienteCompletoProperty); }
-        //    protected set { SetValue(ClienteCompletoPropertyKey, value); }
-        //}
 
         #endregion
 

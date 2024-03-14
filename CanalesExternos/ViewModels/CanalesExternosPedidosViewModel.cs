@@ -11,10 +11,7 @@ using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
-using System.IO.Packaging;
-using Nesto.Models.Nesto.Models;
 using System.Linq;
-using Nesto.Modulos.CanalesExternos.Models;
 using ControlesUsuario.Models;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
@@ -30,8 +27,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private ICanalExternoPedidos _canalSeleccionado;
         private ColeccionFiltrable _listaPedidos;
-        private PedidoCanalExterno _pedidoSeleccionado;
-
+        
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
         
         public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService)
@@ -42,13 +38,19 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             PedidoVentaService = pedidoVentaService;
 
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
-            Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
+            Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));            
 
             CrearComandos();
 
             ListaPedidos = new ColeccionFiltrable(new ObservableCollection<PedidoCanalExterno>());
             ListaPedidos.TieneDatosIniciales = true;
-            ListaPedidos.ElementoSeleccionadoChanged += (sender, args) => { CargarPedidoSeleccionado(); };
+            ListaPedidos.ElementoSeleccionadoChanging += (sender, args) => 
+            {
+                
+            };
+            ListaPedidos.ElementoSeleccionadoChanged += (sender, args) => {
+                CargarPedidoSeleccionado();                
+            };
 
             Titulo = "Canales Externos Pedidos";
         }
@@ -60,7 +62,24 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 FechaDesde = (DateTime)(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.fecha;
                 List<PedidoVentaModel.EnvioAgenciaDTO> listaEnlaces = await PedidoVentaService.CargarEnlacesSeguimiento(pedidoSeleccionado.Pedido.empresa, pedidoSeleccionado.PedidoNestoId);
-                pedidoSeleccionado.UltimoSeguimiento = listaEnlaces.Where(e => e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO).OrderByDescending(e => e.Fecha).FirstOrDefault()?.EnlaceSeguimiento;
+                pedidoSeleccionado.UltimoSeguimiento = listaEnlaces.Where(e => e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO).OrderByDescending(e => e.Fecha).FirstOrDefault()?.EnlaceSeguimiento;                
+            }
+            if (pedidoSeleccionado != null && !pedidoSeleccionado.Pedido.Lineas.Any())
+            {
+                try
+                {
+                    EstaOcupadoLineas = true;
+                    pedidoSeleccionado.Pedido.Lineas = await CanalSeleccionado.GetLineas(pedidoSeleccionado);
+                }
+                catch (Exception ex)
+                {
+                    EstaOcupadoLineas = false;
+                    DialogService.ShowError(ex.Message);
+                }
+                finally
+                {
+                    EstaOcupadoLineas = false;
+                }
             }
             RaisePropertyChanged(nameof(PedidoSeleccionadoDireccion));
             RaisePropertyChanged(nameof(PedidoSeleccionadoNombre));
@@ -112,6 +131,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return _estaOcupado; }
             set { SetProperty(ref _estaOcupado, value); }
         }
+        private bool _estaOcupadoLineas;
+
+        public bool EstaOcupadoLineas
+        {
+            get { return _estaOcupadoLineas; }
+            set { SetProperty(ref _estaOcupadoLineas, value); }
+        }
 
         public Dictionary<string, ICanalExternoPedidos> Factory
         {
@@ -119,16 +145,16 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set => SetProperty(ref _factory, value);
         }
 
-        private DateTime _fechaDesde = DateTime.Today.AddDays(-7);
+        private DateTime _fechaDesde = DateTime.Today.AddDays(-4);
         public DateTime FechaDesde
         {
             get { return _fechaDesde; }
             set { SetProperty(ref _fechaDesde, value); }
         }
 
-        private int _numeroMaxPedidos = 20;
-        private object _clienteCompleto;
+        //private object _clienteCompleto;
 
+        private int _numeroMaxPedidos = 100;
         public int NumeroMaxPedidos
         {
             get { return _numeroMaxPedidos; }
@@ -254,7 +280,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.cliente; }
             set
             {
-                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null)
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null && (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.cliente.Trim() != value.Trim())
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.cliente = value;
                 }
@@ -266,11 +292,18 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.contacto; }
             set
             {
-                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null)
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null && (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.contacto.Trim() != value.Trim())
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.contacto = value;
                 }
             }
+        }
+
+        private bool _selectorClientesPausado;
+        public bool SelectorClientesPausado
+        {
+            get => _selectorClientesPausado;
+            set => SetProperty(ref _selectorClientesPausado, value);
         }
         #endregion
 
@@ -292,6 +325,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 CrearPedidoCommand.RaiseCanExecuteChanged();
             } catch (Exception ex)
             {
+                EstaOcupado = false;
                 DialogService.ShowError(ex.Message);
             }
             finally

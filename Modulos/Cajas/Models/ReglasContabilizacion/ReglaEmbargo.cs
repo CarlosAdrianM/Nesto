@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
-    internal class ReglaComisionesBanco : IReglaContabilizacion
+    internal class ReglaEmbargo : IReglaContabilizacion
     {
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
@@ -20,18 +20,28 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var lineas = new List<PreContabilidadDTO>();
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
-            linea1.Cuenta = "62600004";
-            linea1.Concepto = $"Comisión {banco.Nombre.Trim()} {apunteBancario.RegistrosConcepto[0]?.Concepto2}" ;
-            linea1.Concepto = FuncionesAuxiliaresReglas.FormatearConcepto(linea1.Concepto);
+            linea1.Cuenta = "46500004";
+            var concepto = apunteBancario.RegistrosConcepto[1]?.ConceptoCompleto?.Trim() ?? string.Empty;
+            concepto = $"Embargo {concepto}";
+            linea1.Concepto = FuncionesAuxiliaresReglas.FormatearConcepto(concepto);
 
             // Obtener los últimos 10 caracteres
-            string referenciaCompleta = apunteBancario.RegistrosConcepto[1]?.Concepto;
-            string ultimos10Caracteres = FuncionesAuxiliaresReglas.UltimosDiezCaracteres(referenciaCompleta);
+            string referenciaCompleta = apunteBancario.Referencia2.Trim();
+            int longitud = referenciaCompleta.Length;
+            int caracteresDeseados = 10;
+            string ultimos10Caracteres;
+            if (longitud >= caracteresDeseados)
+            {
+                ultimos10Caracteres = referenciaCompleta.Substring(longitud - caracteresDeseados);
+            }
+            else
+            {
+                // Manejar el caso donde la cadena es menor a 10 caracteres si es necesario
+                ultimos10Caracteres = referenciaCompleta;
+            }
             linea1.Documento = ultimos10Caracteres;
             linea1.Fecha = new DateOnly(apunteBancario.FechaOperacion.Year, apunteBancario.FechaOperacion.Month, apunteBancario.FechaOperacion.Day);
             linea1.Delegacion = "ALG";
-            linea1.Departamento = "ADM";
-            linea1.CentroCoste = "CA";
             linea1.Debe = -apunteBancario.ImporteMovimiento;
             linea1.Contrapartida = banco.CuentaContable;
             lineas.Add(linea1);
@@ -44,23 +54,21 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             return response;
         }
 
+
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
         {
-            if (apuntesBancarios is null || !apuntesBancarios.Any())
+            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
             {
                 return false;
             }
             var apunteBancario = apuntesBancarios.First();
+            var apunteContabilidad = apuntesContabilidad.First();
 
-            if (apunteBancario.ConceptoComun == "17" &&
-                apunteBancario.ConceptoPropio == "036" &&
+            if (apunteBancario.ConceptoComun == "99" &&
+                apunteBancario.ConceptoPropio == "067" &&
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
-                (
-                    apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "PRECIO ED. EXTRACTO" ||
-                    apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "PRECIO ABONO TRF." ||
-                    apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "SERV. EM. TRANSF."
-                ))
+                apunteBancario.RegistrosConcepto[2]?.Concepto.ToUpper().Trim() == "3202-0000-05-0233-20")
             {
                 return true;
             }

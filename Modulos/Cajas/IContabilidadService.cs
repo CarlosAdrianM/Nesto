@@ -8,6 +8,7 @@ namespace Nesto.Modulos.Cajas
     public interface IContabilidadService
     {
         Task<List<CuentaContableDTO>> LeerCuentas(string empresa, string grupo);
+        Task<List<ContabilidadDTO>> LeerCuentasPorConcepto(string empresa, string concepto, DateTime fechaDesde, DateTime fechaHasta);
         Task<int> Contabilizar(List<PreContabilidadDTO> lineas);
         Task<int> Contabilizar(PreContabilidadDTO linea);
         Task<List<ContabilidadDTO>> LeerApuntesContabilidad(string empresa, string cuenta, DateTime fechaDesde, DateTime fechaHasta);

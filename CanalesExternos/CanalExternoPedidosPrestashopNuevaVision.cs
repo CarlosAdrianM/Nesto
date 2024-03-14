@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using Nesto.Modulos.CanalesExternos.Models;
+using Nesto.Infrastructure.Shared;
+using System.Transactions;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -85,10 +87,9 @@ namespace Nesto.Modulos.CanalesExternos
 
             string formaPago = pedidoEntrada.Pedido.Element("payment")?.Value;
             decimal totalPedido = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products_wt")?.Value) / 1000000, 4);
-            decimal totalPortes = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000, 4);
-            decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
-            decimal totalEmbalaje = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl")?.Value) / 1000000, 4);
-            decimal totalAPagar = totalPedido + totalPortes - totalDescuentos;
+            
+            // Aquí iban los totales
+            
             if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO || formaPago == FORMA_PAGO_CONTRAREEMBOLSO_INGLES)
             {
                 pedidoSalida.formaPago = "EFC";
@@ -111,150 +112,9 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.Usuario = configuracion.usuario;
 
 
-            // añadir líneas
-            var listaLineasXML = pedidoEntrada.Pedido.Element("associations").Element("order_rows").Elements();
-            foreach(var linea in listaLineasXML)
-            {
-                decimal porcentajeIva;
-                decimal importeSinIva = Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) / 1000000;
-                decimal importeConIva = Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000;
+            // aquí iban las líneas
 
-                if (Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) != 0) {
-                    porcentajeIva = Math.Round(importeConIva / importeSinIva - 1, 2);
-                } else
-                {
-                    porcentajeIva = 0;
-                }
-                    
-                string tipoIva;
-                if (porcentajeIva == .21M || porcentajeIva == 0 || Math.Round(importeSinIva * 1.21M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
-                {
-                    tipoIva = "G21";
-                } else if (porcentajeIva == .10M || Math.Round(importeSinIva * 1.1M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
-                {
-                    tipoIva = "R10";
-                } else if (porcentajeIva == .04M || Math.Round(importeSinIva * 1.04M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
-                {
-                    tipoIva = "SR";
-                } else
-                {
-                    throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", porcentajeIva.ToString("p")));
-                }
-                LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
-                {
-                    Pedido = pedidoSalida,
-                    almacen = "ALG",
-                    AplicarDescuento = false,
-                    Cantidad = short.Parse(linea.Element("product_quantity").Value),
-                    delegacion = "ALG",
-                    formaVenta = "WEB",
-                    estado = 1,
-                    fechaEntrega = DateTime.Today,
-                    iva = tipoIva,
-                    PrecioUnitario = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
-                    Producto = linea.Element("product_reference").Value,
-                    texto = linea.Element("product_name").Value.ToUpper(),
-                    tipoLinea = 1, // producto
-                    Usuario = configuracion.usuario
-                };
-
-                if (pedidoSalida.iva != null)
-                {
-                    lineaNesto.PrecioUnitario = Math.Round(lineaNesto.PrecioUnitario / (decimal)(1+porcentajeIva), 4);
-                    //lineaNesto.BaseImponible = lineaNesto.precio * lineaNesto.cantidad;
-                    lineaNesto.PorcentajeIva = porcentajeIva;
-                }
-
-                pedidoSalida.Lineas.Add(lineaNesto);
-            }
-
-            // Añadir portes
-            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl").Value) != 0)
-            {
-                LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
-                {
-                    almacen = "ALG",
-                    AplicarDescuento = false,
-                    Cantidad = (short)1,
-                    delegacion = "ALG",
-                    formaVenta = "WEB",
-                    estado = 1,
-                    fechaEntrega = DateTime.Today,
-                    iva = "G21",
-                    PrecioUnitario = totalPortes,
-                    Producto = "62400003",
-                    texto = "GASTOS DE TRANSPORTE",
-                    tipoLinea = 2, // cuenta contable
-                    Usuario = configuracion.usuario
-                };
-
-                if (pedidoSalida.iva != null)
-                {
-                    lineaPortes.PrecioUnitario = lineaPortes.PrecioUnitario / (decimal)1.21;
-                    lineaPortes.PorcentajeIva = .21M;
-                }
-
-                pedidoSalida.Lineas.Add(lineaPortes);
-            }
-
-            // Añadir embalaje
-            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl").Value) != 0)
-            {
-                LineaPedidoVentaDTO lineaEmbalaje = new LineaPedidoVentaDTO
-                {
-                    almacen = "ALG",
-                    AplicarDescuento = false,
-                    Cantidad = (short)1,
-                    delegacion = "ALG",
-                    formaVenta = "WEB",
-                    estado = 1,
-                    fechaEntrega = DateTime.Today,
-                    iva = "G21",
-                    PrecioUnitario = totalEmbalaje,
-                    Producto = "62700020",
-                    texto = "EMBALAJE DE REGALO",
-                    tipoLinea = 2, // cuenta contable
-                    Usuario = configuracion.usuario
-                };
-
-                if (pedidoSalida.iva != null)
-                {
-                    lineaEmbalaje.PrecioUnitario = lineaEmbalaje.PrecioUnitario / (decimal)1.21;
-                    lineaEmbalaje.PorcentajeIva = .21M;
-                }
-
-                pedidoSalida.Lineas.Add(lineaEmbalaje);
-            }
-
-            // Añadir cupones de descuento
-            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl").Value) != 0)
-            {
-                LineaPedidoVentaDTO lineaCupon = new LineaPedidoVentaDTO
-                {
-                    almacen = "ALG",
-                    AplicarDescuento = false,
-                    Cantidad = (short)-1,
-                    delegacion = "ALG",
-                    formaVenta = "WEB",
-                    estado = 1,
-                    fechaEntrega = DateTime.Today,
-                    iva = "G21",
-                    PrecioUnitario = totalDescuentos,
-                    Producto = "TiCKET",
-                    texto = "CUPÓN DE DESCUENTO",
-                    tipoLinea = 1, // producto
-                    Usuario = configuracion.usuario
-                };
-
-                if (pedidoSalida.iva != null)
-                {
-                    lineaCupon.PrecioUnitario = lineaCupon.PrecioUnitario / (decimal)1.21;
-                    lineaCupon.PorcentajeIva = .21M;
-                }
-
-                pedidoSalida.Lineas.Add(lineaCupon);
-            }
-
+            
             pedidoExterno.Pedido = pedidoSalida;
             pedidoExterno.PedidoCanalId = pedidoEntrada.Pedido.Element("reference").Value;
             pedidoExterno.PedidoNestoId = pedidoEntrada.PedidoNestoId;
@@ -275,6 +135,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 pedidoExterno.Provincia = string.Empty;
             }
+            pedidoExterno.Almacen = Constantes.Almacenes.ALMACEN_CENTRAL;
 
             Dictionary<string, string> cuentasFormaPago = new Dictionary<string, string>();
             cuentasFormaPago.Add(FORMA_PAGO_PAYPAL, "57200020"); 
@@ -348,7 +209,7 @@ namespace Nesto.Modulos.CanalesExternos
             return dniCliente;
         }
 
-        public PedidoCanalExterno GetPedido(int Id)
+        public async Task<PedidoCanalExterno> GetPedido(string Id)
         {
             throw new NotImplementedException();
         }
@@ -415,6 +276,165 @@ namespace Nesto.Modulos.CanalesExternos
                 throw new NotImplementedException();
             }
         }
+
+        public async Task<ICollection<LineaPedidoVentaDTO>> GetLineas(PedidoCanalExterno pedido)
+        {
+            var servicio = new PrestashopService();
+            var urlPedido = $"https://www.productosdeesteticaypeluqueriaprofesional.com/api/orders?filter[reference]={pedido.PedidoCanalId}";
+
+            PedidoPrestashop pedidoEntrada = await servicio.CargarPedidoPorReferenciaAsync(urlPedido); ;
+            PedidoVentaDTO pedidoSalida = pedido.Pedido;
+            // añadir líneas
+            var listaLineasXML = pedidoEntrada.Pedido.Element("associations").Element("order_rows").Elements();
+            foreach(var linea in listaLineasXML)
+            {
+                decimal porcentajeIva;
+                decimal importeSinIva = Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) / 1000000;
+                decimal importeConIva = Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000;
+
+                if (Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) != 0) {
+                    porcentajeIva = Math.Round(importeConIva / importeSinIva - 1, 2);
+                } else
+                {
+                    porcentajeIva = 0;
+                }
+                    
+                string tipoIva;
+                if (porcentajeIva == .21M || porcentajeIva == 0 || Math.Round(importeSinIva * 1.21M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+                {
+                    tipoIva = "G21";
+                } else if (porcentajeIva == .10M || Math.Round(importeSinIva * 1.1M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+                {
+                    tipoIva = "R10";
+                } else if (porcentajeIva == .04M || Math.Round(importeSinIva * 1.04M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+                {
+                    tipoIva = "SR";
+                } else
+                {
+                    throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", porcentajeIva.ToString("p")));
+                }
+                LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
+                {
+                    Pedido = pedidoSalida,
+                    almacen = "ALG",
+                    AplicarDescuento = false,
+                    Cantidad = short.Parse(linea.Element("product_quantity").Value),
+                    delegacion = "ALG",
+                    formaVenta = "WEB",
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = tipoIva,
+                    PrecioUnitario = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
+                    Producto = linea.Element("product_reference").Value,
+                    texto = linea.Element("product_name").Value.ToUpper(),
+                    tipoLinea = 1, // producto
+                    Usuario = configuracion.usuario
+                };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaNesto.PrecioUnitario = Math.Round(lineaNesto.PrecioUnitario / (decimal)(1+porcentajeIva), 4);
+                    //lineaNesto.BaseImponible = lineaNesto.precio * lineaNesto.cantidad;
+                    lineaNesto.PorcentajeIva = porcentajeIva;
+                }
+
+                pedidoSalida.Lineas.Add(lineaNesto);
+            }
+
+            // Añadir portes
+            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl").Value) != 0)
+            {
+                decimal totalPortes = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000, 4);
+                LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
+                {
+                    almacen = "ALG",
+                    AplicarDescuento = false,
+                    Cantidad = (short)1,
+                    delegacion = "ALG",
+                    formaVenta = "WEB",
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = "G21",
+                    PrecioUnitario = totalPortes,
+                    Producto = "62400003",
+                    texto = "GASTOS DE TRANSPORTE",
+                    tipoLinea = 2, // cuenta contable
+                    Usuario = configuracion.usuario
+                };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaPortes.PrecioUnitario = lineaPortes.PrecioUnitario / (decimal)1.21;
+                    lineaPortes.PorcentajeIva = .21M;
+                }
+
+                pedidoSalida.Lineas.Add(lineaPortes);
+            }
+
+            // Añadir embalaje
+            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl").Value) != 0)
+            {
+                decimal totalEmbalaje = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl")?.Value) / 1000000, 4);
+                LineaPedidoVentaDTO lineaEmbalaje = new LineaPedidoVentaDTO
+                {
+                    almacen = "ALG",
+                    AplicarDescuento = false,
+                    Cantidad = (short)1,
+                    delegacion = "ALG",
+                    formaVenta = "WEB",
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = "G21",
+                    PrecioUnitario = totalEmbalaje,
+                    Producto = "62700020",
+                    texto = "EMBALAJE DE REGALO",
+                    tipoLinea = 2, // cuenta contable
+                    Usuario = configuracion.usuario
+                };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaEmbalaje.PrecioUnitario = lineaEmbalaje.PrecioUnitario / (decimal)1.21;
+                    lineaEmbalaje.PorcentajeIva = .21M;
+                }
+
+                pedidoSalida.Lineas.Add(lineaEmbalaje);
+            }
+
+            // Añadir cupones de descuento
+            if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl").Value) != 0)
+            {
+                decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
+                LineaPedidoVentaDTO lineaCupon = new LineaPedidoVentaDTO
+                {
+                    almacen = "ALG",
+                    AplicarDescuento = false,
+                    Cantidad = (short)-1,
+                    delegacion = "ALG",
+                    formaVenta = "WEB",
+                    estado = 1,
+                    fechaEntrega = DateTime.Today,
+                    iva = "G21",
+                    PrecioUnitario = totalDescuentos,
+                    Producto = "TiCKET",
+                    texto = "CUPÓN DE DESCUENTO",
+                    tipoLinea = 1, // producto
+                    Usuario = configuracion.usuario
+                };
+
+                if (pedidoSalida.iva != null)
+                {
+                    lineaCupon.PrecioUnitario = lineaCupon.PrecioUnitario / (decimal)1.21;
+                    lineaCupon.PorcentajeIva = .21M;
+                }
+
+                pedidoSalida.Lineas.Add(lineaCupon);
+            }
+
+            return pedidoSalida.Lineas;
+
+        }
+
         private class DatosEnvioConfirmarPrestashop
         {
             public string AgenciaId { get; set; }

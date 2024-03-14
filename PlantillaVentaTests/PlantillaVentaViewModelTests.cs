@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
+using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
 using Prism.Events;
 using Prism.Regions;
@@ -47,8 +48,9 @@ namespace PlantillaVentaTests
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
+            IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -71,8 +73,9 @@ namespace PlantillaVentaTests
             IPlantillaVentaService servicio = A.Fake<IPlantillaVentaService>();
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
+            IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService);
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {

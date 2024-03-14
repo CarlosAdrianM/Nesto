@@ -8,7 +8,9 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Nesto.Infrastructure.Contracts;
-using static Nesto.Infrastructure.Shared.Constantes;
+using System.Globalization;
+using System.Collections.ObjectModel;
+using Nesto.Models;
 
 namespace Nesto.Modulos.Cajas
 {
@@ -334,6 +336,37 @@ namespace Nesto.Modulos.Cajas
             }
         }
 
+        public async Task<List<ExtractoProveedorDTO>> LeerExtractoProveedorAsiento(string empresa, int asiento)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = $"ExtractoProveedores?empresa={empresa}&asiento={asiento}";
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var movimientos = JsonConvert.DeserializeObject<List<ExtractoProveedorDTO>>(resultado);
+                        return movimientos;
+                    }
+                    else
+                    {
+                        throw new Exception("No se han podido cargar los extractos del proveedor para el asiento");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("No se han podido cargar los extractos del proveedor para el asiento", ex);
+                }
+            }
+        }
+
         public async Task<List<MovimientoTPV>> LeerMovimientosTPV(DateTime fechaCaptura, string tipoDatafono)
         {
             using (HttpClient client = new HttpClient())
@@ -366,6 +399,71 @@ namespace Nesto.Modulos.Cajas
             }
         }
 
+        public async Task<ObservableCollection<PrepagoDTO>> LeerPrepagosPendientes(decimal importe)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    // Para mostrar punto en vez de coma decimal
+                    CultureInfo culture = new CultureInfo("en-US");                    
+                    string importeFormateado = importe.ToString(culture);
+                    string urlConsulta = $"Bancos/LeerPrepagoPendientePorImporte?importe={importeFormateado}";
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var movimientos = JsonConvert.DeserializeObject<List<PrepagoDTO>>(resultado);
+                        return new ObservableCollection<PrepagoDTO>(movimientos);
+                    }
+                    else
+                    {
+                        throw new Exception("No se han podido cargar los prepagos pendientes");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("No se han podido cargar los prepagos pendientes", ex);
+                }
+            }
+        }
+
+        public async Task<string> LeerProveedorPorNombre(string nombreProveedor)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = $"Bancos/LeerProveedorPorNombre?nombreProveedor={nombreProveedor}";
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var proveedor = JsonConvert.DeserializeObject<string>(resultado);
+                        return proveedor;
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido comprobar si existe un proveedor con ese nombre");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+        }
+
         public async Task<int> NumeroRecibosRemesa(string remesa)
         {
             using (HttpClient client = new HttpClient())
@@ -388,6 +486,43 @@ namespace Nesto.Modulos.Cajas
                     else
                     {
                         throw new Exception("No se ha podido calcular el número de recibos de la remesa");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+        }
+
+        public async Task<ExtractoProveedorDTO> PagoPendienteUnico(string proveedor, decimal importe)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    importe = -importe; // el pago en el banco es negativo
+                    // Establecer la cultura en-US para asegurar que el separador decimal sea un punto
+                    CultureInfo culture = new CultureInfo("en-US");
+                    // Formatear la cantidad utilizando la cultura específica
+                    string importeFormateado = importe.ToString(culture);
+
+                    string urlConsulta = $"Bancos/PagoPendienteUnico?proveedor={proveedor}&importe={importeFormateado}";
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var pagoPendiente = JsonConvert.DeserializeObject<ExtractoProveedorDTO>(resultado);
+                        return pagoPendiente;
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido comprobar si existe un pago pendiente a ese proveedor de ese importe");
                     }
                 }
                 catch (Exception ex)
@@ -460,7 +595,5 @@ namespace Nesto.Modulos.Cajas
                 }
             }
         }
-
-        
     }
 }

@@ -27,6 +27,7 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly container As IUnityContainer
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IPlantillaVentaService
+    Private ReadOnly servicioPedidosVenta As IPedidoVentaService
     Private ReadOnly eventAggregator As IEventAggregator
     Private ReadOnly dialogService As IDialogService
     Private Const ESTADO_LINEA_CURSO As Integer = 1
@@ -41,13 +42,14 @@ Public Class PlantillaVentaViewModel
     Dim formaVentaPedido, delegacionUsuario, almacenRutaUsuario, iva, vendedorUsuario As String
     Dim ultimoClienteAbierto As String = ""
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService)
         Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
         Me.dialogService = dialogService
+        Me.servicioPedidosVenta = servicioPedidosVenta
 
         Titulo = "Plantilla Ventas"
 
@@ -101,6 +103,7 @@ Public Class PlantillaVentaViewModel
 
 
         eventAggregator.GetEvent(Of ClienteCreadoEvent).Subscribe(AddressOf ActualizarCliente)
+
     End Sub
 
 
@@ -193,6 +196,10 @@ Public Class PlantillaVentaViewModel
                 End If
             ElseIf Not IsNothing(value) Then
                 SeleccionarElCliente(value)
+            End If
+            If _clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN Then
+                fechaMinimaEntrega = DateTime.Today
+                fechaEntrega = DateTime.Today
             End If
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
         End Set
@@ -353,7 +360,14 @@ Public Class PlantillaVentaViewModel
             Return _fechaMinimaEntrega
         End Get
         Set
-            If _fechaMinimaEntrega <> Value Then
+            If _fechaMinimaEntrega < Value Then
+                If fechaEntrega < Value Then
+                    fechaEntrega = Value
+                End If
+                SetProperty(_fechaMinimaEntrega, Value)
+            End If
+
+            If _fechaMinimaEntrega > Value Then
                 SetProperty(_fechaMinimaEntrega, Value)
                 If fechaEntrega < Value Then
                     fechaEntrega = Value
@@ -364,9 +378,14 @@ Public Class PlantillaVentaViewModel
 
     Public Async Function ObtenerFechaMinimaEntregaAsync() As Task(Of DateTime)
         Try
+            If clienteSeleccionado?.cliente = Constantes.Clientes.Especiales.EL_EDEN Then
+                Return Await Task.FromResult(DateTime.Today)
+            End If
+
             Return Await servicio.CalcularFechaEntrega(DateTime.Now, direccionEntregaSeleccionada?.ruta, almacenSeleccionado?.Codigo)
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
+            Return Nothing
         End Try
     End Function
 
@@ -1078,7 +1097,7 @@ Public Class PlantillaVentaViewModel
         If IsNothing(clienteSeleccionado) Then
             Return
         End If
-        If almacenSeleccionado.Codigo = Constantes.Almacenes.ALMACEN_CENTRAL Then
+        If almacenSeleccionado.Codigo = Constantes.Almacenes.ALMACEN_CENTRAL AndAlso clienteSeleccionado?.cliente <> Constantes.Clientes.Especiales.EL_EDEN Then
             fechaMinimaEntrega = Await ObtenerFechaMinimaEntregaAsync()
         End If
 
@@ -1347,7 +1366,8 @@ Public Class PlantillaVentaViewModel
             End If
 
             If MandarCobroTarjeta Then
-                servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, totalPedido, numPedido, clienteSeleccionado.cliente)
+                Dim pedidoCreado As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(pedido.empresa, numPedido)
+                servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, pedidoCreado.Total, numPedido, clienteSeleccionado.cliente)
             End If
 
             ' Cerramos la ventana
@@ -1512,11 +1532,11 @@ Public Class PlantillaVentaViewModel
     End Function
 
     Private Function CalcularSerie() As String
-        If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.All(Function(l) l.familia = Constantes.Familias.UNION_LASER_NOMBRE) Then
+        If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.UNION_LASER_NOMBRE) Then
             Return Constantes.Series.UNION_LASER
         End If
 
-        If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.All(Function(l) l.familia = Constantes.Familias.EVA_VISNU_NOMBRE) Then
+        If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.EVA_VISNU_NOMBRE) Then
             Return Constantes.Series.EVA_VISNU
         End If
 

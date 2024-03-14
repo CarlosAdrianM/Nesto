@@ -43,6 +43,7 @@ namespace Nesto.Infrastructure.Shared
 
         public class DiariosContables
         {            
+            public const string DIARIO_CAJA = "_Caja";
             public const string DIARIO_PAGO_REEMBOLSOS = "_PagoReemb";
             public const string DIARIO_REEMBOLSOS = "_Reembolso";
             public const string DIARIO_TRASPASOS_CAJA = "_TraspCaja";
@@ -82,6 +83,7 @@ namespace Nesto.Infrastructure.Shared
         public class Formatos
         {
             public const string HTML_CLIENTE_P_TAG = "<p style = \"color:DimGray; font-family:'Consolas'; font-size:10px; border-radius: 25px; border: 2px solid #73AD21; padding: 10px;\">";
+            public const string HTML_BANCO_P_TAG = "<p style = \"color:DimGray; font-family:'Consolas'; font-size:12px; border-radius: 25px; border: 2px solid #778899; padding: 10px;\">";
         }
         public class GruposSeguridad
         {

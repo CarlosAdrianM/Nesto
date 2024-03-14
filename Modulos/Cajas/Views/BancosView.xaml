@@ -32,6 +32,7 @@
                 <RowDefinition/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <xctk:BusyIndicator Grid.Row="0" IsBusy="{Binding IsBusyApuntesBanco}">
                 <DataGrid Name="dgrApuntesBanco" ItemsSource="{Binding ApuntesBancoCollectionView}" SelectedItem="{Binding ApunteBancoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
@@ -72,8 +73,32 @@
                 </DataGrid>
 
             </xctk:BusyIndicator>
-            
-            <DataGrid Grid.Row="1" ItemsSource="{Binding MovimientosRelacionados}" IsReadOnly="True">
+
+            <DataGrid Grid.Row="1" ItemsSource="{Binding PrepagosPendientes}" IsReadOnly="True" AutoGenerateColumns="False">
+                <DataGrid.Style>
+                    <Style TargetType="DataGrid">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding PrepagosPendientes.Count}" Value="0">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Style>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" />
+                    <DataGridTextColumn Header="Concepto" Binding="{Binding ConceptoAdicional}" />
+                    <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=C, ConverterCulture='es-ES'}">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style>
+                                <Setter Property="TextBlock.HorizontalAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Cuenta" Binding="{Binding CuentaContable}" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <DataGrid Grid.Row="2" ItemsSource="{Binding MovimientosRelacionados}" IsReadOnly="True" SelectedItem="{Binding MovimientoTPVSeleccionado}">
                 <DataGrid.Style>
                     <Style TargetType="DataGrid">
                         <Style.Triggers>
@@ -119,52 +144,74 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-
-            <ItemsControl Grid.Row="2" ItemsSource="{Binding ApunteBancoSeleccionado.RegistrosConcepto}">
+            <ItemsControl Grid.Row="3" ItemsSource="{Binding ApunteBancoSeleccionado.RegistrosConcepto}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <StackPanel>
-                            <TextBlock Text="{Binding ConceptoCompleto}" FontFamily="Courier New"></TextBlock>
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="MouseRightButtonUp">
+                                    <i:InvokeCommandAction Command="{Binding Path=DataContext.CopiarConceptoPortapapelesCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                            <TextBox Text="{Binding ConceptoCompleto, Mode=OneWay}" FontFamily="Courier New" IsReadOnly="True" BorderThickness="0"/>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Grid>
         <xctk:BusyIndicator Grid.Column="1" Grid.Row="0" IsBusy="{Binding IsBusyApuntesContabilidad}">
-            <DataGrid Name="dgrApuntesContabilidad" ItemsSource="{Binding ApuntesContabilidadCollectionView}" SelectedItem="{Binding ApunteContabilidadSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
-            <i:Interaction.Triggers>
-                <i:EventTrigger EventName="SelectionChanged">
-                    <i:InvokeCommandAction Command="{Binding SeleccionarApuntesContabilidadCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgrApuntesContabilidad}" />
-                </i:EventTrigger>
-            </i:Interaction.Triggers>
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding EstadoPunteo}" Value="CompletamentePunteado">
-                            <Setter Property="Background" Value="Green"/>
-                            <Setter Property="Foreground" Value="White"/>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding EstadoPunteo}" Value="ParcialmentePunteado">
-                            <Setter Property="Background" Value="Red"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </DataGrid.RowStyle>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
-                <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" />
-                <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DataGrid Name="dgrApuntesContabilidad" Grid.Row="0" ItemsSource="{Binding ApuntesContabilidadCollectionView}" SelectedItem="{Binding ApunteContabilidadSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="SelectionChanged">
+                            <i:InvokeCommandAction Command="{Binding SeleccionarApuntesContabilidadCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgrApuntesContabilidad}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding EstadoPunteo}" Value="CompletamentePunteado">
+                                    <Setter Property="Background" Value="Green"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding EstadoPunteo}" Value="ParcialmentePunteado">
+                                    <Setter Property="Background" Value="Red"/>
+                                </DataTrigger>
+                            </Style.Triggers>
                         </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
-                <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" />
-                <DataGridTextColumn Header="Diario" Binding="{Binding Diario}" />
-            </DataGrid.Columns>
-        </DataGrid>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
+                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" />
+                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
+                            <DataGridTextColumn Header="Delegación" Binding="{Binding Delegacion}" />
+                            <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" />
+                        <DataGridTextColumn Header="Diario" Binding="{Binding Diario}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding ExtractosProveedorAsientoSeleccionado}" IsReadOnly="True">
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ExtractosProveedorAsientoSeleccionado.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Style>
+                </DataGrid>
+            </Grid>
         </xctk:BusyIndicator>
         <UniformGrid Grid.Row="1" Grid.ColumnSpan="2" Columns="6">
             <Button Command="{Binding CargarArchivoCommand}">Cargar archivo Cuaderno 43</Button>

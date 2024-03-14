@@ -5,183 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using static System.Net.Mime.MediaTypeNames;
-using System.Xml.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Globalization;
 
 namespace Nesto.Infrastructure.Shared
 {
-    /*
-    public class ColeccionFiltrable<T> : BindableBase where T : IFiltrableItem
-    {
-        #region Constructores
-        public ColeccionFiltrable() : base()
-        {
-            FijarFiltroCommand = new DelegateCommand<string>(OnFijarFiltro);
-            QuitarFiltroCommand = new DelegateCommand<string>(OnQuitarFiltro);
-        }
-
-        public ColeccionFiltrable(IEnumerable<T> enumerable) : this()
-        {
-            ListaOriginal = new ObservableCollection<T>(enumerable);
-        }
-
-        public ColeccionFiltrable(params T[] collection) : this(collection as IEnumerable<T>) { }
-        #endregion
-
-        #region Propiedades
-        
-        private T _elementoSeleccionado;
-        public T ElementoSeleccionado
-        {
-            get => _elementoSeleccionado;
-            set
-            {
-                T oldElementoSeleccionado = _elementoSeleccionado;
-                _elementoSeleccionado = value;
-                ElementoSeleccionadoChanged?.Invoke(oldElementoSeleccionado, _elementoSeleccionado);
-                SetProperty(ref _elementoSeleccionado, value);
-            }
-        }
-
-        private string _filtro;
-        public string Filtro
-        {
-            get => _filtro;
-            set
-            {
-                SetProperty(ref _filtro, value);
-                Lista = AplicarFiltro(value);
-            }
-        }
-
-        private ObservableCollection<string> _filtrosPuestos;
-        public ObservableCollection<string> FiltrosPuestos {
-            get => _filtrosPuestos;
-            set => SetProperty(ref _filtrosPuestos, value);
-        }
-        private ObservableCollection<T> _lista;
-        public ObservableCollection<T> Lista
-        {
-            get => _lista;
-            set => SetProperty(ref _lista, value);
-        }
-        private ObservableCollection<T> _listaFijada;
-        public ObservableCollection<T> ListaFijada {
-            get => _listaFijada;
-            set
-            {
-                SetProperty(ref _listaFijada, value);
-                Lista = value;
-            }
-        }
-        private ObservableCollection<T> _listaOriginal;
-        public ObservableCollection<T> ListaOriginal {
-            get => _listaOriginal;
-            set
-            {
-                SetProperty(ref _listaOriginal, value);
-                ListaFijada = value;
-                //if (value == null || !value.Any())
-                //{
-                //    FiltrosPuestos.Clear();
-                //}
-                //FiltrosPuestos.Clear();
-            }
-        }
-        public bool TieneDatosIniciales { get; set; }
-        #endregion
-
-        #region Funciones
-        internal ObservableCollection<T> AplicarFiltro(string filtro)
-        {
-            if (ListaFijada == null)
-            {
-                return new ObservableCollection<T>();
-            }
-            if (string.IsNullOrEmpty(filtro))
-            {
-                return ListaFijada;
-            }
-            return new ObservableCollection<T>(ListaFijada.Where(l => l.Contains(filtro)));
-        }
-
-        public void RefrescarFiltro()
-        {
-            Lista = AplicarFiltro(Filtro);
-        }
-        #endregion
-
-        #region Comandos
-        public DelegateCommand<string> FijarFiltroCommand { get; private set; }
-        private void OnFijarFiltro(string filtro)
-        {
-            if (FiltrosPuestos == null)
-            {
-                FiltrosPuestos = new();
-            }
-            if (!string.IsNullOrEmpty(filtro))
-            {
-                if (Lista == null || !Lista.Any())
-                {
-                    if (!TieneDatosIniciales)
-                    {
-                        FiltrosPuestos.Clear();
-                        HayQueCargarDatos(); //emite el evento
-                    }
-                }
-                else
-                {
-                    Lista = AplicarFiltro(filtro);
-                    ListaFijada = Lista;
-                }
-                FiltrosPuestos.Add(filtro);
-            }
-            else
-            {
-                FiltrosPuestos.Clear();
-                ListaFijada = ListaOriginal;
-            }
-        }
-
-        public DelegateCommand<string> QuitarFiltroCommand { get; private set; }
-        private void OnQuitarFiltro(string filtro)
-        {
-            filtro = filtro.ToLower();
-            if (!FiltrosPuestos.Any() || FiltrosPuestos.Count == 1)
-            {
-                FiltrosPuestos.Clear();
-                if (TieneDatosIniciales)
-                {
-                    ListaFijada = ListaOriginal;
-                }
-                else
-                {
-                    ListaOriginal.Clear();
-                }
-            }
-            else
-            {
-                FiltrosPuestos.Remove(filtro);
-                ListaFijada = ListaOriginal;
-                foreach (string filtroPuesto in FiltrosPuestos)
-                {
-                    ListaFijada = AplicarFiltro(filtroPuesto);
-                }
-            }
-        }
-        #endregion
-
-        #region Eventos
-        public delegate void ElementoSeleccionadoChange(T oldItem, T newItem);
-        public virtual ElementoSeleccionadoChange ElementoSeleccionadoChanged { get; set; }
-        public event Action HayQueCargarDatos;
-        #endregion
-    }
-    */
-
     public class ColeccionFiltrable : BindableBase
     {
         #region Constructores
@@ -233,19 +60,33 @@ namespace Nesto.Infrastructure.Shared
                 if (_elementoSeleccionado == value) {
                     return;
                 }
-                IFiltrableItem oldElementoSeleccionado = _elementoSeleccionado;
-                _elementoSeleccionado = value;
-                ElementoSeleccionadoChangedEventArgs args = new();
-                args.OldValue = oldElementoSeleccionado;
-                args.NewValue = value;
-                OnElementoSeleccionadoChanged(args);
+                IFiltrableItem oldElementoSeleccionado = _elementoSeleccionado;                
+                ElementoSeleccionadoChangingEventArgs changingArgs = new()
+                {
+                    OldValue = oldElementoSeleccionado,
+                    NewValue = value
+                };
+                OnElementoSeleccionadoChanging(changingArgs);
+                //_elementoSeleccionado = value;
                 SetProperty(ref _elementoSeleccionado, value);
+                ElementoSeleccionadoChangedEventArgs changedArgs = new()
+                {
+                    OldValue = oldElementoSeleccionado,
+                    NewValue = value
+                };
+                OnElementoSeleccionadoChanged(changedArgs);
+                
                 if (!TieneDatosIniciales && VaciarAlSeleccionar)
                 {
-                    ListaOriginal = new();
-                    FiltrosPuestos?.Clear();
+                    Reiniciar();
                 }
             }
+        }
+
+        public void Reiniciar()
+        {
+            ListaOriginal = new();
+            FiltrosPuestos?.Clear();
         }
 
         private string _filtro;
@@ -504,6 +345,16 @@ namespace Nesto.Infrastructure.Shared
         protected virtual void OnElementoSeleccionadoChanged(ElementoSeleccionadoChangedEventArgs e)
         {
             EventHandler<ElementoSeleccionadoChangedEventArgs> handler = ElementoSeleccionadoChanged;
+            if (handler != null)
+            {
+                handler(this, e);
+            }
+        }
+
+        public event EventHandler<ElementoSeleccionadoChangingEventArgs> ElementoSeleccionadoChanging;
+        protected virtual void OnElementoSeleccionadoChanging(ElementoSeleccionadoChangingEventArgs e)
+        {
+            EventHandler<ElementoSeleccionadoChangingEventArgs> handler = ElementoSeleccionadoChanging;
             if (handler != null)
             {
                 handler(this, e);

@@ -4,12 +4,10 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using static Nesto.Infrastructure.Shared.Constantes;
 
 namespace Nesto.Modulos.Cajas
 {
@@ -218,6 +216,41 @@ namespace Nesto.Modulos.Cajas
                     throw ex;
                 }
             }
+        }
+
+        public async Task<List<ContabilidadDTO>> LeerCuentasPorConcepto(string empresa, string concepto, DateTime fechaDesde, DateTime fechaHasta)
+        {
+            List<ContabilidadDTO> cuentas;
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string fechaDesdeFormateada = fechaDesde.ToString("yyyy-MM-dd");
+                    string fechaHastaFormateada = fechaHasta.ToString("yyyy-MM-dd");
+                    string urlConsulta = $"Contabilidades/LeerCuentasPorConcepto?empresa={empresa}&concepto={concepto}&fechaDesde={fechaDesdeFormateada}&fechaHasta={fechaHastaFormateada}";
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        cuentas = JsonConvert.DeserializeObject<List<ContabilidadDTO>>(resultado);
+                    }
+                    else
+                    {
+                        throw new Exception("No se han podido cargar correctamente las cuentas filtradas por concepto");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("No se han podido cargar correctamente las cuentas filtradas por concepto", ex);
+                }
+            }
+
+            return cuentas;
         }
     }
 }

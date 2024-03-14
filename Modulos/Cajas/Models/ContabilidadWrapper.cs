@@ -91,6 +91,15 @@ namespace Nesto.Modulos.Cajas.Models
                 RaisePropertyChanged(nameof(Documento));
             }
         }
+        public string Delegacion
+        {
+            get => Model.Delegacion;
+            set
+            {
+                Model.Delegacion = value;
+                RaisePropertyChanged(nameof(Delegacion));
+            }
+        }
         public int Asiento 
         {
             get => Model.Asiento;

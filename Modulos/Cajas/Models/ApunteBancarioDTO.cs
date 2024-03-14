@@ -38,7 +38,7 @@ namespace Nesto.Modulos.Cajas.Models
         public string CodigoDato { get; set; }
         public string Concepto { get; set; }
         public string Concepto2 { get; set; }
-        public string ConceptoCompleto { get => $"{Concepto}{Concepto2}"; }
+        public string ConceptoCompleto { get => $"{Concepto}{Concepto2}".Trim(); }
     }
 
     public class RegistroComplementarioEquivalencia

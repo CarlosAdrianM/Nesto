@@ -7,6 +7,8 @@ Imports Unity
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.[Shared]
+Imports Prism.Services.Dialogs
+Imports ControlesUsuario.Dialogs
 
 Public Class ListaRapportsViewModel
     Inherits BindableBase
@@ -16,7 +18,7 @@ Public Class ListaRapportsViewModel
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IRapportService
     Private ReadOnly container As IUnityContainer
-
+    Private ReadOnly _dialogService As IDialogService
 
     Private _vendedor As String
     Public Property vendedor As String
@@ -28,11 +30,12 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer, dialogService As IDialogService)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.container = container
+        _dialogService = dialogService
 
         cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
         cmdCargarListaRapports = New DelegateCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
@@ -225,7 +228,7 @@ Public Class ListaRapportsViewModel
 
             rapportSeleccionado = listaRapports.FirstOrDefault
         Catch ex As Exception
-            Throw ex
+            _dialogService.ShowError(ex.Message)
         Finally
             EstaOcupado = False
         End Try

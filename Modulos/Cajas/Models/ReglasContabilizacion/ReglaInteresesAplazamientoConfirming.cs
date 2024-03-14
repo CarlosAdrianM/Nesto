@@ -1,12 +1,24 @@
-﻿using Nesto.Modulos.Cajas.ViewModels;
+﻿using ControlesUsuario.Dialogs;
+using Nesto.Infrastructure.Shared;
+using Nesto.Modulos.Cajas.ViewModels;
+using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
-    internal class ReglaSegurosSaludPrivados : IReglaContabilizacion
+    internal class ReglaInteresesAplazamientoConfirming : IReglaContabilizacion
     {
+        private readonly IDialogService _dialogService;
+
+        public ReglaInteresesAplazamientoConfirming(IDialogService dialogService)
+        {
+            _dialogService = dialogService;
+        }
+
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
             if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
@@ -17,13 +29,24 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var apunteContabilidad = apuntesContabilidad.First();
             var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
 
+            var importeIngresado = apunteBancario.ImporteMovimiento;
+            var importeIntereses = -importeDescuadre; ;
+            var importeOriginal = importeIngresado + importeIntereses;
+            var tipoInteres = -(importeIntereses * 12) / importeOriginal; // Aplazamos un mes y quiero mostrar el interés anual
+
+            if (!_dialogService.ShowConfirmationAnswer("Contabilizar", $"¿Desea contabilizar los intereses de {importeIntereses.ToString("c")} ({tipoInteres.ToString("p")})?"))
+            {
+                return null;
+            }
+
             var lineas = new List<PreContabilidadDTO>();
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
-            linea1.Cuenta = "64900005";
-            linea1.Concepto = "Seguros salud privados";
+            linea1.Cuenta = "62600003";
+            linea1.Concepto = $"Interés aplazamiento confirming ({tipoInteres.ToString("p")})";
+
             // Obtener los últimos 10 caracteres
-            string referenciaCompleta = apunteBancario.Referencia2.Trim();
+            string referenciaCompleta = apunteBancario.RegistrosConcepto[1].Concepto.Trim();
             int longitud = referenciaCompleta.Length;
             int caracteresDeseados = 10;
             string ultimos10Caracteres;
@@ -36,12 +59,13 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 // Manejar el caso donde la cadena es menor a 10 caracteres si es necesario
                 ultimos10Caracteres = referenciaCompleta;
             }
-            linea1.Documento = ultimos10Caracteres; 
+            linea1.Documento = ultimos10Caracteres;
             linea1.Fecha = new DateOnly(apunteBancario.FechaOperacion.Year, apunteBancario.FechaOperacion.Month, apunteBancario.FechaOperacion.Day);
             linea1.Delegacion = "ALG";
+            linea1.FormaVenta = "VAR";
             linea1.Departamento = "ADM";
             linea1.CentroCoste = "CA";
-            linea1.Debe = -apunteBancario.ImporteMovimiento;
+            linea1.Debe = importeIntereses;
             linea1.Contrapartida = banco.CuentaContable;
             lineas.Add(linea1);
 
@@ -55,28 +79,21 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
         {
-            if (apuntesBancarios is null || !apuntesBancarios.Any())
+            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
             {
                 return false;
             }
             var apunteBancario = apuntesBancarios.First();
+            var apunteContabilidad = apuntesContabilidad.First();
 
-            var concepto = apunteBancario.RegistrosConcepto[0]?.Concepto.Trim();
-            if (concepto != null && concepto.Length > 4)
-            {
-                concepto = apunteBancario.RegistrosConcepto[0]?.Concepto.Trim().Substring(4);
-            }
-            else
-            {
-                concepto = string.Empty;
-            }
-
-            if (apunteBancario.ConceptoComun == "15" &&
-                apunteBancario.ConceptoPropio == "051" &&
+            if (apunteContabilidad.Documento == "APLAZO_CNF" &&
+                apunteBancario.ConceptoComun == "99" &&
+                apunteBancario.ConceptoPropio == "079" &&
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
-                (apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "PACK MULTISEGUROS") ||
-                concepto == "DKV SEGUROS Y REASEGUROS, S.A.")
+                (
+                    apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "CONF:CARGO FACTURAS"
+                ))
             {
                 return true;
             }

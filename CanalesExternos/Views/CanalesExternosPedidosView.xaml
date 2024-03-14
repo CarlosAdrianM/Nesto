@@ -55,33 +55,35 @@
                 <Button Grid.Row="5" Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
             </Grid>
         </xctk:BusyIndicator>
-        <Grid Grid.Column="1">
+        <Grid Grid.Column="1" >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <DataGrid Grid.Column="0" ItemsSource="{Binding PedidoSeleccionadoLineas}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
-                    <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>
-                    <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}"/>
-                    <DataGridTextColumn Header="Precio" Binding="{Binding PrecioUnitario, StringFormat=c}">
-                        <DataGridTextColumn.CellStyle>
-                            <Style>
-                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                            </Style>
-                        </DataGridTextColumn.CellStyle>
-                    </DataGridTextColumn>
-                    <DataGridTextColumn Header="Bruto" Binding="{Binding Bruto, StringFormat=c}">
-                        <DataGridTextColumn.CellStyle>
-                            <Style>
-                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                            </Style>
-                        </DataGridTextColumn.CellStyle>
-                    </DataGridTextColumn>
-                    <DataGridTextColumn Header="Picking" Binding="{Binding picking}"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <xctk:BusyIndicator Grid.Column="0" IsBusy="{Binding EstaOcupadoLineas}" BusyContent="Cargando líneas desde el servidor...">
+                <DataGrid Grid.Column="0" ItemsSource="{Binding PedidoSeleccionadoLineas}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
+                        <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>
+                        <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}"/>
+                        <DataGridTextColumn Header="Precio" Binding="{Binding PrecioUnitario, StringFormat=c}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Bruto" Binding="{Binding Bruto, StringFormat=c}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Picking" Binding="{Binding picking}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </xctk:BusyIndicator>
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -112,10 +114,13 @@
                         <TextBox DockPanel.Dock="Left" Name="txtUltimoSeguimiento" Text="{Binding PedidoSeleccionadoUltimoSeguimiento, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True" IsReadOnlyCaretVisible="True"></TextBox>
                     </DockPanel>
                 </StackPanel>
-                <controles:SelectorCliente Grid.Row="1" Margin="3,0" Name="txtSelectorCliente" Etiqueta="Cliente al que se factura:" Empresa="1" Contacto="{Binding DataContext.PedidoSeleccionadoContacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" Cliente="{Binding DataContext.PedidoSeleccionadoCliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" ClienteCompleto="{Binding DataContext.ClienteSeleccionado, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350"></controles:SelectorCliente>
+                <controles:SelectorCliente Grid.Row="1" Margin="3,0" Name="txtSelectorCliente" 
+                                           Pausado="{Binding DataContext.SelectorClientesPausado, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           Etiqueta="Cliente al que se factura:"                                            
+                                           Cliente="{Binding DataContext.PedidoSeleccionadoCliente, RelativeSource={RelativeSource AncestorType=UserControl}}"                                           
+                                           Contacto="{Binding DataContext.PedidoSeleccionadoContacto, RelativeSource={RelativeSource AncestorType=UserControl}}"  
+                                           HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350"></controles:SelectorCliente>
             </Grid>
         </Grid>
-        
     </Grid>
-
 </UserControl>

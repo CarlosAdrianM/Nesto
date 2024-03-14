@@ -15,8 +15,16 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             _servicio = servicio;
         }
 
-        public ReglaContabilizacionResponse ApuntesContabilizar(ApunteBancarioDTO apunteBancario, BancoDTO banco, decimal importeDescuadre)
+        public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
+            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
+            {
+                return new ReglaContabilizacionResponse();
+            }
+            var apunteBancario = apuntesBancarios.First();
+            var apunteContabilidad = apuntesContabilidad.First();
+            var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
+
             // Nos los cobran a 13 céntimos + IVA           
             var comisionPorRecibo = .13M;
             var ivaComision = 1.21M;
@@ -98,12 +106,13 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             return response;
         }
 
-        public bool EsContabilizable(ApunteBancarioDTO apunteBancario, ContabilidadDTO apunteContabilidad)
+        public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
         {
-            if (apunteBancario == null)
+            if (apuntesBancarios is null || !apuntesBancarios.Any())
             {
                 return false;
             }
+            var apunteBancario = apuntesBancarios.First();
 
             if (apunteBancario.ConceptoComun == "17" &&
                 apunteBancario.ConceptoPropio == "036" &&

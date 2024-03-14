@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Data.Entity;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -11,11 +9,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
-using Nesto.Models;
 using Nesto.Models.Nesto.Models;
-using Newtonsoft.Json;
-using Xceed.Wpf.Toolkit;
-using static Nesto.Models.LineaPedidoVentaDTO;
 
 namespace Nesto.Modulos.CanalesExternos.ApisExternas
 {
@@ -65,6 +59,38 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                 return listaPrestashop;
             }
         }
+
+        internal async Task<PedidoPrestashop> CargarPedidoPorReferenciaAsync(string urlPedido)
+        {
+            string urlPrestashop = urlPedido;
+            string userName = ConfigurationManager.AppSettings["PrestashopWebserviceKeyNV"];
+
+            XElement xmlPedido;
+
+            // Cargamos el pedido
+            using (var handler = new HttpClientHandler { Credentials = new NetworkCredential { UserName = userName } })
+            using (HttpClient client = new HttpClient(handler))
+            using (HttpResponseMessage response = await client.GetAsync(urlPrestashop))
+            using (HttpContent content = response.Content)
+            {
+                try
+                {
+                    string resultado = await content.ReadAsStringAsync();
+                    resultado = resultado.TrimStart('\n');
+                    xmlPedido = XDocument.Parse(resultado).Element("prestashop").Element("orders");
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+
+            XElement xmlOrder = xmlPedido.Element("order");
+            string urlPedidoId = (string)xmlOrder.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink"));
+
+            return await CargarPedidoAsync(urlPedidoId);
+        }
+
         internal async Task<PedidoPrestashop> CargarPedidoAsync(string urlPedido)
         {
             string urlPrestashop = urlPedido;

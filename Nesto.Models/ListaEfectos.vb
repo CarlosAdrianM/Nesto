@@ -49,6 +49,9 @@ Public Class ListaEfectos
         If e.PropertyName = NameOf(efecto.Importe) Then
             CuadrarImporteTotal(efecto)
         End If
+        If e.PropertyName = NameOf(efecto.FechaVencimiento) Then
+            RaisePropertyChanged(NameOf(DiasFinanciacion))
+        End If
     End Function
 
     Private Sub CuadrarImporteTotal(efectoModificado As Efecto)
@@ -69,6 +72,7 @@ Public Class ListaEfectos
         For Each efecto In Me
             AddHandler DirectCast(efecto, Efecto).PropertyChanged, evento
         Next
+        RaisePropertyChanged(NameOf(DiasFinanciacion))
     End Sub
 
     Private _cccCliente As String
@@ -83,6 +87,20 @@ Public Class ListaEfectos
             End If
         End Set
     End Property
+    Public ReadOnly Property DiasFinanciacion As Integer
+        Get
+            Dim totalDiasImporte As Integer = 0
+            For Each efecto In Me
+                Dim diasHastaVencimiento = efecto.FechaVencimiento - DateTime.Today
+                If diasHastaVencimiento.Days < 0 Then
+                    diasHastaVencimiento = TimeSpan.Zero
+                End If
+                totalDiasImporte += diasHastaVencimiento.Days * efecto.Importe
+            Next
+            Return If(ImporteTotal <> 0, totalDiasImporte / ImporteTotal, 0)
+        End Get
+    End Property
+
     Private _formaPagoCliente As String
     Public Property FormaPagoCliente As String
         Get
@@ -111,6 +129,7 @@ Public Class ListaEfectos
                 If Me.Any AndAlso Me.Sum(Function(c) c.Importe) <> ImporteTotal Then
                     Me.Last().Importe += ImporteTotal - Me.Sum(Function(c) c.Importe)
                 End If
+                RaisePropertyChanged(NameOf(DiasFinanciacion))
             End If
         End Set
     End Property
@@ -167,6 +186,7 @@ Public Class ListaEfectos
                 efecto.Importe = Math.Round(Me.ImporteTotal / Me.Count, 2)
             End If
             AddHandler DirectCast(efecto, Efecto).PropertyChanged, evento
+            RaisePropertyChanged(NameOf(DiasFinanciacion))
         Next
     End Sub
 

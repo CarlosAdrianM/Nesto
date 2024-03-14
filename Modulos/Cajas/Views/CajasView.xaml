@@ -7,47 +7,120 @@
              xmlns:prism="http://prismlibrary.com/" xmlns:viewmodels="clr-namespace:Nesto.Modulos.Cajas.ViewModels" 
              d:DataContext="{d:DesignInstance Type=viewmodels:CajasViewModel}"
              prism:ViewModelLocator.AutoWireViewModel="True"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:cu="clr-namespace:ControlesUsuario;assembly=ControlesUsuario" 
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800" Loaded="UserControl_Loaded">
-    <Grid Background="White">
-        <Grid.Resources>
-            <Style TargetType="TextBlock">
-                <Setter Property="Margin" Value="3"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
-            </Style>
-            <Style TargetType="TextBox">
-                <Setter Property="Margin" Value="3,0"/>
-            </Style>
-            <Style TargetType="ComboBox">
-                <Setter Property="Margin" Value="3"/>
-                <Setter Property="VerticalAlignment" Value="Center"/>
-            </Style>
-        </Grid.Resources>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition/>
-            <ColumnDefinition/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition/>
-        </Grid.RowDefinitions>
-        <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">Cuenta origen</TextBlock>
-        <ComboBox Grid.Row="1" Grid.Column="2" SelectedItem="{Binding CuentaOrigen, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center"></ComboBox>
-        <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">Cuenta origen</TextBlock>
-        <ComboBox Grid.Row="2" Grid.Column="2" SelectedItem="{Binding CuentaDestino, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center"></ComboBox>
-        <TextBlock Grid.Row="3" Grid.Column="1">Concepto</TextBlock>
-        <TextBox Grid.Row="3" Grid.Column="2"  Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-        <TextBlock Grid.Row="4" Grid.Column="1">Importe</TextBlock>
-        <TextBox Name="txtImporte" Grid.Row="4" Grid.Column="2"  Text="{Binding Importe, StringFormat=c}" KeyUp="txtImporte_KeyUp" PreviewKeyDown="txtImporte_PreviewKeyDown" GotFocus="txtImporte_GotFocus" PreviewMouseLeftButtonUp="txtImporte_PreviewMouseLeftButtonUp"></TextBox>
-        <Button Name="btnContabilizarTraspaso" Grid.Row="5" Grid.Column="2" Margin="3" Command="{Binding ContabilizarTraspasoCommand}">Contabilizar traspaso</Button>
-    </Grid>
+    <TabControl Background="White">
+        <TabItem Header="Cobros">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <cu:SelectorCliente Cliente="{Binding DataContext.ClienteSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}}"></cu:SelectorCliente>
+                <DataGrid x:Name="dgrListaDeudas" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding ListaDeudas}" IsReadOnly="True" AutoGenerateColumns="False">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="SelectionChanged">
+                            <i:InvokeCommandAction Command="{Binding SeleccionarDeudasCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgrListaDeudas}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}"/>
+                        <DataGridTextColumn Header="Tipo" Binding="{Binding Tipo}"/>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
+                        <DataGridTextColumn Header="Documento" Binding="{Binding Documento}"/>
+                        <DataGridTextColumn Header="Efecto" Binding="{Binding Efecto}"/>
+                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}"/>
+                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Pendiente" Binding="{Binding ImportePendiente, StringFormat=c}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Vencimiento" Binding="{Binding Vencimiento, StringFormat=d}"/>
+                        <DataGridTextColumn Header="Delegacion" Binding="{Binding Delegacion}"/>
+                        <DataGridTextColumn Header="FormaVenta" Binding="{Binding FormaVenta}"/>
+                        <DataGridTextColumn Header="CCC" Binding="{Binding CCC}"/>
+                        <DataGridTextColumn Header="Estado" Binding="{Binding Estado}"/>
+                        <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="Total a cobrar..." HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center"></TextBlock>
+                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding ImporteDeudasSeleccionadas, StringFormat=c}" HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center"></TextBlock>
+                <UniformGrid Grid.Row="2" Grid.Column="2" Columns="3">
+                    <ToggleButton IsChecked="{Binding FormaPagoEfectivoSeleccionada}">Efectivo</ToggleButton>
+                    <ToggleButton IsChecked="{Binding FormaPagoTarjetaSeleccionada}">Tarjeta</ToggleButton>
+                    <ToggleButton IsChecked="{Binding FormaPagoTransferenciaSeleccionada}" IsEnabled="{Binding EsUsuarioDeAdministracion}">Transferencia</ToggleButton>
+                </UniformGrid>
+                <cu:SelectorFormaPago Grid.Row="3" Grid.Column="2" FormaPagoCompleta="{Binding FormaPagoSeleccionada}" IsEnabled="{Binding EsUsuarioDeAdministracion}" Etiqueta="Forma de pago seleccionada:" ListaFormasPago="{Binding ListaFormaPago}"></cu:SelectorFormaPago>
+                <ComboBox Grid.Row="4" Grid.Column="2" SelectedItem="{Binding CuentaCobro, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center" IsEnabled="{Binding EsUsuarioDeAdministracion}"></ComboBox>
+                <DatePicker Grid.Row="5" Grid.Column="2" SelectedDate="{Binding FechaCobro}" IsEnabled="{Binding EsUsuarioDeAdministracion}"></DatePicker>
 
+                <Button Grid.Row="7" Grid.Column="2" Command="{Binding ContabilizarCobroCommand}">Contabilizar</Button>
+            </Grid>            
+        </TabItem>
+        <TabItem Header="Traspasos">
+            <Grid>
+                <Grid.Resources>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Margin" Value="3"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                    </Style>
+                    <Style TargetType="TextBox">
+                        <Setter Property="Margin" Value="3,0"/>
+                    </Style>
+                    <Style TargetType="ComboBox">
+                        <Setter Property="Margin" Value="3"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">Cuenta origen</TextBlock>
+                <ComboBox Grid.Row="1" Grid.Column="2" SelectedItem="{Binding CuentaOrigen, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center"></ComboBox>
+                <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">Cuenta origen</TextBlock>
+                <ComboBox Grid.Row="2" Grid.Column="2" SelectedItem="{Binding CuentaDestino, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center"></ComboBox>
+                <TextBlock Grid.Row="3" Grid.Column="1">Concepto</TextBlock>
+                <TextBox Grid.Row="3" Grid.Column="2"  Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <TextBlock Grid.Row="4" Grid.Column="1">Importe</TextBlock>
+                <TextBox Name="txtImporte" Grid.Row="4" Grid.Column="2"  Text="{Binding Importe, StringFormat=c}" KeyUp="txtImporte_KeyUp" PreviewKeyDown="txtImporte_PreviewKeyDown" GotFocus="txtImporte_GotFocus" PreviewMouseLeftButtonUp="txtImporte_PreviewMouseLeftButtonUp"></TextBox>
+                <Button Name="btnContabilizarTraspaso" Grid.Row="5" Grid.Column="2" Margin="3" Command="{Binding ContabilizarTraspasoCommand}">Contabilizar traspaso</Button>
+            </Grid>
+        </TabItem>
+    </TabControl>
 </UserControl>

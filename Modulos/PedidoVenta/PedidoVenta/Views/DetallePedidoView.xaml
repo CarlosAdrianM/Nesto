@@ -218,6 +218,10 @@
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
+                                <TextBlock>
+                                    <Run Text="{Binding pedido.Efectos.DiasFinanciacion, Mode=OneWay}" />
+                                    <Run Text="días de financiación"/>         
+                                </TextBlock>
                                 <Button Command="{Binding Path=pedido.Efectos.AnnadirEfectoCommand}">Añadir Nuevo Efecto</Button>
                             </StackPanel>
                         </StackPanel>

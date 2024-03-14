@@ -10,7 +10,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
+using Prism.Ioc;
+using Nesto.Infrastructure.Shared;
+using System.Collections.Generic;
 
 namespace ControlesUsuario
 {
@@ -204,15 +206,22 @@ namespace ControlesUsuario
         public static readonly DependencyProperty FormaPagoCompletaProperty =
             DependencyProperty.Register(nameof(FormaPagoCompleta), typeof(FormaPago),
               typeof(SelectorFormaPago),
-              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnFormaPagoCompletaChanged)));
+              new FrameworkPropertyMetadata(null,
+                  FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                  new PropertyChangedCallback(OnFormaPagoCompletaChanged)));
 
         private static void OnFormaPagoCompletaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            //SelectorFormaPago selector = (SelectorFormaPago)d;
-            //if (selector == null)
-            //{
-            //    return;
-            //}
+            SelectorFormaPago selector = (SelectorFormaPago)d;
+            if (selector == null || selector.FormaPagoCompleta == null)
+            {
+                return;
+            }
+
+            if (selector.FormaPagoCompleta.formaPago != selector.Seleccionada)
+            {
+                selector.Seleccionada = selector.FormaPagoCompleta.formaPago;
+            }
 
             //if (selector.DataContext != null)
             //{
@@ -253,6 +262,29 @@ namespace ControlesUsuario
         }
 
 
+        /// <summary>
+        /// Gets or sets the ListaFormasPago para las llamadas a la API
+        /// </summary>
+        public List<FormaPago> ListaFormasPago
+        {
+            get => (List<FormaPago>)GetValue(ListaFormasPagoProperty); 
+            set => SetValue(ListaFormasPagoProperty, value);
+        }
+
+        /// <summary>
+        /// Identified the ListaFormasPago dependency property
+        /// </summary>
+        public static readonly DependencyProperty ListaFormasPagoProperty =
+            DependencyProperty.Register(nameof(ListaFormasPago), typeof(List<FormaPago>),
+              typeof(SelectorFormaPago),
+              new FrameworkPropertyMetadata(null,
+                  FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+                  new PropertyChangedCallback(OnListaFormasPagoChanged)));
+
+        private static async void OnListaFormasPagoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorFormaPago selector = (SelectorFormaPago)d;
+        }
 
 
         #endregion
@@ -282,17 +314,17 @@ namespace ControlesUsuario
                 }
             }
         }
+
+
         private ObservableCollection<FormaPago> _listaFormasPago;
         public ObservableCollection<FormaPago> listaFormasPago
         {
-            get
-            {
-                return _listaFormasPago;
-            }
+            get => _listaFormasPago;
             set
             {
                 _listaFormasPago = value;
                 OnPropertyChanged("listaFormasPago");
+                ListaFormasPago = _listaFormasPago.ToList();
             }
         }
 
@@ -345,5 +377,20 @@ namespace ControlesUsuario
         }
         #endregion
 
+        private void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (Configuracion is null)
+            {
+                Configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+            }
+            if (Empresa is null)
+            {
+                Empresa = Constantes.Empresas.EMPRESA_DEFECTO;
+            }
+            if (listaFormasPago is null || !listaFormasPago.Any())
+            {
+                cargarDatos();
+            }
+        }
     }
 }

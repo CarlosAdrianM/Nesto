@@ -9,8 +9,16 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaComunidadPropietariosAlcobendas : IReglaContabilizacion
     {
-        public ReglaContabilizacionResponse ApuntesContabilizar(ApunteBancarioDTO apunteBancario, BancoDTO banco, decimal importeDescuadre)
+        public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
+            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
+            {
+                return new ReglaContabilizacionResponse();
+            }
+            var apunteBancario = apuntesBancarios.First();
+            var apunteContabilidad = apuntesContabilidad.First();
+            var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
+
             var lineas = new List<PreContabilidadDTO>();
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
@@ -38,12 +46,13 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             return response;
         }
 
-        public bool EsContabilizable(ApunteBancarioDTO apunteBancario, ContabilidadDTO apunteContabilidad)
+        public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
         {
-            if (apunteBancario == null)
+            if (apuntesBancarios is null || !apuntesBancarios.Any())
             {
                 return false;
             }
+            var apunteBancario = apuntesBancarios.First();
 
             if (apunteBancario.ConceptoComun == "03" &&
                 apunteBancario.ConceptoPropio == "029" &&

@@ -16,14 +16,14 @@ using System.Threading.Tasks;
 
 public class AmazonApiOrdersService
 {
-    public static List<Order> Ejecutar(DateTime fechaDesde, int numeroMaxPedidos)
+    public static async Task<List<Order>> Ejecutar(DateTime fechaDesde, int numeroMaxPedidos)
     {
 
         try 
         {
-            List<Order> response = InvokeListOrders(fechaDesde, numeroMaxPedidos);
+            List<Order> response = await InvokeListOrders(fechaDesde, numeroMaxPedidos).ConfigureAwait(false);
             // Añadimos los FBA
-            List<Order> responseFBA = InvokeListOrdersFBA(fechaDesde, numeroMaxPedidos);
+            List<Order> responseFBA = await InvokeListOrdersFBA(fechaDesde, numeroMaxPedidos).ConfigureAwait(false);
             response.AddRange(responseFBA);
             return response;
         }
@@ -33,27 +33,31 @@ public class AmazonApiOrdersService
         }
     }
 
-    public static List<OrderItem> CargarLineas(string pedidoAmazon)
+    public static async Task<List<OrderItem>> CargarLineas(string pedidoAmazon)
     {
         try
         {
-            List<OrderItem> response = InvokeListOrderItems(pedidoAmazon);
+            List<OrderItem> response = await InvokeListOrderItems(pedidoAmazon);
             return response;
         }
         catch (Exception ex)
         {
-            throw ex;
+            throw new Exception("No se han podido cargar las líneas del pedido de Amazon", ex);
         }
     }
 
-    public static List<OrderItem> InvokeListOrderItems(string pedidoAmazon)
+    public static async Task<List<OrderItem>> InvokeListOrderItems(string pedidoAmazon)
     {
         var conexion = AmazonApiOrdersService.ConexionAmazon();
-        var orderItems = conexion.Orders.GetOrderItems(pedidoAmazon);
+        if (pedidoAmazon.StartsWith("FBA "))
+        {
+            pedidoAmazon = pedidoAmazon.Substring(4);
+        }
+        var orderItems = await conexion.Orders.GetOrderItemsAsync(pedidoAmazon);
         return orderItems;
     }
 
-    public static List<Order> InvokeListOrders(DateTime fechaDesde, int numeroMaxPedidos)
+    public static async Task<List<Order>> InvokeListOrders(DateTime fechaDesde, int numeroMaxPedidos)
     {
         ParameterOrderList searchOrderList = new ParameterOrderList();
         searchOrderList.CreatedAfter = fechaDesde;
@@ -68,15 +72,22 @@ public class AmazonApiOrdersService
             marketplaceId.Add(market.Id);
         }
         searchOrderList.MarketplaceIds = marketplaceId;
-        searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
+        //searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
         searchOrderList.IsNeedRestrictedDataToken = true;
 
-        var conexion = AmazonApiOrdersService.ConexionAmazon();
-        var orders = conexion.Orders.GetOrders(searchOrderList);
-        return orders;
+        try
+        {
+            var conexion = AmazonApiOrdersService.ConexionAmazon();
+            var orders = await conexion.Orders.GetOrdersAsync(searchOrderList).ConfigureAwait(false);
+            return orders;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("No se pueden descargar los pedidos de Amazon", ex);
+        }        
     }
 
-    public static List<Order> InvokeListOrdersFBA(DateTime fechaDesde, int numeroMaxPedidos)
+    public static async Task<List<Order>> InvokeListOrdersFBA(DateTime fechaDesde, int numeroMaxPedidos)
     {
         ParameterOrderList searchOrderList = new ParameterOrderList();
         searchOrderList.CreatedAfter = fechaDesde;
@@ -98,9 +109,17 @@ public class AmazonApiOrdersService
         searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
         searchOrderList.IsNeedRestrictedDataToken = true;
 
-        var conexion = AmazonApiOrdersService.ConexionAmazon();
-        var orders = conexion.Orders.GetOrders(searchOrderList);
-        return orders;
+        
+        try
+        {
+            var conexion = AmazonApiOrdersService.ConexionAmazon();
+            var orders = await conexion.Orders.GetOrdersAsync(searchOrderList).ConfigureAwait(false);
+            return orders;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("No se pueden descargar los pedidos FBA de Amazon", ex);
+        }
     }
 
     public static async Task<bool> ActualizarSellerOrderId(string amazonOrderId, int sellerOrderId)

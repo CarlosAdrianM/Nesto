@@ -10,6 +10,7 @@
             public const string AlmacenReposición = "AlmacénReposición";
             public const string AlmacenRuta = "AlmacénRuta";
             public const string CajaDefecto = "CajaDefecto";
+            public const string CuentaBancoTarjeta = "CuentaBancoTarjeta";
             public const string ConciliacionBancariaUltimoBanco = "ConciliacionBancariaUltimoBanco";
             public const string ConciliacionBancariaFechaDesde = "ConciliacionBancariaFechaDesde";
             public const string ConciliacionBancariaFechaHasta = "ConciliacionBancariaFechaHasta";
@@ -24,6 +25,7 @@
             public const string PathNormaFB500 = "PathNormaFB500";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
+            public const string UltDiarioCaja = "UltDiarioCaja";
             public const string UltNumProducto = "UltNumProducto";
             public const string UsuarioAvisoImpagadoDefecto = "UsuarioAvisoImpagadoDefecto";
             public const string Vendedor = "Vendedor";

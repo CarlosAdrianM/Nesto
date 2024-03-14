@@ -15,8 +15,10 @@ namespace Nesto.Modulos.Cajas.Models
         public decimal Debe { get; set; }
         public decimal Haber { get; set; }
         public DateOnly Fecha { get; set; }
+        public DateOnly FechaVto { get; set; }
         [JsonProperty("Nº_Documento")]
         public string Documento { get;set; }
+        public string Efecto { get;set; }
         public int Asiento { get;set; }
         public string Diario { get;set; }
         [JsonProperty("Delegación")]
@@ -28,6 +30,9 @@ namespace Nesto.Modulos.Cajas.Models
         public string Departamento { get; set; }
         [JsonProperty("NºDocumentoProv")]
         public string FacturaProveedor { get; set; }
+        public int Liquidado { get; set; }
+        public string FormaPago { get; set; }
+        public string Ruta { get; set; }
         public string Usuario { get;set; }
         [JsonProperty("Fecha_Modificación")]
         public DateTime FechaModificacion { get;set; }
