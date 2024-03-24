@@ -33,6 +33,7 @@ namespace Nesto.Modulos.Cajas.Models
         public int Liquidado { get; set; }
         public string FormaPago { get; set; }
         public string Ruta { get; set; }
+        public string Vendedor { get; set; }
         public string Usuario { get;set; }
         [JsonProperty("Fecha_Modificación")]
         public DateTime FechaModificacion { get;set; }

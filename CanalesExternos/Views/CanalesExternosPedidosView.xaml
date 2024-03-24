@@ -114,12 +114,12 @@
                         <TextBox DockPanel.Dock="Left" Name="txtUltimoSeguimiento" Text="{Binding PedidoSeleccionadoUltimoSeguimiento, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="True" IsReadOnlyCaretVisible="True"></TextBox>
                     </DockPanel>
                 </StackPanel>
-                <controles:SelectorCliente Grid.Row="1" Margin="3,0" Name="txtSelectorCliente" 
-                                           Pausado="{Binding DataContext.SelectorClientesPausado, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                           Etiqueta="Cliente al que se factura:"                                            
-                                           Cliente="{Binding DataContext.PedidoSeleccionadoCliente, RelativeSource={RelativeSource AncestorType=UserControl}}"                                           
-                                           Contacto="{Binding DataContext.PedidoSeleccionadoContacto, RelativeSource={RelativeSource AncestorType=UserControl}}"  
+                <controles:SelectorCliente Grid.Row="1" Margin="3,0" Name="txtSelectorCliente" Etiqueta="Cliente al que se factura:" 
+                                           Cliente="{Binding DataContext.PedidoSeleccionadoCliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                           Contacto="{Binding DataContext.PedidoSeleccionadoContacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                           ClienteCompleto="{Binding DataContext.ClienteSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350"></controles:SelectorCliente>
+
             </Grid>
         </Grid>
     </Grid>

@@ -89,8 +89,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             RaisePropertyChanged(nameof(PedidoSeleccionadoObservaciones));
             RaisePropertyChanged(nameof(PedidoSeleccionadoUltimoSeguimiento));
             RaisePropertyChanged(nameof(PedidoSeleccionadoLineas));
-            RaisePropertyChanged(nameof(PedidoSeleccionadoContacto));
             RaisePropertyChanged(nameof(PedidoSeleccionadoCliente));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoContacto));            
             CrearPedidoCommand.RaiseCanExecuteChanged();
             CrearEtiquetaCommand.RaiseCanExecuteChanged();
             ConfirmarEnvioCommand.RaiseCanExecuteChanged();
@@ -292,7 +292,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.contacto; }
             set
             {
-                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null && (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.contacto.Trim() != value.Trim())
+                if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null && (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.contacto?.Trim() != value?.Trim())
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.contacto = value;
                 }

@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json.Linq;
 using System.Globalization;
+using System.Windows.Threading;
 
 namespace ControlesUsuario
 {
@@ -27,7 +28,9 @@ namespace ControlesUsuario
     {
         private readonly IRegionManager regionManager;
         private readonly IEventAggregator eventAggregator;
-        private readonly IConfiguracion configuracion;
+        private readonly IConfiguracion _configuracion;
+        private DispatcherTimer timer;
+
 
         public SelectorDireccionEntrega()
         {
@@ -38,11 +41,46 @@ namespace ControlesUsuario
             listaDireccionesEntrega = new();
             listaDireccionesEntrega.TieneDatosIniciales = true;
             listaDireccionesEntrega.VaciarAlSeleccionar = false;
+            listaDireccionesEntrega.SeleccionarPrimerElemento = false;
+            
+            try
+            {
+                regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
+                eventAggregator = ContainerLocator.Container.Resolve<IEventAggregator>();
+                _configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
 
-            regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
-            eventAggregator = ContainerLocator.Container.Resolve<IEventAggregator>();
-            configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+                listaDireccionesEntrega.ElementoSeleccionadoChanged += (sender, args) =>
+                {
+                    if (listaDireccionesEntrega is not null && listaDireccionesEntrega.ElementoSeleccionado is not null && DireccionCompleta != listaDireccionesEntrega.ElementoSeleccionado)
+                    {
+                        //DireccionCompleta = listaDireccionesEntrega.ElementoSeleccionado as DireccionesEntregaCliente; // ¿SetValue?
+                        this.SetValue(DireccionCompletaProperty, listaDireccionesEntrega.ElementoSeleccionado as DireccionesEntregaCliente); 
+                    }                    
+                };
+            }
+            catch
+            {
+                // Se usa solo para poder testar controles que incluyan un SelectorDireccionEntrega
+            }
         }
+
+        public SelectorDireccionEntrega(IRegionManager regionManager, IEventAggregator eventAggregator, IConfiguracion configuracion)
+        {
+            // Este constructor lo usamos para poder hacer tests
+            InitializeComponent();
+
+            GridPrincipal.DataContext = this;
+
+            listaDireccionesEntrega = new();
+            listaDireccionesEntrega.TieneDatosIniciales = true;
+            listaDireccionesEntrega.VaciarAlSeleccionar = false;
+
+            this.regionManager = regionManager;
+            this.eventAggregator = eventAggregator;
+            this._configuracion = configuracion;
+        }
+
+
 
         private async void OnClienteCreado(Clientes clienteCreado)
         {
@@ -55,7 +93,7 @@ namespace ControlesUsuario
                 Cliente = clienteCreado.Nº_Cliente.Trim();
             }
             await cargarDatos();
-            direccionEntregaSeleccionada = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.Single(l => (l as DireccionesEntregaCliente).contacto == clienteCreado.Contacto.Trim());
+            DireccionCompleta = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.Single(l => (l as DireccionesEntregaCliente).contacto == clienteCreado.Contacto.Trim());
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -85,37 +123,42 @@ namespace ControlesUsuario
         private static void OnClienteChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
-            selector.cargarDatos();
+            if (e.NewValue != e.OldValue)
+            {
+                //selector.cargarDatos();
+                selector.ResetTimer();
+            }            
         }
 
 
-        ///// <summary>
-        ///// Gets or sets the Configuracion para las llamadas a la API
-        ///// </summary>
-        //public IConfiguracion Configuracion
-        //{
-        //    get { return (IConfiguracion)GetValue(ConfiguracionProperty); }
-        //    set {
-        //        SetValue(ConfiguracionProperty, value);
-        //    }
-        //}
+        /// <summary>
+        /// Gets or sets the Configuracion para las llamadas a la API
+        /// </summary>
+        public IConfiguracion Configuracion
+        {
+            get { return (IConfiguracion)GetValue(ConfiguracionProperty); }
+            set
+            {
+                SetValue(ConfiguracionProperty, value);
+            }
+        }
 
-        ///// <summary>
-        ///// Identified the Configuracion dependency property
-        ///// </summary>
-        //public static readonly DependencyProperty ConfiguracionProperty =
-        //    DependencyProperty.Register("Configuracion", typeof(IConfiguracion),
-        //      typeof(SelectorDireccionEntrega),
-        //      new FrameworkPropertyMetadata(new PropertyChangedCallback(OnConfiguracionChanged)));
+        /// <summary>
+        /// Identified the Configuracion dependency property
+        /// </summary>
+        public static readonly DependencyProperty ConfiguracionProperty =
+            DependencyProperty.Register(nameof(Configuracion), typeof(IConfiguracion),
+              typeof(SelectorDireccionEntrega),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnConfiguracionChanged)));
 
-        //private static void OnConfiguracionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-        //{
-        //    SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
-        //    if (selector != null && selector.Configuracion != null)
-        //    {
-        //        selector.cargarDatos();
-        //    }
-        //}
+        private static void OnConfiguracionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
+            //if (selector != null && selector.Configuracion != null)
+            //{
+            //    selector.cargarDatos();
+            //}
+        }
 
 
         /// <summary>
@@ -140,6 +183,16 @@ namespace ControlesUsuario
 
         private static void OnDireccionCompletaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
+            SelectorDireccionEntrega selector = d as SelectorDireccionEntrega;
+            if (selector.DireccionCompleta != null && selector.Seleccionada != selector.DireccionCompleta.contacto)
+            {
+                selector.SetValue(SeleccionadaProperty, selector.DireccionCompleta.contacto);
+            }
+            if (selector.listaDireccionesEntrega.Lista is not null && selector.listaDireccionesEntrega.ElementoSeleccionado is null)
+            {
+                selector.listaDireccionesEntrega.ElementoSeleccionado = selector.listaDireccionesEntrega.Lista
+                    .Single(c => (c as DireccionesEntregaCliente).contacto == selector.Seleccionada);
+            }
         }
 
 
@@ -196,12 +249,22 @@ namespace ControlesUsuario
         {
             if (d is SelectorDireccionEntrega selector)
             {
-                string newValue = e.NewValue as string;                
-                selector.Seleccionada = newValue?.Trim();
-                if (selector.direccionEntregaSeleccionada != null && selector.Seleccionada != selector.direccionEntregaSeleccionada.contacto)
+                string newValue = (string)e.NewValue;
+                if (newValue != null && newValue != newValue.Trim())
                 {
-                    selector.direccionEntregaSeleccionada = selector.listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).contacto == selector.Seleccionada) as DireccionesEntregaCliente;
+                    newValue = newValue.Trim(); 
+                    selector.SetValue(SeleccionadaProperty, newValue);
                 }
+                if (selector.listaDireccionesEntrega.Lista is not null && selector.listaDireccionesEntrega.ElementoSeleccionado is null)
+                {
+                    selector.listaDireccionesEntrega.ElementoSeleccionado = selector.listaDireccionesEntrega.Lista
+                        .Single(c => (c as DireccionesEntregaCliente).contacto == selector.Seleccionada);
+                }
+                //if (selector.direccionEntregaSeleccionada != null && selector.Seleccionada != selector.direccionEntregaSeleccionada.contacto)
+                //if (selector.DireccionCompleta != null && selector.Seleccionada != selector.DireccionCompleta.contacto)
+                //{
+                //    selector.SetValue(DireccionCompletaProperty, selector.listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).contacto == selector.Seleccionada) as DireccionesEntregaCliente);
+                //}
             }
         }
 
@@ -227,30 +290,33 @@ namespace ControlesUsuario
         private static void OnTotalPedidoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorDireccionEntrega selector = (SelectorDireccionEntrega)d;
-            selector.cargarDatos();
+            if (e.NewValue != e.OldValue)
+            {
+                selector.cargarDatos();
+            }
         }
 
         #endregion
 
         #region "Propiedades"
-        private DireccionesEntregaCliente _direccionEntregaSeleccionada;
-        public DireccionesEntregaCliente direccionEntregaSeleccionada {
-            get
-            {
-                return _direccionEntregaSeleccionada;
-            }
+        //private DireccionesEntregaCliente _direccionEntregaSeleccionada;
+        //public DireccionesEntregaCliente direccionEntregaSeleccionada {
+        //    get
+        //    {
+        //        return _direccionEntregaSeleccionada;
+        //    }
 
-            set
-            {
-                _direccionEntregaSeleccionada = value;
-                OnPropertyChanged("direccionEntregaSeleccionada");
-                if (direccionEntregaSeleccionada != null)
-                {
-                    Seleccionada = direccionEntregaSeleccionada.contacto;
-                }
-                DireccionCompleta = direccionEntregaSeleccionada;
-            }
-        }
+        //    set
+        //    {
+        //        _direccionEntregaSeleccionada = value;
+        //        OnPropertyChanged("direccionEntregaSeleccionada");
+        //        if (direccionEntregaSeleccionada != null)
+        //        {
+        //            Seleccionada = direccionEntregaSeleccionada.contacto;
+        //        }
+        //        DireccionCompleta = direccionEntregaSeleccionada;
+        //    }
+        //}
         private ColeccionFiltrable _listaDireccionesEntrega;
         public ColeccionFiltrable listaDireccionesEntrega {
             get
@@ -267,15 +333,40 @@ namespace ControlesUsuario
         #endregion
 
         #region "Funciones Auxiliares"
+
+        private void ResetTimer()
+        {
+            if (timer == null)
+            {
+                timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Normal, TimerElapsed, Dispatcher);
+            }
+            else
+            {
+                timer.Stop();
+                timer.Start();
+            }
+        }
+
+        private void TimerElapsed(object sender, EventArgs e)
+        {
+            timer.Stop();
+            cargarDatos();
+        }
+
         private async Task cargarDatos()
         {
-            if (configuracion == null || Empresa == null || Cliente == null)
+            if (Configuracion is null && _configuracion is not null)
+            {
+                Configuracion = _configuracion;
+            }
+
+            if (Configuracion == null || Empresa == null || Cliente == null)
             {
                 return;
             }
             using (HttpClient client = new HttpClient())
             {
-                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                client.BaseAddress = new Uri(Configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try
@@ -291,13 +382,13 @@ namespace ControlesUsuario
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
                         listaDireccionesEntrega.ListaOriginal = new ObservableCollection<IFiltrableItem>(JsonConvert.DeserializeObject<ObservableCollection<DireccionesEntregaCliente>>(resultado)); 
-                        if (direccionEntregaSeleccionada == null && Seleccionada != null)
+                        if (DireccionCompleta == null && Seleccionada != null)
                         {
-                            direccionEntregaSeleccionada = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).contacto == Seleccionada);
+                            DireccionCompleta = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).contacto == Seleccionada);
                         }
-                        if (direccionEntregaSeleccionada == null && Seleccionada == null)
+                        if (DireccionCompleta == null && Seleccionada == null)
                         {
-                            direccionEntregaSeleccionada = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).esDireccionPorDefecto);
+                            DireccionCompleta = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).esDireccionPorDefecto);
                         }
                     }
                 } catch

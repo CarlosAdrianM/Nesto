@@ -19,7 +19,7 @@
 
         <controles:BarraFiltro x:Name="txtFiltro" Grid.Row="1"  ListaItems="{Binding listaDireccionesEntrega}" ItemSeleccionado="{Binding listaDireccionesEntrega.ElementoSeleccionado}"></controles:BarraFiltro>
 
-        <ListView Grid.Row="2" Name="lstDirecciones" ItemsSource="{Binding listaDireccionesEntrega.Lista}" SelectedItem="{Binding direccionEntregaSeleccionada}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="False">
+        <ListView Grid.Row="2" Name="lstDirecciones" ItemsSource="{Binding listaDireccionesEntrega.Lista}" SelectedItem="{Binding listaDireccionesEntrega.ElementoSeleccionado, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.CanContentScroll="False">
             <ListView.ItemContainerStyle>
                 <Style TargetType="{x:Type ListViewItem}">
                     <Style.Triggers>

@@ -14,10 +14,11 @@ namespace CajasTests
         public void CajasViewModel_ContabilizarTraspaso_NoSePuedeEjecutarSiLaCuentaOrigenYLaCuentaDestinoSonIguales()
         {
             // Arrange
-            var servicio = A.Fake<IContabilidadService>();
+            var servicioContabilidad = A.Fake<IContabilidadService>();
             var configuracion = A.Fake<IConfiguracion>();
             var dialogService = A.Fake<IDialogService>();
-            var sut = new CajasViewModel(servicio, configuracion, dialogService);
+            var servicioClientes = A.Fake<IClientesService>();
+            var sut = new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes);
             CuentaContableDTO cuenta = new CuentaContableDTO
             {
                 Cuenta = "570"
@@ -36,10 +37,11 @@ namespace CajasTests
         public void CajasViewModel_ContabilizarTraspaso_LlamaAContabilizarEnIContabilidadService()
         {
             // Arrange
-            var servicio = A.Fake<IContabilidadService>();
+            var servicioContabilidad = A.Fake<IContabilidadService>();
             var configuracion = A.Fake<IConfiguracion>();
             var dialogService = A.Fake<IDialogService>();
-            var sut = new CajasViewModel(servicio, configuracion, dialogService);
+            var servicioClientes = A.Fake<IClientesService>();
+            var sut = new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes);
             CuentaContableDTO cuentaOrigen = new CuentaContableDTO { Cuenta = "570" };
             CuentaContableDTO cuentaDestino = new CuentaContableDTO { Cuenta = "571" };
             sut.CuentaOrigen = cuentaOrigen;
@@ -51,7 +53,7 @@ namespace CajasTests
 
             // Assert
             // Assert
-            A.CallTo(() => servicio.Contabilizar(A<PreContabilidadDTO>._))
+            A.CallTo(() => servicioContabilidad.Contabilizar(A<PreContabilidadDTO>._))
                 .MustHaveHappenedOnceExactly();
         }
     }

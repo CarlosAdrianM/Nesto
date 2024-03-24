@@ -20,6 +20,7 @@ namespace Nesto.Modulos.Cajas.Models
         public string FormaVenta { get;set; }
         public string CCC { get;set; }
         public string Estado { get;set; }
+        public string Vendedor { get; set; }
         public string Ruta { get; set; }
         public string Usuario { get;set; }
     }

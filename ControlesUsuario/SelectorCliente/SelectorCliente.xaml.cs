@@ -12,7 +12,9 @@ using System.Windows.Media;
 using Prism.Ioc;
 using ControlesUsuario.ViewModels;
 using Nesto.Infrastructure.Shared;
-using Prism.Mvvm;
+using System.Linq;
+using Nesto.Infrastructure.Contracts;
+using System.Windows.Threading;
 
 namespace ControlesUsuario
 {
@@ -22,6 +24,8 @@ namespace ControlesUsuario
     public partial class SelectorCliente : UserControl, INotifyPropertyChanged
     {
         private readonly IRegionManager regionManager;
+        private DispatcherTimer timer;
+        private SelectorClienteViewModel vm;
 
         public SelectorCliente()
         {
@@ -30,28 +34,61 @@ namespace ControlesUsuario
             regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
         }
 
+        public SelectorCliente(SelectorClienteViewModel vm, IRegionManager regionManager)
+        {
+            // Este constructor se usa únicamente para poder hacer tests
+            InitializeComponent();
+            DataContext = vm;
+            PrepararSelectorCliente();
+            this.regionManager = regionManager;
+        }
+
 
         private void PrepararSelectorCliente()
         {
-            SelectorClienteViewModel vm = DataContext as SelectorClienteViewModel;
+            vm = DataContext as SelectorClienteViewModel;
             //ControlPrincipal.DataContext = this;
+            
             vm.listaClientes.ElementoSeleccionadoChanging += (sender, args) =>
             {
                 //vm.listaClientes.Reiniciar();
+                //EstaCambiandoDeCliente = !ReferenceEquals(args.NewValue, args.OldValue);                
             };
 
 
             vm.listaClientes.ElementoSeleccionadoChanged += (sender, args) =>
             {
-                ClienteCompleto = vm.listaClientes.ElementoSeleccionado as ClienteDTO;
-                Cliente = ClienteCompleto?.cliente;
-                Contacto = ClienteCompleto?.contacto;
-                vm.contactoSeleccionado = ClienteCompleto?.contacto.Trim();
+                ClienteDTO oldCliente = args.OldValue as ClienteDTO;
+                ClienteDTO newCliente = args.NewValue as ClienteDTO;
+                if (vm.listaClientes is not null && vm.listaClientes is not null && ClienteCompleto != vm.listaClientes.ElementoSeleccionado)
+                {
+                    selectorCliente.SetValue(ClienteCompletoProperty, vm.listaClientes.ElementoSeleccionado as ClienteDTO);
+                }
+                if (Cliente != newCliente?.cliente)
+                {
+                    selectorCliente.SetValue(ClienteProperty, newCliente?.cliente);
+                }
+                if (Contacto != newCliente?.contacto)
+                {
+                    selectorCliente.SetValue(ContactoProperty, newCliente?.contacto);
+                }
+
                 OnPropertyChanged(string.Empty);
                 vm.ActualizarPropertyChanged();
+
+                // La propiedad de dependencia Configuracion la usamos solo para los test
+                if (Configuracion is null && vm.Configuracion is not null)
+                {
+                    Configuracion = vm.Configuracion;
+                }
+                if (vm.Configuracion is null && Configuracion is not null)
+                {
+                    vm.Configuracion = Configuracion;
+                }
             };
-            vm.listaClientes.HayQueCargarDatos += () => { 
-                vm.cargarCliente(Empresa, txtFiltro.Text, vm.contactoSeleccionado); 
+            vm.listaClientes.HayQueCargarDatos += () => {
+                // Por aquí entra cuando buscamos un cliente en el selector directamente
+                vm.cargarCliente(Empresa, txtFiltro.Text, null);
             };
         }
 
@@ -137,13 +174,41 @@ namespace ControlesUsuario
 
         #endregion
 
-        #region "Propiedades"
+        #region "Propiedades"        
+        // Propiedad pública para acceder a SelectorDireccionEntrega (para tests)
+        public SelectorDireccionEntrega ControlSelectorDireccionEntrega => selectorEntrega; 
+        //public bool EstaCambiandoDeCliente { get; set; }
         #endregion
 
         #region Comandos        
         #endregion Comandos
 
         #region Dependency Properties
+
+        /// <summary>
+        /// Gets or sets the Configuracion para las llamadas a la API
+        /// </summary>
+        public IConfiguracion Configuracion
+        {
+            get { return (IConfiguracion)GetValue(ConfiguracionProperty); }
+            set
+            {
+                SetValue(ConfiguracionProperty, value);
+            }
+        }
+
+        /// <summary>
+        /// Identified the Configuracion dependency property
+        /// </summary>
+        public static readonly DependencyProperty ConfiguracionProperty =
+            DependencyProperty.Register(nameof(Configuracion), typeof(IConfiguracion),
+              typeof(SelectorCliente),
+              new FrameworkPropertyMetadata(new PropertyChangedCallback(OnConfiguracionChanged)));
+
+        private static void OnConfiguracionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorCliente selector = (SelectorCliente)d;
+        }
 
         /// <summary>
         /// Gets or sets the EMPRESA para las llamadas a la API
@@ -184,10 +249,10 @@ namespace ControlesUsuario
         }
 
         /// <summary>
-        /// Identified the SELECCIONADA dependency property
+        /// Identified the CLIENTE dependency property
         /// </summary>
         public static readonly DependencyProperty ClienteProperty =
-            DependencyProperty.Register("Cliente", typeof(string),
+            DependencyProperty.Register(nameof(Cliente), typeof(string),
               typeof(SelectorCliente),
               new FrameworkPropertyMetadata(null,
                   FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
@@ -196,17 +261,26 @@ namespace ControlesUsuario
         private static void OnClienteChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorCliente selector = (SelectorCliente)d;
-
-            if (selector == null)
+            if (selector == null || e.NewValue == e.OldValue)
             {
                 return;
             }
+
             SelectorClienteViewModel vm = selector.DataContext as SelectorClienteViewModel;
+            
+            string newValue = (string)e.NewValue;
+            if (newValue != null && newValue != newValue.Trim())
+            {
+                newValue = newValue.Trim(); // Aplica Trim() al nuevo valor
+                selector.SetValue(ClienteProperty, newValue);
+            }            
+
+            
             if (selector.Cliente == null)
             {
                 vm.listaClientes.ElementoSeleccionado = null;
             }
-            else if(vm.listaClientes.Filtro != selector.Cliente.Trim())
+            else if (vm.listaClientes.Filtro != selector.Cliente.Trim())
             {
                 //if (selector.contactoSeleccionado == null && selector.Contacto != null)
                 //{
@@ -214,11 +288,50 @@ namespace ControlesUsuario
                 //}
                 selector.txtFiltro.Text = selector.Cliente.Trim();
                 vm.listaClientes.Filtro = selector.Cliente.Trim();
-            }
-            if (selector.ClienteCompleto == null || selector.ClienteCompleto.cliente.Trim() != selector.txtFiltro.Text || selector.ClienteCompleto.contacto != vm.contactoSeleccionado)
+            };
+            //if (selector.ClienteCompleto == null || selector.ClienteCompleto.cliente.Trim() != selector.txtFiltro.Text || selector.ClienteCompleto.contacto != vm.contactoSeleccionado) // ¿e.NewValue != e.OldValue?
+            //vm.cargarCliente(selector.Empresa, selector.txtFiltro.Text, vm.contactoSeleccionado);
+            // Si se cambia el cliente, se vuelve a poner el contacto por defecto. Si se quiere poner otro contacto, se puede hacer sin cambiar el cliente --> NOOOOOOO
+            // No se puede poner el contacto por defecto, porque al cambiar de pedido, se cambian a la vez cliente y contacto y no hay que poner el contacto por defecto, sino el del pedido
+            //if (selector.ClienteCompleto == null || e.NewValue != e.OldValue || selector.ClienteCompleto.contacto != selector.Contacto) // ¿e.NewValue != e.OldValue?{
+
+            if (selector.Contacto == (vm.listaClientes?.ElementoSeleccionado as ClienteDTO)?.contacto &&
+                selector.Cliente  == (vm.listaClientes?.ElementoSeleccionado as ClienteDTO)?.cliente)
             {
-                vm.cargarCliente(selector.Empresa, selector.txtFiltro.Text, vm.contactoSeleccionado);
+                return;
             }
+
+            //if (selector.Contacto != (vm.listaClientes?.ElementoSeleccionado as ClienteDTO)?.contacto ||
+            //    selector.Cliente  != (vm.listaClientes?.ElementoSeleccionado as ClienteDTO)?.cliente)
+            //if (selector._haPulsadoIntro)
+            //{
+            //    //vm.cargarCliente(selector.Empresa, selector.Cliente, null);
+            //    selector.Contacto = null;
+            //    selector.ResetTimer();
+            //}
+            //else
+            //{
+            //    selector.ResetTimer();
+            //    //vm.cargarCliente(selector.Empresa, selector.Cliente, selector.Contacto);
+            //}
+            selector.ResetTimer();
+
+            //if (selector.EstaCambiandoDeCliente)
+            //{
+
+            //}
+            //else
+            //{
+            //    vm.cargarCliente(selector.Empresa, selector.txtFiltro.Text, selector.Contacto);
+            //}
+
+
+            //if (selector.Contacto != vm.contactoSeleccionado) // Aquí es donde creo que falla, porque ya debería haber cambiado el elemento, pero actualiza en el anterior
+            //{
+            //    selector.Contacto = vm.contactoSeleccionado;
+            //}
+
+            //selector.EstaCambiandoDeCliente = false;
         }
 
         /// <summary>
@@ -237,7 +350,7 @@ namespace ControlesUsuario
         /// Identified the CONTACTO dependency property
         /// </summary>
         public static readonly DependencyProperty ContactoProperty =
-            DependencyProperty.Register("Contacto", typeof(string),
+            DependencyProperty.Register(nameof(Contacto), typeof(string),
               typeof(SelectorCliente),
               new FrameworkPropertyMetadata(null, 
                   FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
@@ -245,28 +358,27 @@ namespace ControlesUsuario
 
         private static void OnContactoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            SelectorCliente selector = (SelectorCliente)d;
-
-            
-            if (selector == null)
+            SelectorCliente selector = (SelectorCliente)d;            
+            if (selector is null || selector.Empresa is null || selector.Cliente is null)
             {
                 return;
             }
-            SelectorClienteViewModel vm = selector.DataContext as SelectorClienteViewModel;
-            if (selector.Contacto == null)
-            {
-                vm.contactoSeleccionado = null;
-            }
-            else
-            {
-                if (vm.contactoSeleccionado == null || (vm.contactoSeleccionado.Trim() != selector.Contacto.Trim()))
-                {
-                    vm.contactoSeleccionado = selector.Contacto.Trim();
-                }
-            }
 
+            SelectorClienteViewModel vm = selector.DataContext as SelectorClienteViewModel;
+
+            string newValue = (string)e.NewValue;
+            if (newValue != null && newValue.Trim() != newValue)
+            {
+                newValue = newValue.Trim(); // Aplica Trim() al nuevo valor
+                selector.SetValue(ContactoProperty, newValue);
+            }            
+
+            selector.ResetTimer();
         }
 
+        /// <summary>
+        /// Gets or sets the ETIQUETA para las llamadas a la API
+        /// </summary>
         public string Etiqueta
         {
             get { return (string)GetValue(EtiquetaProperty); }
@@ -284,7 +396,9 @@ namespace ControlesUsuario
               typeof(SelectorCliente),
               new UIPropertyMetadata("Seleccione un cliente:"));
 
-
+        /// <summary>
+        /// Gets or sets the ClienteCompleto para las llamadas a la API
+        /// </summary>
         public ClienteDTO ClienteCompleto
         {
             get { return (ClienteDTO)GetValue(ClienteCompletoProperty); }
@@ -305,10 +419,43 @@ namespace ControlesUsuario
         private static void OnClienteCompletoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorCliente selector = (SelectorCliente)d;
+            //if (selector is not null && selector.ClienteCompleto is not null && selector.ClienteCompleto.cliente != selector.Cliente)
+            //{
+            //    selector.SetValue(ClienteProperty, selector.ClienteCompleto.cliente);
+            //}
+            //if (selector is not null && selector.ClienteCompleto is not null && selector.ClienteCompleto.contacto != selector.Contacto)
+            //{
+            //    selector.SetValue(ContactoProperty, selector.ClienteCompleto.contacto);
+            //}
         }
 
         #endregion
 
+        private void ResetTimer()
+        {
+            if (timer == null)
+            {
+                timer = new DispatcherTimer(TimeSpan.FromMilliseconds(100), DispatcherPriority.Normal, TimerElapsed, Dispatcher);
+            }
+            else
+            {
+                timer.Stop();
+                timer.Start();
+            }
+        }
+
+        private void TimerElapsed(object sender, EventArgs e)
+        {
+            // Por aquí entra cuando se cambian el Cliente y Contacto seleccionados por Binding
+            timer.Stop();
+            vm.cargarCliente(selectorCliente.Empresa, selectorCliente.Cliente, selectorCliente.Contacto);
+        }
+
+
+        public void ActualizarPropertyChanged()
+        {
+            OnPropertyChanged(string.Empty);
+        }
 
         private void txtFiltro_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
@@ -331,6 +478,9 @@ namespace ControlesUsuario
             regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters);
         }
 
+        public int NumeroDeDirecciones() => selectorEntrega.listaDireccionesEntrega is null || selectorEntrega.listaDireccionesEntrega.Lista is null ? 
+            0 : 
+            selectorEntrega.listaDireccionesEntrega.Lista.Count;
 
         protected void OnPropertyChanged(string name)
         {

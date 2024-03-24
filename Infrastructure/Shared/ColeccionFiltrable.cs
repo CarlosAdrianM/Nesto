@@ -20,6 +20,10 @@ namespace Nesto.Infrastructure.Shared
 
         public ColeccionFiltrable(IEnumerable<IFiltrableItem> enumerable) : this()
         {
+            if (enumerable != null && enumerable.Any())
+            {
+                TieneDatosIniciales = true;
+            }
             ListaOriginal = new ObservableCollection<IFiltrableItem>(enumerable);
         }
 

@@ -100,10 +100,11 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             decimal fijoComision = 0.35m;
 
             // Calcular comisión esperada
-            decimal comisionEsperada = Math.Round((importeOriginal * porcentajeComision) + (fijoComision * numeroPagos), 2, MidpointRounding.ToPositiveInfinity);
+            decimal comisionEsperadaAlza = Math.Round((importeOriginal * porcentajeComision) + (fijoComision * numeroPagos), 2, MidpointRounding.ToPositiveInfinity);
+            decimal comisionEsperadaBaja = Math.Round((importeOriginal * porcentajeComision) + (fijoComision * numeroPagos), 2, MidpointRounding.ToNegativeInfinity);
 
             // Verificar si los valores coinciden
-            return importeComision == comisionEsperada && importeOriginal - importeComision == importeIngresado;
+            return (importeComision == comisionEsperadaAlza || importeComision == comisionEsperadaBaja) && importeOriginal - importeComision == importeIngresado;
         }
     }
 }

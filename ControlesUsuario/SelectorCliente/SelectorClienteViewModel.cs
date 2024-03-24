@@ -12,7 +12,7 @@ namespace ControlesUsuario.ViewModels
 {
     public class SelectorClienteViewModel : BindableBase
     {
-        private readonly IConfiguracion Configuracion;
+        
         private readonly ISelectorClienteService Servicio;
         public SelectorClienteViewModel(IConfiguracion configuracion, ISelectorClienteService servicio)
         {
@@ -27,8 +27,7 @@ namespace ControlesUsuario.ViewModels
 
         private string empresaPorDefecto = "1";
         private string vendedor;
-
-
+        
         #region "Propiedades"
         private bool _cargando;
         public bool cargando
@@ -44,34 +43,30 @@ namespace ControlesUsuario.ViewModels
                 }
             }
         }
+        public IConfiguracion Configuracion { get; set; }
 
-        private string _contactoSeleccionado;
-        public string contactoSeleccionado
-        {
-            get
-            {
-                return _contactoSeleccionado;
-            }
-            set
-            {
-                _contactoSeleccionado = value;
-                RaisePropertyChanged(nameof(contactoSeleccionado));
-                //if (ClienteCompleto != null && contactoSeleccionado != null && ClienteCompleto.contacto.Trim() != contactoSeleccionado.Trim())
-                //{
-                //    ClienteCompleto.contacto = contactoSeleccionado;
-                //    SelectorClienteViewModel vm = DataContext as SelectorClienteViewModel;
-                //    (vm.listaClientes.ElementoSeleccionado as ClienteDTO).contacto = contactoSeleccionado;
-                //    vm.cargarCliente(Empresa, txtFiltro.Text, contactoSeleccionado);
-                //}
-                if (listaClientes != null && listaClientes.ElementoSeleccionado != null && contactoSeleccionado != null && (listaClientes.ElementoSeleccionado as ClienteDTO).contacto.Trim() != contactoSeleccionado.Trim())
-                {
-                    (listaClientes.ElementoSeleccionado as ClienteDTO).contacto = contactoSeleccionado;
-                    cargarCliente((listaClientes.ElementoSeleccionado as ClienteDTO).empresa, (listaClientes.ElementoSeleccionado as ClienteDTO).cliente, contactoSeleccionado);
-                }
-            }
-        }
+        //private string _contactoSeleccionado;
+        //public string contactoSeleccionado
+        //{
+        //    get
+        //    {
+        //        return _contactoSeleccionado;
+        //    }
+        //    set
+        //    {
+        //        if (SetProperty(ref _contactoSeleccionado, value))
+        //        {
+        //            if (listaClientes != null && listaClientes.ElementoSeleccionado != null && contactoSeleccionado != null && (listaClientes.ElementoSeleccionado as ClienteDTO).contacto.Trim() != contactoSeleccionado.Trim())
+        //            {
+        //                // Esto no debería ejecutarlo si estamos cambiando de cliente (o cargando cliente)
+        //                (listaClientes.ElementoSeleccionado as ClienteDTO).contacto = contactoSeleccionado;
+        //                cargarCliente((listaClientes.ElementoSeleccionado as ClienteDTO).empresa, (listaClientes.ElementoSeleccionado as ClienteDTO).cliente, contactoSeleccionado);
+        //            }
+        //        }                
+        //    }
+        //}
 
-        internal void ActualizarPropertyChanged()
+        public void ActualizarPropertyChanged()
         {
             RaisePropertyChanged(string.Empty);
         }
@@ -194,20 +189,47 @@ namespace ControlesUsuario.ViewModels
 
             try
             {
-                if (listaClientes.ElementoSeleccionado != null && (listaClientes.ElementoSeleccionado as ClienteDTO).cliente.Trim() != cliente.Trim())
-                {
-                    contactoSeleccionado = null;
-                }
+                //if (listaClientes.ElementoSeleccionado != null && (listaClientes.ElementoSeleccionado as ClienteDTO).cliente.Trim() != cliente.Trim())
+                //{
+                //    contactoSeleccionado = null;
+                //}
+
                 ClienteDTO clienteLeido = await Servicio.CargarCliente(empresa, cliente, contactoSeleccionado);
 
-                if (clienteLeido != null)
+                if (clienteLeido != null) 
                 {
+                    if ((listaClientes.ElementoSeleccionado as ClienteDTO)?.cliente == clienteLeido.cliente &&
+                    (listaClientes.ElementoSeleccionado as ClienteDTO)?.contacto == clienteLeido.contacto)
+                    {
+                        return;
+                    }
                     listaClientes.ElementoSeleccionado = clienteLeido;
-                    this.contactoSeleccionado = clienteLeido.contacto;
+                    //(listaClientes.ElementoSeleccionado as ClienteDTO).contacto = contactoSeleccionado;
+                    //this.contactoSeleccionado = clienteLeido.contacto;
                 }
                 else
                 {
+                    //ClienteDTO clienteLeidoSinContacto = await Servicio.CargarCliente(empresa, cliente, null);
+
+                    //if (clienteLeidoSinContacto != null)
+                    //{
+                    //    if ((listaClientes.ElementoSeleccionado as ClienteDTO)?.cliente == clienteLeidoSinContacto.cliente &&
+                    //    (listaClientes.ElementoSeleccionado as ClienteDTO)?.contacto == clienteLeidoSinContacto.contacto)
+                    //    {
+                    //        return;
+                    //    }
+                    //    listaClientes.ElementoSeleccionado = clienteLeidoSinContacto;
+                    //    //(listaClientes.ElementoSeleccionado as ClienteDTO).contacto = contactoSeleccionado;
+                    //    //this.contactoSeleccionado = clienteLeido.contacto;
+                    //}
+                    //else
+                    //{
+                    if (filtro == (listaClientes.ElementoSeleccionado as ClienteDTO)?.cliente)
+                    {
+                        return; // se ha buscado un cliente que no existe
+                    }
                     await buscarClientes(empresa, filtro);
+                    //}                    
                 }
             }
             catch (Exception)
@@ -215,6 +237,7 @@ namespace ControlesUsuario.ViewModels
                 await buscarClientes(empresa, filtro);
             }
         }
+
         // Si creamos la propiedad Cargando, entonces se podría usar este método para mostrar/ocultar el cargando
         private void mostrarCargando(bool estado)
         {

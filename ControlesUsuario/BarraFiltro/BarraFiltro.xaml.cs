@@ -1,4 +1,5 @@
-﻿using Nesto.Infrastructure.Shared;
+﻿using MaterialDesignThemes.Wpf;
+using Nesto.Infrastructure.Shared;
 using System;
 using System.ComponentModel;
 using System.Globalization;
@@ -83,7 +84,10 @@ namespace ControlesUsuario
                 return;
             }
             ListaItems.ElementoSeleccionadoChanged += (sender, args) => {
-                ItemSeleccionado = ListaItems.ElementoSeleccionado;
+                if (ListaItems is not null && ItemSeleccionado != ListaItems.ElementoSeleccionado)
+                {
+                    ItemSeleccionado = ListaItems.ElementoSeleccionado;
+                }
             };
             /*
             ListaItems.HayQueCargarDatos += () => { };
@@ -153,6 +157,14 @@ namespace ControlesUsuario
         private static void OnListaItemsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             BarraFiltro barra = (BarraFiltro)d;
+            if (barra is null)
+            {
+                return;
+            }
+            if (barra.ListaItems.ElementoSeleccionado is null && barra.ItemSeleccionado is not null)
+            {
+
+            }
         }
 
 
