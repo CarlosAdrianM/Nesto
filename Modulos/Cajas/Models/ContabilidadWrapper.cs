@@ -127,6 +127,15 @@ namespace Nesto.Modulos.Cajas.Models
                 RaisePropertyChanged(nameof(EstadoPunteo));
             }
         }
+        public string Usuario
+        {
+            get => Model.Usuario;
+            set
+            {
+                Model.Usuario = value;
+                RaisePropertyChanged(nameof(Usuario));
+            }
+        }
         private bool _visible = true;
         public bool Visible
         {

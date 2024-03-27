@@ -198,6 +198,7 @@
                             <DataGridTextColumn Header="Delegación" Binding="{Binding Delegacion}" />
                             <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" />
                         <DataGridTextColumn Header="Diario" Binding="{Binding Diario}" />
+                        <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" />
                     </DataGrid.Columns>
                 </DataGrid>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding ExtractosProveedorAsientoSeleccionado}" IsReadOnly="True">

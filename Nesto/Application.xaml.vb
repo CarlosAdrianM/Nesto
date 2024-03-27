@@ -27,6 +27,7 @@ Imports ControlesUsuario.ViewModels
 Imports ControlesUsuario.Services
 Imports Cajas
 Imports Nesto.Modulos.Cajas
+Imports ControlesUsuario.SelectorProveedor
 
 Partial Public Class Application
 
@@ -72,6 +73,7 @@ Partial Public Class Application
         containerRegistry.Register(GetType(IContabilidadService), GetType(ContabilidadService))
         containerRegistry.Register(GetType(IBancosService), GetType(BancosService))
         containerRegistry.Register(GetType(IClientesService), GetType(ClientesService))
+        containerRegistry.Register(GetType(ISelectorProveedorService), GetType(SelectorProveedorService))
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
@@ -127,5 +129,6 @@ Partial Public Class Application
         ViewModelLocationProvider.Register(GetType(Remesas).ToString, GetType(RemesasViewModel))
         ViewModelLocationProvider.Register(GetType(Alquileres).ToString, GetType(AlquileresViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorCliente).ToString, GetType(SelectorClienteViewModel))
+        ViewModelLocationProvider.Register(GetType(SelectorProveedor).ToString, GetType(SelectorProveedorViewModel))
     End Sub
 End Class

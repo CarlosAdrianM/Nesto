@@ -115,7 +115,7 @@ namespace ControlesUsuario
         }
         private void pnlDatosCliente_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            SelectorClienteViewModel vm = DataContext as SelectorClienteViewModel;            
+            SelectorClienteViewModel vm = DataContext as SelectorClienteViewModel;
             vm.visibilidadSelectorEntrega = vm.visibilidadSelectorEntrega ? false : true;
             if (vm.visibilidadSelectorEntrega)
             {

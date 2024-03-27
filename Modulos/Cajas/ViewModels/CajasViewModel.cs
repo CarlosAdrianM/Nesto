@@ -14,6 +14,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using static ControlesUsuario.Models.SelectorProveedorModel;
+using static Nesto.Infrastructure.Shared.Constantes;
 using static Nesto.Infrastructure.Shared.Constantes.Rapports;
 
 namespace Nesto.Modulos.Cajas.ViewModels
@@ -27,7 +29,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private string _cuentaCajaDefecto;
         private string _cuentaTarjetaDefecto;
         private string _diarioCaja;
-        
+        private string _formaVentaUsuario;
+
         public IContabilidadService Servicio { get; }
         public CajasViewModel(IContabilidadService servicio, IConfiguracion configuracion, IDialogService dialogService, IClientesService clientesService) {
             Titulo = "Cajas";
@@ -39,37 +42,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
             DeudasSeleccionadas = new List<ExtractoClienteDTO>();
 
             ContabilizarCobroCommand = new DelegateCommand(OnContabilizarCobro, CanContabilizarCobro);
+            ContabilizarGastoCommand = new DelegateCommand(OnContabilizarGasto, CanContabilizarGasto);
             ContabilizarTraspasoCommand = new DelegateCommand(OnContabilizarTraspaso, CanContabilizarTraspaso);
             LoadedCommand = new DelegateCommand(OnLoaded);
             SeleccionarDeudasCommand = new DelegateCommand<IList>(OnSeleccionarDeudas);
         }
 
-        private async Task CargarDatosIniciales()
-        {
-            ListaCuentasCaja = new ObservableCollection<CuentaContableDTO>(await Servicio.LeerCuentas(Constantes.Empresas.EMPRESA_DEFECTO, CUENTA_TESORERIA_PGC));
-            CuentaOrigen = ListaCuentasCaja.Single(p => p.Cuenta == Constantes.Cuentas.CAJA_PENDIENTE_RECIBIR_TIENDAS);
-            _cuentaCajaDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.CajaDefecto);
-            _cuentaTarjetaDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.CuentaBancoTarjeta);
-            _delegacionUsuario = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto);
-            _formaVentaUsuario = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FormaVentaDefecto);
-
-            CuentaDestino = ListaCuentasCaja.Single(p => p.Cuenta == _cuentaCajaDefecto);
-            if (EsUsuarioDeAdministracion)
-            {
-                FormaPagoTransferenciaSeleccionada = true;
-                _diarioCaja = Constantes.DiariosContables.DIARIO_CAJA;
-            }
-            else
-            {
-                FormaPagoEfectivoSeleccionada = true;
-                _diarioCaja = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltDiarioCaja);
-            }
-            if (string.IsNullOrWhiteSpace(_diarioCaja))
-            {
-                throw new Exception("No se ha podido determinar el diario de caja a usar");
-            }
-        }
-
+        
 
         #region "Propiedades"
         private ClienteDTO _clienteCompletoSeleccionado;
@@ -203,7 +182,16 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _formaPagoSeleccionada;
             set => SetProperty(ref _formaPagoSeleccionada, value);
         }
-        private string _formaVentaUsuario;
+        private string _gastoNumeroFactura;
+        public string GastoNumeroFactura
+        {
+            get => _gastoNumeroFactura;
+            set
+            {
+                SetProperty(ref _gastoNumeroFactura, value);
+                (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
+            }
+        }
         private decimal _importe;
         public decimal Importe { 
             get => _importe; 
@@ -239,6 +227,17 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _listaFormaPago;
             set => SetProperty(ref _listaFormaPago, value);
         }
+        private ProveedorDTO _proveedorGasto;
+        public ProveedorDTO ProveedorGasto
+        {
+            get => _proveedorGasto;
+            set
+            {
+                SetProperty(ref _proveedorGasto, value);
+                (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
+            }
+        }
+
         private decimal _totalCobrado;
         public decimal TotalCobrado
         {
@@ -251,14 +250,24 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 (ContabilizarCobroCommand as DelegateCommand).RaiseCanExecuteChanged();
             }
         }
-        
+        private decimal _totalGasto;
+        public decimal TotalGasto
+        {
+            get => _totalGasto;
+            set 
+            { 
+                SetProperty(ref _totalGasto, value);
+                (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
+            }
+        }
+
         #endregion
 
 
 
 
 
-
+        #region Comandos
         public ICommand ContabilizarCobroCommand { get; private set; }
         private bool CanContabilizarCobro()
         {
@@ -483,6 +492,58 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
         }
 
+        public ICommand ContabilizarGastoCommand { get; private set; }
+        private bool CanContabilizarGasto() => ProveedorGasto is not null &&
+            !string.IsNullOrEmpty(ProveedorGasto.Proveedor) &&
+            TotalGasto > 0 &&
+            !string.IsNullOrEmpty(GastoNumeroFactura);
+        private async void OnContabilizarGasto()
+        {
+            PreContabilidadDTO linea = new PreContabilidadDTO
+            {
+                Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                TipoApunte = Constantes.TiposApunte.PAGO,
+                TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
+                Cuenta = ProveedorGasto.Proveedor,
+                Contacto = ProveedorGasto.Contacto,
+                Concepto = $"N/Pago {GastoNumeroFactura}",
+                Debe = TotalGasto,
+                Fecha = DateOnly.FromDateTime(FechaCobro),
+                FechaVto = DateOnly.FromDateTime(FechaCobro),
+                Documento = GastoNumeroFactura.Substring(0,10),
+                FacturaProveedor = GastoNumeroFactura,
+                Asiento = 1,
+                Diario = _diarioCaja,
+                Delegacion = _delegacionUsuario,
+                FormaVenta = _formaVentaUsuario,
+                FormaPago = Constantes.FormasPago.EFECTIVO,
+                Origen = Constantes.Empresas.EMPRESA_DEFECTO,
+                Contrapartida = _cuentaCajaDefecto,
+                Usuario = _configuracion.usuario,
+                FechaModificacion = DateTime.Now
+            };
+            if (!EsUsuarioDeAdministracion)
+            {
+                linea.Concepto += $" caja {_configuracion.usuario}";
+            }
+            try
+            {
+                int asiento = await Servicio.Contabilizar(linea);
+                if (asiento <= 0)
+                {
+                    _dialogService.ShowError($"No se ha podido contabilizar el gasto");
+                }
+                else
+                {
+                    _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
+                }
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError("Error al contabilizar el gasto.\n" + ex.Message);
+            }
+        }
+
         public ICommand ContabilizarTraspasoCommand { get; private set; }
         private bool CanContabilizarTraspaso()
         {
@@ -555,10 +616,35 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 TotalCobrado = ImporteDeudasSeleccionadas;
             }
         }
+        #endregion
 
 
+        #region Funciones auxiliares
+        private async Task CargarDatosIniciales()
+        {
+            ListaCuentasCaja = new ObservableCollection<CuentaContableDTO>(await Servicio.LeerCuentas(Constantes.Empresas.EMPRESA_DEFECTO, CUENTA_TESORERIA_PGC));
+            CuentaOrigen = ListaCuentasCaja.Single(p => p.Cuenta == Constantes.Cuentas.CAJA_PENDIENTE_RECIBIR_TIENDAS);
+            _cuentaCajaDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.CajaDefecto);
+            _cuentaTarjetaDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.CuentaBancoTarjeta);
+            _delegacionUsuario = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto);
+            _formaVentaUsuario = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FormaVentaDefecto);
 
-
+            CuentaDestino = ListaCuentasCaja.Single(p => p.Cuenta == _cuentaCajaDefecto);
+            if (EsUsuarioDeAdministracion)
+            {
+                FormaPagoTransferenciaSeleccionada = true;
+                _diarioCaja = Constantes.DiariosContables.DIARIO_CAJA;
+            }
+            else
+            {
+                FormaPagoEfectivoSeleccionada = true;
+                _diarioCaja = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltDiarioCaja);
+            }
+            if (string.IsNullOrWhiteSpace(_diarioCaja))
+            {
+                throw new Exception("No se ha podido determinar el diario de caja a usar");
+            }
+        }
 
         private async Task CargarDeudasCliente()
         {
@@ -572,6 +658,6 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
             return deuda.Tipo == Constantes.TiposApunte.IMPAGADO ? "Impagado" : "Factura";
         }
-
+        #endregion
     }
 }

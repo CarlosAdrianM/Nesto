@@ -55,7 +55,7 @@ Public Class AgenciaASM
             agenciaVM.dialogService.ShowError("No hay ningún envío seleccionado, no se puede cargar el estado")
             Return Nothing
         End If
-        Dim myUri As New Uri("http://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + envio.AgenciasTransporte.Identificador)
+        Dim myUri As New Uri("https://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + envio.AgenciasTransporte.Identificador)
         If myUri.Scheme = Uri.UriSchemeHttp Then
             'Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
             Dim myRequest As HttpWebRequest = CType(WebRequest.Create(myUri), HttpWebRequest)
@@ -154,15 +154,15 @@ Public Class AgenciaASM
               "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " &
               "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" &
               "<soap:Body>" &
-                    "<GetPlazaXCP xmlns=""http://www.asmred.com/"">" &
+                    "<GetPlazaXCP xmlns=""https://www.asmred.com/"">" &
                         "<codPais>" + agenciaVM.paisActual.Id.ToString + "</codPais>" &
                         "<cp>" + codPostal + "</cp>" &
                     "</GetPlazaXCP>" &
                 "</soap:Body>" &
              "</soap:Envelope>"
 
-        Dim req As HttpWebRequest = WebRequest.Create("http://www.asmred.com/WebSrvs/b2b.asmx?op=GetPlazaXCP")
-        req.Headers.Add("SOAPAction", """http://www.asmred.com/GetPlazaXCP""")
+        Dim req As HttpWebRequest = WebRequest.Create("https://www.asmred.com/WebSrvs/b2b.asmx?op=GetPlazaXCP")
+        req.Headers.Add("SOAPAction", """https://www.asmred.com/GetPlazaXCP""")
         req.ContentType = "text/xml; charset=""utf-8"""
         req.Accept = "text/xml"
         req.Method = "POST"
@@ -181,7 +181,7 @@ Public Class AgenciaASM
         respuestaXML = XDocument.Parse(soap)
 
         Dim elementoXML As XElement
-        Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
+        Dim Xns As XNamespace = XNamespace.Get("https://www.asmred.com/")
         elementoXML = respuestaXML.Descendants(Xns + "GetPlazaXCPResult").First().FirstNode
         respuestaXML = New XDocument
         respuestaXML.AddFirst(elementoXML)
@@ -282,7 +282,7 @@ Public Class AgenciaASM
                 "</soap:Body>" &
              "</soap:Envelope>"
 
-        Dim req As HttpWebRequest = WebRequest.Create("http://www.asmred.com/WebSrvs/b2b.asmx?op=GrabaServicios")
+        Dim req As HttpWebRequest = WebRequest.Create("https://www.asmred.com/WebSrvs/b2b.asmx?op=GrabaServicios")
         req.Headers.Add("SOAPAction", """http://www.asmred.com/GrabaServicios""")
         req.ContentType = "text/xml; charset=""utf-8"""
         req.Accept = "text/xml"
@@ -309,7 +309,10 @@ Public Class AgenciaASM
             respuesta.CuerpoRespuesta = soap
         Catch ex As Exception
             respuesta.Exito = False
-            respuesta.TextoRespuestaError = "El servidor de la agencia no está respondiendo"
+            respuesta.TextoRespuestaError = ex.Message
+            If IsNothing(respuesta.CuerpoRespuesta) Then
+                respuesta.CuerpoRespuesta = String.Empty
+            End If
             Return respuesta
         End Try
 

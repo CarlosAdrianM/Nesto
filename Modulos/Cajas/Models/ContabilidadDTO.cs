@@ -25,6 +25,7 @@ namespace Nesto.Modulos.Cajas.Models
         public string Departamento { get; set; }
         public string CentroCoste { get; set; }
         public EstadoPunteo EstadoPunteo { get; set; }
+        public string Usuario { get; set; }
 
         public PreContabilidadDTO ToPreContabilidadDTO()
         {

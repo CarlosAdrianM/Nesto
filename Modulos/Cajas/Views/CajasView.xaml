@@ -8,7 +8,8 @@
              d:DataContext="{d:DesignInstance Type=viewmodels:CajasViewModel}"
              prism:ViewModelLocator.AutoWireViewModel="True"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-             xmlns:cu="clr-namespace:ControlesUsuario;assembly=ControlesUsuario" xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:cu="clr-namespace:ControlesUsuario;assembly=ControlesUsuario" 
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800" Loaded="UserControl_Loaded">
 
@@ -43,9 +44,11 @@
                     <RowDefinition/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <cu:SelectorCliente Cliente="{Binding DataContext.ClienteSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    ClienteCompleto="{Binding DataContext.ClienteCompletoSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWayToSource}">                    
+                <cu:SelectorCliente Grid.Row="0" Grid.RowSpan="99"
+                    Cliente="{Binding DataContext.ClienteSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                    ClienteCompleto="{Binding DataContext.ClienteCompletoSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWayToSource}">                    
                 </cu:SelectorCliente>
+                
                 <DataGrid x:Name="dgrListaDeudas" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding ListaDeudas}" IsReadOnly="True" AutoGenerateColumns="False" MouseLeftButtonUp="drgListaDeudas_MouseLeftButtonUp">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="SelectionChanged">
@@ -111,6 +114,40 @@
                     <AccessText>_Contabilizar</AccessText>
                 </Button>
             </Grid>            
+        </TabItem>
+        <TabItem Header="Gastos">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <cu:SelectorProveedor Grid.Row="1" Grid.Column="0" 
+                                      Margin="5" VerticalAlignment="Center"
+                                      ProveedorCompleto="{Binding DataContext.ProveedorGasto, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}">
+                </cu:SelectorProveedor>
+                <xctk:DecimalUpDown x:Name="txtTotalGasto" Grid.Row="1" Grid.Column="1" 
+                                    Margin="5"
+                                    Text="{Binding TotalGasto, UpdateSourceTrigger=PropertyChanged, StringFormat=c}" CultureInfo="es-ES"
+                                    TextAlignment="Right" 
+                                    HorizontalAlignment="Stretch" FontSize="32" VerticalAlignment="Center"
+                                    PreviewTextInput="DecimalUpDown_PreviewTextInput" KeyUp="DecimalUpDown_KeyUp">
+                </xctk:DecimalUpDown>
+                <StackPanel Grid.Row="1" Grid.Column="2" Margin="5" VerticalAlignment="Center">
+                    <TextBlock Text="Nº factura"></TextBlock>
+                    <TextBox Text="{Binding GastoNumeroFactura, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                </StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="3" VerticalAlignment="Center">
+                    <Button Command="{Binding ContabilizarGastoCommand}">Contabilizar gasto</Button>
+                </StackPanel>
+                
+            </Grid>
         </TabItem>
         <TabItem Header="Traspasos">
             <Grid>
