@@ -54,6 +54,10 @@ namespace Nesto.Modulos.Cajas
 
         public async Task<int> Contabilizar(List<PreContabilidadDTO> lineas)
         {
+            if (lineas is null)
+            {
+                return -1;
+            }
             foreach (var linea in lineas)
             {
                 linea.Usuario = _configuracion.usuario;

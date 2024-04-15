@@ -1,0 +1,61 @@
+﻿<UserControl x:Class="ControlesUsuario.ArqueoEfectivo"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ControlesUsuario"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+        
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ItemsControl Name="itcCantidades" ItemsSource="{Binding Cantidades}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{Binding Valor, StringFormat=c}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text=" x "/>
+                        <TextBox Name="txtRecuento" Grid.Column="2" Text="{Binding Recuento, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         GotFocus="txtRecuento_GotFocus" PreviewMouseDown="txtRecuento_PreviewMouseDown" PreviewKeyDown="txtRecuento_PreviewKeyDown"/>
+                        <TextBlock Grid.Column="3" Text=" = "/>
+                        <TextBlock Grid.Column="4" Text="{Binding Total, StringFormat=c}" HorizontalAlignment="Right"/>
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Etiquetas -->
+            <TextBlock Grid.Column="0" Grid.Row="0" Text="Total monedas... "/>
+            <TextBlock Grid.Column="0" Grid.Row="1" Text="Total billetes... "/>
+            <TextBlock Grid.Column="0" Grid.Row="2" Text="Total arqueo... " FontWeight="ExtraBold" />
+
+            <!-- Importes en euros -->
+            <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding TotalMonedas, StringFormat=c, Mode=OneWay}" HorizontalAlignment="Right"/>
+            <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding TotalBilletes, StringFormat=c, Mode=OneWay}" HorizontalAlignment="Right"/>
+            <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding TotalArqueo, StringFormat=c, Mode=OneWay}" FontWeight="ExtraBold" HorizontalAlignment="Right"/>
+        </Grid>
+
+    </Grid>
+</UserControl>

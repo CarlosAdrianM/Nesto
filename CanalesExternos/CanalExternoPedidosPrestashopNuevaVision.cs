@@ -80,7 +80,7 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 pedidoSalida.comentarios += "N/ Pedido: " + pedidoEntrada.PedidoNestoId + "\r\n";
             }
-            decimal totalPagado = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_paid_real")?.Value) / 1000000, 4);
+            decimal totalPagado = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_paid")?.Value) / 1000000, 4);
             pedidoSalida.comentarios += "TOTAL PEDIDO: " + totalPagado.ToString("c");
 
             pedidoSalida.fecha = Convert.ToDateTime(pedidoEntrada.Pedido.Element("date_add")?.Value);

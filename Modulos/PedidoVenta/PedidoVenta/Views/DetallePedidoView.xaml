@@ -161,7 +161,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="3">
                             <controles:SelectorFormaPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.formaPago, Mode=TwoWay}"></controles:SelectorFormaPago>
-                            <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}" Descuento="{Binding pedido.DescuentoPP, Mode=TwoWay}"></controles:SelectorPlazosPago>
+                            <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}" Descuento="{Binding pedido.DescuentoPP, Mode=TwoWay}" TotalPedido="{Binding pedido.Total}" ></controles:SelectorPlazosPago>
                             <TextBlock Text="Fecha vencimiento:"></TextBlock>
                             <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
                             <TextBlock></TextBlock>

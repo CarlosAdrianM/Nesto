@@ -24,6 +24,7 @@ namespace Nesto.Informes
         public string Vendedor { get; set; }
         public string CodigoPostal { get; set; }
         public string Poblacion { get; set; }
+        public short? EstadoRapport { get; set; }
 
         public static async Task<List<DetalleRapportsModel>> CargarDatos(DateTime fechaDesde, DateTime fechaHasta, string cadenaVendedores)
         {

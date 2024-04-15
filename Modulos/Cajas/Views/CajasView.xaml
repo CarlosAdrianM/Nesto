@@ -20,6 +20,7 @@
     </i:Interaction.Triggers>
 
     <UserControl.Resources>
+        <xctk:InverseBoolConverter x:Key="InverseBoolConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
     
@@ -167,8 +168,8 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition/>
-                    <ColumnDefinition/>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="2*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition/>
@@ -178,17 +179,60 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition/>
                 </Grid.RowDefinitions>
+                <cu:ArqueoEfectivo Grid.Row="0" Grid.Column="2" DataContext="{Binding ArqueoFondo, Mode=TwoWay}" Margin="10"></cu:ArqueoEfectivo>
                 <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">Cuenta origen</TextBlock>
-                <ComboBox Grid.Row="1" Grid.Column="2" SelectedItem="{Binding CuentaOrigen, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center"></ComboBox>
-                <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">Cuenta origen</TextBlock>
-                <ComboBox Grid.Row="2" Grid.Column="2" SelectedItem="{Binding CuentaDestino, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center"></ComboBox>
+                <ComboBox Grid.Row="1" Grid.Column="2" SelectedItem="{Binding CuentaOrigen, UpdateSourceTrigger=PropertyChanged}" 
+                          ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" 
+                          VerticalAlignment="Center"  IsEnabled="{Binding PuedeContabilizarDescuadrado}"></ComboBox>
+                <TextBlock Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">Cuenta destino</TextBlock>
+                <ComboBox Grid.Row="2" Grid.Column="2" SelectedItem="{Binding CuentaDestino, UpdateSourceTrigger=PropertyChanged}" 
+                          ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" 
+                          VerticalAlignment="Center" IsEnabled="{Binding PuedeContabilizarDescuadrado}"></ComboBox>
                 <TextBlock Grid.Row="3" Grid.Column="1">Concepto</TextBlock>
                 <TextBox Grid.Row="3" Grid.Column="2"  Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                 <TextBlock Grid.Row="4" Grid.Column="1">Importe</TextBlock>
-                <TextBox Name="txtImporte" Grid.Row="4" Grid.Column="2"  Text="{Binding Importe, StringFormat=c}" KeyUp="txtImporte_KeyUp" PreviewKeyDown="txtImporte_PreviewKeyDown" GotFocus="txtImporte_GotFocus" PreviewMouseLeftButtonUp="txtImporte_PreviewMouseLeftButtonUp"></TextBox>
-                <Button Name="btnContabilizarTraspaso" Grid.Row="5" Grid.Column="2" Margin="3" Command="{Binding ContabilizarTraspasoCommand}">Contabilizar traspaso</Button>
+                <TextBox Name="txtImporte" Grid.Row="4" Grid.Column="2"  Text="{Binding Importe, StringFormat=c}" IsReadOnly="{Binding PuedeContabilizarDescuadrado, Converter={StaticResource InverseBoolConverter}}" KeyUp="txtImporte_KeyUp" PreviewKeyDown="txtImporte_PreviewKeyDown" GotFocus="txtImporte_GotFocus" PreviewMouseLeftButtonUp="txtImporte_PreviewMouseLeftButtonUp"></TextBox>
+                <TextBlock Grid.Row="6" Grid.Column="1">Fondo de caja</TextBlock>
+                <TextBlock Grid.Row="6" Grid.Column="2" Text="{Binding FondoCaja, StringFormat=c}"></TextBlock>
+                <TextBlock Grid.Row="7" Grid.Column="1">Descuadre</TextBlock>
+                <TextBlock Grid.Row="7" Grid.Column="2" Text="{Binding ImporteDescuadre, StringFormat=c}"></TextBlock>
+                <Button Name="btnContabilizarTraspaso" Grid.Row="8" Grid.Column="2" Margin="3" Command="{Binding ContabilizarTraspasoCommand}">Contabilizar traspaso</Button>
+                <DataGrid Grid.Row="0" Grid.Column="3" ItemsSource="{Binding MovimientosEfectivoDia}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="10">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" />
+                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}" Width="Auto">
+                            <DataGridTextColumn.CellStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="NºDocumento" Binding="{Binding Documento}"  Width="Auto"/>
+                        <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}"  Width="Auto"/>
+                        <DataGridTextColumn Header="Delegación" Binding="{Binding Delegacion}"  Width="Auto"/>
+                        <DataGridTextColumn Header="Diario" Binding="{Binding Diario}"  Width="Auto"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Row="9" Grid.Column="3" ItemsSource="{Binding MovimientosTarjetaDia}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="10">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" />
+                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}" Width="Auto">
+                            <DataGridTextColumn.CellStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="NºDocumento" Binding="{Binding Documento}"  Width="Auto"/>
+                        <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}"  Width="Auto"/>
+                        <DataGridTextColumn Header="Delegación" Binding="{Binding Delegacion}"  Width="Auto"/>
+                        <DataGridTextColumn Header="Diario" Binding="{Binding Diario}"  Width="Auto"/>
+                    </DataGrid.Columns>
+                </DataGrid>
             </Grid>
         </TabItem>
     </TabControl>

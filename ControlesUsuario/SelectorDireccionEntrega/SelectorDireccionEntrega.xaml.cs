@@ -258,7 +258,7 @@ namespace ControlesUsuario
                 if (selector.listaDireccionesEntrega.Lista is not null && selector.listaDireccionesEntrega.ElementoSeleccionado is null)
                 {
                     selector.listaDireccionesEntrega.ElementoSeleccionado = selector.listaDireccionesEntrega.Lista
-                        .Single(c => (c as DireccionesEntregaCliente).contacto == selector.Seleccionada);
+                        .SingleOrDefault(c => (c as DireccionesEntregaCliente).contacto == selector.Seleccionada);
                 }
                 //if (selector.direccionEntregaSeleccionada != null && selector.Seleccionada != selector.direccionEntregaSeleccionada.contacto)
                 //if (selector.DireccionCompleta != null && selector.Seleccionada != selector.DireccionCompleta.contacto)

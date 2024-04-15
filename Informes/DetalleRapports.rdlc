@@ -45,6 +45,10 @@
           <DataField>EstadoCliente</DataField>
           <rd:TypeName>System.Nullable`1[[System.Int16, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
         </Field>
+        <Field Name="EstadoRapport">
+          <DataField>EstadoRapport</DataField>
+          <rd:TypeName>System.Nullable`1[[System.Int16, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
+        </Field>
         <Field Name="HoraLlamada">
           <DataField>HoraLlamada</DataField>
           <rd:TypeName>System.Nullable`1[[System.DateTime, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]</rd:TypeName>
@@ -385,6 +389,7 @@
                                 <TextRun>
                                   <Value>=Iif(Fields!Cliente.Value Is Nothing, "", Fields!Cliente.Value).ToString().Trim()</Value>
                                   <Style>
+                                    <FontStyle>=Iif(Fields!EstadoRapport.Value = 1, "Italic", "Normal")</FontStyle>
                                     <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
                                 </TextRun>
@@ -418,6 +423,7 @@
                                 <TextRun>
                                   <Value>=Iif(Fields!Direccion.Value Is Nothing OrElse Fields!CodigoPostal Is Nothing OrElse Fields!Poblacion Is Nothing, "", Fields!Direccion.Value &amp; vbCrLf &amp; Fields!CodigoPostal.Value &amp; ", " &amp; Fields!Poblacion.Value).ToString().Trim()</Value>
                                   <Style>
+                                    <FontStyle>=Iif(Fields!EstadoRapport.Value = 1, "Italic", "Normal")</FontStyle>
                                     <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
                                 </TextRun>
@@ -451,6 +457,7 @@
                                 <TextRun>
                                   <Value>=Fields!Tipo.Value</Value>
                                   <Style>
+                                    <FontStyle>=Iif(Fields!EstadoRapport.Value = 1, "Italic", "Normal")</FontStyle>
                                     <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
                                 </TextRun>
@@ -486,6 +493,7 @@
                                 <TextRun>
                                   <Value>=Fields!EstadoCliente.Value</Value>
                                   <Style>
+                                    <FontStyle>=Iif(Fields!EstadoRapport.Value = 1, "Italic", "Normal")</FontStyle>
                                     <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
                                 </TextRun>
@@ -521,6 +529,7 @@
                                 <TextRun>
                                   <Value>=Iif(Fields!Comentarios.Value Is Nothing, "", Fields!Comentarios.Value).ToString().Trim()</Value>
                                   <Style>
+                                    <FontStyle>=Iif(Fields!EstadoRapport.Value = 1, "Italic", "Normal")</FontStyle>
                                     <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
                                 </TextRun>
@@ -554,6 +563,7 @@
                                 <TextRun>
                                   <Value>=IIf(Fields!Pedido.Value, Chr(82), Chr(163))</Value>
                                   <Style>
+                                    <FontStyle>=Iif(Fields!EstadoRapport.Value = 1, "Italic", "Normal")</FontStyle>
                                     <FontFamily>Wingdings 2</FontFamily>
                                     <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>
@@ -577,6 +587,7 @@
                             <PaddingBottom>2pt</PaddingBottom>
                           </Style>
                         </Textbox>
+                        <rd:Selected>true</rd:Selected>
                       </CellContents>
                     </TablixCell>
                     <TablixCell>
@@ -590,6 +601,7 @@
                                 <TextRun>
                                   <Value>=Fields!HoraLlamada.Value</Value>
                                   <Style>
+                                    <FontStyle>=Iif(Fields!EstadoRapport.Value = 1, "Italic", "Normal")</FontStyle>
                                     <Format>g</Format>
                                     <Color>=Iif(IsNothing(Fields!Vendedor.Value), "Red", "Black")</Color>
                                   </Style>

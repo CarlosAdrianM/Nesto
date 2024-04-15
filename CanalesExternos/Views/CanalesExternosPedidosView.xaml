@@ -117,7 +117,7 @@
                 <controles:SelectorCliente Grid.Row="1" Margin="3,0" Name="txtSelectorCliente" Etiqueta="Cliente al que se factura:" 
                                            Cliente="{Binding DataContext.PedidoSeleccionadoCliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                            Contacto="{Binding DataContext.PedidoSeleccionadoContacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                                           ClienteCompleto="{Binding DataContext.ClienteSeleccionado, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                           ClienteCompleto="{Binding DataContext.ClienteSeleccionado, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350"></controles:SelectorCliente>
 
             </Grid>

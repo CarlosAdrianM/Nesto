@@ -22,7 +22,8 @@ namespace Nesto.Modulos.Cajas
         public ICommand AbrirModuloCajasCommand { get; private set; }
         private bool CanAbrirModuloCajas()
         {
-            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) ||
+                Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS);
         }
         private void OnAbrirCajasModulo()
         {

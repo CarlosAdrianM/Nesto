@@ -154,7 +154,7 @@ Public Class AgenciaASM
               "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " &
               "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" &
               "<soap:Body>" &
-                    "<GetPlazaXCP xmlns=""https://www.asmred.com/"">" &
+                    "<GetPlazaXCP xmlns=""http://www.asmred.com/"">" &
                         "<codPais>" + agenciaVM.paisActual.Id.ToString + "</codPais>" &
                         "<cp>" + codPostal + "</cp>" &
                     "</GetPlazaXCP>" &
@@ -162,7 +162,7 @@ Public Class AgenciaASM
              "</soap:Envelope>"
 
         Dim req As HttpWebRequest = WebRequest.Create("https://www.asmred.com/WebSrvs/b2b.asmx?op=GetPlazaXCP")
-        req.Headers.Add("SOAPAction", """https://www.asmred.com/GetPlazaXCP""")
+        req.Headers.Add("SOAPAction", """http://www.asmred.com/GetPlazaXCP""")
         req.ContentType = "text/xml; charset=""utf-8"""
         req.Accept = "text/xml"
         req.Method = "POST"
@@ -181,7 +181,7 @@ Public Class AgenciaASM
         respuestaXML = XDocument.Parse(soap)
 
         Dim elementoXML As XElement
-        Dim Xns As XNamespace = XNamespace.Get("https://www.asmred.com/")
+        Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
         elementoXML = respuestaXML.Descendants(Xns + "GetPlazaXCPResult").First().FirstNode
         respuestaXML = New XDocument
         respuestaXML.AddFirst(elementoXML)
