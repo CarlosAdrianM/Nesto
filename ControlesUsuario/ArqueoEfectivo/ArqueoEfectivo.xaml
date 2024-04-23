@@ -12,27 +12,29 @@
             <RowDefinition/>
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <ItemsControl Name="itcCantidades" ItemsSource="{Binding Cantidades}">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="2*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{Binding Valor, StringFormat=c}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" Text=" x "/>
-                        <TextBox Name="txtRecuento" Grid.Column="2" Text="{Binding Recuento, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <ItemsControl Name="itcCantidades" ItemsSource="{Binding Cantidades}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding Valor, StringFormat=c}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text=" x "/>
+                            <TextBox Name="txtRecuento" Grid.Column="2" Text="{Binding Recuento, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          GotFocus="txtRecuento_GotFocus" PreviewMouseDown="txtRecuento_PreviewMouseDown" PreviewKeyDown="txtRecuento_PreviewKeyDown"/>
-                        <TextBlock Grid.Column="3" Text=" = "/>
-                        <TextBlock Grid.Column="4" Text="{Binding Total, StringFormat=c}" HorizontalAlignment="Right"/>
-                    </Grid>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+                            <TextBlock Grid.Column="3" Text=" = "/>
+                            <TextBlock Grid.Column="4" Text="{Binding Total, StringFormat=c}" HorizontalAlignment="Right"/>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>

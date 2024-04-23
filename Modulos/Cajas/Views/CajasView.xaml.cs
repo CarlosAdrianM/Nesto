@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Nesto.Modulos.Cajas.ViewModels;
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -26,6 +27,11 @@ namespace Nesto.Modulos.Cajas.Views
             if (e.Key == Key.Enter)
             {
                 btnContabilizarTraspaso.Focus();
+            }
+            else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift) && e.Key == Key.E)
+            {
+                var vm = DataContext as CajasViewModel;
+                vm.CambiarEmpresaTraspasoCommand.Execute(null);
             }
         }
 

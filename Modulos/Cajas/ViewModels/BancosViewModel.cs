@@ -135,6 +135,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 SetProperty(ref _apuntesBancoSeleccionados, value);
                 ((DelegateCommand)RegularizarDiferenciaCommand).RaiseCanExecuteChanged();
+                ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
             }
         }
 
@@ -176,6 +177,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             { 
                 SetProperty(ref _apuntesContabilidadSeleccionados, value);
                 ((DelegateCommand)RegularizarDiferenciaCommand).RaiseCanExecuteChanged();
+                ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
             }
         }
         
@@ -384,21 +386,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     string fileContent = File.ReadAllText(filePath);
 
                     ContenidoCuaderno43 = await _bancosService.CargarFicheroCuaderno43(fileContent);
-                    //ApuntesBanco = new ObservableCollection<ApunteBancarioDTO>(ContenidoCuaderno43.Apuntes);
                     Banco = await _bancosService.LeerBanco(ContenidoCuaderno43.Cabecera.ClaveEntidad, ContenidoCuaderno43.Cabecera.ClaveOficina, ContenidoCuaderno43.Cabecera.NumeroCuenta);
                     /*
-                    var lista = await _bancosService.LeerApuntesContabilidad(Banco.Empresa, Banco.CuentaContable, ContenidoCuaderno43.Cabecera.FechaInicial, ContenidoCuaderno43.Cabecera.FechaFinal);
-                    ApuntesContabilidad = new ObservableCollection<ContabilidadDTO>(lista);
-                    SaldoInicialContabilidad = await _bancosService.SaldoCuenta(Banco.Empresa, Banco.CuentaContable, ContenidoCuaderno43.Cabecera.FechaInicial.AddDays(-1));
-                    RaisePropertyChanged(nameof(DescuadreSaldoFinal));
-                    RaisePropertyChanged(nameof(DescuadreSaldoInicial));
-                    RaisePropertyChanged(nameof(SaldoFinalContabilidad));
-                    RaisePropertyChanged(nameof(SaldoFinalBanco));
-                    RaisePropertyChanged(nameof(SaldoInicialBanco));
-                    */
                     FechaHasta = DateTime.MinValue; // para que no lea dos veces
                     FechaDesde = ContenidoCuaderno43.Cabecera.FechaInicial;
                     FechaHasta = FechaDesde;
+                    */
+
+                    FechaHasta = ContenidoCuaderno43.Cabecera.FechaInicial;
                     MostrarCompletamentePunteado = true;
                     var fechaApunte = ContenidoCuaderno43.Cabecera.FechaFinal;
                     _dialogService.ShowNotification($"Apuntes día {fechaApunte.ToString("dd/MM/yyyy")} cargados correctamente al sistema");
@@ -431,8 +426,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
                     MovimientosTPV = await _bancosService.CargarFicheroTarjetas(fileContent);
                     var fechaApunte = MovimientosTPV.First().FechaOperacion;
-                    FechaHasta = DateTime.MinValue; // para que no lea dos veces
-                    FechaDesde = fechaApunte;
+                    //FechaHasta = DateTime.MinValue; // para que no lea dos veces
+                    //FechaDesde = fechaApunte;
                     FechaHasta = fechaApunte;                    
                     _dialogService.ShowNotification($"Movimientos de tarjeta del día {fechaApunte.ToString("dd/MM/yyyy")} cargados correctamente al sistema");
                 }

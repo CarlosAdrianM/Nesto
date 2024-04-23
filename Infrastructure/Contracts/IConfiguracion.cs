@@ -8,6 +8,7 @@ namespace Nesto.Infrastructure.Contracts
         Task<string> leerParametro(string empresa, string clave);
         string servidorAPI { get; }
         string usuario { get; }
+        string UsuarioSinDominio { get; }
         bool UsuarioEnGrupo(string grupo);
         string LeerParametroSync(string empresa, string clave);
         Task GuardarParametro(string empresa, string clave, string valor);

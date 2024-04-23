@@ -114,6 +114,7 @@
                 <Button Name="btnContabilizarCobro" Grid.Row="9" Grid.Column="2" Command="{Binding ContabilizarCobroCommand}">
                     <AccessText>_Contabilizar</AccessText>
                 </Button>
+                
             </Grid>            
         </TabItem>
         <TabItem Header="Gastos">
@@ -196,6 +197,7 @@
                 <TextBox Grid.Row="3" Grid.Column="2"  Text="{Binding Concepto, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                 <TextBlock Grid.Row="4" Grid.Column="1">Importe</TextBlock>
                 <TextBox Name="txtImporte" Grid.Row="4" Grid.Column="2"  Text="{Binding Importe, StringFormat=c}" IsReadOnly="{Binding PuedeContabilizarDescuadrado, Converter={StaticResource InverseBoolConverter}}" KeyUp="txtImporte_KeyUp" PreviewKeyDown="txtImporte_PreviewKeyDown" GotFocus="txtImporte_GotFocus" PreviewMouseLeftButtonUp="txtImporte_PreviewMouseLeftButtonUp"></TextBox>
+                <TextBlock Grid.Row="4" Grid.Column="3" Text="{Binding EmpresaTraspasoMarca}"></TextBlock>
                 <TextBlock Grid.Row="6" Grid.Column="1">Fondo de caja</TextBlock>
                 <TextBlock Grid.Row="6" Grid.Column="2" Text="{Binding FondoCaja, StringFormat=c}"></TextBlock>
                 <TextBlock Grid.Row="7" Grid.Column="1">Descuadre</TextBlock>
@@ -217,6 +219,7 @@
                         <DataGridTextColumn Header="Diario" Binding="{Binding Diario}"  Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
+                <Button Grid.Row="1" Grid.Column="3" Command="{Binding ImprimirExtractoCommand}">Imprimir</Button>
                 <DataGrid Grid.Row="9" Grid.Column="3" ItemsSource="{Binding MovimientosTarjetaDia}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="10">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" />

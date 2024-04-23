@@ -10,6 +10,7 @@
     <None Remove="ControlPedidos.rdlc" />
     <None Remove="DetalleRapports.rdlc" />
     <None Remove="EtiquetasTienda.rdlc" />
+    <None Remove="ExtractoContable.rdlc" />
     <None Remove="KitsQueSePuedenMontar.rdlc" />
     <None Remove="ManifiestoAgencia.rdlc" />
     <None Remove="MontarKitProductos.rdlc" />
@@ -23,6 +24,7 @@
   <ItemGroup>
     <EmbeddedResource Include="ControlPedidos.rdlc" />
     <EmbeddedResource Include="EtiquetasTienda.rdlc" />
+    <EmbeddedResource Include="ExtractoContable.rdlc" />
     <EmbeddedResource Include="KitsQueSePuedenMontar.rdlc" />
     <EmbeddedResource Include="ManifiestoAgencia.rdlc" />
     <EmbeddedResource Include="MontarKitProductos.rdlc" />

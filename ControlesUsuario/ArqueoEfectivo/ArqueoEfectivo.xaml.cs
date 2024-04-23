@@ -45,6 +45,23 @@ namespace ControlesUsuario
                     textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
                 }
             }
+            else if (Keyboard.Modifiers == (ModifierKeys.Control) && e.Key == Key.B)
+            {
+                MessageBoxResult result = MessageBox.Show("¿Desea vaciar el arqueo?", "Confirmación", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                e.Handled = true;
+
+                if (result == MessageBoxResult.No)
+                {
+                    return;
+                }
+
+                var arqueo = DataContext as ArqueoEfectivoModel;
+                foreach (var cantidad in arqueo.Cantidades)
+                {
+                    cantidad.Recuento = 0;
+                }
+            }
         }
 
 

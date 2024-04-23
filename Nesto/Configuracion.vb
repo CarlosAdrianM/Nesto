@@ -21,14 +21,21 @@ Public Class Configuracion
 
     Public ReadOnly Property usuario As String Implements IConfiguracion.usuario
         Get
-            Dim usuarioFormatedo As String = Environment.UserName
+            Dim usuarioFormatedo As String = UsuarioSinDominio
             If usuarioFormatedo = usuarioFormatedo.ToLower OrElse usuarioFormatedo = usuarioFormatedo.ToUpper Then
                 usuarioFormatedo = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(usuarioFormatedo)
             End If
             Return Environment.UserDomainName + "\" + usuarioFormatedo
-            'Return System.Environment.UserDomainName + "\manuel"
         End Get
     End Property
+
+    Public ReadOnly Property UsuarioSinDominio As String Implements IConfiguracion.UsuarioSinDominio
+        Get
+            Return Environment.UserName
+            'Return "Elena"
+        End Get
+    End Property
+
     Public Async Function GuardarParametro(empresa As String, clave As String, valor As String) As Task Implements IConfiguracion.GuardarParametro
         Using client As New HttpClient
             client.BaseAddress = New Uri(servidorAPI)
@@ -37,7 +44,7 @@ Public Class Configuracion
             Dim urlConsulta As String = "ParametrosUsuario"
             Dim parametro As New ParametroUsuario With {
                 .Empresa = empresa,
-                .Usuario = Environment.UserName,
+                .Usuario = UsuarioSinDominio,
                 .Clave = clave,
                 .Valor = valor,
                 .Usuario2 = Me.usuario,
@@ -80,7 +87,7 @@ Public Class Configuracion
             Dim urlConsulta As String = "ParametrosUsuario"
             Dim parametro As New ParametroUsuario With {
                 .Empresa = empresa,
-                .Usuario = Environment.UserName,
+                .Usuario = UsuarioSinDominio,
                 .Clave = clave,
                 .Valor = valor,
                 .Usuario2 = Me.usuario,
@@ -123,7 +130,7 @@ Public Class Configuracion
             Dim response As HttpResponseMessage
 
             Try
-                response = Await client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=" + System.Environment.UserName + "&clave=" + clave)
+                response = Await client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=" + UsuarioSinDominio + "&clave=" + clave)
                 'response = Await client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=Carolina&clave=" + clave)
 
                 If response.IsSuccessStatusCode Then
@@ -148,7 +155,7 @@ Public Class Configuracion
             Dim response As HttpResponseMessage
 
             Try
-                response = client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=" + System.Environment.UserName + "&clave=" + clave).Result
+                response = client.GetAsync("ParametrosUsuario?empresa=" + empresa + "&usuario=" + UsuarioSinDominio + "&clave=" + clave).Result
 
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = response.Content.ReadAsStringAsync().Result
