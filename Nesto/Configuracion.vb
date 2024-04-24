@@ -32,7 +32,7 @@ Public Class Configuracion
     Public ReadOnly Property UsuarioSinDominio As String Implements IConfiguracion.UsuarioSinDominio
         Get
             Return Environment.UserName
-            'Return "Elena"
+            'Return "Santiago"
         End Get
     End Property
 

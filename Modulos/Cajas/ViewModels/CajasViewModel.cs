@@ -6,7 +6,6 @@ using Nesto.Informes;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cajas.Models;
-using Nesto.Modulos.PedidoCompra.Models;
 using Prism.Commands;
 using Prism.Services.Dialogs;
 using System;
@@ -21,21 +20,19 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using static ControlesUsuario.Models.SelectorProveedorModel;
-using static Nesto.Infrastructure.Shared.Constantes;
 
 namespace Nesto.Modulos.Cajas.ViewModels
 {
     public class CajasViewModel : ViewModelBase
     {
         public const string CUENTA_TESORERIA_PGC = "57";
+        private const int DIAS_ATRAS_PERMITIDOS = 4;
         private readonly IConfiguracion _configuracion;
         private readonly IDialogService _dialogService;
         private readonly IClientesService _clientesService;
         private string _cuentaCajaDefecto;
         private string _cuentaTarjetaDefecto;
-        private string _diarioCaja;
-        private DateTime _fechaDesde = DateTime.Today;
-        private DateTime _fechaHasta = DateTime.Today;
+        private string _diarioCaja;                
         private string _formaVentaUsuario;
         private decimal _saldoCuentaOrigen;
 
@@ -158,6 +155,36 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _fechaCobro;
             set => SetProperty(ref _fechaCobro, value);
         }
+        private DateTime _fechaDesde = DateTime.Today;
+        public DateTime FechaDesde
+        {
+            get => _fechaDesde;
+            set
+            {
+                if (value > _fechaHasta)
+                {
+                    return;
+                }
+                if (!EsUsuarioDeAdministracion)
+                {
+                    TimeSpan dias = _fechaHasta - value;
+                    if (dias.TotalDays > DIAS_ATRAS_PERMITIDOS)
+                    {
+                        return;
+                    }
+                }
+                SetProperty(ref _fechaDesde, value);
+                RaisePropertyChanged(nameof(FechaDesdeMinima));
+                CargarDatosIniciales();
+            }
+        }
+        public DateTime FechaDesdeMinima => EsUsuarioDeAdministracion ? DateTime.MinValue : _fechaDesde.AddDays(-DIAS_ATRAS_PERMITIDOS);
+        private DateTime _fechaHasta = DateTime.Today;
+        public DateTime FechaHasta
+        {
+            get => _fechaHasta;
+            set => SetProperty(ref _fechaHasta, value);
+        }
         private decimal _fondoCaja;
         public decimal FondoCaja
         {
@@ -273,7 +300,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ObservableCollection<ContabilidadDTO> MovimientosEfectivoDia
         {
             get => _movimientosEfectivoDia;
-            set => SetProperty(ref _movimientosEfectivoDia, value);
+            set
+            {
+                if (SetProperty(ref _movimientosEfectivoDia, value))
+                {
+                    RaisePropertyChanged(nameof(ImporteDescuadre));
+                }
+            }
         }
         private ObservableCollection<ContabilidadDTO> _movimientosTarjetaDia;
         public ObservableCollection<ContabilidadDTO> MovimientosTarjetaDia
@@ -407,42 +440,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             if (importeRestante != ImporteACuenta)
             {
                 throw new Exception($"Error en el algoritmo de cobros: {importeRestante.ToString("c")} es distinto a {ImporteACuenta.ToString("c")}.");
-            }
-
-            // Metemos una línea por el importe pagado a cuenta
-            //if (importeRestante != 0 && lineas.Any()) // hay alguna deuda seleccionada
-            //{
-            //    PreContabilidadDTO linea = new PreContabilidadDTO
-            //    {
-            //        Empresa = lineas[0].Empresa,
-            //        TipoApunte = Constantes.TiposApunte.PAGO,
-            //        TipoCuenta = Constantes.TiposCuenta.CLIENTE,
-            //        Cuenta = lineas[0].Cuenta,
-            //        Contacto = lineas[0].Contacto,
-            //        Concepto = $"S/Pago a cuenta {lineas[0].Documento}/{lineas[0].Efecto}",
-            //        Debe = importeRestante < 0 ? -importeRestante : 0,
-            //        Haber = importeRestante > 0 ? importeRestante : 0,
-            //        Fecha = DateOnly.FromDateTime(FechaCobro),
-            //        FechaVto = DateOnly.FromDateTime(FechaCobro),
-            //        Documento = lineas[0].Documento,
-            //        Efecto = lineas[0].Efecto,
-            //        Asiento = 1,
-            //        Diario = _diarioCaja,
-            //        Delegacion = _delegacionUsuario,
-            //        FormaVenta = lineas[0].FormaVenta,
-            //        FormaPago = FormaPagoSeleccionada.formaPago,
-            //        Ruta = lineas[0].Ruta,
-            //        Origen = Constantes.Empresas.EMPRESA_DEFECTO,
-            //        Vendedor = lineas[0].Vendedor,
-            //        Usuario = _configuracion.usuario,
-            //        FechaModificacion = DateTime.Now
-            //    };
-            //    if (!EsUsuarioDeAdministracion)
-            //    {
-            //        linea.Concepto += $" a {_configuracion.usuario}";
-            //    }
-            //    lineas.Add(linea);
-            //}
+            }            
 
             // Metemos una línea por el importe pagado a cuenta
             if (importeRestante != 0)  // no hay ninguna deuda seleccionada
@@ -471,7 +469,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 };
                 if (!EsUsuarioDeAdministracion)
                 {
-                    linea.Concepto += $" a {_configuracion.usuario}";
+                    linea.Concepto += $" a {_configuracion.UsuarioSinDominio}";
                 }
                 lineas.Add(linea);
             }
@@ -541,6 +539,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         Usuario = _configuracion.usuario,
                         FechaModificacion = DateTime.Now
                     };
+                    if (!EsUsuarioDeAdministracion)
+                    {
+                        contrapartida.Concepto += $" a {_configuracion.UsuarioSinDominio}";                        
+                    }
+                    if (contrapartida.Concepto.Length > 50)
+                    {
+                        contrapartida.Concepto = contrapartida.Concepto.Substring(0, 50);
+                    }
                     lineas.Add(contrapartida);
                 }
             }
@@ -596,7 +602,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             };
             if (!EsUsuarioDeAdministracion)
             {
-                linea.Concepto += $" caja {_configuracion.usuario}";
+                linea.Concepto += $" caja {_configuracion.UsuarioSinDominio}";
             }
             try
             {
@@ -620,7 +626,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarTraspasoCommand { get; private set; }
         private bool CanContabilizarTraspaso()
         {
-            return CuentaOrigen is not null && CuentaDestino is not null && !string.IsNullOrEmpty(Concepto) && CuentaOrigen.Cuenta != CuentaDestino.Cuenta
+            return Importe > 0 && CuentaOrigen is not null && CuentaDestino is not null && !string.IsNullOrEmpty(Concepto) && CuentaOrigen.Cuenta != CuentaDestino.Cuenta
                 && (PuedeContabilizarDescuadrado || ImporteDescuadre == 0);
         }
         private async void OnContabilizarTraspaso()
@@ -665,7 +671,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     {
                         if (saldoEspejo == Importe)
                         {
-                            _dialogService.ShowError($"Creado asiento {asientoEspejo} correctamente");
+                            _dialogService.ShowNotification($"Creado asiento {asientoEspejo} correctamente");
                             await CargarDatosIniciales();
                         }
                     }
@@ -707,7 +713,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
                 else
                 {
-                    _dialogService.ShowError($"Creado asiento {asiento} correctamente");
+                    _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
                     await CargarDatosIniciales();
                 }
             } 
@@ -723,7 +729,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             foreach(var empresa in MovimientosEfectivoDia.Select(e => e.Empresa).Distinct())
             {
-                LocalReport report = await CrearInformeExtractoContable(empresa, CuentaOrigen, _fechaDesde, _fechaHasta);
+                LocalReport report = await CrearInformeExtractoContable(empresa, CuentaOrigen, FechaDesde, _fechaHasta);
                 var pdf = report.Render("PDF");
                 string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}.pdf";
                 System.IO.File.WriteAllBytes(fileName, pdf);
@@ -788,6 +794,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     {
                         CuentaOrigen = ListaCuentasCaja.Single(p => p.Cuenta == Constantes.Cuentas.CAJA_PENDIENTE_RECIBIR_TIENDAS);
                     }
+                    else
+                    {
+                        await CalcularSaldoCuentaOrigen();
+                    }
                     if (CuentaDestino is null)
                     {
                         CuentaDestino = ListaCuentasCaja.Single(p => p.Cuenta == _cuentaCajaDefecto);
@@ -806,9 +816,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     Concepto = $"Cierre de caja de {_diarioCaja}";
                 }
             }
-            
-            MovimientosEfectivoDia = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(string.Empty, CuentaOrigen.Cuenta, _fechaDesde, _fechaHasta));
-            MovimientosTarjetaDia = new ObservableCollection<ContabilidadDTO>((await Servicio.LeerApuntesContabilidad(string.Empty, _cuentaTarjetaDefecto, _fechaDesde, _fechaHasta))
+
+            //MovimientosEfectivoDia = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(string.Empty, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta));
+            await CalcularSaldoCuentaOrigen();
+            MovimientosTarjetaDia = new ObservableCollection<ContabilidadDTO>((await Servicio.LeerApuntesContabilidad(string.Empty, _cuentaTarjetaDefecto, FechaDesde, _fechaHasta))
                 .Where(c => c.Usuario == _configuracion.usuario));
 
             if (string.IsNullOrWhiteSpace(_diarioCaja))
@@ -825,7 +836,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             if (CuentaOrigen is not null)
             {
                 _saldoCuentaOrigen = await Servicio.SaldoCuenta(string.Empty, CuentaOrigen.Cuenta, _fechaHasta);
-                MovimientosEfectivoDia = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(string.Empty, CuentaOrigen.Cuenta, _fechaDesde, _fechaHasta));
+                MovimientosEfectivoDia = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(string.Empty, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta));
             }
             else
             {

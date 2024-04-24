@@ -8,6 +8,7 @@ namespace Nesto.Modulos.Cajas.Models
         public string TextoModoCaptura { get; set; }
         public string Sesion { get; set; }
         public string Terminal { get; set; }
+        public string UsuarioTerminal { get; set; }
         public DateTime FechaCaptura { get; set; }
         public DateTime FechaOperacion { get; set; }
         public decimal ImporteOperacion { get; set; }

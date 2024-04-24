@@ -366,6 +366,21 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 ((DelegateCommand)PuntearApuntesCommand).RaiseCanExecuteChanged();
             }
         }
+        private Dictionary<string, string> _terminalesUsuarios;
+        public Dictionary<string, string> TerminalesUsuarios
+        {
+            get { return _terminalesUsuarios; }
+            set { SetProperty(ref _terminalesUsuarios, value); }
+        }
+
+
+
+
+
+
+
+
+
         public ICommand CargarArchivoCommand { get; private set; }
         private async void OnCargarArchivo()
         {

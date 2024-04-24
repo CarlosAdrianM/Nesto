@@ -113,6 +113,7 @@
                     <DataGridTextColumn Header="Texto Modo Captura" Binding="{Binding TextoModoCaptura}" />
                     <DataGridTextColumn Header="Sesión" Binding="{Binding Sesion}" />
                     <DataGridTextColumn Header="Terminal" Binding="{Binding Terminal}" />
+                    <DataGridTextColumn Header="Usuario Terminal" Binding="{Binding UsuarioTerminal}" />
                     <DataGridTextColumn Header="Fecha Operación" Binding="{Binding FechaOperacion}"/>
                     <DataGridTextColumn Header="Fecha Captura" Binding="{Binding FechaCaptura, StringFormat=d}"/>
                     <DataGridTextColumn Header="Importe Operación" Binding="{Binding ImporteOperacion, StringFormat=C, ConverterCulture='es-ES'}">

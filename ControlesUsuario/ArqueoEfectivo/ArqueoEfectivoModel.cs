@@ -41,7 +41,8 @@ namespace ControlesUsuario
         }
 
         public ObservableCollection<RecuentoEfectivo> Cantidades { get; }
-
+        public string EtiquetaBilletes => $"Total billetes ({TotalUnidadesBilletes})...";
+        public string EtiquetaMonedas => $"Total monedas ({TotalUnidadesMonedas})...";
         public decimal TotalArqueo => Cantidades.Sum(kv => kv.Valor * kv.Recuento);
         public decimal TotalBilletes => Cantidades
             .Where(kv => kv.Tipo == RecuentoEfectivo.TipoEfectivo.Billete)
@@ -49,6 +50,12 @@ namespace ControlesUsuario
         public decimal TotalMonedas => Cantidades
             .Where(kv => kv.Tipo == RecuentoEfectivo.TipoEfectivo.Moneda)
             .Sum(kv => kv.Valor * kv.Recuento);
+        public int TotalUnidadesBilletes => Cantidades
+            .Where(kv => kv.Tipo == RecuentoEfectivo.TipoEfectivo.Billete)
+            .Sum(kv => kv.Recuento);
+        public int TotalUnidadesMonedas => Cantidades
+            .Where(kv => kv.Tipo == RecuentoEfectivo.TipoEfectivo.Moneda)
+            .Sum(kv => kv.Recuento);
 
 
         public string this[string columnName]
@@ -68,14 +75,16 @@ namespace ControlesUsuario
 
         public string Error => null;
 
-
-
         private void RecuentoEfectivo_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             RaisePropertyChanged(nameof(Cantidades));
+            RaisePropertyChanged(nameof(EtiquetaBilletes));
+            RaisePropertyChanged(nameof(EtiquetaMonedas));
             RaisePropertyChanged(nameof(TotalArqueo));
             RaisePropertyChanged(nameof(TotalBilletes));
             RaisePropertyChanged(nameof(TotalMonedas));
+            RaisePropertyChanged(nameof(TotalUnidadesBilletes));
+            RaisePropertyChanged(nameof(TotalUnidadesMonedas));
         }
     }
 

@@ -49,8 +49,8 @@
             </Grid.RowDefinitions>
 
             <!-- Etiquetas -->
-            <TextBlock Grid.Column="0" Grid.Row="0" Text="Total monedas... "/>
-            <TextBlock Grid.Column="0" Grid.Row="1" Text="Total billetes... "/>
+            <TextBlock Grid.Column="0" Grid.Row="0" Text="{Binding EtiquetaMonedas}"/>
+            <TextBlock Grid.Column="0" Grid.Row="1" Text="{Binding EtiquetaBilletes}"/>
             <TextBlock Grid.Column="0" Grid.Row="2" Text="Total arqueo... " FontWeight="ExtraBold" />
 
             <!-- Importes en euros -->
