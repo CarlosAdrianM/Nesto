@@ -1,10 +1,8 @@
 ﻿using Prism.Mvvm;
-using System.Collections.Specialized;
 using System.Linq;
 using System.ComponentModel;
 using System;
 using System.Collections.ObjectModel;
-using System.Windows.Data;
 
 namespace ControlesUsuario
 {
@@ -85,6 +83,13 @@ namespace ControlesUsuario
             RaisePropertyChanged(nameof(TotalMonedas));
             RaisePropertyChanged(nameof(TotalUnidadesBilletes));
             RaisePropertyChanged(nameof(TotalUnidadesMonedas));
+        }
+        public void VaciarArqueo()
+        {
+            foreach (var cantidad in Cantidades)
+            {
+                cantidad.Recuento = 0;
+            }
         }
     }
 

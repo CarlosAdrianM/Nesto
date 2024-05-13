@@ -56,6 +56,7 @@ Public Class StockProductoDTO
     Public Property cantidadDisponible() As Integer
     Public Property cantidadPendienteRecibir As Integer
     Public Property urlImagen() As String
+    Public Property StockDisponibleTodosLosAlmacenes As Integer
 End Class
 Public Class UltimasVentasProductoClienteDTO
     Public Property fecha As DateTime

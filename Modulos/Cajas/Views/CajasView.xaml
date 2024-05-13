@@ -173,7 +173,7 @@
                     <ColumnDefinition Width="2*"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
-                    <RowDefinition/>
+                    <RowDefinition Height="3*"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -182,7 +182,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition/>
+                    <RowDefinition Height="2*"/>
                 </Grid.RowDefinitions>
                 <cu:ArqueoEfectivo Grid.Row="0" Grid.Column="2" DataContext="{Binding ArqueoFondo, Mode=TwoWay}" Margin="10"></cu:ArqueoEfectivo>
                 <TextBlock Grid.Row="1" Grid.Column="1" VerticalAlignment="Center">Cuenta origen</TextBlock>

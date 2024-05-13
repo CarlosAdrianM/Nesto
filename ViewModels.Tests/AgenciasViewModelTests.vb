@@ -423,7 +423,7 @@ Public Class AgenciaViewModelTests
 
         viewModel.InsertarEnvioPendienteCommand.Execute()
 
-        Assert.AreEqual(New AgenciaCorreosExpress().ServicioDefecto(), viewModel.servicioActual.id)
+        Assert.AreEqual(New AgenciaCorreosExpress().ServicioDefecto(), viewModel.servicioActual.ServicioId)
         Assert.AreEqual(New AgenciaCorreosExpress().HorarioDefecto, viewModel.horarioActual.id)
         Assert.AreEqual(New AgenciaCorreosExpress().paisDefecto, viewModel.paisActual.Id)
     End Sub

@@ -101,7 +101,7 @@
                         <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding pedidoSeleccionado.Nº_Cliente}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
                         <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding pedidoSeleccionado.Contacto}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
                         <DatePicker Grid.Column="1" Grid.Row="3" Text="{Binding fechaEnvio}" Margin="3"/>
-                        <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding listaServicios}" SelectedItem="{Binding servicioActual}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"/>
+                        <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding listaServicios}" SelectedItem="{Binding servicioActual}" DisplayMemberPath="NombreServicio" SelectedValuePath="ServicioId" Style="{StaticResource listaCombo}"/>
                         <ComboBox Grid.Column="1" Grid.Row="5" ItemsSource="{Binding listaHorarios}" SelectedItem="{Binding horarioActual}" DisplayMemberPath="descripcion" SelectedValuePath="id"  Style="{StaticResource listaCombo}"/>
                         <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding bultos}" Style="{StaticResource campoTexto}"  />
                         <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding listaTiposRetorno}" SelectedItem="{Binding retornoActual}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
@@ -351,7 +351,7 @@
                         <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding envioActual.Contacto}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
                         <TextBox Grid.Column="1" Grid.Row="2" Text="{Binding envioActual.Pedido}" Style="{StaticResource campoTexto}" IsReadOnly="True"/>
                         <DatePicker Grid.Column="1" Grid.Row="3" Text="{Binding envioActual.Fecha}" Margin="3"/>
-                        <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding listaServicios}" SelectedValue="{Binding envioActual.Servicio, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}"/>
+                        <ComboBox Grid.Column="1" Grid.Row="4" ItemsSource="{Binding listaServicios}" SelectedValue="{Binding envioActual.Servicio, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="NombreServicio" SelectedValuePath="ServicioId" Style="{StaticResource listaCombo}"/>
                         <ComboBox Grid.Column="1" Grid.Row="5" ItemsSource="{Binding listaHorarios}" SelectedValue="{Binding envioActual.Horario, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id"  Style="{StaticResource listaCombo}" IsReadOnly="True"/>
                         <TextBox Grid.Column="1" Grid.Row="6" Text="{Binding envioActual.Bultos}" Style="{StaticResource campoTexto}"  IsReadOnly="True"/>
                         <ComboBox Grid.Column="1" Grid.Row="7" ItemsSource="{Binding listaTiposRetorno}" SelectedValue="{Binding envioActual.Retorno, UpdateSourceTrigger=PropertyChanged}" DisplayMemberPath="descripcion" SelectedValuePath="id" Style="{StaticResource listaCombo}" />
@@ -631,6 +631,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
@@ -645,10 +646,13 @@
                     <TextBlock Grid.Row="1" Grid.Column="0" FontSize="50" Text="Bultos: " Style="{StaticResource etiquetaTexto}"/>
                     <TextBox Name="txtNumeroBultos" Grid.Row="1" Grid.Column="1" FontSize="50" Text="{Binding bultos}" Style="{StaticResource campoTexto}" />
 
-                    <Button Name="btnInsertarImprimir" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" FontSize="50" MinWidth="80" Margin="3" Content="Insertar e Imprimir" Command = "{Binding cmdImprimirEInsertar}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="0" FontSize="50" Text="Peso: " Style="{StaticResource etiquetaTexto}"/>
+                    <TextBox Name="txtPeso" Grid.Row="2" Grid.Column="1" FontSize="50" Text="{Binding Peso}" Style="{StaticResource campoTexto}" />
 
-                    <TextBox Grid.Row="3" Grid.Column="0" Text="{Binding pedidoSeleccionado.Comentarios}" IsReadOnly="True" FontWeight="ExtraBold" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
-                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding pedidoSeleccionado.ComentarioPicking}" IsReadOnly="True" FontWeight="ExtraBold" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
+                    <Button Name="btnInsertarImprimir" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" FontSize="50" MinWidth="80" Margin="3" Content="Insertar e Imprimir" Command = "{Binding cmdImprimirEInsertar}"/>
+
+                    <TextBox Grid.Row="4" Grid.Column="0" Text="{Binding pedidoSeleccionado.Comentarios}" IsReadOnly="True" FontWeight="ExtraBold" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
+                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding pedidoSeleccionado.ComentarioPicking}" IsReadOnly="True" FontWeight="ExtraBold" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
 
                 </Grid>
             </TabItem>

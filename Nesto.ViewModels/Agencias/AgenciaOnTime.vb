@@ -3,7 +3,6 @@ Imports System.Windows
 Imports System.Net
 Imports System.Net.Http
 Imports System.Net.Http.Headers
-Imports System.Threading.Tasks
 Imports Nesto.Models.Nesto.Models
 Imports System.IO
 Imports Nesto.Models
@@ -17,9 +16,10 @@ Public Class AgenciaOnTime
                 New tipoIdDescripcion(0, "NO"),
                 New tipoIdDescripcion(1, "SI")
             }
-            ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(1, "Normal")
-            }
+            'ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
+            '    New tipoIdDescripcion(1, "Normal")
+            '}
+            ListaServicios = New ObservableCollection(Of ITarifaAgencia)
             ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
                 New tipoIdDescripcion(0, ""),
                 New tipoIdDescripcion(1, "Doble ciclo"),
@@ -177,7 +177,7 @@ Public Class AgenciaOnTime
 
     Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
     Public ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaTiposRetorno
-    Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
+    Public ReadOnly Property ListaServicios As ObservableCollection(Of ITarifaAgencia) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
 
     Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
@@ -203,4 +203,5 @@ Public Class AgenciaOnTime
             Return Byte.MaxValue ' ningún servicio imprime etiqueta de retorno
         End Get
     End Property
+
 End Class

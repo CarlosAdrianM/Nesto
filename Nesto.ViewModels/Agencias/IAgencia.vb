@@ -1,8 +1,6 @@
-﻿Imports Microsoft.Office.Core
-Imports Nesto.Models
+﻿Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports System.Collections.ObjectModel
-Imports System.Threading.Tasks
 Imports System.Windows
 
 Public Interface IAgencia
@@ -24,11 +22,12 @@ Public Interface IAgencia
     Function EnlaceSeguimiento(envio As EnviosAgencia) As String
     ReadOnly Property ListaPaises As ObservableCollection(Of Pais)
     ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion)
-    ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion)
+    ReadOnly Property ListaServicios As ObservableCollection(Of ITarifaAgencia)
     ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion)
     ReadOnly Property ServicioDefecto As Byte
     ReadOnly Property HorarioDefecto As Byte
     ReadOnly Property ServicioAuxiliar As Byte ' este servicio se ignorará y no se mostrará en los tramitados
     ReadOnly Property ServicioCreaEtiquetaRetorno As Byte ' el servicio que imprimie etiqueta de retorno
     Function RespuestaYaTramitada(respuesta As String) As Boolean
+
 End Interface

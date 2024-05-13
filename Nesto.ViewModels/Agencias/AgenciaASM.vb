@@ -4,10 +4,8 @@ Imports System.Net
 Imports System.IO
 Imports System.Text.RegularExpressions
 Imports Nesto.Models.Nesto.Models
-Imports System.Threading.Tasks
 Imports ControlesUsuario.Dialogs
 Imports System.Text
-Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 
@@ -15,6 +13,9 @@ Public Class AgenciaASM
     Implements IAgencia
 
     Private Const EMPRESA_ESPEJO As String = "3  "
+    Private Const IDENTIFICADOR_BUSINESSPARCEL As String = "6fb665f2-15a2-4478-9804-c1556fc1f272"
+    Private Const PREFIJOCODIGOBARRAS_BUSINESSPARCEL As String = "6119714"
+
 
     Private agenciaVM As AgenciasViewModel
 
@@ -25,20 +26,26 @@ Public Class AgenciaASM
                 New tipoIdDescripcion(1, "Con Retorno"),
                 New tipoIdDescripcion(2, "Retorno Opcional")
             }
-            ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(1, "Courier"),
-                New tipoIdDescripcion(37, "Economy"),
-                New tipoIdDescripcion(54, "EuroEstándar"),
-                New tipoIdDescripcion(74, "EuroBusiness Parcel"),
-                New tipoIdDescripcion(76, "EuroBusiness Small Parcel"),
-                New tipoIdDescripcion(6, "Carga")
+            ListaServicios = New ObservableCollection(Of ITarifaAgencia) From {
+                New TarifaGLSBaleares()
             }
+            'New TarifaGLSBusinessParcel(),
+
+            'ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
+            '    New tipoIdDescripcion(1, "Courier"),
+            '    New tipoIdDescripcion(37, "Economy"),
+            '    New tipoIdDescripcion(54, "EuroEstándar"),
+            '    New tipoIdDescripcion(74, "EuroBusiness Parcel"),
+            '    New tipoIdDescripcion(76, "EuroBusiness Small Parcel"),
+            '    New tipoIdDescripcion(6, "Carga")
+            '}
             ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(3, "ASM24"),
-                New tipoIdDescripcion(2, "ASM14"),
                 New tipoIdDescripcion(10, "Marítimo"),
                 New tipoIdDescripcion(18, "Economy")
             }
+            'New tipoIdDescripcion(3, "ASM24"),
+            'New tipoIdDescripcion(2, "ASM14"),
+
 
             ListaPaises = rellenarPaises()
 
@@ -55,7 +62,12 @@ Public Class AgenciaASM
             agenciaVM.dialogService.ShowError("No hay ningún envío seleccionado, no se puede cargar el estado")
             Return Nothing
         End If
-        Dim myUri As New Uri("https://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + envio.AgenciasTransporte.Identificador)
+        If envio.Servicio = 96 Then ' BusinessParcel
+            Identificador = IDENTIFICADOR_BUSINESSPARCEL
+        Else
+            Identificador = envio.AgenciasTransporte.Identificador
+        End If
+        Dim myUri As New Uri("https://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + Identificador)
         If myUri.Scheme = Uri.UriSchemeHttp Then
             'Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
             Dim myRequest As HttpWebRequest = CType(WebRequest.Create(myUri), HttpWebRequest)
@@ -145,7 +157,12 @@ Public Class AgenciaASM
         End Select
     End Function
     Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
-        Return agenciaVM.agenciaSeleccionada.PrefijoCodigoBarras.ToString + agenciaVM.envioActual.Numero.ToString("D7")
+        If agenciaVM.envioActual.Servicio = 96 Then ' BusinessParcel
+            PrefijoCodigoBarras = PREFIJOCODIGOBARRAS_BUSINESSPARCEL
+        Else
+            PrefijoCodigoBarras = agenciaVM.agenciaSeleccionada.PrefijoCodigoBarras.ToString
+        End If
+        Return PrefijoCodigoBarras + agenciaVM.envioActual.Numero.ToString("D7")
     End Function
     Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         'Comenzamos la llamada
@@ -207,9 +224,15 @@ Public Class AgenciaASM
             Return xml
         End If
 
+        If envio.Servicio = 96 Then ' BusinessParcel
+            Identificador = IDENTIFICADOR_BUSINESSPARCEL
+        Else
+            Identificador = envio.AgenciasTransporte.Identificador
+        End If
+
         'Añadimos el nodo raíz (Servicios)
         xml.AddFirst(
-            <Servicios uidcliente=<%= envio.AgenciasTransporte.Identificador %> xmlns="http://www.asmred.com/">
+            <Servicios uidcliente=<%= Identificador %> xmlns="http://www.asmred.com/">
                 <Envio codbarras=<%= envio.CodigoBarras %>>
                     <Fecha><%= envio.Fecha.ToShortDateString %></Fecha>
                     <Portes>P</Portes>
@@ -530,18 +553,22 @@ Public Class AgenciaASM
 
     Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
     Public ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaTiposRetorno
-    Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
+    Public ReadOnly Property ListaServicios As ObservableCollection(Of ITarifaAgencia) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
+
+    Public Property Identificador As String
+    Public Property PrefijoCodigoBarras As String
+
 
     Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
         Get
-            Return 1 ' Courier
+            Return 96 ' BusinessParcel
         End Get
     End Property
 
     Public ReadOnly Property HorarioDefecto As Byte Implements IAgencia.HorarioDefecto
         Get
-            Return 3 ' ASM24
+            Return 18 ' Economy
         End Get
     End Property
 
@@ -578,4 +605,5 @@ Public Class AgenciaASM
             Return Byte.MaxValue ' ningún servicio imprime etiqueta de retorno
         End Get
     End Property
+
 End Class

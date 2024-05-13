@@ -366,6 +366,7 @@
           <Property Name="ImporteGasto" Type="money" Nullable="false" />
           <Property Name="FechaRetornoRecibido" Type="date" />
           <Property Name="ImporteAsegurado" Type="money" Nullable="false" />
+          <Property Name="Peso" Type="decimal" Precision="5" Scale="2" Nullable="false" />
           <Property Name="Usuario" Type="varchar" MaxLength="50" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="RowVersion" Type="timestamp" StoreGeneratedPattern="Computed" Nullable="false" />
@@ -1929,6 +1930,7 @@ advertencia 6002: La tabla o vista 'NV.dbo.vstLinPedidoVtaConVendedor' no tiene 
         <Function Name="prdContabilizar" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
           <Parameter Name="Empresa" Type="char" Mode="In" />
           <Parameter Name="Diario" Type="char" Mode="In" />
+          <Parameter Name="Usuario" Type="varchar" Mode="In" />
         </Function>
         <Function Name="prdContabilizarImpagadosSepa" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
           <Parameter Name="fichero" Type="xml" Mode="In" />
@@ -2645,6 +2647,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <FunctionImport Name="prdContabilizar">
             <Parameter Name="Empresa" Mode="In" Type="String" />
             <Parameter Name="Diario" Mode="In" Type="String" />
+            <Parameter Name="Usuario" Mode="In" Type="String" />
           </FunctionImport>
           <EntitySet Name="Contabilidad" EntityType="Nesto.Models.EF.Contabilidad" />
           <EntitySet Name="EnviosHistoria" EntityType="Nesto.Models.EF.EnviosHistoria" />
@@ -4345,6 +4348,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="FechaEntrega" Type="DateTime" Precision="0" />
           <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" annotation:StoreGeneratedPattern="Computed" ConcurrencyMode="Fixed" />
           <Property Name="ImporteAsegurado" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
+          <Property Name="Peso" Type="Decimal" Nullable="false" Precision="5" Scale="2" />
         </EntityType>
         <Association Name="FK_AgenciasTransporte_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
@@ -5524,6 +5528,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <EntitySetMapping Name="EnviosAgencia">
             <EntityTypeMapping TypeName="Nesto.Models.EF.EnviosAgencia">
               <MappingFragment StoreEntitySet="EnviosAgencia">
+                <ScalarProperty Name="Peso" ColumnName="Peso" />
                 <ScalarProperty Name="ImporteAsegurado" ColumnName="ImporteAsegurado" />
                 <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
                 <ScalarProperty Name="FechaEntrega" ColumnName="FechaEntrega" />

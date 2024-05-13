@@ -127,4 +127,31 @@ Public Class Agencias
     Private Sub txtClienteFiltro_PreviewMouseDown(sender As Object, e As MouseButtonEventArgs) Handles txtClienteFiltro.PreviewMouseDown
         txtClienteFiltro.SelectAll()
     End Sub
+
+    Private Sub txtPeso_KeyUp(sender As Object, e As KeyEventArgs) Handles txtPeso.KeyUp
+        If e.Key = Key.Return Then
+            e.OriginalSource.MoveFocus(New TraversalRequest(FocusNavigationDirection.Next))
+        End If
+    End Sub
+
+    Private Sub txtPeso_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtPeso.GotFocus
+        txtPeso.SelectAll()
+    End Sub
+
+    Private Sub txtPeso_PreviewKeyDown(sender As Object, e As KeyEventArgs) Handles txtPeso.PreviewKeyDown
+        Dim textBox As TextBox = TryCast(sender, TextBox)
+
+        ' Verificar si la tecla presionada es la tecla del punto en el teclado numérico
+        If e.Key = Key.Decimal Then
+            e.Handled = True
+
+            Dim caretIndex As Integer = textBox.CaretIndex
+            textBox.Text = textBox.Text.Insert(caretIndex, ",")
+            textBox.CaretIndex = caretIndex + 1
+        End If
+    End Sub
+
+    Private Sub txtPeso_PreviewMouseLeftButtonUp(sender As Object, e As MouseButtonEventArgs) Handles txtPeso.PreviewMouseLeftButtonUp
+        txtPeso.SelectAll()
+    End Sub
 End Class

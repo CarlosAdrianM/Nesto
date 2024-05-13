@@ -15,6 +15,7 @@
             public const string ConciliacionBancariaFechaDesde = "ConciliacionBancariaFechaDesde";
             public const string ConciliacionBancariaFechaHasta = "ConciliacionBancariaFechaHasta";
             public const string DelegacionDefecto = "DelegaciónDefecto";
+            public const string DiarioCaja = "DiarioCaja";
             public const string EmpresaPorDefecto = "EmpresaPorDefecto";
             public const string FondoCaja = "FondoCaja";
             public const string FormaVentaDefecto = "FormaVentaDefecto";

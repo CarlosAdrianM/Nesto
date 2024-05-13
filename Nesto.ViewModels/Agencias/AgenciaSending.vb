@@ -4,13 +4,9 @@ Imports System.Net
 Imports System.IO
 Imports Nesto.Models.Nesto.Models
 Imports System.Globalization
-Imports System.Runtime.InteropServices
-Imports Microsoft.Win32.SafeHandles
 Imports System.Text
-Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
-Imports System.Xml
 
 Public Class AgenciaSending
     Implements IAgencia
@@ -23,8 +19,9 @@ Public Class AgenciaSending
             New tipoIdDescripcion(0, "Sin Retorno"),
             New tipoIdDescripcion(1, "Con Retorno")
         }
-        ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
-            New tipoIdDescripcion(1, "Send Exprés")
+        ListaServicios = New ObservableCollection(Of ITarifaAgencia) From {
+            New TarifaSendingExpress(),
+            New TarifaSendingMaritimo()
         }
         ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(1, "Normal")
@@ -501,6 +498,9 @@ Public Class AgenciaSending
     End Function
 
     Private Function IAgencia_EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
+        If IsNothing(envio) OrElse IsNothing(envio.AgenciasTransporte) Then
+            Return String.Empty
+        End If
         Return String.Format("https://info.sending.es/fgts/pub/locNumServ.seam?cliente={0}&localizador={1}", envio.AgenciasTransporte.Identificador, envio.CodigoBarras)
     End Function
 
@@ -508,9 +508,10 @@ Public Class AgenciaSending
         Return False
     End Function
 
+
     Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
     Public ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaTiposRetorno
-    Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
+    Public ReadOnly Property ListaServicios As ObservableCollection(Of ITarifaAgencia) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
 
     Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
@@ -558,6 +559,8 @@ Public Class AgenciaSending
             Return Byte.MaxValue ' ningún servicio imprime etiqueta de retorno
         End Get
     End Property
+
+
 End Class
 
 Friend Class CodigoRutaZona

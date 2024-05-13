@@ -1,7 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Windows
 Imports Nesto.Models.Nesto.Models
-Imports System.Threading.Tasks
 Imports Nesto.Models
 
 Public Class AgenciaGlovo
@@ -12,9 +11,8 @@ Public Class AgenciaGlovo
             ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
                 New tipoIdDescripcion(0, "NO")
             }
-            ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(0, "Business")
-            }
+
+            ListaServicios = New ObservableCollection(Of ITarifaAgencia)
             ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
                 New tipoIdDescripcion(0, "Urgente")
             }
@@ -111,9 +109,10 @@ Public Class AgenciaGlovo
         Return False
     End Function
 
+
     Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
     Public ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaTiposRetorno
-    Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
+    Public ReadOnly Property ListaServicios As ObservableCollection(Of ITarifaAgencia) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
     Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
         Get
@@ -138,4 +137,5 @@ Public Class AgenciaGlovo
             Return Byte.MaxValue ' ningún servicio imprime etiqueta de retorno
         End Get
     End Property
+
 End Class

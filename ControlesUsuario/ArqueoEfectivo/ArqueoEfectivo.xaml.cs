@@ -57,10 +57,7 @@ namespace ControlesUsuario
                 }
 
                 var arqueo = DataContext as ArqueoEfectivoModel;
-                foreach (var cantidad in arqueo.Cantidades)
-                {
-                    cantidad.Recuento = 0;
-                }
+                arqueo.VaciarArqueo();
             }
         }
 

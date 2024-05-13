@@ -61,7 +61,7 @@ Public Class PlantillaVentaViewModel
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
         CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
         cmdCargarProductosPlantilla = New DelegateCommand(AddressOf OnCargarProductosPlantilla)
-        cmdCargarStockProducto = New DelegateCommand(Of Object)(AddressOf OnCargarStockProducto, AddressOf CanCargarStockProducto)
+        cmdCargarStockProducto = New DelegateCommand(Of LineaPlantillaVenta)(AddressOf OnCargarStockProducto)
         cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
         cmdComprobarPendientes = New DelegateCommand(AddressOf OnComprobarPendientes)
         cmdCrearPedido = New DelegateCommand(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
@@ -1186,19 +1186,17 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Private _cmdCargarStockProducto As DelegateCommand(Of Object)
-    Public Property cmdCargarStockProducto As DelegateCommand(Of Object)
+    Private _cmdCargarStockProducto As DelegateCommand(Of LineaPlantillaVenta)
+    Public Property cmdCargarStockProducto As DelegateCommand(Of LineaPlantillaVenta)
         Get
             Return _cmdCargarStockProducto
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As DelegateCommand(Of LineaPlantillaVenta))
             SetProperty(_cmdCargarStockProducto, value)
         End Set
     End Property
-    Private Function CanCargarStockProducto(arg As Object) As Boolean
-        Return True
-    End Function
-    Private Async Sub OnCargarStockProducto(arg As Object)
+
+    Private Async Sub OnCargarStockProducto(linea As LineaPlantillaVenta)
 
         If IsNothing(clienteSeleccionado) Then
             Return
@@ -1213,17 +1211,18 @@ Public Class PlantillaVentaViewModel
             Dim datosStock As StockProductoDTO
 
             Try
-                response = Await client.GetAsync("PlantillaVentas/CargarStocks?empresa=" + clienteSeleccionado.empresa + "&almacen=" + almacenSeleccionado.Codigo + "&productoStock=" + arg.producto)
+                response = Await client.GetAsync("PlantillaVentas/CargarStocks?empresa=" + clienteSeleccionado.empresa + "&almacen=" + almacenSeleccionado.Codigo + "&productoStock=" + linea.producto)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     datosStock = JsonConvert.DeserializeObject(Of StockProductoDTO)(cadenaJson)
-                    arg.stock = datosStock.stock
-                    arg.cantidadDisponible = datosStock.cantidadDisponible
-                    arg.cantidadPendienteRecibir = datosStock.cantidadPendienteRecibir
-                    arg.urlImagen = datosStock.urlImagen
-                    arg.stockActualizado = True
-                    arg.fechaInsercion = Now
+                    linea.stock = datosStock.stock
+                    linea.cantidadDisponible = datosStock.cantidadDisponible
+                    linea.cantidadPendienteRecibir = datosStock.cantidadPendienteRecibir
+                    linea.StockDisponibleTodosLosAlmacenes = datosStock.StockDisponibleTodosLosAlmacenes
+                    linea.urlImagen = datosStock.urlImagen
+                    linea.stockActualizado = True
+                    linea.fechaInsercion = Now
                     RaisePropertyChanged(NameOf(listaProductosPedido))
                     RaisePropertyChanged(NameOf(baseImponiblePedido))
                 Else

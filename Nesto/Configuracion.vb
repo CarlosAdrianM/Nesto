@@ -21,18 +21,18 @@ Public Class Configuracion
 
     Public ReadOnly Property usuario As String Implements IConfiguracion.usuario
         Get
-            Dim usuarioFormatedo As String = UsuarioSinDominio
-            If usuarioFormatedo = usuarioFormatedo.ToLower OrElse usuarioFormatedo = usuarioFormatedo.ToUpper Then
-                usuarioFormatedo = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(usuarioFormatedo)
-            End If
-            Return Environment.UserDomainName + "\" + usuarioFormatedo
+            Return Environment.UserDomainName + "\" + UsuarioSinDominio
         End Get
     End Property
 
     Public ReadOnly Property UsuarioSinDominio As String Implements IConfiguracion.UsuarioSinDominio
         Get
-            Return Environment.UserName
-            'Return "Santiago"
+            Dim usuarioFormatedo As String = Environment.UserName
+            If usuarioFormatedo = usuarioFormatedo.ToLower OrElse usuarioFormatedo = usuarioFormatedo.ToUpper Then
+                usuarioFormatedo = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(usuarioFormatedo)
+            End If
+            Return usuarioFormatedo
+            'Return "Pilar"
         End Get
     End Property
 

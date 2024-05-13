@@ -1,10 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
-Imports System.Data.Objects
-Imports System.Threading.Tasks
-Imports Nesto.Contratos
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
-Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
 Public Interface IAgenciaService
     Function CargarListaPendientes() As IEnumerable(Of EnvioAgenciaWrapper)
@@ -51,4 +47,5 @@ Public Interface IAgenciaService
     Function EnviarCorreoEntregaAgencia(envioActual As EnvioAgenciaWrapper) As Task
     Function EsTodoElPedidoOnline(empresa As String, pedido As Integer) As Boolean
     Function GuardarLlamadaAgencia(respuesta As RespuestaAgencia) As Task
+    Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal)
 End Interface

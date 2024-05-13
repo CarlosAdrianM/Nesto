@@ -1,10 +1,7 @@
-﻿using Nesto.Infrastructure.Shared;
-using Nesto.Modulos.Cajas.ViewModels;
+﻿using Nesto.Modulos.Cajas.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {

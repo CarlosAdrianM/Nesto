@@ -73,6 +73,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 new ReglaAmazonPayComision(),
                 new ReglaAplazame(),
                 new ReglaAsociacionEsteticistas(),
+                new ReglaAyuntamientoAlgete(),
                 new ReglaInteresesAplazamientoConfirming(_dialogService),
                 new ReglaComisionRemesaRecibos(_bancosService),
                 new ReglaPagoProveedor(_bancosService),

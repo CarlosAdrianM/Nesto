@@ -2,10 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
-    internal class ReglaComisionesBanco : IReglaContabilizacion
+    internal class ReglaAyuntamientoAlgete : IReglaContabilizacion
     {
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
@@ -20,13 +22,32 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var lineas = new List<PreContabilidadDTO>();
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
-            linea1.Cuenta = "62600004";
-            linea1.Concepto = $"Comisión {banco.Nombre.Trim()} {apunteBancario.RegistrosConcepto[0]?.Concepto2}" ;
+            if (apunteBancario.RegistrosConcepto[2].ConceptoCompleto.Contains("IBI URBANA"))
+            {
+                linea1.Cuenta = "63100000";
+            } 
+            else
+            {
+                linea1.Cuenta = "63100003";
+            }
+            
+            linea1.Concepto = apunteBancario.RegistrosConcepto[2]?.ConceptoCompleto?.Trim();
             linea1.Concepto = FuncionesAuxiliaresReglas.FormatearConcepto(linea1.Concepto);
 
             // Obtener los últimos 10 caracteres
-            string referenciaCompleta = apunteBancario.RegistrosConcepto[1]?.Concepto;
-            string ultimos10Caracteres = FuncionesAuxiliaresReglas.UltimosDiezCaracteres(referenciaCompleta);
+            string referenciaCompleta = apunteBancario.Referencia2.Trim();
+            int longitud = referenciaCompleta.Length;
+            int caracteresDeseados = 10;
+            string ultimos10Caracteres;
+            if (longitud >= caracteresDeseados)
+            {
+                ultimos10Caracteres = referenciaCompleta.Substring(longitud - caracteresDeseados);
+            }
+            else
+            {
+                // Manejar el caso donde la cadena es menor a 10 caracteres si es necesario
+                ultimos10Caracteres = referenciaCompleta;
+            }
             linea1.Documento = ultimos10Caracteres;
             linea1.Fecha = new DateOnly(apunteBancario.FechaOperacion.Year, apunteBancario.FechaOperacion.Month, apunteBancario.FechaOperacion.Day);
             linea1.Delegacion = "ALG";
@@ -52,17 +73,11 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             var apunteBancario = apuntesBancarios.First();
 
-            if ((apunteBancario.ConceptoComun == "17" || apunteBancario.ConceptoComun == "12") &&
-                (apunteBancario.ConceptoPropio == "036" || apunteBancario.ConceptoPropio == "040") &&
+            if (apunteBancario.ConceptoComun == "17" &&
+                apunteBancario.ConceptoPropio == "016" &&
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
-                (
-                    (apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "PRECIO ED. EXTRACTO" && -apunteBancario.ImporteMovimiento == 12M) ||
-                    apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "PRECIO ABONO TRF." ||
-                    apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "SERV. EM. TRANSF." ||
-                    apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "C. SERVIC. PAYGOLD" ||
-                    (apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "MANTENIMIENTO TPV" && -apunteBancario.ImporteMovimiento == 5.45M)
-                ))
+                apunteBancario.RegistrosConcepto[0]?.Concepto.Trim() == "COREAYUNTAMIENTO DE ALGETE")
             {
                 return true;
             }

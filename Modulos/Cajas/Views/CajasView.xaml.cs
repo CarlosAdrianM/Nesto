@@ -26,7 +26,17 @@ namespace Nesto.Modulos.Cajas.Views
         {
             if (e.Key == Key.Enter)
             {
-                btnContabilizarTraspaso.Focus();
+                
+                TextBox textBox = Keyboard.FocusedElement as TextBox;
+                if (textBox != null)
+                {
+                    textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                }
+                // Mover el foco al botón después de completar el evento KeyUp
+                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    btnContabilizarTraspaso.Focus();
+                }));
             }
             else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift) && e.Key == Key.E)
             {

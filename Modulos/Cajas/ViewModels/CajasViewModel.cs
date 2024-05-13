@@ -263,8 +263,15 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
         private decimal _importe;
         public decimal Importe { 
-            get => _importe; 
-            set => SetProperty(ref _importe, value); 
+            get => _importe;
+            set 
+            {
+                if (SetProperty(ref _importe, value))
+                {
+                    ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+                    RaisePropertyChanged(nameof(ImporteDescuadre));
+                }
+            }
         }
         public decimal ImporteACuenta => TotalCobrado > ImporteDeudasSeleccionadas ? TotalCobrado - ImporteDeudasSeleccionadas : 0;
         public decimal ImporteDescuadre => ArqueoFondo.TotalArqueo - _saldoCuentaOrigen - FondoCaja;
@@ -562,6 +569,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
                     await CargarDatosIniciales();
+                    await CargarDeudasCliente();
+                    TotalCobrado = 0;
                 }
             }
             catch (Exception ex)
@@ -584,7 +593,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
                 Cuenta = ProveedorGasto.Proveedor,
                 Contacto = ProveedorGasto.Contacto,
-                Concepto = $"N/Pago {GastoNumeroFactura}",
+                Concepto = $"N/Pago {GastoNumeroFactura} P/{ProveedorGasto.Proveedor}",
                 Debe = TotalGasto,
                 Fecha = DateOnly.FromDateTime(FechaCobro),
                 FechaVto = DateOnly.FromDateTime(FechaCobro),
@@ -626,7 +635,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarTraspasoCommand { get; private set; }
         private bool CanContabilizarTraspaso()
         {
-            return Importe > 0 && CuentaOrigen is not null && CuentaDestino is not null && !string.IsNullOrEmpty(Concepto) && CuentaOrigen.Cuenta != CuentaDestino.Cuenta
+            return Importe != 0 && CuentaOrigen is not null && CuentaDestino is not null && !string.IsNullOrEmpty(Concepto) && CuentaOrigen.Cuenta != CuentaDestino.Cuenta
                 && (PuedeContabilizarDescuadrado || ImporteDescuadre == 0);
         }
         private async void OnContabilizarTraspaso()
@@ -673,12 +682,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         {
                             _dialogService.ShowNotification($"Creado asiento {asientoEspejo} correctamente");
                             await CargarDatosIniciales();
+                            ArqueoFondo.VaciarArqueo();
+                            Importe = 0;
                         }
                     }
                 }
             }
             
-            if (saldoEspejo == Importe)
+            if (saldoEspejo == Importe || Importe == 0)
             {
                 return;
             }
@@ -715,6 +726,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
                     await CargarDatosIniciales();
+                    ArqueoFondo.VaciarArqueo();
+                    Importe = 0;
                 }
             } 
             catch (Exception ex)
@@ -731,7 +744,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 LocalReport report = await CrearInformeExtractoContable(empresa, CuentaOrigen, FechaDesde, _fechaHasta);
                 var pdf = report.Render("PDF");
-                string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}.pdf";
+                string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}_{empresa}.pdf";
                 System.IO.File.WriteAllBytes(fileName, pdf);
                 System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
             }            
@@ -743,8 +756,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
         // Método para manejar el evento Loaded
         private async void OnLoaded()
         {
-            await CargarDatosIniciales();
-            // Resto de la lógica de inicialización que depende de la carga de datos
+            try
+            {
+                await CargarDatosIniciales();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError("Se ha producido un error al cargar los datos de caja necesarios, por favor, cierre la ventana y vuelva a abrirla");
+            }
         }
 
         public ICommand SeleccionarDeudasCommand { get; private set; }
@@ -776,7 +795,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
         private async Task CargarDatosIniciales()
         {
-            if (ListaCuentasCaja is null)
+            if (ListaCuentasCaja is null || string.IsNullOrEmpty(_diarioCaja))
             {
                 ListaCuentasCaja = new ObservableCollection<CuentaContableDTO>(await Servicio.LeerCuentas(Constantes.Empresas.EMPRESA_DEFECTO, CUENTA_TESORERIA_PGC));
                 _cuentaCajaDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.CajaDefecto);

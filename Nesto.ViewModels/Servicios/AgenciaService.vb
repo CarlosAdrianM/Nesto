@@ -12,6 +12,7 @@ Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Nesto.Modulos.Producto
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
@@ -486,6 +487,37 @@ Public Class AgenciaService
             Catch ex As Exception
                 Throw ex
             End Try
+        End Using
+    End Function
+
+
+    Public Async Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal) Implements IAgenciaService.ImporteReembolso
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                Dim urlConsulta As String = $"PedidosVenta/ImporteReembolso?empresa={empresa.Trim}&pedido={pedido}"
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = ""
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido calcular el reembolso del pedido", ex)
+            Finally
+
+            End Try
+
+            Dim importe As Decimal = JsonConvert.DeserializeObject(Of Decimal)(respuesta)
+
+            Return importe
+
         End Using
     End Function
 

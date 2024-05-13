@@ -1,13 +1,10 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.ComponentModel.DataAnnotations
 Imports System.Configuration
-Imports System.IO
 Imports System.Net
 Imports System.Net.Http
 Imports System.Text
-Imports System.Threading.Tasks
 Imports System.Windows
-Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
@@ -21,15 +18,22 @@ Public Class AgenciaCorreosExpress
         ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(0, "No disponible")
         }
-        ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
-            New tipoIdDescripcion(63, "Paq 24"),
-            New tipoIdDescripcion(66, "Baleares"),
-            New tipoIdDescripcion(69, "Canarias Marítimo"),
-            New tipoIdDescripcion(90, "Internacional Estándar (monobulto)"),
-            New tipoIdDescripcion(91, "Internacional Express (multibulto)"),
-            New tipoIdDescripcion(54, "EntregaPlus (entrega+recogida)"),
-            New tipoIdDescripcion(92, "Paq Empresa 14"),
-            New tipoIdDescripcion(93, "EPaq 24")
+        'ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
+        '    New tipoIdDescripcion(63, "Paq 24"),
+        '    New tipoIdDescripcion(66, "Baleares"),
+        '    New tipoIdDescripcion(69, "Canarias Marítimo"),
+        '    New tipoIdDescripcion(90, "Internacional Estándar (monobulto)"),
+        '    New tipoIdDescripcion(91, "Internacional Express (multibulto)"),
+        '    New tipoIdDescripcion(54, "EntregaPlus (entrega+recogida)"),
+        '    New tipoIdDescripcion(92, "Paq Empresa 14"),
+        '    New tipoIdDescripcion(93, "EPaq 24")
+        '}
+        ListaServicios = New ObservableCollection(Of ITarifaAgencia) From {
+            New TarifaCEXPaqEmpresa14(),
+            New TarifaCEXePaq24(),
+            New TarifaCEXBaleares(),
+            New TarifaCEXCanariasMaritimo(),
+            New TarifaCEXPaq24()
         }
         ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(0, "No disponible")
@@ -82,7 +86,7 @@ Public Class AgenciaCorreosExpress
 
     Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
     Public ReadOnly Property ListaTiposRetorno As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaTiposRetorno
-    Public ReadOnly Property ListaServicios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaServicios
+    Public ReadOnly Property ListaServicios As ObservableCollection(Of ITarifaAgencia) Implements IAgencia.ListaServicios
     Public ReadOnly Property ListaHorarios As ObservableCollection(Of tipoIdDescripcion) Implements IAgencia.ListaHorarios
     Public ReadOnly Property ServicioDefecto As Byte Implements IAgencia.ServicioDefecto
         Get
@@ -107,6 +111,7 @@ Public Class AgenciaCorreosExpress
             Return 54 ' EntregaPlus
         End Get
     End Property
+
 
     Public Sub calcularPlaza(codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         nemonico = "CE"
@@ -268,7 +273,7 @@ Public Class AgenciaCorreosExpress
                 If IsNothing(observaciones) Then
                     observaciones = String.Empty
                 End If
-                Dim textoServicio = envio.Servicio.ToString + " " + ListaServicios.Single(Function(s) s.id = envio.Servicio).descripcion.ToUpper.Trim
+                Dim textoServicio = envio.Servicio.ToString + " " + ListaServicios.Single(Function(s) s.ServicioId = envio.Servicio).NombreServicio.ToUpper.Trim
                 If textoServicio.Length > 18 Then
                     textoServicio = textoServicio.Substring(0, 18)
                 End If
@@ -735,6 +740,7 @@ Public Class AgenciaCorreosExpress
     Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada
         Return respuesta.StartsWith("ENVIO DUPLICADO") OrElse respuesta = "EL ENVIO NO PUEDE SER ACTUALIZADO PORQUE EL CLIENTE NO PERMITE ACTUALIZAR"
     End Function
+
 
     Public Class EnvioCEX
         <MaxLength(100)>

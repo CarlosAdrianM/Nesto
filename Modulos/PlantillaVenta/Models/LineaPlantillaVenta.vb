@@ -71,6 +71,7 @@ Public Class LineaPlantillaVenta
         End Set
     End Property
     Public Property cantidadPendienteRecibir As Integer
+    Public Property StockDisponibleTodosLosAlmacenes As Integer
     Public Property stockActualizado As Boolean
     Public Property fechaInsercion As DateTime = DateTime.MaxValue
     Public Property descuento As Decimal
@@ -151,6 +152,8 @@ Public Class LineaPlantillaVenta
                 Return Brushes.Gray
             ElseIf cantidadDisponible >= cantidad + cantidadOferta Then
                 Return Brushes.Green
+            ElseIf StockDisponibleTodosLosAlmacenes >= cantidad + cantidadOferta Then
+                Return Brushes.DeepPink
             ElseIf cantidadDisponible + cantidadPendienteRecibir >= cantidad + cantidadOferta Then
                 Return Brushes.Blue
             ElseIf stock >= cantidad + cantidadOferta Then
