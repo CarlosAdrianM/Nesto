@@ -150,6 +150,8 @@ Public Class LineaPlantillaVenta
         Get
             If Not stockActualizado Then
                 Return Brushes.Gray
+            ElseIf StockDisponibleTodosLosAlmacenes < cantidad + cantidadOferta Then
+                Return Brushes.Red
             ElseIf cantidadDisponible >= cantidad + cantidadOferta Then
                 Return Brushes.Green
             ElseIf StockDisponibleTodosLosAlmacenes >= cantidad + cantidadOferta Then
@@ -218,14 +220,15 @@ Public Class LineaPlantillaVenta
     End Property
     Public ReadOnly Property textoUnidadesDisponibles As String
         Get
-            If cantidadDisponible = 0 Then
+            Dim cantidadMenor As Integer = If(cantidadDisponible <= StockDisponibleTodosLosAlmacenes, cantidadDisponible, StockDisponibleTodosLosAlmacenes)
+            If cantidadMenor = 0 Then
                 Return String.Empty
-            ElseIf cantidadDisponible < 0 Then
-                Return String.Format("Falta stock ({0} und.)", -cantidadDisponible)
-            ElseIf cantidadDisponible = 1 Then
+            ElseIf cantidadMenor < 0 Then
+                Return String.Format("Falta stock ({0} und.)", -cantidadMenor)
+            ElseIf cantidadMenor = 1 Then
                 Return "Solo 1 und. disponible"
             Else
-                Return String.Format("{0} und. disponibles", cantidadDisponible)
+                Return String.Format("{0} und. disponibles", cantidadMenor)
             End If
         End Get
     End Property

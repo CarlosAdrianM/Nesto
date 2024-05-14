@@ -27,7 +27,8 @@ Public Class AgenciaASM
                 New tipoIdDescripcion(2, "Retorno Opcional")
             }
             ListaServicios = New ObservableCollection(Of ITarifaAgencia) From {
-                New TarifaGLSBaleares()
+                New TarifaGLSBaleares(),
+                New TarifaGLSBusinessParcel()
             }
             'New TarifaGLSBusinessParcel(),
 
