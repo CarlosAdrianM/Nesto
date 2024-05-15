@@ -45,6 +45,7 @@ Public Class AgenciasViewModel
 
     Private imprimirEtiqueta As Boolean
     Private EstaInsertandoEnvio As Boolean
+    Private _estaCambiandoDePedido As Boolean
 
     Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
@@ -98,7 +99,7 @@ Public Class AgenciasViewModel
         Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion), configuracion, dialogService)
         agenciasVM.InsertarEnvioPendienteCommand.Execute()
         If etiqueta.Agencia = 0 Then
-            agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
+            agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Numero = 1) ' ASM/GLS
         Else
             agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Numero = etiqueta.Agencia)
         End If
@@ -130,7 +131,7 @@ Public Class AgenciasViewModel
             Else
                 agenciasVM.EnvioPendienteSeleccionado.Servicio = 90 ' Internacional monobulto
             End If
-        Else 'Sending
+        ElseIf agenciasVM.EnvioPendienteSeleccionado.Agencia = 10 Then  'Sending
             Dim codigoAlfaEtiqueta As String = String.Empty
             If etiqueta.PaisISO = "ES" Then
                 codigoAlfaEtiqueta = "034"
@@ -143,6 +144,11 @@ Public Class AgenciasViewModel
             End If
             agenciasVM.EnvioPendienteSeleccionado.Horario = agenciasVM.listaHorarios.FirstOrDefault().id
             agenciasVM.EnvioPendienteSeleccionado.Servicio = agenciasVM.listaServicios.FirstOrDefault().ServicioId
+        ElseIf agenciasVM.EnvioPendienteSeleccionado.Agencia = 1 Then ' GLS
+            agenciasVM.EnvioPendienteSeleccionado.Servicio = 96 'BusinessParcel
+            agenciasVM.EnvioPendienteSeleccionado.Horario = 18
+        Else
+            Throw New Exception("Agencia no contemplada")
         End If
 
         agenciasVM.GuardarEnvioPendienteCommand.Execute()
@@ -213,7 +219,7 @@ Public Class AgenciasViewModel
                     End If
                     If PestannaNombre = Pestannas.PENDIENTES Then
                         ActualizarListas()
-                        If Not IsNothing(EnvioPendienteSeleccionado) Then
+                        If Not IsNothing(EnvioPendienteSeleccionado) AndAlso Not _estaCambiandoDePedido Then
                             EnvioPendienteSeleccionado.Pais = agenciaEspecifica.paisDefecto
                             EnvioPendienteSeleccionado.Retorno = agenciaEspecifica.retornoSinRetorno
                             EnvioPendienteSeleccionado.Servicio = agenciaEspecifica.ServicioDefecto
@@ -763,12 +769,13 @@ Public Class AgenciasViewModel
             Return _envioPendienteSeleccionado
         End Get
         Set(ByVal value As EnvioAgenciaWrapper)
-
+            SetProperty(_envioPendienteSeleccionado, value)
+            _estaCambiandoDePedido = True
             If Not IsNothing(value) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso value.Agencia <> agenciaSeleccionada.Numero Then
                 empresaSeleccionada = listaEmpresas.Single(Function(e) e.Número = value.Empresa)
                 agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = value.Agencia)
             End If
-            SetProperty(_envioPendienteSeleccionado, value)
+            _estaCambiandoDePedido = False
             RaisePropertyChanged(NameOf(HayUnEnvioPendienteSeleccionado))
             ActualizarEstadoComandos()
         End Set

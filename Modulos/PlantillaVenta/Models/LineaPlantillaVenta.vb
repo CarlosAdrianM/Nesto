@@ -220,7 +220,7 @@ Public Class LineaPlantillaVenta
     End Property
     Public ReadOnly Property textoUnidadesDisponibles As String
         Get
-            Dim cantidadMenor As Integer = If(cantidadDisponible <= StockDisponibleTodosLosAlmacenes, cantidadDisponible, StockDisponibleTodosLosAlmacenes)
+            Dim cantidadMenor As Integer = If(Not stockActualizado OrElse cantidadDisponible <= StockDisponibleTodosLosAlmacenes, cantidadDisponible, StockDisponibleTodosLosAlmacenes)
             If cantidadMenor = 0 Then
                 Return String.Empty
             ElseIf cantidadMenor < 0 Then
