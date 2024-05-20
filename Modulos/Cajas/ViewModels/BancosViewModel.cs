@@ -850,6 +850,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
             MovimientosRelacionados = new ObservableCollection<MovimientoTPV>(
                 MovimientosTPV               
             );
+            if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosTPV.Sum(m => m.ImporteOperacion))
+            {
+                MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: ApunteBancoSeleccionado.FechaOperacion.AddDays(-1), "4"); // terminal price
+                MovimientosRelacionados.AddRange(MovimientosTPV);
+            }
         }        
         private async Task CargarPrepagosPendientes()
         {

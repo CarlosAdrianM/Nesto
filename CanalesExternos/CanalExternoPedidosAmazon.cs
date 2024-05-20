@@ -380,6 +380,27 @@ namespace Nesto.Modulos.CanalesExternos
                     NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
                 };
             }
+            else if (seguimiento.Contains("gls-spain"))
+            {
+                // Encontrar la última barra
+                int ultimaBarra = seguimiento.LastIndexOf("/");
+                // Encontrar la penúltima barra
+                int penultimaBarra = seguimiento.LastIndexOf("/", ultimaBarra - 1);
+                // Verificar si se encontraron ambas barras
+                if (penultimaBarra == -1 || ultimaBarra == -1)
+                {
+                    throw new Exception("El seguimiento de GLS no tiene el formato esperado");
+                }
+                // Extraer la subcadena entre las dos barras
+                string numeroSeguimiento = seguimiento.Substring(penultimaBarra + 1, ultimaBarra - penultimaBarra - 1);
+
+                return new DatosEnvioConfirmarAmazon
+                {
+                    NombreAgencia = "GLS",
+                    NombreServicio = "Business Parcel",
+                    NumeroSeguimiento = numeroSeguimiento
+                };
+            }
             else
             {
                 throw new NotImplementedException();

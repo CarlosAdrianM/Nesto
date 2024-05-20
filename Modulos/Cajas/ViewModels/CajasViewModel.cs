@@ -586,6 +586,15 @@ namespace Nesto.Modulos.Cajas.ViewModels
             !string.IsNullOrEmpty(GastoNumeroFactura);
         private async void OnContabilizarGasto()
         {
+            string subcadenaGastoNumeroFactura;
+            if (GastoNumeroFactura.Length >= 10)
+            {
+                subcadenaGastoNumeroFactura = GastoNumeroFactura.Substring(0, 10);
+            }
+            else
+            {
+                subcadenaGastoNumeroFactura = GastoNumeroFactura;
+            }
             PreContabilidadDTO linea = new PreContabilidadDTO
             {
                 Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
@@ -597,7 +606,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 Debe = TotalGasto,
                 Fecha = DateOnly.FromDateTime(FechaCobro),
                 FechaVto = DateOnly.FromDateTime(FechaCobro),
-                Documento = GastoNumeroFactura.Substring(0,10),
+                Documento = subcadenaGastoNumeroFactura,
                 FacturaProveedor = GastoNumeroFactura,
                 Asiento = 1,
                 Diario = _diarioCaja,

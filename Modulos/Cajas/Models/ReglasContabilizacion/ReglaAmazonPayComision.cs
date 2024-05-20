@@ -21,7 +21,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var importeOriginal = importeIngresado + importeComision;
 
             if (importeDescuadre == 0M
-                || !VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count()))
+                || !VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)))
             {
                 throw new Exception("Para contabilizar el apunte de banco debe tener seleccionado también el apunte de contabilidad y que el descuadre sea la comisión.");
             }
@@ -82,7 +82,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
                 apunteBancario.RegistrosConcepto[0]?.Concepto.ToLower().Trim() == "amazon payments europe sca" &&
-                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count()))
+                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)))
             {
                 return true;
             }
