@@ -1,4 +1,5 @@
-﻿using Nesto.Infrastructure.Contracts;
+﻿using ControlesUsuario.Models;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cajas.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -255,6 +256,109 @@ namespace Nesto.Modulos.Cajas
             }
 
             return cuentas;
+        }
+
+        public async Task<bool> PuntearPorImporte(string empresa, string cuenta, decimal importe)
+        {            
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                try
+                {
+                    string urlConsulta = "Contabilidades/PuntearPorImporte";
+
+                    // Crear el objeto anónimo con los datos del contenido y el usuario
+                    var datosPunteo = new
+                    {
+                        Empresa = empresa,
+                        Cuenta = cuenta,
+                        Importe = importe
+                    };
+
+                    // Serializar el objeto anónimo a JSON
+                    var jsonContent = JsonConvert.SerializeObject(datosPunteo);
+
+                    // Crear el contenido de la solicitud
+                    HttpContent content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                    HttpResponseMessage response = await client.PostAsync(urlConsulta, content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string contenido = await response.Content.ReadAsStringAsync();
+                        var resultado = JsonConvert.DeserializeObject<bool>(contenido);
+                        return resultado;
+                    }
+                    else
+                    {
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+
+                        string errorMostrar = $"No se ha podido crear el punteo de contabilidad\n";
+                        if (requestException != null && requestException["Message"] != null)
+                        {
+                            errorMostrar += requestException["Message"] + "\n";
+                        }
+                        if (requestException != null && requestException["message"] != null)
+                        {
+                            errorMostrar += requestException["message"] + "\n";
+                        }
+                        if (requestException != null && requestException["exceptionMessage"] != null)
+                        {
+                            errorMostrar += requestException["exceptionMessage"] + "\n";
+                        }
+                        if (requestException != null && requestException["ModelState"] != null)
+                        {
+                            var firstError = requestException["ModelState"];
+                            var nodoError = firstError.LastOrDefault();
+                            errorMostrar += nodoError.FirstOrDefault()[0];
+                        }
+                        var innerException = requestException != null ? requestException["InnerException"] : null;
+                        while (innerException != null)
+                        {
+                            errorMostrar += "\n" + innerException["ExceptionMessage"];
+                            innerException = innerException["InnerException"];
+                        }
+                        throw new Exception(errorMostrar);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+        }
+
+        public async Task<List<ContabilidadDTO>> LeerApuntesContabilidad(string cuenta, bool punteado)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = $"Contabilidades?cuenta={cuenta.Trim()}&punteado={punteado}";
+
+                    response = await client.GetAsync(urlConsulta).ConfigureAwait(false);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var apuntes = JsonConvert.DeserializeObject<List<ContabilidadDTO>>(resultado);
+                        return apuntes;
+                    }
+                    else
+                    {
+                        throw new Exception("No se han podido cargar los apuntes de la contabilidad");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
         }
     }
 }

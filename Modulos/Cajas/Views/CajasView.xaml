@@ -97,6 +97,7 @@
                                         HorizontalAlignment="Stretch" FontSize="32" VerticalAlignment="Center"
                                         PreviewTextInput="DecimalUpDown_PreviewTextInput" KeyUp="DecimalUpDown_KeyUp">
                 </xctk:DecimalUpDown>
+                <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding EmpresaTraspasoMarca}" VerticalAlignment="Center"></TextBlock>
                 <TextBlock Grid.Row="3" Grid.Column="1" Text="Importe a cuenta..." HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center" 
                            Visibility="{Binding EstaVisibleImporteACuenta, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="10">
                     
@@ -237,6 +238,21 @@
                         <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}"  Width="Auto"/>
                         <DataGridTextColumn Header="Delegación" Binding="{Binding Delegacion}"  Width="Auto"/>
                         <DataGridTextColumn Header="Diario" Binding="{Binding Diario}"  Width="Auto"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding MovimientosCajaPendientesRecibir}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="10">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}"  Width="Auto"/>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"  Width="Auto"/>
+                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" />
+                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}" Width="Auto">
+                            <DataGridTextColumn.CellStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}"  Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

@@ -96,7 +96,7 @@ Public Class AgenciasViewModel
     ' tengamos todas esas propiedades con un PropertyChanged y change tracking
 
     Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
-        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion), configuracion, dialogService)
+        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService), configuracion, dialogService)
         agenciasVM.InsertarEnvioPendienteCommand.Execute()
         If etiqueta.Agencia = 0 Then
             agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Numero = 1) ' ASM/GLS
@@ -2137,6 +2137,10 @@ Public Class AgenciasViewModel
             envioActual = buscarPedidoAmpliacion(pedidoSeleccionado)
         Else
             envioActual = envioPendiente
+        End If
+
+        If String.IsNullOrEmpty(envioActual?.Nemonico) Then
+            agenciaEspecifica.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
         End If
 
         Dim textoConfirmar As String

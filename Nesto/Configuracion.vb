@@ -31,8 +31,10 @@ Public Class Configuracion
             If usuarioFormatedo = usuarioFormatedo.ToLower OrElse usuarioFormatedo = usuarioFormatedo.ToUpper Then
                 usuarioFormatedo = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(usuarioFormatedo)
             End If
+            'If Environment.MachineName = "VSTUDIO" Then
+            '    Return "Paloma"
+            'End If
             Return usuarioFormatedo
-            'Return "Pilar"
         End Get
     End Property
 

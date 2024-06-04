@@ -82,6 +82,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 SetProperty(ref _clienteSeleccionado, value);
                 CargarDeudasCliente();
+                (ContabilizarCobroCommand as DelegateCommand).RaiseCanExecuteChanged();
             }
         }
 
@@ -142,6 +143,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _empresaTraspaso, value))
                 {
+                    if (_empresaTraspaso == Constantes.Empresas.EMPRESA_ESPEJO)
+                    {
+                        FormaPagoEfectivoSeleccionada = true;
+                    }
                     RaisePropertyChanged(nameof(EmpresaTraspasoMarca));
                 }
             }
@@ -215,6 +220,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _formaPagoTarjetaSeleccionada;
             set
             {
+                if (value == true && EmpresaTraspaso == Constantes.Empresas.EMPRESA_ESPEJO)
+                {
+                    return;
+                }
                 if (SetProperty(ref _formaPagoTarjetaSeleccionada, value))
                 {
                     if (_formaPagoTarjetaSeleccionada)
@@ -233,6 +242,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _formaPagoTransferenciaSeleccionada;
             set
             {
+                if (value == true && EmpresaTraspaso == Constantes.Empresas.EMPRESA_ESPEJO)
+                {
+                    return;
+                }
                 if (SetProperty(ref _formaPagoTransferenciaSeleccionada, value))
                 {
                     if (_formaPagoTransferenciaSeleccionada)
@@ -302,6 +315,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             get => _listaFormaPago;
             set => SetProperty(ref _listaFormaPago, value);
+        }
+
+        private ObservableCollection<ContabilidadDTO> _movimientosCajaPendientesRecibir;
+        public ObservableCollection<ContabilidadDTO> MovimientosCajaPendientesRecibir
+        {
+            get => _movimientosCajaPendientesRecibir;
+            set => SetProperty(ref _movimientosCajaPendientesRecibir, value);
         }
         private ObservableCollection<ContabilidadDTO> _movimientosEfectivoDia;
         public ObservableCollection<ContabilidadDTO> MovimientosEfectivoDia
@@ -380,7 +400,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarCobroCommand { get; private set; }
         private bool CanContabilizarCobro()
         {
-            return ImporteDeudasSeleccionadas > 0 || TotalCobrado != 0;
+            return (ImporteDeudasSeleccionadas > 0 || TotalCobrado != 0) && ClienteSeleccionado is not null;
         }
         private async void OnContabilizarCobro()
         {
@@ -454,7 +474,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 PreContabilidadDTO linea = new PreContabilidadDTO
                 {
-                    Empresa = ClienteCompletoSeleccionado.empresa,
+                    Empresa = EmpresaTraspaso,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.CLIENTE,
                     Cuenta = ClienteCompletoSeleccionado.cliente,
@@ -571,6 +591,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     await CargarDatosIniciales();
                     await CargarDeudasCliente();
                     TotalCobrado = 0;
+                    if (!string.IsNullOrEmpty(EmpresaTraspasoMarca))
+                    {
+                        CambiarEmpresaTraspasoCommand.Execute(null);
+                    }
                 }
             }
             catch (Exception ex)
@@ -656,6 +680,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             int asientoEspejo = int.MinValue;
             if (!PuedeContabilizarDescuadrado)
             {
+                if (!string.IsNullOrEmpty(EmpresaTraspasoMarca))
+                {
+                    CambiarEmpresaTraspasoCommand.Execute(null);
+                }
                 saldoEspejo = await Servicio.SaldoCuenta(Constantes.Empresas.EMPRESA_ESPEJO, CuentaOrigen.Cuenta, _fechaHasta);
                 if (saldoEspejo != 0)
                 {
@@ -689,8 +717,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     {
                         if (saldoEspejo == Importe)
                         {
-                            _dialogService.ShowNotification($"Creado asiento {asientoEspejo} correctamente");
-                            await CargarDatosIniciales();
+                            await Servicio.PuntearPorImporte(Constantes.Empresas.EMPRESA_ESPEJO, CuentaOrigen.Cuenta, Importe);
+                            _dialogService.ShowNotification($"Creado asiento {asientoEspejo} correctamente");                            
+                            await CargarDatosIniciales();                            
                             ArqueoFondo.VaciarArqueo();
                             Importe = 0;
                         }
@@ -733,7 +762,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
                 else
                 {
-                    _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
+                    await Servicio.PuntearPorImporte(EmpresaTraspaso, CuentaOrigen.Cuenta, Importe);
+                    _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");                    
                     await CargarDatosIniciales();
                     ArqueoFondo.VaciarArqueo();
                     Importe = 0;
@@ -831,6 +861,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         CuentaDestino = ListaCuentasCaja.Single(p => p.Cuenta == _cuentaCajaDefecto);
                     }
                     Concepto = "Traspaso entre cajas";
+                    MovimientosCajaPendientesRecibir = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(CuentaOrigen.Cuenta, false));
                 }
                 else
                 {

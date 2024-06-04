@@ -76,6 +76,11 @@ namespace Nesto.Modulos.Cajas.Views
             {
                 btnContabilizarCobro.Focus();
             }
+            else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift) && e.Key == Key.E)
+            {
+                var vm = DataContext as CajasViewModel;
+                vm.CambiarEmpresaTraspasoCommand.Execute(null);
+            }
         }
 
 

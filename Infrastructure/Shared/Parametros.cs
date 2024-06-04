@@ -20,6 +20,7 @@
             public const string FondoCaja = "FondoCaja";
             public const string FormaVentaDefecto = "FormaVentaDefecto";
             public const string ImpresoraAgencia = "ImpresoraAgencia";
+            public const string ImpresoraAgenciaGLS = "ImpresoraAgenciaGLS";
             public const string ImpresoraBolsas = "ImpresoraBolsas";
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";
             public const string PathNorma19 = "PathNorma19";

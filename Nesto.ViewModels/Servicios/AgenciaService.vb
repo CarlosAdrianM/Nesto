@@ -6,6 +6,7 @@ Imports System.Text
 Imports System.Threading.Tasks
 Imports System.Transactions
 Imports System.Windows.Documents
+Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
@@ -15,13 +16,17 @@ Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.Producto
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
+Imports Prism.Services.Dialogs
 
 Public Class AgenciaService
     Implements IAgenciaService
 
     Private ReadOnly configuracion As IConfiguracion
-    Public Sub New(configuracion As IConfiguracion)
+    Private ReadOnly _dialogService As IDialogService
+
+    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService)
         Me.configuracion = configuracion
+        _dialogService = dialogService
     End Sub
 
     Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
@@ -33,15 +38,19 @@ Public Class AgenciaService
     End Sub
 
     Public Sub Borrar(Id As Integer) Implements IAgenciaService.Borrar
-        Using DbContext As New NestoEntities
-            Dim historias As List(Of EnviosHistoria) = (From h In DbContext.EnviosHistoria Where h.NumeroEnvio = Id).ToList
-            For Each historia In historias
-                DbContext.EnviosHistoria.Remove(historia)
-            Next
-            Dim envioActual = DbContext.EnviosAgencia.Single(Function(e) e.Numero = Id)
-            DbContext.EnviosAgencia.Remove(envioActual)
-            DbContext.SaveChanges()
-        End Using
+        Try
+            Using DbContext As New NestoEntities
+                Dim historias As List(Of EnviosHistoria) = (From h In DbContext.EnviosHistoria Where h.NumeroEnvio = Id).ToList
+                For Each historia In historias
+                    DbContext.EnviosHistoria.Remove(historia)
+                Next
+                Dim envioActual = DbContext.EnviosAgencia.Single(Function(e) e.Numero = Id)
+                DbContext.EnviosAgencia.Remove(envioActual)
+                DbContext.SaveChanges()
+            End Using
+        Catch ex As Exception
+            _dialogService.ShowError(ex.Message)
+        End Try
     End Sub
 
     Public Function CargarListaPendientes() As IEnumerable(Of EnvioAgenciaWrapper) Implements IAgenciaService.CargarListaPendientes

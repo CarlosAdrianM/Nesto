@@ -9,13 +9,13 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
     {
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
+            if (apuntesBancarios is null || !apuntesBancarios.Any())
             {
                 return new ReglaContabilizacionResponse();
             }
             var apunteBancario = apuntesBancarios.First();
-            var apunteContabilidad = apuntesContabilidad.First();
-            var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
+            //var apunteContabilidad = apuntesContabilidad.First();
+            //var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
 
             var lineas = new List<PreContabilidadDTO>();
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();

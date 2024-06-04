@@ -19,6 +19,7 @@ namespace Nesto.Modulos.CanalesExternos
         private IConfiguracion configuracion;
         private const string EMPRESA_DEFECTO = "1";
         private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
+        private const string FORMA_PAGO_CONTRAREEMBOLSO_COMISION = "Pago contra reembolso con comisión";
         private const string FORMA_PAGO_CONTRAREEMBOLSO_INGLES = "Cash on delivery";
         private const string FORMA_PAGO_PAYPAL = "PayPal";
         private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
@@ -90,7 +91,7 @@ namespace Nesto.Modulos.CanalesExternos
             
             // Aquí iban los totales
             
-            if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO || formaPago == FORMA_PAGO_CONTRAREEMBOLSO_INGLES)
+            if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO || formaPago == FORMA_PAGO_CONTRAREEMBOLSO_INGLES || formaPago == FORMA_PAGO_CONTRAREEMBOLSO_COMISION)
             {
                 pedidoSalida.formaPago = "EFC";
                 pedidoSalida.plazosPago = "CONTADO";
