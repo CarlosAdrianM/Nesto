@@ -398,25 +398,21 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
                 try
                 {
-                    // Lee el contenido del fichero
+                    IsBusyApuntesBanco = true;
                     string fileContent = File.ReadAllText(filePath);
-
                     ContenidoCuaderno43 = await _bancosService.CargarFicheroCuaderno43(fileContent);
                     Banco = await _bancosService.LeerBanco(ContenidoCuaderno43.Cabecera.ClaveEntidad, ContenidoCuaderno43.Cabecera.ClaveOficina, ContenidoCuaderno43.Cabecera.NumeroCuenta);
-                    /*
-                    FechaHasta = DateTime.MinValue; // para que no lea dos veces
-                    FechaDesde = ContenidoCuaderno43.Cabecera.FechaInicial;
-                    FechaHasta = FechaDesde;
-                    */
-
                     FechaHasta = ContenidoCuaderno43.Cabecera.FechaInicial;
-                    MostrarCompletamentePunteado = true;
                     var fechaApunte = ContenidoCuaderno43.Cabecera.FechaFinal;
                     _dialogService.ShowNotification($"Apuntes día {fechaApunte.ToString("dd/MM/yyyy")} cargados correctamente al sistema");
                 }
                 catch (Exception ex)
                 {
                     _dialogService.ShowError("Error al leer el fichero de C43: " + ex.Message);
+                }
+                finally
+                {
+                    IsBusyApuntesBanco = false;
                 }
             }
         }
@@ -442,8 +438,6 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
                     MovimientosTPV = await _bancosService.CargarFicheroTarjetas(fileContent);
                     var fechaApunte = MovimientosTPV.First().FechaOperacion;
-                    //FechaHasta = DateTime.MinValue; // para que no lea dos veces
-                    //FechaDesde = fechaApunte;
                     FechaHasta = fechaApunte;                    
                     _dialogService.ShowNotification($"Movimientos de tarjeta del día {fechaApunte.ToString("dd/MM/yyyy")} cargados correctamente al sistema");
                 }

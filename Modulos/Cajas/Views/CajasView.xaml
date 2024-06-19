@@ -240,7 +240,14 @@
                         <DataGridTextColumn Header="Diario" Binding="{Binding Diario}"  Width="Auto"/>
                     </DataGrid.Columns>
                 </DataGrid>
-                <DataGrid Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding MovimientosCajaPendientesRecibir}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="10">
+                <DataGrid Name="dgrPendientesRecibir" Grid.Row="9" Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding MovimientosCajaPendientesRecibir}" 
+                          SelectedItem="{Binding MovimientoCajaPendientesRecibirSeleccionado}"
+                          AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="10">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="SelectionChanged">
+                            <i:InvokeCommandAction Command="{Binding SeleccionarPendientesRecibirCommand}" CommandParameter="{Binding SelectedItems, ElementName=dgrPendientesRecibir}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}"  Width="Auto"/>
                         <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"  Width="Auto"/>
