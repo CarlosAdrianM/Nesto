@@ -3,13 +3,13 @@ using Nesto.Modulos.Cajas.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
-    internal class ReglaStripe : IReglaContabilizacion
+    internal class ReglaPaypal : IReglaContabilizacion
     {
-        // Stripe nos cobra 1,5% + 0,25 €
-
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
             if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
@@ -24,19 +24,19 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var importeComision = -importeDescuadre;
             var importeOriginal = importeIngresado + importeComision;
 
-            if (importeDescuadre == 0M 
-                || !(VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) 
-                    || VerificarImportesPremium(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))))
+            if (importeDescuadre == 0M
+                || !(VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))
+                    || VerificarImportesInternacional(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))))
             {
                 throw new Exception("Para contabilizar el apunte de banco debe tener seleccionado también el apunte de contabilidad y que el descuadre sea la comisión.");
             }
             var lineas = new List<PreContabilidadDTO>();
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
-            linea1.TipoCuenta = Constantes.TiposCuenta.PROVEEDOR;
-            linea1.Cuenta = "1071"; // Stripe
-            linea1.Contacto = "0";            
-            linea1.Concepto = $"Comisión Stripe {importeOriginal.ToString("c")}-{importeComision.ToString("c")}={importeIngresado.ToString("c")} ({(importeComision / importeOriginal).ToString("p")})";
+            linea1.TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE;
+            linea1.Cuenta = "62600020"; // Comisiones Paypal
+            //linea1.Contacto = "0";
+            linea1.Concepto = $"Comisión Paypal {importeOriginal.ToString("c")}-{importeComision.ToString("c")}={importeIngresado.ToString("c")} ({(importeComision / importeOriginal).ToString("p")})";
 
             // Obtener los últimos 10 caracteres
             string referenciaCompleta = apunteBancario.Referencia2.Trim();
@@ -55,6 +55,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Documento = ultimos10Caracteres;
             linea1.Fecha = new DateOnly(apunteBancario.FechaOperacion.Year, apunteBancario.FechaOperacion.Month, apunteBancario.FechaOperacion.Day);
             linea1.Delegacion = "ALG";
+            linea1.CentroCoste = "CA";
+            linea1.Departamento = "ADM";
             linea1.FormaVenta = "VAR";
             linea1.Debe = importeComision;
             linea1.Contrapartida = banco.CuentaContable;
@@ -66,32 +68,6 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             };
 
             return response;
-        }
-
-        private bool VerificarImportesStandard(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos)
-        {
-            // La comisión de Stripe es del 1.5% más 0.25 €
-            decimal porcentajeComision = 0.015m;
-            decimal fijoComision = 0.25m;
-            
-            // Calcular comisión esperada
-            decimal comisionEsperada = Math.Round(((importeOriginal * porcentajeComision) + fijoComision) * numeroPagos, 2, MidpointRounding.AwayFromZero);
-            
-            // Verificar si los valores coinciden
-            return importeComision == comisionEsperada && importeOriginal - importeComision == importeIngresado;
-        }
-
-        private bool VerificarImportesPremium(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos)
-        {
-            // La comisión de Stripe para tarjetas Premium es del 1.9% más 0.25 €
-            decimal fijoComision = 0.25m;
-            decimal porcentajeComisionTarjetaPremium = 0.019m;
-
-            // Calcular comisión esperada
-            decimal comisionEsperadaPremium = Math.Round(((importeOriginal * porcentajeComisionTarjetaPremium) + fijoComision) * numeroPagos, 2, MidpointRounding.AwayFromZero);
-
-            // Verificar si los valores coinciden
-            return importeComision == comisionEsperadaPremium && importeOriginal - importeComision == importeIngresado;
         }
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
@@ -111,14 +87,44 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 apunteBancario.ConceptoPropio == "032" &&
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
-                apunteBancario.RegistrosConcepto[0]?.Concepto.ToUpper().Trim() == "STRIPE" &&
-                (VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) || 
-                VerificarImportesPremium(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))))
+                apunteBancario.RegistrosConcepto[0] != null && 
+                apunteBancario.RegistrosConcepto[0].Concepto.ToUpper().Trim().StartsWith("PAYPAL") &&
+                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
+                VerificarImportesInternacional(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)))
+                
             {
                 return true;
             }
 
             return false;
+        }
+
+        private bool VerificarImportesStandard(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos)
+        {
+            // La comisión de Paypal es del 2.9% más 0.35 €
+            decimal porcentajeComision = 0.029m;
+            decimal fijoComision = 0.35m;
+
+            // Calcular comisión esperada
+            decimal comisionEsperada = Math.Round(((importeOriginal * porcentajeComision) + fijoComision) * numeroPagos, 2, MidpointRounding.AwayFromZero);
+
+            // Verificar si los valores coinciden
+            return importeComision == comisionEsperada && importeOriginal - importeComision == importeIngresado;
+        }
+
+        private bool VerificarImportesInternacional(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos)
+        {
+            // La comisión de Paypal para transacciones internacionales lleva un 1,99% adicional
+            // La comisión de Paypal es del 2.9% más 0.35 €
+            decimal porcentajeComision = 0.029m;
+            decimal porcentajeComisionInternacional = 0.0199m;
+            decimal fijoComision = 0.35m;
+
+            // Calcular comisión esperada
+            decimal comisionEsperada = Math.Round(((importeOriginal * (porcentajeComision + porcentajeComisionInternacional)) + fijoComision) * numeroPagos, 2, MidpointRounding.AwayFromZero);
+
+            // Verificar si los valores coinciden
+            return importeComision == comisionEsperada && importeOriginal - importeComision == importeIngresado;
         }
     }
 }

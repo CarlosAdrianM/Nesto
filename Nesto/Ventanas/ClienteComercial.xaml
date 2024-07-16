@@ -65,10 +65,18 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Row="0" Grid.Column="0">Nº Cliente:</TextBlock>
-                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding clienteActivo.Nº_Cliente}" />
+                    <TextBlock Grid.Row="0" Grid.Column="1">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0}/{1}">
+                                <Binding Path="clienteActivo.Nº_Cliente" />
+                                <Binding Path="clienteActivo.Contacto" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding clienteActivo.Estado}" ToolTip="Estado en ficha"></TextBox>
                     <TextBlock Grid.Row="1" Grid.Column="0">Teléfono:</TextBlock>
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding clienteActivo.Teléfono}" />
-                    <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding estadoPeluqueria}"></TextBox>
+                    <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding estadoPeluqueria}" ToolTip="Estado de peluquería"></TextBox>
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding clienteActivo.CCC, Converter={StaticResource bancoConverter}}" />
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding clienteActivo.CCC2.EstadosCCC.Descripción}" />
                     <TextBlock Grid.Row="2" Grid.Column="2">Deuda vencida:</TextBlock>

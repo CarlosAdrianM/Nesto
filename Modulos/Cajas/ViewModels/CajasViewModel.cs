@@ -954,7 +954,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     decimal.TryParse(await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FondoCaja), out _fondoCaja);
                     RaisePropertyChanged(nameof(FondoCaja));
                     FormaPagoEfectivoSeleccionada = true;
-                    _diarioCaja = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltDiarioCaja);
+                    _diarioCaja = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DiarioCaja);
                     CuentaOrigen = ListaCuentasCaja.Single(p => p.Cuenta == _cuentaCajaDefecto);
                     CuentaDestino = ListaCuentasCaja.Single(p => p.Cuenta == Constantes.Cuentas.CAJA_PENDIENTE_RECIBIR_TIENDAS);
                     Concepto = $"Cierre de caja de {_diarioCaja}";
@@ -985,11 +985,16 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 _saldoCuentaOrigen = await Servicio.SaldoCuenta(string.Empty, CuentaOrigen.Cuenta, _fechaHasta);
                 MovimientosEfectivoDia = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(string.Empty, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta));
+                if (EsUsuarioDeAdministracion)
+                {
+                    MovimientosCajaPendientesRecibir = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(CuentaOrigen.Cuenta, false));
+                }
             }
             else
             {
                 _saldoCuentaOrigen = 0;
                 MovimientosEfectivoDia = new();
+                MovimientosCajaPendientesRecibir = new();
             }
             
             RaisePropertyChanged(nameof(ImporteDescuadre));

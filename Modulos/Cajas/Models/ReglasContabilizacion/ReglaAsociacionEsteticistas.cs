@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
@@ -22,7 +20,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
             linea1.Cuenta = "62920000";
-            var profesora = apunteBancario.RegistrosConcepto[3]?.ConceptoCompleto?.Substring(25).Trim();
+            var profesora = apunteBancario.RegistrosConcepto[3]?.ConceptoCompleto?.Length >= 25 ?
+                apunteBancario.RegistrosConcepto[3]?.ConceptoCompleto?.Substring(25).Trim() :
+                apunteBancario.RegistrosConcepto[4]?.ConceptoCompleto?.Substring(25).Trim();
             profesora = profesora?.Replace("NUEVA VISION", string.Empty);
             var concepto = $"{apunteBancario.RegistrosConcepto[2]?.Concepto?.Trim()} {profesora}";
             linea1.Concepto = FuncionesAuxiliaresReglas.FormatearConcepto(concepto);

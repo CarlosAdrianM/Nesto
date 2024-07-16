@@ -71,6 +71,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 new ReglaStripe(),
                 new ReglaEmbargo(),
                 new ReglaAmazonPayComision(),
+                new ReglaPaypal(),
                 new ReglaAplazame(),
                 new ReglaAsociacionEsteticistas(),
                 new ReglaAyuntamientoAlgete(),

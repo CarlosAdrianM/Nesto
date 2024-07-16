@@ -82,7 +82,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
                 apunteBancario.RegistrosConcepto[0]?.Concepto.ToLower().Trim() == "amazon payments europe sca" &&
-                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)))
+                (
+                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
+                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0) * 3)
+                ))
             {
                 return true;
             }
