@@ -387,67 +387,137 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private async void OnCargarArchivo()
         {
             var ruta = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PathNorma43);
-            // Configura el diálogo para abrir ficheros
+
+            // Configura el diálogo para abrir ficheros con selección múltiple
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.InitialDirectory = ruta;
             openFileDialog.Filter = "Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*";
+            openFileDialog.Multiselect = true; // Permitir selección múltiple
 
             if (openFileDialog.ShowDialog() == true)
             {
-                // Obtiene la ruta del fichero seleccionado
-                string filePath = openFileDialog.FileName;
+                var apunteInfoList = new List<(DateTime fechaApunte, string filePath)>();
+                ContenidoCuaderno43 ultimaContenidoCuaderno43 = null;
 
                 try
                 {
                     IsBusyApuntesBanco = true;
-                    string fileContent = File.ReadAllText(filePath);
-                    ContenidoCuaderno43 = await _bancosService.CargarFicheroCuaderno43(fileContent);
-                    Banco = await _bancosService.LeerBanco(ContenidoCuaderno43.Cabecera.ClaveEntidad, ContenidoCuaderno43.Cabecera.ClaveOficina, ContenidoCuaderno43.Cabecera.NumeroCuenta);
-                    FechaHasta = ContenidoCuaderno43.Cabecera.FechaInicial;
-                    var fechaApunte = ContenidoCuaderno43.Cabecera.FechaFinal;
-                    _dialogService.ShowNotification($"Apuntes día {fechaApunte.ToString("dd/MM/yyyy")} cargados correctamente al sistema");
-                }
-                catch (Exception ex)
-                {
-                    _dialogService.ShowError("Error al leer el fichero de C43: " + ex.Message);
+
+                    // Procesar cada archivo seleccionado
+                    foreach (string filePath in openFileDialog.FileNames)
+                    {
+                        try
+                        {
+                            string fileContent = File.ReadAllText(filePath);
+                            ContenidoCuaderno43 = await _bancosService.CargarFicheroCuaderno43(fileContent);
+                            ultimaContenidoCuaderno43 = ContenidoCuaderno43;
+
+                            // Guardar información para la notificación
+                            var fechaApunte = ContenidoCuaderno43.Cabecera.FechaFinal;
+                            apunteInfoList.Add((fechaApunte, filePath));
+                        }
+                        catch (Exception ex)
+                        {
+                            _dialogService.ShowError($"Error al procesar el archivo {Path.GetFileName(filePath)}: " + ex.Message);
+                        }
+                    }
                 }
                 finally
                 {
+                    if (ultimaContenidoCuaderno43 != null)
+                    {
+                        // Solo actualizar Banco y FechaHasta para el último archivo procesado
+                        Banco = await _bancosService.LeerBanco(
+                            ultimaContenidoCuaderno43.Cabecera.ClaveEntidad,
+                            ultimaContenidoCuaderno43.Cabecera.ClaveOficina,
+                            ultimaContenidoCuaderno43.Cabecera.NumeroCuenta
+                        );
+
+                        FechaHasta = ultimaContenidoCuaderno43.Cabecera.FechaInicial;
+                    }
+
                     IsBusyApuntesBanco = false;
+
+                    // Generar el mensaje de notificación con la información acumulada
+                    if (apunteInfoList.Count > 0)
+                    {
+                        var mensaje = "Apuntes cargados correctamente al sistema:\n\n";
+                        foreach (var (fechaApunte, filePath) in apunteInfoList)
+                        {
+                            mensaje += $"• Apuntes del día {fechaApunte:dd/MM/yyyy} desde el archivo {Path.GetFileName(filePath)}.\n";
+                        }
+                        _dialogService.ShowNotification(mensaje);
+                    }
                 }
             }
         }
+
+
+
 
         public ICommand CargarArchivoTarjetasCommand { get; private set; }
         private async void OnCargarArchivoTarjetas()
         {
             var ruta = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PathNormaFB500);
-            // Configura el diálogo para abrir ficheros
+
+            // Configura el diálogo para abrir ficheros con selección múltiple
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.InitialDirectory = ruta;
             openFileDialog.Filter = "Todos los archivos (*.*)|*.*";
+            openFileDialog.Multiselect = true; // Permitir selección múltiple
 
             if (openFileDialog.ShowDialog() == true)
             {
-                // Obtiene la ruta del fichero seleccionado
-                string filePath = openFileDialog.FileName;
+                var apunteInfoList = new List<(DateTime fechaApunte, string filePath)>();
+                List<MovimientoTPV> movimientosTPVFinal = null;
 
                 try
                 {
-                    // Lee el contenido del fichero
-                    string fileContent = File.ReadAllText(filePath);
+                    // Procesar cada archivo seleccionado
+                    foreach (string filePath in openFileDialog.FileNames)
+                    {
+                        try
+                        {
+                            // Lee el contenido del fichero
+                            string fileContent = File.ReadAllText(filePath);
 
-                    MovimientosTPV = await _bancosService.CargarFicheroTarjetas(fileContent);
-                    var fechaApunte = MovimientosTPV.First().FechaOperacion;
-                    FechaHasta = fechaApunte;                    
-                    _dialogService.ShowNotification($"Movimientos de tarjeta del día {fechaApunte.ToString("dd/MM/yyyy")} cargados correctamente al sistema");
+                            var movimientosTPV = await _bancosService.CargarFicheroTarjetas(fileContent);
+
+                            // Solo asignar los movimientos para el último archivo procesado
+                            movimientosTPVFinal = movimientosTPV;
+
+                            // Guardar información para la notificación
+                            var fechaApunte = movimientosTPV.First().FechaOperacion;
+                            apunteInfoList.Add((fechaApunte, filePath));
+                        }
+                        catch (Exception ex)
+                        {
+                            _dialogService.ShowError($"Error al procesar el archivo {Path.GetFileName(filePath)}: " + ex.Message);
+                        }
+                    }
                 }
-                catch (Exception ex)
+                finally
                 {
-                    _dialogService.ShowError("Error al leer el fichero de tarjetas: " + ex.Message);
+                    if (movimientosTPVFinal != null)
+                    {
+                        // Asigna la fecha del último archivo procesado a FechaHasta
+                        FechaHasta = movimientosTPVFinal.First().FechaOperacion;
+                    }
+
+                    // Generar el mensaje de notificación con la información acumulada
+                    if (apunteInfoList.Count > 0)
+                    {
+                        var mensaje = "Movimientos de tarjeta cargados correctamente al sistema:\n\n";
+                        foreach (var (fechaApunte, filePath) in apunteInfoList)
+                        {
+                            mensaje += $"• Movimientos del día {fechaApunte:dd/MM/yyyy} desde el archivo {Path.GetFileName(filePath)}.\n";
+                        }
+                        _dialogService.ShowNotification(mensaje);
+                    }
                 }
             }
         }
+
         public ICommand ContabilizarApunteCommand { get; private set; }
         public bool CanContabilizarApunte()
         {

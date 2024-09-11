@@ -23,6 +23,7 @@ namespace Nesto.Modulos.Cajas
 
 
         // Cuando exista un servicio de proveedores hay que mover estos métodos
+        Task<string> LeerProveedorPorNif(string nifProveedor); // cuando exista el servicio de proveedores tendrá que devolver ProveedorDTO
         Task<string> LeerProveedorPorNombre(string nombreProveedor); // cuando exista el servicio de proveedores tendrá que devolver ProveedorDTO
         Task<ExtractoProveedorDTO> PagoPendienteUnico(string proveedor, decimal importe); // devuelve nº orden de ExtractoProveedor
 

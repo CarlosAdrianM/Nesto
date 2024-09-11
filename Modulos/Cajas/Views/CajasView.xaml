@@ -38,6 +38,7 @@
                     <RowDefinition/>
                     <RowDefinition/>
                     <RowDefinition/>
+                    <RowDefinition/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -103,16 +104,20 @@
                     
                 </TextBlock>
                 <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding ImporteACuenta, StringFormat=c}" HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center" Visibility="{Binding EstaVisibleImporteACuenta, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
-                <UniformGrid Grid.Row="4" Grid.Column="2" Columns="3">
+                <Label Grid.Row="4" Grid.Column="1" HorizontalAlignment="Right" FontSize="32" VerticalAlignment="Center" Margin="10" Target="{Binding ElementName=txtConceptoAdicionalCobros}">
+                    <AccessText Text="_Concepto adicional..." />
+                </Label>
+                <TextBox x:Name="txtConceptoAdicionalCobros" Grid.Row="4" Grid.Column="2" Text="{Binding ConceptoAdicionalCobros}" HorizontalAlignment="Stretch" FontSize="32" VerticalAlignment="Center"></TextBox>
+                <UniformGrid Grid.Row="5" Grid.Column="2" Columns="3">
                     <ToggleButton IsChecked="{Binding FormaPagoEfectivoSeleccionada}">Efectivo</ToggleButton>
                     <ToggleButton IsChecked="{Binding FormaPagoTarjetaSeleccionada}">Tarjeta</ToggleButton>
                     <ToggleButton IsChecked="{Binding FormaPagoTransferenciaSeleccionada}" IsEnabled="{Binding EsUsuarioDeAdministracion}">Transferencia</ToggleButton>
                 </UniformGrid>
-                <cu:SelectorFormaPago Grid.Row="5" Grid.Column="2" FormaPagoCompleta="{Binding FormaPagoSeleccionada}" IsEnabled="{Binding EsUsuarioDeAdministracion}" Etiqueta="Forma de pago seleccionada:" ListaFormasPago="{Binding ListaFormaPago}"></cu:SelectorFormaPago>
-                <ComboBox Grid.Row="6" Grid.Column="2" SelectedItem="{Binding CuentaCobro, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center" IsEnabled="{Binding EsUsuarioDeAdministracion}"></ComboBox>
-                <DatePicker Grid.Row="7" Grid.Column="2" SelectedDate="{Binding FechaCobro}" IsEnabled="{Binding EsUsuarioDeAdministracion}"></DatePicker>
+                <cu:SelectorFormaPago Grid.Row="6" Grid.Column="2" FormaPagoCompleta="{Binding FormaPagoSeleccionada}" IsEnabled="{Binding EsUsuarioDeAdministracion}" Etiqueta="Forma de pago seleccionada:" ListaFormasPago="{Binding ListaFormaPago}"></cu:SelectorFormaPago>
+                <ComboBox Grid.Row="7" Grid.Column="2" SelectedItem="{Binding CuentaCobro, UpdateSourceTrigger=PropertyChanged}" ItemsSource="{Binding ListaCuentasCaja}" DisplayMemberPath="DescripcionCompleta" SelectedValuePath="Cuenta" VerticalAlignment="Center" IsEnabled="{Binding EsUsuarioDeAdministracion}"></ComboBox>
+                <DatePicker Grid.Row="8" Grid.Column="2" SelectedDate="{Binding FechaCobro}" IsEnabled="{Binding EsUsuarioDeAdministracion}"></DatePicker>
 
-                <Button Name="btnContabilizarCobro" Grid.Row="9" Grid.Column="2" Command="{Binding ContabilizarCobroCommand}">
+                <Button Name="btnContabilizarCobro" Grid.Row="10" Grid.Column="2" Command="{Binding ContabilizarCobroCommand}">
                     <AccessText>_Contabilizar</AccessText>
                 </Button>
                 

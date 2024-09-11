@@ -433,6 +433,37 @@ namespace Nesto.Modulos.Cajas
             }
         }
 
+        public async Task<string> LeerProveedorPorNif(string nifProveedor)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                HttpResponseMessage response;
+
+                try
+                {
+                    string urlConsulta = $"Bancos/LeerProveedorPorNif?nifProveedor={nifProveedor}";
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var proveedor = JsonConvert.DeserializeObject<string>(resultado);
+                        return proveedor;
+                    }
+                    else
+                    {
+                        throw new Exception("No se ha podido comprobar si existe un proveedor con ese nombre");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+        }
+
         public async Task<string> LeerProveedorPorNombre(string nombreProveedor)
         {
             using (HttpClient client = new HttpClient())

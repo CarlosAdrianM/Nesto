@@ -17,11 +17,12 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
 
             var importeIngresado = apunteBancario.ImporteMovimiento;
-            var importeComision = -importeDescuadre; ;
-            var importeOriginal = importeIngresado + importeComision;
+            var comisionDescontada = -apuntesContabilidad.Where(c => c.Documento?.Trim() == "COMIS_AMZ").Sum(c => c.Importe);
+            var importeComision = apuntesContabilidad.Sum(c => c.Importe) - apunteBancario.ImporteMovimiento;
+            var importeOriginal = importeIngresado + importeComision + comisionDescontada;
 
             if (importeDescuadre == 0M
-                || !VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)))
+                || !VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0), comisionDescontada))
             {
                 throw new Exception("Para contabilizar el apunte de banco debe tener seleccionado también el apunte de contabilidad y que el descuadre sea la comisión.");
             }
@@ -30,6 +31,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Diario = "_ConcBanco";
             linea1.Cuenta = "62600022"; // Comisiones Amazon Pay
             linea1.Concepto = $"Comisión Amazon Pay {importeOriginal.ToString("c").Replace(" ", "")}-{importeComision.ToString("c").Replace(" ", "")}={importeIngresado.ToString("c").Replace(" ", "")} ({(importeComision / importeOriginal).ToString("p").Replace(" ", "")})";
+            if (comisionDescontada != 0)
+            {
+                linea1.Concepto += $"-{comisionDescontada.ToString("c").Replace(" ", "")}";
+            }
             linea1.Concepto = FuncionesAuxiliaresReglas.FormatearConcepto(linea1.Concepto);
 
             // Obtener los últimos 10 caracteres
@@ -73,8 +78,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var apunteBancario = apuntesBancarios.Single();
             
             var importeIngresado = apunteBancario.ImporteMovimiento;
+            var comisionDescontada = -apuntesContabilidad.Where(c => c.Documento?.Trim() == "COMIS_AMZ").Sum(c => c.Importe);
             var importeComision = apuntesContabilidad.Sum(c => c.Importe) - apunteBancario.ImporteMovimiento;
-            var importeOriginal = importeIngresado + importeComision;
+            var importeOriginal = importeIngresado + importeComision + comisionDescontada;
 
 
             if (apunteBancario.ConceptoComun == "02" &&
@@ -82,10 +88,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
                 apunteBancario.RegistrosConcepto[0]?.Concepto.ToLower().Trim() == "amazon payments europe sca" &&
-                (
-                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
-                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0) * 3)
-                ))
+                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0 && a.Documento?.Trim() != "COMIS_AMZ"), comisionDescontada)
+                )
             {
                 return true;
             }
@@ -93,7 +97,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             return false;
         }
 
-        private bool VerificarImportesStandard(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos)
+        private bool VerificarImportesStandard(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos, decimal comisionDescontada)
         {
             // La comisión de Amazon Pay es del 2.7% más 0.35 €
             decimal porcentajeComision = 0.027m;
@@ -104,7 +108,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             decimal comisionEsperadaBaja = Math.Round((importeOriginal * porcentajeComision) + (fijoComision * numeroPagos), 2, MidpointRounding.ToNegativeInfinity);
 
             // Verificar si los valores coinciden
-            return (importeComision == comisionEsperadaAlza || importeComision == comisionEsperadaBaja) && importeOriginal - importeComision == importeIngresado;
+            return (importeComision == comisionEsperadaAlza || importeComision == comisionEsperadaBaja) && importeOriginal - importeComision - comisionDescontada == importeIngresado;
         }
     }
 }

@@ -2748,7 +2748,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Type="DateTime" Name="FechaEntrega" Precision="3" Nullable="true" />
           <Property Type="DateTime" Name="FechaSeñal" Precision="3" Nullable="true" />
           <Property Type="Decimal" Name="ImporteSeñal" Precision="19" Scale="4" />
-          <Property Type="String" Name="NumeroSerie" MaxLength="15" FixedLength="false" Unicode="false" />
+          <Property Type="String" Name="NumeroSerie" MaxLength="30" FixedLength="false" Unicode="false" />
           <Property Type="String" Name="NombreProducto" MaxLength="50" FixedLength="false" Unicode="false" />
           <Property Type="String" Name="Familia" MaxLength="30" FixedLength="false" Unicode="false" />
           <Property Type="Boolean" Name="SeñalComisiona" />

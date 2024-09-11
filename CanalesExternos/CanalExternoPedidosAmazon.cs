@@ -213,10 +213,25 @@ namespace Nesto.Modulos.CanalesExternos
             return telefonoCliente;
         }
 
-        private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, string almacen, string iva)
+        private ObservableCollection<LineaPedidoVentaDTO> TransformarLineas(List<OrderItem> lineasAmazon, string almacen, string iva, string divisa)
         {
             using (new CultureInfoScope("en-US"))
             {
+                if (divisa != Constantes.Empresas.MONEDA_CONTABILIDAD)
+                {
+                    try
+                    {
+                        CambioDivisas = AmazonApiOrdersService.CalculaDivisa(divisa, Constantes.Empresas.MONEDA_CONTABILIDAD);
+                    }
+                    catch
+                    {
+                        CambioDivisas = 1;
+                    }
+                }
+                else
+                {
+                    CambioDivisas = 1;
+                }
                 ObservableCollection<LineaPedidoVentaDTO> lineasNesto = new ObservableCollection<LineaPedidoVentaDTO>();
                 foreach (OrderItem orderItem in lineasAmazon)
                 {
@@ -412,7 +427,9 @@ namespace Nesto.Modulos.CanalesExternos
             try
             {
                 List<OrderItem> lineasAmazon = await AmazonApiOrdersService.CargarLineas(pedido.PedidoCanalId);
-                var lineas = TransformarLineas(lineasAmazon, pedido.Almacen, pedido.Pedido.iva);
+                var lineaDivisa = lineasAmazon.Where(l => l.ItemPrice != null).FirstOrDefault();
+                var divisa = lineaDivisa is null ? Constantes.Empresas.MONEDA_CONTABILIDAD : lineaDivisa.ItemPrice.CurrencyCode;
+                var lineas = TransformarLineas(lineasAmazon, pedido.Almacen, pedido.Pedido.iva, divisa);
                 return lineas.ToList();
             }
             catch (Exception ex)

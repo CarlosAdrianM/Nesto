@@ -203,7 +203,11 @@ Public Class AlquileresViewModel
             ProductoSeleccionado = colProductosAlquilerLista.LastOrDefault
             mensajeError = ""
         Catch ex As Exception
-            mensajeError = ex.InnerException.Message
+            If Not IsNothing(ex.InnerException) Then
+                mensajeError = ex.InnerException.Message
+            Else
+                mensajeError = ex.ToString
+            End If
         End Try
     End Sub
 

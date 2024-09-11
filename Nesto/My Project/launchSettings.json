@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Views": {
+      "commandName": "Project",
+      "hotReloadEnabled": true
+    }
+  }
+}

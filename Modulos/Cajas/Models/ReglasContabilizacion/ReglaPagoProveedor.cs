@@ -38,7 +38,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             else if (EsReciboDomiciliado(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[0].Concepto.Substring(4))).GetAwaiter().GetResult();
+                //proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[0].Concepto.Substring(4))).GetAwaiter().GetResult();
+                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(apunteBancario.RegistrosConcepto[1].Concepto.Substring(7,9))).GetAwaiter().GetResult();
                 pagoPendiente = Task.Run(async () => await _bancosService.PagoPendienteUnico(proveedor, apunteBancario.ImporteMovimiento)).GetAwaiter().GetResult();
             }
             else if (EsTransferenciaInternacional(apunteBancario))
@@ -60,7 +61,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                     Proveedor = proveedor,
                     Contacto = "0",
                     DocumentoProveedor = documentoProveedor,
-                    Documento = documentoProveedor,
+                    Documento = documentoProveedor.Length > 10
+                                ? documentoProveedor.Substring(documentoProveedor.Length - 10)
+                                : documentoProveedor,
                     Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                     FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                 };
@@ -133,7 +136,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             else if (EsReciboDomiciliado(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[0].Concepto.Substring(4))).GetAwaiter().GetResult();
+                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(apunteBancario.RegistrosConcepto[1].Concepto.Substring(7,9))).GetAwaiter().GetResult();
             }
             else if (EsTransferenciaInternacional(apunteBancario))
             {
@@ -184,7 +187,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
         private static bool EsReciboDomiciliado(ApunteBancarioDTO apunteBancario)
         {
             return apunteBancario.ConceptoComun == "03" &&
-                            (apunteBancario.ConceptoPropio == "038" || apunteBancario.ConceptoPropio == "005") &&
+                            (apunteBancario.ConceptoPropio == "038" || apunteBancario.ConceptoPropio == "005" || apunteBancario.ConceptoPropio == "006") &&
                             apunteBancario.RegistrosConcepto != null &&
                             apunteBancario.RegistrosConcepto.Any() &&
                             apunteBancario.RegistrosConcepto[0] != null &&

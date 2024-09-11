@@ -98,6 +98,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
         }
 
+        private string _conceptoAdicionalCobros;
+        public string ConceptoAdicionalCobros
+        {
+            get => _conceptoAdicionalCobros;
+            set => SetProperty(ref _conceptoAdicionalCobros, value);
+        }
+
         private CuentaContableDTO _cuentaCobro;
         public CuentaContableDTO CuentaCobro
         {
@@ -600,6 +607,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             
             try
             {
+                foreach (var linea in lineas)
+                {
+                    linea.Concepto = Truncar($"{linea.Concepto} {ConceptoAdicionalCobros}", 50);
+                }                
                 int asiento = await Servicio.Contabilizar(lineas);
                 if (asiento <= 0)
                 {
@@ -812,6 +823,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
                 foreach (var lineaContabilizar in lineasContabilizar)
                 {
+                    lineaContabilizar.Concepto = Truncar($"{lineaContabilizar.Concepto}", 50);
                     int asiento = await Servicio.Contabilizar(lineaContabilizar);
                     decimal importe = lineaContabilizar.Debe + lineaContabilizar.Haber;
                     string empresa = lineaContabilizar.Empresa;
@@ -1033,7 +1045,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
         // Método para truncar cadenas
         private string Truncar(string value, int maxLength)
         {
-            return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+            var nuevoValor = value.Length <= maxLength ? value : value.Substring(0, maxLength);
+            return nuevoValor.Trim();
         }
         #endregion
     }
