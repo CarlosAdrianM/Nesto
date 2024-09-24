@@ -99,16 +99,21 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         private bool VerificarImportesStandard(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos, decimal comisionDescontada)
         {
-            // La comisión de Amazon Pay es del 2.7% más 0.35 €
+            // La comisión de Amazon Pay es del 2.7% más 0.35 € por cada pago
             decimal porcentajeComision = 0.027m;
             decimal fijoComision = 0.35m;
 
-            // Calcular comisión esperada
-            decimal comisionEsperadaAlza = Math.Round((importeOriginal * porcentajeComision) + (fijoComision * numeroPagos), 2, MidpointRounding.ToPositiveInfinity);
-            decimal comisionEsperadaBaja = Math.Round((importeOriginal * porcentajeComision) + (fijoComision * numeroPagos), 2, MidpointRounding.ToNegativeInfinity);
+            // Calcular la parte variable (2.7% del importe original)
+            decimal importeVariable = Math.Round(importeOriginal * porcentajeComision, 2);
 
-            // Verificar si los valores coinciden
-            return (importeComision == comisionEsperadaAlza || importeComision == comisionEsperadaBaja) && importeOriginal - importeComision - comisionDescontada == importeIngresado;
+            // La diferencia entre la comisión calculada y la parte variable debe ser múltiplo de 0.35 €
+            decimal parteFijaCalculada = importeComision - importeVariable;
+
+            bool esMultiploDeFijo = Math.Abs(parteFijaCalculada % fijoComision) < 0.01m;
+
+            // Verificar que la comisión es correcta y que el importe ingresado coincide
+            return esMultiploDeFijo && importeOriginal - importeComision - comisionDescontada == importeIngresado;
         }
+
     }
 }

@@ -54,7 +54,7 @@
           <Property Name="FechaEntrega" Type="datetime" />
           <Property Name="FechaSeñal" Type="datetime" />
           <Property Name="ImporteSeñal" Type="money" />
-          <Property Name="NumeroSerie" Type="varchar" MaxLength="15" />
+          <Property Name="NumeroSerie" Type="varchar" MaxLength="30" />
           <Property Name="NombreProducto" Type="varchar" MaxLength="50" />
           <Property Name="Familia" Type="varchar" MaxLength="30" />
           <Property Name="SeñalComisiona" Type="bit" />

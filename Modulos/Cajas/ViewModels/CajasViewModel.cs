@@ -20,6 +20,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using static ControlesUsuario.Models.SelectorProveedorModel;
+using static Nesto.Infrastructure.Shared.FuncionesAuxiliares;
 
 namespace Nesto.Modulos.Cajas.ViewModels
 {
@@ -1042,12 +1043,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
             return deuda.Tipo == Constantes.TiposApunte.IMPAGADO ? "Impagado" : "Factura";
         }
-        // Método para truncar cadenas
-        private string Truncar(string value, int maxLength)
-        {
-            var nuevoValor = value.Length <= maxLength ? value : value.Substring(0, maxLength);
-            return nuevoValor.Trim();
-        }
+
         #endregion
     }
 }

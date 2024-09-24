@@ -256,7 +256,7 @@ namespace Nesto.Modulos.Cliente
         {
             get
             {
-                return NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789YX".Contains(ClienteNif.Trim().ToUpper()[0])) ||(ClienteEsContacto && EsUnaModificacion);
+                return NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789ZYX".Contains(ClienteNif.Trim().ToUpper()[0])) ||(ClienteEsContacto && EsUnaModificacion);
             }
         }
         public bool NoTieneDireccion

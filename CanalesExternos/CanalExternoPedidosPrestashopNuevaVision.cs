@@ -26,6 +26,9 @@ namespace Nesto.Modulos.CanalesExternos
         private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay";
         private const string FORMA_PAGO_BIZUM = "Bizum - Pago online";
         private const string FORMA_PAGO_APLAZAME = "Aplazame";
+        private const string FORMA_PAGO_MIRAVIA = "Miravia";
+
+        private string formaVenta = "WEB";
 
         public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)
         {
@@ -105,6 +108,11 @@ namespace Nesto.Modulos.CanalesExternos
                 pedidoSalida.plazosPago = "PRE";
             }
 
+            if (formaPago == FORMA_PAGO_MIRAVIA)
+            {
+                formaVenta = "BLT";
+            }
+
             pedidoSalida.ruta = "00";
             pedidoSalida.serie = "NV";
             pedidoSalida.periodoFacturacion = "NRM";
@@ -144,6 +152,7 @@ namespace Nesto.Modulos.CanalesExternos
             cuentasFormaPago.Add(FORMA_PAGO_BIZUM, "57200013");
             cuentasFormaPago.Add(FORMA_PAGO_AMAZON_PAY, "57200013");
             cuentasFormaPago.Add(FORMA_PAGO_APLAZAME, "57200013");
+            cuentasFormaPago.Add(FORMA_PAGO_MIRAVIA, "57200013");
 
             if (cuentasFormaPago.ContainsKey(formaPago))
             {
@@ -321,7 +330,7 @@ namespace Nesto.Modulos.CanalesExternos
                     AplicarDescuento = false,
                     Cantidad = short.Parse(linea.Element("product_quantity").Value),
                     delegacion = "ALG",
-                    formaVenta = "WEB",
+                    formaVenta = formaVenta,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = tipoIva,
@@ -352,7 +361,7 @@ namespace Nesto.Modulos.CanalesExternos
                     AplicarDescuento = false,
                     Cantidad = (short)1,
                     delegacion = "ALG",
-                    formaVenta = "WEB",
+                    formaVenta = formaVenta,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
@@ -382,7 +391,7 @@ namespace Nesto.Modulos.CanalesExternos
                     AplicarDescuento = false,
                     Cantidad = (short)1,
                     delegacion = "ALG",
-                    formaVenta = "WEB",
+                    formaVenta = formaVenta,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
@@ -412,7 +421,7 @@ namespace Nesto.Modulos.CanalesExternos
                     AplicarDescuento = false,
                     Cantidad = (short)-1,
                     delegacion = "ALG",
-                    formaVenta = "WEB",
+                    formaVenta = formaVenta,
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
