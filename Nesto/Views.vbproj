@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>Nesto.Views</RootNamespace>
 	<AssemblyName>Nesto</AssemblyName>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
 	<UseWPF>true</UseWPF>
     <MyType>Empty</MyType>
     <IsWebBootstrapper>false</IsWebBootstrapper>

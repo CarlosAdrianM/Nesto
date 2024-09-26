@@ -46,6 +46,7 @@ namespace CajasTests
             CuentaContableDTO cuentaDestino = new CuentaContableDTO { Cuenta = "571" };
             sut.CuentaOrigen = cuentaOrigen;
             sut.CuentaDestino = cuentaDestino;
+            sut.Importe = 90M;
             sut.Concepto = "Traspaso entre cajas";
 
             // Act

@@ -99,12 +99,12 @@ Public Class MainViewModel
         End Set
     End Property
 
-    Public ReadOnly Property mostrarFechas As Windows.Visibility
+    Public ReadOnly Property mostrarFechas As Visibility
         Get
             If opcionesFechas = "Personalizar" Then
-                Return Windows.Visibility.Visible
+                Return Visibility.Visible
             Else
-                Return Windows.Visibility.Hidden
+                Return Visibility.Hidden
             End If
         End Get
     End Property
