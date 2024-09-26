@@ -8,6 +8,7 @@ using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.Models.ReglasContabilizacion;
 using Nesto.Modulos.PedidoCompra;
 using Nesto.Modulos.PedidoCompra.Models;
+using Nesto.Modulos.PedidoVenta;
 using Prism.Commands;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -23,6 +24,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Input;
+using Unity;
 
 namespace Nesto.Modulos.Cajas.ViewModels
 {
@@ -34,22 +36,25 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private readonly IDialogService _dialogService;
         private readonly IPedidoCompraService _pedidoCompraService;
         private List<IReglaContabilizacion> _reglasContabilizacion;
+        private readonly IUnityContainer _container;
 
         private const string SIMBOLO_PUNTEO_CONCILIACION = "*";
 
-        public BancosViewModel(IBancosService bancosService, IContabilidadService contabilidadService, IConfiguracion configuracion, IDialogService dialogService, IPedidoCompraService pedidoCompraService)
+        public BancosViewModel(IBancosService bancosService, IContabilidadService contabilidadService, IConfiguracion configuracion, IDialogService dialogService, IPedidoCompraService pedidoCompraService, IUnityContainer container)
         {
             _bancosService = bancosService;
             _contabilidadService = contabilidadService;
             _configuracion = configuracion;
             _dialogService = dialogService;
             _pedidoCompraService = pedidoCompraService;
+            _container = container;
 
             ApuntesContabilidad = new ObservableCollection<ContabilidadWrapper>();
             ContenidoCuaderno43 = new ContenidoCuaderno43();
             ContenidoCuaderno43.Cabecera = new RegistroCabeceraCuenta();
             ContenidoCuaderno43.FinalCuenta = new RegistroFinalCuenta();
 
+            AbrirPedidoCommand = new DelegateCommand<PrepagoDTO>(OnAbrirPedido);
             CargarArchivoCommand = new DelegateCommand(OnCargarArchivo);
             CargarArchivoTarjetasCommand = new DelegateCommand(OnCargarArchivoTarjetas);
             ContabilizarApunteCommand = new DelegateCommand(OnContabilizarApunte, CanContabilizarApunte);
@@ -381,6 +386,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
 
 
+        public ICommand AbrirPedidoCommand { get; private set; }
+        private async void OnAbrirPedido(PrepagoDTO prepago)
+        {
+            PedidoVentaViewModel.CargarPedido(Banco.Empresa, prepago.Pedido, _container);
+        }
 
 
         public ICommand CargarArchivoCommand { get; private set; }
@@ -398,6 +408,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 var apunteInfoList = new List<(DateTime fechaApunte, string filePath)>();
                 ContenidoCuaderno43 ultimaContenidoCuaderno43 = null;
+                DateTime maxFechaApunte = DateTime.MinValue; 
 
                 try
                 {
@@ -415,6 +426,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
                             // Guardar información para la notificación
                             var fechaApunte = ContenidoCuaderno43.Cabecera.FechaFinal;
                             apunteInfoList.Add((fechaApunte, filePath));
+
+                            // Actualizar la fecha mayor
+                            if (fechaApunte > maxFechaApunte)
+                            {
+                                maxFechaApunte = fechaApunte;
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -426,16 +443,16 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     if (ultimaContenidoCuaderno43 != null)
                     {
-                        // Solo actualizar Banco y FechaHasta para el último archivo procesado
+                        // Solo actualizar Banco y la FechaHasta con la fecha mayor procesada
                         Banco = await _bancosService.LeerBanco(
                             ultimaContenidoCuaderno43.Cabecera.ClaveEntidad,
                             ultimaContenidoCuaderno43.Cabecera.ClaveOficina,
                             ultimaContenidoCuaderno43.Cabecera.NumeroCuenta
                         );
 
-                        FechaHasta = ultimaContenidoCuaderno43.Cabecera.FechaInicial;
+                        FechaHasta = maxFechaApunte;
                     }
-
+                    
                     IsBusyApuntesBanco = false;
 
                     // Generar el mensaje de notificación con la información acumulada

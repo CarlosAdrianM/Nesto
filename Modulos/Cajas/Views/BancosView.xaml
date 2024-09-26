@@ -74,7 +74,7 @@
 
             </xctk:BusyIndicator>
 
-            <DataGrid Grid.Row="1" ItemsSource="{Binding PrepagosPendientes}" IsReadOnly="True" AutoGenerateColumns="False">
+            <DataGrid Grid.Row="1" ItemsSource="{Binding PrepagosPendientes}" IsReadOnly="True" AutoGenerateColumns="False" MouseDoubleClick="DataGrid_MouseDoubleClick">
                 <DataGrid.Style>
                     <Style TargetType="DataGrid">
                         <Style.Triggers>

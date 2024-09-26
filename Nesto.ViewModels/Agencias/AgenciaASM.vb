@@ -254,7 +254,7 @@ Public Class AgenciaASM
                         <Poblacion><%= If(empresa.Número = EMPRESA_ESPEJO, "Algete", empresa.Población.Trim) %></Poblacion>
                         <Provincia><%= If(empresa.Número = EMPRESA_ESPEJO, "Madrid", empresa.Provincia.Trim) %></Provincia>
                         <Pais>34</Pais>
-                        <CP><%= If(empresa.Número = EMPRESA_ESPEJO, "28110", empresa.CodPostal.Trim) %></CP>
+                        <CP><%= If(empresa.Número = EMPRESA_ESPEJO, "28119", empresa.CodPostal.Trim) %></CP>
                         <Telefono><%= If(empresa.Número = EMPRESA_ESPEJO, "916281914", empresa.Teléfono.Trim) %></Telefono>
                         <Movil></Movil>
                         <Email><%= If(empresa.Número = EMPRESA_ESPEJO, "logistica@nuevavision.es", empresa.Email.Trim) %></Email>
@@ -391,9 +391,7 @@ Public Class AgenciaASM
             Dim codigoRemitente As String = "791/1664"
             Dim codigoTSP = Await GetTSPAsync("34", "28119", envio.Pais, envio.CodPostal, envio.Servicio, envio.Horario)
             Dim inicioCodBarras = Truncar(envio.CodigoBarras, 14)
-            If String.IsNullOrWhiteSpace(envio.Nemonico) OrElse String.IsNullOrWhiteSpace(envio.NombrePlaza) OrElse String.IsNullOrWhiteSpace(envio.EmailPlaza) OrElse String.IsNullOrWhiteSpace(envio.TelefonoPlaza) Then
-                calcularPlaza(envio.CodPostal, envio.Nemonico, envio.NombrePlaza, envio.TelefonoPlaza, envio.EmailPlaza)
-            End If
+            calcularPlaza(envio.CodPostal, envio.Nemonico, envio.NombrePlaza, envio.TelefonoPlaza, envio.EmailPlaza)
 
             For i = 1 To envio.Bultos
                 'builder.AppendLine("I8,A,034")

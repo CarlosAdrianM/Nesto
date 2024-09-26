@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\ControlesUsuario\ControlesUsuario.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\..\PedidoCompra\PedidoCompra.csproj" />
+    <ProjectReference Include="..\PedidoVenta\PedidoVenta\PedidoVenta.vbproj" />
   </ItemGroup>
 
   <ItemGroup>

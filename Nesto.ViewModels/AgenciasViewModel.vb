@@ -2137,6 +2137,7 @@ Public Class AgenciasViewModel
             envioActual = buscarPedidoAmpliacion(pedidoSeleccionado)
         Else
             envioActual = envioPendiente
+            agenciaEspecifica.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
         End If
 
         If String.IsNullOrEmpty(envioActual?.Nemonico) Then
