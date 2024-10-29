@@ -89,8 +89,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 apunteBancario.RegistrosConcepto.Any() &&
                 apunteBancario.RegistrosConcepto[0] != null && 
                 apunteBancario.RegistrosConcepto[0].Concepto.ToUpper().Trim().StartsWith("PAYPAL") &&
-                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
-                VerificarImportesInternacional(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)))
+                (VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
+                VerificarImportesInternacional(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))))
                 
             {
                 return true;

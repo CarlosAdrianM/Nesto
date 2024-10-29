@@ -47,7 +47,7 @@
         <TextBlock Grid.Row="3" Text="Población: ">            
             <Run Text="{Binding ClienteCompleto.poblacionConCodigoPostal,Mode=OneWay}"></Run>
         </TextBlock>
-        <TextBlock Grid.Row="4" Text="Teléfono: ">
+        <TextBlock Grid.Row="4" Text="Teléfono: " MouseRightButtonUp="TextBlock_MouseRightButtonUp" >
             <Run Text="{Binding ClienteCompleto.telefono}"></Run>
         </TextBlock>
         <TextBox Grid.Row="5" Text="{Binding ClienteCompleto.comentarios}" TextWrapping="WrapWithOverflow" IsEnabled="False" Style="{StaticResource campoComentarios}" ></TextBox>

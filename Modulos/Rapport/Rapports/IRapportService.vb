@@ -7,9 +7,9 @@ Public Interface IRapportService
     Function crearRapport(rapport As SeguimientoClienteDTO) As Task(Of String)
     Function CrearCita(rapport As SeguimientoClienteDTO, fechaAviso As Date) As Task(Of String)
     Function CrearTareaPlanner(rapport As SeguimientoClienteDTO) As Task(Of String)
-
     Function cargarListaRapportsFiltrada(vendedor As String, filtro As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO))
     Function CargarListaEstados() As List(Of idShortDescripcion)
     Function CargarListaTipos() As List(Of idDescripcion)
     Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String) As Task(Of Boolean)
+    Function CargarClientesProbabilidad(vendedor As String) As Task(Of List(Of ClienteProbabilidadVenta))
 End Interface

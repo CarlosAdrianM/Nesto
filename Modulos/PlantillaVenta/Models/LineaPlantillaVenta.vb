@@ -37,6 +37,7 @@ Public Class LineaPlantillaVenta
     Public Property unidadMedida() As String
     Public Property familia() As String
     Public Property subGrupo() As String
+    Public Property codigoBarras As String
     Public Property estado() As Integer
     Public Property yaFacturado() As Boolean
     Public Property cantidadVendida() As Integer
@@ -237,6 +238,7 @@ Public Class LineaPlantillaVenta
         Return (Not IsNothing(producto) AndAlso producto.ToLower.Contains(filtro)) OrElse
                 (Not IsNothing(texto) AndAlso texto.ToLower.Contains(filtro)) OrElse
                 (Not IsNothing(familia) AndAlso familia.ToLower.Contains(filtro)) OrElse
-                (Not IsNothing(subGrupo) AndAlso subGrupo.ToLower.Contains(filtro))
+                (Not IsNothing(subGrupo) AndAlso subGrupo.ToLower.Contains(filtro)) OrElse
+                (Not IsNothing(codigoBarras) AndAlso codigoBarras.ToLower.Contains(filtro))
     End Function
 End Class

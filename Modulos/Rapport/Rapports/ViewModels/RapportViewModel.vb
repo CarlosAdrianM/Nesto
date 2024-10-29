@@ -6,6 +6,8 @@ Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
+Imports Prism.Events
+Imports Nesto.Infrastructure.Events
 
 Public Class RapportViewModel
     Inherits BindableBase
@@ -16,12 +18,14 @@ Public Class RapportViewModel
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IRapportService
     Private ReadOnly dialogService As IDialogService
+    Private ReadOnly _eventAggregator As IEventAggregator
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager, dialogService As IDialogService)
+    Public Sub New(configuracion As IConfiguracion, servicio As IRapportService, regionManager As IRegionManager, dialogService As IDialogService, eventAggregator As IEventAggregator)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.regionManager = regionManager
         Me.dialogService = dialogService
+        _eventAggregator = eventAggregator
 
         listaTiposRapports = servicio.CargarListaTipos()
 
@@ -240,6 +244,7 @@ Public Class RapportViewModel
                 Await servicio.QuitarDeMiListado(rapport, VendedorEstetica, VendedorPeluqueria)
                 QuitarDeMiListado = False
             End If
+            _eventAggregator.GetEvent(Of RapportGuardadoEvent).Publish(0)
             dialogService.ShowNotification("Rapport", texto)
         Catch ex As Exception
             dialogService.ShowError(ex.Message)

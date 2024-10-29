@@ -455,48 +455,48 @@ Public Class PlanesVentajasViewModel
         End Try
     End Sub
 
-    Private _cmdCrearCitasOutlook As ICommand
-    Public ReadOnly Property cmdCrearCitasOutlook() As ICommand
-        Get
-            If _cmdCrearCitasOutlook Is Nothing Then
-                _cmdCrearCitasOutlook = New RelayCommand(AddressOf CrearCitasOutlook, AddressOf CanCrearCitasOutlook)
-            End If
-            Return _cmdCrearCitasOutlook
-        End Get
-    End Property
-    Private Function CanCrearCitasOutlook(ByVal param As Object) As Boolean
-        Return Not planActual Is Nothing
-    End Function
-    Private Sub CrearCitasOutlook(ByVal param As Object)
-        Dim objOL As Outlook.Application
-        objOL = New Outlook.Application
-        Dim newTask As Outlook.AppointmentItem
+    'Private _cmdCrearCitasOutlook As ICommand
+    'Public ReadOnly Property cmdCrearCitasOutlook() As ICommand
+    '    Get
+    '        If _cmdCrearCitasOutlook Is Nothing Then
+    '            _cmdCrearCitasOutlook = New RelayCommand(AddressOf CrearCitasOutlook, AddressOf CanCrearCitasOutlook)
+    '        End If
+    '        Return _cmdCrearCitasOutlook
+    '    End Get
+    'End Property
+    'Private Function CanCrearCitasOutlook(ByVal param As Object) As Boolean
+    '    Return Not planActual Is Nothing
+    'End Function
+    'Private Sub CrearCitasOutlook(ByVal param As Object)
+    '    Dim objOL As Outlook.Application
+    '    objOL = New Outlook.Application
+    '    Dim newTask As Outlook.AppointmentItem
 
-        Try
-            newTask = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
-            If Not IsNothing(newTask) Then
-                newTask.Subject = "Finaliza el Plan de Ventajas " + planActual.Numero.ToString.Trim
-                newTask.Body = "El día " + planActual.FechaFin.ToShortDateString + " finaliza el Plan de Ventajas nº " + planActual.Numero.ToString.Trim + "." + vbCrLf +
-                    "Importe Compromiso: " + FormatCurrency(planActual.Importe) + vbCrLf
-                For Each plan In planActual.PlanVentajasCliente
-                    newTask.Body = newTask.Body + "Cliente " + plan.Cliente.ToString.Trim + vbCrLf
-                Next
-                newTask.Start = planActual.FechaFin
-                newTask.AllDayEvent = True
-                newTask.ReminderSet = True
-                newTask.ReminderMinutesBeforeStart = 15 * 24 * 60 '15 días antes
-                newTask.Save()
-            End If
+    '    Try
+    '        newTask = objOL.CreateItem(Outlook.OlItemType.olAppointmentItem)
+    '        If Not IsNothing(newTask) Then
+    '            newTask.Subject = "Finaliza el Plan de Ventajas " + planActual.Numero.ToString.Trim
+    '            newTask.Body = "El día " + planActual.FechaFin.ToShortDateString + " finaliza el Plan de Ventajas nº " + planActual.Numero.ToString.Trim + "." + vbCrLf +
+    '                "Importe Compromiso: " + FormatCurrency(planActual.Importe) + vbCrLf
+    '            For Each plan In planActual.PlanVentajasCliente
+    '                newTask.Body = newTask.Body + "Cliente " + plan.Cliente.ToString.Trim + vbCrLf
+    '            Next
+    '            newTask.Start = planActual.FechaFin
+    '            newTask.AllDayEvent = True
+    '            newTask.ReminderSet = True
+    '            newTask.ReminderMinutesBeforeStart = 15 * 24 * 60 '15 días antes
+    '            newTask.Save()
+    '        End If
 
-            mensajeError = "Cita del plan " + CStr(planActual.Numero) + " creada correctamente"
-        Catch ex As Exception
-            If IsNothing(ex.InnerException) Then
-                mensajeError = ex.Message
-            Else
-                mensajeError = ex.InnerException.Message
-            End If
-        End Try
-    End Sub
+    '        mensajeError = "Cita del plan " + CStr(planActual.Numero) + " creada correctamente"
+    '    Catch ex As Exception
+    '        If IsNothing(ex.InnerException) Then
+    '            mensajeError = ex.Message
+    '        Else
+    '            mensajeError = ex.InnerException.Message
+    '        End If
+    '    End Try
+    'End Sub
 
 
 #End Region

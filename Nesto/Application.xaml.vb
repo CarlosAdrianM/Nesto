@@ -74,6 +74,7 @@ Partial Public Class Application
         containerRegistry.Register(GetType(IBancosService), GetType(BancosService))
         containerRegistry.Register(GetType(IClientesService), GetType(ClientesService))
         containerRegistry.Register(GetType(ISelectorProveedorService), GetType(SelectorProveedorService))
+        containerRegistry.Register(GetType(IRecursosHumanosService), GetType(RecursosHumanosService))
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)

@@ -53,7 +53,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var apunteBancario = apuntesBancarios.First();
 
             if ((apunteBancario.ConceptoComun == "17" || apunteBancario.ConceptoComun == "12" || apunteBancario.ConceptoComun == "02" || apunteBancario.ConceptoComun == "09") &&
-                (apunteBancario.ConceptoPropio == "036" || apunteBancario.ConceptoPropio == "040" || apunteBancario.ConceptoPropio == "025") &&
+                (apunteBancario.ConceptoPropio == "036" || apunteBancario.ConceptoPropio == "040" || apunteBancario.ConceptoPropio == "025" || apunteBancario.ConceptoPropio == "053") &&
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
                 (
@@ -62,6 +62,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                     apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "SERV. EM. TRANSF." ||
                     apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "C. SERVIC. PAYGOLD" ||
                     apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "CUSTODIA VALORES" ||
+                    (apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "INTERES.DESCUBIERTO" && apunteBancario.ConceptoPropio == "053") ||
                     (apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "MANTENIMIENTO TPV" && -apunteBancario.ImporteMovimiento == 5.45M) ||
                     (apunteBancario.RegistrosConcepto[0]?.Concepto2.Trim() == "BONIF. MULTIDIVISA" && apunteBancario.ImporteMovimiento > 0M)
                 ))

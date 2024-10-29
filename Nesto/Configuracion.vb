@@ -11,7 +11,7 @@ Public Class Configuracion
 
     Public ReadOnly Property servidorAPI As String Implements IConfiguracion.servidorAPI
         Get
-            If Environment.MachineName = "VSTUDIO" Then
+            If Environment.MachineName.StartsWith("VSTUDIO") Then
                 Return "http://localhost:53364/api/"
             End If
 

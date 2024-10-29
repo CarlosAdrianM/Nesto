@@ -363,4 +363,36 @@ Public Class RapportService
 
         End Using
     End Function
+
+    Public Async Function CargarClientesProbabilidad(vendedor As String) As Task(Of List(Of ClienteProbabilidadVenta)) Implements IRapportService.CargarClientesProbabilidad
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Const numeroClientes As Integer = 20
+
+            Try
+                Dim urlConsulta As String = $"Clientes/GetClientesProbabilidadVenta?vendedor={vendedor}&numeroClientes={numeroClientes}"
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuesta = ""
+                End If
+
+            Catch ex As Exception
+                Throw New Exception($"No se ha podido recuperar la lista de los {numeroClientes} clientes de {vendedor} con mayor probabilidad de hacer pedido", ex)
+            Finally
+
+            End Try
+
+            Dim listaClientes As List(Of ClienteProbabilidadVenta) = JsonConvert.DeserializeObject(Of List(Of ClienteProbabilidadVenta))(respuesta)
+
+            Return listaClientes
+
+        End Using
+    End Function
 End Class

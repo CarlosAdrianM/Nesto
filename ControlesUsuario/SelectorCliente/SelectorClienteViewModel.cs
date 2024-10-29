@@ -156,7 +156,7 @@ namespace ControlesUsuario.ViewModels
                 var listaDevuelta = await Servicio.BuscarClientes(empresa, vendedor, filtro);
                 if (listaDevuelta != null)
                 {
-                    listaClientes.Lista = new ObservableCollection<IFiltrableItem>(listaDevuelta);
+                    listaClientes.ListaFijada = new ObservableCollection<IFiltrableItem>(listaDevuelta);
                     RaisePropertyChanged(nameof(visibilidadListaClientes));
                 }
                 else

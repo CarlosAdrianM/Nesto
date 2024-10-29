@@ -302,6 +302,7 @@ namespace Nesto.Infrastructure.Shared
             }
             else
             {
+                ElementoSeleccionado = null;
                 FiltrosPuestos.Clear();
                 ListaFijada = ListaOriginal;
             }

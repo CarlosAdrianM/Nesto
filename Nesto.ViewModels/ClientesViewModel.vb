@@ -1009,6 +1009,7 @@ Public Class ClientesViewModel
                 Dim respuesta As String = ""
 
                 Dim urlConsulta As String = "Clientes/ClienteComercial"
+                clienteServidor.estado = clienteActivo.Estado
                 clienteServidor.usuario = configuracion.usuario
                 Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(clienteServidor), Encoding.UTF8, "application/json")
 

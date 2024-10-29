@@ -74,6 +74,32 @@ namespace Infrastructure.Tests
         }
 
         [TestMethod]
+        public void ColeccionFiltrable_SiSePoneUnFiltroVacio_ElElementoSeleccionadoPasaANulo()
+        {
+            // Arrange
+            ColeccionFiltrable coleccion = new();
+            coleccion.ListaOriginal = new ObservableCollection<IFiltrableItem>
+            {
+                new MiClaseFiltrable
+                {
+                    Nombre = "Carlos"
+                },
+                new MiClaseFiltrable
+                {
+                    Nombre = "Carlos2"
+                }
+            };
+            coleccion.ElementoSeleccionado = coleccion.ListaOriginal.First();
+
+            // Act
+            coleccion.Filtro = string.Empty;
+            coleccion.FijarFiltroCommand.Execute(coleccion.Filtro);
+
+            // Assert
+            Assert.IsNull(coleccion.ElementoSeleccionado);
+        }
+
+        [TestMethod]
         public void ColeccionFiltrable_SiNoTieneDatosInicialesYSeQuitaUnFiltro_ElPrimerFiltroNoSeVuelveAAplicar()
         {
             // El primer filtro es el que carga de la base de datos, por lo que en realidad se aplica en la API

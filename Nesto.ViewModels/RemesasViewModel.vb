@@ -391,56 +391,56 @@ Public Class RemesasViewModel
         blnPuedeVerTodasLasRemesas = False
     End Sub
 
-    Private _cmdCrearTareasOutlook As ICommand
-    Public ReadOnly Property cmdCrearTareasOutlook() As ICommand
-        Get
-            If _cmdCrearTareasOutlook Is Nothing Then
-                _cmdCrearTareasOutlook = New RelayCommand(AddressOf CrearTareasOutlook, AddressOf CanCrearTareasOutlook)
-            End If
-            Return _cmdCrearTareasOutlook
-        End Get
-    End Property
-    Private Function CanCrearTareasOutlook(ByVal param As Object) As Boolean
-        Return Not impagadoActual Is Nothing
-    End Function
-    Private Sub CrearTareasOutlook(ByVal param As Object)
-        Dim objOL As Outlook.Application
-        objOL = New Outlook.Application
-        Dim newTask As Outlook.TaskItem
-        Dim ruta As New Rutas
-        Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
+    'Private _cmdCrearTareasOutlook As ICommand
+    'Public ReadOnly Property cmdCrearTareasOutlook() As ICommand
+    '    Get
+    '        If _cmdCrearTareasOutlook Is Nothing Then
+    '            _cmdCrearTareasOutlook = New RelayCommand(AddressOf CrearTareasOutlook, AddressOf CanCrearTareasOutlook)
+    '        End If
+    '        Return _cmdCrearTareasOutlook
+    '    End Get
+    'End Property
+    'Private Function CanCrearTareasOutlook(ByVal param As Object) As Boolean
+    '    Return Not impagadoActual Is Nothing
+    'End Function
+    'Private Sub CrearTareasOutlook(ByVal param As Object)
+    '    Dim objOL As Outlook.Application
+    '    objOL = New Outlook.Application
+    '    Dim newTask As Outlook.TaskItem
+    '    Dim ruta As New Rutas
+    '    Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
 
-        Try
-            For Each impagado In impagados
-                newTask = objOL.CreateItem(Outlook.OlItemType.olTaskItem)
-                If Not IsNothing(newTask) Then
-                    ruta = (From r In DbContext.Rutas Where r.Empresa = impagado.c.Empresa And r.Número = impagado.c.Ruta).FirstOrDefault
-                    newTask.Subject = ruta.Descripción.Trim + " - Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
-                        ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim
-                    newTask.Body = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
-                        "Motivo: " + impagado.e.Concepto + vbCrLf +
-                        "Ruta: " + impagado.c.Ruta + vbCrLf +
-                        "Empresa: " + impagado.c.Empresas.Nombre.Trim
-                    newTask.Assign()
-                    'If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
-                    '    usuarioTareas = "laura@nuevavision.es"
-                    'Else
-                    '    usuarioTareas = "aidarubio@nuevavision.es"
-                    'End If
-                    newTask.Recipients.Add(usuarioTareas)
-                    newTask.Recipients.ResolveAll()
-                    newTask.Send()
-                End If
-            Next
-            mensajeError = "Tareas del asiento " + CStr(impagadoActual.asiento) + " creadas correctamente"
-        Catch ex As Exception
-            If IsNothing(ex.InnerException) Then
-                mensajeError = ex.Message
-            Else
-                mensajeError = ex.InnerException.Message
-            End If
-        End Try
-    End Sub
+    '    Try
+    '        For Each impagado In impagados
+    '            newTask = objOL.CreateItem(Outlook.OlItemType.olTaskItem)
+    '            If Not IsNothing(newTask) Then
+    '                ruta = (From r In DbContext.Rutas Where r.Empresa = impagado.c.Empresa And r.Número = impagado.c.Ruta).FirstOrDefault
+    '                newTask.Subject = ruta.Descripción.Trim + " - Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
+    '                    ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim
+    '                newTask.Body = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
+    '                    "Motivo: " + impagado.e.Concepto + vbCrLf +
+    '                    "Ruta: " + impagado.c.Ruta + vbCrLf +
+    '                    "Empresa: " + impagado.c.Empresas.Nombre.Trim
+    '                newTask.Assign()
+    '                'If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
+    '                '    usuarioTareas = "laura@nuevavision.es"
+    '                'Else
+    '                '    usuarioTareas = "aidarubio@nuevavision.es"
+    '                'End If
+    '                newTask.Recipients.Add(usuarioTareas)
+    '                newTask.Recipients.ResolveAll()
+    '                newTask.Send()
+    '            End If
+    '        Next
+    '        mensajeError = "Tareas del asiento " + CStr(impagadoActual.asiento) + " creadas correctamente"
+    '    Catch ex As Exception
+    '        If IsNothing(ex.InnerException) Then
+    '            mensajeError = ex.Message
+    '        Else
+    '            mensajeError = ex.InnerException.Message
+    '        End If
+    '    End Try
+    'End Sub
 
     Public Property CrearTareasPlannerCommand As DelegateCommand
     Private Function CanCrearTareasPlanner() As Boolean

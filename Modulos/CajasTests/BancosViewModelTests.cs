@@ -6,6 +6,7 @@ using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
 using Nesto.Modulos.PedidoCompra;
 using Prism.Commands;
+using Prism.Events;
 using Prism.Services.Dialogs;
 using System.Collections.ObjectModel;
 using Unity;
@@ -24,7 +25,8 @@ namespace CajasTests
             var _dialogService = A.Fake<IDialogService>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
             
             sut.ContenidoCuaderno43 = new ContenidoCuaderno43()
             {
@@ -48,7 +50,8 @@ namespace CajasTests
             var _dialogService = A.Fake<IDialogService>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             sut.ContenidoCuaderno43 = new ContenidoCuaderno43()
             {
@@ -73,7 +76,8 @@ namespace CajasTests
             var _dialogService = A.Fake<IDialogService>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             IList<ApunteBancarioWrapper> apuntesBancoSeleccionados = new List<ApunteBancarioWrapper> {
                 new ApunteBancarioWrapper(
@@ -108,7 +112,8 @@ namespace CajasTests
             var _dialogService = A.Fake<IDialogService>();
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             IList<ApunteBancarioWrapper> apuntesBancoSeleccionados = new List<ApunteBancarioWrapper> {
                 new ApunteBancarioWrapper(
@@ -153,7 +158,8 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             var _container = A.Fake<IUnityContainer>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, 100, "*", null)).Returns(3);
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -197,7 +203,8 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(null, 1, 100, "*", 1)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(null, 2, 100, "*", 1)).Returns(4);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteContabilidad1 = new ContabilidadDTO()
             {
@@ -239,7 +246,8 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(null, 2, 250, "*", 2)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(null, 3, 150, "*", 2)).Returns(5);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteContabilidad1 = new ContabilidadDTO()
             {
@@ -287,7 +295,8 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, 70, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 30, "*", null)).Returns(5);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -338,7 +347,8 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -70, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, -30, "*", null)).Returns(5);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -389,7 +399,8 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -170, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 70, "*", null)).Returns(5);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -440,7 +451,8 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, -1, "*", null)).Returns(4);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, 11, "*", null)).Returns(5);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -492,7 +504,8 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(1, 4, 10, "*", null)).Returns(5);
             A.CallTo(() => _bancosService.CrearPunteo(2, 4, 30, "*", null)).Returns(6);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -549,7 +562,8 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             sut.ApuntesBanco = new ObservableCollection<ApunteBancarioWrapper>();
             sut.ApuntesContabilidad = new ObservableCollection<ContabilidadWrapper>();
@@ -574,7 +588,8 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             sut.ApuntesBanco = new ObservableCollection<ApunteBancarioWrapper>();
             sut.ApuntesContabilidad = new ObservableCollection<ContabilidadWrapper>()
@@ -612,7 +627,8 @@ namespace CajasTests
             A.CallTo(() => _bancosService.CrearPunteo(2, 3, A<decimal>._, "*", null)).Returns(6);
             A.CallTo(() => _bancosService.CrearPunteo(2, 4, A<decimal>._, "*", null)).Returns(7);
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -681,7 +697,8 @@ namespace CajasTests
                     callback.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -735,7 +752,8 @@ namespace CajasTests
                     callback.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -788,7 +806,8 @@ namespace CajasTests
                     callback.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -849,7 +868,8 @@ namespace CajasTests
                     callback.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {
@@ -917,7 +937,8 @@ namespace CajasTests
                     callback.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
-            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container);
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
 
             var apunteBanco = new ApunteBancarioDTO()
             {

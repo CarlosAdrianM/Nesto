@@ -37,10 +37,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private readonly IPedidoCompraService _pedidoCompraService;
         private List<IReglaContabilizacion> _reglasContabilizacion;
         private readonly IUnityContainer _container;
+        private readonly IRecursosHumanosService _recursosHumanosService;
 
         private const string SIMBOLO_PUNTEO_CONCILIACION = "*";
 
-        public BancosViewModel(IBancosService bancosService, IContabilidadService contabilidadService, IConfiguracion configuracion, IDialogService dialogService, IPedidoCompraService pedidoCompraService, IUnityContainer container)
+        public BancosViewModel(IBancosService bancosService, IContabilidadService contabilidadService, IConfiguracion configuracion, IDialogService dialogService, IPedidoCompraService pedidoCompraService, IUnityContainer container, IRecursosHumanosService recursosHumanosService)
         {
             _bancosService = bancosService;
             _contabilidadService = contabilidadService;
@@ -48,6 +49,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             _dialogService = dialogService;
             _pedidoCompraService = pedidoCompraService;
             _container = container;
+            _recursosHumanosService = recursosHumanosService;
 
             ApuntesContabilidad = new ObservableCollection<ContabilidadWrapper>();
             ContenidoCuaderno43 = new ContenidoCuaderno43();
@@ -67,11 +69,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
             _reglasContabilizacion = new List<IReglaContabilizacion>
             {
+                new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService),
                 new ReglaAdelantosNomina(),
-                new ReglaComisionesBanco(),                
+                new ReglaComisionesBanco(),
                 new ReglaComunidadPropietariosAlcobendas(),
                 new ReglaComunidadPropietariosAlgete(),
-                new ReglaComunidadPropietariosReina(),                
+                new ReglaComunidadPropietariosReina(),
                 new ReglaSegurosSaludPrivados(),
                 new ReglaStripe(),
                 new ReglaEmbargo(),
@@ -80,6 +83,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 new ReglaAplazame(),
                 new ReglaAsociacionEsteticistas(),
                 new ReglaAyuntamientoAlgete(),
+                new ReglaMiraviaComision(),
                 new ReglaInteresesAplazamientoConfirming(_dialogService),
                 new ReglaComisionRemesaRecibos(_bancosService),
                 new ReglaPagoProveedor(_bancosService),
@@ -577,6 +581,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     .Where(c => c.EstadoPunteo != EstadoPunteo.CompletamentePunteado)
                     .Select(c => c.Model),
                     Banco);
+
+                if (respuesta is null)
+                {
+                    return;
+                }
+
                 string textoMensajeFinal;
                 if (respuesta.CrearFacturas)
                 {
