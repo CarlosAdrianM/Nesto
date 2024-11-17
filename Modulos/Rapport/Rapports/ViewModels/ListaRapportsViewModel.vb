@@ -1,8 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Prism.Commands
 Imports Prism.Regions
-Imports Nesto.Modulos.Rapports.RapportsModel
-Imports Prism.Mvvm
 Imports Unity
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Nesto.Infrastructure.Contracts
@@ -12,6 +10,7 @@ Imports ControlesUsuario.Dialogs
 Imports Prism.Events
 Imports Nesto.Infrastructure.Events
 Imports Prism
+Imports Microsoft.Extensions.Logging
 
 Public Class ListaRapportsViewModel
     Inherits ViewModelBase
@@ -26,6 +25,7 @@ Public Class ListaRapportsViewModel
     Private _subscriptionToken As SubscriptionToken
     Private _empresaPorDefecto As String = Constantes.Empresas.EMPRESA_DEFECTO
 
+
     Private _vendedor As String
     Public Property vendedor As String
         Get
@@ -35,6 +35,8 @@ Public Class ListaRapportsViewModel
             _vendedor = value
         End Set
     End Property
+
+
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IRapportService, container As IUnityContainer, dialogService As IDialogService, eventAggregator As IEventAggregator)
         Me.regionManager = regionManager
@@ -218,6 +220,18 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
+    Private _tipoRapportSeleccionado As idDescripcion
+    Public Property TipoRapportSeleccionado As idDescripcion
+        Get
+            Return _tipoRapportSeleccionado
+        End Get
+        Set(ByVal value As idDescripcion)
+            If (SetProperty(_tipoRapportSeleccionado, value)) Then
+                ActualizarClientesProbabilidad()
+                configuracion.GuardarParametro(_empresaPorDefecto, Parametros.Claves.UltTipoSeguimientoCliente, _tipoRapportSeleccionado.id)
+            End If
+        End Set
+    End Property
 
 #End Region
 
@@ -325,7 +339,7 @@ Public Class ListaRapportsViewModel
             .Empresa = _empresaPorDefecto,
             .Estado = SeguimientoClienteDTO.EstadoSeguimientoDTO.Vigente,
             .Fecha = IIf(fechaSeleccionada >= Today, Now, fechaSeleccionada),
-            .Tipo = SeguimientoClienteDTO.TipoSeguimientoDTO.TELEFONO,
+            .Tipo = TipoRapportSeleccionado.id,
             .TipoCentro = SeguimientoClienteDTO.TiposCentro.NoSeSabe,
             .Vendedor = vendedor,
             .Usuario = configuracion.usuario
@@ -347,11 +361,37 @@ Public Class ListaRapportsViewModel
         listaRapports.Add(rapportNuevo)
     End Sub
 
+    ' Comando para actualizar SelectedAction usando DelegateCommand
+    Private _tipoRapportCambiaCommand As DelegateCommand(Of String)
+    Public ReadOnly Property TipoRapportCambiaCommand As DelegateCommand(Of String)
+        Get
+            If _tipoRapportCambiaCommand Is Nothing Then
+                _tipoRapportCambiaCommand = New DelegateCommand(Of String)(AddressOf OnTipoRapportCambia)
+            End If
+            Return _tipoRapportCambiaCommand
+        End Get
+    End Property
+
+    ' Método que se ejecuta cuando se selecciona una opción
+    Private Sub OnTipoRapportCambia(selectedId As String)
+        If selectedId IsNot Nothing Then
+            ' Encuentra el elemento de listaTiposRapports con el id correspondiente y lo asigna a SelectedAction
+            TipoRapportSeleccionado = listaTiposRapports.Single(Function(item) item.id = selectedId)
+        End If
+    End Sub
+
+    ' Propiedad para verificar si un item es el seleccionado
+    Public Function IsSelectedAction(itemId As String) As Boolean
+        Return (Not IsNothing(TipoRapportSeleccionado)) AndAlso TipoRapportSeleccionado.id = itemId
+    End Function
+
+
+
 
     Private Async Sub ActualizarClientesProbabilidad()
         IsLoadingClientesProbabilidad = True
         Try
-            ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(Await servicio.CargarClientesProbabilidad(vendedor))
+            ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(Await servicio.CargarClientesProbabilidad(vendedor, TipoRapportSeleccionado.descripcion))
         Finally
             IsLoadingClientesProbabilidad = False
         End Try
@@ -377,7 +417,12 @@ Public Class ListaRapportsViewModel
         If IsNothing(vendedor) Then
             vendedor = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.Vendedor)
         End If
-        ActualizarClientesProbabilidad()
+        If IsNothing(TipoRapportSeleccionado) OrElse IsNothing(TipoRapportSeleccionado.id) Then
+            Dim tipo = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.UltTipoSeguimientoCliente)
+            TipoRapportCambiaCommand.Execute(tipo)
+        Else
+            ActualizarClientesProbabilidad()
+        End If
     End Sub
 
     Public Overrides Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget

@@ -6,5 +6,6 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
     {
         bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad);
         ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco);
+        string Nombre { get; }
     }
 }

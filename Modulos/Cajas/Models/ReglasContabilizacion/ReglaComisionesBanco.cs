@@ -7,6 +7,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaComisionesBanco : IReglaContabilizacion
     {
+        public string Nombre => "Comisiones banco";
+
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
             if (apuntesBancarios is null || !apuntesBancarios.Any())

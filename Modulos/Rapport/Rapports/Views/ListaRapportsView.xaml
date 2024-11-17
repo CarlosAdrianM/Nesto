@@ -15,6 +15,32 @@
         <CollectionViewSource x:Key="ListaEstados" Source="{Binding listaEstadosRapport}"/>
         <CollectionViewSource x:Key="ListaTipos" Source="{Binding listaTiposRapports}"/>
         <rapports:ProbabilidadToColorConverter x:Key="ProbabilidadToColorConverter"/>
+        <rapports:StringEqualityConverter x:Key="StringEqualityConverter"/>
+        <!-- Estilo para ToggleButton como botón -->
+        <Style TargetType="ToggleButton" x:Key="ToggleButtonAsButtonStyle">
+            <Setter Property="Width" Value="100"/>
+            <!-- Ancho del botón -->
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="LightGray"/>
+            <Setter Property="BorderBrush" Value="Gray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="ContentTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <!-- Cambiar el fondo cuando el ToggleButton está presionado -->
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="LightBlue"/>
+                    <Setter Property="BorderBrush" Value="Blue"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -56,54 +82,92 @@
                 </ToggleButton>
 
                 <Popup IsOpen="{Binding IsChecked, ElementName=toggleButton}"
-           PlacementTarget="{Binding ElementName=toggleButton}"
-           StaysOpen="False"
-           Placement="Bottom">
+                       PlacementTarget="{Binding ElementName=toggleButton}"
+                       StaysOpen="False"
+                       Placement="Bottom">      
                     <Border Background="White" 
-                BorderBrush="LightGray" 
-                BorderThickness="1"
-                Padding="5">
-                        <xctk:BusyIndicator IsBusy="{Binding IsLoadingClientesProbabilidad}" BusyContent="Cargando clientes para llamar..." >
-                            <ListView ItemsSource="{Binding ListaClientesProbabilidad}" 
-                      SelectedItem="{Binding ClienteProbabilidadSeleccionado}"
-                      MaxHeight="200"
-                      MinWidth="300">
-                                <ListView.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid Margin="5" ToolTip="{Binding DiasDesdeUltimoPedidoInteraccionTexto}">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                                <RowDefinition Height="Auto"/>
-                                            </Grid.RowDefinitions>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="250"/>
-                                                <ColumnDefinition Width="70"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="0" 
-                                       Text="{Binding nombre}" 
-                                       FontWeight="Bold"/>
-                                            <TextBlock Grid.Row="1" Grid.Column="0" 
-                                       Text="{Binding direccion}"/>
-                                            <TextBlock Grid.Row="2" Grid.Column="0" 
-                                       Text="{Binding poblacion}"/>
-                                            <Border Grid.RowSpan="3" Grid.Column="1"
-                                    CornerRadius="10"
-                                    Padding="10"
-                                    Margin="5,0,0,0"
-                                    Background="{Binding Probabilidad, Converter={StaticResource ProbabilidadToColorConverter}}">
-                                                <TextBlock Text="{Binding Probabilidad, StringFormat={}{0:P0}}"
-                                           VerticalAlignment="Center"
-                                           HorizontalAlignment="Center"
-                                           FontSize="16"
-                                           FontWeight="SemiBold"
-                                           Foreground="White"/>
-                                            </Border>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
-                        </xctk:BusyIndicator>
+                            BorderBrush="LightGray" 
+                            BorderThickness="1"
+                            Padding="5">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Fila con los botones -->
+                            <StackPanel Orientation="Horizontal" 
+                                        HorizontalAlignment="Center"
+                                        Margin="0,0,0,10" Grid.Row="0">
+                                <ItemsControl ItemsSource="{Binding listaTiposRapports}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <RadioButton Content="{Binding descripcion}" 
+                                                         GroupName="RapportOptions"
+                                                         Command="{Binding DataContext.TipoRapportCambiaCommand, 
+                                                                           RelativeSource={RelativeSource AncestorType={x:Type StackPanel}}}"
+                                                         CommandParameter="{Binding id}"
+                                                         Style="{StaticResource ToggleButtonAsButtonStyle}">
+                                                <RadioButton.IsChecked>
+                                                    <MultiBinding Converter="{StaticResource StringEqualityConverter}">
+                                                        <Binding Path="id"/>
+                                                        <Binding Path="DataContext.TipoRapportSeleccionado.id" 
+                                                                 RelativeSource="{RelativeSource AncestorType={x:Type StackPanel}}"/>
+                                                    </MultiBinding>
+                                                </RadioButton.IsChecked>
+                                            </RadioButton>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            
+                            <xctk:BusyIndicator IsBusy="{Binding IsLoadingClientesProbabilidad}" BusyContent="Cargando clientes para contactar..." Grid.Row="1">
+                                <ListView ItemsSource="{Binding ListaClientesProbabilidad}" 
+                                      SelectedItem="{Binding ClienteProbabilidadSeleccionado}"
+                                      MaxHeight="200"
+                                      MinWidth="300">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="5" ToolTip="{Binding DiasDesdeUltimoPedidoInteraccionTexto}">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="250"/>
+                                                    <ColumnDefinition Width="70"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Row="0" Grid.Column="0" 
+                                                       Text="{Binding nombre}" 
+                                                       FontWeight="Bold"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="0" 
+                                                       Text="{Binding direccion}"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="0" 
+                                                       Text="{Binding poblacion}"/>
+                                                <Border Grid.RowSpan="3" Grid.Column="1"
+                                                    CornerRadius="10"
+                                                    Padding="10"
+                                                    Margin="5,0,0,0"
+                                                    Background="{Binding Probabilidad, Converter={StaticResource ProbabilidadToColorConverter}}">
+                                                    <TextBlock Text="{Binding Probabilidad, StringFormat={}{0:P0}}"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Center"
+                                                           FontSize="16"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="White"/>
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </xctk:BusyIndicator>
+                        </Grid>
                     </Border>
                 </Popup>
             </Grid>

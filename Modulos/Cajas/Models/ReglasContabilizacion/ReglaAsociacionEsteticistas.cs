@@ -5,8 +5,10 @@ using System.Linq;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
-    class ReglaAsociacionEsteticistas : IReglaContabilizacion
+    internal class ReglaAsociacionEsteticistas : IReglaContabilizacion
     {
+        public string Nombre => "Asociación Esteticistas";
+
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
             if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())

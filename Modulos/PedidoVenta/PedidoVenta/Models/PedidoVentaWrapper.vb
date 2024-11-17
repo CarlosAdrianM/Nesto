@@ -14,6 +14,7 @@ Public Class PedidoVentaWrapper
         Me.Model = pedido
         Lineas = New ObservableCollection(Of LineaPedidoVentaWrapper)
         AddHandler Lineas.CollectionChanged, AddressOf ContentCollectionChanged
+        AddHandler Prepagos.CollectionChanged, AddressOf PrepagosCollectionChanged
 
         For Each linea In Model.Lineas
             Dim lineaNueva As New LineaPedidoVentaWrapper(linea)
@@ -352,6 +353,25 @@ Public Class PedidoVentaWrapper
                     Model.Lineas.Remove(item.Model)
                 End If
             Next
+            RaisePropertyChanged(String.Empty)
+        End If
+    End Sub
+
+    Private Sub PrepagosCollectionChanged(sender As Object, e As NotifyCollectionChangedEventArgs)
+        If e.NewItems IsNot Nothing Then
+            'For Each item As PrepagoDTO In e.NewItems
+            '    If item IsNot Nothing Then
+
+            '    End If
+            'Next
+        End If
+
+        If e.OldItems IsNot Nothing Then
+            'For Each item As PrepagoDTO In e.OldItems
+            '    If item IsNot Nothing Then
+
+            '    End If
+            'Next
             RaisePropertyChanged(String.Empty)
         End If
     End Sub

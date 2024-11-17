@@ -7,6 +7,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaComunidadPropietariosAlgete : IReglaContabilizacion
     {
+        public string Nombre => "Comunidad propietarios Algete\nRío Tiétar";
+
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
             if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
@@ -66,8 +68,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             if (apunteBancario.ConceptoComun == "03" &&
                 apunteBancario.ConceptoPropio == "029" &&
                 apunteBancario.RegistrosConcepto != null &&
-                apunteBancario.RegistrosConcepto.Any() &&
-                apunteBancario.RegistrosConcepto[0]?.Concepto.Trim() == "COREC.P. POLIGONO INDUSTRIAL RIO TIETA")
+                apunteBancario.RegistrosConcepto.Any(r => r.ConceptoCompleto == "COREC.P. POLIGONO INDUSTRIAL RIO TIETAR"))
             {
                 return true;
             }

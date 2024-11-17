@@ -7,6 +7,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaEmbargo : IReglaContabilizacion
     {
+        public string Nombre => "Embargos nómina";
+
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
             if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
@@ -67,8 +69,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             if (apunteBancario.ConceptoComun == "99" &&
                 apunteBancario.ConceptoPropio == "067" &&
                 apunteBancario.RegistrosConcepto != null &&
-                apunteBancario.RegistrosConcepto.Any() &&
-                apunteBancario.RegistrosConcepto[2]?.Concepto.ToUpper().Trim() == "3202-0000-05-0233-20")
+                apunteBancario.RegistrosConcepto.Count > 2 &&
+                ((apunteBancario.RegistrosConcepto[2].Concepto?.ToUpper().Trim() == "3202-0000-05-0233-20") ||
+                 (apunteBancario.RegistrosConcepto[2].Concepto?.ToUpper().Contains("EXP.2300000533") ?? false)))
             {
                 return true;
             }

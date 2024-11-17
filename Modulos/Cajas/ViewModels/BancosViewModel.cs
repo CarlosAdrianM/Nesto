@@ -383,6 +383,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get { return _terminalesUsuarios; }
             set { SetProperty(ref _terminalesUsuarios, value); }
         }
+        private string _textoBotonContabilizar;
+        public string TextoBotonContabilizar
+        {
+            get => _textoBotonContabilizar;
+            set => SetProperty(ref _textoBotonContabilizar, value);
+        }
 
 
 
@@ -547,9 +553,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 var esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
                 if (esContabilizable)
                 {
+                    TextoBotonContabilizar = regla.Nombre;
                     return true;
                 }
             }
+            TextoBotonContabilizar = string.Empty;
             return false;
         }
         private async void OnContabilizarApunte()

@@ -364,7 +364,7 @@ Public Class RapportService
         End Using
     End Function
 
-    Public Async Function CargarClientesProbabilidad(vendedor As String) As Task(Of List(Of ClienteProbabilidadVenta)) Implements IRapportService.CargarClientesProbabilidad
+    Public Async Function CargarClientesProbabilidad(vendedor As String, tipoInteraccion As String) As Task(Of List(Of ClienteProbabilidadVenta)) Implements IRapportService.CargarClientesProbabilidad
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -373,7 +373,7 @@ Public Class RapportService
             Const numeroClientes As Integer = 20
 
             Try
-                Dim urlConsulta As String = $"Clientes/GetClientesProbabilidadVenta?vendedor={vendedor}&numeroClientes={numeroClientes}"
+                Dim urlConsulta As String = $"Clientes/GetClientesProbabilidadVenta?vendedor={vendedor}&numeroClientes={numeroClientes}&tipoInteraccion={tipoInteraccion}"
 
                 response = Await client.GetAsync(urlConsulta)
 

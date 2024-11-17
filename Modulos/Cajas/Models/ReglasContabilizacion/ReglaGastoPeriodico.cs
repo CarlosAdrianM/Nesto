@@ -16,6 +16,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             _contabilidadService = contabilidadService;
         }
 
+        public string Nombre => "Gasto periódico";
+
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
             if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())

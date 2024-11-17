@@ -2,13 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaMiraviaComision : IReglaContabilizacion
     {
+        public string Nombre => "Comisiones Miravia";
+
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
             if (apuntesBancarios is null || apuntesContabilidad is null || apuntesBancarios.Count() != 1 || !apuntesContabilidad.Any())
@@ -101,18 +101,45 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         private bool VerificarImportesStandard(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos, decimal comisionDescontada)
         {
-            // La comisión de Miravia es del 9% más 1,80 € por cada envío y 0,10 € por cada transferencia
+            // La comisión de Miravia es del 9% más una tarifa por peso de envío (o de retorno) € por cada envío y 0,10 € por cada transferencia
             decimal porcentajeComision = 0.09m;
-            decimal fijoEnvio = 1.8m;
-            decimal fijoTransferencia = .1M;
+            decimal fijoTransferencia = 0.1m;
 
-            decimal comisionCalculada = importeOriginal * porcentajeComision;
-            decimal importeCalculado = importeOriginal - comisionCalculada - (fijoEnvio * numeroPagos) - fijoTransferencia;
-            bool cuadraImporte = importeCalculado - importeIngresado < 0.01m;
+            // Crear conjunto de valores permitidos para fijoEnvio
+            var valoresPermitidos = tarifas.Concat(retornos).Distinct();
 
-            // Verificar que la comisión es correcta y que el importe ingresado coincide
-            bool resultado = cuadraImporte && importeOriginal - importeComision - comisionDescontada == importeIngresado;
+            // Verificar si algún valor en 'valoresPermitidos' permite cuadrar los importes
+            bool resultado = valoresPermitidos.Any(fijoEnvio =>
+            {
+                decimal comisionCalculada = importeOriginal * porcentajeComision;
+                decimal importeCalculado = importeOriginal - comisionCalculada - (fijoEnvio * numeroPagos) - fijoTransferencia;
+                bool cuadraImporte = Math.Abs(importeCalculado - importeIngresado) < 0.01m;
+
+                // Verificar que la comisión es correcta y que el importe ingresado coincide
+                return cuadraImporte && importeOriginal - importeComision - comisionDescontada == importeIngresado;
+            });
+
             return resultado;
         }
+
+        private static List<decimal> tarifas = new List<decimal>
+        {
+            2.40m, 2.50m, 2.70m, 2.80m, 4.00m, 4.20m, 4.30m, 4.47m, 4.78m,
+            5.28m, 6.00m, 6.45m, 6.58m, 7.20m, 7.64m, 7.76m, 7.94m, 8.16m,
+            8.96m, 9.28m, 9.56m, 9.86m, 10.80m, 11.18m, 11.20m, 12.34m, 12.68m,
+            12.93m, 13.87m, 14.00m, 14.76m, 14.87m, 15.40m, 15.82m, 15.98m,
+            16.18m, 16.53m, 17.67m
+        };
+
+        private static List<decimal> retornos = new List<decimal>
+        {
+            1.20m, 1.25m, 1.35m, 1.40m, 2.00m, 2.10m, 2.15m, 2.24m, 2.39m,
+            2.64m, 3.00m, 3.23m, 3.29m, 3.32m, 3.60m, 3.82m, 3.88m, 3.97m,
+            4.08m, 4.48m, 4.64m, 4.78m, 4.93m, 5.40m, 5.59m, 5.60m, 6.17m,
+            6.34m, 6.47m, 6.94m, 7.00m, 7.38m, 7.44m, 7.70m, 7.91m, 7.99m,
+            8.09m, 8.27m, 8.84m
+        };
+
+        
     }
 }

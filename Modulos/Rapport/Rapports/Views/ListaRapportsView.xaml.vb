@@ -1,4 +1,6 @@
-﻿Class ListaRapportsView
+﻿Imports System.Globalization
+
+Class ListaRapportsView
     Public Sub New()
 
         ' Esta llamada es exigida por el diseñador.
@@ -31,3 +33,19 @@
         txtFiltro.SelectAll()
     End Sub
 End Class
+Public Class StringEqualityConverter
+    Implements IMultiValueConverter
+
+    Public Function Convert(values() As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IMultiValueConverter.Convert
+        If values.Length < 2 OrElse values(0) Is Nothing OrElse values(1) Is Nothing Then
+            Return False
+        End If
+        Return values(0).ToString() = values(1).ToString()
+    End Function
+
+    Public Function ConvertBack(value As Object, targetTypes() As Type, parameter As Object, culture As CultureInfo) As Object() Implements IMultiValueConverter.ConvertBack
+        Return targetTypes.Select(Function(t) Binding.DoNothing).ToArray()
+    End Function
+End Class
+
+

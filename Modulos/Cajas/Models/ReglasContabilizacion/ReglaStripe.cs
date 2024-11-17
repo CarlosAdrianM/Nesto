@@ -8,7 +8,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaStripe : IReglaContabilizacion
     {
-        // Stripe nos cobra 1,5% + 0,25 €
+        public string Nombre => "Stripe";
 
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {

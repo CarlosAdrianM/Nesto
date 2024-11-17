@@ -5,20 +5,17 @@ using System.Linq;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
-    class ReglaAmazonPayComision : IReglaContabilizacion
+    internal class ReglaAmazonPayComision : IReglaContabilizacion
     {
+        public string Nombre => "Amazon Pay";
+
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || apuntesBancarios.Count() != 1 || !apuntesContabilidad.Any())
-            {
-                return new ReglaContabilizacionResponse();
-            }
-            var apunteBancario = apuntesBancarios.Single();
             var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
 
-            var importeIngresado = apunteBancario.ImporteMovimiento;
+            var importeIngresado = apuntesBancarios.Sum(b => b.ImporteMovimiento);
             var comisionDescontada = -apuntesContabilidad.Where(c => c.Documento?.Trim() == "COMIS_AMZ").Sum(c => c.Importe);
-            var importeComision = apuntesContabilidad.Sum(c => c.Importe) - apunteBancario.ImporteMovimiento;
+            var importeComision = apuntesContabilidad.Sum(c => c.Importe) - importeIngresado;
             var importeOriginal = importeIngresado + importeComision + comisionDescontada;
 
             if (importeDescuadre == 0M
@@ -38,7 +35,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Concepto = FuncionesAuxiliaresReglas.FormatearConcepto(linea1.Concepto);
 
             // Obtener los últimos 10 caracteres
-            string referenciaCompleta = apunteBancario.Referencia2.Trim();
+            string referenciaCompleta = apuntesBancarios.First().Referencia2.Trim();
             int longitud = referenciaCompleta.Length;
             int caracteresDeseados = 10;
             string ultimos10Caracteres;
@@ -52,7 +49,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 ultimos10Caracteres = referenciaCompleta;
             }
             linea1.Documento = ultimos10Caracteres;
-            linea1.Fecha = new DateOnly(apunteBancario.FechaOperacion.Year, apunteBancario.FechaOperacion.Month, apunteBancario.FechaOperacion.Day);
+            linea1.Fecha = new DateOnly(apuntesBancarios.First().FechaOperacion.Year, apuntesBancarios.First().FechaOperacion.Month, apuntesBancarios.First().FechaOperacion.Day);
             linea1.Delegacion = "ALG";
             linea1.FormaVenta = "VAR";
             linea1.Departamento = "ADM";
@@ -71,23 +68,24 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || apuntesBancarios.Count() != 1 || !apuntesContabilidad.Any())
+            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
             {
                 return false;
-            }
-            var apunteBancario = apuntesBancarios.Single();
+            }            
             
-            var importeIngresado = apunteBancario.ImporteMovimiento;
+            var importeIngresado = apuntesBancarios.Sum(b => b.ImporteMovimiento);
             var comisionDescontada = -apuntesContabilidad.Where(c => c.Documento?.Trim() == "COMIS_AMZ").Sum(c => c.Importe);
-            var importeComision = apuntesContabilidad.Sum(c => c.Importe) - apunteBancario.ImporteMovimiento;
+            var importeComision = apuntesContabilidad.Sum(c => c.Importe) - importeIngresado;
             var importeOriginal = importeIngresado + importeComision + comisionDescontada;
 
 
-            if (apunteBancario.ConceptoComun == "02" &&
-                apunteBancario.ConceptoPropio == "032" &&
-                apunteBancario.RegistrosConcepto != null &&
-                apunteBancario.RegistrosConcepto.Any() &&
-                apunteBancario.RegistrosConcepto[0]?.Concepto.ToLower().Trim() == "amazon payments europe sca" &&
+            if (apuntesBancarios.All(b => 
+                    b.ConceptoComun == "02" &&
+                    b.ConceptoPropio == "032" &&
+                    b.RegistrosConcepto != null &&
+                    b.RegistrosConcepto.Any() &&
+                    b.RegistrosConcepto[0]?.Concepto.ToLower().Trim() == "amazon payments europe sca"
+                ) &&
                 VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0 && a.Documento?.Trim() != "COMIS_AMZ"), comisionDescontada)
                 )
             {
@@ -109,7 +107,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             // La diferencia entre la comisión calculada y la parte variable debe ser múltiplo de 0.35 €
             decimal parteFijaCalculada = importeComision - importeVariable;
 
-            bool esMultiploDeFijo = Math.Abs(parteFijaCalculada % fijoComision) < 0.01m;
+            bool esMultiploDeFijo = Math.Abs(parteFijaCalculada % fijoComision) <= 0.01m;
 
             // Verificar que la comisión es correcta y que el importe ingresado coincide
             return esMultiploDeFijo && importeOriginal - importeComision - comisionDescontada == importeIngresado;

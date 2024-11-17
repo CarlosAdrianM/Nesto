@@ -5,13 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Media.Media3D;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaPagoProveedor : IReglaContabilizacion
     {
         private readonly IBancosService _bancosService;
+
+        public string Nombre => "Pago a proveedor";
 
         public ReglaPagoProveedor(IBancosService bancosService)
         {

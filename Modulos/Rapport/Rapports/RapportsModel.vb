@@ -135,9 +135,9 @@ Public Class RapportsModel
 
         Public Structure idDescripcion
             Public Sub New(
-       ByVal _id As String,
-       ByVal _descripcion As String
-       )
+                ByVal _id As String,
+                ByVal _descripcion As String
+            )
                 id = _id
                 descripcion = _descripcion
             End Sub

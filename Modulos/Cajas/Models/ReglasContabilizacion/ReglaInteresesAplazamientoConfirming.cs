@@ -1,12 +1,9 @@
 ﻿using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cajas.ViewModels;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
@@ -18,6 +15,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
         {
             _dialogService = dialogService;
         }
+
+        public string Nombre => "Intereses aplazamiento confirming";
 
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {

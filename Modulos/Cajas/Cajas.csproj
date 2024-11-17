@@ -2,10 +2,11 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>	
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <RootNamespace>Nesto.Modulos.Cajas</RootNamespace>
+	<InternalsVisibleTo>CajasTests</InternalsVisibleTo>
   </PropertyGroup>
 
   <ItemGroup>
