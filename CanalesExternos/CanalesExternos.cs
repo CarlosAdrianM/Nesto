@@ -25,6 +25,7 @@ namespace Nesto.Modulos.CanalesExternos
         {
             containerRegistry.Register<object, CanalesExternosPedidosView>("CanalesExternosPedidosView");
             containerRegistry.Register<object, CanalesExternosPagosView>("CanalesExternosPagosView");
+            containerRegistry.Register<object, CanalesExternosProductosView>("CanalesExternosProductosView");
         }
     }
 }

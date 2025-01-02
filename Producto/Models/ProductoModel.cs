@@ -26,6 +26,7 @@ namespace Nesto.Modules.Producto.Models
         public string UrlEnlace { get; set; }
         public string UrlFoto { get; set; }
         public bool RoturaStockProveedor { get; set; }
+        public string CodigoBarras { get; set; }
         public int Stock => Stocks?.Sum(s => s.Stock) ?? 0;
         
         public ICollection<ProductoKit> ProductosKit { get; set; }

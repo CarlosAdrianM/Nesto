@@ -15,6 +15,9 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Images\Prestashop.png" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -35,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\CanalesExternosPagos.png" />
+    <Resource Include="Images\Prestashop.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CSharpAmazonSpAPI" Version="1.7.9" />
@@ -54,5 +58,10 @@
       <Version>8.1.97</Version>
     </PackageReference>
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="IopSdk">
+      <HintPath>..\..\..\..\Desktop\IopSdk.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>

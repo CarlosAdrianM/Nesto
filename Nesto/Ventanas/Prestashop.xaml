@@ -4,7 +4,7 @@
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels"
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     WindowState="Maximized"
-    Title="Prestashop" Height="300" Width="300">
+    Title="Prestashop (obsoleto)" Height="300" Width="300">
 
     <Window.DataContext>
         <vm:PrestashopViewModel/>

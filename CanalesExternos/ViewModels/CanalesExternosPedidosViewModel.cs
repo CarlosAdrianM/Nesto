@@ -37,9 +37,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             DialogService = dialogService;
             PedidoVentaService = pedidoVentaService;
 
+            Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion));
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
-            Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));            
-
+            Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
+            
             CrearComandos();
 
             ListaPedidos = new ColeccionFiltrable(new ObservableCollection<PedidoCanalExterno>());
@@ -315,7 +316,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         {
             if (CanalSeleccionado == null)
             {
-                CanalSeleccionado = Factory["Amazon"];
+                CanalSeleccionado = Factory["Miravia"];
             }
             try
             {

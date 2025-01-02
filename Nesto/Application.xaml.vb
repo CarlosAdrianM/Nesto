@@ -28,6 +28,8 @@ Imports ControlesUsuario.Services
 Imports Cajas
 Imports Nesto.Modulos.Cajas
 Imports ControlesUsuario.SelectorProveedor
+Imports Nesto.Modulos.CanalesExternos.Interfaces
+Imports Nesto.Modulos.CanalesExternos.Services
 
 Partial Public Class Application
 
@@ -75,6 +77,7 @@ Partial Public Class Application
         containerRegistry.Register(GetType(IClientesService), GetType(ClientesService))
         containerRegistry.Register(GetType(ISelectorProveedorService), GetType(SelectorProveedorService))
         containerRegistry.Register(GetType(IRecursosHumanosService), GetType(RecursosHumanosService))
+        containerRegistry.Register(GetType(ICanalesExternosProductosService), GetType(CanalesExternosProductosService))
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)

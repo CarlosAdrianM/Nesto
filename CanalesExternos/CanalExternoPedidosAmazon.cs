@@ -206,7 +206,7 @@ namespace Nesto.Modulos.CanalesExternos
             }
 
             return CLIENTE_AMAZON;
-    }
+        }
 
         private string LimpiarTelefono(string telefonoCliente)
         {

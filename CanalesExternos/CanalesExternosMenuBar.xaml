@@ -13,6 +13,7 @@
                                 Header="Canales Externos">
                 <RibbonButton Label="Pedidos" LargeImageSource="Images/CanalesExternos.png" Command="{Binding AbrirModuloPedidosCommand}" />
                 <RibbonButton Label="Pagos" LargeImageSource="Images/CanalesExternosPagos.png" Command="{Binding AbrirModuloPagosCommand}" />
+                <RibbonButton Label="Productos" LargeImageSource="Images/Prestashop.png" Command="{Binding AbrirModuloProductosCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

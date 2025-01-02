@@ -27,6 +27,9 @@ Public Class ComisionAnualResumen
         End Get
     End Property
     Public Property TotalComisiones As Decimal
+    Public Property TotalVentaAcumulada As Decimal
+    Public Property TotalComisionAcumulada As Decimal
+    Public Property TotalTipoAcumulado As Decimal
 
     Public ReadOnly Property ColorProgreso As Brush
         Get

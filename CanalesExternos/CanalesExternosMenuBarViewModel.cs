@@ -17,6 +17,7 @@ namespace Nesto.Modulos.CanalesExternos
 
             AbrirModuloPedidosCommand = new DelegateCommand(OnAbrirPedidosModulo, CanAbrirModuloPedidos);
             AbrirModuloPagosCommand = new DelegateCommand(OnAbrirModuloPagos, CanAbrirModuloPagos);
+            AbrirModuloProductosCommand = new DelegateCommand(OnAbrirModuloProductos, CanAbrirModuloProductos);
         }
 
         public ICommand AbrirModuloPedidosCommand { get; private set; }
@@ -37,6 +38,17 @@ namespace Nesto.Modulos.CanalesExternos
         private void OnAbrirModuloPagos()
         {
             RegionManager.RequestNavigate("MainRegion", "CanalesExternosPagosView");
+        }
+
+
+        public ICommand AbrirModuloProductosCommand { get; private set; }
+        private bool CanAbrirModuloProductos()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE);
+        }
+        private void OnAbrirModuloProductos()
+        {
+            RegionManager.RequestNavigate("MainRegion", "CanalesExternosProductosView");
         }
     }
 }
