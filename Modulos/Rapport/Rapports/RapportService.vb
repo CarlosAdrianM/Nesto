@@ -3,14 +3,9 @@ Imports System.Net.Http
 Imports System.Text
 Imports Azure.Identity
 Imports Microsoft.Graph
-Imports Microsoft.Graph.Auth
-Imports Microsoft.Identity.Client
-Imports Microsoft.Office.Interop
-Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modulos.Cliente
-Imports Nesto.Modulos.Rapports.RapportsModel
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
@@ -393,6 +388,36 @@ Public Class RapportService
 
             Return listaClientes
 
+        End Using
+    End Function
+
+    Public Async Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String) Implements IRapportService.CargarResumenRapports
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuestaJson As String = String.Empty
+
+            Try
+                Dim urlConsulta As String = $"SeguimientosClientes/Resumen?empresa={empresa}&cliente={cliente}&contacto={contacto}"
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuestaJson = Await response.Content.ReadAsStringAsync()
+                Else
+                    respuestaJson = String.Empty
+                End If
+
+            Catch ex As Exception
+                Throw New Exception($"No se ha podido recuperar la el resumen de los rapports del cliente {cliente}/{contacto}", ex)
+            Finally
+
+            End Try
+
+            Dim resultado As Object = JsonConvert.DeserializeObject(Of Object)(respuestaJson)
+            Dim resumen As String = resultado("resumen").ToString()
+
+            Return resumen
         End Using
     End Function
 End Class

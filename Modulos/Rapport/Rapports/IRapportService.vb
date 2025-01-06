@@ -12,4 +12,5 @@ Public Interface IRapportService
     Function CargarListaTipos() As List(Of idDescripcion)
     Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String) As Task(Of Boolean)
     Function CargarClientesProbabilidad(vendedor As String, tipoInteraccion As String) As Task(Of List(Of ClienteProbabilidadVenta))
+    Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String)
 End Interface

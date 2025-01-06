@@ -11,6 +11,7 @@ Imports Prism.Events
 Imports Nesto.Infrastructure.Events
 Imports Prism
 Imports Microsoft.Extensions.Logging
+Imports Newtonsoft.Json.Linq
 
 Public Class ListaRapportsViewModel
     Inherits ViewModelBase
@@ -93,6 +94,16 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As String)
             SetProperty(_contactoSeleccionado, value)
+        End Set
+    End Property
+
+    Private _estaGenerandoResumen As Boolean
+    Public Property EstaGenerandoResumen As Boolean
+        Get
+            Return _estaGenerandoResumen
+        End Get
+        Set(value As Boolean)
+            SetProperty(_estaGenerandoResumen, value)
         End Set
     End Property
 
@@ -206,17 +217,31 @@ Public Class ListaRapportsViewModel
             SetProperty(_listaTiposRapports, value)
         End Set
     End Property
-
+    Private ReadOnly _syncLock As New Object()
     Private _rapportSeleccionado As SeguimientoClienteDTO
     Public Property rapportSeleccionado As SeguimientoClienteDTO
         Get
             Return _rapportSeleccionado
         End Get
         Set(value As SeguimientoClienteDTO)
-            SetProperty(_rapportSeleccionado, value)
-            Dim parameters As NavigationParameters = New NavigationParameters()
-            parameters.Add("rapportParameter", rapportSeleccionado)
-            regionManager.RequestNavigate("RapportDetailRegion", "RapportView", parameters)
+            SyncLock _syncLock
+                SetProperty(_rapportSeleccionado, value)
+                Application.Current.Dispatcher.Invoke(Sub()
+                                                          Dim parameters As NavigationParameters = New NavigationParameters()
+                                                          parameters.Add("rapportParameter", rapportSeleccionado)
+                                                          regionManager.RequestNavigate("RapportDetailRegion", "RapportView", parameters)
+                                                      End Sub)
+            End SyncLock
+        End Set
+    End Property
+
+    Private _resumenListaRapports As String
+    Public Property ResumenListaRapports As String
+        Get
+            Return _resumenListaRapports
+        End Get
+        Set(value As String)
+            SetProperty(_resumenListaRapports, value)
         End Set
     End Property
 
@@ -268,14 +293,26 @@ Public Class ListaRapportsViewModel
         If IsNothing(vendedor) Then
             vendedor = Await configuracion.leerParametro(_empresaPorDefecto, "Vendedor")
         End If
+        ResumenListaRapports = String.Empty
         If Not IsNothing(clienteSeleccionado) Then
             listaRapports = Await servicio.cargarListaRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
+            If Not IsNothing(listaRapports) AndAlso listaRapports.Count > 10 Then
+                Try
+                    EstaGenerandoResumen = True
+                    ResumenListaRapports = Await servicio.CargarResumenRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
+                Catch ex As Exception
+                    _dialogService.ShowError(ex.Message)
+                Finally
+                    EstaGenerandoResumen = False
+                End Try
+
+            End If
         Else
             Dim parametroVendedor As String
             parametroVendedor = IIf(esUsuarioElVendedor, configuracion.usuario, vendedor)
             listaRapports = Await servicio.cargarListaRapports(parametroVendedor, fechaSeleccionada)
+            rapportSeleccionado = listaRapports.FirstOrDefault
         End If
-        rapportSeleccionado = listaRapports.FirstOrDefault
     End Sub
 
     Private _cmdCargarListaRapportsFiltrada As DelegateCommand
@@ -310,10 +347,9 @@ Public Class ListaRapportsViewModel
     End Sub
 
 
-
-    Private _cmdCrearRapport As DelegateCommand(Of ClienteProbabilidadVenta)
     Public Event IsActiveChanged As EventHandler Implements IActiveAware.IsActiveChanged
 
+    Private _cmdCrearRapport As DelegateCommand(Of ClienteProbabilidadVenta)
     Public Property cmdCrearRapport As DelegateCommand(Of ClienteProbabilidadVenta)
         Get
             Return _cmdCrearRapport
