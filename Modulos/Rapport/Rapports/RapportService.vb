@@ -359,7 +359,7 @@ Public Class RapportService
         End Using
     End Function
 
-    Public Async Function CargarClientesProbabilidad(vendedor As String, tipoInteraccion As String) As Task(Of List(Of ClienteProbabilidadVenta)) Implements IRapportService.CargarClientesProbabilidad
+    Public Async Function CargarClientesProbabilidad(vendedor As String, tipoInteraccion As String, grupoSubgrupo As String) As Task(Of List(Of ClienteProbabilidadVenta)) Implements IRapportService.CargarClientesProbabilidad
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -368,7 +368,7 @@ Public Class RapportService
             Const numeroClientes As Integer = 20
 
             Try
-                Dim urlConsulta As String = $"Clientes/GetClientesProbabilidadVenta?vendedor={vendedor}&numeroClientes={numeroClientes}&tipoInteraccion={tipoInteraccion}"
+                Dim urlConsulta As String = $"Clientes/GetClientesProbabilidadVenta?vendedor={vendedor}&numeroClientes={numeroClientes}&tipoInteraccion={tipoInteraccion}&grupoSubgrupo={grupoSubgrupo}"
 
                 response = Await client.GetAsync(urlConsulta)
 
@@ -409,7 +409,7 @@ Public Class RapportService
                 End If
 
             Catch ex As Exception
-                Throw New Exception($"No se ha podido recuperar la el resumen de los rapports del cliente {cliente}/{contacto}", ex)
+                Throw New Exception($"No se ha podido recuperar el resumen de los rapports del cliente {cliente}/{contacto}", ex)
             Finally
 
             End Try

@@ -487,7 +487,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Function CanDescargarPresupuesto() As Boolean
-        Return (Not IsNothing(pedido)) AndAlso pedido.EsPresupuesto
+        Return (Not IsNothing(pedido)) 'AndAlso pedido.EsPresupuesto
     End Function
     Private Async Sub OnDescargarPresupuesto()
         textoBusyIndicator = "Generando proforma..."

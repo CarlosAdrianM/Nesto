@@ -75,13 +75,13 @@
 
                             <TextBlock></TextBlock>
                             <Button Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
-                            <Grid Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Command="{Binding AceptarPresupuestoCommand}">Aceptar Presupuesto</Button>
-                                <Button Grid.Column="1" Command="{Binding DescargarPresupuestoCommand}">Descargar Presupuesto</Button>
+                                <Button Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}" Grid.Column="0" Command="{Binding AceptarPresupuestoCommand}">Aceptar Presupuesto</Button>
+                                <Button Grid.Column="1" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>

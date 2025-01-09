@@ -100,6 +100,7 @@
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
 
@@ -133,8 +134,12 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
                             </StackPanel>
+
+                            <StackPanel Grid.Row="1">
+                                <controles:SelectorSubgrupoProducto GrupoSubgrupoSeleccionado="{Binding GrupoSubgrupoSeleccionado}"></controles:SelectorSubgrupoProducto>
+                            </StackPanel>
                             
-                            <xctk:BusyIndicator IsBusy="{Binding IsLoadingClientesProbabilidad}" BusyContent="Cargando clientes para contactar..." Grid.Row="1">
+                            <xctk:BusyIndicator IsBusy="{Binding IsLoadingClientesProbabilidad}" BusyContent="Cargando clientes para contactar..." Grid.Row="2">
                                 <ListView ItemsSource="{Binding ListaClientesProbabilidad}" 
                                       SelectedItem="{Binding ClienteProbabilidadSeleccionado}"
                                       MaxHeight="200"

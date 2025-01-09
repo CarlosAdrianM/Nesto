@@ -12,6 +12,8 @@ Imports Nesto.Infrastructure.Events
 Imports Prism
 Imports Microsoft.Extensions.Logging
 Imports Newtonsoft.Json.Linq
+Imports Microsoft.Reporting.Map.WebForms.BingMaps
+Imports System.ComponentModel
 
 Public Class ListaRapportsViewModel
     Inherits ViewModelBase
@@ -224,14 +226,18 @@ Public Class ListaRapportsViewModel
             Return _rapportSeleccionado
         End Get
         Set(value As SeguimientoClienteDTO)
-            SyncLock _syncLock
-                SetProperty(_rapportSeleccionado, value)
-                Application.Current.Dispatcher.Invoke(Sub()
-                                                          Dim parameters As NavigationParameters = New NavigationParameters()
-                                                          parameters.Add("rapportParameter", rapportSeleccionado)
-                                                          regionManager.RequestNavigate("RapportDetailRegion", "RapportView", parameters)
-                                                      End Sub)
-            End SyncLock
+            Try
+                SyncLock _syncLock
+                    SetProperty(_rapportSeleccionado, value)
+                    Application.Current.Dispatcher.Invoke(Sub()
+                                                              Dim parameters As NavigationParameters = New NavigationParameters()
+                                                              parameters.Add("rapportParameter", rapportSeleccionado)
+                                                              regionManager.RequestNavigate("RapportDetailRegion", "RapportView", parameters)
+                                                          End Sub)
+                End SyncLock
+            Catch
+                _dialogService.ShowError("No se ha podido actualizar el rapport seleccionado")
+            End Try
         End Set
     End Property
 
@@ -245,6 +251,18 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
+    Private _grupoSubgrupoSeleccionado As String
+    Public Property GrupoSubgrupoSeleccionado As String
+        Get
+            Return _grupoSubgrupoSeleccionado
+        End Get
+        Set(value As String)
+            If SetProperty(_grupoSubgrupoSeleccionado, value) Then
+                ActualizarClientesProbabilidad(value)
+            End If
+        End Set
+    End Property
+
     Private _tipoRapportSeleccionado As idDescripcion
     Public Property TipoRapportSeleccionado As idDescripcion
         Get
@@ -252,7 +270,7 @@ Public Class ListaRapportsViewModel
         End Get
         Set(ByVal value As idDescripcion)
             If (SetProperty(_tipoRapportSeleccionado, value)) Then
-                ActualizarClientesProbabilidad()
+                ActualizarClientesProbabilidad(GrupoSubgrupoSeleccionado)
                 configuracion.GuardarParametro(_empresaPorDefecto, Parametros.Claves.UltTipoSeguimientoCliente, _tipoRapportSeleccionado.id)
             End If
         End Set
@@ -305,7 +323,6 @@ Public Class ListaRapportsViewModel
                 Finally
                     EstaGenerandoResumen = False
                 End Try
-
             End If
         Else
             Dim parametroVendedor As String
@@ -367,7 +384,11 @@ Public Class ListaRapportsViewModel
         If Not IsNothing(cliente) Then
             clienteSeleccionado = cliente.cliente
             contactoSeleccionado = cliente.contacto
-            Await Task.Run(Sub() cmdCargarListaRapports.Execute(Nothing))
+            Try
+                Await Task.Run(Sub() cmdCargarListaRapports.Execute(Nothing))
+            Catch
+                _dialogService.ShowError("No se ha podido cargar la lista de rapports")
+            End Try
         End If
 
 
@@ -424,10 +445,10 @@ Public Class ListaRapportsViewModel
 
 
 
-    Private Async Sub ActualizarClientesProbabilidad()
+    Private Async Sub ActualizarClientesProbabilidad(grupoSubgrupo As String)
         IsLoadingClientesProbabilidad = True
         Try
-            ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(Await servicio.CargarClientesProbabilidad(vendedor, TipoRapportSeleccionado.descripcion))
+            ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(Await servicio.CargarClientesProbabilidad(vendedor, TipoRapportSeleccionado.descripcion, grupoSubgrupo))
         Finally
             IsLoadingClientesProbabilidad = False
         End Try
@@ -457,7 +478,7 @@ Public Class ListaRapportsViewModel
             Dim tipo = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.UltTipoSeguimientoCliente)
             TipoRapportCambiaCommand.Execute(tipo)
         Else
-            ActualizarClientesProbabilidad()
+            ActualizarClientesProbabilidad(GrupoSubgrupoSeleccionado)
         End If
     End Sub
 
