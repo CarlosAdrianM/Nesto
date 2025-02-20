@@ -13,6 +13,8 @@ using System.Linq;
 using System.Xml;
 using static FikaAmazonAPI.Utils.Constants;
 using System.Threading.Tasks;
+using FikaAmazonAPI.AmazonSpApiSDK.Models.Token;
+using FikaAmazonAPI.AmazonSpApiSDK.Services;
 
 public class AmazonApiOrdersService
 {
@@ -73,12 +75,30 @@ public class AmazonApiOrdersService
         }
         searchOrderList.MarketplaceIds = marketplaceId;
         //searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
-        searchOrderList.IsNeedRestrictedDataToken = true;
+        searchOrderList.IsNeedRestrictedDataToken = false;
+        searchOrderList.RestrictedDataTokenRequest = new CreateRestrictedDataTokenRequest
+        {
+            restrictedResources = new List<RestrictedResource> {
+                new RestrictedResource {
+                    method = Method.GET.ToString(),
+                    path = ApiUrls.OrdersApiUrls.Orders,
+                    dataElements = new List<string> {
+                        "buyerInfo",
+                        "shippingAddress"
+                    }
+                }
+            }
+        };
 
         try
         {
             var conexion = AmazonApiOrdersService.ConexionAmazon();
             var orders = await conexion.Orders.GetOrdersAsync(searchOrderList).ConfigureAwait(false);
+            foreach (var orderAdresss in orders)
+            {
+                var address = await conexion.Orders.GetOrderAddressAsync(orderAdresss.AmazonOrderId).ConfigureAwait(false);
+                orderAdresss.ShippingAddress = address.ShippingAddress;
+            }
             return orders;
         }
         catch (Exception ex)
@@ -107,13 +127,32 @@ public class AmazonApiOrdersService
         };
         searchOrderList.FulfillmentChannels = fulfillmentChannel;
         searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
-        searchOrderList.IsNeedRestrictedDataToken = true;
+        searchOrderList.IsNeedRestrictedDataToken = false;
+        searchOrderList.RestrictedDataTokenRequest = new CreateRestrictedDataTokenRequest
+        {
+            restrictedResources = new List<RestrictedResource> {
+                new RestrictedResource {
+                    method = Method.GET.ToString(),
+                    path = ApiUrls.OrdersApiUrls.Orders,
+                    dataElements = new List<string> {
+                        "buyerInfo",
+                        "shippingAddress"
+                    }
+                }
+            }
+        };
 
-        
+
+
         try
         {
             var conexion = AmazonApiOrdersService.ConexionAmazon();
             var orders = await conexion.Orders.GetOrdersAsync(searchOrderList).ConfigureAwait(false);
+            foreach (var orderAdresss in orders)
+            {
+                var address = await conexion.Orders.GetOrderAddressAsync(orderAdresss.AmazonOrderId).ConfigureAwait(false);
+                orderAdresss.ShippingAddress = address.ShippingAddress;
+            }
             return orders;
         }
         catch (Exception ex)

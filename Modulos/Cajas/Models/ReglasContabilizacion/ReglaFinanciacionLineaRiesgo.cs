@@ -43,6 +43,13 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
             var importeDescuadre = apuntesBancariosCargo.Sum(c => c.ImporteMovimiento) + apuntesBancariosAbono.Sum(a => a.ImporteMovimiento);
 
+            decimal importeNoFinanciado = 0;
+            if (apuntesContabilidad.Count() > 1 && !(apuntesBancarios.Count() / apuntesContabilidad.Count() == 2))
+            {
+                importeDescuadre -= apuntesContabilidad.Last().Importe;
+                importeNoFinanciado = apuntesContabilidad.Last().Importe;
+            }
+
             //var importeIngresado = apuntesBancariosAbono.Sum(a => a.ImporteMovimiento);
             var importeIntereses = -importeDescuadre; 
             var importeOriginal = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento);
@@ -110,7 +117,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea3.FormaVenta = "VAR";
                 linea3.Departamento = "ADM";
                 linea3.CentroCoste = "CA";
-                linea3.Haber = -cargo.ImporteMovimiento;
+                linea3.Haber = -cargo.ImporteMovimiento + importeNoFinanciado;
                 lineas.Add(linea3);
 
                 var linea4 = BancosViewModel.CrearPrecontabilidadDefecto();
@@ -124,7 +131,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea4.FormaVenta = "VAR";
                 linea4.Departamento = "ADM";
                 linea4.CentroCoste = "CA";
-                linea4.Debe = -cargo.ImporteMovimiento;
+                linea4.Debe = -cargo.ImporteMovimiento + importeNoFinanciado;
                 linea4.Contrapartida = banco.CuentaContable;
                 lineas.Add(linea4);
             }
@@ -141,7 +148,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any() || apuntesBancarios.Count() / apuntesContabilidad.Count() != 2)
+            if (ElNumeroDeApuntesEsIncorrecto(apuntesBancarios, apuntesContabilidad))
             {
                 return false;
             }
@@ -165,6 +172,32 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
 
             return false;
+        }
+
+        private static bool ElNumeroDeApuntesEsIncorrecto(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
+        {
+
+            // Si no hay apuntes bancarios o contables
+            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
+            {
+                return true;
+            }
+            
+            // Si la suma de los apuntes contables es igual a la suma de los apuntes bancarios negativos y hay apuntes bancarios positivos y negativos devuelve false
+            if (apuntesContabilidad.Sum(c => c.Importe) == apuntesBancarios.Where(b => b.ImporteMovimiento < 0).Sum(b => b.ImporteMovimiento) &&
+                apuntesBancarios.Any(b => b.ImporteMovimiento > 0) &&
+                apuntesBancarios.Any(b => b.ImporteMovimiento < 0))
+            {
+                return false;
+            }
+            
+            // Si no hay el doble de apuntes bancarios que contables
+            if (apuntesBancarios.Count() / apuntesContabilidad.Count() != 2)
+            {
+                return true;
+            }            
+
+            return  false;
         }
 
         private async Task<DateTime> AjustarFechaNoFestiva(DateTime fecha)

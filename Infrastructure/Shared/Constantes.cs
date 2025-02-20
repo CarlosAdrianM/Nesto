@@ -22,6 +22,7 @@ namespace Nesto.Infrastructure.Shared
         {
             public const int ESTADO_NORMAL = 0;
             public const int ESTADO_DISTRIBUIDOR = 6;
+            public const int ESTADO_DISTRIBUIDOR_NO_VISITABLE = 67;
             public const int ESTADO_NO_VISITABLE = 7;
             public const int ESTADO_TELEFONO = 9;
             public class Especiales

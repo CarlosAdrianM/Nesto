@@ -14,6 +14,7 @@ namespace Nesto.Modulos.Cajas.Models
         public string Concepto { get;set; }
         public decimal Debe { get; set; }
         public decimal Haber { get; set; }
+        public decimal Importe => string.IsNullOrEmpty(Contrapartida) ? Debe - Haber : 0;
         public DateOnly Fecha { get; set; }
         public DateOnly FechaVto { get; set; }
         [JsonProperty("Nº_Documento")]

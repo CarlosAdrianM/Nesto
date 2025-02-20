@@ -108,24 +108,24 @@ public class AmazonApiFinancesService {
                 };
                 foreach (var item in evento.ShipmentItemList)
                 {
-                    foreach (var cargo in item.ItemChargeList)
+                    foreach (var cargo in item?.ItemChargeList)
                     {
                         detalle.Importe += (decimal)cargo.ChargeAmount.CurrencyAmount;
                     }
-                    foreach (var tasa in item.ItemFeeList)
+                    foreach (var tasa in item?.ItemFeeList)
                     {
                         detalle.Comisiones += (decimal)tasa.FeeAmount.CurrencyAmount;
                     }
                     if (item.PromotionList != null)
                     {
-                        foreach (var promocion in item.PromotionList)
+                        foreach (var promocion in item?.PromotionList)
                         {
                             detalle.Promociones += (decimal)promocion.PromotionAmount.CurrencyAmount;
                         }
                     }
                     if (item.ItemTaxWithheldList != null)
                     {
-                        foreach (var impuesto in item.ItemTaxWithheldList)
+                        foreach (var impuesto in item?.ItemTaxWithheldList)
                         {
                             foreach (var tax in impuesto.TaxesWithheld)
                             {
@@ -147,24 +147,27 @@ public class AmazonApiFinancesService {
                 };
                 foreach (var item in evento.ShipmentItemAdjustmentList)
                 {
-                    foreach (var cargo in item.ItemChargeAdjustmentList)
+                    foreach (var cargo in item?.ItemChargeAdjustmentList)
                     {
                         detalle.Importe += (decimal)cargo.ChargeAmount.CurrencyAmount;
                     }
-                    foreach (var tasa in item.ItemFeeAdjustmentList)
+                    if (item?.ItemFeeAdjustmentList != null)
                     {
-                        detalle.Comisiones += (decimal)tasa.FeeAmount.CurrencyAmount;
+                        foreach (var tasa in item.ItemFeeAdjustmentList)
+                        {
+                            detalle.Comisiones += (decimal)tasa.FeeAmount.CurrencyAmount;
+                        }
                     }
                     if (item.PromotionAdjustmentList != null)
                     {
-                        foreach (var promocion in item.PromotionAdjustmentList)
+                        foreach (var promocion in item?.PromotionAdjustmentList)
                         {
                             detalle.Comisiones += (decimal)promocion.PromotionAmount.CurrencyAmount;
                         }
                     }
                     if (item.ItemTaxWithheldList != null)
                     {
-                        foreach (var impuesto in item.ItemTaxWithheldList)
+                        foreach (var impuesto in item?.ItemTaxWithheldList)
                         {
                             foreach (var tax in impuesto.TaxesWithheld)
                             {

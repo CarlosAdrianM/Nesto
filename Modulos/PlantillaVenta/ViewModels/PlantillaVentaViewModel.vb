@@ -1531,16 +1531,16 @@ Public Class PlantillaVentaViewModel
     End Function
 
     Private Function CalcularSerie() As String
-        If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.UNION_LASER_NOMBRE) Then
+        Dim estadosValidos = {Constantes.Clientes.ESTADO_DISTRIBUIDOR, Constantes.Clientes.ESTADO_DISTRIBUIDOR_NO_VISITABLE}
+        If estadosValidos.Contains(clienteSeleccionado.estado) AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.UNION_LASER_NOMBRE) Then
             Return Constantes.Series.UNION_LASER
         End If
-
-        If clienteSeleccionado.estado = 6 AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.EVA_VISNU_NOMBRE) Then
+        If estadosValidos.Contains(clienteSeleccionado.estado) AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.EVA_VISNU_NOMBRE) Then
             Return Constantes.Series.EVA_VISNU
         End If
-
         Return Constantes.Series.SERIE_DEFECTO
     End Function
+
 
     Private _cmdInsertarProducto As DelegateCommand(Of Object)
     Public Property cmdInsertarProducto As DelegateCommand(Of Object)
