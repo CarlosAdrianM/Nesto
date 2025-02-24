@@ -638,10 +638,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarGastoCommand { get; private set; }
         private bool CanContabilizarGasto() => ProveedorGasto is not null &&
             !string.IsNullOrEmpty(ProveedorGasto.Proveedor) &&
-            TotalGasto > 0 &&
+            TotalGasto != 0 &&
             !string.IsNullOrEmpty(GastoNumeroFactura);
         private async void OnContabilizarGasto()
         {
+            if (TotalGasto < 0 && !_dialogService.ShowConfirmationAnswer("Gasto negativo", "¿Está seguro que desea contabilizar un gasto negativo?"))
+            {
+                return;
+            }
             string subcadenaGastoNumeroFactura;
             if (GastoNumeroFactura.Length >= 10)
             {

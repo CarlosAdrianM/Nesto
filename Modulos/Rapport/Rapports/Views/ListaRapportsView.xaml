@@ -60,13 +60,16 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <controles:SelectorCliente Grid.Row="0" Name="txtSelectorCliente" Empresa="1" Cliente="{Binding Path=DataContext.clienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Contacto="{Binding DataContext.contactoSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Etiqueta=""></controles:SelectorCliente>
-            <xctk:BusyIndicator Grid.Row="1" IsBusy="{Binding EstaGenerandoResumen}" BusyContent="Generando resumen..." MaxHeight="350">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <TextBlock Text="{Binding ResumenListaRapports}" 
-                               TextWrapping="Wrap" />
-                </ScrollViewer>
-            </xctk:BusyIndicator>
-            
+            <StackPanel Grid.Row="1">
+                <Button Content="Resumir rapports" Command="{Binding GenerarResumenCommand}" />
+
+                <xctk:BusyIndicator IsBusy="{Binding EstaGenerandoResumen}" BusyContent="Generando resumen..." MaxHeight="350">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <TextBlock Text="{Binding ResumenListaRapports}" TextWrapping="Wrap" />
+                    </ScrollViewer>
+                </xctk:BusyIndicator>
+            </StackPanel>
+
 
 
             <StackPanel Grid.Row="2">

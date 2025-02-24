@@ -54,11 +54,81 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var importeIntereses = -importeDescuadre; 
             var importeOriginal = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento);
             var tipoInteres = (importeIntereses / diasAplazados * 360) / importeOriginal; // Aplazamos 90 días y quiero mostrar el interés anual (Euribor 3M + 1,50%)
+            bool confirmado = false;
+            bool primeraIteracion = true; // Para controlar si estamos en la primera iteración
 
-            if (!_dialogService.ShowConfirmationAnswer("Contabilizar", $"¿Desea contabilizar los intereses de {importeIntereses.ToString("c")} ({tipoInteres.ToString("p")}) y vencimiento {fechaVencimiento.ToShortDateString()}?"))
+            while (!confirmado)
             {
-                return null;
+                // Si es la primera iteración y el tipo de interés es mayor al 30%, 
+                // saltamos directamente a pedir un importe manual
+                if (primeraIteracion && tipoInteres > 0.30m)
+                {
+                    _dialogService.ShowNotification("Tipo de interés elevado",
+                        $"El tipo de interés calculado ({tipoInteres.ToString("p")}) es superior al 30%, por favor ajuste el importe.");
+
+                    var importeManual = _dialogService.GetAmount("Financiación parcial", "Introduce el importe a financiar:");
+                    if (importeManual.HasValue)
+                    {
+                        importeOriginal = importeManual.Value;
+                        importeIntereses = importeOriginal - apuntesBancariosAbono.Sum(c => c.ImporteMovimiento);
+                        tipoInteres = (importeIntereses / diasAplazados * 360) / importeOriginal;
+                        importeNoFinanciado = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento) - importeManual.Value;
+                        primeraIteracion = false; // Ya no estamos en la primera iteración
+                    }
+                    else
+                    {
+                        // El usuario canceló la entrada del importe
+                        return null;
+                    }
+                }
+                else
+                {
+                    // Flujo normal de confirmación
+                    if (_dialogService.ShowConfirmationAnswer("Contabilizar",
+                        $"¿Desea contabilizar los intereses de {importeIntereses.ToString("c")} ({tipoInteres.ToString("p")}) y vencimiento {fechaVencimiento.ToShortDateString()}?"))
+                    {
+                        confirmado = true; // El usuario confirmó, salimos del bucle
+                    }
+                    else
+                    {
+                        if (apuntesBancarios.Count() / apuntesContabilidad.Count() != 2)
+                        {
+                            return null; // Condición especial, salimos directamente
+                        }
+
+                        if (!_dialogService.ShowConfirmationAnswer("Contabilizar", "¿Desea contabilizar con otro importe?"))
+                        {
+                            return null; // El usuario no quiere continuar, salimos
+                        }
+
+                        // Lógica para introducir otro importe
+                        var importeManual = _dialogService.GetAmount("Financiación parcial", "Introduce el importe a financiar:");
+                        if (importeManual.HasValue)
+                        {
+                            importeOriginal = importeManual.Value;
+                            importeIntereses = importeOriginal - apuntesBancariosAbono.Sum(c => c.ImporteMovimiento);
+                            tipoInteres = (importeIntereses / diasAplazados * 360) / importeOriginal;
+                            importeNoFinanciado = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento) - importeManual.Value;
+                            primeraIteracion = false; // Ya no estamos en la primera iteración
+                        }
+                        else
+                        {
+                            // El usuario canceló la entrada del importe
+                            return null;
+                        }
+                    }
+                }
+
+                // Verificación adicional después de cualquier cálculo
+                // Si después de recalcular, el tipo de interés sigue siendo demasiado alto, mostrar una advertencia
+                if (tipoInteres > 0.30m && !confirmado)
+                {
+                    _dialogService.ShowNotification("Advertencia",
+                        $"El tipo de interés sigue siendo alto ({tipoInteres.ToString("p")}). Considere ajustar más el importe.");
+                }
             }
+
+            // Continuar con el resto del código después de la confirmación
 
             var lineas = new List<PreContabilidadDTO>();
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
@@ -117,7 +187,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea3.FormaVenta = "VAR";
                 linea3.Departamento = "ADM";
                 linea3.CentroCoste = "CA";
-                linea3.Haber = -cargo.ImporteMovimiento + importeNoFinanciado;
+                linea3.Haber = -cargo.ImporteMovimiento - importeNoFinanciado;
                 lineas.Add(linea3);
 
                 var linea4 = BancosViewModel.CrearPrecontabilidadDefecto();
@@ -131,7 +201,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea4.FormaVenta = "VAR";
                 linea4.Departamento = "ADM";
                 linea4.CentroCoste = "CA";
-                linea4.Debe = -cargo.ImporteMovimiento + importeNoFinanciado;
+                linea4.Debe = -cargo.ImporteMovimiento - importeNoFinanciado;
                 linea4.Contrapartida = banco.CuentaContable;
                 lineas.Add(linea4);
             }

@@ -81,6 +81,7 @@ Partial Public Class Application
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
+        containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window

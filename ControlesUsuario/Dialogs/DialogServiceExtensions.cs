@@ -66,5 +66,58 @@ namespace ControlesUsuario.Dialogs
 
             return confirmed;
         }
+
+
+        public static void ShowInputAmount(this IDialogService dialogService, string message, Action<IDialogResult> callback)
+        {
+            DialogParameters p = new DialogParameters
+            {
+                { "message", message }
+            };
+            dialogService.ShowDialog("InputAmountDialog", p, callback);
+        }
+
+        public static void ShowInputAmount(this IDialogService dialogService, string title, string message, Action<IDialogResult> callback)
+        {
+            DialogParameters p = new DialogParameters
+            {
+                { "title", title },
+                { "message", message }
+            };
+            dialogService.ShowDialog("InputAmountDialog", p, callback);
+        }
+
+        public static void ShowInputAmount(this IDialogService dialogService, string title, string message, string defaultAmount, Action<IDialogResult> callback)
+        {
+            DialogParameters p = new DialogParameters
+            {
+                { "title", title },
+                { "message", message },
+                { "defaultAmount", defaultAmount }
+            };
+            dialogService.ShowDialog("InputAmountDialog", p, callback);
+        }
+
+        // Método de conveniencia para obtener directamente el valor decimal
+        public static decimal? GetAmount(this IDialogService dialogService, string title, string message)
+        {
+            decimal? result = null;
+
+            DialogParameters p = new DialogParameters
+            {
+                { "title", title },
+                { "message", message }
+            };
+
+            dialogService.ShowDialog("InputAmountDialog", p, r =>
+            {
+                if (r.Result == ButtonResult.OK && r.Parameters.ContainsKey("amount"))
+                {
+                    result = r.Parameters.GetValue<decimal>("amount");
+                }
+            });
+
+            return result;
+        }
     }
 }

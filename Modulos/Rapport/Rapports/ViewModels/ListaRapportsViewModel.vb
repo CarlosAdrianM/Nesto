@@ -53,6 +53,7 @@ Public Class ListaRapportsViewModel
         cmdCargarListaRapports = New DelegateCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
         cmdCargarListaRapportsFiltrada = New DelegateCommand(AddressOf OnCargarListaRapportsFiltrada, AddressOf CanCargarListaRapportsFiltrada)
         cmdCrearRapport = New DelegateCommand(Of ClienteProbabilidadVenta)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
+        GenerarResumenCommand = New DelegateCommand(AddressOf OnGenerarResumen, AddressOf CanGenerarResumen)
 
         listaTiposRapports = servicio.CargarListaTipos()
         listaEstadosRapport = servicio.CargarListaEstados()
@@ -314,22 +315,13 @@ Public Class ListaRapportsViewModel
         ResumenListaRapports = String.Empty
         If Not IsNothing(clienteSeleccionado) Then
             listaRapports = Await servicio.cargarListaRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
-            If Not IsNothing(listaRapports) AndAlso listaRapports.Count > 10 Then
-                Try
-                    EstaGenerandoResumen = True
-                    ResumenListaRapports = Await servicio.CargarResumenRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
-                Catch ex As Exception
-                    _dialogService.ShowError(ex.Message)
-                Finally
-                    EstaGenerandoResumen = False
-                End Try
-            End If
         Else
             Dim parametroVendedor As String
             parametroVendedor = IIf(esUsuarioElVendedor, configuracion.usuario, vendedor)
             listaRapports = Await servicio.cargarListaRapports(parametroVendedor, fechaSeleccionada)
             rapportSeleccionado = listaRapports.FirstOrDefault
         End If
+        GenerarResumenCommand.RaiseCanExecuteChanged()
     End Sub
 
     Private _cmdCargarListaRapportsFiltrada As DelegateCommand
@@ -417,6 +409,25 @@ Public Class ListaRapportsViewModel
         End If
         listaRapports.Add(rapportNuevo)
     End Sub
+
+    Public Property GenerarResumenCommand As DelegateCommand
+    Private Function CanGenerarResumen() As Boolean
+        Return Not IsNothing(clienteSeleccionado) AndAlso listaRapports IsNot Nothing AndAlso listaRapports.Count > 10 AndAlso String.IsNullOrEmpty(ResumenListaRapports)
+    End Function
+    Private Async Sub OnGenerarResumen()
+        If Not CanGenerarResumen() Then Exit Sub
+
+        Try
+            EstaGenerandoResumen = True
+            ResumenListaRapports = Await servicio.CargarResumenRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
+        Catch ex As Exception
+            _dialogService.ShowError(ex.Message)
+        Finally
+            EstaGenerandoResumen = False
+            GenerarResumenCommand.RaiseCanExecuteChanged() ' Deshabilitar el botón tras generar el resumen
+        End Try
+    End Sub
+
 
     ' Comando para actualizar SelectedAction usando DelegateCommand
     Private _tipoRapportCambiaCommand As DelegateCommand(Of String)

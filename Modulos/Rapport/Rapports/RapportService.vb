@@ -415,7 +415,7 @@ Public Class RapportService
             End Try
 
             Dim resultado As Object = JsonConvert.DeserializeObject(Of Object)(respuestaJson)
-            Dim resumen As String = resultado("resumen").ToString()
+            Dim resumen As String = resultado("Resumen").ToString()
 
             Return resumen
         End Using
