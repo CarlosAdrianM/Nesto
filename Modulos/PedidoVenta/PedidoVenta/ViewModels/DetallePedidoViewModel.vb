@@ -54,12 +54,17 @@ Public Class DetallePedidoViewModel
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
         EnviarCobroTarjetaCommand = New DelegateCommand(AddressOf OnEnviarCobroTarjeta, AddressOf CanEnviarCobroTarjeta)
         CopiarAlPortapapelesCommand = New DelegateCommand(AddressOf OnCopiarAlPortapapeles)
+        CrearAlbaranVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranVenta, AddressOf CanCrearAlbaranVenta)
+        CrearFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
+        CrearAlbaranYFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranYFacturaVenta, AddressOf CanCrearAlbaranYFacturaVenta)
+
+        EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
 
         eventAggregator.GetEvent(Of ProductoSeleccionadoEvent).Subscribe(AddressOf InsertarProducto)
-        eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf ActualizarLoopup)
+        eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf ActualizarLookup)
     End Sub
 
-    Private Sub ActualizarLoopup()
+    Private Sub ActualizarLookup()
         If Not IsNothing(pedido) Then
             eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
         End If
@@ -137,6 +142,17 @@ Public Class DetallePedidoViewModel
     End Property
 
     Public Property DireccionEntregaSeleccionada As DireccionesEntregaCliente
+
+    Private _esGrupoAlmacen As Boolean
+
+    Public Property EsGrupoQuePuedeFacturar As Boolean
+        Get
+            Return _esGrupoAlmacen
+        End Get
+        Set(value As Boolean)
+            SetProperty(_esGrupoAlmacen, value)
+        End Set
+    End Property
 
     Private _estaBloqueado As Boolean
     Public Property estaBloqueado() As Boolean
@@ -217,6 +233,9 @@ Public Class DetallePedidoViewModel
             RaisePropertyChanged(NameOf(mostrarAceptarPresupuesto))
             AceptarPresupuestoCommand.RaiseCanExecuteChanged()
             DescargarPresupuestoCommand.RaiseCanExecuteChanged()
+            CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
+            CrearFacturaVentaCommand.RaiseCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -477,6 +496,104 @@ Public Class DetallePedidoViewModel
         dialogService.ShowNotification("Datos del pedido copiados al portapapeles")
     End Sub
 
+    Private _crearAlbaranVentaCommand As DelegateCommand
+    Public Property CrearAlbaranVentaCommand As DelegateCommand
+        Get
+            Return _crearAlbaranVentaCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_crearAlbaranVentaCommand, value)
+        End Set
+    End Property
+    Private Function CanCrearAlbaranVenta() As Boolean
+        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso pedido.Lineas.Any(Function(l) l.estado < Constantes.LineasPedido.ESTADO_ALBARAN AndAlso l.estado >= Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
+    End Function
+
+    Private Async Sub OnCrearAlbaranVenta()
+        If Not dialogService.ShowConfirmationAnswer("Crear albarán", "¿Desea crear el albarán del pedido?") Then
+            Return
+        End If
+        Try
+            Dim albaran As Integer = Await servicio.CrearAlbaranVenta(pedido.empresa.ToString, pedido.numero.ToString)
+            dialogService.ShowNotification($"Albarán {albaran} creado correctamente")
+        Catch ex As Exception
+            dialogService.ShowError("No se ha podido crear el albarán")
+        Finally
+            CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
+            CrearFacturaVentaCommand.RaiseCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+        End Try
+    End Sub
+
+    Private _crearFacturaVentaCommand As DelegateCommand
+    Public Property CrearFacturaVentaCommand As DelegateCommand
+        Get
+            Return _crearFacturaVentaCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_crearFacturaVentaCommand, value)
+        End Set
+    End Property
+    Private Function CanCrearFacturaVenta() As Boolean
+        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_ALBARAN)
+    End Function
+
+    Private Async Sub OnCrearFacturaVenta()
+        If Not dialogService.ShowConfirmationAnswer("Crear factura", "¿Desea crear la factura del pedido?") Then
+            Return
+        End If
+        Try
+            Dim factura As String = Await servicio.CrearFacturaVenta(pedido.empresa.ToString, pedido.numero.ToString)
+            cmdCargarPedido.Execute(New ResumenPedido With {.empresa = pedido.empresa, .numero = pedido.numero})
+            dialogService.ShowNotification($"Factura {factura} creada correctamente")
+            Await ImprimirFactura(factura)
+        Catch ex As Exception
+            dialogService.ShowError("No se ha podido crear la factura")
+        Finally
+            CrearFacturaVentaCommand.RaiseCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+        End Try
+    End Sub
+
+    Private Async Function ImprimirFactura(factura As String) As Task
+        If Not dialogService.ShowConfirmationAnswer("Abrir factura", "¿Desea abrir el documento de la factura?") Then
+            Return
+        End If
+        Dim pathFactura = Await servicio.DescargarFactura(pedido.empresa, factura, pedido.cliente)
+        Process.Start(New ProcessStartInfo(pathFactura) With {
+            .UseShellExecute = True
+        })
+    End Function
+
+    Private _crearAlbaranYFacturaVentaCommand As DelegateCommand
+    Public Property CrearAlbaranYFacturaVentaCommand As DelegateCommand
+        Get
+            Return _crearAlbaranYFacturaVentaCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_crearAlbaranYFacturaVentaCommand, value)
+        End Set
+    End Property
+    Private Function CanCrearAlbaranYFacturaVenta() As Boolean
+        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso pedido.Lineas.Any(Function(l) l.estado < Constantes.LineasPedido.ESTADO_FACTURA AndAlso l.estado >= Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
+    End Function
+
+    Private Async Sub OnCrearAlbaranYFacturaVenta()
+        If Not dialogService.ShowConfirmationAnswer("Crear albarán y factura", "¿Desea crear la factura del pedido directamente?") Then
+            Return
+        End If
+        Try
+            Dim albaran As Integer = Await servicio.CrearAlbaranVenta(pedido.empresa.ToString, pedido.numero.ToString)
+            Dim factura As String = Await servicio.CrearFacturaVenta(pedido.empresa.ToString, pedido.numero.ToString)
+            cmdCargarPedido.Execute(New ResumenPedido With {.empresa = pedido.empresa, .numero = pedido.numero})
+            dialogService.ShowNotification($"Albarán {albaran} y factura {factura} creados correctamente")
+            Await ImprimirFactura(factura)
+        Catch ex As Exception
+            dialogService.ShowError("No se ha podido crear el albarán o la factura")
+        End Try
+    End Sub
+
+
     Private _descargarPresupuestoCommand As DelegateCommand
     Public Property DescargarPresupuestoCommand As DelegateCommand
         Get
@@ -494,23 +611,11 @@ Public Class DetallePedidoViewModel
         estaBloqueado = True
 
         Try
-            Dim np As IntPtr
-            SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
-            Dim path As String = Marshal.PtrToStringUni(np)
-            Marshal.FreeCoTaskMem(np)
-
-
-            Dim factura As Byte() = Await CargarFactura(pedido.empresa, pedido.numero)
-            Dim ms As New MemoryStream(factura)
-            'write to file
-            Dim file As New FileStream(path + "\Cliente_" + pedido.cliente + "_" + pedido.numero.ToString + ".pdf", FileMode.Create, FileAccess.Write)
-            ms.WriteTo(file)
-            file.Close()
-            ms.Close()
-
+            Dim path As String = Await servicio.DescargarFactura(pedido.empresa, pedido.numero.ToString, pedido.cliente)
+            Dim pathDirectorio As String = path.Substring(0, path.LastIndexOf("\"))
 
             ' Abrimos la carpeta de descargas
-            Process.Start(New ProcessStartInfo(path) With {
+            Process.Start(New ProcessStartInfo(pathDirectorio) With {
                 .UseShellExecute = True
             })
         Catch ex As Exception
@@ -546,45 +651,6 @@ Public Class DetallePedidoViewModel
         End If
         servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, CobroTarjetaImporte, pedido.numero.ToString, pedido.cliente)
     End Sub
-
-    Private Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
-        If IsNothing(pedido) Then
-            Return Nothing
-        End If
-
-
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
-            Dim respuesta As Byte()
-
-            Try
-                Dim urlConsulta As String = "Facturas"
-                urlConsulta += "?empresa=" + empresa
-                urlConsulta += "&numeroFactura=" + numeroFactura
-
-
-                response = Await client.GetAsync(urlConsulta)
-
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsByteArrayAsync()
-                Else
-                    respuesta = Nothing
-                End If
-
-            Catch ex As Exception
-                Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
-            Finally
-
-            End Try
-
-            Return respuesta
-        End Using
-
-
-    End Function
-
-
 
     Private _cmdModificarPedido As DelegateCommand
     Public Property cmdModificarPedido As DelegateCommand
@@ -656,8 +722,7 @@ Public Class DetallePedidoViewModel
 
 #End Region
 
-    <DllImport("shell32")>
-    Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInt32, ByVal hToken As IntPtr, ByRef np As IntPtr) As Int32 : End Function
+
 
     Public Overloads Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
         Dim resumen = navigationContext.Parameters("resumenPedidoParameter")
@@ -685,4 +750,6 @@ Public Class DetallePedidoViewModel
         End If
         Return pedidoString
     End Function
+
+
 End Class

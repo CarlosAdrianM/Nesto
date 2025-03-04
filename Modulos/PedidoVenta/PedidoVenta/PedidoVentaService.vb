@@ -1,9 +1,11 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.IO
 Imports System.Net.Http
+Imports System.Runtime.InteropServices
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared.Constantes
 Imports Nesto.Models
-Imports Nesto.Models.LineaPedidoVentaDTO
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
@@ -403,5 +405,143 @@ Public Class PedidoVentaService
             End Try
 
         End Using
+    End Function
+
+    Public Async Function CrearAlbaranVenta(empresa As String, numeroPedido As Integer) As Task(Of Integer) Implements IPedidoVentaService.CrearAlbaranVenta
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Dim parametro As New With {
+                .Empresa = empresa,
+                .Pedido = numeroPedido
+            }
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
+
+            Try
+                response = Await client.PostAsync("AlbaranesVenta/CrearAlbaran", content)
+
+                If response.IsSuccessStatusCode Then
+                    Dim respuestaString As String = Await response.Content.ReadAsStringAsync()
+                    Dim pedidoRespuesta As Integer = JsonConvert.DeserializeObject(Of Integer)(respuestaString)
+                    If Not IsNothing(pedidoRespuesta) Then
+                        Return pedidoRespuesta
+                    Else
+                        Throw New Exception("Albarán no creado")
+                    End If
+                Else
+                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+
+                    Throw New Exception(contenido)
+                End If
+            Catch ex As Exception
+                Throw New Exception(ex.Message)
+            Finally
+
+            End Try
+
+        End Using
+    End Function
+
+    Public Async Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of String) Implements IPedidoVentaService.CrearFacturaVenta
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            Dim parametro As New With {
+                .Empresa = empresa,
+                .Pedido = numeroPedido
+            }
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
+
+            Try
+                response = Await client.PostAsync("Facturas/CrearFactura", content)
+
+                If response.IsSuccessStatusCode Then
+                    Dim respuestaString As String = Await response.Content.ReadAsStringAsync()
+                    Dim pedidoRespuesta As String = JsonConvert.DeserializeObject(Of String)(respuestaString)
+                    If Not IsNothing(pedidoRespuesta) Then
+                        Return pedidoRespuesta
+                    Else
+                        Throw New Exception("Factura no creada")
+                    End If
+                Else
+                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")
+                        contenido = contenido + vbCr + contenido2
+                    End While
+
+                    Throw New Exception(contenido)
+                End If
+            Catch ex As Exception
+                Throw New Exception(ex.Message)
+            Finally
+
+            End Try
+
+        End Using
+    End Function
+
+    Public Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte()) Implements IPedidoVentaService.CargarFactura
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As Byte()
+
+            Try
+                Dim urlConsulta As String = "Facturas"
+                urlConsulta += "?empresa=" + empresa
+                urlConsulta += "&numeroFactura=" + numeroFactura
+
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    respuesta = Await response.Content.ReadAsByteArrayAsync()
+                Else
+                    respuesta = Nothing
+                End If
+
+            Catch ex As Exception
+                Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
+            Finally
+
+            End Try
+
+            Return respuesta
+        End Using
+    End Function
+
+    <DllImport("shell32")>
+    Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInt32, ByVal hToken As IntPtr, ByRef np As IntPtr) As Int32 : End Function
+    Public Async Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String) As Task(Of String) Implements IPedidoVentaService.DescargarFactura
+        Dim np As IntPtr
+        SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
+        Dim path As String = Marshal.PtrToStringUni(np)
+        Marshal.FreeCoTaskMem(np)
+
+
+        Dim factura As Byte() = Await CargarFactura(empresa, numeroFactura)
+        Dim ms As New MemoryStream(factura)
+        'write to file
+        Dim nombreArchivo As String = path + "\Cliente_" + cliente + "_" + numeroFactura.ToString + ".pdf"
+        Dim file As New FileStream(nombreArchivo, FileMode.Create, FileAccess.Write)
+        ms.WriteTo(file)
+        file.Close()
+        ms.Close()
+        Return nombreArchivo
     End Function
 End Class

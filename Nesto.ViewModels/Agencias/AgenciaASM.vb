@@ -64,7 +64,7 @@ Public Class AgenciaASM
     ' Funciones
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
         If IsNothing(envio) Then
-            agenciaVM.dialogService.ShowError("No hay ningún envío seleccionado, no se puede cargar el estado")
+            agenciaVM._dialogService.ShowError("No hay ningún envío seleccionado, no se puede cargar el estado")
             Return Nothing
         End If
         If envio.Servicio = 96 Then ' BusinessParcel
@@ -456,7 +456,7 @@ Public Class AgenciaASM
 
             RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
         Catch ex As Exception
-            agenciaVM.dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.ToString)
+            agenciaVM._dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.ToString)
         End Try
     End Sub
     Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir

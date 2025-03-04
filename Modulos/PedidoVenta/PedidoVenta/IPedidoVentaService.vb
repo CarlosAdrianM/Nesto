@@ -14,4 +14,8 @@ Public Interface IPedidoVentaService
     Sub EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, cliente As String)
     Function CargarPedidosPendientes(empresa As String, cliente As String) As Task(Of ObservableCollection(Of Integer))
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer) As Task(Of PedidoVentaDTO)
+    Function CrearAlbaranVenta(empresa As String, numeroPedido As Integer) As Task(Of Integer)
+    Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of String)
+    Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
+    Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String) As Task(Of String)
 End Interface
