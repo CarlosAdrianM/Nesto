@@ -414,7 +414,8 @@ Public Class PedidoVentaService
 
             Dim parametro As New With {
                 .Empresa = empresa,
-                .Pedido = numeroPedido
+                .Pedido = numeroPedido,
+                .Usuario = configuracion.usuario
             }
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
@@ -458,7 +459,8 @@ Public Class PedidoVentaService
 
             Dim parametro As New With {
                 .Empresa = empresa,
-                .Pedido = numeroPedido
+                .Pedido = numeroPedido,
+                .Usuario = configuracion.usuario
             }
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
