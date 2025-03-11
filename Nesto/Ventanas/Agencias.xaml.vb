@@ -46,6 +46,9 @@ Public Class Agencias
 
     Private Async Sub Agencias_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         Dim viewModel As AgenciasViewModel = CType(Me.DataContext, AgenciasViewModel)
+        If viewModel IsNot Nothing Then
+            AddHandler viewModel.SolicitarFocoNumeroPedido, AddressOf OnSolicitarFocoNumeroPedido
+        End If
         ' Ponemos e IF para que no entre cada vez que coja el foco
         If IsNothing(viewModel.numeroPedido) OrElse viewModel.numeroPedido.Trim = "" Then
             viewModel.cmdCargarDatos.Execute() ' Await 
@@ -153,5 +156,17 @@ Public Class Agencias
 
     Private Sub txtPeso_PreviewMouseLeftButtonUp(sender As Object, e As MouseButtonEventArgs) Handles txtPeso.PreviewMouseLeftButtonUp
         txtPeso.SelectAll()
+    End Sub
+
+    Private Sub OnSolicitarFocoNumeroPedido(sender As Object, e As EventArgs)
+        txtNumeroPedido.Dispatcher.InvokeAsync(Sub()
+                                                   txtNumeroPedido.Focus()
+                                                   txtNumeroPedido.SelectAll()
+                                               End Sub)
+    End Sub
+
+    Private Sub Agencias_Unloaded(sender As Object, e As RoutedEventArgs) Handles MyBase.Unloaded
+        Dim viewModel As AgenciasViewModel = CType(Me.DataContext, AgenciasViewModel)
+        RemoveHandler viewModel.SolicitarFocoNumeroPedido, AddressOf OnSolicitarFocoNumeroPedido
     End Sub
 End Class

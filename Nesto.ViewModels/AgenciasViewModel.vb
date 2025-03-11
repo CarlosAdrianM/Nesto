@@ -88,6 +88,8 @@ Public Class AgenciasViewModel
     End Sub
 
 
+    Public Event SolicitarFocoNumeroPedido As EventHandler
+
 #Region "Propiedades"
     ' Carlos 03/09/14
     ' Las propiedades que terminan en "envio" son las que se usan de manera temporal para que el usuario
@@ -1443,6 +1445,7 @@ Public Class AgenciasViewModel
         Try
             agenciaEspecifica.imprimirEtiqueta(envioActual)
             If Not _facturarAlImprimirEtiqueta Then
+                RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
                 Return
             End If
             Dim albaran = Await _servicioPedidos.CrearAlbaranVenta(envioActual.Empresa, envioActual.Pedido)
@@ -1453,7 +1456,7 @@ Public Class AgenciasViewModel
             If Not _imprimirFacturaAlFacturar Then
                 Return
             End If
-            Dim pathFactura = Await _servicioPedidos.DescargarFactura(envioActual.Empresa, envioActual.Pedido, envioActual.Cliente)
+            Dim pathFactura = Await _servicioPedidos.DescargarFactura(envioActual.Empresa, envioActual.Pedido, envioActual.Cliente.Trim())
             Dim printProcess As New Process()
             printProcess.StartInfo = New ProcessStartInfo With {
                 .FileName = pathFactura,
@@ -1462,6 +1465,8 @@ Public Class AgenciasViewModel
                 .UseShellExecute = True
             }
             printProcess.Start()
+
+            RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
         End Try
@@ -1556,6 +1561,7 @@ Public Class AgenciasViewModel
             textoImprimir = "Envío ampliado correctamente"
         End If
         _dialogService.ShowNotification("Envío", textoImprimir)
+        RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
     End Sub
 
     Private _cmdCargarEstado As DelegateCommand(Of Object)

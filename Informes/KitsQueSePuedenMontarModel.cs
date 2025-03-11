@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Nesto.Informes
@@ -15,6 +14,7 @@ namespace Nesto.Informes
         public string Kit { get; set; }
         public string Nombre { get; set; }
         public int CantidadAMontar { get; set; }
+        public string CodigoBarras { get; set; }
 
         public static async Task<List<KitsQueSePuedenMontarModel>> CargarDatos()
         {
@@ -34,6 +34,7 @@ namespace Nesto.Informes
                         Tipo = p.Tipo?.Trim(),
                         Kit = p.Kit?.Trim(),
                         Nombre = p.Nombre?.Trim(),
+                        CodigoBarras = p.CodigoBarras?.Trim(),
                         CantidadAMontar = p.CantidadAMontar
                     }).ToList();
                 }
