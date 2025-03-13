@@ -1451,9 +1451,14 @@ Public Class AgenciasViewModel
             Dim albaran = Await _servicioPedidos.CrearAlbaranVenta(envioActual.Empresa, envioActual.Pedido)
             Dim factura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
 
-            Dim mensaje = $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}"
+            Dim mensaje As String
+            If factura <> Constantes.PeriodosFacturacion.FIN_DE_MES Then
+                mensaje = $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}"
+            Else
+                mensaje = $"Albarán del pedido {envioActual.Pedido} creado correctamente en albarán {albaran}"
+            End if
             _dialogService.ShowNotification("Facturación", mensaje)
-            If Not _imprimirFacturaAlFacturar Then
+            If Not _imprimirFacturaAlFacturar OrElse factura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
                 Return
             End If
             Dim pathFactura = Await _servicioPedidos.DescargarFactura(envioActual.Empresa, envioActual.Pedido, envioActual.Cliente.Trim())

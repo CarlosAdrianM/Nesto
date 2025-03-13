@@ -16,6 +16,7 @@ Imports ControlesUsuario.Models
 Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 Imports Nesto.Models
 Imports System.Collections.ObjectModel
+Imports Microsoft.CodeAnalysis.VisualBasic.Syntax
 
 Public Class DetallePedidoViewModel
     Inherits BindableBase
@@ -535,7 +536,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Function CanCrearFacturaVenta() As Boolean
-        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_ALBARAN)
+        Return Not IsNothing(pedido) AndAlso pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES AndAlso Not IsNothing(pedido.Lineas) AndAlso pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_ALBARAN)
     End Function
 
     Private Async Sub OnCrearFacturaVenta()
@@ -544,11 +545,14 @@ Public Class DetallePedidoViewModel
         End If
         Try
             Dim factura As String = Await servicio.CrearFacturaVenta(pedido.empresa.ToString, pedido.numero.ToString)
+            If factura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
+                Throw New Exception("No se pudo crear factura porque el cliente es de fin de mes")
+            End If
             cmdCargarPedido.Execute(New ResumenPedido With {.empresa = pedido.empresa, .numero = pedido.numero})
             dialogService.ShowNotification($"Factura {factura} creada correctamente")
             Await ImprimirFactura(factura)
         Catch ex As Exception
-            dialogService.ShowError("No se ha podido crear la factura")
+            dialogService.ShowError($"No se ha podido crear la factura:\n {ex.Message}")
         Finally
             CrearFacturaVentaCommand.RaiseCanExecuteChanged()
             CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
@@ -575,7 +579,7 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Function CanCrearAlbaranYFacturaVenta() As Boolean
-        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso pedido.Lineas.Any(Function(l) l.estado < Constantes.LineasPedido.ESTADO_FACTURA AndAlso l.estado >= Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
+        Return Not IsNothing(pedido) AndAlso pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES AndAlso Not IsNothing(pedido.Lineas) AndAlso pedido.Lineas.Any(Function(l) l.estado < Constantes.LineasPedido.ESTADO_FACTURA AndAlso l.estado >= Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
     End Function
 
     Private Async Sub OnCrearAlbaranYFacturaVenta()

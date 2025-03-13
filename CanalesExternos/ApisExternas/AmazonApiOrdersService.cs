@@ -222,7 +222,7 @@ public class AmazonApiOrdersService
     {
         if (monedaDestino != "EUR")
         {
-            throw new Exception("No se puede convertir a monedas distantas al Euro");
+            throw new Exception("No se puede convertir a monedas distintas al Euro");
         }
         try
         {
