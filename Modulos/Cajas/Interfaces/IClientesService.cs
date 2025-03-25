@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace Nesto.Modulos.Cajas
+namespace Nesto.Modulos.Cajas.Interfaces
 {
     public interface IClientesService
     {

@@ -14,4 +14,5 @@ Public Interface IPlantillaVentaService
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO)
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
     Function CalcularFechaEntrega(fecha As DateTime, ruta As String, almacen As String) As Task(Of DateTime)
+    Function CargarVendedoresEquipo(jefeEquipo As String) As Task(Of List(Of VendedorDTO))
 End Interface

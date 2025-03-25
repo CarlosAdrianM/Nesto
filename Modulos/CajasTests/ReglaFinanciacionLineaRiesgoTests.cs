@@ -1,5 +1,5 @@
 ﻿using FakeItEasy;
-using Nesto.Modulos.Cajas;
+using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.Models.ReglasContabilizacion;
 using Prism.Services.Dialogs;

@@ -4,7 +4,9 @@ Imports System.Text
 Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.[Shared]
+Imports Nesto.Infrastructure.Shared.Constantes
 Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.Cliente
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
@@ -311,6 +313,27 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    Public Async Function CargarVendedoresEquipo(jefeEquipo As String) As Task(Of List(Of VendedorDTO)) Implements IPlantillaVentaService.CargarVendedoresEquipo
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Try
+                Dim urlConsulta As String = $"Vendedores?empresa={Constantes.Empresas.EMPRESA_DEFECTO}&vendedor={jefeEquipo}"
+                response = Await client.GetAsync(urlConsulta)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    Dim vendedoresEquipo = JsonConvert.DeserializeObject(Of List(Of VendedorDTO))(cadenaJson)
+                    Return vendedoresEquipo
+                Else
+                    Throw New Exception("Se ha producido un error al cargar los vendedores del equipo")
+                End If
+            Catch ex As Exception
+                Throw New Exception(ex.Message)
+            End Try
+        End Using
+    End Function
+
     Private Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta) Implements IPlantillaVentaService.CargarProductosBonificables
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
@@ -332,6 +355,5 @@ Public Class PlantillaVentaService
                 Throw New Exception("Se ha producido un error al cargar los productos bonificables", ex)
             End Try
         End Using
-
     End Function
 End Class

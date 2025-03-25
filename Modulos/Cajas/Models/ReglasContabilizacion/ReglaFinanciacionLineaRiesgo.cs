@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ControlesUsuario.Dialogs;
 using System.Threading.Tasks;
+using Nesto.Modulos.Cajas.Interfaces;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {

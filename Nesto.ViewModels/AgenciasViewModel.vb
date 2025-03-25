@@ -19,9 +19,9 @@ Imports System.Reflection
 Imports Microsoft.Reporting.NETCore
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
-Imports Nesto.Modulos.Cajas
 Imports System.Text.RegularExpressions
 Imports Nesto.Modulos.PedidoVenta
+Imports Nesto.Modulos.Cajas.Interfaces
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -1456,7 +1456,7 @@ Public Class AgenciasViewModel
                 mensaje = $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}"
             Else
                 mensaje = $"Albarán del pedido {envioActual.Pedido} creado correctamente en albarán {albaran}"
-            End if
+            End If
             _dialogService.ShowNotification("Facturación", mensaje)
             If Not _imprimirFacturaAlFacturar OrElse factura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
                 Return

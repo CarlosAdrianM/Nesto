@@ -30,6 +30,8 @@ Imports Nesto.Modulos.Cajas
 Imports ControlesUsuario.SelectorProveedor
 Imports Nesto.Modulos.CanalesExternos.Interfaces
 Imports Nesto.Modulos.CanalesExternos.Services
+Imports Nesto.Modulos.Cajas.Services
+Imports Nesto.Modulos.Cajas.Interfaces
 
 Partial Public Class Application
 

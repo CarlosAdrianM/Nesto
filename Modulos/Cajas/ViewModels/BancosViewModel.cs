@@ -1,9 +1,10 @@
 ﻿using ControlesUsuario.Dialogs;
-using ControlesUsuario.Models;
 using Microsoft.Win32;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
+using Nesto.Modulos.Cajas.Bancos;
+using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.Models.ReglasContabilizacion;
 using Nesto.Modulos.PedidoCompra;
@@ -35,7 +36,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private readonly IConfiguracion _configuracion;
         private readonly IDialogService _dialogService;
         private readonly IPedidoCompraService _pedidoCompraService;
-        private List<IReglaContabilizacion> _reglasContabilizacion;
+        private readonly List<IReglaContabilizacion> _reglasContabilizacion;
         private readonly IUnityContainer _container;
         private readonly IRecursosHumanosService _recursosHumanosService;
 
@@ -51,10 +52,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
             _container = container;
             _recursosHumanosService = recursosHumanosService;
 
-            ApuntesContabilidad = new ObservableCollection<ContabilidadWrapper>();
-            ContenidoCuaderno43 = new ContenidoCuaderno43();
-            ContenidoCuaderno43.Cabecera = new RegistroCabeceraCuenta();
-            ContenidoCuaderno43.FinalCuenta = new RegistroFinalCuenta();
+            ApuntesContabilidad = [];
+            ContenidoCuaderno43 = new ContenidoCuaderno43
+            {
+                Cabecera = new RegistroCabeceraCuenta(),
+                FinalCuenta = new RegistroFinalCuenta()
+            };
 
             AbrirPedidoCommand = new DelegateCommand<PrepagoDTO>(OnAbrirPedido);
             CargarArchivoCommand = new DelegateCommand(OnCargarArchivo);
@@ -67,8 +70,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             SeleccionarApuntesBancoCommand = new DelegateCommand<IList>(OnSeleccionarApuntesBanco);
             SeleccionarApuntesContabilidadCommand = new DelegateCommand<IList>(OnSeleccionarApuntesContabilidad);
 
-            _reglasContabilizacion = new List<IReglaContabilizacion>
-            {
+            _reglasContabilizacion =
+            [
                 new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService),
                 new ReglaAdelantosNomina(),
                 new ReglaComisionesBanco(),
@@ -88,7 +91,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 new ReglaComisionRemesaRecibos(_bancosService),
                 new ReglaPagoProveedor(_bancosService),
                 new ReglaGastoPeriodico(_contabilidadService)
-            };
+            ];
+            ListaBancos =
+            [
+                new BancoCaixabank(_bancosService),
+                new BancoPaypal(_bancosService)
+            ];
 
             Titulo = "Bancos";
         }
@@ -98,7 +106,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _apuntesBancoCollectionView;
             set => SetProperty(ref _apuntesBancoCollectionView, value);
         }
-        private ApunteBancarioWrapper _apunteBancoSeleccionado;        
+        private ApunteBancarioWrapper _apunteBancoSeleccionado;
         public ApunteBancarioWrapper ApunteBancoSeleccionado
         {
             get => _apunteBancoSeleccionado;
@@ -107,16 +115,16 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (SetProperty(ref _apunteBancoSeleccionado, value))
                 {
                     // Comprobamos las condiciones antes de cargar los movimientos relacionados
-                    if (CumpleCondicionesTPV(_apunteBancoSeleccionado))
+                    if (BancoSeleccionado.CumpleCondicionesTPV(_apunteBancoSeleccionado))
                     {
                         // Cargar los movimientos relacionados dependiendo del literal Concepto2
-                        
-                        CargarMovimientosRelacionadosTPV(ApunteBancoSeleccionado.RegistrosConcepto[0].Concepto2.Substring(0, 3));
+
+                        _ = CargarMovimientosRelacionadosTPV(ApunteBancoSeleccionado.RegistrosConcepto[0].Concepto2[..3]);
                     }
                     else
                     {
-                        MovimientosRelacionados = new ObservableCollection<MovimientoTPV>();
-                        PrepagosPendientes = new();
+                        MovimientosRelacionados = [];
+                        PrepagosPendientes = [];
                     }
                     ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
                 }
@@ -128,14 +136,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _apuntesBanco;
             set
             {
-                foreach (var apunte in value)
+                foreach (ApunteBancarioWrapper apunte in value)
                 {
                     if (apunte.ClaveDebeOHaberMovimiento == "1")
                     {
                         apunte.ImporteMovimiento *= -1;
                     }
                 }
-                SetProperty(ref _apuntesBanco, value);
+                _ = SetProperty(ref _apuntesBanco, value);
             }
         }
         private IEnumerable<ApunteBancarioWrapper> _apuntesBancoSeleccionados;
@@ -144,7 +152,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _apuntesBancoSeleccionados;
             set
             {
-                SetProperty(ref _apuntesBancoSeleccionados, value);
+                _ = SetProperty(ref _apuntesBancoSeleccionados, value);
                 ((DelegateCommand)RegularizarDiferenciaCommand).RaiseCanExecuteChanged();
                 ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
             }
@@ -158,18 +166,19 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _apunteContabilidadSeleccionado, value))
                 {
-                    CargarExtractoProveedorAsiento(value);
+                    _ = CargarExtractoProveedorAsiento(value);
                     ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
                 }
             }
         }
 
         private ObservableCollection<ContabilidadWrapper> _apuntesContabilidad;
-        public ObservableCollection<ContabilidadWrapper> ApuntesContabilidad { 
+        public ObservableCollection<ContabilidadWrapper> ApuntesContabilidad
+        {
             get => _apuntesContabilidad;
-            set 
-            { 
-                SetProperty(ref _apuntesContabilidad, value);
+            set
+            {
+                _ = SetProperty(ref _apuntesContabilidad, value);
                 RaisePropertyChanged(nameof(SaldoFinalContabilidad));
                 RaisePropertyChanged(nameof(DescuadreSaldoFinal));
             }
@@ -184,33 +193,37 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public IEnumerable<ContabilidadWrapper> ApuntesContabilidadSeleccionados
         {
             get => _apuntesContabilidadSeleccionados;
-            set 
-            { 
-                SetProperty(ref _apuntesContabilidadSeleccionados, value);
+            set
+            {
+                _ = SetProperty(ref _apuntesContabilidadSeleccionados, value);
                 ((DelegateCommand)RegularizarDiferenciaCommand).RaiseCanExecuteChanged();
                 ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
             }
         }
-        
-        private BancoDTO _banco;
-        public BancoDTO Banco {
-            get => _banco;
+
+        private IBancoConciliacion _bancoSeleccionado;
+        public IBancoConciliacion BancoSeleccionado
+        {
+            get => _bancoSeleccionado;
             set
             {
-                SetProperty(ref _banco, value);
+                if (SetProperty(ref _bancoSeleccionado, value))
+                {
+                    _ = CargarApuntes(FechaDesde, FechaHasta);
+                }
             }
         }
         private ContenidoCuaderno43 _contenidoCuaderno43;
-        public ContenidoCuaderno43 ContenidoCuaderno43 
+        public ContenidoCuaderno43 ContenidoCuaderno43
         {
             get => _contenidoCuaderno43;
             set
             {
-                SetProperty(ref _contenidoCuaderno43, value);
+                _ = SetProperty(ref _contenidoCuaderno43, value);
                 SaldoInicialBanco = _contenidoCuaderno43?.Cabecera?.ImporteSaldoInicial != null
                     ? _contenidoCuaderno43.Cabecera.ImporteSaldoInicial
                     : 0;
-                SaldoFinalBanco = _contenidoCuaderno43?.FinalCuenta?.SaldoFinal != null 
+                SaldoFinalBanco = _contenidoCuaderno43?.FinalCuenta?.SaldoFinal != null
                     ? (decimal)_contenidoCuaderno43?.FinalCuenta?.SaldoFinal
                     : 0;
             }
@@ -219,32 +232,36 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public decimal DescuadreSaldoFinal => SaldoFinalBanco - SaldoFinalContabilidad;
         public decimal DescuadreSaldoInicial => SaldoInicialBanco - SaldoInicialContabilidad;
         private List<ExtractoProveedorDTO> _extractosProveedorAsientoSeleccionado;
-        public List<ExtractoProveedorDTO> ExtractosProveedorAsientoSeleccionado
+        public List<ExtractoProveedorDTO>? ExtractosProveedorAsientoSeleccionado
         {
             get => _extractosProveedorAsientoSeleccionado;
             set => SetProperty(ref _extractosProveedorAsientoSeleccionado, value);
         }
         private DateTime _fechaDesde;
-        public DateTime FechaDesde {
+        public DateTime FechaDesde
+        {
             get => _fechaDesde;
-            set {
+            set
+            {
                 if (_fechaDesde != value)
                 {
-                    SetProperty(ref _fechaDesde, value);
-                    CargarApuntes(FechaDesde, FechaHasta);
-                }                
+                    _ = SetProperty(ref _fechaDesde, value);
+                    _ = CargarApuntes(FechaDesde, FechaHasta);
+                }
             }
         }
         private DateTime _fechaHasta;
-        public DateTime FechaHasta { 
+        public DateTime FechaHasta
+        {
             get => _fechaHasta;
-            set {
+            set
+            {
                 if (_fechaHasta != value)
                 {
-                    SetProperty(ref _fechaHasta, value);
-                    CargarApuntes(FechaDesde, FechaHasta);
-                }                
-            } 
+                    _ = SetProperty(ref _fechaHasta, value);
+                    _ = CargarApuntes(FechaDesde, FechaHasta);
+                }
+            }
         }
         private bool _isBusyApuntesBanco;
         public bool IsBusyApuntesBanco
@@ -258,14 +275,19 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _isBusyApuntesContabilidad;
             set => SetProperty(ref _isBusyApuntesContabilidad, value);
         }
-
+        private List<IBancoConciliacion> _listaBancos;
+        public List<IBancoConciliacion> ListaBancos
+        {
+            get => _listaBancos;
+            set => SetProperty(ref _listaBancos, value);
+        }
         private bool _mostrarCompletamentePunteado = false;
         public bool MostrarCompletamentePunteado
         {
             get => _mostrarCompletamentePunteado;
             set
             {
-                SetProperty(ref _mostrarCompletamentePunteado, value);
+                _ = SetProperty(ref _mostrarCompletamentePunteado, value);
                 FiltrarRegistros();
             }
         }
@@ -276,7 +298,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _mostrarParcialmentePunteado;
             set
             {
-                SetProperty(ref _mostrarParcialmentePunteado, value);
+                _ = SetProperty(ref _mostrarParcialmentePunteado, value);
                 FiltrarRegistros();
             }
         }
@@ -287,7 +309,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _mostrarSinPuntear;
             set
             {
-                SetProperty(ref _mostrarSinPuntear, value);
+                _ = SetProperty(ref _mostrarSinPuntear, value);
                 FiltrarRegistros();
             }
         }
@@ -310,12 +332,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public MovimientoTPV MovimientoTPVSeleccionado
         {
             get => _movimientoTPVSeleccionado;
-            set 
-            { 
+            set
+            {
                 if (SetProperty(ref _movimientoTPVSeleccionado, value))
                 {
-                    CargarPrepagosPendientes();
-                } 
+                    _ = CargarPrepagosPendientes();
+                }
             }
         }
 
@@ -327,11 +349,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
 
         private decimal _saldoFinalBanco;
-        public decimal SaldoFinalBanco { 
+        public decimal SaldoFinalBanco
+        {
             get => _saldoFinalBanco;
-            set 
-            { 
-                SetProperty(ref _saldoFinalBanco, value);
+            set
+            {
+                _ = SetProperty(ref _saldoFinalBanco, value);
                 RaisePropertyChanged(nameof(DescuadreSaldoFinal));
             }
         }
@@ -341,27 +364,28 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _saldoInicialBanco;
             set
             {
-                SetProperty(ref _saldoInicialBanco, value);
+                _ = SetProperty(ref _saldoInicialBanco, value);
                 RaisePropertyChanged(nameof(DescuadreSaldoInicial));
             }
         }
         public decimal SaldoFinalContabilidad => (decimal)(SaldoInicialContabilidad + ApuntesContabilidad?.Sum(c => c.Importe));
         private decimal _saldoInicialContabilidad;
-        public decimal SaldoInicialContabilidad { 
+        public decimal SaldoInicialContabilidad
+        {
             get => _saldoInicialContabilidad;
             set
             {
-                SetProperty(ref _saldoInicialContabilidad, value);
+                _ = SetProperty(ref _saldoInicialContabilidad, value);
                 RaisePropertyChanged(nameof(DescuadreSaldoInicial));
-            } 
+            }
         }
         private decimal _saldoPunteoApuntesBanco;
         public decimal SaldoPunteoApuntesBanco
         {
             get => _saldoPunteoApuntesBanco;
-            set 
-            { 
-                SetProperty(ref _saldoPunteoApuntesBanco, value);
+            set
+            {
+                _ = SetProperty(ref _saldoPunteoApuntesBanco, value);
                 RaisePropertyChanged(nameof(DescuadrePunteo));
                 ((DelegateCommand)PuntearApuntesCommand).RaiseCanExecuteChanged();
             }
@@ -370,9 +394,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public decimal SaldoPunteoApuntesContabilidad
         {
             get => _saldoPunteoApuntesContabilidad;
-            set 
-            { 
-                SetProperty(ref _saldoPunteoApuntesContabilidad, value);
+            set
+            {
+                _ = SetProperty(ref _saldoPunteoApuntesContabilidad, value);
                 RaisePropertyChanged(nameof(DescuadrePunteo));
                 ((DelegateCommand)PuntearApuntesCommand).RaiseCanExecuteChanged();
             }
@@ -380,8 +404,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private Dictionary<string, string> _terminalesUsuarios;
         public Dictionary<string, string> TerminalesUsuarios
         {
-            get { return _terminalesUsuarios; }
-            set { SetProperty(ref _terminalesUsuarios, value); }
+            get => _terminalesUsuarios; set => SetProperty(ref _terminalesUsuarios, value);
         }
         private string _textoBotonContabilizar;
         public string TextoBotonContabilizar
@@ -397,28 +420,30 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
 
         public ICommand AbrirPedidoCommand { get; private set; }
-        private async void OnAbrirPedido(PrepagoDTO prepago)
+        private void OnAbrirPedido(PrepagoDTO prepago)
         {
-            PedidoVentaViewModel.CargarPedido(Banco.Empresa, prepago.Pedido, _container);
+            PedidoVentaViewModel.CargarPedido(BancoSeleccionado.Banco.Empresa, prepago.Pedido, _container);
         }
 
 
         public ICommand CargarArchivoCommand { get; private set; }
         private async void OnCargarArchivo()
         {
-            var ruta = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PathNorma43);
+            string ruta = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, BancoSeleccionado.ParametroRutaFicherosMovimientos);
 
             // Configura el diálogo para abrir ficheros con selección múltiple
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = ruta;
-            openFileDialog.Filter = "Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*";
-            openFileDialog.Multiselect = true; // Permitir selección múltiple
+            OpenFileDialog openFileDialog = new()
+            {
+                InitialDirectory = ruta,
+                Filter = "Todos los archivos (*.*)|*.*|Archivos de texto (*.txt)|*.txt",
+                Multiselect = true // Permitir selección múltiple
+            };
 
             if (openFileDialog.ShowDialog() == true)
             {
-                var apunteInfoList = new List<(DateTime fechaApunte, string filePath)>();
-                ContenidoCuaderno43 ultimaContenidoCuaderno43 = null;
-                DateTime maxFechaApunte = DateTime.MinValue; 
+                List<(DateTime fechaApunte, string filePath)> apunteInfoList = [];
+                ContenidoCuaderno43? ultimaContenidoCuaderno43 = null;
+                DateTime maxFechaApunte = DateTime.MinValue;
 
                 try
                 {
@@ -430,11 +455,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         try
                         {
                             string fileContent = File.ReadAllText(filePath);
-                            ContenidoCuaderno43 = await _bancosService.CargarFicheroCuaderno43(fileContent);
+                            ContenidoCuaderno43 = await BancoSeleccionado.CargarFicheroMovimientos(fileContent);
                             ultimaContenidoCuaderno43 = ContenidoCuaderno43;
 
                             // Guardar información para la notificación
-                            var fechaApunte = ContenidoCuaderno43.Cabecera.FechaFinal;
+                            DateTime fechaApunte = ContenidoCuaderno43.Cabecera.FechaFinal;
                             apunteInfoList.Add((fechaApunte, filePath));
 
                             // Actualizar la fecha mayor
@@ -454,7 +479,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     if (ultimaContenidoCuaderno43 != null)
                     {
                         // Solo actualizar Banco y la FechaHasta con la fecha mayor procesada
-                        Banco = await _bancosService.LeerBanco(
+                        BancoSeleccionado.Banco = await _bancosService.LeerBanco(
                             ultimaContenidoCuaderno43.Cabecera.ClaveEntidad,
                             ultimaContenidoCuaderno43.Cabecera.ClaveOficina,
                             ultimaContenidoCuaderno43.Cabecera.NumeroCuenta
@@ -462,14 +487,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
                         FechaHasta = maxFechaApunte;
                     }
-                    
+
                     IsBusyApuntesBanco = false;
 
                     // Generar el mensaje de notificación con la información acumulada
                     if (apunteInfoList.Count > 0)
                     {
-                        var mensaje = "Apuntes cargados correctamente al sistema:\n\n";
-                        foreach (var (fechaApunte, filePath) in apunteInfoList)
+                        string mensaje = "Apuntes cargados correctamente al sistema:\n\n";
+                        foreach ((DateTime fechaApunte, string filePath) in apunteInfoList)
                         {
                             mensaje += $"• Apuntes del día {fechaApunte:dd/MM/yyyy} desde el archivo {Path.GetFileName(filePath)}.\n";
                         }
@@ -485,18 +510,20 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand CargarArchivoTarjetasCommand { get; private set; }
         private async void OnCargarArchivoTarjetas()
         {
-            var ruta = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PathNormaFB500);
+            string ruta = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PathNormaFB500);
 
             // Configura el diálogo para abrir ficheros con selección múltiple
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.InitialDirectory = ruta;
-            openFileDialog.Filter = "Todos los archivos (*.*)|*.*";
-            openFileDialog.Multiselect = true; // Permitir selección múltiple
+            OpenFileDialog openFileDialog = new()
+            {
+                InitialDirectory = ruta,
+                Filter = "Todos los archivos (*.*)|*.*",
+                Multiselect = true // Permitir selección múltiple
+            };
 
             if (openFileDialog.ShowDialog() == true)
             {
-                var apunteInfoList = new List<(DateTime fechaApunte, string filePath)>();
-                List<MovimientoTPV> movimientosTPVFinal = null;
+                List<(DateTime fechaApunte, string filePath)> apunteInfoList = [];
+                List<MovimientoTPV>? movimientosTPVFinal = null;
 
                 try
                 {
@@ -508,13 +535,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
                             // Lee el contenido del fichero
                             string fileContent = File.ReadAllText(filePath);
 
-                            var movimientosTPV = await _bancosService.CargarFicheroTarjetas(fileContent);
+                            List<MovimientoTPV> movimientosTPV = await BancoSeleccionado.CargarFicheroMovimientosTarjeta(fileContent);
 
                             // Solo asignar los movimientos para el último archivo procesado
                             movimientosTPVFinal = movimientosTPV;
 
                             // Guardar información para la notificación
-                            var fechaApunte = movimientosTPV.First().FechaOperacion;
+                            DateTime fechaApunte = movimientosTPV.First().FechaOperacion;
                             apunteInfoList.Add((fechaApunte, filePath));
                         }
                         catch (Exception ex)
@@ -534,8 +561,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     // Generar el mensaje de notificación con la información acumulada
                     if (apunteInfoList.Count > 0)
                     {
-                        var mensaje = "Movimientos de tarjeta cargados correctamente al sistema:\n\n";
-                        foreach (var (fechaApunte, filePath) in apunteInfoList)
+                        string mensaje = "Movimientos de tarjeta cargados correctamente al sistema:\n\n";
+                        foreach ((DateTime fechaApunte, string filePath) in apunteInfoList)
                         {
                             mensaje += $"• Movimientos del día {fechaApunte:dd/MM/yyyy} desde el archivo {Path.GetFileName(filePath)}.\n";
                         }
@@ -548,9 +575,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarApunteCommand { get; private set; }
         public bool CanContabilizarApunte()
         {
-            foreach (var regla in _reglasContabilizacion)
+            foreach (IReglaContabilizacion regla in _reglasContabilizacion)
             {
-                var esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
+                bool esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
                 if (esContabilizable)
                 {
                     TextoBotonContabilizar = regla.Nombre;
@@ -562,14 +589,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
         private async void OnContabilizarApunte()
         {
-            IReglaContabilizacion reglaContabilizable = null;
+            IReglaContabilizacion? reglaContabilizable = null;
             try
             {
                 IsBusyApuntesBanco = true;
                 IsBusyApuntesContabilidad = true;
-                foreach (var regla in _reglasContabilizacion)
+                foreach (IReglaContabilizacion regla in _reglasContabilizacion)
                 {
-                    var esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
+                    bool esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
                     if (esContabilizable)
                     {
                         reglaContabilizable = regla;
@@ -580,15 +607,15 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     return;
                 }
-            
-                var respuesta = reglaContabilizable.ApuntesContabilizar(
+
+                ReglaContabilizacionResponse? respuesta = reglaContabilizable.ApuntesContabilizar(
                     ApuntesBancoSeleccionados?
                     .Where(b => b.EstadoPunteo != EstadoPunteo.CompletamentePunteado)
-                    .Select(b => b.Model), 
+                    .Select(b => b.Model),
                     ApuntesContabilidadSeleccionados?
                     .Where(c => c.EstadoPunteo != EstadoPunteo.CompletamentePunteado)
                     .Select(c => c.Model),
-                    Banco);
+                    BancoSeleccionado.Banco);
 
                 if (respuesta is null)
                 {
@@ -599,15 +626,15 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (respuesta.CrearFacturas)
                 {
                     CrearFacturaCmpResponse response = new();
-                    foreach (var linea in respuesta.Lineas.Where(r => r.TipoApunte == Constantes.TiposApunte.FACTURA && r.TipoCuenta == Constantes.TiposCuenta.PROVEEDOR))
+                    foreach (PreContabilidadDTO? linea in respuesta.Lineas.Where(r => r.TipoApunte == Constantes.TiposApunte.FACTURA && r.TipoCuenta == Constantes.TiposCuenta.PROVEEDOR))
                     {
                         PedidoCompraDTO pedido = CrearPedidoDesdePreContabilidad(linea);
                         response = await _pedidoCompraService.CrearAlbaranYFactura(
-                            new CrearFacturaCmpRequest 
-                            { 
-                                Pedido = pedido, 
-                                CrearPago = true ,
-                                ContraPartidaPago = Banco.CuentaContable,
+                            new CrearFacturaCmpRequest
+                            {
+                                Pedido = pedido,
+                                CrearPago = true,
+                                ContraPartidaPago = BancoSeleccionado.Banco.CuentaContable,
                                 Documento = respuesta.Documento
                             }
                         );
@@ -621,16 +648,16 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
                 else
                 {
-                    int asiento = await _contabilidadService.Contabilizar(respuesta.Lineas);                    
+                    int asiento = await _contabilidadService.Contabilizar(respuesta.Lineas);
                     textoMensajeFinal = $"Apunte contabilizado correctamente en asiento {asiento}";
                 }
                 await CargarApuntesContabilidad(FechaDesde, FechaHasta);
                 _dialogService.ShowNotification(textoMensajeFinal);
                 FiltrarRegistros();
-            } 
+            }
             catch (Exception ex)
             {
-                _dialogService.ShowError("Error al contabilizar el apunte:\n"+ex.Message);
+                _dialogService.ShowError("Error al contabilizar el apunte:\n" + ex.Message);
             }
             finally
             {
@@ -642,23 +669,23 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand CopiarConceptoPortapapelesCommand { get; private set; }
         private void OnCopiarConceptoPortapapeles()
         {
-            if (ApunteBancoSeleccionado is null || 
-                ApunteBancoSeleccionado.RegistrosConcepto is null || 
+            if (ApunteBancoSeleccionado is null ||
+                ApunteBancoSeleccionado.RegistrosConcepto is null ||
                 !ApunteBancoSeleccionado.RegistrosConcepto.Any())
             {
                 return;
             }
-            var html = new StringBuilder();
-            var plainText = new StringBuilder();
-            html.Append(Constantes.Formatos.HTML_BANCO_P_TAG);
-            foreach(var concepto in ApunteBancoSeleccionado.RegistrosConcepto)
+            StringBuilder html = new();
+            StringBuilder plainText = new();
+            _ = html.Append(Constantes.Formatos.HTML_BANCO_P_TAG);
+            foreach (RegistroComplementarioConcepto concepto in ApunteBancoSeleccionado.RegistrosConcepto)
             {
-                html.Append(concepto.ConceptoCompleto);
-                html.Append("<br/>");
-                plainText.AppendLine(concepto.ConceptoCompleto);
+                _ = html.Append(concepto.ConceptoCompleto);
+                _ = html.Append("<br/>");
+                _ = plainText.AppendLine(concepto.ConceptoCompleto);
             }
-            
-            html.Append("</p>");
+
+            _ = html.Append("</p>");
             ClipboardHelper.CopyToClipboard(html.ToString(), plainText.ToString());
             _dialogService.ShowNotification("Conceptos copiados al portapapeles");
         }
@@ -667,14 +694,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand PuntearApuntesCommand { get; private set; }
         private bool CanPuntearApuntes()
         {
-            return DescuadrePunteo == 0 && ApuntesBancoSeleccionados is not null 
-                && ApuntesContabilidadSeleccionados is not null 
-                && (ApuntesBancoSeleccionados.Any() 
+            return DescuadrePunteo == 0 && ApuntesBancoSeleccionados is not null
+                && ApuntesContabilidadSeleccionados is not null
+                && (ApuntesBancoSeleccionados.Any()
                 || ApuntesContabilidadSeleccionados.Any());
         }
         private async void OnPuntearApuntes()
         {
-            if (ApuntesBancoSeleccionados is not null && ApuntesContabilidadSeleccionados is not null && 
+            if (ApuntesBancoSeleccionados is not null && ApuntesContabilidadSeleccionados is not null &&
                 ApuntesBancoSeleccionados.Any() && ApuntesContabilidadSeleccionados.Any())
             {
                 await PuntearMovimientosBancoYContabilidad();
@@ -709,11 +736,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
             try
             {
                 int punteados = 0;
-                foreach (var apunteBanco in ApuntesBanco.Where(a => a.EstadoPunteo != EstadoPunteo.CompletamentePunteado))
+                foreach (ApunteBancarioWrapper? apunteBanco in ApuntesBanco.Where(a => a.EstadoPunteo != EstadoPunteo.CompletamentePunteado))
                 {
                     IEnumerable<ContabilidadWrapper> apuntesContabilidadEncontrados = ApuntesContabilidad
                         .Where(c => c.Importe == apunteBanco.ImporteMovimiento && c.Fecha == apunteBanco.FechaOperacion && c.EstadoPunteo != EstadoPunteo.CompletamentePunteado);
-                    
+
                     ContabilidadWrapper apunteContabilidad;
 
                     if (apuntesContabilidadEncontrados is null || apuntesContabilidadEncontrados.Count() != 1)
@@ -722,7 +749,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     }
 
                     apunteContabilidad = apuntesContabilidadEncontrados.Single();
-                    await _bancosService.CrearPunteo(apunteBanco.Id, apunteContabilidad.Id, apunteBanco.ImporteMovimiento, SIMBOLO_PUNTEO_CONCILIACION).ConfigureAwait(true);
+                    _ = await _bancosService.CrearPunteo(apunteBanco.Id, apunteContabilidad.Id, apunteBanco.ImporteMovimiento, SIMBOLO_PUNTEO_CONCILIACION).ConfigureAwait(true);
                     apunteBanco.EstadoPunteo = EstadoPunteo.CompletamentePunteado;
                     apunteContabilidad.EstadoPunteo = EstadoPunteo.CompletamentePunteado;
                     punteados++;
@@ -739,13 +766,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand RegularizarDiferenciaCommand { get; private set; }
         private bool CanRegularizarDiferencia()
         {
-            return ApuntesBancoSeleccionados != null && ApuntesContabilidadSeleccionados != null 
+            return ApuntesBancoSeleccionados != null && ApuntesContabilidadSeleccionados != null
                 && DescuadrePunteo != 0
                 && Math.Abs(DescuadrePunteo) < .5M;
         }
         private async void OnRegularizarDiferencia()
         {
-            if (!_dialogService.ShowConfirmationAnswer("Regularizar", $"¿Desea proceder a la regularización de {DescuadrePunteo.ToString("c")}?"))
+            if (!_dialogService.ShowConfirmationAnswer("Regularizar", $"¿Desea proceder a la regularización de {DescuadrePunteo:c}?"))
             {
                 return;
             }
@@ -754,7 +781,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             ContabilidadDTO apunteGasto = new();
             ContabilidadDTO ultimoApunteIngreso = new();
 
-            foreach (var apunte in ApuntesContabilidadSeleccionados)
+            foreach (ContabilidadWrapper apunte in ApuntesContabilidadSeleccionados)
             {
                 movimientosApunte = await _contabilidadService.LeerAsientoContable(Constantes.Empresas.EMPRESA_DEFECTO, apunte.Asiento);
                 apunteGasto = movimientosApunte.Where(m => m.Cuenta.StartsWith("6")).FirstOrDefault();
@@ -788,7 +815,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 decimal importeRegularizacion = DescuadrePunteo;
                 apunteNuevo.Debe = importeRegularizacion < 0 ? -importeRegularizacion : 0;
                 apunteNuevo.Haber = importeRegularizacion > 0 ? importeRegularizacion : 0;
-                apunteNuevo.Contrapartida = Banco.CuentaContable;
+                apunteNuevo.Contrapartida = BancoSeleccionado.Banco.CuentaContable;
                 int asientoCreado = await _contabilidadService.Contabilizar(apunteNuevo);
                 await CargarApuntesContabilidad(FechaDesde, FechaHasta);
                 _dialogService.ShowNotification($"Regularizado correctamente en asiento {asientoCreado}");
@@ -797,14 +824,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
             catch (Exception ex)
             {
                 throw new Exception("No se pudo regularizar el movimiento", ex);
-            }            
+            }
         }
 
-        
+
         public ICommand SeleccionarApuntesBancoCommand { get; private set; }
         private void OnSeleccionarApuntesBanco(IList apuntes)
         {
-            var selectedItems = apuntes.OfType<ApunteBancarioWrapper>();
+            IEnumerable<ApunteBancarioWrapper> selectedItems = apuntes.OfType<ApunteBancarioWrapper>();
             ApuntesBancoSeleccionados = selectedItems;
             SaldoPunteoApuntesBanco = selectedItems
                 .Where(s => s.EstadoPunteo != EstadoPunteo.CompletamentePunteado)
@@ -816,41 +843,37 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand SeleccionarApuntesContabilidadCommand { get; private set; }
         private void OnSeleccionarApuntesContabilidad(IList apuntes)
         {
-            var selectedItems = apuntes.OfType<ContabilidadWrapper>();
+            IEnumerable<ContabilidadWrapper> selectedItems = apuntes.OfType<ContabilidadWrapper>();
             ApuntesContabilidadSeleccionados = selectedItems;
             SaldoPunteoApuntesContabilidad = selectedItems
                 .Where(s => s.EstadoPunteo != EstadoPunteo.CompletamentePunteado)
                 .Select(s => s.Importe)
-                .DefaultIfEmpty(0)  
+                .DefaultIfEmpty(0)
                 .Sum();
         }
 
 
         private bool ApuntesBancoFilter(object item)
         {
-            if (item is ApunteBancarioWrapper apunteBanco)
-            {
-                return apunteBanco.Visible;
-            }
-            return false;
+            return item is ApunteBancarioWrapper apunteBanco && apunteBanco.Visible;
         }
         private bool ApuntesContabilidadFilter(object item)
         {
-            if (item is ContabilidadWrapper apunteContabilidad)
-            {
-                return apunteContabilidad.Visible;
-            }
-            return false;
+            return item is ContabilidadWrapper apunteContabilidad && apunteContabilidad.Visible;
         }
 
         private Task _cargaApuntesTask;
         private async Task CargarApuntes(DateTime fechaDesde, DateTime fechaHasta)
         {
+            if (fechaDesde == DateTime.MinValue || FechaHasta == DateTime.MinValue)
+            {
+                return;
+            }
             if (fechaDesde > fechaHasta)
             {
                 return;
             }
-            if (Banco is null)
+            if (BancoSeleccionado?.Banco is null)
             {
                 return;
             }
@@ -866,7 +889,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     CargarApuntesBanco(fechaDesde, fechaHasta),
                     CargarApuntesContabilidad(fechaDesde, fechaHasta)
                 ).ConfigureAwait(false);
-            }).ContinueWith(task => {
+            }).ContinueWith(task =>
+            {
                 // Código para ejecutar después de que ambas tareas hayan terminado
                 if (task.IsFaulted)
                 {
@@ -876,7 +900,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     FiltrarRegistros();
                 }
-            }, TaskScheduler.FromCurrentSynchronizationContext()); 
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+            await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaUltimoBanco, BancoSeleccionado.Banco.Codigo).ConfigureAwait(false);
             await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaDesde, FechaDesde.ToString("dd/MM/yy")).ConfigureAwait(false);
             await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaHasta, FechaHasta.ToString("dd/MM/yy")).ConfigureAwait(false);
         }
@@ -885,11 +910,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
             try
             {
                 IsBusyApuntesBanco = true;
-                var lista = await _bancosService.LeerApuntesBanco(Constantes.Empresas.EMPRESA_DEFECTO, Banco.Codigo, fechaDesde, fechaHasta).ConfigureAwait(false);
-                ApuntesBanco = new ObservableCollection<ApunteBancarioWrapper>(lista.Select(apunteBancarioDTO => new ApunteBancarioWrapper(apunteBancarioDTO)));
+                List<ApunteBancarioDTO> lista = await _bancosService.LeerApuntesBanco(Constantes.Empresas.EMPRESA_DEFECTO, BancoSeleccionado.Banco.Codigo, fechaDesde, fechaHasta).ConfigureAwait(false);
+                ApuntesBanco = [.. lista.Select(apunteBancarioDTO => new ApunteBancarioWrapper(apunteBancarioDTO))];
                 ApuntesBancoCollectionView = CollectionViewSource.GetDefaultView(ApuntesBanco);
-                SaldoInicialBanco = await _bancosService.SaldoBancoInicial(Banco.Entidad, Banco.Oficina, Banco.NumeroCuenta, fechaDesde).ConfigureAwait(false);
-                SaldoFinalBanco = await _bancosService.SaldoBancoFinal(Banco.Entidad, Banco.Oficina, Banco.NumeroCuenta, fechaHasta).ConfigureAwait(false);
+                SaldoInicialBanco = await _bancosService.SaldoBancoInicial(BancoSeleccionado.Banco.Entidad, BancoSeleccionado.Banco.Oficina, BancoSeleccionado.Banco.NumeroCuenta, fechaDesde).ConfigureAwait(false);
+                SaldoFinalBanco = await _bancosService.SaldoBancoFinal(BancoSeleccionado.Banco.Entidad, BancoSeleccionado.Banco.Oficina, BancoSeleccionado.Banco.NumeroCuenta, fechaHasta).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -899,17 +924,17 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 IsBusyApuntesBanco = false;
             }
-            
+
         }
         private async Task CargarApuntesContabilidad(DateTime fechaDesde, DateTime fechaHasta)
         {
             try
             {
                 IsBusyApuntesContabilidad = true;
-                var lista = await _contabilidadService.LeerApuntesContabilidad(Constantes.Empresas.EMPRESA_DEFECTO, Banco.CuentaContable, fechaDesde, fechaHasta).ConfigureAwait(false);
-                ApuntesContabilidad = new ObservableCollection<ContabilidadWrapper>(lista.Select(contabilidadDTO => new ContabilidadWrapper(contabilidadDTO)));
+                List<ContabilidadDTO> lista = await _contabilidadService.LeerApuntesContabilidad(Constantes.Empresas.EMPRESA_DEFECTO, BancoSeleccionado.Banco.CuentaContable, fechaDesde, fechaHasta).ConfigureAwait(false);
+                ApuntesContabilidad = [.. lista.Select(contabilidadDTO => new ContabilidadWrapper(contabilidadDTO))];
                 ApuntesContabilidadCollectionView = CollectionViewSource.GetDefaultView(ApuntesContabilidad);
-                SaldoInicialContabilidad = await _contabilidadService.SaldoCuenta(Banco.Empresa, Banco.CuentaContable, fechaDesde.AddDays(-1)).ConfigureAwait(false);
+                SaldoInicialContabilidad = await _contabilidadService.SaldoCuenta(BancoSeleccionado.Banco.Empresa, BancoSeleccionado.Banco.CuentaContable, fechaDesde.AddDays(-1)).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -919,7 +944,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 IsBusyApuntesContabilidad = false;
             }
-            
+
         }
         private async Task CargarExtractoProveedorAsiento(ContabilidadWrapper value)
         {
@@ -932,42 +957,23 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
         private async Task CargarMovimientosRelacionadosTPV(string tipoDatafono)
         {
-            string modoCaptura;
-            if (tipoDatafono == "WEB")
-            {
-                modoCaptura = "3";
-            } 
-            else if (tipoDatafono == "ON ")
-            {
-                modoCaptura = "1";
-            }
-            else
-            {
-                throw new Exception("Tipo de datáfono no contemplado");
-            }
+            string modoCaptura = tipoDatafono == "WEB" ? "3" : tipoDatafono == "ON " ? "1" : throw new Exception("Tipo de datáfono no contemplado");
             MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: ApunteBancoSeleccionado.FechaOperacion.AddDays(-1), modoCaptura);
-            PrepagosPendientes = new();
-            MovimientosRelacionados = new ObservableCollection<MovimientoTPV>(
-                MovimientosTPV               
-            );
+            PrepagosPendientes = [];
+            MovimientosRelacionados = [.. MovimientosTPV];
             if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosTPV.Sum(m => m.ImporteOperacion))
             {
                 MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: ApunteBancoSeleccionado.FechaOperacion.AddDays(-1), "4"); // terminal price
-                MovimientosRelacionados.AddRange(MovimientosTPV);
-            }
-        }        
-        private async Task CargarPrepagosPendientes()
-        {
-            if (MovimientoTPVSeleccionado is not null)
-            {
-                PrepagosPendientes = await _bancosService.LeerPrepagosPendientes(MovimientoTPVSeleccionado.ImporteOperacion);
-            }
-            else
-            {
-                PrepagosPendientes = null;
+                _ = MovimientosRelacionados.AddRange(MovimientosTPV);
             }
         }
-        private PedidoCompraDTO CrearPedidoDesdePreContabilidad(PreContabilidadDTO? linea)
+        private async Task CargarPrepagosPendientes()
+        {
+            PrepagosPendientes = MovimientoTPVSeleccionado is not null
+                ? await _bancosService.LeerPrepagosPendientes(MovimientoTPVSeleccionado.ImporteOperacion)
+                : null;
+        }
+        private PedidoCompraDTO? CrearPedidoDesdePreContabilidad(PreContabilidadDTO? linea)
         {
             if (linea == null)
             {
@@ -975,7 +981,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
             PedidoCompraDTO pedido = new()
             {
-                Empresa = Banco.Empresa,
+                Empresa = BancoSeleccionado.Banco.Empresa,
                 CodigoIvaProveedor = Constantes.Empresas.IVA_DEFECTO,
                 Proveedor = linea.Cuenta,
                 Contacto = linea.Contacto,
@@ -1013,23 +1019,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 Asiento = 1
             };
         }
-        private bool CumpleCondicionesTPV(ApunteBancarioWrapper apunteBancoSeleccionado)
-        {
-            if (ApunteBancoSeleccionado is null)
-            {
-                return false;
-            }
-            string concepto2_0 = apunteBancoSeleccionado.RegistrosConcepto[0]?.Concepto2;
-            string concepto2_1 = apunteBancoSeleccionado.RegistrosConcepto[1]?.Concepto2;
-
-            return (concepto2_0.StartsWith("WEB") || concepto2_0.StartsWith("ON ")) &&
-                   concepto2_1.StartsWith("FACTURAC.COMERCIOS");
-        }
         private void FiltrarRegistros()
         {
             if (ApuntesBanco != null)
             {
-                foreach (var apunteBanco in ApuntesBanco)
+                foreach (ApunteBancarioWrapper apunteBanco in ApuntesBanco)
                 {
                     if (apunteBanco != null)
                     {
@@ -1039,12 +1033,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (ApuntesBancoCollectionView != null)
                 {
                     ApuntesBancoCollectionView.Filter = ApuntesBancoFilter;
-                }                
+                }
             }
 
             if (ApuntesContabilidad != null)
             {
-                foreach (var apunteContabilidad in ApuntesContabilidad)
+                foreach (ContabilidadWrapper apunteContabilidad in ApuntesContabilidad)
                 {
                     if (apunteContabilidad != null)
                     {
@@ -1054,60 +1048,53 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (ApuntesContabilidadCollectionView != null)
                 {
                     ApuntesContabilidadCollectionView.Filter = ApuntesContabilidadFilter;
-                }                
+                }
             }
         }
         private bool MostrarEstadoPunteo(EstadoPunteo estadoPunteo)
         {
-            switch (estadoPunteo)
+            return estadoPunteo switch
             {
-                case EstadoPunteo.SinPuntear:
-                    return MostrarSinPuntear;
-
-                case EstadoPunteo.CompletamentePunteado:
-                    return MostrarCompletamentePunteado;
-
-                case EstadoPunteo.ParcialmentePunteado:
-                    return MostrarParcialmentePunteado;
-
-                default:
-                    return true;
-            }
+                EstadoPunteo.SinPuntear => MostrarSinPuntear,
+                EstadoPunteo.CompletamentePunteado => MostrarCompletamentePunteado,
+                EstadoPunteo.ParcialmentePunteado => MostrarParcialmentePunteado,
+                _ => true,
+            };
         }
         private async Task PuntearMovimientosSoloBanco()
         {
-            var grupoPunteo = ApuntesBancoSeleccionados
+            int grupoPunteo = ApuntesBancoSeleccionados
                 .OrderByDescending(apunte => apunte.ImporteMovimiento)
                 .First()
                 .Id;
-            foreach (var apunte in ApuntesBancoSeleccionados)
+            foreach (ApunteBancarioWrapper apunte in ApuntesBancoSeleccionados)
             {
-                await _bancosService.CrearPunteo(apunte.Id, null, apunte.ImporteMovimiento, SIMBOLO_PUNTEO_CONCILIACION, grupoPunteo);
+                _ = await _bancosService.CrearPunteo(apunte.Id, null, apunte.ImporteMovimiento, SIMBOLO_PUNTEO_CONCILIACION, grupoPunteo);
                 apunte.EstadoPunteo = EstadoPunteo.CompletamentePunteado;
             }
             _dialogService.ShowNotification("Liquidado correctamente");
         }
         private async Task PuntearMovimientosSoloContabilidad()
         {
-            var grupoPunteo = ApuntesContabilidadSeleccionados
+            int grupoPunteo = ApuntesContabilidadSeleccionados
                 .OrderByDescending(apunte => apunte.Importe)
                 .ThenBy(apunte => apunte.Debe)
                 .First()
                 .Id;
-            foreach (var apunte in ApuntesContabilidadSeleccionados)
+            foreach (ContabilidadWrapper apunte in ApuntesContabilidadSeleccionados)
             {
-                await _bancosService.CrearPunteo(null, apunte.Id, apunte.Importe, SIMBOLO_PUNTEO_CONCILIACION, grupoPunteo);
+                _ = await _bancosService.CrearPunteo(null, apunte.Id, apunte.Importe, SIMBOLO_PUNTEO_CONCILIACION, grupoPunteo);
                 apunte.EstadoPunteo = EstadoPunteo.CompletamentePunteado;
             }
             _dialogService.ShowNotification("Liquidado correctamente");
         }
         private async Task PuntearMovimientosBancoYContabilidad()
         {
-            Queue<ApunteBancarioWrapper> colaBanco = new Queue<ApunteBancarioWrapper>(ApuntesBancoSeleccionados.Where(b => b.EstadoPunteo != EstadoPunteo.CompletamentePunteado));
-            Queue<ContabilidadWrapper> colaContabilidad = new Queue<ContabilidadWrapper>(ApuntesContabilidadSeleccionados.Where(c => c.EstadoPunteo != EstadoPunteo.CompletamentePunteado));
+            Queue<ApunteBancarioWrapper> colaBanco = new(ApuntesBancoSeleccionados.Where(b => b.EstadoPunteo != EstadoPunteo.CompletamentePunteado));
+            Queue<ContabilidadWrapper> colaContabilidad = new(ApuntesContabilidadSeleccionados.Where(c => c.EstadoPunteo != EstadoPunteo.CompletamentePunteado));
 
-            var apunteBanco = colaBanco.Peek();
-            var apunteContabilidad = colaContabilidad.Peek();
+            ApunteBancarioWrapper? apunteBanco = colaBanco.Peek();
+            ContabilidadWrapper? apunteContabilidad = colaContabilidad.Peek();
 
             decimal importeRestanteBanco = apunteBanco.ImporteMovimiento;
             decimal importeRestanteContabilidad = apunteContabilidad.Importe;
@@ -1134,7 +1121,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         importePunteo = importeRestanteContabilidad;
                         importeRestanteBanco -= importeRestanteContabilidad;
                         importeRestanteContabilidad = 0;
-                        colaContabilidad.Dequeue();
+                        _ = colaContabilidad.Dequeue();
                         apunteBanco.EstadoPunteo = EstadoPunteo.ParcialmentePunteado;
                         apunteContabilidad.EstadoPunteo = EstadoPunteo.CompletamentePunteado;
                         apunteContabilidad = colaContabilidad.Count > 0 ? colaContabilidad.Peek() : null;
@@ -1145,7 +1132,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         importePunteo = importeRestanteBanco;
                         importeRestanteContabilidad -= importeRestanteBanco;
                         importeRestanteBanco = 0;
-                        colaBanco.Dequeue();
+                        _ = colaBanco.Dequeue();
                         apunteBanco.EstadoPunteo = EstadoPunteo.CompletamentePunteado;
                         apunteContabilidad.EstadoPunteo = EstadoPunteo.ParcialmentePunteado;
                         apunteBanco = colaBanco.Count > 0 ? colaBanco.Peek() : null;
@@ -1155,16 +1142,16 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         importePunteo = importeRestanteBanco; // que es igual a importeRestanteContabilidad
                         importeRestanteContabilidad = 0;
                         importeRestanteBanco = 0;
-                        colaBanco.Dequeue();
-                        colaContabilidad.Dequeue();
+                        _ = colaBanco.Dequeue();
+                        _ = colaContabilidad.Dequeue();
                         apunteBanco.EstadoPunteo = EstadoPunteo.CompletamentePunteado;
                         apunteContabilidad.EstadoPunteo = EstadoPunteo.CompletamentePunteado;
                         apunteBanco = colaBanco.Count > 0 ? colaBanco.Peek() : null;
                         apunteContabilidad = colaContabilidad.Count > 0 ? colaContabilidad.Peek() : null;
-                    }                    
-                    
-                    await _bancosService.CrearPunteo(apunteBancoId, apunteContabilidadId, importePunteo, SIMBOLO_PUNTEO_CONCILIACION);
-                    
+                    }
+
+                    _ = await _bancosService.CrearPunteo(apunteBancoId, apunteContabilidadId, importePunteo, SIMBOLO_PUNTEO_CONCILIACION);
+
                 }
                 _dialogService.ShowNotification("Liquidado correctamente");
             }
@@ -1174,12 +1161,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
         }
 
-        
-        public async override void OnNavigatedTo(NavigationContext navigationContext)
+
+        public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
             string parametroBanco = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaUltimoBanco);
-            Banco = await _bancosService.LeerBanco(Constantes.Empresas.EMPRESA_DEFECTO, parametroBanco);
-                
+            BancoSeleccionado = ListaBancos.Single(b => b.Banco.Codigo == parametroBanco);
+
             string fechaDesdeString = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaDesde);
             FechaDesde = DateTime.ParseExact(fechaDesdeString, "dd/MM/yy", null);
 

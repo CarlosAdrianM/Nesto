@@ -12,17 +12,17 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || !apuntesBancarios.Any() || !apuntesContabilidad.Any())
+            if (apuntesBancarios is null || apuntesContabilidad is null || apuntesBancarios.Count() < 1 || apuntesBancarios.Count() > 2 || !apuntesContabilidad.Any())
             {
                 return new ReglaContabilizacionResponse();
             }
-            var apunteBancario = apuntesBancarios.Single();
+            ApunteBancarioDTO apunteBancario = apuntesBancarios.Single(a => a.ImporteMovimiento > 0);
 
-            var importeDescuadre = apunteBancario.ImporteMovimiento - apuntesContabilidad.Sum(c => c.Importe);
+            decimal importeDescuadre = apuntesBancarios.Sum(a => a.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
 
-            var importeIngresado = apunteBancario.ImporteMovimiento;
-            var importeComision = -importeDescuadre;
-            var importeOriginal = importeIngresado + importeComision;
+            decimal importeIngresado = apuntesBancarios.Sum(a => a.ImporteMovimiento);
+            decimal importeComision = -importeDescuadre;
+            decimal importeOriginal = importeIngresado + importeComision;
 
             if (importeDescuadre == 0M
                 || !(VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))
@@ -30,22 +30,22 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             {
                 throw new Exception("Para contabilizar el apunte de banco debe tener seleccionado también el apunte de contabilidad y que el descuadre sea la comisión.");
             }
-            var lineas = new List<PreContabilidadDTO>();
-            var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
+            List<PreContabilidadDTO> lineas = [];
+            PreContabilidadDTO linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
             linea1.TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE;
             linea1.Cuenta = "62600020"; // Comisiones Paypal
             //linea1.Contacto = "0";
-            linea1.Concepto = $"Comisión Paypal {importeOriginal.ToString("c")}-{importeComision.ToString("c")}={importeIngresado.ToString("c")} ({(importeComision / importeOriginal).ToString("p")})";
+            linea1.Concepto = $"Comisión Paypal {importeOriginal:c}-{importeComision:c}={importeIngresado:c} ({importeComision / importeOriginal:p})";
 
             // Obtener los últimos 10 caracteres
-            string referenciaCompleta = apunteBancario.Referencia2.Trim();
+            string referenciaCompleta = apunteBancario.NumeroDocumento.Trim();
             int longitud = referenciaCompleta.Length;
             int caracteresDeseados = 10;
             string ultimos10Caracteres;
             if (longitud >= caracteresDeseados)
             {
-                ultimos10Caracteres = referenciaCompleta.Substring(longitud - caracteresDeseados);
+                ultimos10Caracteres = referenciaCompleta[(longitud - caracteresDeseados)..];
             }
             else
             {
@@ -62,7 +62,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Contrapartida = banco.CuentaContable;
             lineas.Add(linea1);
 
-            ReglaContabilizacionResponse response = new ReglaContabilizacionResponse
+            ReglaContabilizacionResponse response = new()
             {
                 Lineas = lineas
             };
@@ -72,28 +72,55 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
         {
-            if (apuntesBancarios is null || apuntesContabilidad is null || apuntesBancarios.Count() != 1 || !apuntesContabilidad.Any())
+            if (apuntesBancarios is null || apuntesContabilidad is null || apuntesBancarios.Count() < 1 || apuntesBancarios.Count() > 2 || !apuntesContabilidad.Any())
             {
                 return false;
             }
-            var apunteBancario = apuntesBancarios.Single();
 
-            var importeIngresado = apunteBancario.ImporteMovimiento;
-            var importeComision = apuntesContabilidad.Sum(c => c.Importe) - apunteBancario.ImporteMovimiento;
-            var importeOriginal = importeIngresado + importeComision;
-
-
-            if (apunteBancario.ConceptoComun == "02" &&
-                apunteBancario.ConceptoPropio == "032" &&
-                apunteBancario.RegistrosConcepto != null &&
-                apunteBancario.RegistrosConcepto.Any() &&
-                apunteBancario.RegistrosConcepto[0] != null && 
-                apunteBancario.RegistrosConcepto[0].Concepto.ToUpper().Trim().StartsWith("PAYPAL") &&
-                (VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
-                VerificarImportesInternacional(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))))
-                
+            if (apuntesBancarios.Count() == 1) // es un traspaso automático de Paypal CV a Caixabanl
             {
-                return true;
+                ApunteBancarioDTO apunteBancario = apuntesBancarios.Single();
+
+                decimal importeIngresado = apunteBancario.ImporteMovimiento;
+                decimal importeComision = apuntesContabilidad.Sum(c => c.Importe) - apunteBancario.ImporteMovimiento;
+                decimal importeOriginal = importeIngresado + importeComision;
+
+
+                if (apunteBancario.ConceptoComun == "02" &&
+                    apunteBancario.ConceptoPropio == "032" &&
+                    apunteBancario.RegistrosConcepto != null &&
+                    apunteBancario.RegistrosConcepto.Any() &&
+                    apunteBancario.RegistrosConcepto[0] != null &&
+                    apunteBancario.RegistrosConcepto[0].Concepto.ToUpper().Trim().StartsWith("PAYPAL") &&
+                    (VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
+                    VerificarImportesInternacional(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))))
+
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                ApunteBancarioDTO apunteBancarioVenta = apuntesBancarios.FirstOrDefault(a => a.ImporteMovimiento > 0);
+                ApunteBancarioDTO apunteBancarioComision = apuntesBancarios.FirstOrDefault(a => a.ImporteMovimiento < 0);
+
+                if (apunteBancarioVenta is null || apunteBancarioComision is null)
+                {
+                    return false;
+                }
+
+                decimal importeIngresado = apuntesBancarios.Sum(a => a.ImporteMovimiento);
+                decimal importeComision = apuntesContabilidad.Sum(c => c.Importe) - apuntesBancarios.Sum(a => a.ImporteMovimiento);
+                decimal importeOriginal = importeIngresado + importeComision;
+
+                if ((apunteBancarioVenta.ConceptoComun == "02" || apunteBancarioVenta.ConceptoComun == "03") &&
+                    apunteBancarioVenta.ConceptoPropio == "PPA" &&
+                    (VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
+                    VerificarImportesInternacional(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))))
+
+                {
+                    return true;
+                }
             }
 
             return false;
@@ -109,7 +136,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             decimal comisionEsperada = Math.Round(((importeOriginal * porcentajeComision) + fijoComision) * numeroPagos, 2, MidpointRounding.AwayFromZero);
 
             // Verificar si los valores coinciden
-            return importeComision == comisionEsperada && importeOriginal - importeComision == importeIngresado;
+            return importeComision <= comisionEsperada && importeOriginal - importeComision == importeIngresado;
         }
 
         private bool VerificarImportesInternacional(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos)

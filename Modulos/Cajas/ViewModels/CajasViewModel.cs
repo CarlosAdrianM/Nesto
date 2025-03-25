@@ -5,6 +5,7 @@ using Microsoft.Reporting.NETCore;
 using Nesto.Informes;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
+using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Prism.Commands;
 using Prism.Services.Dialogs;

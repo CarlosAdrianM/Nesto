@@ -1,7 +1,7 @@
 ﻿using ControlesUsuario.Dialogs;
 using FakeItEasy;
 using Nesto.Infrastructure.Contracts;
-using Nesto.Modulos.Cajas;
+using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
 using Nesto.Modulos.PedidoCompra;

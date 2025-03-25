@@ -1,10 +1,11 @@
 ﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Modulos.Cajas.Interfaces;
 using Newtonsoft.Json;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Nesto.Modulos.Cajas
+namespace Nesto.Modulos.Cajas.Services
 {
     public class RecursosHumanosService : IRecursosHumanosService
     {

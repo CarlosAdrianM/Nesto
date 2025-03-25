@@ -1,4 +1,5 @@
 ﻿using Nesto.Infrastructure.Shared;
+using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.ViewModels;
 using System;
 using System.Collections.Generic;

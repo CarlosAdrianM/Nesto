@@ -486,6 +486,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As FormaVentaDTO)
             SetProperty(_formaVentaOtrasSeleccionada, value)
+            RaisePropertyChanged(NameOf(listaFormasVenta))
         End Set
     End Property
 
@@ -1105,9 +1106,14 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
         RaisePropertyChanged(NameOf(SePuedeFinalizar))
 
+        Dim esApoyoComercial As Boolean
         vendedorUsuario = Await leerParametro("Vendedor")
+        Dim vendedoresEquipo = Await servicio.CargarVendedoresEquipo(vendedorUsuario)
         If vendedorUsuario = clienteSeleccionado.vendedor Then
             formaVentaSeleccionada = 1 ' Directa
+        ElseIf Not IsNothing(vendedoresEquipo) AndAlso Not IsNothing(vendedoresEquipo.SingleOrDefault(Function(v) v.Vendedor = clienteSeleccionado.vendedor)) Then
+            formaVentaSeleccionada = 3 ' Otros
+            esApoyoComercial = True
         Else
             formaVentaSeleccionada = 2 ' Telefono
         End If
@@ -1124,6 +1130,9 @@ Public Class PlantillaVentaViewModel
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     listaFormasVenta = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaVentaDTO))(cadenaJson)
+                    If esApoyoComercial Then
+                        formaVentaOtrasSeleccionada = listaFormasVenta.Single(Function(f) f.numero = Constantes.FormasVenta.APOYO_COMERCIAL)
+                    End If
                 Else
                     dialogService.ShowError("Se ha producido un error al cargar las formas de venta")
                 End If

@@ -80,6 +80,7 @@ namespace Nesto.Infrastructure.Shared
         public class FormasVenta
         {
             public static readonly List<string> FORMAS_ONLINE = new List<string>() { "QRU", "WEB", "STK", "BLT" };
+            public const string APOYO_COMERCIAL = "APC";
         }
         public class Formatos
         {
