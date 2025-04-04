@@ -1,26 +1,25 @@
-﻿using Prism.Commands;
+﻿using ControlesUsuario.Dialogs;
+using Microsoft.Reporting.NETCore;
+using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Events;
+using Nesto.Infrastructure.Shared;
+using Nesto.Modules.Producto.Models;
+using Nesto.Modulos.Producto;
+using Prism.Commands;
 using Prism.Events;
+using Prism.Mvvm;
 using Prism.Regions;
+using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Windows.Controls;
-using System.Windows.Input;
-using Prism.Services.Dialogs;
-using Prism.Mvvm;
-using ControlesUsuario.Dialogs;
-using Nesto.Infrastructure.Events;
-using Nesto.Infrastructure.Contracts;
-using Nesto.Modulos.Producto;
-using Nesto.Modules.Producto.Models;
-using Nesto.Infrastructure.Shared;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
-using Microsoft.Reporting.NETCore;
 using System.Threading.Tasks;
-using System.Configuration;
+using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
@@ -86,7 +85,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (ProductoActual.Estado == Constantes.Productos.Estados.EN_STOCK && (EsDelGrupoCompras || EsDelGrupoTiendas))
                 {
                     ControlStock = new ControlStockProductoWrapper(await _servicio.LeerControlStock(ProductoActual.Producto).ConfigureAwait(true));
-                    foreach (var controlAlmacen in ControlStock.ControlesStocksAlmacen)
+                    foreach (ControlStockAlmacenWrapper controlAlmacen in ControlStock.ControlesStocksAlmacen)
                     {
                         controlAlmacen.IsActive = EsDelGrupoCompras || controlAlmacen.Model.Almacen == AlmacenDefecto;
                     }
@@ -103,7 +102,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 _dialogService.ShowError(ex.Message);
                 EstaCargandoControlesStock = false;
-            } 
+            }
             finally
             {
                 EstaCargandoControlesStock = false;
@@ -116,64 +115,66 @@ namespace Nesto.Modules.Producto.ViewModels
         public int CantidadKitMontar
         {
             get => _cantidadKitMontar;
-            set 
-            { 
-                SetProperty(ref _cantidadKitMontar, value);
+            set
+            {
+                _ = SetProperty(ref _cantidadKitMontar, value);
                 MontarKitCommand.RaiseCanExecuteChanged();
             }
         }
         public ObservableCollection<ProductoClienteModel> ClientesResultadoBusqueda
         {
-            get { return _clientesResultadoBusqueda; }
-            set { SetProperty(ref _clientesResultadoBusqueda, value); }
+            get => _clientesResultadoBusqueda; set => SetProperty(ref _clientesResultadoBusqueda, value);
         }
         public ControlStockProductoWrapper ControlStock { get; set; }
         private bool _estaCargandoControlesStock;
-        public bool EstaCargandoControlesStock { 
+        public bool EstaCargandoControlesStock
+        {
             get => _estaCargandoControlesStock;
-            set => SetProperty(ref _estaCargandoControlesStock, value); 
+            set => SetProperty(ref _estaCargandoControlesStock, value);
         }
-        
+
         private bool _estaCargandoProductos;
-        public bool EstaCargandoProductos { 
-            get => _estaCargandoProductos; 
+        public bool EstaCargandoProductos
+        {
+            get => _estaCargandoProductos;
             private set => SetProperty(ref _estaCargandoProductos, value);
         }
 
         private int _etiquetaPrimera = 1;
-        public int EtiquetaPrimera { 
-            get => _etiquetaPrimera; 
-            set => SetProperty(ref _etiquetaPrimera, value); 
+        public int EtiquetaPrimera
+        {
+            get => _etiquetaPrimera;
+            set => SetProperty(ref _etiquetaPrimera, value);
         }
         public List<int> EtiquetasPosibles { get; set; } = Enumerable.Range(1, 18).ToList();
 
 
         public string FiltroFamilia
         {
-            get { return _filtroFamilia; }
+            get => _filtroFamilia;
             set
             {
-                SetProperty(ref _filtroFamilia, value);
+                _ = SetProperty(ref _filtroFamilia, value);
                 BuscarProductoCommand.RaiseCanExecuteChanged();
             }
         }
 
         public string FiltroNombre
         {
-            get { return _filtroNombre; }
+            get => _filtroNombre;
             set
             {
-                SetProperty(ref _filtroNombre, value);
+                _ = SetProperty(ref _filtroNombre, value);
                 BuscarProductoCommand.RaiseCanExecuteChanged();
             }
         }
 
         public string FiltroSubgrupo
         {
-            get { return _filtroSubgrupo; }
+            get => _filtroSubgrupo;
             set
             {
-                SetProperty(ref _filtroSubgrupo, value);
+                _ = SetProperty(ref _filtroSubgrupo, value);
                 BuscarProductoCommand.RaiseCanExecuteChanged();
             }
         }
@@ -182,10 +183,10 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public Pestannas PestannaSeleccionada
         {
-            get { return _pestannaSeleccionada; }
+            get => _pestannaSeleccionada;
             set
             {
-                SetProperty(ref _pestannaSeleccionada, value);
+                _ = SetProperty(ref _pestannaSeleccionada, value);
                 //if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
                 //{
                 //    BuscarClientesCommand.Execute();
@@ -199,10 +200,10 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public ProductoModel ProductoActual
         {
-            get { return _productoActual; }
+            get => _productoActual;
             set
             {
-                SetProperty(ref _productoActual, value);
+                _ = SetProperty(ref _productoActual, value);
                 //if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
                 //{
                 //    BuscarClientesCommand.Execute();
@@ -217,10 +218,10 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public ProductoModel ProductoResultadoSeleccionado
         {
-            get { return _productoResultadoSeleccionado; }
+            get => _productoResultadoSeleccionado;
             set
             {
-                SetProperty(ref _productoResultadoSeleccionado, value);
+                _ = SetProperty(ref _productoResultadoSeleccionado, value);
                 if (ProductoResultadoSeleccionado != null)
                 {
                     ReferenciaBuscar = ProductoResultadoSeleccionado.Producto;
@@ -230,19 +231,18 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public ColeccionFiltrable ProductosResultadoBusqueda
         {
-            get { return _productosResultadoBusqueda; }
-            set { SetProperty(ref _productosResultadoBusqueda, value); }
+            get => _productosResultadoBusqueda; set => SetProperty(ref _productosResultadoBusqueda, value);
         }
 
         public string ReferenciaBuscar
         {
-            get { return _referenciaBuscar; }
+            get => _referenciaBuscar;
             set
             {
                 if (value != _referenciaBuscar)
                 {
-                    CargarProducto(value);
-                    SetProperty(ref _referenciaBuscar, value);
+                    _ = CargarProducto(value);
+                    _ = SetProperty(ref _referenciaBuscar, value);
                 }
             }
         }
@@ -267,7 +267,7 @@ namespace Nesto.Modules.Producto.ViewModels
         }
         private async void OnAbrirProductoWeb()
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ProductoActual.UrlEnlace + "&utm_medium=ficha_producto") { UseShellExecute = true });
+            _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ProductoActual.UrlEnlace + "&utm_medium=ficha_producto") { UseShellExecute = true });
         }
 
 
@@ -279,30 +279,22 @@ namespace Nesto.Modules.Producto.ViewModels
         private async void OnBuscarClientes()
         {
             ICollection<ProductoClienteModel> resultadoBusqueda = await _servicio.BuscarClientes(ProductoActual.Producto);
-            ClientesResultadoBusqueda = new ObservableCollection<ProductoClienteModel>();
-            foreach (var cliente in resultadoBusqueda)
-            {
-                ClientesResultadoBusqueda.Add(cliente);
-            }
+            ClientesResultadoBusqueda = [.. resultadoBusqueda];
         }
 
         public DelegateCommand BuscarProductoCommand { get; private set; }
         private bool CanBuscarProducto()
         {
-            return FiltroNombre != null && FiltroNombre.Trim() != "" || FiltroFamilia != null && FiltroFamilia.Trim() != "" || FiltroSubgrupo != null && FiltroSubgrupo.Trim() != "";
+            return (FiltroNombre != null && FiltroNombre.Trim() != "") || (FiltroFamilia != null && FiltroFamilia.Trim() != "") || (FiltroSubgrupo != null && FiltroSubgrupo.Trim() != "");
         }
         private async void OnBuscarProducto()
         {
             EstaCargandoProductos = true;
             try
             {
-                
+
                 ICollection<ProductoModel> resultadoBusqueda = await _servicio.BuscarProductos(FiltroNombre, FiltroFamilia, FiltroSubgrupo);
-                var listaResultadoBusqueda = new ObservableCollection<ProductoModel>();
-                foreach (var producto in resultadoBusqueda)
-                {
-                    listaResultadoBusqueda.Add(producto);
-                }
+                ObservableCollection<ProductoModel> listaResultadoBusqueda = [.. resultadoBusqueda];
                 ProductosResultadoBusqueda = new ColeccionFiltrable(listaResultadoBusqueda)
                 {
                     TieneDatosIniciales = true
@@ -329,18 +321,18 @@ namespace Nesto.Modules.Producto.ViewModels
         public DelegateCommand GuardarProductoCommand { get; private set; }
         private bool CanGuardarProducto()
         {
-            return ControlStock != null && 
+            return ControlStock != null &&
                 (ControlStock.Model.StockMinimoActual != ControlStock.Model.StockMinimoInicial || ControlStock.Model.ControlesStocksAlmacen.Any(c => c.StockMaximoInicial != c.StockMaximoActual));
         }
         private async void OnGuardarProducto()
         {
-            var modificados = ControlStock.ToListModificados;
-            foreach (var controlStock in modificados)
+            List<ControlStock> modificados = ControlStock.ToListModificados;
+            foreach (ControlStock controlStock in modificados)
             {
                 if (controlStock.YaExiste)
                 {
                     await _servicio.GuardarControlStock(controlStock);
-                } 
+                }
                 else
                 {
                     await _servicio.CrearControlStock(controlStock);
@@ -364,7 +356,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.EtiquetasTienda.rdlc");
                 List<string> listaDeProductos = ProductosResultadoBusqueda.Lista.Select(item => (item as ProductoModel).Producto).ToList();
                 List<Informes.FilaEtiquetasModel> dataSource = await Informes.FilaEtiquetasModel.CargarDatos(listaDeProductos, EtiquetaPrimera);
-                LocalReport report = new LocalReport();
+                LocalReport report = new();
                 report.LoadReportDefinition(reportDefinition);
                 report.DataSources.Add(new ReportDataSource("FilaEtiquetasDataSet", dataSource));
                 /*
@@ -378,7 +370,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 byte[] pdf = report.Render("PDF");
                 string fileName = Path.GetTempPath() + "InformeEtiquetasTienda.pdf";
                 File.WriteAllBytes(fileName, pdf);
-                Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+                _ = Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
@@ -400,8 +392,8 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             try
             {
-                var almacen = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenInventario);
-                var traspaso = await _servicio.MontarKit(almacen, ProductoActual.Producto, CantidadKitMontar);
+                string almacen = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenInventario);
+                int traspaso = await _servicio.MontarKit(almacen, ProductoActual.Producto, CantidadKitMontar);
                 if (traspaso != 0)
                 {
                     ProductoActual = await _servicio.LeerProducto(ProductoActual.Producto);
@@ -419,28 +411,28 @@ namespace Nesto.Modules.Producto.ViewModels
             catch (Exception ex)
             {
                 _dialogService.ShowError(ex.Message);
-            }            
+            }
         }
 
         private static async Task AbrirInformeMontarKitProductos(int traspaso)
         {
             Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.MontarKitProductos.rdlc");
             List<Informes.MontarKitProductosModel> dataSource = await Informes.MontarKitProductosModel.CargarDatos(traspaso);
-            LocalReport report = new LocalReport();
+            LocalReport report = new();
             report.LoadReportDefinition(reportDefinition);
             report.DataSources.Add(new ReportDataSource("MontarKitProductosDataSet", dataSource));
-            List<ReportParameter> listaParametros = new List<ReportParameter>
-                    {
+            List<ReportParameter> listaParametros =
+                    [
                         new ReportParameter("Traspaso", traspaso.ToString()),
-                    };
+                    ];
             report.SetParameters(listaParametros);
             byte[] pdf = report.Render("PDF");
             string fileName = Path.GetTempPath() + "InformeMontarKitProductos.pdf";
             File.WriteAllBytes(fileName, pdf);
-            Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+            _ = Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
         }
 
-        public ICommand SeleccionarProductoCommand { get; private set; }        
+        public ICommand SeleccionarProductoCommand { get; private set; }
 
         private bool CanSeleccionarProducto()
         {
@@ -472,15 +464,10 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public new async void OnNavigatedTo(NavigationContext navigationContext)
         {
-            var parametro = navigationContext.Parameters["numeroProductoParameter"];
-            if (parametro != null)
-            {
-                ReferenciaBuscar = parametro.ToString();
-            }
-            else
-            {
-                ReferenciaBuscar = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltNumProducto);
-            }
+            object parametro = navigationContext.Parameters["numeroProductoParameter"];
+            ReferenciaBuscar = parametro != null
+                ? parametro.ToString()
+                : await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltNumProducto);
             AlmacenDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
         }
 

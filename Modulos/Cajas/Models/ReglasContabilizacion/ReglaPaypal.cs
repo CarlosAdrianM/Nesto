@@ -128,6 +128,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         private bool VerificarImportesStandard(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos)
         {
+            if (importeComision < 0 || importeOriginal == importeIngresado)
+            {
+                return false;
+            }
             // La comisión de Paypal es del 2.9% más 0.35 €
             decimal porcentajeComision = 0.029m;
             decimal fijoComision = 0.35m;

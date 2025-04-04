@@ -86,6 +86,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 new ReglaAplazame(),
                 new ReglaAsociacionEsteticistas(),
                 new ReglaAyuntamientoAlgete(),
+                new ReglaAyuntamientoAlcobendas(),
                 new ReglaMiraviaComision(),
                 new ReglaInteresesAplazamientoConfirming(_dialogService),
                 new ReglaComisionRemesaRecibos(_bancosService),
