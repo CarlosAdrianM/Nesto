@@ -15,16 +15,16 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             {
                 return new ReglaContabilizacionResponse();
             }
-            var apunteBancario = apuntesBancarios.First();
-            var apunteContabilidad = apuntesContabilidad.First();
+            ApunteBancarioDTO apunteBancario = apuntesBancarios.First();
+            _ = apuntesContabilidad.First();
 
-            var lineas = new List<PreContabilidadDTO>();
-            var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
+            List<PreContabilidadDTO> lineas = new();
+            PreContabilidadDTO linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
             linea1.Cuenta = "46000000";
-            var concepto = apunteBancario.RegistrosConcepto[2]?.ConceptoCompleto?.Trim() ?? string.Empty;
+            string concepto = apunteBancario.RegistrosConcepto[2]?.ConceptoCompleto?.Trim() ?? string.Empty;
             concepto = $"Adelanto nómina {concepto}";
-            linea1.Concepto = concepto.Substring(0, Math.Min(50, concepto.Length));
+            linea1.Concepto = concepto[..Math.Min(50, concepto.Length)];
 
             // Obtener los últimos 10 caracteres
             string referenciaCompleta = apunteBancario.Referencia2.Trim();
@@ -33,7 +33,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             string ultimos10Caracteres;
             if (longitud >= caracteresDeseados)
             {
-                ultimos10Caracteres = referenciaCompleta.Substring(longitud - caracteresDeseados);
+                ultimos10Caracteres = referenciaCompleta[(longitud - caracteresDeseados)..];
             }
             else
             {
@@ -47,7 +47,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Contrapartida = banco.CuentaContable;
             lineas.Add(linea1);
 
-            ReglaContabilizacionResponse response = new ReglaContabilizacionResponse
+            ReglaContabilizacionResponse response = new()
             {
                 Lineas = lineas
             };
@@ -61,18 +61,15 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             {
                 return false;
             }
-            var apunteBancario = apuntesBancarios.First();
+            ApunteBancarioDTO apunteBancario = apuntesBancarios.First();
 
-            if (apunteBancario.ConceptoComun == "99" &&
-                apunteBancario.ConceptoPropio == "067" &&
+            return (
+                (apunteBancario.ConceptoComun == "99" && apunteBancario.ConceptoPropio == "067") ||
+                (apunteBancario.ConceptoComun == "04" && apunteBancario.ConceptoPropio == "002")
+                ) &&
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
-                apunteBancario.RegistrosConcepto[1]?.Concepto.ToUpper().Trim() == "ADELANTO NOMINA NUEVA VISION")
-            {
-                return true;
-            }
-
-            return false;
+                apunteBancario.RegistrosConcepto[1]?.Concepto.ToUpper().Trim() == "ADELANTO NOMINA NUEVA VISION";
         }
     }
 }

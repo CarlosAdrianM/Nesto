@@ -56,6 +56,7 @@ Public Class PlantillaVentaViewModel
         cmdAbrirPlantillaVenta = New DelegateCommand(Of Object)(AddressOf OnAbrirPlantillaVenta, AddressOf CanAbrirPlantillaVenta)
         cmdActualizarPrecioProducto = New DelegateCommand(Of Object)(AddressOf OnActualizarPrecioProducto, AddressOf CanActualizarPrecioProducto)
         cmdActualizarProductosPedido = New DelegateCommand(Of LineaPlantillaVenta)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
+        BuscarContextualCommand = New DelegateCommand(Of String)(AddressOf OnBuscarContextual, AddressOf CanBuscarContextual)
         cmdBuscarEnTodosLosProductos = New DelegateCommand(Of String)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
         cmdCargarClientesVendedor = New DelegateCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
         cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
@@ -944,6 +945,63 @@ Public Class PlantillaVentaViewModel
     End Function
     Private Sub OnSoloConStock()
         ListaFiltrableProductos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaFiltrableProductos.Lista.Where(Function(l) CType(l, LineaPlantillaVenta).cantidadDisponible > 0))
+    End Sub
+
+    Private _buscarContextualCommand As DelegateCommand(Of String)
+    Public Property BuscarContextualCommand As DelegateCommand(Of String)
+        Get
+            Return _buscarContextualCommand
+        End Get
+        Private Set(value As DelegateCommand(Of String))
+            SetProperty(_buscarContextualCommand, value)
+        End Set
+    End Property
+    Private Function CanBuscarContextual(filtro As String) As Boolean
+        Return Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Filtro) AndAlso ListaFiltrableProductos.Filtro.Length >= 1
+    End Function
+    Private Async Sub OnBuscarContextual(filtro As String)
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+
+            estaOcupado = True
+
+            Try
+                Dim url As String = "PlantillaVentas/Buscar?&q=" + filtro
+                response = Await client.GetAsync(url)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(JsonConvert.DeserializeObject(Of ObservableCollection(Of LineaPlantillaVenta))(cadenaJson))
+                    Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaVenta)()
+                    For Each item In ListaFiltrableProductos.ListaFijada
+                        listaPlantilla.Add(item)
+                    Next
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo))
+                    Dim productoOriginal As LineaPlantillaVenta
+                    Dim producto As LineaPlantillaVenta
+                    For i = 0 To ListaFiltrableProductos.ListaFijada.Count - 1
+                        producto = ListaFiltrableProductos.ListaFijada(i)
+                        If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR Then
+                            producto.aplicarDescuento = True
+                            producto.aplicarDescuentoFicha = True
+                        End If
+                        productoOriginal = ListaFiltrableProductos.ListaOriginal.Where(Function(p) CType(p, LineaPlantillaVenta).producto = producto.producto).FirstOrDefault
+                        If Not IsNothing(productoOriginal) Then
+                            ListaFiltrableProductos.ListaFijada(i) = productoOriginal
+                        End If
+                    Next
+                    estaOcupado = False
+                Else
+                    dialogService.ShowError("Se ha producido un error al cargar los productos")
+                End If
+            Catch ex As Exception
+                dialogService.ShowError(ex.Message)
+            Finally
+                estaOcupado = False
+            End Try
+
+        End Using
     End Sub
 
     Private _cmdBuscarEnTodosLosProductos As DelegateCommand(Of String)

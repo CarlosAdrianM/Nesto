@@ -1,18 +1,18 @@
-﻿using Prism.Commands;
+﻿using ControlesUsuario.Dialogs;
 using Microsoft.VisualBasic;
+using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.CanalesExternos.Models;
+using Prism.Commands;
+using Prism.Mvvm;
+using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
+using System.Data.Entity.Validation;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Transactions;
 using System.Windows.Input;
-using Prism.Mvvm;
-using Prism.Services.Dialogs;
-using ControlesUsuario.Dialogs;
-using System.Data.Entity.Validation;
-using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -37,38 +37,31 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private bool _estaOcupado;
         public bool EstaOcupado
-        {
-            get { return _estaOcupado; }
-            set { SetProperty(ref _estaOcupado, value); }
+        { get => _estaOcupado; set => SetProperty(ref _estaOcupado, value);
         }
 
         private DateTime _fechaDesde = DateTime.Today.AddMonths(-2);
         public DateTime FechaDesde
-        {
-            get { return _fechaDesde; }
-            set { SetProperty(ref _fechaDesde, value); }
+        { get => _fechaDesde; set => SetProperty(ref _fechaDesde, value);
         }
 
         private ObservableCollection<PagoCanalExterno> _listaPagos;
         public ObservableCollection<PagoCanalExterno> ListaPagos
-        {
-            get { return _listaPagos; }
-            set { SetProperty(ref _listaPagos, value); }
+        { get => _listaPagos; set => SetProperty(ref _listaPagos, value);
         }
 
         private int _numeroMaxGruposEventos = 40;
         public int NumeroMaxGruposEventos
-        {
-            get { return _numeroMaxGruposEventos; }
-            set { SetProperty(ref _numeroMaxGruposEventos, value); }
+        { get => _numeroMaxGruposEventos; set => SetProperty(ref _numeroMaxGruposEventos, value);
         }
 
         private PagoCanalExterno _pagoSeleccionado;
         public PagoCanalExterno PagoSeleccionado
         {
-            get { return _pagoSeleccionado; }
-            set { 
-                SetProperty(ref _pagoSeleccionado, value);
+            get => _pagoSeleccionado;
+            set
+            {
+                _ = SetProperty(ref _pagoSeleccionado, value);
                 CargarDetallePagoCommand.Execute(null);
                 ((DelegateCommand)ContabilizarPagoCommand).RaiseCanExecuteChanged();
             }
@@ -76,9 +69,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private string _titulo;
         public string Titulo
-        {
-            get { return _titulo; }
-            set { SetProperty(ref _titulo, value); }
+        { get => _titulo; set => SetProperty(ref _titulo, value);
         }
 
         public ICommand CargarDetallePagoCommand { get; private set; }
@@ -115,15 +106,15 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         PagoSeleccionado.RestoAjustes = Math.Round(PagoSeleccionado.RestoAjustes * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
                         PagoSeleccionado.Comision = Math.Round(PagoSeleccionado.Comision * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
                         PagoSeleccionado.Publicidad = Math.Round(PagoSeleccionado.Publicidad * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
-                        foreach (var detalle in PagoSeleccionado.DetallesPago)
+                        foreach (DetallePagoCanalExterno detalle in PagoSeleccionado.DetallesPago)
                         {
                             detalle.Comisiones = Math.Round(detalle.Comisiones * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
                             detalle.Importe = Math.Round(detalle.Importe * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
-                            detalle.Promociones = Math.Round(detalle.Promociones* PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
+                            detalle.Promociones = Math.Round(detalle.Promociones * PagoSeleccionado.CambioDivisas, 2, MidpointRounding.AwayFromZero);
                         }
                     }
                 });
-                
+
                 RaisePropertyChanged(nameof(PagoSeleccionado));
             }
             catch (Exception ex)
@@ -171,274 +162,263 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
 
             EstaOcupado = true;
-            string nombreMarket;
-            if (PagoSeleccionado.DetallesPago.Any())
-            {
-                nombreMarket = DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.CuentaContablePago == PagoSeleccionado.DetallesPago.First().CuentaContablePago).Id).NombreMarket;
-            } else
-            {
-                nombreMarket = "sin detalle";
-            }
+            string nombreMarket = PagoSeleccionado.DetallesPago.Any()
+                ? DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.CuentaContablePago == PagoSeleccionado.DetallesPago.First().CuentaContablePago).Id).NombreMarket
+                : "sin detalle";
             string documento = "AMZ" + PagoSeleccionado.FechaPago.ToString("ddMMyy");
-            DateTime fechaPago = new DateTime(PagoSeleccionado.FechaPago.Year, PagoSeleccionado.FechaPago.Month, PagoSeleccionado.FechaPago.Day);
-            int asiento = 0;
-            bool success = false;
+            DateTime fechaPago = new(PagoSeleccionado.FechaPago.Year, PagoSeleccionado.FechaPago.Month, PagoSeleccionado.FechaPago.Day);
             const int TIEMPO_ESPERA = 360;
-            TransactionOptions transactionOptions = new TransactionOptions
+            TransactionOptions transactionOptions = new()
             {
                 Timeout = TimeSpan.FromSeconds(TIEMPO_ESPERA + 10) //para asegurarnos que la transacción se deshace aunque prdContabilizar tarde mucho
             };
-            using (var scope = new TransactionScope(TransactionScopeOption.Required, transactionOptions))
+            using TransactionScope scope = new(TransactionScopeOption.Required, transactionOptions);
+            using NestoEntities db = new();
+            db.Database.CommandTimeout = TIEMPO_ESPERA;
+
+            if (PagoSeleccionado.Importe != 0)
             {
-                using (var db = new NestoEntities())
+                PreContabilidad apunteIngreso = new()
                 {
-                    db.Database.CommandTimeout = TIEMPO_ESPERA;
+                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                    Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                    Asiento = 1,
+                    Fecha = fechaPago,
+                    FechaVto = fechaPago,
+                    TipoApunte = Constantes.TiposApunte.PAGO,
+                    TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
+                    Nº_Cuenta = PROVEEDOR_AMAZON,
+                    Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                    Concepto = string.Format("Pago {0}", nombreMarket),
+                    Haber = PagoSeleccionado.Importe,
+                    Nº_Documento = documento,
+                    NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                };
+                _ = db.PreContabilidad.Add(apunteIngreso);
 
-                    if (PagoSeleccionado.Importe != 0)
+                PreContabilidad apunteBanco = new()
+                {
+                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                    Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                    Asiento = 1,
+                    Fecha = fechaPago,
+                    FechaVto = fechaPago,
+                    TipoApunte = Constantes.TiposApunte.PAGO,
+                    TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
+                    Nº_Cuenta = BANCO_AMAZON,
+                    Concepto = string.Format("Pago {0}", nombreMarket),
+                    Debe = PagoSeleccionado.Importe,
+                    Nº_Documento = documento,
+                    NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                };
+                _ = db.PreContabilidad.Add(apunteBanco);
+            }
+
+            if (PagoSeleccionado.TotalDetallePagos != 0)
+            {
+                PreContabilidad apunteProveedor = new()
+                {
+                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                    Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                    Asiento = 2,
+                    Fecha = fechaPago,
+                    FechaVto = fechaPago,
+                    TipoApunte = Constantes.TiposApunte.PAGO,
+                    TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
+                    Nº_Cuenta = PROVEEDOR_AMAZON,
+                    Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                    Concepto = string.Format("Liq. Pagos {0}. Retenido {1}", nombreMarket, (-PagoSeleccionado.AjusteRetencion).ToString("C")),
+                    Debe = PagoSeleccionado.TotalDetallePagos,
+                    Nº_Documento = documento,
+                    NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                };
+                _ = db.PreContabilidad.Add(apunteProveedor);
+            }
+
+            if (-PagoSeleccionado.TotalDetalleComisiones - PagoSeleccionado.Comision - PagoSeleccionado.TotalDetallePromociones - PagoSeleccionado.Publicidad != 0)
+            {
+                PreContabilidad apunteGastos = new()
+                {
+                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                    Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                    Asiento = 3,
+                    Fecha = fechaPago,
+                    FechaVto = fechaPago,
+                    TipoApunte = Constantes.TiposApunte.PAGO,
+                    TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
+                    Nº_Cuenta = PROVEEDOR_AMAZON,
+                    Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                    Concepto = string.Format("Gastos {0}", nombreMarket),
+                    Haber = -PagoSeleccionado.TotalDetalleComisiones - PagoSeleccionado.Comision - PagoSeleccionado.TotalDetallePromociones - PagoSeleccionado.Publicidad,
+                    Nº_Documento = documento,
+                    NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                };
+                _ = db.PreContabilidad.Add(apunteGastos);
+            }
+
+
+            if (PagoSeleccionado.Comision != 0)
+            {
+                PreContabilidad apunteComisionCabecera = new()
+                {
+                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                    Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                    Asiento = 3,
+                    Fecha = fechaPago,
+                    FechaVto = fechaPago,
+                    TipoApunte = Constantes.TiposApunte.PAGO,
+                    TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
+                    Nº_Cuenta = CUENTA_COMISIONES,
+                    Concepto = string.Format("Comisiones Cabecera {0}", nombreMarket),
+                    Debe = -PagoSeleccionado.Comision,
+                    Nº_Documento = documento,
+                    NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO,
+                    CentroCoste = "CA", // Esto hay que meejorarlo
+                    Departamento = "ADM"
+                };
+                _ = db.PreContabilidad.Add(apunteComisionCabecera);
+            }
+
+            if (PagoSeleccionado.Publicidad != 0)
+            {
+                PreContabilidad apuntePublicidad = new()
+                {
+                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                    Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                    Asiento = 3,
+                    Fecha = fechaPago,
+                    FechaVto = fechaPago,
+                    TipoApunte = Constantes.TiposApunte.PAGO,
+                    TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
+                    Nº_Cuenta = PROVEEDOR_AMAZON,
+                    Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                    Concepto = string.Format("Publicidad {0} {1}", nombreMarket, PagoSeleccionado.FacturaPublicidad),
+                    Debe = -PagoSeleccionado.Publicidad,
+                    Nº_Documento = documento,
+                    NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                };
+                _ = db.PreContabilidad.Add(apuntePublicidad);
+            }
+
+            foreach (DetallePagoCanalExterno detalle in PagoSeleccionado.DetallesPago)
+            {
+                if (detalle.Importe != 0)
+                {
+                    PreContabilidad apunteEnvio = new()
                     {
-                        PreContabilidad apunteIngreso = new PreContabilidad
-                        {
-                            Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                            Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                            Asiento = 1,
-                            Fecha = fechaPago,
-                            FechaVto = fechaPago,
-                            TipoApunte = Constantes.TiposApunte.PAGO,
-                            TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                            Nº_Cuenta = PROVEEDOR_AMAZON,
-                            Contacto = CONTACTO_PROVEEDOR_AMAZON,
-                            Concepto = string.Format("Pago {0}", nombreMarket),
-                            Haber = PagoSeleccionado.Importe,
-                            Nº_Documento = documento,
-                            NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                            Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                            FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                        };
-                        db.PreContabilidad.Add(apunteIngreso);
+                        Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                        Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                        Asiento = 2,
+                        Fecha = fechaPago,
+                        FechaVto = fechaPago,
+                        TipoApunte = Constantes.TiposApunte.PAGO,
+                        TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
+                        Nº_Cuenta = detalle.CuentaContablePago,
+                        Concepto = string.Format("Liq. Pago Pedido {0}", detalle.ExternalId),
+                        Haber = detalle.Importe,
+                        Nº_Documento = documento,
+                        NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                        FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                    };
+                    _ = db.PreContabilidad.Add(apunteEnvio);
+                }
 
-                        PreContabilidad apunteBanco = new PreContabilidad
-                        {
-                            Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                            Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                            Asiento = 1,
-                            Fecha = fechaPago,
-                            FechaVto = fechaPago,
-                            TipoApunte = Constantes.TiposApunte.PAGO,
-                            TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                            Nº_Cuenta = BANCO_AMAZON,
-                            Concepto = string.Format("Pago {0}", nombreMarket),
-                            Debe = PagoSeleccionado.Importe,
-                            Nº_Documento = documento,
-                            NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                            Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                            FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                        };
-                        db.PreContabilidad.Add(apunteBanco);
-                    }
-
-                    if (PagoSeleccionado.TotalDetallePagos != 0)
+                if (detalle.Comisiones != 0)
+                {
+                    PreContabilidad apunteComisiones = new()
                     {
-                        PreContabilidad apunteProveedor = new PreContabilidad
-                        {
-                            Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                            Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                            Asiento = 2,
-                            Fecha = fechaPago,
-                            FechaVto = fechaPago,
-                            TipoApunte = Constantes.TiposApunte.PAGO,
-                            TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                            Nº_Cuenta = PROVEEDOR_AMAZON,
-                            Contacto = CONTACTO_PROVEEDOR_AMAZON,
-                            Concepto = string.Format("Liq. Pagos {0}. Retenido {1}", nombreMarket, (-PagoSeleccionado.AjusteRetencion).ToString("C")),
-                            Debe = PagoSeleccionado.TotalDetallePagos,
-                            Nº_Documento = documento,
-                            NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                            Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                            FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                        };
-                        db.PreContabilidad.Add(apunteProveedor);
-                    }
+                        Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                        Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                        Asiento = 3,
+                        Fecha = fechaPago,
+                        FechaVto = fechaPago,
+                        TipoApunte = Constantes.TiposApunte.PAGO,
+                        TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
+                        Nº_Cuenta = PagoSeleccionado.DetallesPago.First().CuentaContableComisiones,
+                        Concepto = string.Format("Liq. Comisiones {0}", detalle.ExternalId),
+                        Debe = -detalle.Comisiones,
+                        Nº_Documento = documento,
+                        NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                        FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                    };
+                    _ = db.PreContabilidad.Add(apunteComisiones);
+                }
 
-                    if (-PagoSeleccionado.TotalDetalleComisiones - PagoSeleccionado.Comision - PagoSeleccionado.TotalDetallePromociones - PagoSeleccionado.Publicidad != 0)
+                if (detalle.Promociones != 0)
+                {
+                    PreContabilidad apuntePromociones = new()
                     {
-                        PreContabilidad apunteGastos = new PreContabilidad
-                        {
-                            Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                            Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                            Asiento = 3,
-                            Fecha = fechaPago,
-                            FechaVto = fechaPago,
-                            TipoApunte = Constantes.TiposApunte.PAGO,
-                            TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                            Nº_Cuenta = PROVEEDOR_AMAZON,
-                            Contacto = CONTACTO_PROVEEDOR_AMAZON,
-                            Concepto = string.Format("Gastos {0}", nombreMarket),
-                            Haber = -PagoSeleccionado.TotalDetalleComisiones - PagoSeleccionado.Comision - PagoSeleccionado.TotalDetallePromociones - PagoSeleccionado.Publicidad,
-                            Nº_Documento = documento,
-                            NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                            Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                            FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                        };
-                        db.PreContabilidad.Add(apunteGastos);
-                    }
-
-
-                    if (PagoSeleccionado.Comision != 0)
-                    {
-                        PreContabilidad apunteComisionCabecera = new PreContabilidad
-                        {
-                            Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                            Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                            Asiento = 3,
-                            Fecha = fechaPago,
-                            FechaVto = fechaPago,
-                            TipoApunte = Constantes.TiposApunte.PAGO,
-                            TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                            Nº_Cuenta = CUENTA_COMISIONES,
-                            Concepto = string.Format("Comisiones Cabecera {0}", nombreMarket),
-                            Debe = -PagoSeleccionado.Comision,
-                            Nº_Documento = documento,
-                            NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                            Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                            FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO,
-                            CentroCoste = "CA", // Esto hay que meejorarlo
-                            Departamento = "ADM"
-                        };
-                        db.PreContabilidad.Add(apunteComisionCabecera);
-                    }
-
-                    if (PagoSeleccionado.Publicidad != 0)
-                    {
-                        PreContabilidad apuntePublicidad = new PreContabilidad
-                        {
-                            Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                            Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                            Asiento = 3,
-                            Fecha = fechaPago,
-                            FechaVto = fechaPago,
-                            TipoApunte = Constantes.TiposApunte.PAGO,
-                            TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                            Nº_Cuenta = PROVEEDOR_AMAZON,
-                            Contacto = CONTACTO_PROVEEDOR_AMAZON,
-                            Concepto = string.Format("Publicidad {0} {1}", nombreMarket, PagoSeleccionado.FacturaPublicidad),
-                            Debe = -PagoSeleccionado.Publicidad,
-                            Nº_Documento = documento,
-                            NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                            Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                            FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                        };
-                        db.PreContabilidad.Add(apuntePublicidad);
-                    }
-
-                    foreach (var detalle in PagoSeleccionado.DetallesPago)
-                    {
-                        if (detalle.Importe != 0)
-                        {
-                            PreContabilidad apunteEnvio = new PreContabilidad
-                            {
-                                Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                                Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                                Asiento = 2,
-                                Fecha = fechaPago,
-                                FechaVto = fechaPago,
-                                TipoApunte = Constantes.TiposApunte.PAGO,
-                                TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                                Nº_Cuenta = detalle.CuentaContablePago,
-                                Concepto = string.Format("Liq. Pago Pedido {0}", detalle.ExternalId),
-                                Haber = detalle.Importe,
-                                Nº_Documento = documento,
-                                NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                                Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                                FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                            };
-                            db.PreContabilidad.Add(apunteEnvio);
-                        }
-
-                        if (detalle.Comisiones != 0)
-                        {
-                            PreContabilidad apunteComisiones = new PreContabilidad
-                            {
-                                Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                                Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                                Asiento = 3,
-                                Fecha = fechaPago,
-                                FechaVto = fechaPago,
-                                TipoApunte = Constantes.TiposApunte.PAGO,
-                                TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                                Nº_Cuenta = PagoSeleccionado.DetallesPago.First().CuentaContableComisiones,
-                                Concepto = string.Format("Liq. Comisiones {0}", detalle.ExternalId),
-                                Debe = -detalle.Comisiones,
-                                Nº_Documento = documento,
-                                NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                                Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                                FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                            };
-                            db.PreContabilidad.Add(apunteComisiones);
-                        }
-
-                        if (detalle.Promociones != 0)
-                        {
-                            PreContabilidad apuntePromociones = new PreContabilidad
-                            {
-                                Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                                Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                                Asiento = 3,
-                                Fecha = fechaPago,
-                                FechaVto = fechaPago,
-                                TipoApunte = Constantes.TiposApunte.PAGO,
-                                TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                                Nº_Cuenta = PagoSeleccionado.DetallesPago.First().CuentaContableComisiones,
-                                Concepto = string.Format("Liq. Promociones {0}", detalle.ExternalId),
-                                Debe = -detalle.Promociones,
-                                Nº_Documento = documento,
-                                NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
-                                Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
-                                FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                            };
-                            db.PreContabilidad.Add(apuntePromociones);
-                        }
-                    }
-
-                    try
-                    {
-                        await Task.Run(() =>
-                        {
-                            db.SaveChanges();
-                            db.prdContabilizar(Constantes.Empresas.EMPRESA_DEFECTO, Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS);
-                        });                        
-                    }
-                    catch (DbEntityValidationException ex)
-                    {
-                        scope.Dispose();
-                        EstaOcupado = false;
-                        string mensajeError = ex.Message;
-                        foreach (var errorValidacion in ex.EntityValidationErrors)
-                        {
-                            foreach (var textoError in errorValidacion.ValidationErrors)
-                            {
-                                mensajeError += "\n" + textoError.ErrorMessage;
-                            }
-                        }
-                        dialogService.ShowError(mensajeError);
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        scope.Dispose();
-                        EstaOcupado = false;
-                        throw ex;
-                    }
-                    
-
-                    scope.Complete();
-
-                    // Buscamos los nº de orden y liquidamos 
-                    // A desarrollar cuando ya todo lo pendiente del proveedor hecho automático
-                    
-                    EstaOcupado = false;
-                    dialogService.ShowNotification("Pago contabilizado", "Se ha contabilizado correctamente el pago");
+                        Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                        Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                        Asiento = 3,
+                        Fecha = fechaPago,
+                        FechaVto = fechaPago,
+                        TipoApunte = Constantes.TiposApunte.PAGO,
+                        TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
+                        Nº_Cuenta = PagoSeleccionado.DetallesPago.First().CuentaContableComisiones,
+                        Concepto = string.Format("Liq. Promociones {0}", detalle.ExternalId),
+                        Debe = -detalle.Promociones,
+                        Nº_Documento = documento,
+                        NºDocumentoProv = Strings.Right(PagoSeleccionado.PagoExternalId, 20),
+                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                        FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                    };
+                    _ = db.PreContabilidad.Add(apuntePromociones);
                 }
             }
+
+            try
+            {
+                await Task.Run(() =>
+                {
+                    _ = db.SaveChanges();
+                    _ = db.prdContabilizar(Constantes.Empresas.EMPRESA_DEFECTO, Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS);
+                });
+            }
+            catch (DbEntityValidationException ex)
+            {
+                scope.Dispose();
+                EstaOcupado = false;
+                string mensajeError = ex.Message;
+                foreach (DbEntityValidationResult errorValidacion in ex.EntityValidationErrors)
+                {
+                    foreach (DbValidationError textoError in errorValidacion.ValidationErrors)
+                    {
+                        mensajeError += "\n" + textoError.ErrorMessage;
+                    }
+                }
+                dialogService.ShowError(mensajeError);
+                return;
+            }
+            catch (Exception ex)
+            {
+                scope.Dispose();
+                EstaOcupado = false;
+                dialogService.ShowError(ex.InnerException != null ? ex.InnerException.Message : ex.Message);
+            }
+
+
+            scope.Complete();
+
+            // Buscamos los nº de orden y liquidamos 
+            // A desarrollar cuando ya todo lo pendiente del proveedor hecho automático
+
+            EstaOcupado = false;
+            dialogService.ShowNotification("Pago contabilizado", "Se ha contabilizado correctamente el pago");
 
         }
 

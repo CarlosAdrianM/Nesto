@@ -113,12 +113,15 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition/>
                                         <ColumnDefinition/>
-                                        <!--ColumnDefinition/-->
+                                        <ColumnDefinition/>
                                     </Grid.ColumnDefinitions>
                                     <Button Grid.Column="0" Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
                                         <AccessText>_Buscar en todos los productos</AccessText>
                                     </Button>
-                                    <Button Grid.Column="1" Name="btnSoloConStock" Command="{Binding SoloConStockCommand}">
+                                    <Button Grid.Column="1" Name="btnBuscarContextual" Command="{Binding BuscarContextualCommand}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
+                                        <AccessText>Búsqueda _contextual</AccessText>
+                                    </Button>
+                                    <Button Grid.Column="2" Name="btnSoloConStock" Command="{Binding SoloConStockCommand}">
                                         <AccessText>Mostrar solo con _Stock</AccessText>
                                     </Button>
                                     <!--ToggleButton Grid.Column="2" Name="btnGanavisiones" IsChecked="{Binding EstanGanavisionesMostrados}">
