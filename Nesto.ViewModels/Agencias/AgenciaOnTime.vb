@@ -1,11 +1,11 @@
 ﻿Imports System.Collections.ObjectModel
-Imports System.Windows
+Imports System.IO
 Imports System.Net
 Imports System.Net.Http
 Imports System.Net.Http.Headers
-Imports Nesto.Models.Nesto.Models
-Imports System.IO
+Imports System.Windows
 Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 
 Public Class AgenciaOnTime
     Implements IAgencia
@@ -33,6 +33,12 @@ Public Class AgenciaOnTime
 
     End Sub
 
+    Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
+        Get
+            Return String.Empty
+        End Get
+    End Property
+
     ' Funciones
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
         Throw New Exception("OnTime no permite integración. Consulte el estado en la página web de OnTime.")
@@ -45,11 +51,7 @@ Public Class AgenciaOnTime
         'Dim digitalizacionesxml As XElement
         'Dim digitalizacion As digitalizacion
 
-        If IsNothing(envio) Then
-            Return Nothing
-        End If
-
-        Return estado
+        Return If(IsNothing(envio), Nothing, estado)
     End Function
     Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
         Return agenciaVM.envioActual.Numero.ToString("D7")
@@ -63,7 +65,7 @@ Public Class AgenciaOnTime
     Public Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
         Dim respuesta As New RespuestaAgencia With {
             .Agencia = "OnTime",
-            .Fecha = DateTime.Now,
+            .Fecha = Date.Now,
             .UrlLlamada = String.Empty,
             .Exito = True,
             .CuerpoLlamada = String.Empty,

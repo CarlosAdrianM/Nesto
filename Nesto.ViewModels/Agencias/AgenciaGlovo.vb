@@ -1,7 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Windows
-Imports Nesto.Models.Nesto.Models
 Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 
 Public Class AgenciaGlovo
     Implements IAgencia
@@ -21,6 +21,11 @@ Public Class AgenciaGlovo
 
     End Sub
 
+    Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
+        Get
+            Return String.Empty
+        End Get
+    End Property
     Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir
         Get
             Return Visibility.Hidden
@@ -70,7 +75,7 @@ Public Class AgenciaGlovo
     Public Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
         Dim respuesta As New RespuestaAgencia With {
             .Agencia = "Glovo",
-            .Fecha = DateTime.Now,
+            .Fecha = Date.Now,
             .UrlLlamada = String.Empty,
             .Exito = True,
             .CuerpoLlamada = String.Empty,

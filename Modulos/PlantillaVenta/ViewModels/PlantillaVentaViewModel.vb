@@ -1,27 +1,27 @@
-﻿Imports System.Net.Http
-Imports System.Collections.ObjectModel
-Imports Newtonsoft.Json
+﻿Imports System.Collections.ObjectModel
+Imports System.Net.Http
 Imports System.Text
-Imports Nesto.Models
-Imports Nesto.Modulos.PedidoVenta
-Imports Newtonsoft.Json.Linq
-Imports Xceed.Wpf.Toolkit
-Imports Prism.Events
-Imports Nesto.Models.Nesto.Models
-Imports Prism.Regions
-Imports Prism.Commands
-Imports Unity
-Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
-Imports Prism.Mvvm
-Imports Nesto.Infrastructure.Events
-Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Infrastructure.Shared
 Imports ControlesUsuario.Models
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Shared
+Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
+Imports Nesto.Modulos.PedidoVenta
+Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
+Imports Prism.Commands
+Imports Prism.Events
+Imports Prism.Mvvm
+Imports Prism.Regions
+Imports Prism.Services.Dialogs
+Imports Unity
+Imports Xceed.Wpf.Toolkit
 
 Public Class PlantillaVentaViewModel
     Inherits BindableBase
-    Implements INavigationAware
+    Implements INavigationAware, IConfirmNavigationRequest
 
     Public Property configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
@@ -39,8 +39,8 @@ Public Class PlantillaVentaViewModel
     Private Const PAGINA_FINALIZAR As String = "Finalizar"
 
 
-    Dim formaVentaPedido, delegacionUsuario, almacenRutaUsuario, iva, vendedorUsuario As String
-    Dim ultimoClienteAbierto As String = ""
+    Private formaVentaPedido, delegacionUsuario, almacenRutaUsuario, iva, vendedorUsuario As String
+    Private ultimoClienteAbierto As String = ""
 
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService)
         Me.configuracion = configuracion
@@ -102,8 +102,10 @@ Public Class PlantillaVentaViewModel
                                                                             cmdCargarUltimasVentas.Execute(ListaFiltrableProductos.ElementoSeleccionado)
                                                                         End Sub
 
+        EsBusquedaConAND = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UsarBusquedaContextualAND) = "1"
+        EsBusquedaConOR = Not EsBusquedaConAND
 
-        eventAggregator.GetEvent(Of ClienteCreadoEvent).Subscribe(AddressOf ActualizarCliente)
+        Dim unused = eventAggregator.GetEvent(Of ClienteCreadoEvent).Subscribe(AddressOf ActualizarCliente)
 
     End Sub
 
@@ -122,7 +124,7 @@ Public Class PlantillaVentaViewModel
             Return _almacenEntregaUrgente
         End Get
         Set(value As String)
-            SetProperty(_almacenEntregaUrgente, value)
+            Dim unused = SetProperty(_almacenEntregaUrgente, value)
         End Set
     End Property
 
@@ -132,11 +134,11 @@ Public Class PlantillaVentaViewModel
             Return _almacenSeleccionado
         End Get
         Set(value As Sede)
-            SetProperty(_almacenSeleccionado, value)
+            Dim unused = SetProperty(_almacenSeleccionado, value)
             If Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) Then
                 Application.Current.Dispatcher.Invoke(New Action(Async Sub()
                                                                      estaOcupado = True
-                                                                     Dim listaCast As ObservableCollection(Of LineaPlantillaVenta) = New ObservableCollection(Of LineaPlantillaVenta)
+                                                                     Dim listaCast As New ObservableCollection(Of LineaPlantillaVenta)
                                                                      For Each linea In ListaFiltrableProductos.ListaOriginal
                                                                          listaCast.Add(linea)
                                                                      Next
@@ -155,8 +157,8 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property baseImponiblePedido As Decimal
         Get
             Dim baseImponible As Decimal = 0
-            If (Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0) Then
-                baseImponible = listaProductosPedido.Sum(Function(l) l.cantidad * l.precio - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
+            If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
+                baseImponible = listaProductosPedido.Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
             End If
             RaisePropertyChanged(NameOf(baseImponibleParaPortes))
             Return baseImponible
@@ -166,8 +168,8 @@ Public Class PlantillaVentaViewModel
     Public ReadOnly Property baseImponibleParaPortes As Decimal
         Get
             Dim baseImponible As Decimal = 0
-            If (Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0) Then
-                baseImponible = listaProductosPedido.Where(Function(l) l.esSobrePedido = False).Sum(Function(l) l.cantidad * l.precio - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero))
+            If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
+                baseImponible = listaProductosPedido.Where(Function(l) l.esSobrePedido = False).Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero))
             End If
             Return baseImponible
         End Get
@@ -184,7 +186,7 @@ Public Class PlantillaVentaViewModel
                     Dim mensajeError As String = String.Format("A este cliente le faltan datos. Si continua es{0}posible que no pueda finalizar el pedido. Elija entre rellenar los{0}datos que faltan (Cancel) o continuar con el pedido (OK)", Environment.NewLine)
                     Dim continuar As Boolean
                     dialogService.ShowConfirmation("Faltan datos en el cliente", mensajeError, Sub(r)
-                                                                                                   continuar = (r.Result = ButtonResult.OK)
+                                                                                                   continuar = r.Result = ButtonResult.OK
                                                                                                End Sub)
                     If continuar Then
                         SeleccionarElCliente(value)
@@ -199,8 +201,8 @@ Public Class PlantillaVentaViewModel
                 SeleccionarElCliente(value)
             End If
             If _clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN Then
-                fechaMinimaEntrega = DateTime.Today
-                fechaEntrega = DateTime.Today
+                fechaMinimaEntrega = Date.Today
+                fechaEntrega = Date.Today
             End If
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
         End Set
@@ -212,7 +214,7 @@ Public Class PlantillaVentaViewModel
             Return _cobroTarjetaCorreo
         End Get
         Set(value As String)
-            SetProperty(_cobroTarjetaCorreo, value)
+            Dim unused = SetProperty(_cobroTarjetaCorreo, value)
         End Set
     End Property
 
@@ -222,7 +224,7 @@ Public Class PlantillaVentaViewModel
             Return _cobroTarjetaMovil
         End Get
         Set(value As String)
-            SetProperty(_cobroTarjetaMovil, value)
+            Dim unused = SetProperty(_cobroTarjetaMovil, value)
         End Set
     End Property
 
@@ -232,7 +234,7 @@ Public Class PlantillaVentaViewModel
             Return _comentarioRuta
         End Get
         Set(value As String)
-            SetProperty(_comentarioRuta, value)
+            Dim unused = SetProperty(_comentarioRuta, value)
         End Set
     End Property
 
@@ -246,7 +248,7 @@ Public Class PlantillaVentaViewModel
                 ComentarioRuta = String.Empty
             End If
             Dim codigoPostalAnterior = _direccionEntregaSeleccionada?.codigoPostal
-            SetProperty(_direccionEntregaSeleccionada, value)
+            Dim unused = SetProperty(_direccionEntregaSeleccionada, value)
             If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
                 PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
             ElseIf _direccionEntregaSeleccionada.codigoPostal <> codigoPostalAnterior Then
@@ -277,7 +279,7 @@ Public Class PlantillaVentaViewModel
             Return _direccionGoogleMaps
         End Get
         Set(value As String)
-            SetProperty(_direccionGoogleMaps, value)
+            Dim unused = SetProperty(_direccionGoogleMaps, value)
         End Set
     End Property
 
@@ -287,12 +289,45 @@ Public Class PlantillaVentaViewModel
             Return _enviarPorGlovo
         End Get
         Set(value As Boolean)
-            SetProperty(_enviarPorGlovo, value)
+            Dim unused = SetProperty(_enviarPorGlovo, value)
             If _enviarPorGlovo Then
                 AlmacenAnterior = almacenSeleccionado.Codigo
                 almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenEntregaUrgente)
             Else
                 almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenAnterior)
+            End If
+        End Set
+    End Property
+
+    Private _esBusquedaConAND As Boolean
+    Public Property EsBusquedaConAND As Boolean
+        Get
+            Return _esBusquedaConAND
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_esBusquedaConAND, value) Then
+                configuracion.GuardarParametroSync(
+                    Constantes.Empresas.EMPRESA_DEFECTO,
+                    Parametros.Claves.UsarBusquedaContextualAND,
+                    If(EsBusquedaConAND, "1", "0")
+                )
+                If value Then
+                    EsBusquedaConOR = False
+                End If
+            End If
+        End Set
+    End Property
+
+    Private _esBusquedaConOR As Boolean
+    Public Property EsBusquedaConOR As Boolean
+        Get
+            Return _esBusquedaConOR
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_esBusquedaConOR, value) Then
+                If value Then
+                    EsBusquedaConAND = False
+                End If
             End If
         End Set
     End Property
@@ -303,7 +338,7 @@ Public Class PlantillaVentaViewModel
             Return _esPresupuesto
         End Get
         Set(value As Boolean)
-            SetProperty(_esPresupuesto, value)
+            Dim unused = SetProperty(_esPresupuesto, value)
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
         End Set
     End Property
@@ -328,7 +363,7 @@ Public Class PlantillaVentaViewModel
                 Dim listaIntermedia As ObservableCollection(Of IFiltrableItem) = ListaFiltrableProductos.Lista
                 ListaFiltrableProductos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaProductosGanavisiones)
                 ListaProductosGanavisiones = listaIntermedia
-                SetProperty(_estanGanavisionesMostrados, value)
+                Dim unused = SetProperty(_estanGanavisionesMostrados, value)
             Catch ex As Exception
                 dialogService.ShowError(ex.Message)
             End Try
@@ -341,22 +376,22 @@ Public Class PlantillaVentaViewModel
             Return _estaOcupado
         End Get
         Set(ByVal value As Boolean)
-            SetProperty(_estaOcupado, value)
+            Dim unused = SetProperty(_estaOcupado, value)
         End Set
     End Property
 
-    Private _fechaEntrega As DateTime = DateTime.MinValue
-    Public Property fechaEntrega As DateTime
+    Private _fechaEntrega As Date = Date.MinValue
+    Public Property fechaEntrega As Date
         Get
             Return _fechaEntrega
         End Get
-        Set(ByVal value As DateTime)
-            SetProperty(_fechaEntrega, value)
+        Set(ByVal value As Date)
+            Dim unused = SetProperty(_fechaEntrega, value)
         End Set
     End Property
 
-    Private _fechaMinimaEntrega As DateTime
-    Public Property fechaMinimaEntrega As DateTime
+    Private _fechaMinimaEntrega As Date
+    Public Property fechaMinimaEntrega As Date
         Get
             Return _fechaMinimaEntrega
         End Get
@@ -365,11 +400,11 @@ Public Class PlantillaVentaViewModel
                 If fechaEntrega < Value Then
                     fechaEntrega = Value
                 End If
-                SetProperty(_fechaMinimaEntrega, Value)
+                Dim unused1 = SetProperty(_fechaMinimaEntrega, Value)
             End If
 
             If _fechaMinimaEntrega > Value Then
-                SetProperty(_fechaMinimaEntrega, Value)
+                Dim unused = SetProperty(_fechaMinimaEntrega, Value)
                 If fechaEntrega < Value Then
                     fechaEntrega = Value
                 End If
@@ -377,13 +412,11 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Public Async Function ObtenerFechaMinimaEntregaAsync() As Task(Of DateTime)
+    Public Async Function ObtenerFechaMinimaEntregaAsync() As Task(Of Date)
         Try
-            If clienteSeleccionado?.cliente = Constantes.Clientes.Especiales.EL_EDEN Then
-                Return Await Task.FromResult(DateTime.Today)
-            End If
-
-            Return Await servicio.CalcularFechaEntrega(DateTime.Now, direccionEntregaSeleccionada?.ruta, almacenSeleccionado?.Codigo)
+            Return If(clienteSeleccionado?.cliente = Constantes.Clientes.Especiales.EL_EDEN,
+                Await Task.FromResult(Date.Today),
+                Await servicio.CalcularFechaEntrega(Date.Now, direccionEntregaSeleccionada?.ruta, almacenSeleccionado?.Codigo))
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
             Return Nothing
@@ -396,7 +429,7 @@ Public Class PlantillaVentaViewModel
             Return _filtroCliente
         End Get
         Set(ByVal value As String)
-            SetProperty(_filtroCliente, value.ToLower)
+            Dim unused = SetProperty(_filtroCliente, value.ToLower)
             If Not IsNothing(listaClientes) Then
                 listaClientes = New ObservableCollection(Of ClienteJson)(From l In listaClientesOriginal Where
                     ((l.nombre IsNot Nothing) AndAlso l.nombre.ToLower.Contains(filtroCliente)) OrElse
@@ -415,7 +448,7 @@ Public Class PlantillaVentaViewModel
             Return _formaPagoCliente
         End Get
         Set(value As String)
-            SetProperty(_formaPagoCliente, value)
+            Dim unused = SetProperty(_formaPagoCliente, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -429,7 +462,7 @@ Public Class PlantillaVentaViewModel
             If IsNothing(_formaPagoSeleccionada) AndAlso IsNothing(value) Then
                 Return
             End If
-            SetProperty(_formaPagoSeleccionada, value)
+            Dim unused = SetProperty(_formaPagoSeleccionada, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
@@ -437,7 +470,7 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _formaVentaDirecta As Boolean
+    Private ReadOnly _formaVentaDirecta As Boolean
     Public Property formaVentaDirecta() As Boolean
         Get
             Return formaVentaSeleccionada.Equals(1)
@@ -447,7 +480,7 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _formaVentaOtras As Boolean
+    Private ReadOnly _formaVentaOtras As Boolean
     Public Property formaVentaOtras() As Boolean
         Get
             Return formaVentaSeleccionada.Equals(3)
@@ -457,7 +490,7 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _formaVentaTelefono As Boolean
+    Private ReadOnly _formaVentaTelefono As Boolean
     Public Property formaVentaTelefono() As Boolean
         Get
             Return formaVentaSeleccionada.Equals(2)
@@ -473,7 +506,7 @@ Public Class PlantillaVentaViewModel
             Return _formaVentaSeleccionada
         End Get
         Set(ByVal value As Integer)
-            SetProperty(_formaVentaSeleccionada, value)
+            Dim unused = SetProperty(_formaVentaSeleccionada, value)
             RaisePropertyChanged(NameOf(formaVentaDirecta))
             RaisePropertyChanged(NameOf(formaVentaTelefono))
             RaisePropertyChanged(NameOf(formaVentaOtras))
@@ -486,7 +519,7 @@ Public Class PlantillaVentaViewModel
             Return _formaVentaOtrasSeleccionada
         End Get
         Set(ByVal value As FormaVentaDTO)
-            SetProperty(_formaVentaOtrasSeleccionada, value)
+            Dim unused = SetProperty(_formaVentaOtrasSeleccionada, value)
             RaisePropertyChanged(NameOf(listaFormasVenta))
         End Set
     End Property
@@ -509,7 +542,7 @@ Public Class PlantillaVentaViewModel
             Return _listaAlmacenes
         End Get
         Set(value As ObservableCollection(Of Sede))
-            SetProperty(_listaAlmacenes, value)
+            Dim unused = SetProperty(_listaAlmacenes, value)
         End Set
     End Property
 
@@ -519,7 +552,7 @@ Public Class PlantillaVentaViewModel
             Return _listaClientes
         End Get
         Set(ByVal value As ObservableCollection(Of ClienteJson))
-            SetProperty(_listaClientes, value)
+            Dim unused = SetProperty(_listaClientes, value)
             cmdCargarClientesVendedor.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -530,7 +563,7 @@ Public Class PlantillaVentaViewModel
             Return _listaClientesOriginal
         End Get
         Set(ByVal value As ObservableCollection(Of ClienteJson))
-            SetProperty(_listaClientesOriginal, value)
+            Dim unused = SetProperty(_listaClientesOriginal, value)
             listaClientes = listaClientesOriginal
         End Set
     End Property
@@ -541,7 +574,7 @@ Public Class PlantillaVentaViewModel
             Return _listaFormasPago
         End Get
         Set(ByVal value As ObservableCollection(Of FormaPagoDTO))
-            SetProperty(_listaFormasPago, value)
+            Dim unused = SetProperty(_listaFormasPago, value)
         End Set
     End Property
     Private _listaFormasVenta As ObservableCollection(Of FormaVentaDTO)
@@ -550,7 +583,7 @@ Public Class PlantillaVentaViewModel
             Return _listaFormasVenta
         End Get
         Set(ByVal value As ObservableCollection(Of FormaVentaDTO))
-            SetProperty(_listaFormasVenta, value)
+            Dim unused = SetProperty(_listaFormasVenta, value)
         End Set
     End Property
     Private _listaPedidosPendientes As List(Of Integer)
@@ -559,7 +592,7 @@ Public Class PlantillaVentaViewModel
             Return _listaPedidosPendientes
         End Get
         Set(value As List(Of Integer))
-            SetProperty(_listaPedidosPendientes, value)
+            Dim unused = SetProperty(_listaPedidosPendientes, value)
             RaisePropertyChanged(NameOf(TienePedidosPendientes))
         End Set
     End Property
@@ -570,7 +603,7 @@ Public Class PlantillaVentaViewModel
             Return _listaFiltrableProductos
         End Get
         Set(value As ColeccionFiltrable)
-            SetProperty(_listaFiltrableProductos, value)
+            Dim unused = SetProperty(_listaFiltrableProductos, value)
         End Set
     End Property
     Private _listaProductosGanavisiones As ObservableCollection(Of IFiltrableItem)
@@ -579,7 +612,7 @@ Public Class PlantillaVentaViewModel
             Return _listaProductosGanavisiones
         End Get
         Set(value As ObservableCollection(Of IFiltrableItem))
-            SetProperty(_listaProductosGanavisiones, value)
+            Dim unused = SetProperty(_listaProductosGanavisiones, value)
         End Set
     End Property
     Public ReadOnly Property listaProductosPedido() As ObservableCollection(Of LineaPlantillaVenta)
@@ -603,7 +636,7 @@ Public Class PlantillaVentaViewModel
             Return _listaUltimasVentas
         End Get
         Set(value As ObservableCollection(Of UltimasVentasProductoClienteDTO))
-            SetProperty(_listaUltimasVentas, value)
+            Dim unused = SetProperty(_listaUltimasVentas, value)
         End Set
     End Property
 
@@ -613,7 +646,7 @@ Public Class PlantillaVentaViewModel
             Return _mandarCobroTarjeta AndAlso EsTarjetaPrepago
         End Get
         Set(value As Boolean)
-            SetProperty(_mandarCobroTarjeta, value)
+            Dim unused = SetProperty(_mandarCobroTarjeta, value)
             If MandarCobroTarjeta Then
                 CargarCorreoYMovilTarjeta.Execute()
             End If
@@ -632,17 +665,17 @@ Public Class PlantillaVentaViewModel
             Return _paginaActual
         End Get
         Set(value As WizardPage)
-            SetProperty(_paginaActual, value)
+            Dim unused = SetProperty(_paginaActual, value)
         End Set
     End Property
 
-    Private _paginasWizard As List(Of WizardPage) = New List(Of WizardPage)
+    Private _paginasWizard As New List(Of WizardPage)
     Public Property PaginasWizard As List(Of WizardPage)
         Get
             Return _paginasWizard
         End Get
         Set(value As List(Of WizardPage))
-            SetProperty(_paginasWizard, value)
+            Dim unused = SetProperty(_paginasWizard, value)
         End Set
     End Property
     Private _pedidoPendienteSeleccionado As Integer
@@ -651,7 +684,7 @@ Public Class PlantillaVentaViewModel
             Return _pedidoPendienteSeleccionado
         End Get
         Set(value As Integer)
-            SetProperty(_pedidoPendienteSeleccionado, value)
+            Dim unused = SetProperty(_pedidoPendienteSeleccionado, value)
             NoAmpliarPedidoCommand.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -661,7 +694,7 @@ Public Class PlantillaVentaViewModel
             Return _plazoPagoCliente
         End Get
         Set(value As String)
-            SetProperty(_plazoPagoCliente, value)
+            Dim unused = SetProperty(_plazoPagoCliente, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -675,12 +708,12 @@ Public Class PlantillaVentaViewModel
             (IsNothing(value) AndAlso IsNothing(_plazoPagoSeleccionado)) Then
                 Return
             End If
-            SetProperty(_plazoPagoSeleccionado, value)
+            Dim unused = SetProperty(_plazoPagoSeleccionado, value)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
             RaisePropertyChanged(NameOf(MandarCobroTarjeta))
-            If (Not IsNothing(_plazoPagoSeleccionado)) Then
+            If Not IsNothing(_plazoPagoSeleccionado) Then
                 cmdCalcularSePuedeServirPorGlovo.Execute()
             End If
         End Set
@@ -692,7 +725,7 @@ Public Class PlantillaVentaViewModel
             Return _portesGlovo
         End Get
         Set(value As Decimal)
-            SetProperty(_portesGlovo, value)
+            Dim unused = SetProperty(_portesGlovo, value)
         End Set
     End Property
 
@@ -702,7 +735,7 @@ Public Class PlantillaVentaViewModel
             Return _productoPedidoSeleccionado
         End Get
         Set(ByVal value As LineaPlantillaVenta)
-            SetProperty(_productoPedidoSeleccionado, value)
+            Dim unused = SetProperty(_productoPedidoSeleccionado, value)
         End Set
     End Property
 
@@ -712,7 +745,7 @@ Public Class PlantillaVentaViewModel
             Return _respuestaGlovo
         End Get
         Set(value As RespuestaAgencia)
-            SetProperty(_respuestaGlovo, value)
+            Dim unused = SetProperty(_respuestaGlovo, value)
         End Set
     End Property
 
@@ -728,7 +761,7 @@ Public Class PlantillaVentaViewModel
             Return _sePodriaServirConGlovoEnPrepago
         End Get
         Set(value As Boolean)
-            SetProperty(_sePodriaServirConGlovoEnPrepago, value AndAlso Not SePuedeServirConGlovo)
+            Dim unused = SetProperty(_sePodriaServirConGlovoEnPrepago, value AndAlso Not SePuedeServirConGlovo)
         End Set
     End Property
 
@@ -738,7 +771,7 @@ Public Class PlantillaVentaViewModel
             Return _sePuedeServirConGlovo
         End Get
         Set(value As Boolean)
-            SetProperty(_sePuedeServirConGlovo, value)
+            Dim unused = SetProperty(_sePuedeServirConGlovo, value)
             If Not _sePuedeServirConGlovo AndAlso EnviarPorGlovo Then
                 EnviarPorGlovo = False
             End If
@@ -747,16 +780,13 @@ Public Class PlantillaVentaViewModel
 
     Public ReadOnly Property textoFacturacionElectronica As String
         Get
-            If IsNothing(direccionEntregaSeleccionada) Then
-                Return String.Empty
-            End If
-            If direccionEntregaSeleccionada.tieneFacturacionElectronica Then
-                Return "Este contacto tiene la facturación electrónica activada"
-            End If
-            If direccionEntregaSeleccionada.tieneCorreoElectronico Then
-                Return "Este contacto tiene correo electrónico, pero NO tiene la facturación electrónica activada"
-            End If
-            Return "Recuerde pedir un correo electrónico al cliente para poder activar la facturación electrónica"
+            Return If(IsNothing(direccionEntregaSeleccionada),
+                String.Empty,
+                If(direccionEntregaSeleccionada.tieneFacturacionElectronica,
+                "Este contacto tiene la facturación electrónica activada",
+                If(direccionEntregaSeleccionada.tieneCorreoElectronico,
+                "Este contacto tiene correo electrónico, pero NO tiene la facturación electrónica activada",
+                "Recuerde pedir un correo electrónico al cliente para poder activar la facturación electrónica")))
         End Get
     End Property
     Public ReadOnly Property TienePedidosPendientes As Boolean
@@ -770,7 +800,7 @@ Public Class PlantillaVentaViewModel
             Return _titulo
         End Get
         Set(value As String)
-            SetProperty(_titulo, value)
+            Dim unused = SetProperty(_titulo, value)
         End Set
     End Property
 
@@ -780,16 +810,15 @@ Public Class PlantillaVentaViewModel
             Return _todosLosVendedores
         End Get
         Set(ByVal value As Boolean)
-            SetProperty(_todosLosVendedores, value)
+            Dim unused = SetProperty(_todosLosVendedores, value)
         End Set
     End Property
 
     Public ReadOnly Property totalPedido As Decimal
         Get
-            If IsNothing(clienteSeleccionado) Then
-                Return 0
-            End If
-            Return IIf(Not IsNothing(clienteSeleccionado.iva), baseImponiblePedido * 1.21, baseImponiblePedido)
+            Return If(IsNothing(clienteSeleccionado),
+                0,
+                DirectCast(IIf(Not IsNothing(clienteSeleccionado.iva), baseImponiblePedido * 1.21D, baseImponiblePedido), Decimal))
         End Get
     End Property
 
@@ -817,7 +846,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdAbrirPlantillaVenta
         End Get
         Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdAbrirPlantillaVenta, value)
+            Dim unused = SetProperty(_cmdAbrirPlantillaVenta, value)
         End Set
     End Property
     Private Function CanAbrirPlantillaVenta(arg As Object) As Boolean
@@ -838,7 +867,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdActualizarPrecioProducto
         End Get
         Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdActualizarPrecioProducto, value)
+            Dim unused = SetProperty(_cmdActualizarPrecioProducto, value)
         End Set
     End Property
     Private Function CanActualizarPrecioProducto(arg As Object) As Boolean
@@ -900,7 +929,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdActualizarProductosPedido
         End Get
         Private Set(value As DelegateCommand(Of LineaPlantillaVenta))
-            SetProperty(_cmdActualizarProductosPedido, value)
+            Dim unused = SetProperty(_cmdActualizarProductosPedido, value)
         End Set
     End Property
     Private Function CanActualizarProductosPedido(arg As LineaPlantillaVenta) As Boolean
@@ -937,7 +966,7 @@ Public Class PlantillaVentaViewModel
             Return _soloConStockCommand
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_soloConStockCommand, value)
+            Dim unused = SetProperty(_soloConStockCommand, value)
         End Set
     End Property
     Private Function CanSoloConStock() As Boolean
@@ -953,7 +982,7 @@ Public Class PlantillaVentaViewModel
             Return _buscarContextualCommand
         End Get
         Private Set(value As DelegateCommand(Of String))
-            SetProperty(_buscarContextualCommand, value)
+            Dim unused = SetProperty(_buscarContextualCommand, value)
         End Set
     End Property
     Private Function CanBuscarContextual(filtro As String) As Boolean
@@ -965,9 +994,8 @@ Public Class PlantillaVentaViewModel
             Dim response As HttpResponseMessage
 
             estaOcupado = True
-
             Try
-                Dim url As String = "PlantillaVentas/Buscar?&q=" + filtro
+                Dim url As String = $"PlantillaVentas/Buscar?&q={filtro}&usarBusquedaConAND={EsBusquedaConAND}"
                 response = Await client.GetAsync(url)
 
                 If response.IsSuccessStatusCode Then
@@ -1010,7 +1038,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdBuscarEnTodosLosProductos
         End Get
         Private Set(value As DelegateCommand(Of String))
-            SetProperty(_cmdBuscarEnTodosLosProductos, value)
+            Dim unused = SetProperty(_cmdBuscarEnTodosLosProductos, value)
         End Set
     End Property
     Private Function CanBuscarEnTodosLosProductos(filtro As String) As Boolean
@@ -1068,7 +1096,7 @@ Public Class PlantillaVentaViewModel
             Return _cambiarIvaCommand
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_cambiarIvaCommand, value)
+            Dim unused = SetProperty(_cambiarIvaCommand, value)
         End Set
     End Property
     Private Sub OnCambiarIva()
@@ -1084,7 +1112,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdCargarClientesVendedor
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_cmdCargarClientesVendedor, value)
+            Dim unused = SetProperty(_cmdCargarClientesVendedor, value)
         End Set
     End Property
     Private Function CanCargarClientesVendedor() As Boolean
@@ -1119,11 +1147,11 @@ Public Class PlantillaVentaViewModel
             Return _cargarCorreoYMovilTarjeta
         End Get
         Set(value As DelegateCommand)
-            SetProperty(_cargarCorreoYMovilTarjeta, value)
+            Dim unused = SetProperty(_cargarCorreoYMovilTarjeta, value)
         End Set
     End Property
     Private Async Sub OnCargarCorreoYMovilTarjeta()
-        Dim telefono As Telefono = New Telefono(clienteSeleccionado.telefono)
+        Dim telefono As New Telefono(clienteSeleccionado.telefono)
         CobroTarjetaMovil = telefono.MovilUnico
         Dim cliente = Await servicio.CargarCliente(clienteSeleccionado.empresa, clienteSeleccionado.cliente, direccionEntregaSeleccionada.contacto)
         Dim personasContacto = New List(Of PersonasContactoCliente)
@@ -1133,7 +1161,7 @@ Public Class PlantillaVentaViewModel
                 .CorreoElectrónico = persona.CorreoElectronico
                                  })
         Next
-        Dim correo As CorreoCliente = New CorreoCliente(personasContacto)
+        Dim correo As New CorreoCliente(personasContacto)
         CobroTarjetaCorreo = correo.CorreoUnicoFacturaElectronica
         If String.IsNullOrEmpty(CobroTarjetaCorreo) Then
             CobroTarjetaCorreo = correo.CorreoAgencia
@@ -1146,7 +1174,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdCargarFormasVenta
         End Get
         Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdCargarFormasVenta, value)
+            Dim unused = SetProperty(_cmdCargarFormasVenta, value)
         End Set
     End Property
     Private Function CanCargarFormasVenta(arg As Object) As Boolean
@@ -1210,7 +1238,7 @@ Public Class PlantillaVentaViewModel
             Return _cargarProductoCommand
         End Get
         Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cargarProductoCommand, value)
+            Dim unused = SetProperty(_cargarProductoCommand, value)
         End Set
     End Property
     Private Function CanCargarProducto(arg As Object) As Boolean
@@ -1220,8 +1248,10 @@ Public Class PlantillaVentaViewModel
         If IsNothing(productoPedidoSeleccionado) Then
             Return
         End If
-        Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("numeroProductoParameter", productoPedidoSeleccionado.producto)
+
+        Dim parameters As New NavigationParameters From {
+            {"numeroProductoParameter", productoPedidoSeleccionado.producto}
+        }
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
@@ -1231,7 +1261,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdCargarProductosPlantilla
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_cmdCargarProductosPlantilla, value)
+            Dim unused = SetProperty(_cmdCargarProductosPlantilla, value)
         End Set
     End Property
     Private Async Sub OnCargarProductosPlantilla()
@@ -1259,7 +1289,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdCargarStockProducto
         End Get
         Private Set(value As DelegateCommand(Of LineaPlantillaVenta))
-            SetProperty(_cmdCargarStockProducto, value)
+            Dim unused = SetProperty(_cmdCargarStockProducto, value)
         End Set
     End Property
 
@@ -1310,7 +1340,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdCargarUltimasVentas
         End Get
         Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdCargarUltimasVentas, value)
+            Dim unused = SetProperty(_cmdCargarUltimasVentas, value)
         End Set
     End Property
     Private Function CanCargarUltimasVentas(arg As Object) As Boolean
@@ -1354,7 +1384,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdComprobarPendientes
         End Get
         Set(value As DelegateCommand)
-            SetProperty(_cmdComprobarPendientes, value)
+            Dim unused = SetProperty(_cmdComprobarPendientes, value)
         End Set
     End Property
     Private Async Sub OnComprobarPendientes()
@@ -1384,7 +1414,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdCrearPedido
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_cmdCrearPedido, value)
+            Dim unused = SetProperty(_cmdCrearPedido, value)
         End Set
     End Property
     Private Function CanCrearPedido() As Boolean
@@ -1461,7 +1491,7 @@ Public Class PlantillaVentaViewModel
             Return _noAmpliarPedidoCommand
         End Get
         Set(value As DelegateCommand)
-            SetProperty(_noAmpliarPedidoCommand, value)
+            Dim unused = SetProperty(_noAmpliarPedidoCommand, value)
         End Set
     End Property
     Private Function CanNoAmpliarPedido() As Boolean
@@ -1477,14 +1507,14 @@ Public Class PlantillaVentaViewModel
             Return _copiarClientePortapapelesCommand
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_copiarClientePortapapelesCommand, value)
+            Dim unused = SetProperty(_copiarClientePortapapelesCommand, value)
         End Set
     End Property
     Private Sub OnCopiarClientePortapapeles()
         Dim html As New StringBuilder()
-        html.Append(Constantes.Formatos.HTML_CLIENTE_P_TAG)
-        html.Append(clienteSeleccionado.ToString.Replace(vbCr, "<br/>"))
-        html.Append("</p>")
+        Dim unused2 = html.Append(Constantes.Formatos.HTML_CLIENTE_P_TAG)
+        Dim unused1 = html.Append(clienteSeleccionado.ToString.Replace(vbCr, "<br/>"))
+        Dim unused = html.Append("</p>")
         ClipboardHelper.CopyToClipboard(html.ToString, clienteSeleccionado.ToString)
         dialogService.ShowNotification("Datos del cliente copiados al portapapeles")
     End Sub
@@ -1495,7 +1525,7 @@ Public Class PlantillaVentaViewModel
             Return _mostrarGanavisionesCommand
         End Get
         Set(value As DelegateCommand)
-            SetProperty(_mostrarGanavisionesCommand, value)
+            Dim unused = SetProperty(_mostrarGanavisionesCommand, value)
         End Set
     End Property
     Private Function CanMostrarGanavisiones() As Boolean
@@ -1548,11 +1578,7 @@ Public Class PlantillaVentaViewModel
         Dim ofertaLinea As Integer?
 
         For Each linea In listaProductosPedido
-            If linea.cantidadOferta <> 0 Then
-                ofertaLinea = cogerSiguienteOferta()
-            Else
-                ofertaLinea = Nothing
-            End If
+            ofertaLinea = If(linea.cantidadOferta <> 0, cogerSiguienteOferta(), DirectCast(Nothing, Integer?))
 
             'If linea.descuento = linea.descuentoProducto Then
             '    linea.descuento = 0
@@ -1599,13 +1625,11 @@ Public Class PlantillaVentaViewModel
 
     Private Function CalcularSerie() As String
         Dim estadosValidos = {Constantes.Clientes.ESTADO_DISTRIBUIDOR, Constantes.Clientes.ESTADO_DISTRIBUIDOR_NO_VISITABLE}
-        If estadosValidos.Contains(clienteSeleccionado.estado) AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.UNION_LASER_NOMBRE) Then
-            Return Constantes.Series.UNION_LASER
-        End If
-        If estadosValidos.Contains(clienteSeleccionado.estado) AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.EVA_VISNU_NOMBRE) Then
-            Return Constantes.Series.EVA_VISNU
-        End If
-        Return Constantes.Series.SERIE_DEFECTO
+        Return If(estadosValidos.Contains(clienteSeleccionado.estado) AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.UNION_LASER_NOMBRE),
+            Constantes.Series.UNION_LASER,
+            If(estadosValidos.Contains(clienteSeleccionado.estado) AndAlso listaProductosPedido.Where(Function(l) l.precio <> 0 AndAlso l.descuento <> 1 AndAlso l.descuentoProducto <> 1).All(Function(l) l.familia = Constantes.Familias.EVA_VISNU_NOMBRE),
+            Constantes.Series.EVA_VISNU,
+            Constantes.Series.SERIE_DEFECTO))
     End Function
 
 
@@ -1615,7 +1639,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdInsertarProducto
         End Get
         Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdInsertarProducto, value)
+            Dim unused = SetProperty(_cmdInsertarProducto, value)
         End Set
     End Property
     Private Function CanInsertarProducto(arg As Object) As Boolean
@@ -1638,7 +1662,7 @@ Public Class PlantillaVentaViewModel
             Return _cmdCalcularSePuedeServirPorGlovo
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_cmdCalcularSePuedeServirPorGlovo, value)
+            Dim unused = SetProperty(_cmdCalcularSePuedeServirPorGlovo, value)
         End Set
     End Property
     Private Async Sub OnCalcularSePuedeServirPorGlovo()
@@ -1729,7 +1753,7 @@ Public Class PlantillaVentaViewModel
             For Each view In region.Views
                 If Not IsNothing(region.GetView(nombreAmpliado)) Then
                     nombreAmpliado = nombre + contador.ToString
-                    contador = contador + 1
+                    contador += 1
                     repetir = True
                     Exit For
                 End If
@@ -1738,7 +1762,7 @@ Public Class PlantillaVentaViewModel
         Return nombreAmpliado
     End Function
     Private Sub SeleccionarElCliente(value As ClienteJson)
-        SetProperty(_clienteSeleccionado, value)
+        Dim unused = SetProperty(_clienteSeleccionado, value)
         RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
         cmdCargarProductosPlantilla.Execute()
@@ -1748,10 +1772,11 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(clienteSeleccionado))
     End Sub
     Private Sub NavegarAClienteCrear(value As ClienteJson)
-        Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("empresaParameter", value.empresa)
-        parameters.Add("clienteParameter", value.cliente)
-        parameters.Add("contactoParameter", value.contacto)
+        Dim parameters As New NavigationParameters From {
+            {"empresaParameter", value.empresa},
+            {"clienteParameter", value.cliente},
+            {"contactoParameter", value.contacto}
+        }
         regionManager.RequestNavigate("MainRegion", "CrearClienteView", parameters)
     End Sub
     Private Sub ActualizarCliente(cliente As Clientes)
@@ -1776,6 +1801,22 @@ Public Class PlantillaVentaViewModel
 
     Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
 
+    End Sub
+
+    Public Sub ConfirmNavigationRequest(navigationContext As NavigationContext, continuationCallback As Action(Of Boolean)) Implements IConfirmNavigationRequest.ConfirmNavigationRequest
+        Dim hayAlgunProducto = listaProductosPedido.Any(Function(p) p.cantidad <> 0 OrElse p.cantidadOferta <> 0)
+        Dim continuar As Boolean = True
+        If hayAlgunProducto Then
+            dialogService.ShowConfirmation("Hay productos en la plantilla", "¿Seguro que desea salir?", Sub(r)
+                                                                                                            continuar = r.Result = ButtonResult.OK
+                                                                                                        End Sub)
+            If Not continuar Then
+                continuationCallback(False)
+                Return
+            End If
+        End If
+
+        continuationCallback(True)
     End Sub
 
 #End Region

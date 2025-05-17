@@ -118,9 +118,43 @@
                                     <Button Grid.Column="0" Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
                                         <AccessText>_Buscar en todos los productos</AccessText>
                                     </Button>
-                                    <Button Grid.Column="1" Name="btnBuscarContextual" Command="{Binding BuscarContextualCommand}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
-                                        <AccessText>Búsqueda _contextual</AccessText>
-                                    </Button>
+                                    <Grid Grid.Column="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Botón principal -->
+                                        <Button Grid.Column="0"
+                                                Name="btnBuscarContextual"
+                                                Command="{Binding BuscarContextualCommand}"
+                                                CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
+                                            <AccessText>Búsqueda _contextual</AccessText>
+                                        </Button>
+
+                                        <!-- Botón de flechita -->
+                                        <Button Grid.Column="1"
+                                                Padding="0"
+                                                Width="20"
+                                                IsEnabled="{Binding IsEnabled, ElementName=btnBuscarContextual}"
+                                                Click="OpcionesBusqueda_Click">
+                                            <Path Width="8" Height="5" Stretch="Uniform" Fill="Black" 
+                                                  Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                            <Button.ContextMenu>
+                                                <ContextMenu Name="cmOpcionesBusqueda">
+                                                    <MenuItem Header="Incluye cualquiera de las palabras" 
+                                                              IsCheckable="True" 
+                                                              IsChecked="{Binding EsBusquedaConOR, Mode=TwoWay}" />
+                                                    <MenuItem Header="Incluye todas las palabras" 
+                                                              IsCheckable="True" 
+                                                              IsChecked="{Binding EsBusquedaConAND, Mode=TwoWay}" />
+                                                </ContextMenu>
+                                            </Button.ContextMenu>
+                                        </Button>
+
+                                    </Grid>
+
+
                                     <Button Grid.Column="2" Name="btnSoloConStock" Command="{Binding SoloConStockCommand}">
                                         <AccessText>Mostrar solo con _Stock</AccessText>
                                     </Button>

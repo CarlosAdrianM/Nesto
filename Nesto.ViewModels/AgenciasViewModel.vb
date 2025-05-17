@@ -1,27 +1,29 @@
-﻿Imports System.Windows.Input
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.ComponentModel
-Imports System.Windows
-Imports System.Windows.Controls
+Imports System.Data
 Imports System.Data.Entity.Core.Objects
-Imports Prism.Mvvm
-Imports Prism.Commands
-Imports Microsoft.Win32
-Imports Prism.Regions
-Imports System.Transactions
-Imports Nesto.Models.Nesto.Models
-Imports Nesto.Models
-Imports Prism.Services.Dialogs
-Imports ControlesUsuario.Dialogs
 Imports System.Data.Entity.Validation
+Imports System.Data.SqlClient
 Imports System.IO
 Imports System.Reflection
+Imports System.Text.RegularExpressions
+Imports System.Transactions
+Imports System.Windows
+Imports System.Windows.Controls
+Imports System.Windows.Input
+Imports ControlesUsuario.Dialogs
 Imports Microsoft.Reporting.NETCore
+Imports Microsoft.Win32
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
-Imports System.Text.RegularExpressions
-Imports Nesto.Modulos.PedidoVenta
+Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.Cajas.Interfaces
+Imports Nesto.Modulos.PedidoVenta
+Imports Prism.Commands
+Imports Prism.Mvvm
+Imports Prism.Regions
+Imports Prism.Services.Dialogs
 
 Public Class AgenciasViewModel
     Inherits BindableBase
@@ -30,9 +32,9 @@ Public Class AgenciasViewModel
     ' El modo cuadre sirve para cuadrar los saldos iniciales de cada agencia con la contabilidad
     ' En este modo al contabilizar los reembolsos no se toca la contabilidad, pero sí se pone la 
     ' fecha de cobro a 01/01/15
-    Const MODO_CUADRE = False
+    Private Const MODO_CUADRE = False
 
-    Const LONGITUD_TELEFONO = 15
+    Private Const LONGITUD_TELEFONO = 15
 
     Private ReadOnly _regionManager As IRegionManager
     Private ReadOnly _servicio As IAgenciaService
@@ -41,9 +43,9 @@ Public Class AgenciasViewModel
     Private ReadOnly _servicioPedidos As IPedidoVentaService
     Private ReadOnly _contabilidadService As IContabilidadService
 
-    Dim empresaDefecto As String
+    Private empresaDefecto As String
 
-    Dim factory As New Dictionary(Of String, Func(Of IAgencia))
+    Private ReadOnly factory As New Dictionary(Of String, Func(Of IAgencia))
 
     Private imprimirEtiqueta As Boolean
     Private EstaInsertandoEnvio As Boolean
@@ -165,7 +167,7 @@ Public Class AgenciasViewModel
             Return _titulo
         End Get
         Set(value As String)
-            SetProperty(_titulo, value)
+            Dim unused = SetProperty(_titulo, value)
         End Set
     End Property
 
@@ -176,7 +178,7 @@ Public Class AgenciasViewModel
             Return _resultadoWebservice
         End Get
         Set(value As String)
-            SetProperty(_resultadoWebservice, value)
+            Dim unused = SetProperty(_resultadoWebservice, value)
         End Set
     End Property
 
@@ -186,7 +188,7 @@ Public Class AgenciasViewModel
             Return _listaAgencias
         End Get
         Set(value As ObservableCollection(Of AgenciasTransporte))
-            SetProperty(_listaAgencias, value)
+            Dim unused = SetProperty(_listaAgencias, value)
             Dim agenciaConfigurar = ConfigurarAgenciaPedido()
             ' Lo hacemos así porque si no sale en blanco
             If Not IsNothing(agenciaConfigurar) Then
@@ -204,20 +206,19 @@ Public Class AgenciasViewModel
         End Get
         Set(value As AgenciasTransporte)
             Try
-                SetProperty(_agenciaSeleccionada, value)
+                Dim unused = SetProperty(_agenciaSeleccionada, value)
                 If Not IsNothing(value) Then
                     agenciaEspecifica = factory(value.Nombre).Invoke
+                    numClienteContabilizar = agenciaEspecifica.NumeroCliente
                     If String.IsNullOrEmpty(PestannaNombre) Then
                         Return
                     End If
                     If PestannaNombre = Pestannas.PEDIDOS OrElse PestannaNombre = Pestannas.EN_CURSO OrElse PestannaNombre = Pestannas.ETIQUETAS Then
                         ActualizarListas()
                         Dim nombrePais As String = paisActual?.Nombre
-                        If Not IsNothing(nombrePais) AndAlso value.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL Then
-                            paisActual = listaPaises.Single(Function(p) p.Nombre = nombrePais)
-                        Else
-                            paisActual = listaPaises.Single(Function(p) p.Id = agenciaEspecifica.paisDefecto)
-                        End If
+                        paisActual = If(Not IsNothing(nombrePais) AndAlso value.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL,
+                            listaPaises.Single(Function(p) p.Nombre = nombrePais),
+                            listaPaises.Single(Function(p) p.Id = agenciaEspecifica.paisDefecto))
                         retornoActual = listaTiposRetorno.Single(Function(r) r.id = agenciaEspecifica.retornoSinRetorno)
                         servicioActual = listaServicios.Single(Function(s) s.ServicioId = agenciaEspecifica.ServicioDefecto)
                         horarioActual = listaHorarios.Single(Function(h) h.id = agenciaEspecifica.HorarioDefecto)
@@ -287,7 +288,7 @@ Public Class AgenciasViewModel
             Return _empresaSeleccionada
         End Get
         Set(value As Empresas)
-            SetProperty(_empresaSeleccionada, value)
+            Dim unused = SetProperty(_empresaSeleccionada, value)
             Try
                 listaAgencias = _servicio.CargarListaAgencias(empresaSeleccionada.Número)
                 If numeroPedido = "" Then
@@ -332,13 +333,13 @@ Public Class AgenciasViewModel
             Return _pedidoSeleccionado
         End Get
         Set(value As CabPedidoVta)
-            SetProperty(_pedidoSeleccionado, value)
+            Dim unused1 = SetProperty(_pedidoSeleccionado, value)
 
             If Not IsNothing(cmdInsertar) Then
                 cmdInsertar.RaiseCanExecuteChanged()
             End If
 
-            ActualizarPedidoSeleccionado()
+            Dim unused = ActualizarPedidoSeleccionado()
         End Set
     End Property
 
@@ -353,28 +354,20 @@ Public Class AgenciasViewModel
                 poblacionEnvio = If(cliente.Población IsNot Nothing, cliente.Población.Trim, "")
                 provinciaEnvio = If(cliente.Provincia IsNot Nothing, cliente.Provincia.Trim, "")
                 codPostalEnvio = If(cliente.CodPostal IsNot Nothing, cliente.CodPostal.Trim, "")
-                Dim telefono As Telefono = New Telefono(cliente.Teléfono)
+                Dim telefono As New Telefono(cliente.Teléfono)
                 telefonoEnvio = telefono.FijoUnico
                 movilEnvio = telefono.MovilUnico
                 correoEnvio = correoUnico()
                 observacionesEnvio = pedidoSeleccionado.Comentarios
                 attEnvio = nombreEnvio
-                If IsNothing(empresaSeleccionada) OrElse IsNothing(empresaSeleccionada.FechaPicking) Then
-                    fechaEnvio = Today
-                Else
-                    fechaEnvio = empresaSeleccionada.FechaPicking
-                End If
+                fechaEnvio = If(empresaSeleccionada?.FechaPicking, Today)
                 listaEnviosPedido = _servicio.CargarListaEnviosPedido(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
                 envioActual = listaEnviosPedido.LastOrDefault
 
                 Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
                 Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
-                Dim agenciaConfigurar
-                If estabaPendiente Then
-                    agenciaConfigurar = envioPendiente.AgenciasTransporte
-                Else
-                    agenciaConfigurar = ConfigurarAgenciaPedido()
-                End If
+                Dim agenciaConfigurar = If(estabaPendiente, envioPendiente.AgenciasTransporte, DirectCast(ConfigurarAgenciaPedido(), Object))
+
                 If Not IsNothing(agenciaConfigurar) AndAlso (IsNothing(empresaSeleccionada) OrElse agenciaConfigurar.Empresa <> empresaSeleccionada.Número) AndAlso Not IsNothing(listaEmpresas) Then
                     empresaSeleccionada = listaEmpresas.Single(Function(e) e.Número = agenciaConfigurar.Empresa)
                 End If
@@ -409,7 +402,7 @@ Public Class AgenciasViewModel
             Return _listaTiposRetorno
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
-            SetProperty(_listaTiposRetorno, value)
+            Dim unused = SetProperty(_listaTiposRetorno, value)
             RaisePropertyChanged(NameOf(retornoModificar))
         End Set
     End Property
@@ -420,7 +413,7 @@ Public Class AgenciasViewModel
             Return _retornoActual
         End Get
         Set(value As tipoIdDescripcion)
-            SetProperty(_retornoActual, value)
+            Dim unused = SetProperty(_retornoActual, value)
         End Set
     End Property
 
@@ -430,7 +423,7 @@ Public Class AgenciasViewModel
             Return _reembolso
         End Get
         Set(value As Decimal)
-            SetProperty(_reembolso, value)
+            Dim unused = SetProperty(_reembolso, value)
         End Set
     End Property
 
@@ -440,7 +433,7 @@ Public Class AgenciasViewModel
             Return _importeAsegurado
         End Get
         Set(value As Decimal)
-            SetProperty(_importeAsegurado, value)
+            Dim unused = SetProperty(_importeAsegurado, value)
         End Set
     End Property
 
@@ -450,7 +443,7 @@ Public Class AgenciasViewModel
             Return _bultos
         End Get
         Set(value As Integer)
-            SetProperty(_bultos, value)
+            Dim unused = SetProperty(_bultos, value)
         End Set
     End Property
 
@@ -475,7 +468,7 @@ Public Class AgenciasViewModel
             Return _costeEnvio
         End Get
         Set(value As Decimal)
-            SetProperty(_costeEnvio, value)
+            Dim unused = SetProperty(_costeEnvio, value)
         End Set
     End Property
 
@@ -485,7 +478,7 @@ Public Class AgenciasViewModel
             Return _mensajeError
         End Get
         Set(value As String)
-            SetProperty(_mensajeError, value)
+            Dim unused = SetProperty(_mensajeError, value)
         End Set
     End Property
 
@@ -495,7 +488,7 @@ Public Class AgenciasViewModel
             Return _listaServicios
         End Get
         Set(value As ObservableCollection(Of ITarifaAgencia))
-            SetProperty(_listaServicios, value)
+            Dim unused = SetProperty(_listaServicios, value)
         End Set
     End Property
 
@@ -505,7 +498,7 @@ Public Class AgenciasViewModel
             Return _servicioActual
         End Get
         Set(value As ITarifaAgencia)
-            SetProperty(_servicioActual, value)
+            Dim unused = SetProperty(_servicioActual, value)
         End Set
     End Property
 
@@ -515,7 +508,7 @@ Public Class AgenciasViewModel
             Return _listaPaises
         End Get
         Set(ByVal value As ObservableCollection(Of Pais))
-            SetProperty(_listaPaises, value)
+            Dim unused = SetProperty(_listaPaises, value)
         End Set
     End Property
 
@@ -528,8 +521,8 @@ Public Class AgenciasViewModel
             If IsNothing(value) Then
                 Return
             End If
-            SetProperty(_paisActual, value)
-            If (_paisActual.Id <> agenciaEspecifica.paisDefecto AndAlso agenciaSeleccionada.Nombre <> Constantes.Agencias.AGENCIA_INTERNACIONAL) Then
+            Dim unused = SetProperty(_paisActual, value)
+            If _paisActual.Id <> agenciaEspecifica.paisDefecto AndAlso agenciaSeleccionada.Nombre <> Constantes.Agencias.AGENCIA_INTERNACIONAL Then
                 agenciaSeleccionada = listaAgencias.Single(Function(a) a.Nombre = Constantes.Agencias.AGENCIA_INTERNACIONAL)
             End If
         End Set
@@ -541,7 +534,7 @@ Public Class AgenciasViewModel
             Return _listaHorarios
         End Get
         Set(value As ObservableCollection(Of tipoIdDescripcion))
-            SetProperty(_listaHorarios, value)
+            Dim unused = SetProperty(_listaHorarios, value)
         End Set
     End Property
 
@@ -551,7 +544,7 @@ Public Class AgenciasViewModel
             Return _horarioActual
         End Get
         Set(value As tipoIdDescripcion)
-            SetProperty(_horarioActual, value)
+            Dim unused = SetProperty(_horarioActual, value)
         End Set
     End Property
 
@@ -561,7 +554,7 @@ Public Class AgenciasViewModel
             Return _nombreEnvio
         End Get
         Set(value As String)
-            SetProperty(_nombreEnvio, value)
+            Dim unused = SetProperty(_nombreEnvio, value)
         End Set
     End Property
 
@@ -571,7 +564,7 @@ Public Class AgenciasViewModel
             Return _direccionEnvio
         End Get
         Set(value As String)
-            SetProperty(_direccionEnvio, value)
+            Dim unused = SetProperty(_direccionEnvio, value)
         End Set
     End Property
 
@@ -581,7 +574,7 @@ Public Class AgenciasViewModel
             Return _poblacionEnvio
         End Get
         Set(value As String)
-            SetProperty(_poblacionEnvio, value)
+            Dim unused = SetProperty(_poblacionEnvio, value)
         End Set
     End Property
 
@@ -591,7 +584,7 @@ Public Class AgenciasViewModel
             Return _provinciaEnvio
         End Get
         Set(value As String)
-            SetProperty(_provinciaEnvio, value)
+            Dim unused = SetProperty(_provinciaEnvio, value)
         End Set
     End Property
 
@@ -601,7 +594,7 @@ Public Class AgenciasViewModel
             Return _codPostalEnvio
         End Get
         Set(value As String)
-            SetProperty(_codPostalEnvio, value)
+            Dim unused = SetProperty(_codPostalEnvio, value)
         End Set
     End Property
 
@@ -611,7 +604,7 @@ Public Class AgenciasViewModel
             Return _telefonoEnvio
         End Get
         Set(value As String)
-            SetProperty(_telefonoEnvio, value)
+            Dim unused = SetProperty(_telefonoEnvio, value)
         End Set
     End Property
 
@@ -621,7 +614,7 @@ Public Class AgenciasViewModel
             Return _movilEnvio
         End Get
         Set(value As String)
-            SetProperty(_movilEnvio, value)
+            Dim unused = SetProperty(_movilEnvio, value)
         End Set
     End Property
 
@@ -631,7 +624,7 @@ Public Class AgenciasViewModel
             Return _correoEnvio
         End Get
         Set(value As String)
-            SetProperty(_correoEnvio, value)
+            Dim unused = SetProperty(_correoEnvio, value)
         End Set
     End Property
 
@@ -641,7 +634,7 @@ Public Class AgenciasViewModel
             Return _observacionesEnvio
         End Get
         Set(value As String)
-            SetProperty(_observacionesEnvio, value)
+            Dim unused = SetProperty(_observacionesEnvio, value)
         End Set
     End Property
 
@@ -651,7 +644,7 @@ Public Class AgenciasViewModel
             Return _attEnvio
         End Get
         Set(value As String)
-            SetProperty(_attEnvio, value)
+            Dim unused = SetProperty(_attEnvio, value)
         End Set
     End Property
 
@@ -661,7 +654,7 @@ Public Class AgenciasViewModel
             Return _fechaEnvio
         End Get
         Set(value As Date)
-            SetProperty(_fechaEnvio, value)
+            Dim unused = SetProperty(_fechaEnvio, value)
         End Set
     End Property
 
@@ -671,7 +664,7 @@ Public Class AgenciasViewModel
             Return _enlaceSeguimientoEnvio
         End Get
         Set(value As String)
-            SetProperty(_enlaceSeguimientoEnvio, value)
+            Dim unused = SetProperty(_enlaceSeguimientoEnvio, value)
             AbrirEnlaceSeguimientoCommand.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -682,7 +675,7 @@ Public Class AgenciasViewModel
             Return _envioActual
         End Get
         Set(value As EnviosAgencia)
-            SetProperty(_envioActual, value)
+            Dim unused = SetProperty(_envioActual, value)
 
             Try
                 estadoEnvioCargado = Nothing
@@ -761,7 +754,7 @@ Public Class AgenciasViewModel
             Return ZonasEnvioAgencia.BalearesMayores
         ElseIf (codigoPostal.StartsWith("35") OrElse codigoPostal.StartsWith("38")) And Not codigosCanariasMayores.Contains(codigoPostal) Then
             Return ZonasEnvioAgencia.CanariasMenores
-        ElseIf (codigosCanariasMayores.Contains(codigoPostal)) Then
+        ElseIf codigosCanariasMayores.Contains(codigoPostal) Then
             Return ZonasEnvioAgencia.CanariasMayores
         Else
             Return ZonasEnvioAgencia.Peninsular
@@ -774,7 +767,7 @@ Public Class AgenciasViewModel
             Return _envioPendienteSeleccionado
         End Get
         Set(ByVal value As EnvioAgenciaWrapper)
-            SetProperty(_envioPendienteSeleccionado, value)
+            Dim unused = SetProperty(_envioPendienteSeleccionado, value)
             _estaCambiandoDePedido = True
             If Not IsNothing(value) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso value.Agencia <> agenciaSeleccionada.Numero Then
                 empresaSeleccionada = listaEmpresas.Single(Function(e) e.Número = value.Empresa)
@@ -792,7 +785,7 @@ Public Class AgenciasViewModel
             Return _listaEnvios
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            SetProperty(_listaEnvios, value)
+            Dim unused = SetProperty(_listaEnvios, value)
         End Set
     End Property
 
@@ -802,7 +795,7 @@ Public Class AgenciasViewModel
             Return _fechaFiltro
         End Get
         Set(value As Date)
-            SetProperty(_fechaFiltro, value)
+            Dim unused = SetProperty(_fechaFiltro, value)
             listaEnviosTramitados = _servicio.CargarListaEnviosTramitadosPorFecha(empresaSeleccionada.Número, fechaFiltro)
             If PestannaNombre = Pestannas.TRAMITADOS Then
                 envioActual = listaEnviosTramitados.FirstOrDefault(Function(e) e.Agencia = agenciaSeleccionada.Numero)
@@ -819,7 +812,7 @@ Public Class AgenciasViewModel
             Return _clienteFiltro
         End Get
         Set(value As String)
-            SetProperty(_clienteFiltro, value)
+            Dim unused = SetProperty(_clienteFiltro, value)
             listaEnviosTramitados = _servicio.CargarListaEnviosTramitadosPorCliente(empresaSeleccionada.Número, clienteFiltro)
             If PestannaNombre = Pestannas.TRAMITADOS Then
                 envioActual = listaEnviosTramitados.FirstOrDefault
@@ -833,12 +826,10 @@ Public Class AgenciasViewModel
             Return _nombreFiltro
         End Get
         Set(value As String)
-            SetProperty(_nombreFiltro, value)
-            If String.IsNullOrEmpty(nombreFiltro) Then
-                listaEnviosTramitados = _servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
-            Else
-                listaEnviosTramitados = _servicio.CargarListaEnviosTramitadosPorNombre(empresaSeleccionada.Número, nombreFiltro)
-            End If
+            Dim unused = SetProperty(_nombreFiltro, value)
+            listaEnviosTramitados = If(String.IsNullOrEmpty(nombreFiltro),
+                _servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro),
+                _servicio.CargarListaEnviosTramitadosPorNombre(empresaSeleccionada.Número, nombreFiltro))
             envioActual = listaEnviosTramitados.FirstOrDefault
         End Set
     End Property
@@ -849,17 +840,15 @@ Public Class AgenciasViewModel
             Return _numeroPedido
         End Get
         Set(value As String)
-            SetProperty(_numeroPedido, value)
+            Dim unused3 = SetProperty(_numeroPedido, value)
             Dim pedidoAnterior As CabPedidoVta
             pedidoAnterior = pedidoSeleccionado
             Dim pedidoNumerico As Integer
             If Integer.TryParse(numeroPedido, pedidoNumerico) Then ' si el pedido es numérico
                 Dim pedidoBuscado As CabPedidoVta = _servicio.CargarPedidoPorNumero(pedidoNumerico, False)
-                If IsNothing(pedidoBuscado) OrElse IsNothing(pedidoBuscado.Empresa) Then
-                    pedidoSeleccionado = _servicio.CargarPedidoPorNumero(pedidoNumerico)
-                Else
-                    pedidoSeleccionado = pedidoBuscado
-                End If
+                pedidoSeleccionado = If(IsNothing(pedidoBuscado) OrElse IsNothing(pedidoBuscado.Empresa),
+                    _servicio.CargarPedidoPorNumero(pedidoNumerico),
+                    pedidoBuscado)
             Else ' si no es numérico (es una factura, lo tratamos como un cobro)
                 pedidoSeleccionado = CalcularPedidoTexto(numeroPedido)
                 ' Carlos 22/09/15: para que permita meter los que solo llevan contra reembolso
@@ -872,15 +861,15 @@ Public Class AgenciasViewModel
                     horarioActual = (From s In listaHorarios Where s.id = agenciaEspecifica.horarioSoloCobros).FirstOrDefault
                     paisActual = (From s In listaPaises Where s.Id = agenciaEspecifica.paisDefecto).SingleOrDefault
                     bultos = 0
-                    SetProperty(_numeroPedido, pedidoSeleccionado.Número.ToString)
+                    Dim unused2 = SetProperty(_numeroPedido, pedidoSeleccionado.Número.ToString)
                 End If
             End If
             If IsNothing(pedidoSeleccionado) OrElse IsNothing(pedidoSeleccionado.Clientes) Then
                 If IsNothing(pedidoAnterior) Then
-                    SetProperty(_numeroPedido, "36") 'ñapa a arreglar cuando esté inspirado
+                    Dim unused1 = SetProperty(_numeroPedido, "36") 'ñapa a arreglar cuando esté inspirado
                 Else
                     pedidoSeleccionado = pedidoAnterior
-                    SetProperty(_numeroPedido, pedidoAnterior.Número.ToString)
+                    Dim unused = SetProperty(_numeroPedido, pedidoAnterior.Número.ToString)
                 End If
             End If
 
@@ -917,7 +906,7 @@ Public Class AgenciasViewModel
             Return _numeroMultiusuario
         End Get
         Set(value As Integer)
-            SetProperty(_numeroMultiusuario, value)
+            Dim unused = SetProperty(_numeroMultiusuario, value)
             multiusuario = _servicio.CargarMultiusuario(empresaSeleccionada.Número, numeroMultiusuario)
         End Set
     End Property
@@ -928,7 +917,7 @@ Public Class AgenciasViewModel
             Return _multiusuario
         End Get
         Set(value As MultiUsuarios)
-            SetProperty(_multiusuario, value)
+            Dim unused = SetProperty(_multiusuario, value)
         End Set
     End Property
 
@@ -938,7 +927,7 @@ Public Class AgenciasViewModel
             Return _pestannaNombre
         End Get
         Set(value As String)
-            SetProperty(_pestannaNombre, value)
+            Dim unused = SetProperty(_pestannaNombre, value)
             If String.IsNullOrEmpty(value) Then
                 Return
             End If
@@ -987,12 +976,8 @@ Public Class AgenciasViewModel
             Return _PestañaSeleccionada
         End Get
         Set(value As TabItem)
-            SetProperty(_PestañaSeleccionada, value)
-            If IsNothing(value) Then
-                PestannaNombre = String.Empty
-            Else
-                PestannaNombre = value.Name
-            End If
+            Dim unused = SetProperty(_PestañaSeleccionada, value)
+            PestannaNombre = If(IsNothing(value), String.Empty, value.Name)
         End Set
     End Property
 
@@ -1002,7 +987,7 @@ Public Class AgenciasViewModel
             Return _listaEmpresas
         End Get
         Set(value As ObservableCollection(Of Empresas))
-            SetProperty(_listaEmpresas, value)
+            Dim unused = SetProperty(_listaEmpresas, value)
         End Set
     End Property
 
@@ -1012,7 +997,7 @@ Public Class AgenciasViewModel
             Return _listaEnviosPedido
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            SetProperty(_listaEnviosPedido, value)
+            Dim unused = SetProperty(_listaEnviosPedido, value)
             If Not IsNothing(cmdCargarEstado) Then
                 cmdCargarEstado.RaiseCanExecuteChanged()
             End If
@@ -1025,7 +1010,7 @@ Public Class AgenciasViewModel
             Return _listaEnviosTramitados
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            SetProperty(_listaEnviosTramitados, value)
+            Dim unused = SetProperty(_listaEnviosTramitados, value)
             RaisePropertyChanged(NameOf(sePuedeModificarReembolso))
             RaisePropertyChanged(NameOf(sePuedeModificarEstado))
             RaisePropertyChanged(NameOf(etiquetaBultosTramitados))
@@ -1039,7 +1024,7 @@ Public Class AgenciasViewModel
             Return _XMLdeEstado
         End Get
         Set(value As XDocument)
-            SetProperty(_XMLdeEstado, value)
+            Dim unused = SetProperty(_XMLdeEstado, value)
         End Set
     End Property
 
@@ -1049,7 +1034,7 @@ Public Class AgenciasViewModel
             Return _barraProgresoFinal
         End Get
         Set(value As Integer)
-            SetProperty(_barraProgresoFinal, value)
+            Dim unused = SetProperty(_barraProgresoFinal, value)
         End Set
     End Property
 
@@ -1059,7 +1044,7 @@ Public Class AgenciasViewModel
             Return _barraProgresoActual
         End Get
         Set(value As Integer)
-            SetProperty(_barraProgresoActual, value)
+            Dim unused = SetProperty(_barraProgresoActual, value)
         End Set
     End Property
 
@@ -1069,7 +1054,7 @@ Public Class AgenciasViewModel
             Return _estadoEnvioCargado
         End Get
         Set(value As estadoEnvio)
-            SetProperty(_estadoEnvioCargado, value)
+            Dim unused = SetProperty(_estadoEnvioCargado, value)
         End Set
     End Property
 
@@ -1079,7 +1064,7 @@ Public Class AgenciasViewModel
             Return _listaPendientes
         End Get
         Set(ByVal value As ObservableCollection(Of EnvioAgenciaWrapper))
-            SetProperty(_listaPendientes, value)
+            Dim unused = SetProperty(_listaPendientes, value)
         End Set
     End Property
 
@@ -1089,7 +1074,7 @@ Public Class AgenciasViewModel
             Return _listaReembolsos
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            SetProperty(_listaReembolsos, value)
+            Dim unused = SetProperty(_listaReembolsos, value)
             RaisePropertyChanged(NameOf(sumaReembolsos))
             RaisePropertyChanged(NameOf(descuadreContabilidad))
         End Set
@@ -1101,7 +1086,7 @@ Public Class AgenciasViewModel
             Return _listaReembolsosSeleccionados
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            SetProperty(_listaReembolsosSeleccionados, value)
+            Dim unused = SetProperty(_listaReembolsosSeleccionados, value)
             RaisePropertyChanged(NameOf(sumaSeleccionadas))
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
         End Set
@@ -1113,7 +1098,7 @@ Public Class AgenciasViewModel
             Return _lineaReembolsoSeleccionado
         End Get
         Set(value As EnviosAgencia)
-            SetProperty(_lineaReembolsoSeleccionado, value)
+            Dim unused = SetProperty(_lineaReembolsoSeleccionado, value)
         End Set
     End Property
 
@@ -1123,7 +1108,7 @@ Public Class AgenciasViewModel
             Return _lineaReembolsoContabilizar
         End Get
         Set(value As EnviosAgencia)
-            SetProperty(_lineaReembolsoContabilizar, value)
+            Dim unused = SetProperty(_lineaReembolsoContabilizar, value)
         End Set
     End Property
 
@@ -1136,28 +1121,24 @@ Public Class AgenciasViewModel
             If MODO_CUADRE Then ' No permitimos poner cliente en modo cuadre
                 Return
             End If
-            SetProperty(_numClienteContabilizar, value)
+            Dim unused = SetProperty(_numClienteContabilizar, value)
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
         End Set
     End Property
 
     Public ReadOnly Property sumaSeleccionadas As Double
         Get
-            If Not IsNothing(listaReembolsosSeleccionados) Then
-                Return Aggregate r In listaReembolsosSeleccionados Into Sum(r.Reembolso)
-            Else
-                Return 0
-            End If
+            Return If(listaReembolsosSeleccionados IsNot Nothing,
+                      listaReembolsosSeleccionados.Sum(Function(r) r.Reembolso),
+                      0.0)
         End Get
     End Property
 
     Public ReadOnly Property sumaReembolsos As Double
         Get
-            If Not IsNothing(listaReembolsos) Then
-                Return Aggregate r In listaReembolsos Into Sum(r.Reembolso)
-            Else
-                Return 0
-            End If
+            Return If(listaReembolsos IsNot Nothing,
+                      listaReembolsos.Sum(Function(r) r.Reembolso),
+                      0.0)
         End Get
     End Property
 
@@ -1167,11 +1148,7 @@ Public Class AgenciasViewModel
                 If Not IsNothing(agenciaSeleccionada) AndAlso agenciaSeleccionada.Empresa = empresaSeleccionada.Número Then
                     Dim suma As Nullable(Of Double) = _servicio.CalcularSumaContabilidad(empresaSeleccionada.Número, agenciaSeleccionada.CuentaReembolsos)
 
-                    If IsNothing(suma) Then
-                        Return 0
-                    Else
-                        Return CType(suma, Double)
-                    End If
+                    Return If(IsNothing(suma), 0, CType(suma, Double))
                 Else
                     Return 0
                 End If
@@ -1193,7 +1170,7 @@ Public Class AgenciasViewModel
             Return _digitalizacionActual
         End Get
         Set(value As digitalizacion)
-            SetProperty(_digitalizacionActual, value)
+            Dim unused = SetProperty(_digitalizacionActual, value)
             RaisePropertyChanged(NameOf(cmdDescargarImagen))
             If Not IsNothing(cmdDescargarImagen) Then
                 cmdDescargarImagen.RaiseCanExecuteChanged()
@@ -1207,7 +1184,7 @@ Public Class AgenciasViewModel
             Return _reembolsoModificar
         End Get
         Set(value As Double)
-            SetProperty(_reembolsoModificar, value)
+            Dim unused = SetProperty(_reembolsoModificar, value)
             RaisePropertyChanged(NameOf(envioActual))
         End Set
     End Property
@@ -1218,7 +1195,7 @@ Public Class AgenciasViewModel
             Return _retornoModificar
         End Get
         Set(value As tipoIdDescripcion)
-            SetProperty(_retornoModificar, value)
+            Dim unused = SetProperty(_retornoModificar, value)
             RaisePropertyChanged(NameOf(envioActual))
         End Set
     End Property
@@ -1229,7 +1206,7 @@ Public Class AgenciasViewModel
             Return _estadoModificar
         End Get
         Set(value As Integer)
-            SetProperty(_estadoModificar, value)
+            Dim unused = SetProperty(_estadoModificar, value)
             RaisePropertyChanged(NameOf(envioActual))
         End Set
     End Property
@@ -1240,7 +1217,7 @@ Public Class AgenciasViewModel
             Return _observacionesModificacion
         End Get
         Set(value As String)
-            SetProperty(_observacionesModificacion, value)
+            Dim unused = SetProperty(_observacionesModificacion, value)
         End Set
     End Property
 
@@ -1250,7 +1227,7 @@ Public Class AgenciasViewModel
             Return _fechaEntregaModificar
         End Get
         Set(ByVal value As Date?)
-            SetProperty(_fechaEntregaModificar, value)
+            Dim unused = SetProperty(_fechaEntregaModificar, value)
         End Set
     End Property
 
@@ -1272,29 +1249,21 @@ Public Class AgenciasViewModel
             Return _listaHistoriaEnvio
         End Get
         Set(value As ObservableCollection(Of EnviosHistoria))
-            SetProperty(_listaHistoriaEnvio, value)
+            Dim unused = SetProperty(_listaHistoriaEnvio, value)
             RaisePropertyChanged(NameOf(mostrarHistoria))
         End Set
     End Property
 
-    Private _mostrarHistoria As Visibility
+    Private ReadOnly _mostrarHistoria As Visibility
     Public ReadOnly Property mostrarHistoria As Visibility
         Get
-            If (Not IsNothing(listaHistoriaEnvio)) AndAlso listaHistoriaEnvio.Count > 0 Then
-                Return Visibility.Visible
-            Else
-                Return Visibility.Collapsed
-            End If
+            Return If((Not IsNothing(listaHistoriaEnvio)) AndAlso listaHistoriaEnvio.Count > 0, Visibility.Visible, Visibility.Collapsed)
         End Get
     End Property
 
     Public ReadOnly Property visibilidadSoloImprimir
         Get
-            If Not IsNothing(agenciaEspecifica) Then
-                Return agenciaEspecifica.visibilidadSoloImprimir
-            Else
-                Return Visibility.Hidden
-            End If
+            Return If(Not IsNothing(agenciaEspecifica), agenciaEspecifica.visibilidadSoloImprimir, Visibility.Hidden)
         End Get
     End Property
 
@@ -1315,7 +1284,7 @@ Public Class AgenciasViewModel
             Return _listaRetornos
         End Get
         Set(value As ObservableCollection(Of EnviosAgencia))
-            SetProperty(_listaRetornos, value)
+            Dim unused = SetProperty(_listaRetornos, value)
         End Set
     End Property
 
@@ -1325,15 +1294,15 @@ Public Class AgenciasViewModel
             Return _lineaRetornoSeleccionado
         End Get
         Set(value As EnviosAgencia)
-            SetProperty(_lineaRetornoSeleccionado, value)
+            Dim unused = SetProperty(_lineaRetornoSeleccionado, value)
         End Set
     End Property
 
     Public ReadOnly Property etiquetaBultosTramitados As String
         Get
             If Not IsNothing(listaEnviosTramitados) AndAlso listaEnviosTramitados.Count > 0 Then
-                Dim totalBultos As Integer = (Aggregate e In listaEnviosTramitados Into Sum(e.Bultos))
-                Dim totalEnvios As Integer = (Aggregate e In listaEnviosTramitados Into Count())
+                Dim totalBultos As Integer = Aggregate e In listaEnviosTramitados Into Sum(e.Bultos)
+                Dim totalEnvios As Integer = Aggregate e In listaEnviosTramitados Into Count()
                 Return "Hay " + totalEnvios.ToString + " envíos tramitados, que suman un total de " + totalBultos.ToString + " bultos."
             Else
                 Return "No hay ningún envío tramitado"
@@ -1352,7 +1321,7 @@ Public Class AgenciasViewModel
             Return _facturarAlImprimirEtiqueta
         End Get
         Set(value As Boolean)
-            SetProperty(_facturarAlImprimirEtiqueta, value)
+            Dim unused = SetProperty(_facturarAlImprimirEtiqueta, value)
         End Set
     End Property
 
@@ -1362,7 +1331,7 @@ Public Class AgenciasViewModel
             Return _imprimirFacturaAlFacturar
         End Get
         Set(value As Boolean)
-            SetProperty(_imprimirFacturaAlFacturar, value)
+            Dim unused = SetProperty(_imprimirFacturaAlFacturar, value)
         End Set
     End Property
 
@@ -1421,7 +1390,7 @@ Public Class AgenciasViewModel
         barraProgresoActual = 0
         barraProgresoFinal = listaEnvios.Count
         For Each envio In listaEnvios
-            barraProgresoActual = barraProgresoActual + 1
+            barraProgresoActual += 1
             envioActual = envio
             mensajeError = "Tramitando pedido " + envio.Pedido.ToString
             Debug.Print("Tramitando pedido " + envio.Pedido.ToString)
@@ -1451,25 +1420,23 @@ Public Class AgenciasViewModel
             Dim albaran = Await _servicioPedidos.CrearAlbaranVenta(envioActual.Empresa, envioActual.Pedido)
             Dim factura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
 
-            Dim mensaje As String
-            If factura <> Constantes.PeriodosFacturacion.FIN_DE_MES Then
-                mensaje = $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}"
-            Else
-                mensaje = $"Albarán del pedido {envioActual.Pedido} creado correctamente en albarán {albaran}"
-            End If
+            Dim mensaje = If(factura <> Constantes.PeriodosFacturacion.FIN_DE_MES,
+                $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}",
+                $"Albarán del pedido {envioActual.Pedido} creado correctamente en albarán {albaran}")
             _dialogService.ShowNotification("Facturación", mensaje)
             If Not _imprimirFacturaAlFacturar OrElse factura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
                 Return
             End If
             Dim pathFactura = Await _servicioPedidos.DescargarFactura(envioActual.Empresa, envioActual.Pedido, envioActual.Cliente.Trim())
-            Dim printProcess As New Process()
-            printProcess.StartInfo = New ProcessStartInfo With {
-                .FileName = pathFactura,
-                .Verb = "print",
-                .CreateNoWindow = True,
-                .UseShellExecute = True
+            Dim printProcess As New Process With {
+                .StartInfo = New ProcessStartInfo With {
+                    .FileName = pathFactura,
+                    .Verb = "print",
+                    .CreateNoWindow = True,
+                    .UseShellExecute = True
+                }
             }
-            printProcess.Start()
+            Dim unused = printProcess.Start()
 
             RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
         Catch ex As Exception
@@ -1503,8 +1470,8 @@ Public Class AgenciasViewModel
 
         _servicio.Borrar(envioActual.Numero)
         Dim copiaEnvio = envioActual
-        listaEnviosPedido.Remove(copiaEnvio)
-        listaEnvios.Remove(copiaEnvio)
+        Dim unused1 = listaEnviosPedido.Remove(copiaEnvio)
+        Dim unused = listaEnvios.Remove(copiaEnvio)
         envioActual = listaEnvios.LastOrDefault
         RaisePropertyChanged(NameOf(listaEnvios))
     End Sub
@@ -1559,12 +1526,7 @@ Public Class AgenciasViewModel
             _dialogService.ShowError(ex.Message)
             Return
         End Try
-        Dim textoImprimir As String
-        If imprimirEtiqueta Then
-            textoImprimir = "Envío insertado correctamente e impresa la etiqueta"
-        Else
-            textoImprimir = "Envío ampliado correctamente"
-        End If
+        Dim textoImprimir = If(imprimirEtiqueta, "Envío insertado correctamente e impresa la etiqueta", "Envío ampliado correctamente")
         _dialogService.ShowNotification("Envío", textoImprimir)
         RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
     End Sub
@@ -1660,7 +1622,7 @@ Public Class AgenciasViewModel
     Private Sub OnAgregarReembolsoContabilizar(arg As Object)
         If Not IsNothing(lineaReembolsoSeleccionado) Then
             listaReembolsosSeleccionados.Add(lineaReembolsoSeleccionado)
-            listaReembolsos.Remove(lineaReembolsoSeleccionado)
+            Dim unused = listaReembolsos.Remove(lineaReembolsoSeleccionado)
             RaisePropertyChanged(NameOf(sumaSeleccionadas))
             RaisePropertyChanged(NameOf(sumaReembolsos))
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
@@ -1684,7 +1646,7 @@ Public Class AgenciasViewModel
     Private Sub OnQuitarReembolsoContabilizar(arg As Object)
         If Not IsNothing(lineaReembolsoContabilizar) Then
             listaReembolsos.Add(lineaReembolsoContabilizar)
-            listaReembolsosSeleccionados.Remove(lineaReembolsoContabilizar)
+            Dim unused = listaReembolsosSeleccionados.Remove(lineaReembolsoContabilizar)
             RaisePropertyChanged(NameOf(sumaSeleccionadas))
             RaisePropertyChanged(NameOf(sumaReembolsos))
             cmdContabilizarReembolso.RaiseCanExecuteChanged()
@@ -1708,7 +1670,7 @@ Public Class AgenciasViewModel
     Private Sub OnContabilizarReembolso(arg As Object)
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Contabilizar", "¿Desea contabilizar?", Sub(r)
-                                                                                    continuar = (r.Result = ButtonResult.OK)
+                                                                                    continuar = r.Result = ButtonResult.OK
                                                                                 End Sub)
         If Not continuar OrElse IsNothing(listaReembolsosSeleccionados) Then
             Return
@@ -1736,13 +1698,8 @@ Public Class AgenciasViewModel
                     If Not MODO_CUADRE Then
                         For Each linea In listaReembolsosSeleccionados
                             Dim agencia As AgenciasTransporte = DbContext.AgenciasTransporte.Where(Function(a) a.Numero = linea.Agencia).SingleOrDefault
-                            Dim numDocAgencia As String
-                            If agencia.Nombre.Length > 10 Then
-                                numDocAgencia = agencia.Nombre.Substring(0, 10)
-                            Else
-                                numDocAgencia = agencia.Nombre
-                            End If
-                            DbContext.PreContabilidad.Add(New PreContabilidad With {
+                            Dim numDocAgencia = If(agencia.Nombre.Length > 10, agencia.Nombre.Substring(0, 10), agencia.Nombre)
+                            Dim unused3 = DbContext.PreContabilidad.Add(New PreContabilidad With {
                             .Empresa = empresaSeleccionada.Número,
                             .Diario = "_PagoReemb",
                             .Asiento = 1,
@@ -1758,13 +1715,8 @@ Public Class AgenciasViewModel
                             .FormaVenta = "VAR"
                         })
                         Next
-                        Dim numDoc As String
-                        If agenciaSeleccionada.Nombre.Length > 10 Then
-                            numDoc = agenciaSeleccionada.Nombre.Substring(0, 10)
-                        Else
-                            numDoc = agenciaSeleccionada.Nombre
-                        End If
-                        DbContext.PreContabilidad.Add(New PreContabilidad With {
+                        Dim numDoc = If(agenciaSeleccionada.Nombre.Length > 10, agenciaSeleccionada.Nombre.Substring(0, 10), agenciaSeleccionada.Nombre)
+                        Dim unused2 = DbContext.PreContabilidad.Add(New PreContabilidad With {
                             .Empresa = empresaSeleccionada.Número,
                             .Diario = "_PagoReemb",
                             .Asiento = 1,
@@ -1785,7 +1737,15 @@ Public Class AgenciasViewModel
                         'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                         success = DbContext.SaveChanges()
 
-                        asiento = DbContext.prdContabilizar(empresaSeleccionada.Número, "_PagoReemb")
+                        Dim empresaParam As New SqlParameter("@Empresa", SqlDbType.Char, 3) With {.Value = empresaSeleccionada.Número}
+                        Dim diarioParam As New SqlParameter("@Diario", SqlDbType.Char, 10) With {.Value = "_PagoReemb"}
+                        Dim usuarioParam As New SqlParameter("@Usuario", SqlDbType.Char, 30) With {.Value = _configuracion.usuario}
+                        Dim resultadoParam As New SqlParameter("@Resultado", SqlDbType.Int) With {.Direction = ParameterDirection.Output}
+
+                        Dim unused1 = DbContext.Database.ExecuteSqlCommand("EXEC @Resultado = prdContabilizar @Empresa, @Diario, @Usuario",
+                                    resultadoParam, empresaParam, diarioParam, usuarioParam)
+
+                        asiento = CInt(resultadoParam.Value)
                     End If
                     If success AndAlso (asiento > 0 OrElse MODO_CUADRE) Then
                         Dim fechaAFijar As Date = Today
@@ -1819,7 +1779,7 @@ Public Class AgenciasViewModel
                     ' Comprobamos que las transacciones sean correctas
                     If success Then
                         ' Reset the context since the operation succeeded. 
-                        DbContext.SaveChanges()
+                        Dim unused = DbContext.SaveChanges()
                         _dialogService.ShowNotification("Contabilizado Correctamente", "Nº Asiento: " + asiento.ToString)
                     Else
                         transaction.Dispose()
@@ -1846,18 +1806,18 @@ Public Class AgenciasViewModel
         Return Not IsNothing(digitalizacionActual)
     End Function
     Private Sub OnDescargarImagen(arg As Object)
-        Dim saveDialog As New SaveFileDialog
-
-        saveDialog.Title = "Guardar justificante de entrega"
-        saveDialog.Filter = "Imagen (*.jpg)|*.jpg"
-        saveDialog.ShowDialog()
+        Dim saveDialog As New SaveFileDialog With {
+            .Title = "Guardar justificante de entrega",
+            .Filter = "Imagen (*.jpg)|*.jpg"
+        }
+        Dim unused = saveDialog.ShowDialog()
 
         'exit if no file selected
         If saveDialog.FileName = "" Then
             Exit Sub
         End If
 
-        Dim cln As System.Net.WebClient = New System.Net.WebClient
+        Dim cln As New System.Net.WebClient
         cln.DownloadFile(digitalizacionActual.urlDigitalizacion, saveDialog.FileName)
 
         mensajeError = "Guardada en " + saveDialog.FileName
@@ -1881,7 +1841,7 @@ Public Class AgenciasViewModel
         Dim mensajeMostrar = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
-                                                                               continuar = (r.Result = ButtonResult.OK)
+                                                                               continuar = r.Result = ButtonResult.OK
                                                                            End Sub)
         If Not continuar Then
             Return
@@ -1907,7 +1867,7 @@ Public Class AgenciasViewModel
         Dim mensajeMostrar = String.Format("¿Confirma que desea modificar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
         Dim continuar As Boolean
         _dialogService.ShowConfirmation("Modificar Envío", mensajeMostrar, Sub(r)
-                                                                               continuar = (r.Result = ButtonResult.OK)
+                                                                               continuar = r.Result = ButtonResult.OK
                                                                            End Sub)
         If Not continuar Then
             Return
@@ -1931,7 +1891,7 @@ Public Class AgenciasViewModel
     Private Async Sub OnImprimirManifiesto(arg As Object)
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ManifiestoAgencia.rdlc")
         Dim dataSource As List(Of Informes.ManifiestoAgenciaModel) = Await Informes.ManifiestoAgenciaModel.CargarDatos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
-        Dim report As LocalReport = New LocalReport()
+        Dim report As New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("ManifiestoAgenciaDataSet", dataSource))
         Dim listaParametros As New List(Of ReportParameter) From {
@@ -1942,7 +1902,7 @@ Public Class AgenciasViewModel
         Dim pdf As Byte() = report.Render("PDF")
         Dim fileName As String = Path.GetTempPath + "InformeManifiestoAgencia.pdf"
         File.WriteAllBytes(fileName, pdf)
-        Process.Start(New ProcessStartInfo(fileName) With {
+        Dim unused = Process.Start(New ProcessStartInfo(fileName) With {
             .UseShellExecute = True
         })
     End Sub
@@ -1964,7 +1924,7 @@ Public Class AgenciasViewModel
             Dim mensajeMostrar As String = String.Format("¿Confirma que ha recibido el retorno del pedido {0}?", lineaRetornoSeleccionado.Pedido.ToString)
             Dim continuar As Boolean
             _dialogService.ShowConfirmation("Retorno", mensajeMostrar, Sub(r)
-                                                                           continuar = (r.Result = ButtonResult.OK)
+                                                                           continuar = r.Result = ButtonResult.OK
                                                                        End Sub)
             If Not continuar OrElse IsNothing(lineaRetornoSeleccionado) Then
                 Return
@@ -1976,7 +1936,7 @@ Public Class AgenciasViewModel
 
                 If DbContext.SaveChanges Then
                     mensajeError = "Fecha retorno del cliente " + lineaRetornoSeleccionado.Cliente.Trim + " actualizada correctamente"
-                    listaRetornos.Remove(lineaRetornoSeleccionado)
+                    Dim unused = listaRetornos.Remove(lineaRetornoSeleccionado)
                 Else
                     mensajeError = "Se ha producido un error al actualizar la fecha del retorno"
                     _dialogService.ShowError("No se ha podido actualizar la fecha del retorno")
@@ -2026,7 +1986,7 @@ Public Class AgenciasViewModel
         'End If
 
         _servicio.Borrar(envioBorrar.Numero)
-        listaPendientes.Remove(envioBorrar)
+        Dim unused = listaPendientes.Remove(envioBorrar)
         If Not listaPendientes.Any Then
             EnvioPendienteSeleccionado = Nothing
         Else
@@ -2058,7 +2018,7 @@ Public Class AgenciasViewModel
         End If
 
         ' Comenzamos a ejecutar
-        Dim envioNuevo As EnvioAgenciaWrapper = New EnvioAgenciaWrapper With {
+        Dim envioNuevo As New EnvioAgenciaWrapper With {
             .Agencia = agenciaSeleccionada.Numero,
             .Empresa = empresaSeleccionada.Número,
             .Estado = Constantes.Agencias.ESTADO_PENDIENTE_ENVIO,
@@ -2079,11 +2039,11 @@ Public Class AgenciasViewModel
         Try
             Dim envio = EnvioPendienteSeleccionado.ToEnvioAgencia
             If EnvioPendienteSeleccionado.Numero = 0 Then
-                _servicio.Insertar(envio)
+                Dim unused1 = _servicio.Insertar(envio)
             Else
                 _servicio.Modificar(envio)
             End If
-            listaPendientes.Remove(EnvioPendienteSeleccionado)
+            Dim unused = listaPendientes.Remove(EnvioPendienteSeleccionado)
             EnvioPendienteSeleccionado = EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)
             EnvioPendienteSeleccionado.TieneCambios = False
             listaPendientes.Add(EnvioPendienteSeleccionado)
@@ -2106,7 +2066,7 @@ Public Class AgenciasViewModel
         Return EnlaceSeguimientoEnvio <> ""
     End Function
     Private Sub OnAbrirEnlaceSeguimientoCommand()
-        Process.Start(New ProcessStartInfo(EnlaceSeguimientoEnvio) With {
+        Dim unused = Process.Start(New ProcessStartInfo(EnlaceSeguimientoEnvio) With {
             .UseShellExecute = True
         })
     End Sub
@@ -2114,15 +2074,13 @@ Public Class AgenciasViewModel
 
 #Region "Funciones de Ayuda"
     Public Function correoUnico() As String
-        If Not pedidoSeleccionado.Clientes.PersonasContactoCliente.Any Then
-            Return String.Empty
-        Else
-            Return correoUnico(pedidoSeleccionado.Clientes.PersonasContactoCliente.ToList)
-        End If
+        Return If(Not pedidoSeleccionado.Clientes.PersonasContactoCliente.Any,
+            String.Empty,
+            correoUnico(pedidoSeleccionado.Clientes.PersonasContactoCliente.ToList))
     End Function
 
     Public Function correoUnico(listaPersonas As List(Of PersonasContactoCliente)) As String
-        Dim correo As CorreoCliente = New CorreoCliente(listaPersonas)
+        Dim correo As New CorreoCliente(listaPersonas)
         Return correo.CorreoAgencia
     End Function
     'Public Function importeReembolso(pedidoSeleccionado As CabPedidoVta) As Decimal
@@ -2215,7 +2173,7 @@ Public Class AgenciasViewModel
                     "¿Desea actualizar los datos?", envioActual.Pedido.ToString, textoConfirmar)
             Dim continuar As Boolean
             _dialogService.ShowConfirmation("Ampliación", mensajeMostrar, Sub(r)
-                                                                              continuar = (r.Result = ButtonResult.OK)
+                                                                              continuar = r.Result = ButtonResult.OK
                                                                           End Sub)
             If Not continuar Then
                 Throw New Exception("Cancelado por el usuario")
@@ -2231,7 +2189,7 @@ Public Class AgenciasViewModel
         If Not hayAlgunaLineaConPicking Then
             Dim continuar As Boolean
             _dialogService.ShowConfirmation("Pedido Sin Picking", "Este pedido no tiene ninguna línea con picking. ¿Desea insertar el pedido de todos modos?", Sub(r)
-                                                                                                                                                                   continuar = (r.Result = ButtonResult.OK)
+                                                                                                                                                                   continuar = r.Result = ButtonResult.OK
                                                                                                                                                                End Sub)
             If Not continuar Then
                 Throw New Exception("Cancelado por el usuario")
@@ -2288,7 +2246,7 @@ Public Class AgenciasViewModel
 
 
                 If Not esAmpliacion Then
-                    _servicio.Insertar(envioActual)
+                    Dim unused2 = _servicio.Insertar(envioActual)
                     listaEnvios.Add(envioActual)
                     listaEnviosPedido.Add(envioActual)
                 End If
@@ -2298,7 +2256,7 @@ Public Class AgenciasViewModel
 
                 If conEtiquetaRecogida Then
                     ' Realmente no hacemos nada más que aumentar en 1 el contador de Id
-                    Dim envioEtiquetaRetorno As EnviosAgencia = New EnviosAgencia With {
+                    Dim envioEtiquetaRetorno As New EnviosAgencia With {
                         .Empresa = envioActual.Empresa,
                         .Agencia = envioActual.Agencia,
                         .Cliente = envioActual.Cliente,
@@ -2324,7 +2282,7 @@ Public Class AgenciasViewModel
                         .Reembolso = 0,
                         .Vendedor = envioActual.Vendedor
                     }
-                    _servicio.Insertar(envioEtiquetaRetorno)
+                    Dim unused1 = _servicio.Insertar(envioEtiquetaRetorno)
                     _servicio.Borrar(envioEtiquetaRetorno.Numero)
                 End If
 
@@ -2348,7 +2306,7 @@ Public Class AgenciasViewModel
         End Using ' finaliza la transacción
 
         If success AndAlso Not esAmpliacion AndAlso Not _servicio.EsTodoElPedidoOnline(envioActual.Empresa, envioActual.Pedido) Then
-            _servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
+            Dim unused = _servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
         End If
     End Sub
 
@@ -2363,11 +2321,7 @@ Public Class AgenciasViewModel
 
         movimientos = _servicio.CargarPagoExtractoClientePorEnvio(env, concepto, importeAnterior)
 
-        If movimientos.Count = 0 Then
-            Return Nothing
-        Else
-            Return movimientos.LastOrDefault
-        End If
+        Return If(movimientos.Count = 0, Nothing, movimientos.LastOrDefault)
     End Function
     Private Function ConfigurarAgenciaPedido() As AgenciasTransporte
         ' agenciaConfigurar es agenciaSeleccionada. Lo pongo por si se busca agenciaSeleccionada.
@@ -2402,7 +2356,7 @@ Public Class AgenciasViewModel
             Dim mensajeMostrar = String.Format("¿Es correcto el importe de {0}?", reembolso.ToString("C"))
             Dim continuar As Boolean
             _dialogService.ShowConfirmation("¡Atención!", mensajeMostrar, Sub(r)
-                                                                              continuar = (r.Result = ButtonResult.OK)
+                                                                              continuar = r.Result = ButtonResult.OK
                                                                           End Sub)
             If Not continuar Then
                 Return
@@ -2425,7 +2379,7 @@ Public Class AgenciasViewModel
                         historia.ValorAnterior = envio.Reembolso.ToString("C")
                         'reembolsoAnterior = envio.Reembolso
                         envioEncontrado.Reembolso = reembolso
-                        DbContext.EnviosHistoria.Add(historia)
+                        Dim unused7 = DbContext.EnviosHistoria.Add(historia)
                         modificado = True
                     End If
                     If envio.Retorno <> retorno.id Then
@@ -2434,7 +2388,7 @@ Public Class AgenciasViewModel
                         Dim tipoEnvioAnterior As Byte = envio.Retorno
                         historia.ValorAnterior = (From l In listaTiposRetorno Where l.id = tipoEnvioAnterior Select l.descripcion).FirstOrDefault
                         envioEncontrado.Retorno = retorno.id
-                        DbContext.EnviosHistoria.Add(historia)
+                        Dim unused6 = DbContext.EnviosHistoria.Add(historia)
                         modificado = True
                     End If
                     If envio.Estado <> estado Then
@@ -2442,7 +2396,7 @@ Public Class AgenciasViewModel
                         historia.Campo = "Estado"
                         historia.ValorAnterior = envio.Estado
                         envioEncontrado.Estado = estado
-                        DbContext.EnviosHistoria.Add(historia)
+                        Dim unused5 = DbContext.EnviosHistoria.Add(historia)
                         modificado = True
                     End If
                     If envio.FechaEntrega <> fechaEntrega Then
@@ -2450,7 +2404,7 @@ Public Class AgenciasViewModel
                         historia.Campo = "FechaEntrega"
                         historia.ValorAnterior = envio.FechaEntrega.ToString
                         envioEncontrado.FechaEntrega = fechaEntrega
-                        DbContext.EnviosHistoria.Add(historia)
+                        Dim unused4 = DbContext.EnviosHistoria.Add(historia)
                         modificado = True
                     End If
 
@@ -2459,7 +2413,7 @@ Public Class AgenciasViewModel
                         'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                         If DbContext.SaveChanges Then
                             If reembolsoAnterior <> reembolso Then
-                                contabilizarModificacionReembolso(envio, reembolsoAnterior, reembolso)
+                                Dim unused3 = contabilizarModificacionReembolso(envio, reembolsoAnterior, reembolso)
                                 ''DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                                 'If Not DbContext.SaveChanges() Then
                                 '    Throw New Exception("No se ha podido contabilizar la modificación del reembolso")
@@ -2480,11 +2434,12 @@ Public Class AgenciasViewModel
 
                     If rehusar Then
                         Dim movimientoFactura As ExtractoCliente = _servicio.CalcularMovimientoLiq(envio, reembolsoAnterior)
-                        Dim estadoRehusado As New ObjectParameter("Estado", GetType(String))
-                        estadoRehusado.Value = "RHS"
+                        Dim estadoRehusado As New ObjectParameter("Estado", GetType(String)) With {
+                            .Value = "RHS"
+                        }
                         envio.Retorno = retorno.id
-                        DbContext.SaveChanges()
-                        DbContext.prdModificarEfectoCliente(movimientoFactura.Nº_Orden, movimientoFactura.FechaVto, movimientoFactura.CCC, movimientoFactura.Ruta, estadoRehusado, movimientoFactura.Concepto)
+                        Dim unused2 = DbContext.SaveChanges()
+                        Dim unused1 = DbContext.prdModificarEfectoCliente(movimientoFactura.Nº_Orden, movimientoFactura.FechaVto, movimientoFactura.CCC, movimientoFactura.Ruta, estadoRehusado, movimientoFactura.Concepto)
                     End If
 
 
@@ -2504,7 +2459,7 @@ Public Class AgenciasViewModel
                 ' Comprobamos que las transacciones sean correctas
                 If success Then
                     ' Reset the context since the operation succeeded. 
-                    DbContext.SaveChanges()
+                    Dim unused = DbContext.SaveChanges()
                     envio = envioEncontrado
                     RaisePropertyChanged(NameOf(listaEnviosTramitados))
                 Else
@@ -2543,7 +2498,7 @@ Public Class AgenciasViewModel
                     ' desliquidamos el reembolso
                     movimientoDesliq = CalcularMovimientoDesliq(envio, importeAnterior)
                     If Not IsNothing(movimientoDesliq) AndAlso movimientoDesliq.Importe <> movimientoDesliq.ImportePdte Then
-                        DbContext.prdDesliquidar(empresaSeleccionada.Número, movimientoDesliq.Nº_Orden)
+                        Dim unused3 = DbContext.prdDesliquidar(empresaSeleccionada.Número, movimientoDesliq.Nº_Orden)
                     End If
 
                     If importeAnterior <> 0 Then
@@ -2603,10 +2558,10 @@ Public Class AgenciasViewModel
 
 
                     If importeAnterior <> 0 Then
-                        DbContext.PreContabilidad.Add(lineaDeshago)
+                        Dim unused2 = DbContext.PreContabilidad.Add(lineaDeshago)
                     End If
                     If importeNuevo <> 0 Then
-                        DbContext.PreContabilidad.Add(lineaRehago)
+                        Dim unused1 = DbContext.PreContabilidad.Add(lineaRehago)
                     End If
                     'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                     If DbContext.SaveChanges() Then
@@ -2630,7 +2585,7 @@ Public Class AgenciasViewModel
                 ' Comprobamos que las transacciones sean correctas
                 If success Then
                     ' Reset the context since the operation succeeded. 
-                    DbContext.SaveChanges()
+                    Dim unused = DbContext.SaveChanges()
                 Else
                     _dialogService.ShowError("Se ha producido un error y no se han grabado los datos")
                     Return -1
@@ -2641,12 +2596,7 @@ Public Class AgenciasViewModel
         Return asiento
     End Function
     Private Function buscarPedidoAmpliacion(pedido As CabPedidoVta) As EnviosAgencia
-        Dim direccion As String
-        If Not String.IsNullOrWhiteSpace(direccionEnvio) Then
-            direccion = direccionEnvio
-        Else
-            direccion = pedido.Clientes.Dirección
-        End If
+        Dim direccion = If(Not String.IsNullOrWhiteSpace(direccionEnvio), direccionEnvio, pedido.Clientes.Dirección)
         Dim pedidoEncontrado As EnviosAgencia = _servicio.CargarEnvioPorClienteYDireccion(pedido.Nº_Cliente, pedido.Contacto, direccion)
         If IsNothing(pedidoEncontrado) Then
             ' Si no es ampliación devolvemos un envío nuevo
@@ -2660,14 +2610,11 @@ Public Class AgenciasViewModel
         Dim deudas As List(Of ExtractoCliente)
         Dim fechaReclamar As Date = Today.AddDays(-7)
         deudas = _servicio.CargarDeudasCliente(pedidoSeleccionado.Nº_Cliente, fechaReclamar)
-        If Not deudas.Any Then
-            Return 0
-        End If
-
-        Return Math.Round(
-            (Aggregate l In deudas
-            Select l.ImportePdte Into Sum()) _
-            , 2, MidpointRounding.AwayFromZero)
+        Return If(deudas.Count = 0,
+                  0.0,
+                  Math.Round(
+                      deudas.Sum(Function(l) CDbl(l.ImportePdte)),
+                      2, MidpointRounding.AwayFromZero))
     End Function
     'Private Function EstamosEditandoEnvioPendiente() As Boolean
     '    ' Hay que cambiar el nombre a la función, porqeu ya no existe contextPendientes
@@ -2690,7 +2637,7 @@ Public Class AgenciasViewModel
     Public Sub EnvioPendienteSeleccionadoPropertyChangedEventHandler(sender As Object, e As PropertyChangedEventArgs)
         Dim envio = CType(sender, EnvioAgenciaWrapper)
         If e.PropertyName = "Pedido" Then
-            CopiarDatosPedidoOriginal(envio.Pedido)
+            Dim unused = CopiarDatosPedidoOriginal(envio.Pedido)
         End If
         If e.PropertyName <> "TieneCambios" Then
             envio.TieneCambios = True
@@ -2705,7 +2652,7 @@ Public Class AgenciasViewModel
 
         Dim pedidoExistente = listaPendientes.SingleOrDefault(Function(p) p.Pedido = numeroPedido AndAlso Not p.Equals(EnvioPendienteSeleccionado))
         If Not IsNothing(pedidoExistente) Then
-            listaPendientes.Remove(EnvioPendienteSeleccionado)
+            Dim unused = listaPendientes.Remove(EnvioPendienteSeleccionado)
             EnvioPendienteSeleccionado = pedidoExistente
             Return
         End If
@@ -2717,7 +2664,7 @@ Public Class AgenciasViewModel
             Return
         End If
 
-        Dim telefono As Telefono = New Telefono(pedido.Clientes.Teléfono)
+        Dim telefono As New Telefono(pedido.Clientes.Teléfono)
         With EnvioPendienteSeleccionado
             .Cliente = pedido.Nº_Cliente
             .Contacto = pedido.Contacto
@@ -2756,7 +2703,7 @@ Public Class AgenciasViewModel
 
         ' Si no se encuentra ningún costo de envío para el peso dado, devuelve el último costo de envío
         If costoSiguiente.Equals(Nothing) Then
-            Return costosFiltrados.Last().Item3 + (peso - costosFiltrados.Last().Item1) * tarifa.CosteKiloAdicional(zona)
+            Return costosFiltrados.Last().Item3 + ((peso - costosFiltrados.Last().Item1) * tarifa.CosteKiloAdicional(zona))
         End If
 
         Dim costoReembolso = If(reembolso <> 0, tarifa.CosteReembolso(reembolso), 0)
@@ -2800,8 +2747,9 @@ Public Structure tipoIdDescripcion
         id = _id
         descripcion = _descripcion
     End Sub
-    Property id As Byte
-    Property descripcion As String
+
+    Public Property id As Byte
+    Public Property descripcion As String
 End Structure
 
 Public Structure tipoIdIntDescripcion
@@ -2812,8 +2760,9 @@ Public Structure tipoIdIntDescripcion
         id = _id
         descripcion = _descripcion
     End Sub
-    Property id As Integer
-    Property descripcion As String
+
+    Public Property id As Integer
+    Public Property descripcion As String
 End Structure
 
 
@@ -2828,7 +2777,7 @@ Public Class estadoEnvio
             Return _listaExpediciones
         End Get
         Set(value As ObservableCollection(Of expedicion))
-            SetProperty(_listaExpediciones, value)
+            Dim unused = SetProperty(_listaExpediciones, value)
         End Set
     End Property
 
@@ -2838,7 +2787,7 @@ Public Class estadoEnvio
             Return _listaDigitalizaciones
         End Get
         Set(value As ObservableCollection(Of digitalizacion))
-            SetProperty(_listaDigitalizaciones, value)
+            Dim unused = SetProperty(_listaDigitalizaciones, value)
         End Set
     End Property
 
@@ -2852,17 +2801,17 @@ Public Class tracking
             Return _estadoTracking
         End Get
         Set(value As String)
-            SetProperty(_estadoTracking, value)
+            Dim unused = SetProperty(_estadoTracking, value)
         End Set
     End Property
 
-    Private _fechaTracking As DateTime
-    Public Property fechaTracking As DateTime
+    Private _fechaTracking As Date
+    Public Property fechaTracking As Date
         Get
             Return _fechaTracking
         End Get
-        Set(value As DateTime)
-            SetProperty(_fechaTracking, value)
+        Set(value As Date)
+            Dim unused = SetProperty(_fechaTracking, value)
         End Set
     End Property
 
@@ -2878,7 +2827,7 @@ Public Class digitalizacion
             Return _tipo
         End Get
         Set(value As String)
-            SetProperty(_tipo, value)
+            Dim unused = SetProperty(_tipo, value)
         End Set
     End Property
 
@@ -2888,7 +2837,7 @@ Public Class digitalizacion
             Return _urlDigitalizacion
         End Get
         Set(value As Uri)
-            SetProperty(_urlDigitalizacion, value)
+            Dim unused = SetProperty(_urlDigitalizacion, value)
         End Set
     End Property
 End Class
@@ -2901,7 +2850,7 @@ Public Class expedicion
             Return _numeroExpedicion
         End Get
         Set(value As String)
-            SetProperty(_numeroExpedicion, value)
+            Dim unused = SetProperty(_numeroExpedicion, value)
         End Set
     End Property
 
@@ -2911,7 +2860,7 @@ Public Class expedicion
             Return _fecha
         End Get
         Set(value As Date)
-            SetProperty(_fecha, value)
+            Dim unused = SetProperty(_fecha, value)
         End Set
     End Property
 
@@ -2921,7 +2870,7 @@ Public Class expedicion
             Return _fechaEstimada
         End Get
         Set(value As Date)
-            SetProperty(_fechaEstimada, value)
+            Dim unused = SetProperty(_fechaEstimada, value)
         End Set
     End Property
 
@@ -2931,7 +2880,7 @@ Public Class expedicion
             Return _listaTracking
         End Get
         Set(value As ObservableCollection(Of tracking))
-            SetProperty(_listaTracking, value)
+            Dim unused = SetProperty(_listaTracking, value)
         End Set
     End Property
 

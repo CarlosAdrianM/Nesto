@@ -30,6 +30,7 @@
             public const string RutaPedidosCmp = "RutaPedidosCmp";
             public const string UltNumProducto = "UltNumProducto";
             public const string UltTipoSeguimientoCliente = "UltTipoSeguimientoCliente";
+            public const string UsarBusquedaContextualAND = "UsarBusquedaContextualAND";
             public const string UsuarioAvisoImpagadoDefecto = "UsuarioAvisoImpagadoDefecto";
             public const string Vendedor = "Vendedor";
         }

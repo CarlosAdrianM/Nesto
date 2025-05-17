@@ -30,6 +30,12 @@ Public Class AgenciaSending
         ListaPaises = rellenarPaises()
     End Sub
 
+    Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
+        Get
+            Return "41094"
+        End Get
+    End Property
+
     ' Funciones
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
         If IsNothing(envio) Then

@@ -9,9 +9,6 @@ Imports System.Text
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Infrastructure.Shared.FuncionesAuxiliares
-Imports System.Net.Http
-Imports System.Xml
-Imports Microsoft.Identity.Client
 
 Public Class AgenciaASM
     Implements IAgencia
@@ -666,6 +663,13 @@ Public Class AgenciaASM
             Return Byte.MaxValue ' ningún servicio imprime etiqueta de retorno
         End Get
     End Property
+
+    Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
+        Get
+            Return "20244"
+        End Get
+    End Property
+
     Public Async Function GetTSPAsync(codPaisOrg As String, cpOrg As String, codPaisDst As String, cpDst As String, codServicio As String, codHorario As String) As Task(Of String)
         Dim soapEnvelope As String = "<?xml version=""1.0"" encoding=""utf-8""?>" &
                                  "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " &

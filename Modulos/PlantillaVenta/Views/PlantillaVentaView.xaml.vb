@@ -5,19 +5,19 @@
     End Sub
 
     Private Sub SeleccionCliente_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionCliente.Enter
-        Keyboard.Focus(txtFiltroCliente)
+        Dim unused = Keyboard.Focus(txtFiltroCliente)
     End Sub
 
     Private Async Sub SeleccionProductos_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionProductos.Enter
         Await Task.Delay(2000)
-        Keyboard.Focus(txtFiltroProducto)
-        txtFiltroProducto.Focus()
+        Dim unused1 = Keyboard.Focus(txtFiltroProducto)
+        Dim unused = txtFiltroProducto.Focus()
     End Sub
 
     Private Async Sub txtFiltroProducto_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFiltroProducto.KeyUp
         If e.Key = System.Windows.Input.Key.Enter Then
             Await Task.Delay(500)
-            Keyboard.Focus(txtFiltroProducto)
+            Dim unused = Keyboard.Focus(txtFiltroProducto)
             txtFiltroProducto.SelectAll()
         End If
         If IsNothing(lstProductos) OrElse lstProductos.Items.Count = 0 Then
@@ -55,7 +55,7 @@
                 lstProductos.SelectedItem = lstProductos.Items(0)
             End If
             Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
-            If (linea.cantidad > 0) Then
+            If linea.cantidad > 0 Then
                 linea.cantidad -= 1
             End If
             txtFiltroProducto.SelectAll()
@@ -113,7 +113,7 @@
                 If Not Double.TryParse(textBox.Text, (linea.descuento)) Then
                     Return
                 Else
-                    linea.descuento = linea.descuento / 100
+                    linea.descuento /= 100
                 End If
             End If
         End If
@@ -138,5 +138,14 @@
         End If
         IndicadorOcupado.FocusAfterBusy = txtFiltroProducto
     End Sub
+
+    Private Sub OpcionesBusqueda_Click(sender As Object, e As RoutedEventArgs)
+        Dim btn = TryCast(sender, Button)
+        If btn IsNot Nothing AndAlso btn.ContextMenu IsNot Nothing Then
+            btn.ContextMenu.PlacementTarget = btn
+            btn.ContextMenu.IsOpen = True
+        End If
+    End Sub
+
 End Class
 

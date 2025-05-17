@@ -1,7 +1,7 @@
-﻿Imports Nesto.Models
-Imports Nesto.Models.Nesto.Models
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.Windows
+Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 
 Public Interface IAgencia
     Function cargarEstado(envio As EnviosAgencia) As XDocument
@@ -29,5 +29,6 @@ Public Interface IAgencia
     ReadOnly Property ServicioAuxiliar As Byte ' este servicio se ignorará y no se mostrará en los tramitados
     ReadOnly Property ServicioCreaEtiquetaRetorno As Byte ' el servicio que imprimie etiqueta de retorno
     Function RespuestaYaTramitada(respuesta As String) As Boolean
+    ReadOnly Property NumeroCliente As String
 
 End Interface

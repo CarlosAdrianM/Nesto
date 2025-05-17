@@ -34,12 +34,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private readonly IClientesService _clientesService;
         private string _cuentaCajaDefecto;
         private string _cuentaTarjetaDefecto;
-        private string _diarioCaja;                
+        private string _diarioCaja;
         private string _formaVentaUsuario;
         private decimal _saldoCuentaOrigen;
 
         public IContabilidadService Servicio { get; }
-        public CajasViewModel(IContabilidadService servicio, IConfiguracion configuracion, IDialogService dialogService, IClientesService clientesService) {
+        public CajasViewModel(IContabilidadService servicio, IConfiguracion configuracion, IDialogService dialogService, IClientesService clientesService)
+        {
             Titulo = "Cajas";
             Servicio = servicio;
             _configuracion = configuracion;
@@ -48,7 +49,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             _fechaCobro = _fechaHasta;
 
             ArqueoFondo = new();
-            DeudasSeleccionadas = new List<ExtractoClienteDTO>();
+            DeudasSeleccionadas = [];
             MovimientoCajaPendientesRecibirSeleccionado = null; // para que no haya ninguno selecciondo al iniciar
 
             CambiarEmpresaTraspasoCommand = new DelegateCommand(OnCambiarEmpresaTraspaso);
@@ -56,9 +57,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
             ContabilizarGastoCommand = new DelegateCommand(OnContabilizarGasto, CanContabilizarGasto);
             ContabilizarTraspasoCommand = new DelegateCommand(OnContabilizarTraspaso, CanContabilizarTraspaso);
             ImprimirExtractoCommand = new DelegateCommand(OnImprimirExtracto, CanImprimirExtracto);
-            LoadedCommand = new DelegateCommand(OnLoaded);            
+            LoadedCommand = new DelegateCommand(OnLoaded);
             SeleccionarDeudasCommand = new DelegateCommand<IList>(OnSeleccionarDeudas);
-            SeleccionarPendientesRecibirCommand = new DelegateCommand<IList> (OnSeleccionarPendientesRecibir);
+            SeleccionarPendientesRecibirCommand = new DelegateCommand<IList>(OnSeleccionarPendientesRecibir);
 
             // suscribirse a los cambios de ArqueoFondo.TotalArqueo para que cuando cambie actualicemos el importe del traspaso
             ArqueoFondo.PropertyChanged += ArqueoFondo_Changed;
@@ -67,9 +68,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
         #region "Propiedades"
         private ArqueoEfectivoModel _arqueoFondo;
-        public ArqueoEfectivoModel ArqueoFondo { 
-            get => _arqueoFondo; 
-            set => SetProperty(ref _arqueoFondo, value); 
+        public ArqueoEfectivoModel ArqueoFondo
+        {
+            get => _arqueoFondo;
+            set => SetProperty(ref _arqueoFondo, value);
         }
         private ClienteDTO _clienteCompletoSeleccionado;
         public ClienteDTO ClienteCompletoSeleccionado
@@ -84,18 +86,19 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _clienteSeleccionado;
             set
             {
-                SetProperty(ref _clienteSeleccionado, value);
-                CargarDeudasCliente();
+                _ = SetProperty(ref _clienteSeleccionado, value);
+                _ = CargarDeudasCliente();
                 (ContabilizarCobroCommand as DelegateCommand).RaiseCanExecuteChanged();
             }
         }
 
         private string _concepto;
-        public string Concepto { 
+        public string Concepto
+        {
             get => _concepto;
-            set 
-            { 
-                SetProperty(ref _concepto, Truncar(value, 50));
+            set
+            {
+                _ = SetProperty(ref _concepto, Truncar(value, 50));
                 ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
             }
         }
@@ -119,7 +122,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _cuentaDestino;
             set
             {
-                SetProperty(ref _cuentaDestino, value);
+                _ = SetProperty(ref _cuentaDestino, value);
                 ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
             }
         }
@@ -132,9 +135,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _cuentaOrigen, value))
                 {
-                    CalcularSaldoCuentaOrigen();
+                    _ = CalcularSaldoCuentaOrigen();
                     ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
-                }                
+                }
             }
         }
 
@@ -166,6 +169,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public bool EstaCuadradoConCajasPendientesRecibir => MovimientosCajaPendientesRecibirSeleccionados == null ||
             !MovimientosCajaPendientesRecibirSeleccionados.Any() ||
             MovimientosCajaPendientesRecibirSeleccionados.Sum(m => m.Importe) == ArqueoFondo.TotalArqueo;
+        private bool _estaOcupado;
+        public bool EstaOcupado
+        {
+            get => _estaOcupado;
+            set => SetProperty(ref _estaOcupado, value);
+        }
         public bool EstaVisibleImporteACuenta => ImporteACuenta != 0;
         public bool EsUsuarioDeAdministracion => _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
         private DateTime _fechaCobro;
@@ -192,9 +201,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         return;
                     }
                 }
-                SetProperty(ref _fechaDesde, value);
+                _ = SetProperty(ref _fechaDesde, value);
                 RaisePropertyChanged(nameof(FechaDesdeMinima));
-                CargarDatosIniciales();
+                _ = CargarDatosIniciales();
             }
         }
         public DateTime FechaDesdeMinima => EsUsuarioDeAdministracion ? DateTime.MinValue : _fechaDesde.AddDays(-DIAS_ATRAS_PERMITIDOS);
@@ -224,7 +233,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         FormaPagoTransferenciaSeleccionada = false;
                         CuentaCobro = ListaCuentasCaja.Single(c => c.Cuenta == _cuentaCajaDefecto);
                         FormaPagoSeleccionada = ListaFormaPago.Single(f => f.formaPago == Constantes.FormasPago.EFECTIVO);
-                    }                    
+                    }
                 }
             }
         }
@@ -246,7 +255,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         FormaPagoTransferenciaSeleccionada = false;
                         CuentaCobro = ListaCuentasCaja.Single(c => c.Cuenta == _cuentaTarjetaDefecto);
                         FormaPagoSeleccionada = ListaFormaPago.Single(f => f.formaPago == Constantes.FormasPago.TARJETA);
-                    }                    
+                    }
                 }
             }
         }
@@ -284,14 +293,15 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _gastoNumeroFactura;
             set
             {
-                SetProperty(ref _gastoNumeroFactura, value);
+                _ = SetProperty(ref _gastoNumeroFactura, value);
                 (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
             }
         }
         private decimal _importe;
-        public decimal Importe { 
+        public decimal Importe
+        {
             get => _importe;
-            set 
+            set
             {
                 if (SetProperty(ref _importe, value))
                 {
@@ -310,21 +320,22 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _importeDeudasSeleccionadas;
             set
             {
-                SetProperty(ref _importeDeudasSeleccionadas, value);
+                _ = SetProperty(ref _importeDeudasSeleccionadas, value);
                 RaisePropertyChanged(nameof(ImporteACuenta));
                 RaisePropertyChanged(nameof(EstaVisibleImporteACuenta));
             }
         }
         private ObservableCollection<CuentaContableDTO> _listaCuentasCaja;
-        public ObservableCollection<CuentaContableDTO> ListaCuentasCaja { 
-            get => _listaCuentasCaja; 
-            set => SetProperty(ref _listaCuentasCaja, value); 
+        public ObservableCollection<CuentaContableDTO> ListaCuentasCaja
+        {
+            get => _listaCuentasCaja;
+            set => SetProperty(ref _listaCuentasCaja, value);
         }
         private ObservableCollection<ExtractoClienteDTO> _listaDeudas;
         public ObservableCollection<ExtractoClienteDTO> ListaDeudas
         {
             get => _listaDeudas;
-            set => SetProperty(ref _listaDeudas,value);
+            set => SetProperty(ref _listaDeudas, value);
         }
         private List<FormaPago> _listaFormaPago;
         public List<FormaPago> ListaFormaPago
@@ -384,7 +395,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _proveedorGasto;
             set
             {
-                SetProperty(ref _proveedorGasto, value);
+                _ = SetProperty(ref _proveedorGasto, value);
                 (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
             }
         }
@@ -395,7 +406,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _totalCobrado;
             set
             {
-                SetProperty(ref _totalCobrado, value);
+                _ = SetProperty(ref _totalCobrado, value);
                 RaisePropertyChanged(nameof(ImporteACuenta));
                 RaisePropertyChanged(nameof(EstaVisibleImporteACuenta));
                 (ContabilizarCobroCommand as DelegateCommand).RaiseCanExecuteChanged();
@@ -405,9 +416,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public decimal TotalGasto
         {
             get => _totalGasto;
-            set 
-            { 
-                SetProperty(ref _totalGasto, value);
+            set
+            {
+                _ = SetProperty(ref _totalGasto, value);
                 (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
             }
         }
@@ -434,7 +445,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private async void OnContabilizarCobro()
         {
 
-            List<PreContabilidadDTO> lineas = new();
+            List<PreContabilidadDTO> lineas = [];
             var importeRestante = Math.Round(TotalCobrado, 2, MidpointRounding.AwayFromZero);
             TotalCobrado = Math.Round(TotalCobrado, 2, MidpointRounding.AwayFromZero);
 
@@ -455,8 +466,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
                 string tipoApunte = NombreTipo(deuda);
                 string pagoODevolucion = importeApunte > 0 ? "S/Pago" : "Devolución";
-                
-                PreContabilidadDTO linea = new PreContabilidadDTO
+
+                PreContabilidadDTO linea = new()
                 {
                     Empresa = deuda.Empresa,
                     TipoApunte = Constantes.TiposApunte.PAGO,
@@ -487,7 +498,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     linea.Concepto += $" a {_configuracion.UsuarioSinDominio}";
                 }
                 lineas.Add(linea);
-                if(importeRestante <= 0)
+                if (importeRestante <= 0)
                 {
                     break;
                 }
@@ -495,13 +506,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
             if (importeRestante != ImporteACuenta)
             {
-                throw new Exception($"Error en el algoritmo de cobros: {importeRestante.ToString("c")} es distinto a {ImporteACuenta.ToString("c")}.");
-            }            
+                throw new Exception($"Error en el algoritmo de cobros: {importeRestante:c} es distinto a {ImporteACuenta:c}.");
+            }
 
             // Metemos una línea por el importe pagado a cuenta
             if (importeRestante != 0)  // no hay ninguna deuda seleccionada
             {
-                PreContabilidadDTO linea = new PreContabilidadDTO
+                PreContabilidadDTO linea = new()
                 {
                     Empresa = EmpresaTraspaso,
                     TipoApunte = Constantes.TiposApunte.PAGO,
@@ -529,7 +540,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
                 lineas.Add(linea);
             }
-            
+
 
             // Creamos la contrapartida al banco
             var empresas = lineas.Select(e => e.Empresa).Distinct().ToList();
@@ -549,7 +560,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     {
                         coletillaYOtros = " a cta.";
                     }
-                    PreContabilidadDTO contrapartida = new PreContabilidadDTO()
+                    PreContabilidadDTO contrapartida = new()
                     {
                         Empresa = empresa,
                         TipoApunte = Constantes.TiposApunte.PAGO,
@@ -574,7 +585,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
                 else
                 {
-                    PreContabilidadDTO contrapartida = new PreContabilidadDTO()
+                    PreContabilidadDTO contrapartida = new()
                     {
                         Empresa = empresa,
                         TipoApunte = Constantes.TiposApunte.PAGO,
@@ -597,22 +608,22 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     };
                     if (!EsUsuarioDeAdministracion)
                     {
-                        contrapartida.Concepto += $" a {_configuracion.UsuarioSinDominio}";                        
+                        contrapartida.Concepto += $" a {_configuracion.UsuarioSinDominio}";
                     }
                     if (contrapartida.Concepto.Length > 50)
                     {
-                        contrapartida.Concepto = contrapartida.Concepto.Substring(0, 50);
+                        contrapartida.Concepto = contrapartida.Concepto[..50];
                     }
                     lineas.Add(contrapartida);
                 }
             }
-            
+
             try
             {
                 foreach (var linea in lineas)
                 {
                     linea.Concepto = Truncar($"{linea.Concepto} {ConceptoAdicionalCobros}", 50);
-                }                
+                }
                 int asiento = await Servicio.Contabilizar(lineas);
                 if (asiento <= 0)
                 {
@@ -637,26 +648,22 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
 
         public ICommand ContabilizarGastoCommand { get; private set; }
-        private bool CanContabilizarGasto() => ProveedorGasto is not null &&
+        private bool CanContabilizarGasto()
+        {
+            return ProveedorGasto is not null &&
             !string.IsNullOrEmpty(ProveedorGasto.Proveedor) &&
             TotalGasto != 0 &&
             !string.IsNullOrEmpty(GastoNumeroFactura);
+        }
+
         private async void OnContabilizarGasto()
         {
             if (TotalGasto < 0 && !_dialogService.ShowConfirmationAnswer("Gasto negativo", "¿Está seguro que desea contabilizar un gasto negativo?"))
             {
                 return;
             }
-            string subcadenaGastoNumeroFactura;
-            if (GastoNumeroFactura.Length >= 10)
-            {
-                subcadenaGastoNumeroFactura = GastoNumeroFactura.Substring(0, 10);
-            }
-            else
-            {
-                subcadenaGastoNumeroFactura = GastoNumeroFactura;
-            }
-            PreContabilidadDTO linea = new PreContabilidadDTO
+            string subcadenaGastoNumeroFactura = GastoNumeroFactura.Length >= 10 ? GastoNumeroFactura[..10] : GastoNumeroFactura;
+            PreContabilidadDTO linea = new()
             {
                 Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                 TipoApunte = Constantes.TiposApunte.PAGO,
@@ -706,7 +713,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private bool CanContabilizarTraspaso()
         {
             return Importe != 0 && CuentaOrigen is not null && CuentaDestino is not null && !string.IsNullOrEmpty(Concepto) && CuentaOrigen.Cuenta != CuentaDestino.Cuenta
-                && ((PuedeContabilizarDescuadrado && EstaCuadradoConCajasPendientesRecibir) || ImporteDescuadre == 0) ;
+                && ((PuedeContabilizarDescuadrado && EstaCuadradoConCajasPendientesRecibir) || ImporteDescuadre == 0);
         }
         private async void OnContabilizarTraspaso()
         {
@@ -715,74 +722,103 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
             decimal saldoEspejo = 0;
             int asientoEspejo = int.MinValue;
-            if (!PuedeContabilizarDescuadrado)
-            {
-                if (!string.IsNullOrEmpty(EmpresaTraspasoMarca))
-                {
-                    CambiarEmpresaTraspasoCommand.Execute(null);
-                }
-                saldoEspejo = await Servicio.SaldoCuenta(Constantes.Empresas.EMPRESA_ESPEJO, CuentaOrigen.Cuenta, _fechaHasta);
-                if (saldoEspejo != 0)
-                {
-                    PreContabilidadDTO lineaEspejo = new PreContabilidadDTO
-                    {
-                        Empresa = Constantes.Empresas.EMPRESA_ESPEJO,
-                        TipoApunte = Constantes.TiposApunte.PASO_A_CARTERA,
-                        TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                        Cuenta = CuentaOrigen.Cuenta,
-                        Concepto = Concepto,
-                        Haber = saldoEspejo,
-                        Fecha = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
-                        FechaVto = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
-                        Documento = "TRASP_CAJA",
-                        Asiento = 1,
-                        Diario = Constantes.DiariosContables.DIARIO_TRASPASOS_CAJA,
-                        Delegacion = delegacion,
-                        FormaVenta = formaVenta,
-                        Contrapartida = CuentaDestino.Cuenta,
-                        Origen = Constantes.Empresas.EMPRESA_DEFECTO,
-                        Usuario = _configuracion.usuario,
-                        FechaModificacion = DateTime.Now
-                    };
-                    asientoEspejo = await Servicio.Contabilizar(lineaEspejo);
 
-                    if (asientoEspejo <= 0)
+            try
+            {
+                EstaOcupado = true;
+                if (!PuedeContabilizarDescuadrado)
+                {
+                    if (!string.IsNullOrEmpty(EmpresaTraspasoMarca))
                     {
-                        _dialogService.ShowError("No se ha podido contabilizar el asiento");
+                        CambiarEmpresaTraspasoCommand.Execute(null);
                     }
-                    else
+                    saldoEspejo = await Servicio.SaldoCuenta(Constantes.Empresas.EMPRESA_ESPEJO, CuentaOrigen.Cuenta, _fechaHasta);
+                    if (saldoEspejo != 0)
                     {
-                        if (saldoEspejo == Importe)
+                        PreContabilidadDTO lineaEspejo = new()
                         {
-                            await Servicio.PuntearPorImporte(Constantes.Empresas.EMPRESA_ESPEJO, CuentaOrigen.Cuenta, Importe);
-                            _dialogService.ShowNotification($"Creado asiento {asientoEspejo} correctamente");
-                            await CargarDatosIniciales();
-                            ArqueoFondo.VaciarArqueo();
-                            Importe = 0;
+                            Empresa = Constantes.Empresas.EMPRESA_ESPEJO,
+                            TipoApunte = Constantes.TiposApunte.PASO_A_CARTERA,
+                            TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
+                            Cuenta = CuentaOrigen.Cuenta,
+                            Concepto = Concepto,
+                            Haber = saldoEspejo,
+                            Fecha = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
+                            FechaVto = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
+                            Documento = "TRASP_CAJA",
+                            Asiento = 1,
+                            Diario = Constantes.DiariosContables.DIARIO_TRASPASOS_CAJA,
+                            Delegacion = delegacion,
+                            FormaVenta = formaVenta,
+                            Contrapartida = CuentaDestino.Cuenta,
+                            Origen = Constantes.Empresas.EMPRESA_DEFECTO,
+                            Usuario = _configuracion.usuario,
+                            FechaModificacion = DateTime.Now
+                        };
+                        asientoEspejo = await Servicio.Contabilizar(lineaEspejo);
+
+                        if (asientoEspejo <= 0)
+                        {
+                            _dialogService.ShowError("No se ha podido contabilizar el asiento");
+                        }
+                        else
+                        {
+                            if (saldoEspejo == Importe)
+                            {
+                                _ = await Servicio.PuntearPorImporte(Constantes.Empresas.EMPRESA_ESPEJO, CuentaOrigen.Cuenta, Importe);
+                                _dialogService.ShowNotification($"Creado asiento {asientoEspejo} correctamente");
+                                await CargarDatosIniciales();
+                                ArqueoFondo.VaciarArqueo();
+                                Importe = 0;
+                            }
                         }
                     }
                 }
-            }
 
-            if (saldoEspejo == Importe || Importe == 0)
-            {
-                return;
-            }
-
-            List<PreContabilidadDTO> lineasContabilizar = new();
-
-            if (HayCajasPendientesDeRecibirSeleccionadas())
-            {
-                foreach (var mov in MovimientosCajaPendientesRecibirSeleccionados)
+                if (saldoEspejo == Importe || Importe == 0)
                 {
-                    PreContabilidadDTO linea = new PreContabilidadDTO
+                    return;
+                }
+
+                List<PreContabilidadDTO> lineasContabilizar = [];
+
+                if (HayCajasPendientesDeRecibirSeleccionadas())
+                {
+                    foreach (var mov in MovimientosCajaPendientesRecibirSeleccionados)
                     {
-                        Empresa = mov.Empresa,
+                        PreContabilidadDTO linea = new()
+                        {
+                            Empresa = mov.Empresa,
+                            TipoApunte = Constantes.TiposApunte.PASO_A_CARTERA,
+                            TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
+                            Cuenta = CuentaOrigen.Cuenta,
+                            Concepto = Concepto,
+                            Haber = mov.Importe,
+                            Fecha = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
+                            FechaVto = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
+                            Documento = "TRASP_CAJA",
+                            Asiento = 1,
+                            Diario = Constantes.DiariosContables.DIARIO_TRASPASOS_CAJA,
+                            Delegacion = delegacion,
+                            FormaVenta = formaVenta,
+                            Contrapartida = CuentaDestino.Cuenta,
+                            Origen = Constantes.Empresas.EMPRESA_DEFECTO,
+                            Usuario = _configuracion.usuario,
+                            FechaModificacion = DateTime.Now
+                        };
+                        lineasContabilizar.Add(linea);
+                    }
+                }
+                else
+                {
+                    PreContabilidadDTO linea = new()
+                    {
+                        Empresa = EmpresaTraspaso,
                         TipoApunte = Constantes.TiposApunte.PASO_A_CARTERA,
                         TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
                         Cuenta = CuentaOrigen.Cuenta,
                         Concepto = Concepto,
-                        Haber = mov.Importe,
+                        Haber = Importe - saldoEspejo,
                         Fecha = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
                         FechaVto = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
                         Documento = "TRASP_CAJA",
@@ -797,80 +833,69 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     };
                     lineasContabilizar.Add(linea);
                 }
-            }
-            else
-            {
-                PreContabilidadDTO linea = new PreContabilidadDTO
-                {
-                    Empresa = EmpresaTraspaso,
-                    TipoApunte = Constantes.TiposApunte.PASO_A_CARTERA,
-                    TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                    Cuenta = CuentaOrigen.Cuenta,
-                    Concepto = Concepto,
-                    Haber = Importe - saldoEspejo,
-                    Fecha = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
-                    FechaVto = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
-                    Documento = "TRASP_CAJA",
-                    Asiento = 1,
-                    Diario = Constantes.DiariosContables.DIARIO_TRASPASOS_CAJA,
-                    Delegacion = delegacion,
-                    FormaVenta = formaVenta,
-                    Contrapartida = CuentaDestino.Cuenta,
-                    Origen = Constantes.Empresas.EMPRESA_DEFECTO,
-                    Usuario = _configuracion.usuario,
-                    FechaModificacion = DateTime.Now
-                };
-                lineasContabilizar.Add(linea);
-            }
 
-            try
-            {
-                List<(int asiento, decimal importe, string empresa)> asientos = new();
-
-                foreach (var lineaContabilizar in lineasContabilizar)
+                try
                 {
-                    lineaContabilizar.Concepto = Truncar($"{lineaContabilizar.Concepto}", 50);
-                    int asiento = await Servicio.Contabilizar(lineaContabilizar);
-                    decimal importe = lineaContabilizar.Debe + lineaContabilizar.Haber;
-                    string empresa = lineaContabilizar.Empresa;
-                    asientos.Add((asiento, importe, empresa));
+                    List<(int asiento, decimal importe, string empresa)> asientos = [];
+
+                    foreach (var lineaContabilizar in lineasContabilizar)
+                    {
+                        lineaContabilizar.Concepto = Truncar($"{lineaContabilizar.Concepto}", 50);
+                        int asiento = await Servicio.Contabilizar(lineaContabilizar);
+                        decimal importe = lineaContabilizar.Debe + lineaContabilizar.Haber;
+                        string empresa = lineaContabilizar.Empresa;
+                        asientos.Add((asiento, importe, empresa));
+                    }
+
+                    foreach (var (asiento, importe, empresa) in asientos)
+                    {
+                        if (asiento <= 0)
+                        {
+                            _dialogService.ShowError("No se ha podido contabilizar el asiento");
+                        }
+                        else
+                        {
+                            _ = await Servicio.PuntearPorImporte(empresa, CuentaOrigen.Cuenta, importe);
+                            _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
+                            await CargarDatosIniciales();
+                            ArqueoFondo.VaciarArqueo();
+                            Importe = 0;
+                        }
+                    }
                 }
-
-                foreach (var (asiento, importe, empresa) in asientos)
+                catch (Exception ex)
                 {
-                    if (asiento <= 0)
-                    {
-                        _dialogService.ShowError("No se ha podido contabilizar el asiento");
-                    }
-                    else
-                    {
-                        await Servicio.PuntearPorImporte(empresa, CuentaOrigen.Cuenta, importe);
-                        _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
-                        await CargarDatosIniciales();
-                        ArqueoFondo.VaciarArqueo();
-                        Importe = 0;
-                    }
+                    _dialogService.ShowError("Error al contabilizar el diario.\n" + ex.Message);
                 }
             }
             catch (Exception ex)
             {
-                _dialogService.ShowError("Error al contabilizar el diario.\n" + ex.Message);
+                _dialogService.ShowError("Error al contabilizar el traspaso.\n" + ex.Message);
             }
+            finally
+            {
+                EstaOcupado = false;
+            }
+
 
         }
 
         public ICommand ImprimirExtractoCommand { get; private set; }
-        private bool CanImprimirExtracto() => true;
+        private bool CanImprimirExtracto()
+        {
+            return true;
+        }
+
         private async void OnImprimirExtracto()
         {
-            foreach(var empresa in MovimientosEfectivoDia.Select(e => e.Empresa).Distinct())
+            foreach (var empresa in MovimientosEfectivoDia.Select(e => e.Empresa).Distinct())
             {
                 LocalReport report = await CrearInformeExtractoContable(empresa, CuentaOrigen, FechaDesde, _fechaHasta);
                 var pdf = report.Render("PDF");
                 string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}_{empresa}.pdf";
                 System.IO.File.WriteAllBytes(fileName, pdf);
-                System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
-            }            
+                _ = System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+            }
         }
 
         // Comando para el evento Loaded
@@ -883,7 +908,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 await CargarDatosIniciales();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _dialogService.ShowError("Se ha producido un error al cargar los datos de caja necesarios, por favor, cierre la ventana y vuelva a abrirla");
             }
@@ -940,7 +965,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             if (ListaCuentasCaja is null || string.IsNullOrEmpty(_diarioCaja))
             {
-                ListaCuentasCaja = new ObservableCollection<CuentaContableDTO>(await Servicio.LeerCuentas(Constantes.Empresas.EMPRESA_DEFECTO, CUENTA_TESORERIA_PGC));
+                ListaCuentasCaja = [.. await Servicio.LeerCuentas(Constantes.Empresas.EMPRESA_DEFECTO, CUENTA_TESORERIA_PGC)];
                 _cuentaCajaDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.CajaDefecto);
                 _cuentaTarjetaDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.CuentaBancoTarjeta);
                 _delegacionUsuario = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto);
@@ -960,16 +985,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     {
                         await CalcularSaldoCuentaOrigen();
                     }
-                    if (CuentaDestino is null)
-                    {
-                        CuentaDestino = ListaCuentasCaja.Single(p => p.Cuenta == _cuentaCajaDefecto);
-                    }
+                    CuentaDestino ??= ListaCuentasCaja.Single(p => p.Cuenta == _cuentaCajaDefecto);
                     Concepto = "Traspaso entre cajas";
                 }
                 else
                 {
                     PuedeContabilizarDescuadrado = false;
-                    decimal.TryParse(await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FondoCaja), out _fondoCaja);
+                    _ = decimal.TryParse(await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FondoCaja), out _fondoCaja);
                     RaisePropertyChanged(nameof(FondoCaja));
                     FormaPagoEfectivoSeleccionada = true;
                     _diarioCaja = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DiarioCaja);
@@ -981,11 +1003,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
             //MovimientosEfectivoDia = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(string.Empty, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta));
             await CalcularSaldoCuentaOrigen();
-            MovimientosTarjetaDia = new ObservableCollection<ContabilidadDTO>((await Servicio.LeerApuntesContabilidad(string.Empty, _cuentaTarjetaDefecto, FechaDesde, _fechaHasta))
-                .Where(c => c.Usuario == _configuracion.usuario));
+            MovimientosTarjetaDia = [.. (await Servicio.LeerApuntesContabilidad(string.Empty, _cuentaTarjetaDefecto, FechaDesde, _fechaHasta))
+                .Where(c => c.Usuario == _configuracion.usuario)];
             if (EsUsuarioDeAdministracion)
             {
-                MovimientosCajaPendientesRecibir = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(CuentaOrigen.Cuenta, false));
+                MovimientosCajaPendientesRecibir = [.. await Servicio.LeerApuntesContabilidad(CuentaOrigen.Cuenta, false)];
             }
 
             if (string.IsNullOrWhiteSpace(_diarioCaja))
@@ -995,26 +1017,26 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
         private async Task CargarDeudasCliente()
         {
-            ListaDeudas = new ObservableCollection<ExtractoClienteDTO>((await _clientesService.LeerDeudas(ClienteSeleccionado)).OrderBy(e => e.Id));
+            ListaDeudas = [.. (await _clientesService.LeerDeudas(ClienteSeleccionado)).OrderBy(e => e.Id)];
         }
         private async Task CalcularSaldoCuentaOrigen()
         {
             if (CuentaOrigen is not null)
             {
                 _saldoCuentaOrigen = await Servicio.SaldoCuenta(string.Empty, CuentaOrigen.Cuenta, _fechaHasta);
-                MovimientosEfectivoDia = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(string.Empty, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta));
+                MovimientosEfectivoDia = [.. await Servicio.LeerApuntesContabilidad(string.Empty, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta)];
                 if (EsUsuarioDeAdministracion)
                 {
-                    MovimientosCajaPendientesRecibir = new ObservableCollection<ContabilidadDTO>(await Servicio.LeerApuntesContabilidad(CuentaOrigen.Cuenta, false));
+                    MovimientosCajaPendientesRecibir = [.. await Servicio.LeerApuntesContabilidad(CuentaOrigen.Cuenta, false)];
                 }
             }
             else
             {
                 _saldoCuentaOrigen = 0;
-                MovimientosEfectivoDia = new();
-                MovimientosCajaPendientesRecibir = new();
+                MovimientosEfectivoDia = [];
+                MovimientosCajaPendientesRecibir = [];
             }
-            
+
             RaisePropertyChanged(nameof(ImporteDescuadre));
             ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
         }
@@ -1025,12 +1047,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
             List<ExtractoContableModel> dataSource = await ExtractoContableModel.CargarDatos(empresa, cuenta.Cuenta, fechaDesde, fechaHasta);
             LocalReport report = new();
             report.LoadReportDefinition(reportDefinition);
-            List<ReportParameter> listaParametros = new List<ReportParameter>
-            {
+            List<ReportParameter> listaParametros =
+            [
                 new ReportParameter("Cuenta", cuenta.Cuenta),
                 new ReportParameter("FechaDesde", fechaDesde.ToString("d")),
                 new ReportParameter("FechaHasta", fechaHasta.ToString("d"))
-            };
+            ];
             report.SetParameters(listaParametros);
 
             report.DataSources.Add(new ReportDataSource("ExtractoContableDataSet", dataSource));
@@ -1042,11 +1064,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
         private static string NombreTipo(ExtractoClienteDTO deuda)
         {
-            if (deuda is null)
-            {
-                return "a cuenta";
-            }
-            return deuda.Tipo == Constantes.TiposApunte.IMPAGADO ? "Impagado" : "Factura";
+            return deuda is null ? "a cuenta" : deuda.Tipo == Constantes.TiposApunte.IMPAGADO ? "Impagado" : "Factura";
         }
 
         #endregion
