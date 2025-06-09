@@ -1,7 +1,9 @@
 ﻿using ControlesUsuario.Dialogs;
 using Microsoft.VisualBasic;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
+using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
 using Prism.Commands;
 using Prism.Mvvm;
@@ -18,17 +20,20 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
     public class CanalesExternosPagosViewModel : BindableBase
     {
-        private const string PROVEEDOR_AMAZON = "869";
-        private const string CONTACTO_PROVEEDOR_AMAZON = "0";
         private const string BANCO_AMAZON = "57200013";
         private const string CUENTA_COMISIONES = "62300023";
 
         private IDialogService dialogService { get; }
 
-        public CanalesExternosPagosViewModel(IDialogService dialogService)
+        private readonly ICanalesExternosPagosService _servicio;
+        private readonly IConfiguracion _configuracion;
+
+        public CanalesExternosPagosViewModel(IDialogService dialogService, ICanalesExternosPagosService canalesExternosPagosService, IConfiguracion configuracion)
         {
             Titulo = "Canales Externos Pagos";
             this.dialogService = dialogService;
+            _servicio = canalesExternosPagosService;
+            _configuracion = configuracion;
 
             CargarPagosCommand = new DelegateCommand(OnCargarPagos);
             CargarDetallePagoCommand = new DelegateCommand(OnCargarDetallePago);
@@ -37,22 +42,26 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private bool _estaOcupado;
         public bool EstaOcupado
-        { get => _estaOcupado; set => SetProperty(ref _estaOcupado, value);
+        {
+            get => _estaOcupado; set => SetProperty(ref _estaOcupado, value);
         }
 
         private DateTime _fechaDesde = DateTime.Today.AddMonths(-2);
         public DateTime FechaDesde
-        { get => _fechaDesde; set => SetProperty(ref _fechaDesde, value);
+        {
+            get => _fechaDesde; set => SetProperty(ref _fechaDesde, value);
         }
 
         private ObservableCollection<PagoCanalExterno> _listaPagos;
         public ObservableCollection<PagoCanalExterno> ListaPagos
-        { get => _listaPagos; set => SetProperty(ref _listaPagos, value);
+        {
+            get => _listaPagos; set => SetProperty(ref _listaPagos, value);
         }
 
         private int _numeroMaxGruposEventos = 40;
         public int NumeroMaxGruposEventos
-        { get => _numeroMaxGruposEventos; set => SetProperty(ref _numeroMaxGruposEventos, value);
+        {
+            get => _numeroMaxGruposEventos; set => SetProperty(ref _numeroMaxGruposEventos, value);
         }
 
         private PagoCanalExterno _pagoSeleccionado;
@@ -69,7 +78,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private string _titulo;
         public string Titulo
-        { get => _titulo; set => SetProperty(ref _titulo, value);
+        {
+            get => _titulo; set => SetProperty(ref _titulo, value);
         }
 
         public ICommand CargarDetallePagoCommand { get; private set; }
@@ -129,12 +139,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         }
 
         public ICommand CargarPagosCommand { get; private set; }
-        private void OnCargarPagos()
+        private async void OnCargarPagos()
         {
             try
             {
                 EstaOcupado = true;
-                ListaPagos = AmazonApiFinancesService.LeerFinancialEventGroups(FechaDesde, NumeroMaxGruposEventos);
+                var listaProvisional = AmazonApiFinancesService.LeerFinancialEventGroups(FechaDesde, NumeroMaxGruposEventos);
+                ListaPagos = await _servicio.BuscarAsientos(listaProvisional);
             }
             catch (Exception ex)
             {
@@ -187,8 +198,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                    Nº_Cuenta = PROVEEDOR_AMAZON,
-                    Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                    Nº_Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
+                    Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
                     Concepto = string.Format("Pago {0}", nombreMarket),
                     Haber = PagoSeleccionado.Importe,
                     Nº_Documento = documento,
@@ -229,8 +240,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                    Nº_Cuenta = PROVEEDOR_AMAZON,
-                    Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                    Nº_Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
+                    Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
                     Concepto = string.Format("Liq. Pagos {0}. Retenido {1}", nombreMarket, (-PagoSeleccionado.AjusteRetencion).ToString("C")),
                     Debe = PagoSeleccionado.TotalDetallePagos,
                     Nº_Documento = documento,
@@ -252,8 +263,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                    Nº_Cuenta = PROVEEDOR_AMAZON,
-                    Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                    Nº_Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
+                    Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
                     Concepto = string.Format("Gastos {0}", nombreMarket),
                     Haber = -PagoSeleccionado.TotalDetalleComisiones - PagoSeleccionado.Comision - PagoSeleccionado.TotalDetallePromociones - PagoSeleccionado.Publicidad,
                     Nº_Documento = documento,
@@ -300,8 +311,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                    Nº_Cuenta = PROVEEDOR_AMAZON,
-                    Contacto = CONTACTO_PROVEEDOR_AMAZON,
+                    Nº_Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
+                    Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
                     Concepto = string.Format("Publicidad {0} {1}", nombreMarket, PagoSeleccionado.FacturaPublicidad),
                     Debe = -PagoSeleccionado.Publicidad,
                     Nº_Documento = documento,
@@ -386,7 +397,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 await Task.Run(() =>
                 {
                     _ = db.SaveChanges();
-                    _ = db.prdContabilizar(Constantes.Empresas.EMPRESA_DEFECTO, Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS);
+                    _ = db.prdContabilizar(Constantes.Empresas.EMPRESA_DEFECTO, Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS, _configuracion.usuario);
+                    CargarPagosCommand.Execute(null);
                 });
             }
             catch (DbEntityValidationException ex)

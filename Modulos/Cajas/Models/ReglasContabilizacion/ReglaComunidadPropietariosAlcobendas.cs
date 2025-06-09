@@ -2,8 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
@@ -40,7 +38,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Contrapartida = banco.CuentaContable;
             lineas.Add(linea1);
 
-            ReglaContabilizacionResponse response = new ReglaContabilizacionResponse
+            ReglaContabilizacionResponse response = new()
             {
                 Lineas = lineas
             };
@@ -56,16 +54,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             var apunteBancario = apuntesBancarios.First();
 
-            if (apunteBancario.ConceptoComun == "03" &&
+            return apunteBancario.ConceptoComun == "03" &&
                 apunteBancario.ConceptoPropio == "029" &&
                 apunteBancario.RegistrosConcepto != null &&
-                apunteBancario.RegistrosConcepto.Any() &&
-                apunteBancario.RegistrosConcepto[0]?.Concepto.Trim() == "CORECOM. PROP. LA GRANJA, 1")
-            {
-                return true;
-            }
-
-            return false;
+                apunteBancario.RegistrosConcepto.Any(c => c.Concepto.Trim() == "CORECOM. PROP. LA GRANJA, 1");
         }
     }
 }

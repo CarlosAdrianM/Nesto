@@ -3,8 +3,6 @@ using Nesto.Modulos.Cajas.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
@@ -26,7 +24,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var importeComision = -importeDescuadre; ;
             var importeOriginal = importeIngresado + importeComision;
 
-            if (importeDescuadre == 0M || !(VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count())))
+            if (importeDescuadre == 0M || !(VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count()) || VerificarImportesAplazameZero(importeOriginal, importeComision)))
             {
                 throw new Exception("Para contabilizar el apunte de banco debe tener seleccionado también el apunte de contabilidad y que el descuadre sea la comisión.");
             }
@@ -36,7 +34,12 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.TipoCuenta = Constantes.TiposCuenta.PROVEEDOR;
             linea1.Cuenta = "1070"; // Aplazame
             linea1.Contacto = "0";
-            linea1.Concepto = $"Comisión Aplazame {importeOriginal.ToString("c")}-{importeComision.ToString("c")}={importeIngresado.ToString("c")}({(importeComision / importeOriginal).ToString("p")})";
+            var inicioConcepto = "Comisión Aplazame";
+            if (VerificarImportesAplazameZero(importeOriginal, importeComision))
+            {
+                inicioConcepto += " Zero";
+            }
+            linea1.Concepto = $"{inicioConcepto} {importeOriginal:c}-{importeComision:c}={importeIngresado:c}({importeComision / importeOriginal:p})";
             linea1.Concepto = FuncionesAuxiliaresReglas.FormatearConcepto(linea1.Concepto);
 
             // Obtener los últimos 10 caracteres
@@ -46,7 +49,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             string ultimos10Caracteres;
             if (longitud >= caracteresDeseados)
             {
-                ultimos10Caracteres = referenciaCompleta.Substring(longitud - caracteresDeseados);
+                ultimos10Caracteres = referenciaCompleta[(longitud - caracteresDeseados)..];
             }
             else
             {
@@ -61,7 +64,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Contrapartida = banco.CuentaContable;
             lineas.Add(linea1);
 
-            ReglaContabilizacionResponse response = new ReglaContabilizacionResponse
+            ReglaContabilizacionResponse response = new()
             {
                 Lineas = lineas
             };
@@ -82,17 +85,23 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var importeOriginal = importeIngresado + importeComision;
 
 
-            if (apunteBancario.ConceptoComun == "02" &&
+            return apunteBancario.ConceptoComun == "02" &&
                 apunteBancario.ConceptoPropio == "002" &&
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Any() &&
                 apunteBancario.RegistrosConcepto[0]?.Concepto.ToLower().Trim() == "wizink bank s.a." &&
-                VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count()))
-            {
-                return true;
-            }
+                (VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count()) ||
+                VerificarImportesAplazameZero(importeOriginal, importeComision));
+        }
 
-            return false;
+        private bool VerificarImportesAplazameZero(decimal importeOriginal, decimal importeComision)
+        {
+            var limiteInferior = 0.02m;
+            var limiteSuperior = 0.07m;
+            var comision = importeComision / importeOriginal;
+
+            return comision > limiteInferior && comision < limiteSuperior;
+
         }
 
         private bool VerificarImportesStandard(decimal importeOriginal, decimal importeComision, decimal importeIngresado, int numeroPagos)

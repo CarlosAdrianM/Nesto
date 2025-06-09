@@ -1,21 +1,14 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Data.Entity
-Imports System.Data.Objects
 Imports System.Net.Http
 Imports System.Text
-Imports System.Threading.Tasks
 Imports System.Transactions
-Imports System.Windows.Documents
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
-Imports Nesto.Modulos.PedidoVenta
-Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Nesto.Modulos.Producto
 Imports Newtonsoft.Json
-Imports Newtonsoft.Json.Linq
 Imports Prism.Services.Dialogs
 
 Public Class AgenciaService
@@ -31,9 +24,9 @@ Public Class AgenciaService
 
     Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
         Using context As New NestoEntities
-            context.EnviosAgencia.Attach(envio)
+            Dim unused1 = context.EnviosAgencia.Attach(envio)
             context.Entry(envio).State = EntityState.Modified
-            context.SaveChanges()
+            Dim unused = context.SaveChanges()
         End Using
     End Sub
 
@@ -42,11 +35,11 @@ Public Class AgenciaService
             Using DbContext As New NestoEntities
                 Dim historias As List(Of EnviosHistoria) = (From h In DbContext.EnviosHistoria Where h.NumeroEnvio = Id).ToList
                 For Each historia In historias
-                    DbContext.EnviosHistoria.Remove(historia)
+                    Dim unused2 = DbContext.EnviosHistoria.Remove(historia)
                 Next
                 Dim envioActual = DbContext.EnviosAgencia.Single(Function(e) e.Numero = Id)
-                DbContext.EnviosAgencia.Remove(envioActual)
-                DbContext.SaveChanges()
+                Dim unused1 = DbContext.EnviosAgencia.Remove(envioActual)
+                Dim unused = DbContext.SaveChanges()
             End Using
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
@@ -56,7 +49,7 @@ Public Class AgenciaService
     Public Function CargarListaPendientes() As IEnumerable(Of EnvioAgenciaWrapper) Implements IAgenciaService.CargarListaPendientes
         Using contexto = New NestoEntities()
             Dim lista As List(Of EnviosAgencia) = contexto.EnviosAgencia.Where(Function(e) e.Estado < 0).ToList
-            Dim listaWrapper As List(Of EnvioAgenciaWrapper) = New List(Of EnvioAgenciaWrapper)
+            Dim listaWrapper As New List(Of EnvioAgenciaWrapper)
             For Each envio In lista
                 listaWrapper.Add(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio))
             Next
@@ -72,8 +65,8 @@ Public Class AgenciaService
 
     Public Function Insertar(envio As EnviosAgencia) As EnviosAgencia Implements IAgenciaService.Insertar
         Using contexto As New NestoEntities
-            contexto.EnviosAgencia.Add(envio)
-            contexto.SaveChanges()
+            Dim unused1 = contexto.EnviosAgencia.Add(envio)
+            Dim unused = contexto.SaveChanges()
             contexto.Entry(envio).Reference(Function(e) e.AgenciasTransporte).Load()
             contexto.Entry(envio).Reference(Function(e) e.Empresas).Load()
         End Using
@@ -118,7 +111,7 @@ Public Class AgenciaService
 
     Public Function CargarListaEnvios(agencia As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnvios
         Using contexto = New NestoEntities
-            Dim respuesta As ObservableCollection(Of EnviosAgencia) = New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Agencia = agencia And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO Order By e.Numero)
+            Dim respuesta As New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Agencia = agencia And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO Order By e.Numero)
             If Not IsNothing(respuesta) Then
                 For Each envio In respuesta
                     contexto.Entry(envio).Reference(Function(e) e.Empresas).Load()
@@ -206,8 +199,8 @@ Public Class AgenciaService
 
     Public Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double? Implements IAgenciaService.CalcularSumaContabilidad
         Using contexto = New NestoEntities
-            Dim fechaInicial As Date = New Date(2019, 1, 1)
-            Return (Aggregate c In contexto.Contabilidad Where c.Empresa = empresa AndAlso c.Fecha >= fechaInicial AndAlso c.Nº_Cuenta = cuentaReembolsos Into Sum(CType(c.Debe, Double?) - CType(c.Haber, Double?)))
+            Dim fechaInicial As New Date(2019, 1, 1)
+            Return Aggregate c In contexto.Contabilidad Where c.Empresa = empresa AndAlso c.Fecha >= fechaInicial AndAlso c.Nº_Cuenta = cuentaReembolsos Into Sum(c.Debe - CType(c.Haber, Double?))
         End Using
     End Function
 
@@ -260,11 +253,9 @@ Public Class AgenciaService
 
     Public Function CargarExtractoCliente(empresa As String, cliente As String, positivos As Boolean) As ObservableCollection(Of ExtractoCliente) Implements IAgenciaService.CargarExtractoCliente
         Using contexto = New NestoEntities
-            If positivos Then
-                Return New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa AndAlso e.Número = cliente AndAlso e.ImportePdte > 0 AndAlso (e.Estado = "NRM" OrElse e.Estado Is Nothing) AndAlso Not e.Nº_Documento.StartsWith(Constantes.Series.SERIE_CURSOS))
-            Else
-                Return New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa AndAlso e.Número = cliente AndAlso e.ImportePdte < 0 AndAlso (e.Estado = "NRM" OrElse e.Estado Is Nothing) AndAlso Not e.Nº_Documento.StartsWith(Constantes.Series.SERIE_CURSOS))
-            End If
+            Return If(positivos,
+                New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa AndAlso e.Número = cliente AndAlso e.ImportePdte > 0 AndAlso (e.Estado = "NRM" OrElse e.Estado Is Nothing) AndAlso Not e.Nº_Documento.StartsWith(Constantes.Series.SERIE_CURSOS)),
+                New ObservableCollection(Of ExtractoCliente)(From e In contexto.ExtractoCliente Where e.Empresa = empresa AndAlso e.Número = cliente AndAlso e.ImportePdte < 0 AndAlso (e.Estado = "NRM" OrElse e.Estado Is Nothing) AndAlso Not e.Nº_Documento.StartsWith(Constantes.Series.SERIE_CURSOS)))
         End Using
     End Function
 
@@ -278,11 +269,9 @@ Public Class AgenciaService
 
     Public Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte Implements IAgenciaService.CargarAgenciaPorRuta
         Using contexto = New NestoEntities
-            If empresa.Trim = Constantes.Empresas.EMPRESA_DEFECTO Then
-                Return contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Ruta = ruta)
-            Else
-                Return contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS)
-            End If
+            Return If(empresa.Trim = Constantes.Empresas.EMPRESA_DEFECTO,
+                contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Ruta = ruta),
+                contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS))
         End Using
     End Function
 
@@ -338,7 +327,7 @@ Public Class AgenciaService
 
                 If success Then
                     transaction.Complete()
-                    DbContext.SaveChanges()
+                    Dim unused = DbContext.SaveChanges()
                     Return "Envío del pedido " + envio.Pedido.ToString + " tramitado correctamente."
                 Else
                     transaction.Dispose()
@@ -398,9 +387,9 @@ Public Class AgenciaService
                 Dim success As Boolean
 
                 Try
-                    DbContext.PreContabilidad.Add(lineaInsertar)
-                    DbContext.SaveChanges()
-                    asiento = DbContext.prdContabilizar(lineaInsertar.Empresa, Constantes.DiariosContables.DIARIO_REEMBOLSOS)
+                    Dim unused2 = DbContext.PreContabilidad.Add(lineaInsertar)
+                    Dim unused1 = DbContext.SaveChanges()
+                    asiento = DbContext.prdContabilizar(lineaInsertar.Empresa, Constantes.DiariosContables.DIARIO_REEMBOLSOS, configuracion.usuario)
                     transaction.Complete()
                     success = asiento > 0
                 Catch e As Exception
@@ -411,7 +400,7 @@ Public Class AgenciaService
                 ' Comprobamos que las transacciones sean correctas
                 If success Then
                     ' Reset the context since the operation succeeded. 
-                    DbContext.SaveChanges()
+                    Dim unused = DbContext.SaveChanges()
                 Else
                     Throw New Exception("Se ha producido un error y no se grabado los datos")
                 End If
@@ -434,11 +423,9 @@ Public Class AgenciaService
             Return Nothing
         End If
 
-        If reembolsoAnterior > 0 Then
-            movimientos = CargarExtractoCliente(env.Empresa, env.Cliente, True)
-        Else
-            movimientos = CargarExtractoCliente(env.Empresa, env.Cliente, False)
-        End If
+        movimientos = If(reembolsoAnterior > 0,
+            CargarExtractoCliente(env.Empresa, env.Cliente, True),
+            CargarExtractoCliente(env.Empresa, env.Cliente, False))
 
 
         If movimientos.Count = 0 Then
@@ -452,11 +439,7 @@ Public Class AgenciaService
                 movimientosConImporte = New ObservableCollection(Of ExtractoCliente)(From m In movimientos Where m.ImportePdte = env.Reembolso And m.Fecha = Today) ' con env.Fecha hay problemas cuando la etiqueta es del día anterior
             End If
 
-            If movimientosConImporte.Count = 0 Then
-                Return movimientos.LastOrDefault
-            Else
-                Return movimientosConImporte.LastOrDefault
-            End If
+            Return If(movimientosConImporte.Count = 0, movimientos.LastOrDefault, movimientosConImporte.LastOrDefault)
         End If
     End Function
     Private Function GenerarConcepto(envio As EnviosAgencia) As String Implements IAgenciaService.GenerarConcepto
@@ -511,11 +494,7 @@ Public Class AgenciaService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuesta = ""
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido calcular el reembolso del pedido", ex)

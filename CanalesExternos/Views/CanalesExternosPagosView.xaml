@@ -44,6 +44,7 @@
                         </Style>
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
+                <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}"/>
             </DataGrid.Columns>
         </DataGrid>
         <xctk:BusyIndicator Grid.Column="1" IsBusy="{Binding EstaOcupado}" BusyContent="Espere, por favor...">

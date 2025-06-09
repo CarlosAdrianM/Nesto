@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Nesto.Modulos.CanalesExternos.Models
 {
     public class DatosMarkets
     {
-        public static List<Mercado> Mercados { 
-            get
-            {
-                return new List<Mercado>
-                {
+        public static List<Mercado> Mercados => [
                     new Mercado {
                         Id = "A1F83G8C2ARO7P",
                         NombreMarket = "Amazon.co.uk",
@@ -77,14 +70,19 @@ namespace Nesto.Modulos.CanalesExternos.Models
                     },
                     new Mercado
                     {
+                        Id = "A28R8C7NBKEWEA",
+                        NombreMarket = "Amazon.ie",
+                        CuentaContablePago = "55500082",
+                        CuentaContableComision = "55500083"
+                    },
+                    new Mercado
+                    {
                         Id = "miravia",
                         NombreMarket = "Miravia",
                         CuentaContablePago = "57200013",
                         CuentaContableComision = ""
                     }
-                };
-            } 
-        }
+                ];
         public static Mercado Buscar(string Id)
         {
             return Mercados.Single(m => m.Id == Id);

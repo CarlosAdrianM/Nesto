@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Nesto.Infrastructure.Shared
 {
@@ -7,12 +6,12 @@ namespace Nesto.Infrastructure.Shared
     {
         public class Agencias
         {
-            public const string AGENCIA_DEFECTO = "Sending"; 
+            public const string AGENCIA_DEFECTO = "Sending";
             public const string AGENCIA_INTERNACIONAL = "Sending"; // String.Empty para no usar ninguna
             public const string AGENCIA_REEMBOLSOS = "Correos Express"; // String.Empty para no usar ninguna
             public const int ESTADO_INICIAL_ENVIO = 0;
             public const int ESTADO_TRAMITADO_ENVIO = 1;
-            public const Int16 ESTADO_PENDIENTE_ENVIO = -1; // Etiqueta pendiente de envío
+            public const short ESTADO_PENDIENTE_ENVIO = -1; // Etiqueta pendiente de envío
         }
         public class Almacenes
         {
@@ -43,7 +42,7 @@ namespace Nesto.Infrastructure.Shared
         }
 
         public class DiariosContables
-        {            
+        {
             public const string DIARIO_CAJA = "_Caja";
             public const string DIARIO_PAGO_REEMBOLSOS = "_PagoReemb";
             public const string DIARIO_REEMBOLSOS = "_Reembolso";
@@ -79,7 +78,7 @@ namespace Nesto.Infrastructure.Shared
         }
         public class FormasVenta
         {
-            public static readonly List<string> FORMAS_ONLINE = new List<string>() { "QRU", "WEB", "STK", "BLT" };
+            public static readonly List<string> FORMAS_ONLINE = ["QRU", "WEB", "STK", "BLT"];
             public const string APOYO_COMERCIAL = "APC";
         }
         public class Formatos
@@ -148,6 +147,14 @@ namespace Nesto.Infrastructure.Shared
                 public const string MUESTRAS = "MMP";
             }
         }
+        public class Proveedores
+        {
+            public class Especiales
+            {
+                public const string PROVEEDOR_AMAZON = "869";
+                public const string CONTACTO_PROVEEDOR_AMAZON = "0";
+            }
+        }
         public class Rapports
         {
             public class Estados
@@ -162,12 +169,12 @@ namespace Nesto.Infrastructure.Shared
         }
         public class Sedes
         {
-            public static List<Sede> ListaSedes = new List<Sede>
-            {
+            public static List<Sede> ListaSedes =
+            [
                 new Sede { Nombre = "Algete", Codigo = "ALG" },
                 new Sede { Nombre = "Reina", Codigo = "REI" },
                 new Sede { Nombre = "Alcobendas", Codigo = "ALC" }
-            };
+            ];
         }
         public class Series
         {
@@ -191,7 +198,8 @@ namespace Nesto.Infrastructure.Shared
             public const string PROVEEDOR = "3";
         }
 
-        public class Ubicaciones {
+        public class Ubicaciones
+        {
             public const int ESTADO_A_BORRAR = -100;
             public const int ESTADO_A_MODIFICAR = -101;
             public const int ESTADO_REGISTRO_MONTAR_KITS = -102;

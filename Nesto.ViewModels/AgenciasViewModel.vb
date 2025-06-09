@@ -2565,7 +2565,7 @@ Public Class AgenciasViewModel
                     End If
                     'DbContext.SaveChanges(SaveOptions.DetectChangesBeforeSave)
                     If DbContext.SaveChanges() Then
-                        asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos)
+                        asiento = DbContext.prdContabilizar(envio.Empresa, diarioReembolsos, _configuracion.usuario)
                         transaction.Complete()
                         success = True
                     Else

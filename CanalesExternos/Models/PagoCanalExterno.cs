@@ -22,26 +22,11 @@ namespace Nesto.Modulos.CanalesExternos.Models
         public string MonedaOriginal { get; set; }
         public decimal CambioDivisas { get; set; }
         public ObservableCollection<DetallePagoCanalExterno> DetallesPago { get; set; }
-        public decimal TotalDetallePagos { get
-            {
-                return DetallesPago != null ? DetallesPago.Sum(p => p.Importe) : 0;
-            } 
-        }
-        public decimal TotalDetalleComisiones
-        {
-            get
-            {
-                return DetallesPago != null ? DetallesPago.Sum(p => p.Comisiones) : 0;
-            }
-        }
-        public decimal TotalDetallePromociones
-        {
-            get
-            {
-                return DetallesPago != null ? DetallesPago.Sum(p => p.Promociones) : 0;
-            }
-        }
-        public decimal TotalDetalle { get { return TotalDetallePagos + TotalDetalleComisiones+ TotalDetallePromociones + AjusteRetencion + RestoAjustes + Comision + Publicidad; } }
-        public decimal Descuadre { get { return Importe - TotalDetalle; } }
+        public decimal TotalDetallePagos => DetallesPago != null ? DetallesPago.Sum(p => p.Importe) : 0;
+        public decimal TotalDetalleComisiones => DetallesPago != null ? DetallesPago.Sum(p => p.Comisiones) : 0;
+        public decimal TotalDetallePromociones => DetallesPago != null ? DetallesPago.Sum(p => p.Promociones) : 0;
+        public decimal TotalDetalle => TotalDetallePagos + TotalDetalleComisiones + TotalDetallePromociones + AjusteRetencion + RestoAjustes + Comision + Publicidad;
+        public decimal Descuadre => Importe - TotalDetalle;
+        public int Asiento { get; set; }
     }
 }

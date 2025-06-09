@@ -1,4 +1,5 @@
 ﻿Imports Microsoft.Xaml.Behaviors
+Imports Nesto.Infrastructure.Contracts
 Imports Prism.Regions
 
 Public Class CloseTabAction
@@ -22,7 +23,16 @@ Public Class CloseTabAction
             Return
         End If
 
-        'tabControl.Items.Remove(tabItem.Content)
+
+        ' Verificar si el ViewModel quiere confirmar el cierre
+        Dim viewModel = TryCast(tabItem.Content?.DataContext, ITabCloseConfirmation)
+        If viewModel IsNot Nothing Then
+            Dim shouldClose = viewModel.ConfirmTabClose()
+            If Not shouldClose Then
+                Return ' No cerrar el tab
+            End If
+        End If
+
         Dim region As IRegion = RegionManager.GetObservableRegion(tabControl).Value
 
         If IsNothing(region) Then
@@ -44,11 +54,7 @@ Public Class CloseTabAction
         End If
 
         Dim parent = TryCast(parentObject, T)
-        If Not IsNothing(parent) Then
-            Return parent
-        End If
-
-        Return FindParent(Of T)(parentObject)
+        Return If(Not IsNothing(parent), parent, FindParent(Of T)(parentObject))
 
     End Function
 End Class

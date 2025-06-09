@@ -63,7 +63,7 @@ Namespace Nesto.Models
         Public Overridable Property vstLinPedidoVtaComisiones() As DbSet(Of vstLinPedidoVtaComisiones)
         Public Overridable Property AgenciaSendingDelegaciones() As DbSet(Of AgenciaSendingDelegacion)
         Public Overridable Property AgenciaSendingPueblos() As DbSet(Of AgenciaSendingPueblo)
-    
+
         Public Overridable Function prdProductosAlquilerLista() As ObjectResult(Of prdProductosAlquiler)
             Return DirectCast(Me, IObjectContextAdapter).ObjectContext.ExecuteFunction(Of prdProductosAlquiler)("prdProductosAlquilerLista")
         End Function
@@ -98,12 +98,14 @@ Namespace Nesto.Models
             Return DirectCast(Me, IObjectContextAdapter).ObjectContext.ExecuteFunction("prdContabilizarImpagadosSepa", ficheroParameter)
         End Function
     
-        Public Overridable Function prdContabilizar(empresa As String, diario As String) As Integer
+        Public Overridable Function prdContabilizar(empresa As String, diario As String, usuario As String) As Integer
             Dim empresaParameter As ObjectParameter = If(empresa IsNot Nothing, New ObjectParameter("Empresa", empresa), New ObjectParameter("Empresa", GetType(String)))
     
             Dim diarioParameter As ObjectParameter = If(diario IsNot Nothing, New ObjectParameter("Diario", diario), New ObjectParameter("Diario", GetType(String)))
     
-            Return DirectCast(Me, IObjectContextAdapter).ObjectContext.ExecuteFunction("prdContabilizar", empresaParameter, diarioParameter)
+            Dim usuarioParameter As ObjectParameter = If(usuario IsNot Nothing, New ObjectParameter("Usuario", usuario), New ObjectParameter("Usuario", GetType(String)))
+    
+            Return DirectCast(Me, IObjectContextAdapter).ObjectContext.ExecuteFunction("prdContabilizar", empresaParameter, diarioParameter, usuarioParameter)
         End Function
     
         Public Overridable Function prdDesliquidar(empresa As String, numOrden As Nullable(Of Integer)) As Integer

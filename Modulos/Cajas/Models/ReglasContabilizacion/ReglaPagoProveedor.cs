@@ -41,13 +41,13 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             else if (EsReciboDomiciliado(apunteBancario))
             {
                 //proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[0].Concepto.Substring(4))).GetAwaiter().GetResult();
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(apunteBancario.RegistrosConcepto[1].Concepto.Substring(7,9))).GetAwaiter().GetResult();
+                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(apunteBancario.RegistrosConcepto[1].Concepto.Substring(7, 9))).GetAwaiter().GetResult();
                 pagoPendiente = Task.Run(async () => await _bancosService.PagoPendienteUnico(proveedor, apunteBancario.ImporteMovimiento)).GetAwaiter().GetResult();
             }
             else if (EsTransferenciaInternacional(apunteBancario))
             {
                 proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto.Trim())).GetAwaiter().GetResult();
-                Regex regex = new Regex(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
+                Regex regex = new(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
                 Match match = regex.Match(apunteBancario.RegistrosConcepto[2].ConceptoCompleto);
                 string documentoProveedor;
                 if (match.Success)
@@ -64,7 +64,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                     Contacto = "0",
                     DocumentoProveedor = documentoProveedor,
                     Documento = documentoProveedor.Length > 10
-                                ? documentoProveedor.Substring(documentoProveedor.Length - 10)
+                                ? documentoProveedor[^10..]
                                 : documentoProveedor,
                     Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                     FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
@@ -79,7 +79,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             {
                 throw new Exception("No se encuentra el proveedor");
             }
-            
+
             if (pagoPendiente is null)
             {
                 throw new Exception("No hay pagos pendientes de ese proveedor por ese importe");
@@ -95,7 +95,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Concepto = $"N/Pago S/Fra.{pagoPendiente.DocumentoProveedor}";
             if (!string.IsNullOrWhiteSpace(pagoPendiente.Documento) && pagoPendiente.Documento != pagoPendiente.DocumentoProveedor)
             {
-                linea1.Concepto += $" - { pagoPendiente.Documento}";
+                linea1.Concepto += $" - {pagoPendiente.Documento}";
             }
             linea1.Documento = pagoPendiente.Documento;
             linea1.FacturaProveedor = pagoPendiente.DocumentoProveedor;
@@ -113,7 +113,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             linea1.Contrapartida = banco.CuentaContable;
             lineas.Add(linea1);
 
-            ReglaContabilizacionResponse response = new ReglaContabilizacionResponse
+            ReglaContabilizacionResponse response = new()
             {
                 Lineas = lineas
             };
@@ -129,7 +129,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 return false;
             }
             var apunteBancario = apuntesBancarios.First();
-            
+
             string proveedor;
             bool liquidacionObligatoria = true;
             if (EsPagoNacional(apunteBancario))
@@ -138,7 +138,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             else if (EsReciboDomiciliado(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(apunteBancario.RegistrosConcepto[1].Concepto.Substring(7,9))).GetAwaiter().GetResult();
+                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(apunteBancario.RegistrosConcepto[1].Concepto.Substring(7, 9))).GetAwaiter().GetResult();
             }
             else if (EsTransferenciaInternacional(apunteBancario))
             {
@@ -165,21 +165,21 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             else
             {
-                Regex regex = new Regex(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
+                Regex regex = new(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
                 Match match = regex.Match(apunteBancario.RegistrosConcepto[2].ConceptoCompleto);
                 if (!match.Success)
                 {
                     return false;
                 }
             }
-            
+
             return true;
         }
 
         private static bool EsPagoNacional(ApunteBancarioDTO apunteBancario)
         {
-            return apunteBancario.ConceptoComun == "99" &&
-                            apunteBancario.ConceptoPropio == "067" &&
+            return ((apunteBancario.ConceptoComun == "99" && apunteBancario.ConceptoPropio == "067") ||
+                    (apunteBancario.ConceptoComun == "04" && apunteBancario.ConceptoPropio == "002")) &&
                             apunteBancario.RegistrosConcepto != null &&
                             apunteBancario.RegistrosConcepto.Any() &&
                             apunteBancario.RegistrosConcepto[1] != null &&

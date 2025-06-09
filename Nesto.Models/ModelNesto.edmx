@@ -62,7 +62,7 @@
           <Property Name="Importe" Type="money" />
           <Property Name="CabPedidoVta" Type="int" />
           <Property Name="RutaContrato" Type="varchar" MaxLength="50" />
-          <Property Name="Comentarios" Type="text" />
+          <Property Name="Comentarios" Type="nvarchar(max)" />
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificación" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
         </EntityType>
@@ -108,8 +108,8 @@
           <Property Name="Primer Vencimiento" Type="datetime" />
           <Property Name="IVA" Type="char" MaxLength="3" />
           <Property Name="Vendedor" Type="char" MaxLength="3" />
-          <Property Name="Comentarios" Type="text" />
-          <Property Name="ComentarioPicking" Type="text" />
+          <Property Name="Comentarios" Type="nvarchar(max)" />
+          <Property Name="ComentarioPicking" Type="nvarchar(max)" />
           <Property Name="Periodo Facturacion" Type="char" MaxLength="3" />
           <Property Name="Ruta" Type="char" MaxLength="3" />
           <Property Name="Serie" Type="char" MaxLength="3" />
@@ -179,7 +179,7 @@
           <Property Name="Teléfono" Type="char" MaxLength="29" />
           <Property Name="Fax" Type="char" MaxLength="29" />
           <Property Name="Vendedor" Type="char" MaxLength="3" />
-          <Property Name="Comentarios" Type="text" />
+          <Property Name="Comentarios" Type="nvarchar(max)" />
           <Property Name="CodPostal" Type="char" MaxLength="15" />
           <Property Name="CIF/NIF" Type="char" MaxLength="9" />
           <Property Name="Provincia" Type="char" MaxLength="30" />
@@ -296,7 +296,7 @@
           <Property Name="ProveedorIRPF" Type="char" MaxLength="10" />
           <Property Name="ContactoProveedorIRPF" Type="char" MaxLength="3" />
           <Property Name="PorcentajeFacturadoNoEntregadoParaPedidoCmpAuto" Type="decimal" Precision="5" Scale="2" Nullable="false" />
-          <Property Name="TextoFactura" Type="text" />
+          <Property Name="TextoFactura" Type="nvarchar(max)" />
           <Property Name="StockAntiguo" Type="int" Nullable="false" />
           <Property Name="EstadoProductoRegalo" Type="int" />
           <Property Name="InformeAlbaran" Type="char" MaxLength="50" />
@@ -379,7 +379,7 @@
           <Property Name="NumeroEnvio" Type="int" Nullable="false" />
           <Property Name="Campo" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="ValorAnterior" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="Observaciones" Type="text" />
+          <Property Name="Observaciones" Type="nvarchar(max)" />
           <Property Name="Usuario" Type="varchar" MaxLength="50" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
         </EntityType>
@@ -681,7 +681,7 @@
           <Property Name="Número" Type="char" MaxLength="3" Nullable="false" />
           <Property Name="Nombre" Type="char" MaxLength="50" />
           <Property Name="Cargo" Type="smallint" Nullable="false" />
-          <Property Name="Comentarios" Type="text" />
+          <Property Name="Comentarios" Type="nvarchar(max)" />
           <Property Name="Teléfono" Type="char" MaxLength="29" />
           <Property Name="Fax" Type="char" MaxLength="29" />
           <Property Name="CorreoElectrónico" Type="char" MaxLength="50" />
@@ -702,7 +702,7 @@
           <Property Name="Importe" Type="money" Nullable="false" />
           <Property Name="Familia" Type="char" MaxLength="10" />
           <Property Name="Estado" Type="int" Nullable="false" />
-          <Property Name="Comentarios" Type="text" />
+          <Property Name="Comentarios" Type="nvarchar(max)" />
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="datetime" Nullable="false" StoreGeneratedPattern="Computed" />
         </EntityType>
@@ -768,8 +768,8 @@
           <Property Name="Empresa" Type="char" MaxLength="3" Nullable="false" />
           <Property Name="Número" Type="char" MaxLength="15" Nullable="false" />
           <Property Name="Nombre" Type="varchar" MaxLength="128" />
-          <Property Name="DescripciónBreve" Type="text" />
-          <Property Name="Descripción" Type="text" />
+          <Property Name="DescripciónBreve" Type="nvarchar(max)" />
+          <Property Name="Descripción" Type="nvarchar(max)" />
           <Property Name="PVP_IVA_Incluido" Type="money" />
           <Property Name="VistoBueno" Type="bit" />
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" StoreGeneratedPattern="Computed" />
@@ -787,7 +787,7 @@
           <Property Name="PVP" Type="money" />
           <Property Name="IVA Soportado" Type="char" MaxLength="3" />
           <Property Name="IVA Repercutido" Type="char" MaxLength="3" />
-          <Property Name="Comentarios" Type="text" />
+          <Property Name="Comentarios" Type="nvarchar(max)" />
           <Property Name="Estado" Type="smallint" />
           <Property Name="CodBarras" Type="char" MaxLength="13" />
           <Property Name="Aplicar Dto" Type="bit" Nullable="false" />
@@ -811,7 +811,7 @@
           <Property Name="ProductosPorCaja" Type="int" Nullable="false" />
           <Property Name="CantidadMinimaPedido" Type="int" Nullable="false" />
           <Property Name="Revisado" Type="bit" Nullable="false" />
-          <Property Name="ComentariosFactura" Type="text" />
+          <Property Name="ComentariosFactura" Type="nvarchar(max)" />
           <Property Name="NecesitaNumSerie" Type="bit" Nullable="false" />
           <Property Name="Usuario" Type="varchar" MaxLength="30" Nullable="false" />
           <Property Name="Fecha Modificación" Type="datetime" Nullable="false" />
@@ -862,7 +862,7 @@
           <Property Name="DatosBanco" Type="bit" Nullable="false" />
           <Property Name="GestiónAparatos" Type="bit" Nullable="false" />
           <Property Name="PrimeraVisita" Type="bit" Nullable="false" />
-          <Property Name="Comentarios" Type="text" />
+          <Property Name="Comentarios" Type="nvarchar(max)" />
           <Property Name="Estado" Type="smallint" Nullable="false" />
           <Property Name="NumOrdenExtracto" Type="int" />
           <Property Name="Cosmetica" Type="bit" Nullable="false" />
@@ -2684,7 +2684,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Type="Decimal" Name="PVP" Precision="19" Scale="4" />
           <Property Type="String" Name="IVA_Soportado" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="IVA_Repercutido" MaxLength="3" FixedLength="true" Unicode="false" />
-          <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Type="Int16" Name="Estado" />
           <Property Type="String" Name="CodBarras" MaxLength="13" FixedLength="true" Unicode="false" />
           <Property Type="Boolean" Name="Aplicar_Dto" Nullable="false" />
@@ -2708,7 +2708,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Type="Int32" Name="ProductosPorCaja" Nullable="false" />
           <Property Type="Int32" Name="CantidadMinimaPedido" Nullable="false" />
           <Property Type="Boolean" Name="Revisado" Nullable="false" />
-          <Property Type="String" Name="ComentariosFactura" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Type="String" Name="ComentariosFactura" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Type="Boolean" Name="NecesitaNumSerie" Nullable="false" />
           <Property Type="String" Name="Usuario" Nullable="false" MaxLength="30" FixedLength="false" Unicode="false" />
           <Property Type="DateTime" Name="Fecha_Modificación" Nullable="false" Precision="3" />
@@ -2761,7 +2761,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <NavigationProperty Name="Productos" Relationship="Nesto.Models.EF.FK_CabAlquileres_Productos" FromRole="CabAlquileres" ToRole="Productos" />
           <NavigationProperty Name="Inmovilizados" Relationship="Nesto.Models.EF.FK_CabAlquileres_Inmovilizados" FromRole="CabAlquileres" ToRole="Inmovilizados" />
           <NavigationProperty Name="CabPedidoVta1" Relationship="Nesto.Models.EF.FK_CabAlquileres_CabPedidoVta" FromRole="CabAlquileres" ToRole="CabPedidoVta" />
-          <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="true" />
           <NavigationProperty Name="Clientes" Relationship="Nesto.Models.EF.FK_CabAlquileres_Clientes" FromRole="CabAlquileres" ToRole="Clientes" />
         </EntityType>
         <Association Name="FK_CabAlquileres_Productos">
@@ -2786,8 +2786,8 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Type="String" Name="Empresa" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Número" Nullable="false" MaxLength="15" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Nombre" MaxLength="128" FixedLength="false" Unicode="false" />
-          <Property Type="String" Name="DescripciónBreve" MaxLength="Max" FixedLength="false" Unicode="false" />
-          <Property Type="String" Name="Descripción" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Type="String" Name="DescripciónBreve" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Type="String" Name="Descripción" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Type="Decimal" Name="PVP_IVA_Incluido" Precision="19" Scale="4" />
           <Property Type="String" Name="Usuario" Nullable="false" MaxLength="30" FixedLength="false" Unicode="false" annotation:StoreGeneratedPattern="Computed" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" />
           <Property Type="DateTime" Name="Fecha_Modificación" Nullable="false" annotation:StoreGeneratedPattern="Computed" Precision="3" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" />
@@ -2999,8 +2999,8 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Type="DateTime" Name="Primer_Vencimiento" Precision="3" />
           <Property Type="String" Name="IVA" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Vendedor" MaxLength="3" FixedLength="true" Unicode="false" />
-          <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="false" />
-          <Property Type="String" Name="ComentarioPicking" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Type="String" Name="ComentarioPicking" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Type="String" Name="Periodo_Facturacion" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Ruta" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Serie" MaxLength="3" FixedLength="true" Unicode="false" />
@@ -3275,7 +3275,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Type="String" Name="Teléfono" MaxLength="29" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Fax" MaxLength="29" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Vendedor" MaxLength="3" FixedLength="true" Unicode="false" />
-          <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Type="String" Name="CodPostal" MaxLength="15" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="CIF_NIF" MaxLength="9" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Provincia" MaxLength="30" FixedLength="true" Unicode="false" />
@@ -3546,7 +3546,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Type="String" Name="ProveedorIRPF" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="ContactoProveedorIRPF" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="Decimal" Name="PorcentajeFacturadoNoEntregadoParaPedidoCmpAuto" Nullable="false" Precision="5" Scale="2" />
-          <Property Type="String" Name="TextoFactura" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Type="String" Name="TextoFactura" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Type="Int32" Name="StockAntiguo" Nullable="false" />
           <Property Type="Int32" Name="EstadoProductoRegalo" />
           <Property Type="String" Name="InformeAlbaran" MaxLength="50" FixedLength="true" Unicode="false" />
@@ -3600,7 +3600,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <NavigationProperty Name="Rutas" Relationship="Nesto.Models.EF.FK_Rutas_Empresas" FromRole="Empresas" ToRole="Rutas" />
           <NavigationProperty Name="MultiUsuarios" Relationship="Nesto.Models.EF.FK_MultiUsuarios_Empresas" FromRole="Empresas" ToRole="MultiUsuarios" />
           <NavigationProperty Name="EtiquetasPicking" Relationship="Nesto.Models.EF.FK_EtiquetasPicking_Empresas" FromRole="Empresas" ToRole="EtiquetasPicking" />
-        </EntityType>
+          </EntityType>
         <Association Name="FK_CabFacturaVta_Empresas">
           <End Type="Nesto.Models.EF.Empresas" Role="Empresas" Multiplicity="1" />
           <End Type="Nesto.Models.EF.CabFacturaVta" Role="CabFacturaVta" Multiplicity="*" />
@@ -3936,7 +3936,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="Número" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="Nombre" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
           <Property Name="Cargo" Type="Int16" Nullable="false" />
-          <Property Name="Comentarios" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Comentarios" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Name="Teléfono" Type="String" MaxLength="29" FixedLength="true" Unicode="false" />
           <Property Name="Fax" Type="String" MaxLength="29" FixedLength="true" Unicode="false" />
           <Property Name="CorreoElectrónico" Type="String" MaxLength="50" FixedLength="true" Unicode="false" />
@@ -4013,7 +4013,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="DatosBanco" Type="Boolean" Nullable="false" />
           <Property Name="GestiónAparatos" Type="Boolean" Nullable="false" />
           <Property Name="PrimeraVisita" Type="Boolean" Nullable="false" />
-          <Property Name="Comentarios" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Comentarios" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Name="Estado" Type="Int16" Nullable="false" />
           <Property Name="NumOrdenExtracto" Type="Int32" />
           <Property Name="Cosmetica" Type="Boolean" Nullable="false" />
@@ -4157,7 +4157,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="Importe" Type="Decimal" Nullable="false" Precision="19" Scale="4" />
           <Property Name="Familia" Type="String" MaxLength="10" FixedLength="true" Unicode="false" />
           <Property Name="Estado" Type="Int32" Nullable="false" />
-          <Property Name="Comentarios" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Comentarios" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Name="Usuario" Type="String" Nullable="false" MaxLength="30" FixedLength="false" Unicode="false" annotation:StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="DateTime" Nullable="false" Precision="3" annotation:StoreGeneratedPattern="Computed" />
           <NavigationProperty Name="Empresas" Relationship="Nesto.Models.EF.FK_PlanesVentajas_Empresas" FromRole="PlanesVentajas" ToRole="Empresas" />
@@ -4670,7 +4670,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="NumeroEnvio" Type="Int32" Nullable="false" />
           <Property Name="Campo" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="ValorAnterior" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
-          <Property Name="Observaciones" Type="String" MaxLength="Max" FixedLength="false" Unicode="false" />
+          <Property Name="Observaciones" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Name="Usuario" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" annotation:StoreGeneratedPattern="Computed" />
           <Property Name="FechaModificacion" Type="DateTime" Nullable="false" Precision="3" annotation:StoreGeneratedPattern="Computed" />
           <NavigationProperty Name="EnviosAgencia" Relationship="Nesto.Models.EF.FK_EnviosHistoria_EnviosAgencia" FromRole="EnviosHistoria" ToRole="EnviosAgencia" />
@@ -5812,7 +5812,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
     <Options>
       <DesignerInfoPropertySet>
         <DesignerProperty Name="ValidateOnBuild" Value="true" />
-        <DesignerProperty Name="EnablePluralization" Value="False" />
+        <DesignerProperty Name="EnablePluralization" Value="True" />
         <DesignerProperty Name="IncludeForeignKeysInModel" Value="True" />
         <DesignerProperty Name="UseLegacyProvider" Value="True" />
         <DesignerProperty Name="CodeGenerationStrategy" Value="Ninguno" />

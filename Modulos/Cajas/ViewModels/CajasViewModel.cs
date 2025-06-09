@@ -632,6 +632,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 else
                 {
                     _dialogService.ShowNotification($"Creado asiento {asiento} correctamente");
+                    ConceptoAdicionalCobros = string.Empty;
                     await CargarDatosIniciales();
                     await CargarDeudasCliente();
                     TotalCobrado = 0;
@@ -721,8 +722,6 @@ namespace Nesto.Modulos.Cajas.ViewModels
             var formaVenta = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FormaVentaDefecto);
 
             decimal saldoEspejo = 0;
-            int asientoEspejo = int.MinValue;
-
             try
             {
                 EstaOcupado = true;
@@ -755,8 +754,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                             Usuario = _configuracion.usuario,
                             FechaModificacion = DateTime.Now
                         };
-                        asientoEspejo = await Servicio.Contabilizar(lineaEspejo);
-
+                        int asientoEspejo = await Servicio.Contabilizar(lineaEspejo);
                         if (asientoEspejo <= 0)
                         {
                             _dialogService.ShowError("No se ha podido contabilizar el asiento");

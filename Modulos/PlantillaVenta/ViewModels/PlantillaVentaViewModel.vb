@@ -21,7 +21,7 @@ Imports Xceed.Wpf.Toolkit
 
 Public Class PlantillaVentaViewModel
     Inherits BindableBase
-    Implements INavigationAware, IConfirmNavigationRequest
+    Implements INavigationAware, ITabCloseConfirmation
 
     Public Property configuracion As IConfiguracion
     Private ReadOnly container As IUnityContainer
@@ -1791,6 +1791,7 @@ Public Class PlantillaVentaViewModel
         End If
     End Sub
 
+
     Public Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
 
     End Sub
@@ -1803,21 +1804,19 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Public Sub ConfirmNavigationRequest(navigationContext As NavigationContext, continuationCallback As Action(Of Boolean)) Implements IConfirmNavigationRequest.ConfirmNavigationRequest
+    Public Function ConfirmTabClose() As Boolean Implements ITabCloseConfirmation.ConfirmTabClose
         Dim hayAlgunProducto = listaProductosPedido.Any(Function(p) p.cantidad <> 0 OrElse p.cantidadOferta <> 0)
-        Dim continuar As Boolean = True
+
         If hayAlgunProducto Then
-            dialogService.ShowConfirmation("Hay productos en la plantilla", "¿Seguro que desea salir?", Sub(r)
-                                                                                                            continuar = r.Result = ButtonResult.OK
-                                                                                                        End Sub)
-            If Not continuar Then
-                continuationCallback(False)
-                Return
-            End If
+            Dim result = MessageBox.Show("Hay productos en la plantilla. ¿Seguro que desea salir?",
+                                       "Confirmar cierre",
+                                       MessageBoxButton.YesNo,
+                                       MessageBoxImage.Question)
+            Return result = MessageBoxResult.Yes
         End If
 
-        continuationCallback(True)
-    End Sub
+        Return True ' Cerrar sin confirmación si no hay productos
+    End Function
 
 #End Region
     Public Class RespuestaAgencia
