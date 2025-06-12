@@ -1,14 +1,14 @@
 ﻿Imports System.Collections.ObjectModel
-Imports System.Windows
-Imports System.Net
 Imports System.IO
-Imports System.Text.RegularExpressions
-Imports Nesto.Models.Nesto.Models
-Imports ControlesUsuario.Dialogs
+Imports System.Net
 Imports System.Text
+Imports System.Text.RegularExpressions
+Imports System.Windows
+Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Shared
-Imports Nesto.Models
 Imports Nesto.Infrastructure.Shared.FuncionesAuxiliares
+Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
 
 Public Class AgenciaASM
     Implements IAgencia
@@ -18,7 +18,7 @@ Public Class AgenciaASM
     Private Const PREFIJOCODIGOBARRAS_BUSINESSPARCEL As String = "6119714"
 
 
-    Private agenciaVM As AgenciasViewModel
+    Private ReadOnly agenciaVM As AgenciasViewModel
 
     Public Sub New(agencia As AgenciasViewModel)
         If Not IsNothing(agencia) Then
@@ -64,11 +64,7 @@ Public Class AgenciaASM
             agenciaVM._dialogService.ShowError("No hay ningún envío seleccionado, no se puede cargar el estado")
             Return Nothing
         End If
-        If envio.Servicio = 96 Then ' BusinessParcel
-            Identificador = IDENTIFICADOR_BUSINESSPARCEL
-        Else
-            Identificador = envio.AgenciasTransporte.Identificador
-        End If
+        Identificador = If(envio.Servicio = 96, IDENTIFICADOR_BUSINESSPARCEL, envio.AgenciasTransporte.Identificador)
         Dim myUri As New Uri("https://www.asmred.com/WebSrvs/MiraEnvios.asmx/GetExpCli?codigo=" + envio.CodigoBarras + "&uid=" + Identificador)
         If myUri.Scheme = Uri.UriSchemeHttp Then
             'Dim myRequest As HttpWebRequest = HttpWebRequest.Create(myUri)
@@ -105,18 +101,20 @@ Public Class AgenciaASM
 
             trackinglistxml = nodo.Descendants("tracking_list").FirstOrDefault
             For Each track In trackinglistxml.Descendants("tracking")
-                tracking = New tracking
-                tracking.estadoTracking = track.Descendants("evento").FirstOrDefault.Value
-                tracking.fechaTracking = track.Descendants("fecha").FirstOrDefault.Value
+                tracking = New tracking With {
+                    .estadoTracking = track.Descendants("evento").FirstOrDefault.Value,
+                    .fechaTracking = track.Descendants("fecha").FirstOrDefault.Value
+                }
                 expedicion.listaTracking.Add(tracking)
                 tracking = Nothing
             Next
 
             digitalizacionesxml = nodo.Descendants("digitalizaciones").FirstOrDefault
             For Each dig In digitalizacionesxml.Descendants("digitalizacion")
-                digitalizacion = New digitalizacion
-                digitalizacion.tipo = dig.Descendants("tipo").FirstOrDefault.Value
-                digitalizacion.urlDigitalizacion = New Uri(dig.Descendants("imagen").FirstOrDefault.Value)
+                digitalizacion = New digitalizacion With {
+                    .tipo = dig.Descendants("tipo").FirstOrDefault.Value,
+                    .urlDigitalizacion = New Uri(dig.Descendants("imagen").FirstOrDefault.Value)
+                }
                 estado.listaDigitalizaciones.Add(digitalizacion)
                 digitalizacion = Nothing
             Next
@@ -159,11 +157,9 @@ Public Class AgenciaASM
         End Select
     End Function
     Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
-        If agenciaVM.envioActual.Servicio = 96 Then ' BusinessParcel
-            PrefijoCodigoBarras = PREFIJOCODIGOBARRAS_BUSINESSPARCEL
-        Else
-            PrefijoCodigoBarras = agenciaVM.agenciaSeleccionada.PrefijoCodigoBarras.ToString
-        End If
+        PrefijoCodigoBarras = If(agenciaVM.envioActual.Servicio = 96,
+            PREFIJOCODIGOBARRAS_BUSINESSPARCEL,
+            agenciaVM.agenciaSeleccionada.PrefijoCodigoBarras.ToString)
         Return PrefijoCodigoBarras + agenciaVM.envioActual.Numero.ToString("D7")
     End Function
     Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
@@ -174,8 +170,8 @@ Public Class AgenciaASM
               "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" &
               "<soap:Body>" &
                     "<GetPlazaXCP xmlns=""http://www.asmred.com/"">" &
-                        "<codPais>" + agenciaVM.paisActual.Id.ToString + "</codPais>" &
-                        "<cp>" + codPostal + "</cp>" &
+                        ("<codPais>" + agenciaVM.paisActual.Id.ToString + "</codPais>") &
+                        ("<cp>" + codPostal + "</cp>") &
                     "</GetPlazaXCP>" &
                 "</soap:Body>" &
              "</soap:Envelope>"
@@ -187,7 +183,7 @@ Public Class AgenciaASM
         req.Method = "POST"
 
         Using stm As Stream = req.GetRequestStream()
-            Using stmw As StreamWriter = New StreamWriter(stm)
+            Using stmw As New StreamWriter(stm)
                 stmw.Write(soap)
             End Using
         End Using
@@ -226,11 +222,7 @@ Public Class AgenciaASM
             Return xml
         End If
 
-        If envio.Servicio = 96 Then ' BusinessParcel
-            Identificador = IDENTIFICADOR_BUSINESSPARCEL
-        Else
-            Identificador = envio.AgenciasTransporte.Identificador
-        End If
+        Identificador = If(envio.Servicio = 96, IDENTIFICADOR_BUSINESSPARCEL, envio.AgenciasTransporte.Identificador)
 
         'Añadimos el nodo raíz (Servicios)
         xml.AddFirst(
@@ -315,14 +307,14 @@ Public Class AgenciaASM
 
         Dim respuesta As New RespuestaAgencia With {
             .Agencia = "ASM",
-            .Fecha = DateTime.Now,
+            .Fecha = Date.Now,
             .CuerpoLlamada = soap,
             .UrlLlamada = req.Address.ToString
         }
 
         Try
             Using stm As Stream = Await req.GetRequestStreamAsync()
-                Using stmw As StreamWriter = New StreamWriter(stm)
+                Using stmw As New StreamWriter(stm)
                     stmw.Write(soap)
                 End Using
             End Using
@@ -407,51 +399,51 @@ Public Class AgenciaASM
                 'builder.AppendLine("A590,305,0,5,2,2,N,""" + envio.Nemonico + """")
                 'builder.AppendLine("P1")
                 'builder.AppendLine("")                
-                builder.AppendLine("^XA")
-                builder.AppendLine("^CI27")  ' Configura la impresora para aceptar caracteres especiales en UTF-8
-                builder.AppendLine("^BY3")
-                builder.AppendLine("^LL900")
-                builder.AppendLine("^FO10,50^AUN,50,50^FDGLS^FS")
-                builder.AppendLine("^FO200,50^AUN,50,50^FD" & inicioCodBarras & "^FS") ' 14 primeros dígitos del código de barras
-                builder.AppendLine("^FO200,130^GB775,0,2,B,3^FS")
-                builder.AppendLine("^FO170,125^AQB,1,1^FDDESTINATARIO^FS")
-                builder.AppendLine("^FO200,130^ARN,1,1^FD" & envio.Nombre & "^FS")
-                builder.AppendLine("^FO200,160^ARN,1,1^FD" & envio.Direccion & "^FS")
-                builder.AppendLine("^FO200,190^ARN,1,1^FD" & envio.CodPostal & ". " & envio.Poblacion & "^FS")
-                builder.AppendLine("^FO200,220^ARN,1,1^FD" & envio.Provincia & "^FS")
-                builder.AppendLine("^FO600,220^ARN,1,1^FD" & envio.Telefono & "^FS")
-                builder.AppendLine("^FO10,160^ARN,1,1^FD" & envio.Fecha.ToString("dd/MM/yyyy") & "^FS")
-                builder.AppendLine("^FO90,230^AUN,50,50^FD" & codigoTSP & "^FS")  ' Centramos el TSP entre la fecha y el código de barras, ajustando la posición horizontal
-                builder.AppendLine("^FO300,260^GB775,0,2,B,3^FS")
-                builder.AppendLine("^FO270,265^AQB,1,1^FDREMITENTE^FS")
-                builder.AppendLine("^FO300,270^APN,1,1^FD" & nombreRemitente & "^FS")
-                builder.AppendLine("^FO300,290^APN,1,1^FD" & direccionRemitente & "^FS")
-                builder.AppendLine("^FO300,310^APN,1,1^FD" & codPostalRemitente & ". " & poblacionRemitente & "^FS")
-                builder.AppendLine("^FO300,330^APN,1,1^FD" & provinciaRemitente & "^FS")
-                builder.AppendLine("^FO600,350^APN,1,1^FD(" & codigoRemitente & ")^FS")
-                builder.AppendLine("^FO300,380^GB775,0,2,B,3^FS")
-                builder.AppendLine("^FO270,390^AQB,1,1^FDOBSERV^FS")
-                builder.AppendLine("^FO300,390^APN,1,1^FD" & envio.Observaciones & "^FS")
-                builder.AppendLine("^FO300,410^APN,1,1^FD-----^FS")
-                builder.AppendLine("^FO300,430^APN,1,1^FD-----^FS")
-                builder.AppendLine("^FO300,450^APN,1,1^FD-----^FS")
-                builder.AppendLine("^FO300,470^GB775,0,2,B,3^FS")
-                builder.AppendLine("^FO300,475^ATN,10,10^FDCOURIER^FS")
-                builder.AppendLine("^FO300,510^ATN,10,10^FD" & ListaServicios.Single(Function(x) x.ServicioId = envio.Servicio).NombreServicio & " (" & envio.Horario.ToString & ")^FS")
-                builder.AppendLine("^FO300,530^AVN,200,200^FD" & envio.Nemonico & "^FS")
-                builder.AppendLine("^FO300,720^AUN,50,50^FD" & envio.NombrePlaza & "^FS")
-                builder.AppendLine("^FO300,770^AUN,50,50^FD" & envio.CodPostal & "^FS")
-                builder.AppendLine("^FO600,770^AUN,50,50^FD" & i.ToString & "/" & envio.Bultos.ToString() & "^FS")
-                builder.AppendLine("^FO300,820^GB775,0,2,B,3^FS")
-                builder.AppendLine("^FO10,300^B2B,200,Y,N,Y^FD" & envio.CodigoBarras & i.ToString("D3") & "^FS")
-                builder.AppendLine("^FO10,860^ADN,1,1^FDAlb.Cli.^FS")
-                builder.AppendLine("^FO110,850^ASN,1,1^FD" & envio.Cliente.Trim & envio.Pedido.ToString & "^FS")
-                builder.AppendLine("^FO10,900^ADN,1,1^FDRef.Cli.^FS")
-                builder.AppendLine("^FO110,890^ASN,1,1^FD" & envio.Cliente.Trim & "/" & envio.Pedido.ToString & "^FS")
-                builder.AppendLine("^XZ")
+                Dim unused42 = builder.AppendLine("^XA")
+                Dim unused41 = builder.AppendLine("^CI27")  ' Configura la impresora para aceptar caracteres especiales en UTF-8
+                Dim unused40 = builder.AppendLine("^BY3")
+                Dim unused39 = builder.AppendLine("^LL900")
+                Dim unused38 = builder.AppendLine("^FO10,50^AUN,50,50^FDGLS^FS")
+                Dim unused37 = builder.AppendLine("^FO200,50^AUN,50,50^FD" & inicioCodBarras & "^FS") ' 14 primeros dígitos del código de barras
+                Dim unused36 = builder.AppendLine("^FO200,130^GB775,0,2,B,3^FS")
+                Dim unused35 = builder.AppendLine("^FO170,125^AQB,1,1^FDDESTINATARIO^FS")
+                Dim unused34 = builder.AppendLine("^FO200,130^ARN,1,1^FD" & envio.Nombre & "^FS")
+                Dim unused33 = builder.AppendLine("^FO200,160^ARN,1,1^FD" & envio.Direccion & "^FS")
+                Dim unused32 = builder.AppendLine("^FO200,190^ARN,1,1^FD" & envio.CodPostal & ". " & envio.Poblacion & "^FS")
+                Dim unused31 = builder.AppendLine("^FO200,220^ARN,1,1^FD" & envio.Provincia & "^FS")
+                Dim unused30 = builder.AppendLine("^FO600,220^ARN,1,1^FD" & envio.Telefono & "^FS")
+                Dim unused29 = builder.AppendLine("^FO10,160^ARN,1,1^FD" & envio.Fecha.ToString("dd/MM/yyyy") & "^FS")
+                Dim unused28 = builder.AppendLine("^FO90,230^AUN,50,50^FD" & codigoTSP & "^FS")  ' Centramos el TSP entre la fecha y el código de barras, ajustando la posición horizontal
+                Dim unused27 = builder.AppendLine("^FO300,260^GB775,0,2,B,3^FS")
+                Dim unused26 = builder.AppendLine("^FO270,265^AQB,1,1^FDREMITENTE^FS")
+                Dim unused25 = builder.AppendLine("^FO300,270^APN,1,1^FD" & nombreRemitente & "^FS")
+                Dim unused24 = builder.AppendLine("^FO300,290^APN,1,1^FD" & direccionRemitente & "^FS")
+                Dim unused23 = builder.AppendLine("^FO300,310^APN,1,1^FD" & codPostalRemitente & ". " & poblacionRemitente & "^FS")
+                Dim unused22 = builder.AppendLine("^FO300,330^APN,1,1^FD" & provinciaRemitente & "^FS")
+                Dim unused21 = builder.AppendLine("^FO600,350^APN,1,1^FD(" & codigoRemitente & ")^FS")
+                Dim unused20 = builder.AppendLine("^FO300,380^GB775,0,2,B,3^FS")
+                Dim unused19 = builder.AppendLine("^FO270,390^AQB,1,1^FDOBSERV^FS")
+                Dim unused18 = builder.AppendLine("^FO300,390^APN,1,1^FD" & envio.Observaciones & "^FS")
+                Dim unused17 = builder.AppendLine("^FO300,410^APN,1,1^FD-----^FS")
+                Dim unused16 = builder.AppendLine("^FO300,430^APN,1,1^FD-----^FS")
+                Dim unused15 = builder.AppendLine("^FO300,450^APN,1,1^FD-----^FS")
+                Dim unused14 = builder.AppendLine("^FO300,470^GB775,0,2,B,3^FS")
+                Dim unused13 = builder.AppendLine("^FO300,475^ATN,10,10^FDCOURIER^FS")
+                Dim unused12 = builder.AppendLine("^FO300,510^ATN,10,10^FD" & ListaServicios.Single(Function(x) x.ServicioId = envio.Servicio).NombreServicio & " (" & envio.Horario.ToString & ")^FS")
+                Dim unused11 = builder.AppendLine("^FO300,530^AVN,200,200^FD" & envio.Nemonico & "^FS")
+                Dim unused10 = builder.AppendLine("^FO300,720^AUN,50,50^FD" & envio.NombrePlaza & "^FS")
+                Dim unused9 = builder.AppendLine("^FO300,770^AUN,50,50^FD" & envio.CodPostal & "^FS")
+                Dim unused8 = builder.AppendLine("^FO600,770^AUN,50,50^FD" & i.ToString & "/" & envio.Bultos.ToString() & "^FS")
+                Dim unused7 = builder.AppendLine("^FO300,820^GB775,0,2,B,3^FS")
+                Dim unused6 = builder.AppendLine("^FO10,300^B2B,200,Y,N,Y^FD" & envio.CodigoBarras & i.ToString("D3") & "^FS")
+                Dim unused5 = builder.AppendLine("^FO10,860^ADN,1,1^FDAlb.Cli.^FS")
+                Dim unused4 = builder.AppendLine("^FO110,850^ASN,1,1^FD" & envio.Cliente.Trim & envio.Pedido.ToString & "^FS")
+                Dim unused3 = builder.AppendLine("^FO10,900^ADN,1,1^FDRef.Cli.^FS")
+                Dim unused2 = builder.AppendLine("^FO110,890^ASN,1,1^FD" & envio.Cliente.Trim & "/" & envio.Pedido.ToString & "^FS")
+                Dim unused1 = builder.AppendLine("^XZ")
             Next
 
-            RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
+            Dim unused = RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
         Catch ex As Exception
             agenciaVM._dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.ToString)
         End Try
@@ -602,7 +594,7 @@ Public Class AgenciaASM
     End Function
 
     Private Function IAgencia_EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
-        Return "http://m.gls-spain.es/e/" + envio.CodigoBarras + "/" + envio.CodPostal
+        Return "https://mygls.gls-spain.es/e/" + envio.CodigoBarras + "/" + envio.CodPostal
     End Function
 
     Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada
@@ -630,27 +622,9 @@ Public Class AgenciaASM
         End Get
     End Property
 
-
-
-    Private _XMLdeSalida As XDocument
     Public Property XMLdeSalida As XDocument
-        Get
-            Return _XMLdeSalida
-        End Get
-        Set(value As XDocument)
-            _XMLdeSalida = value
-        End Set
-    End Property
 
-    Private _XMLdeEntrada As XDocument
     Public Property XMLdeEntrada As XDocument
-        Get
-            Return _XMLdeEntrada
-        End Get
-        Set(value As XDocument)
-            _XMLdeEntrada = value
-        End Set
-    End Property
 
     Public ReadOnly Property ServicioAuxiliar As Byte Implements IAgencia.ServicioAuxiliar
         Get
