@@ -1,19 +1,15 @@
 ﻿Imports System.Collections.ObjectModel
-Imports Prism.Commands
-Imports Prism.Regions
-Imports Unity
-Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
-Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Infrastructure.[Shared]
-Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
-Imports Prism.Events
+Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.[Shared]
+Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Prism
-Imports Microsoft.Extensions.Logging
-Imports Newtonsoft.Json.Linq
-Imports Microsoft.Reporting.Map.WebForms.BingMaps
-Imports System.ComponentModel
+Imports Prism.Commands
+Imports Prism.Events
+Imports Prism.Regions
+Imports Prism.Services.Dialogs
+Imports Unity
 
 Public Class ListaRapportsViewModel
     Inherits ViewModelBase
@@ -26,18 +22,8 @@ Public Class ListaRapportsViewModel
     Private ReadOnly _dialogService As IDialogService
     Private ReadOnly _eventAggregator As IEventAggregator
     Private _subscriptionToken As SubscriptionToken
-    Private _empresaPorDefecto As String = Constantes.Empresas.EMPRESA_DEFECTO
-
-
-    Private _vendedor As String
+    Private ReadOnly _empresaPorDefecto As String = Constantes.Empresas.EMPRESA_DEFECTO
     Public Property vendedor As String
-        Get
-            Return _vendedor
-        End Get
-        Set(value As String)
-            _vendedor = value
-        End Set
-    End Property
 
 
 
@@ -50,6 +36,8 @@ Public Class ListaRapportsViewModel
         _eventAggregator = eventAggregator
 
         cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
+        CambiarModoComparativaCommand = New DelegateCommand(Of String)(Sub(valor) ModoComparativa = valor)
+        CambiarAgruparPorCommand = New DelegateCommand(Of String)(Sub(valor) AgruparPor = valor)
         cmdCargarListaRapports = New DelegateCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
         cmdCargarListaRapportsFiltrada = New DelegateCommand(AddressOf OnCargarListaRapportsFiltrada, AddressOf CanCargarListaRapportsFiltrada)
         cmdCrearRapport = New DelegateCommand(Of ClienteProbabilidadVenta)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
@@ -63,13 +51,29 @@ Public Class ListaRapportsViewModel
 
 
 #Region "Propiedades"
+    ' Agrupar por: "grupo", "familia" o "subgrupo"
+    Private _agruparPor As String = "grupo"
+    Public Property AgruparPor As String
+        Get
+            Return _agruparPor
+        End Get
+        Set(value As String)
+            If SetProperty(_agruparPor, value) Then
+                OnCargarResumenVentas()
+                RaisePropertyChanged(NameOf(IsAgruparPorGrupo))
+                RaisePropertyChanged(NameOf(IsAgruparPorFamilia))
+                RaisePropertyChanged(NameOf(IsAgruparPorSubgrupo))
+            End If
+        End Set
+    End Property
+
     Private _clienteSeleccionado As String
     Public Property clienteSeleccionado As String
         Get
             Return _clienteSeleccionado
         End Get
         Set(value As String)
-            SetProperty(_clienteSeleccionado, value)
+            Dim unused = SetProperty(_clienteSeleccionado, value)
             cmdCargarListaRapports.RaiseCanExecuteChanged()
             If _clienteSeleccionado = String.Empty Then
                 cmdCargarListaRapports.Execute(Nothing) ' Por fecha
@@ -83,7 +87,7 @@ Public Class ListaRapportsViewModel
             Return _clienteProbabilidadSeleccionado
         End Get
         Set(value As ClienteProbabilidadVenta)
-            SetProperty(_clienteProbabilidadSeleccionado, value)
+            Dim unused = SetProperty(_clienteProbabilidadSeleccionado, value)
             If Not IsNothing(value) Then
                 cmdCrearRapport.Execute(value)
             End If
@@ -96,7 +100,7 @@ Public Class ListaRapportsViewModel
             Return _contactoSeleccionado
         End Get
         Set(value As String)
-            SetProperty(_contactoSeleccionado, value)
+            Dim unused = SetProperty(_contactoSeleccionado, value)
         End Set
     End Property
 
@@ -106,7 +110,7 @@ Public Class ListaRapportsViewModel
             Return _estaGenerandoResumen
         End Get
         Set(value As Boolean)
-            SetProperty(_estaGenerandoResumen, value)
+            Dim unused = SetProperty(_estaGenerandoResumen, value)
         End Set
     End Property
 
@@ -116,7 +120,7 @@ Public Class ListaRapportsViewModel
             Return _estaOcupado
         End Get
         Set(value As Boolean)
-            SetProperty(_estaOcupado, value)
+            Dim unused = SetProperty(_estaOcupado, value)
         End Set
     End Property
 
@@ -126,17 +130,17 @@ Public Class ListaRapportsViewModel
             Return _esUsuarioElVendedor
         End Get
         Set(value As Boolean)
-            SetProperty(_esUsuarioElVendedor, value)
+            Dim unused = SetProperty(_esUsuarioElVendedor, value)
         End Set
     End Property
 
-    Private _fechaSeleccionada As Date = DateTime.Today
+    Private _fechaSeleccionada As Date = Date.Today
     Public Property fechaSeleccionada As Date
         Get
             Return _fechaSeleccionada
         End Get
         Set(value As Date)
-            SetProperty(_fechaSeleccionada, value)
+            Dim unused = SetProperty(_fechaSeleccionada, value)
         End Set
     End Property
 
@@ -146,8 +150,21 @@ Public Class ListaRapportsViewModel
             Return _filtro
         End Get
         Set(value As String)
-            SetProperty(_filtro, value)
+            Dim unused = SetProperty(_filtro, value)
             cmdCargarListaRapportsFiltrada.Execute()
+        End Set
+    End Property
+
+
+    Private _grupoSubgrupoSeleccionado As String
+    Public Property GrupoSubgrupoSeleccionado As String
+        Get
+            Return _grupoSubgrupoSeleccionado
+        End Get
+        Set(value As String)
+            If SetProperty(_grupoSubgrupoSeleccionado, value) Then
+                ActualizarClientesProbabilidad(value)
+            End If
         End Set
     End Property
 
@@ -170,6 +187,93 @@ Public Class ListaRapportsViewModel
             End If
         End Set
     End Property
+    Public Property IsAgruparPorFamilia As Boolean
+        Get
+            Return AgruparPor = "familia"
+        End Get
+        Set(value As Boolean)
+            If value Then
+                If AgruparPor <> "familia" Then
+                    AgruparPor = "familia"
+                    RaisePropertyChanged(NameOf(IsAgruparPorFamilia))
+                    RaisePropertyChanged(NameOf(IsAgruparPorGrupo))
+                    RaisePropertyChanged(NameOf(IsAgruparPorSubgrupo))
+                    RaisePropertyChanged(NameOf(AgruparPor))
+                End If
+            End If
+        End Set
+    End Property
+
+    Public Property IsAgruparPorGrupo As Boolean
+        Get
+            Return AgruparPor = "grupo"
+        End Get
+        Set(value As Boolean)
+            If value Then
+                If AgruparPor <> "grupo" Then
+                    AgruparPor = "grupo"
+                    RaisePropertyChanged(NameOf(IsAgruparPorFamilia))
+                    RaisePropertyChanged(NameOf(IsAgruparPorGrupo))
+                    RaisePropertyChanged(NameOf(IsAgruparPorSubgrupo))
+                    RaisePropertyChanged(NameOf(AgruparPor))
+                End If
+            End If
+        End Set
+    End Property
+
+    Public Property IsAgruparPorSubgrupo As Boolean
+        Get
+            Return AgruparPor = "subgrupo"
+        End Get
+        Set(value As Boolean)
+            If value Then
+                If AgruparPor <> "subgrupo" Then
+                    AgruparPor = "subgrupo"
+                    RaisePropertyChanged(NameOf(IsAgruparPorFamilia))
+                    RaisePropertyChanged(NameOf(IsAgruparPorGrupo))
+                    RaisePropertyChanged(NameOf(IsAgruparPorSubgrupo))
+                    RaisePropertyChanged(NameOf(AgruparPor))
+                End If
+            End If
+        End Set
+    End Property
+    Public Property IsComparativaAnual As Boolean
+        Get
+            Return ModoComparativa = "anual"
+        End Get
+        Set(value As Boolean)
+            If value Then
+                If ModoComparativa <> "anual" Then
+                    ModoComparativa = "anual"
+                    RaisePropertyChanged(NameOf(IsComparativaAnual))
+                    ' También deberías notificar el cambio de ModoComparativa si lo usas en UI
+                    RaisePropertyChanged(NameOf(ModoComparativa))
+                End If
+            Else
+                If ModoComparativa = "anual" Then
+                    ' Cambia a otro valor si el toggle se desmarca, por ejemplo "ultimos12meses"
+                    ModoComparativa = "ultimos12meses"
+                    RaisePropertyChanged(NameOf(IsComparativaAnual))
+                    RaisePropertyChanged(NameOf(ModoComparativa))
+                End If
+            End If
+        End Set
+    End Property
+    Public Property IsComparativaUltimos12Meses As Boolean
+        Get
+            Return ModoComparativa = "ultimos12meses"
+        End Get
+        Set(value As Boolean)
+            If value Then
+                If ModoComparativa <> "ultimos12meses" Then
+                    ModoComparativa = "ultimos12meses"
+                    RaisePropertyChanged(NameOf(IsComparativaUltimos12Meses))
+                    RaisePropertyChanged(NameOf(IsComparativaAnual))
+                    RaisePropertyChanged(NameOf(ModoComparativa))
+                End If
+            End If
+        End Set
+    End Property
 
     Private _isLoadingClientesProbabilidad As Boolean
     Public Property IsLoadingClientesProbabilidad As Boolean
@@ -177,7 +281,7 @@ Public Class ListaRapportsViewModel
             Return _isLoadingClientesProbabilidad
         End Get
         Set(value As Boolean)
-            SetProperty(_isLoadingClientesProbabilidad, value)
+            Dim unused = SetProperty(_isLoadingClientesProbabilidad, value)
         End Set
     End Property
 
@@ -187,7 +291,7 @@ Public Class ListaRapportsViewModel
             Return _listaClientesProbabilidad
         End Get
         Set(value As ObservableCollection(Of ClienteProbabilidadVenta))
-            SetProperty(_listaClientesProbabilidad, value)
+            Dim unused = SetProperty(_listaClientesProbabilidad, value)
         End Set
     End Property
 
@@ -197,7 +301,7 @@ Public Class ListaRapportsViewModel
             Return _listaEstadosRapport
         End Get
         Set(value As List(Of idShortDescripcion))
-            SetProperty(_listaEstadosRapport, value)
+            Dim unused = SetProperty(_listaEstadosRapport, value)
         End Set
     End Property
 
@@ -207,7 +311,7 @@ Public Class ListaRapportsViewModel
             Return _listaRapports
         End Get
         Set(value As ObservableCollection(Of SeguimientoClienteDTO))
-            SetProperty(_listaRapports, value)
+            Dim unused = SetProperty(_listaRapports, value)
         End Set
     End Property
 
@@ -217,10 +321,26 @@ Public Class ListaRapportsViewModel
             Return _listaTiposRapports
         End Get
         Set(value As List(Of idDescripcion))
-            SetProperty(_listaTiposRapports, value)
+            Dim unused = SetProperty(_listaTiposRapports, value)
         End Set
     End Property
-    Private ReadOnly _syncLock As New Object()
+
+
+    ' Modo de comparativa: "anual" o "ultimos12meses"
+    Private _modoComparativa As String = "anual"
+    Public Property ModoComparativa As String
+        Get
+            Return _modoComparativa
+        End Get
+        Set(value As String)
+            If SetProperty(_modoComparativa, value) Then
+                OnCargarResumenVentas()
+                RaisePropertyChanged(NameOf(IsComparativaAnual))
+                RaisePropertyChanged(NameOf(IsComparativaUltimos12Meses))
+            End If
+        End Set
+    End Property
+
     Private _rapportSeleccionado As SeguimientoClienteDTO
     Public Property rapportSeleccionado As SeguimientoClienteDTO
         Get
@@ -229,10 +349,11 @@ Public Class ListaRapportsViewModel
         Set(value As SeguimientoClienteDTO)
             Try
                 SyncLock _syncLock
-                    SetProperty(_rapportSeleccionado, value)
+                    Dim unused = SetProperty(_rapportSeleccionado, value)
                     Application.Current.Dispatcher.Invoke(Sub()
-                                                              Dim parameters As NavigationParameters = New NavigationParameters()
-                                                              parameters.Add("rapportParameter", rapportSeleccionado)
+                                                              Dim parameters As New NavigationParameters From {
+                                                                  {"rapportParameter", rapportSeleccionado}
+                                                              }
                                                               regionManager.RequestNavigate("RapportDetailRegion", "RapportView", parameters)
                                                           End Sub)
                 End SyncLock
@@ -248,21 +369,29 @@ Public Class ListaRapportsViewModel
             Return _resumenListaRapports
         End Get
         Set(value As String)
-            SetProperty(_resumenListaRapports, value)
+            Dim unused = SetProperty(_resumenListaRapports, value)
         End Set
     End Property
 
-    Private _grupoSubgrupoSeleccionado As String
-    Public Property GrupoSubgrupoSeleccionado As String
+    Private _resumenVentasCliente As ResumenVentasClienteResponse
+    Public Property ResumenVentasCliente As ResumenVentasClienteResponse
         Get
-            Return _grupoSubgrupoSeleccionado
+            Return _resumenVentasCliente
         End Get
-        Set(value As String)
-            If SetProperty(_grupoSubgrupoSeleccionado, value) Then
-                ActualizarClientesProbabilidad(value)
-            End If
+        Set(value As ResumenVentasClienteResponse)
+            Dim unused = SetProperty(_resumenVentasCliente, value)
         End Set
     End Property
+
+    Public ReadOnly Property SubtituloResumenVentas As String
+        Get
+            Return If(ResumenVentasCliente IsNot Nothing,
+                $"Comparado con las ventas del {ResumenVentasCliente.FechaDesdeAnterior:dd/MM/yy} al {ResumenVentasCliente.FechaHastaAnterior:dd/MM/yy}",
+                String.Empty)
+        End Get
+    End Property
+
+    Private ReadOnly _syncLock As New Object()
 
     Private _tipoRapportSeleccionado As idDescripcion
     Public Property TipoRapportSeleccionado As idDescripcion
@@ -270,11 +399,19 @@ Public Class ListaRapportsViewModel
             Return _tipoRapportSeleccionado
         End Get
         Set(ByVal value As idDescripcion)
-            If (SetProperty(_tipoRapportSeleccionado, value)) Then
+            If SetProperty(_tipoRapportSeleccionado, value) Then
                 ActualizarClientesProbabilidad(GrupoSubgrupoSeleccionado)
-                configuracion.GuardarParametro(_empresaPorDefecto, Parametros.Claves.UltTipoSeguimientoCliente, _tipoRapportSeleccionado.id)
+                Dim unused = configuracion.GuardarParametro(_empresaPorDefecto, Parametros.Claves.UltTipoSeguimientoCliente, _tipoRapportSeleccionado.id)
             End If
         End Set
+    End Property
+
+    Public ReadOnly Property TituloResumenVentas As String
+        Get
+            Return If(ResumenVentasCliente IsNot Nothing,
+                $"Resumen de ventas del cliente del {ResumenVentasCliente.FechaDesdeActual:dd/MM/yy} al {ResumenVentasCliente.FechaHastaActual:dd/MM/yy}",
+                "Resumen de ventas del cliente")
+        End Get
     End Property
 
 #End Region
@@ -286,7 +423,7 @@ Public Class ListaRapportsViewModel
             Return _cmdAbrirModulo
         End Get
         Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdAbrirModulo, value)
+            Dim unused = SetProperty(_cmdAbrirModulo, value)
         End Set
     End Property
     Private Function CanAbrirModulo(arg As Object) As Boolean
@@ -296,13 +433,21 @@ Public Class ListaRapportsViewModel
         regionManager.RequestNavigate("MainRegion", "ListaRapportsView")
     End Sub
 
+
+    Public Property CambiarModoComparativaCommand As DelegateCommand(Of String)
+    Public Property CambiarAgruparPorCommand As DelegateCommand(Of String)
+    Private Async Sub OnCargarResumenVentas()
+        LlamarApiResumenVentasAsync()
+    End Sub
+
+
     Private _cmdCargarListaRapports As DelegateCommand(Of Object)
     Public Property cmdCargarListaRapports As DelegateCommand(Of Object)
         Get
             Return _cmdCargarListaRapports
         End Get
         Private Set(value As DelegateCommand(Of Object))
-            SetProperty(_cmdCargarListaRapports, value)
+            Dim unused = SetProperty(_cmdCargarListaRapports, value)
         End Set
     End Property
     Private Function CanCargarListaRapports(arg As Object) As Boolean
@@ -315,6 +460,7 @@ Public Class ListaRapportsViewModel
         ResumenListaRapports = String.Empty
         If Not IsNothing(clienteSeleccionado) Then
             listaRapports = Await servicio.cargarListaRapports(_empresaPorDefecto, clienteSeleccionado, contactoSeleccionado)
+            Await Task.Run(Sub() LlamarApiResumenVentasAsync())
         Else
             Dim parametroVendedor As String
             parametroVendedor = IIf(esUsuarioElVendedor, configuracion.usuario, vendedor)
@@ -330,7 +476,7 @@ Public Class ListaRapportsViewModel
             Return _cmdCargarListaRapportsFiltrada
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_cmdCargarListaRapportsFiltrada, value)
+            Dim unused = SetProperty(_cmdCargarListaRapportsFiltrada, value)
         End Set
     End Property
     Private Function CanCargarListaRapportsFiltrada() As Boolean
@@ -340,11 +486,9 @@ Public Class ListaRapportsViewModel
         Dim todosLosClientes As String = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.PermitirVerClientesTodosLosVendedores)
         Try
             EstaOcupado = True
-            If todosLosClientes = "1" Then
-                listaRapports = Await servicio.cargarListaRapportsFiltrada(String.Empty, Filtro)
-            Else
-                listaRapports = Await servicio.cargarListaRapportsFiltrada(vendedor, Filtro)
-            End If
+            listaRapports = If(todosLosClientes = "1",
+                Await servicio.cargarListaRapportsFiltrada(String.Empty, Filtro),
+                Await servicio.cargarListaRapportsFiltrada(vendedor, Filtro))
 
             rapportSeleccionado = listaRapports.FirstOrDefault
         Catch ex As Exception
@@ -364,7 +508,7 @@ Public Class ListaRapportsViewModel
             Return _cmdCrearRapport
         End Get
         Private Set(value As DelegateCommand(Of ClienteProbabilidadVenta))
-            SetProperty(_cmdCrearRapport, value)
+            Dim unused = SetProperty(_cmdCrearRapport, value)
         End Set
     End Property
 
@@ -503,5 +647,36 @@ Public Class ListaRapportsViewModel
 
 #End Region
 
+#Region "Funciones Auxiliares"
+    Private Sub AgregarLineaTotal(datos As List(Of VentaClienteResumenDTO))
+        If datos.Count > 0 Then
+            Dim total As New VentaClienteResumenDTO With {
+            .Nombre = "TOTAL",
+            .VentaAnnoActual = datos.Sum(Function(d) d.VentaAnnoActual),
+            .VentaAnnoAnterior = datos.Sum(Function(d) d.VentaAnnoAnterior)
+        }
+            datos.Add(total)
+        End If
+    End Sub
 
+    Private Async Sub LlamarApiResumenVentasAsync()
+        If String.IsNullOrEmpty(clienteSeleccionado) Then Exit Sub
+
+        Try
+            EstaOcupado = True
+            Dim resumen = Await servicio.CargarResumenVentasCliente(clienteSeleccionado, ModoComparativa, AgruparPor)
+            resumen.Datos = resumen.Datos.OrderBy(Function(x) x.Diferencia).ToList()
+            AgregarLineaTotal(resumen.Datos)
+            ResumenVentasCliente = resumen
+
+            RaisePropertyChanged(NameOf(TituloResumenVentas))
+            RaisePropertyChanged(NameOf(SubtituloResumenVentas))
+        Catch ex As Exception
+            _dialogService.ShowError("No se ha podido cargar el resumen de ventas: " & ex.Message)
+        Finally
+            EstaOcupado = False
+        End Try
+    End Sub
+
+#End Region
 End Class

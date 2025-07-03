@@ -43,11 +43,7 @@ Public Class RapportService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuesta = ""
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido recuperar la lista de rapports del día " + fecha.ToShortDateString)
@@ -69,11 +65,9 @@ Public Class RapportService
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(rapport), Encoding.UTF8, "application/json")
 
             Try
-                If rapport.Id = 0 Then
-                    response = Await client.PostAsync("SeguimientosClientes", content)
-                Else
-                    response = Await client.PutAsync("SeguimientosClientes", content)
-                End If
+                response = If(rapport.Id = 0,
+                    Await client.PostAsync("SeguimientosClientes", content),
+                    Await client.PutAsync("SeguimientosClientes", content))
 
 
                 If response.IsSuccessStatusCode Then
@@ -113,10 +107,11 @@ Public Class RapportService
             Return "No se puede crear el aviso si no se especifica un cliente y un contacto"
         End If
 
-        Dim nuevaCita As New [Event]
-        nuevaCita.Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim
-        nuevaCita.Body = New ItemBody With {
-            .Content = rapport.Comentarios
+        Dim nuevaCita As New [Event] With {
+            .Subject = "Aviso del cliente " + rapport.Cliente.Trim + "/" + rapport.Contacto.Trim,
+            .Body = New ItemBody With {
+                .Content = rapport.Comentarios
+            }
         }
 
         Dim dateTimeFormat As String = "yyyy-MM-ddTHH:mm:ss"
@@ -133,7 +128,7 @@ Public Class RapportService
 
         nuevaCita.IsReminderOn = True
         nuevaCita.ReminderMinutesBeforeStart = 0
-        Await graphClient.Me.Calendar.Events.Request().AddAsync(nuevaCita)
+        Dim unused = Await graphClient.Me.Calendar.Events.Request().AddAsync(nuevaCita)
         Return "Cita creada correctamente"
     End Function
 
@@ -151,11 +146,7 @@ Public Class RapportService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuesta = ""
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido recuperar la lista de rapports filtrados por " + filtro)
@@ -186,11 +177,7 @@ Public Class RapportService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuesta = ""
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido recuperar la lista de rapports del cliente " + cliente)
@@ -207,36 +194,38 @@ Public Class RapportService
 
     Public Function CargarListaEstados() As List(Of RapportsModel.SeguimientoClienteDTO.idShortDescripcion) Implements IRapportService.CargarListaEstados
         ' Hacer que lo lea de la BD
-        Dim listaEstadosRapport = New List(Of idShortDescripcion)
-        listaEstadosRapport.Add(New idShortDescripcion With {
+        Dim listaEstadosRapport = New List(Of idShortDescripcion) From {
+            New idShortDescripcion With {
                                 .id = 0,
-                                .descripcion = "Vigente"})
-        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .descripcion = "Vigente"},
+            New idShortDescripcion With {
                                 .id = 1,
-                                .descripcion = "No Contactado"})
-        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .descripcion = "No Contactado"},
+            New idShortDescripcion With {
                                 .id = 2,
-                                .descripcion = "Gestión Administrativa"})
-        listaEstadosRapport.Add(New idShortDescripcion With {
+                                .descripcion = "Gestión Administrativa"},
+            New idShortDescripcion With {
                                 .id = -1,
-                                .descripcion = "Nulo"})
+                                .descripcion = "Nulo"}
+        }
         Return listaEstadosRapport
     End Function
 
     Public Function CargarListaTipos() As List(Of idDescripcion) Implements IRapportService.CargarListaTipos
-        Dim listaTiposRapports = New List(Of idDescripcion)
-        listaTiposRapports.Add(New idDescripcion With {
+        Dim listaTiposRapports = New List(Of idDescripcion) From {
+            New idDescripcion With {
             .id = "V",
             .descripcion = "Visita"
-        })
-        listaTiposRapports.Add(New idDescripcion With {
+        },
+            New idDescripcion With {
             .id = "T",
             .descripcion = "Teléfono"
-        })
-        listaTiposRapports.Add(New idDescripcion With {
+        },
+            New idDescripcion With {
             .id = "W",
             .descripcion = "WhatsApp"
-        })
+        }
+        }
         Return listaTiposRapports
     End Function
 
@@ -305,7 +294,7 @@ Public Class RapportService
                 Dim nuevaTask As New PlannerTask With {
                     .ConversationThreadId = hiloCreado.Id
                 }
-                Await graphClient.Planner.Tasks(plannerTask.Id).Request().Header("Prefer", "return=representation").Header("If-Match", etag).UpdateAsync(nuevaTask)
+                Dim unused = Await graphClient.Planner.Tasks(plannerTask.Id).Request().Header("Prefer", "return=representation").Header("If-Match", etag).UpdateAsync(nuevaTask)
             Else
                 Await graphClient.Groups(grupoId).Threads(hiloId).Reply(post).Request().PostAsync()
             End If
@@ -317,7 +306,7 @@ Public Class RapportService
     End Function
 
     Public Async Function QuitarDeMiListado(rapport As SeguimientoClienteDTO, vendedorEstetica As String, vendedorPeluqueria As String) As Task(Of Boolean) Implements IRapportService.QuitarDeMiListado
-        Dim clienteCrear As ClienteCrear = New ClienteCrear With {
+        Dim clienteCrear As New ClienteCrear With {
             .Empresa = rapport.Empresa,
             .Cliente = rapport.Cliente,
             .Contacto = rapport.Contacto,
@@ -372,11 +361,7 @@ Public Class RapportService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuesta = ""
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
 
             Catch ex As Exception
                 Throw New Exception($"No se ha podido recuperar la lista de los {numeroClientes} clientes de {vendedor} con mayor probabilidad de hacer pedido", ex)
@@ -402,11 +387,7 @@ Public Class RapportService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuestaJson = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuestaJson = String.Empty
-                End If
+                respuestaJson = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), String.Empty)
 
             Catch ex As Exception
                 Throw New Exception($"No se ha podido recuperar el resumen de los rapports del cliente {cliente}/{contacto}", ex)
@@ -419,5 +400,20 @@ Public Class RapportService
 
             Return resumen
         End Using
+    End Function
+
+    Public Async Function CargarResumenVentasCliente(clienteId As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse) Implements IRapportService.CargarResumenVentasCliente
+        Dim url = $"ventascliente/resumen?clienteId={clienteId}&modoComparativa={modoComparativa}&agruparPor={agruparPor}"
+        Try
+            Using client As New Net.Http.HttpClient()
+                client.BaseAddress = New Uri(configuracion.servidorAPI)
+                Dim response = Await client.GetAsync(url)
+                Dim unused = response.EnsureSuccessStatusCode()
+                Dim json = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of ResumenVentasClienteResponse)(json)
+            End Using
+        Catch ex As Exception
+            Throw New ApplicationException("Error al cargar resumen de ventas: " & ex.Message, ex)
+        End Try
     End Function
 End Class

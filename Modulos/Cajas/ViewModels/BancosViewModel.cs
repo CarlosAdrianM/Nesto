@@ -962,10 +962,21 @@ namespace Nesto.Modulos.Cajas.ViewModels
             MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: ApunteBancoSeleccionado.FechaOperacion.AddDays(-1), modoCaptura);
             PrepagosPendientes = [];
             MovimientosRelacionados = [.. MovimientosTPV];
-            if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosTPV.Sum(m => m.ImporteOperacion))
+
+            if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
             {
                 MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: ApunteBancoSeleccionado.FechaOperacion.AddDays(-1), "4"); // terminal price
                 _ = MovimientosRelacionados.AddRange(MovimientosTPV);
+            }
+
+            if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
+            {
+                MovimientosRelacionados = new ObservableCollection<MovimientoTPV>(MovimientosRelacionados.Where(m => m.ModoCaptura == modoCaptura));
+            }
+
+            if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
+            {
+                _dialogService.ShowError($"El cierre de datáfono descuadra en {-ApunteBancoSeleccionado.ImporteMovimiento + MovimientosTPV.Sum(m => m.ImporteOperacion):C}");
             }
         }
         private async Task CargarPrepagosPendientes()
