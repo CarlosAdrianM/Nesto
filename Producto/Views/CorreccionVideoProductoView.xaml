@@ -1,0 +1,161 @@
+﻿<!-- Views/CorreccionVideoProductoView.xaml -->
+<UserControl x:Class="Nesto.Modulos.Producto.Views.CorreccionVideoProductoView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             d:DesignHeight="600" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Información del video -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="{Binding TituloVideo}" 
+                       FontWeight="Bold" 
+                       FontSize="16"/>
+        </StackPanel>
+
+        <!-- Lista de productos para editar -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto"
+                      Margin="0,0,0,15">
+
+            <ItemsControl ItemsSource="{Binding ProductosEditables}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="LightGray" 
+                                BorderThickness="1" 
+                                Margin="0,0,0,10" 
+                                Padding="10"
+                                CornerRadius="3">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Nombre del producto -->
+                                <TextBlock Grid.Row="0" 
+                                           Grid.ColumnSpan="2"
+                                           Text="{Binding NombreProducto}" 
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Margin="0,0,0,10"/>
+
+                                <!-- Referencia -->
+                                <TextBlock Grid.Row="1" 
+                                           Grid.Column="0"
+                                           Text="Referencia:" 
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,5,5"/>
+                                <TextBox Grid.Row="1" 
+                                         Grid.Column="1"
+                                         Text="{Binding Referencia, UpdateSourceTrigger=PropertyChanged}" 
+                                         Height="25"
+                                         Margin="0,0,0,5"/>
+
+                                <!-- Enlace tienda -->
+                                <TextBlock Grid.Row="2" 
+                                           Grid.Column="0"
+                                           Text="Enlace tienda:" 
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,5,5"/>
+                                <TextBox Grid.Row="2" 
+                                         Grid.Column="1"
+                                         Text="{Binding EnlaceTienda, UpdateSourceTrigger=PropertyChanged}" 
+                                         Height="25"
+                                         Margin="0,0,0,5"/>
+
+                                <!-- Tiempo aparición -->
+                                <TextBlock Grid.Row="3" 
+                                           Grid.Column="0"
+                                           Text="Tiempo (seg):" 
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,5,5"/>
+                                <TextBox Grid.Row="3" 
+                                         Grid.Column="1"
+                                         Text="{Binding TiempoAparicion, UpdateSourceTrigger=PropertyChanged}" 
+                                         Height="25"
+                                         Margin="0,0,0,5"/>
+
+                                <!-- Enlaces -->
+                                <StackPanel Grid.Row="4" 
+                                           Grid.ColumnSpan="2"
+                                           Orientation="Horizontal"
+                                           Margin="0,5,0,5">
+                                    <Button Content="Ver en vídeo" 
+                                            Command="{Binding AbrirEnlaceVideoCommand}"
+                                            Padding="5,2"
+                                            Margin="0,0,10,0"
+                                            ToolTip="{Binding ProductoOriginal.EnlaceVideo}"/>
+                                    <Button Content="Ver en tienda" 
+                                            Command="{Binding AbrirEnlaceTiendaCommand}"
+                                            Padding="5,2"
+                                            ToolTip="{Binding EnlaceTienda}"/>
+                                </StackPanel>
+
+                                <!-- Checkbox eliminar -->
+                                <CheckBox Grid.Row="5" 
+                                          Grid.ColumnSpan="2"
+                                          Content="Este producto no aparece en el vídeo (eliminar)" 
+                                          IsChecked="{Binding MarcarParaEliminar, UpdateSourceTrigger=PropertyChanged}"
+                                          Foreground="Red"
+                                          Margin="0,10,0,5"/>
+
+                                <!-- Indicador visual de cambios -->
+                                <Border Grid.Row="0" 
+                                        Grid.RowSpan="5"
+                                        Grid.ColumnSpan="2"
+                                        BorderBrush="Orange" 
+                                        BorderThickness="2"
+                                        Visibility="{Binding TieneCambios, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        CornerRadius="3"
+                                        IsHitTestVisible="False"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Botones -->
+        <StackPanel Grid.Row="2" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <TextBlock Text="{Binding ResumenCambios}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,15,0"
+                       FontStyle="Italic"/>
+
+            <Button Content="Cancelar" 
+                    Width="100" 
+                    Margin="0,0,10,0"
+                    Click="Button_Cancelar_Click"/>
+
+            <Button Content="Guardar cambios" 
+                    Width="120" 
+                    Command="{Binding GuardarCommand}"
+                    IsEnabled="{Binding GuardarCommand.CanExecute}"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

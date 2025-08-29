@@ -98,8 +98,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _concepto;
             set
             {
-                _ = SetProperty(ref _concepto, Truncar(value, 50));
-                ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+                if (SetProperty(ref _concepto, TruncarSinTrim(value, 50)))
+                {
+                    ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+                }
             }
         }
 
@@ -740,7 +742,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                             TipoApunte = Constantes.TiposApunte.PASO_A_CARTERA,
                             TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
                             Cuenta = CuentaOrigen.Cuenta,
-                            Concepto = Concepto,
+                            Concepto = Truncar(Concepto, 50),
                             Haber = saldoEspejo,
                             Fecha = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),
                             FechaVto = new DateOnly(_fechaHasta.Year, _fechaHasta.Month, _fechaHasta.Day),

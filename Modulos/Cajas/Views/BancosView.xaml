@@ -19,6 +19,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
             <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition/>
@@ -160,7 +161,11 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </Grid>
-        <xctk:BusyIndicator Grid.Column="1" Grid.Row="0" IsBusy="{Binding IsBusyApuntesContabilidad}">
+        <GridSplitter Grid.Column="1" 
+                      Width="5"
+                      VerticalAlignment="Stretch"
+                      HorizontalAlignment="Center"/>
+        <xctk:BusyIndicator Grid.Column="2" Grid.Row="0" IsBusy="{Binding IsBusyApuntesContabilidad}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition/>
@@ -215,7 +220,7 @@
                 </DataGrid>
             </Grid>
         </xctk:BusyIndicator>
-        <UniformGrid Grid.Row="1" Grid.ColumnSpan="2" Columns="6">
+        <UniformGrid Grid.Row="1" Grid.ColumnSpan="3" Columns="6">
             <Button Command="{Binding CargarArchivoCommand}">Cargar archivo Cuaderno 43</Button>
             <Button Command="{Binding CargarArchivoTarjetasCommand}">Cargar archivo tarjetas FB 500</Button>
             <Button Command="{Binding RegularizarDiferenciaCommand}" ToolTip="Debe tener marcado un apunte de banco y uno de contabilidad">Regularizar diferencia</Button>

@@ -1,12 +1,14 @@
-﻿using System;
+﻿using Nesto.Modules.Producto.Models;
+using Nesto.Modules.Producto.ViewModels;
+using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using Nesto.Modules.Producto.ViewModels;
 
 namespace Nesto.Modulos.Producto
 {
@@ -19,30 +21,29 @@ namespace Nesto.Modulos.Producto
         {
             InitializeComponent();
             DataContext = viewModel;
+            if (DataContext is ProductoViewModel vm)
+            {
+                vm.VideoCompletoSeleccionadoCambiado += video =>
+                    ActualizarDescripcionYProtocolo(video?.Descripcion, video?.Protocolo);
+            }
         }
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
             ProductoViewModel viewModel = (ProductoViewModel)DataContext;
-            //if (viewModel.PestannaSeleccionada == null)
-            //{
-            //    viewModel.PestannaSeleccionada = (TabItem)tabProducto.Items[0];
-            //}
-            txtFiltroNombre.Focus();
-            Keyboard.Focus(txtFiltroNombre);
+            _ = txtFiltroNombre.Focus();
+            _ = Keyboard.Focus(txtFiltroNombre);
             txtReferencia.SelectAll();
 
-            // En el código de la vista, suscríbete al evento
             viewModel.DatosCargados += (sender, args) =>
             {
-                // Realiza la actualización de la interfaz de usuario aquí
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     itcControlStock.ItemsSource = viewModel.ControlStock.ControlesStocksAlmacen;
                     grdStockMinimo.DataContext = viewModel.ControlStock;
                 });
             };
-            Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => { }));
+            _ = Dispatcher.Invoke(DispatcherPriority.Render, new Action(() => { }));
 
         }
 
@@ -70,7 +71,7 @@ namespace Nesto.Modulos.Producto
         {
             if (e.Key == Key.Enter)
             {
-                txtFiltroFamilia.Focus();
+                _ = txtFiltroFamilia.Focus();
             }
         }
 
@@ -78,7 +79,7 @@ namespace Nesto.Modulos.Producto
         {
             if (e.Key == Key.Enter)
             {
-                txtFiltroSubgrupo.Focus();
+                _ = txtFiltroSubgrupo.Focus();
             }
         }
 
@@ -92,6 +93,79 @@ namespace Nesto.Modulos.Producto
                 vm.BuscarProductoCommand.Execute();
             }
         }
+
+        // Llama a este método cuando cambie el VideoCompletoSeleccionado
+        private void ActualizarDescripcionYProtocolo(string descripcion, string protocolo)
+        {
+            DescripcionRichTextBox.Document = HtmlHelper.PlainTextToFlowDocument(descripcion);
+            ProtocoloRichTextBox.Document = HtmlHelper.ConvertHtmlToFlowDocument(protocolo);
+        }
+
+        private void RichTextBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var richTextBox = sender as RichTextBox;
+            var pointer = richTextBox.GetPositionFromPoint(e.GetPosition(richTextBox), true);
+            if (pointer != null)
+            {
+                var inline = pointer.Parent as Inline;
+                while (inline is not null and not Hyperlink)
+                {
+                    inline = inline.Parent as Inline;
+                }
+                if (inline is Hyperlink hyperlink && hyperlink.NavigateUri != null)
+                {
+                    _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(hyperlink.NavigateUri.AbsoluteUri) { UseShellExecute = true });
+                    e.Handled = true;
+                }
+            }
+        }
+
+        private void RichTextBox_MouseMove(object sender, MouseEventArgs e)
+        {
+            var richTextBox = sender as RichTextBox;
+            var pointer = richTextBox.GetPositionFromPoint(e.GetPosition(richTextBox), true);
+            if (pointer != null)
+            {
+                var inline = pointer.Parent as Inline;
+                while (inline is not null and not Hyperlink)
+                {
+                    inline = inline.Parent as Inline;
+                }
+                if (inline is Hyperlink)
+                {
+                    richTextBox.Cursor = Cursors.Hand;
+                    return;
+                }
+            }
+            richTextBox.Cursor = Cursors.IBeam;
+        }
+
+        private void RichTextBox_MouseLeave(object sender, MouseEventArgs e)
+        {
+            var richTextBox = sender as RichTextBox;
+            richTextBox.Cursor = Cursors.IBeam;
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ProductoViewModel vm && vm.VideoCompletoSeleccionado != null && !string.IsNullOrWhiteSpace(vm.VideoRelacionadoSeleccionado.UrlVideo))
+            {
+                _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = vm.VideoRelacionadoSeleccionado.UrlVideo,
+                    UseShellExecute = true // esto abre el navegador predeterminado
+                });
+            }
+        }
+
+        private void dgrProductosKit_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is DataGrid dataGrid && dataGrid.SelectedItem is KitContienePerteneceModel productoKit)
+            {
+                var vm = DataContext as ProductoViewModel;
+                vm?.AbrirProductoCommand.Execute(productoKit.ProductoId);
+            }
+        }
     }
 
     public class EstadoToBorderBrushConverter : IValueConverter
@@ -99,14 +173,7 @@ namespace Nesto.Modulos.Producto
         public object Convert(object value, Type targetType,
             object parameter, CultureInfo culture)
         {
-            if (value.ToString() == "0")
-            {
-                return Colors.Green;
-            }
-            else
-            {
-                return Colors.Honeydew;
-            }
+            return value.ToString() == "0" ? Colors.Green : Colors.Honeydew;
         }
 
         public object ConvertBack(object value, Type targetType,

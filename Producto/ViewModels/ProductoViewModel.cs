@@ -18,6 +18,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -26,6 +27,7 @@ namespace Nesto.Modules.Producto.ViewModels
     public class ProductoViewModel : BindableBase, INavigationAware
     {
         public event EventHandler DatosCargados;
+        public event Action<VideoModel> VideoCompletoSeleccionadoCambiado;
         private IRegionManager _regionManager { get; }
         private IConfiguracion _configuracion { get; }
         private IProductoService _servicio { get; }
@@ -56,9 +58,11 @@ namespace Nesto.Modules.Producto.ViewModels
             _dialogService = dialogService;
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
+            AbrirProductoCommand = new DelegateCommand<string>(OnAbrirProducto);
             AbrirProductoWebCommand = new DelegateCommand(OnAbrirProductoWeb, CanAbrirProductoWeb);
             BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
             BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
+            CorrigeVideoProductoCommand = new DelegateCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
             GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
             ImprimirEtiquetasProductoCommand = new DelegateCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
             MontarKitCommand = new DelegateCommand(OnMontarKit, CanMontarKit);
@@ -77,11 +81,17 @@ namespace Nesto.Modules.Producto.ViewModels
                 EstaCargandoControlesStock = true;
                 ControlStock = null;
                 ProductoActual = await _servicio.LeerProducto(productoId);
-                Titulo = "Producto " + ProductoActual.Producto;
-                if (PestannaSeleccionada == Pestannas.Kits && !ProductoActual.EsKit)
+                if (ProductoActual is not null)
                 {
-                    PestannaSeleccionada = Pestannas.Filtros;
+                    Titulo = "Producto " + ProductoActual.Producto;
                 }
+                else
+                {
+                    Titulo = "Producto";
+                    return;
+                }
+
+
                 if (ProductoActual.Estado == Constantes.Productos.Estados.EN_STOCK && (EsDelGrupoCompras || EsDelGrupoTiendas))
                 {
                     ControlStock = new ControlStockProductoWrapper(await _servicio.LeerControlStock(ProductoActual.Producto).ConfigureAwait(true));
@@ -97,6 +107,16 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 DatosCargados?.Invoke(this, EventArgs.Empty);
                 ControlStock.StockChanged += ControlStockChanged;
+                VideosRelacionados = await _servicio.BuscarVideosRelacionados(ProductoActual.Producto);
+                if (PestannaSeleccionada == Pestannas.Videos && !TieneVideosRelacionados)
+                {
+                    PestannaSeleccionada = Pestannas.Filtros;
+                }
+                ProductosKit = await _servicio.LeerKitsContienePertenece(productoId);
+                if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
+                {
+                    PestannaSeleccionada = Pestannas.Filtros;
+                }
             }
             catch (Exception ex)
             {
@@ -179,21 +199,37 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
+        public bool HayVideosProductosSinReferencia => OtrosProductosEnEsteVideo is not null &&
+                                                       OtrosProductosEnEsteVideo.Any(p => !string.IsNullOrWhiteSpace(p.NombreProducto) &&
+                                                            string.IsNullOrWhiteSpace(p.Referencia));
+
         public bool MostrarBarraBusqueda => ProductosResultadoBusqueda != null && ProductosResultadoBusqueda.Lista != null && ProductosResultadoBusqueda.Lista.Any();
+        public bool MostrarPestannaKits => ProductosKit != null && ProductosKit.Any();
 
         public Pestannas PestannaSeleccionada
         {
             get => _pestannaSeleccionada;
             set
             {
-                _ = SetProperty(ref _pestannaSeleccionada, value);
-                //if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
-                //{
-                //    BuscarClientesCommand.Execute();
-                //}
-                if (PestannaSeleccionada == Pestannas.Clientes)
+                if (SetProperty(ref _pestannaSeleccionada, value))
                 {
-                    BuscarClientesCommand.Execute();
+                    if (PestannaSeleccionada == Pestannas.Clientes)
+                    {
+                        BuscarClientesCommand.Execute();
+                    }
+                }
+            }
+        }
+
+        private ObservableCollection<ProductoVideoModel> _otrosProductosEnEsteVideo;
+        public ObservableCollection<ProductoVideoModel> OtrosProductosEnEsteVideo
+        {
+            get => _otrosProductosEnEsteVideo;
+            set
+            {
+                if (SetProperty(ref _otrosProductosEnEsteVideo, value))
+                {
+                    RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
                 }
             }
         }
@@ -203,16 +239,14 @@ namespace Nesto.Modules.Producto.ViewModels
             get => _productoActual;
             set
             {
-                _ = SetProperty(ref _productoActual, value);
-                //if (PestannaSeleccionada?.Header?.ToString() == "Clientes")
-                //{
-                //    BuscarClientesCommand.Execute();
-                //}
-                if (PestannaSeleccionada == Pestannas.Clientes)
+                if (SetProperty(ref _productoActual, value))
                 {
-                    BuscarClientesCommand.Execute();
+                    if (PestannaSeleccionada == Pestannas.Clientes)
+                    {
+                        BuscarClientesCommand.Execute();
+                    }
+                    AbrirProductoWebCommand.RaiseCanExecuteChanged();
                 }
-                AbrirProductoWebCommand.RaiseCanExecuteChanged();
             }
         }
 
@@ -225,6 +259,19 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (ProductoResultadoSeleccionado != null)
                 {
                     ReferenciaBuscar = ProductoResultadoSeleccionado.Producto;
+                }
+            }
+        }
+
+        public List<KitContienePerteneceModel> _productosKit;
+        public List<KitContienePerteneceModel> ProductosKit
+        {
+            get => _productosKit;
+            set
+            {
+                if (SetProperty(ref _productosKit, value))
+                {
+                    RaisePropertyChanged(nameof(MostrarPestannaKits));
                 }
             }
         }
@@ -246,7 +293,85 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
             }
         }
+
+        public bool TieneVideosRelacionados => VideosRelacionados is not null && VideosRelacionados.Any();
+
         public string Titulo { get; private set; }
+
+        public string UrlVideoProductoSeleccionado => VideoCompletoSeleccionado != null && VideoCompletoSeleccionado.Productos != null ?
+            VideoCompletoSeleccionado.Productos.FirstOrDefault(p => p.Referencia == ProductoActual.Producto).UrlVideo :
+            string.Empty;
+
+        private VideoModel _videoCompletoSeleccionado;
+        public VideoModel VideoCompletoSeleccionado
+        {
+            get => _videoCompletoSeleccionado;
+            set
+            {
+                if (SetProperty(ref _videoCompletoSeleccionado, value))
+                {
+                    VideoCompletoSeleccionadoCambiado?.Invoke(value);
+                    RaisePropertyChanged(nameof(UrlVideoProductoSeleccionado));
+
+                    // Filtrar productos del video que mencionan al producto actual (por referencia o por nombre)
+                    OtrosProductosEnEsteVideo = new ObservableCollection<ProductoVideoModel>(_videoCompletoSeleccionado?.Productos != null && ProductoActual != null
+                        ? _videoCompletoSeleccionado.Productos
+                            .Where(p =>
+                                string.Equals(p.Referencia, ProductoActual.Producto, StringComparison.OrdinalIgnoreCase) ||
+                                (p.NombreProducto?.Contains(ProductoActual.Nombre, StringComparison.OrdinalIgnoreCase) ?? false)
+                            )
+                            .ToList()
+                        : null);
+                    RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
+                    CorrigeVideoProductoCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private VideoLookupModel _videoRelacionadoSeleccionado;
+        public VideoLookupModel VideoRelacionadoSeleccionado
+        {
+            get => _videoRelacionadoSeleccionado;
+            set
+            {
+                if (SetProperty(ref _videoRelacionadoSeleccionado, value))
+                {
+                    if (value != null)
+                    {
+                        // Cargar el video completo
+                        _ = Task.Run(async () =>
+                        {
+                            VideoModel videoCompleto = await _servicio.CargarVideoCompleto(value.Id);
+
+                            // IMPORTANTE: Actualizar en el UI thread
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                VideoCompletoSeleccionado = videoCompleto;
+                            });
+                        });
+                    }
+                    else
+                    {
+                        // Si no hay selección, limpiar el video completo
+                        VideoCompletoSeleccionado = null;
+                    }
+                }
+            }
+        }
+
+        private List<VideoLookupModel> _videosRelacionados;
+        public List<VideoLookupModel> VideosRelacionados
+        {
+            get => _videosRelacionados;
+            set
+            {
+                if (SetProperty(ref _videosRelacionados, value))
+                {
+                    RaisePropertyChanged(nameof(TieneVideosRelacionados));
+                }
+            }
+        }
+
         #endregion
 
         #region "Comandos"
@@ -260,6 +385,20 @@ namespace Nesto.Modules.Producto.ViewModels
             _regionManager.RequestNavigate("MainRegion", "ProductoView");
         }
 
+
+        public DelegateCommand<string> AbrirProductoCommand { get; private set; }
+        private async void OnAbrirProducto(string productoId)
+        {
+            if (!string.IsNullOrEmpty(productoId))
+            {
+                var parameters = new NavigationParameters
+                {
+                    { "numeroProductoParameter", productoId }
+                };
+                _regionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
+            }
+        }
+
         public DelegateCommand AbrirProductoWebCommand { get; private set; }
         private bool CanAbrirProductoWeb()
         {
@@ -269,7 +408,6 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ProductoActual.UrlEnlace + "&utm_medium=ficha_producto") { UseShellExecute = true });
         }
-
 
         public DelegateCommand BuscarClientesCommand { get; private set; }
         private bool CanBuscarClientes()
@@ -317,6 +455,35 @@ namespace Nesto.Modules.Producto.ViewModels
             }
 
         }
+
+
+        public DelegateCommand CorrigeVideoProductoCommand { get; }
+
+        private async void OnCorrigeVideoProducto()
+        {
+            if (VideoCompletoSeleccionado == null)
+            {
+                return;
+            }
+
+            var dialogParameters = new DialogParameters
+            {
+                { "producto", VideoCompletoSeleccionado }
+            };
+
+            var result = await _dialogService.ShowDialogAsync("CorreccionVideoProductoView", dialogParameters);
+
+            if (result.Result == ButtonResult.OK)
+            {
+                VideoCompletoSeleccionado = await _servicio.CargarVideoCompleto(VideoCompletoSeleccionado.Id);
+            }
+        }
+
+        private bool CanCorrigeVideoProducto()
+        {
+            return VideoCompletoSeleccionado != null;
+        }
+
 
         public DelegateCommand GuardarProductoCommand { get; private set; }
         private bool CanGuardarProducto()
@@ -462,6 +629,20 @@ namespace Nesto.Modules.Producto.ViewModels
 
         #endregion
 
+
+        private async void OnCorrigeVideoProducto(ProductoVideoModel producto)
+        {
+            var dialogParameters = new DialogParameters();
+            // Aquí puedes pasar el producto como parámetro si usas otro patrón
+
+            var result = await _dialogService.ShowDialogAsync("CorreccionVideoProductoView", dialogParameters);
+
+            if (result.Result == ButtonResult.OK)
+            {
+                VideoCompletoSeleccionado = await _servicio.CargarVideoCompleto(VideoCompletoSeleccionado.Id);
+            }
+        }
+
         public new async void OnNavigatedTo(NavigationContext navigationContext)
         {
             object parametro = navigationContext.Parameters["numeroProductoParameter"];
@@ -491,6 +672,7 @@ namespace Nesto.Modules.Producto.ViewModels
     {
         Filtros = 0,
         Clientes = 1,
-        Kits = 2
+        Videos = 2,
+        Kits = 3
     }
 }

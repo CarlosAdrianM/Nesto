@@ -1,14 +1,15 @@
 ﻿<UserControl x:Class="Nesto.Modulos.Producto.ProductoView"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-        xmlns:prism="http://prismlibrary.com/"
-        xmlns:local="clr-namespace:Nesto.Modulos.Producto" 
-        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
-             prism:ViewModelLocator.AutoWireViewModel="True"
-        mc:Ignorable="d" Loaded="UserControl_Loaded">
+            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+            xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+            xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+            xmlns:prism="http://prismlibrary.com/"
+            xmlns:local="clr-namespace:Nesto.Modulos.Producto" 
+            xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" 
+            xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario" 
+            prism:ViewModelLocator.AutoWireViewModel="True"
+            mc:Ignorable="d" Loaded="UserControl_Loaded">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
@@ -225,7 +226,335 @@
             <TabItem Header="Clientes">
                 <DataGrid ItemsSource="{Binding ClientesResultadoBusqueda}" CanUserAddRows="False" IsReadOnly="True"/>
             </TabItem>
-            <TabItem Header="Kit" IsEnabled="{Binding ProductoActual.EsKit}" Visibility="{Binding ProductoActual.EsKit,Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TabItem Header="Videos" IsEnabled="{Binding TieneVideosRelacionados}" Visibility="{Binding TieneVideosRelacionados, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <ListView Grid.Row="0" 
+                  ItemsSource="{Binding VideosRelacionados}" 
+                  SelectedItem="{Binding VideoRelacionadoSeleccionado}" 
+                  SelectionMode="Single"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,5,0,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Imagen del video -->
+                                    <Border Grid.Column="0" 
+                CornerRadius="4" 
+                Background="LightGray"
+                Width="150" 
+                Height="85"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top">
+                                        <Grid>
+                                            <Image Source="{Binding UrlImagen}" 
+                       Stretch="UniformToFill"
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                                                <Image.Style>
+                                                    <Style TargetType="Image">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding UrlImagen}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Image.Style>
+                                            </Image>
+
+                                            <!-- Placeholder cuando no hay imagen -->
+                                            <TextBlock Text="Sin imagen" 
+                           HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Foreground="Gray"
+                           FontSize="12">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding UrlImagen}" Value="">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Información del video -->
+                                    <StackPanel Grid.Column="1" 
+                    Margin="10,0,0,0" 
+                    VerticalAlignment="Top">
+
+                                        <!-- Título -->
+                                        <TextBlock Text="{Binding Titulo}" 
+                       FontWeight="SemiBold" 
+                       FontSize="14"
+                       TextWrapping="Wrap"
+                       MaxHeight="40"
+                       TextTrimming="CharacterEllipsis"
+                       Margin="0,0,0,5"/>
+
+                                        <!-- Descripción -->
+                                        <TextBlock Text="{Binding Descripcion}" 
+                       FontSize="12"
+                       Foreground="Gray"
+                       TextWrapping="Wrap"
+                       MaxHeight="35"
+                       TextTrimming="CharacterEllipsis"
+                       Margin="0,0,0,5"/>
+
+                                        <!-- Fecha de publicación -->
+                                        <TextBlock Text="{Binding FechaPublicacion, StringFormat='{}{0:dd/MM/yyyy}'}" 
+                       FontSize="11"
+                       Foreground="DarkGray"/>
+
+                                        <!-- Indicador de protocolo (opcional) -->
+                                        <Border Background="LightBlue" 
+                    CornerRadius="2" 
+                    Padding="4,2"
+                    HorizontalAlignment="Left"
+                    Margin="0,3,0,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding EsUnProtocolo}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="PROTOCOLO" 
+                           FontSize="10" 
+                           FontWeight="Bold"
+                           Foreground="DarkBlue"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+
+                        <!-- Estilo opcional para mejorar la apariencia -->
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Padding" Value="5"/>
+                                <Setter Property="Margin" Value="0,2"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="LightGray"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                    </ListView>
+                    <Border Grid.Row="1"
+                Background="White" 
+                BorderBrush="LightGray" 
+                BorderThickness="1" 
+                Padding="15"
+                Margin="10"
+                ClipToBounds="True">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding VideoCompletoSeleccionado}" Value="{x:Null}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" ClipToBounds="True">
+                            <StackPanel DataContext="{Binding VideoCompletoSeleccionado}" ClipToBounds="True">
+
+                                <!-- Título del video -->
+                                <TextBlock Text="{Binding Titulo}" 
+           FontSize="18" 
+           FontWeight="Bold" 
+           TextWrapping="Wrap"
+           Margin="0,0,0,15"
+           Foreground="DarkBlue"/>
+
+                                <!-- Imagen/Preview del video -->
+                                <Border Background="LightGray" 
+        HorizontalAlignment="Center"
+        Margin="0,0,0,15"
+        Width="400" 
+        Height="225">
+                                    <Grid>
+                                        <Image Source="{Binding UrlImagen}" 
+               Stretch="UniformToFill"
+               RenderOptions.BitmapScalingMode="HighQuality">
+                                            <Image.Style>
+                                                <Style TargetType="Image">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UrlImagen}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Image.Style>
+                                        </Image>
+
+                                        <!-- Placeholder cuando no hay imagen -->
+                                        <StackPanel HorizontalAlignment="Center" 
+                    VerticalAlignment="Center">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UrlImagen}" Value="">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Text="📹" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                            <TextBlock Text="Vista previa no disponible" 
+                       FontSize="14" 
+                       Foreground="Gray" 
+                       HorizontalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <!-- Botón de reproducir superpuesto -->
+                                        <Button Width="60" 
+                                                Height="60" 
+                                                HorizontalAlignment="Center" 
+                                                VerticalAlignment="Center"
+                                                Background="Black" 
+                                                Opacity="0.7"
+                                                BorderThickness="0"
+                                                Cursor="Hand"
+                                                Content="▶"
+                                                Foreground="White"
+                                                FontSize="24"
+                                                Click="Button_Click">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Opacity" Value="1"/>
+                                                        </Trigger>
+                                                        <DataTrigger Binding="{Binding UrlVideoProductoSeleccionado}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Descripción -->
+                                <TextBlock Text="Descripción:" 
+           FontWeight="SemiBold" 
+           FontSize="14" 
+           Margin="0,0,0,8"/>
+                                <Border Background="#F8F9FA" 
+                    BorderBrush="#E9ECEF" 
+                    BorderThickness="1" 
+                    Padding="12"
+                    Margin="0,0,0,15"
+                    ClipToBounds="True"
+                    Height="300">
+                                    <RichTextBox Name="DescripcionRichTextBox"
+                                                 IsReadOnly="True"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 Height="276"
+                                                 FontFamily="Segoe UI Emoji"
+                                                 TextOptions.TextFormattingMode="Ideal"
+                                                 PreviewMouseLeftButtonDown="RichTextBox_PreviewMouseLeftButtonDown"
+                                                 MouseMove="RichTextBox_MouseMove"
+                                                 MouseLeave="RichTextBox_MouseLeave" />
+                                </Border>
+
+                                <!-- Protocolo -->
+                                <TextBlock Text="Protocolo:" 
+           FontWeight="SemiBold" 
+           FontSize="14" 
+           Margin="0,0,0,8">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Protocolo}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Protocolo}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <Border Background="#F0F8FF" 
+                    BorderBrush="#B0C4DE" 
+                    BorderThickness="1" 
+                    Padding="12"
+                    Margin="0,0,0,15"
+                    ClipToBounds="True"
+                    Height="300">
+                                    <RichTextBox Name="ProtocoloRichTextBox"
+                                                 IsReadOnly="True"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 Height="276"
+                                                 PreviewMouseLeftButtonDown="RichTextBox_PreviewMouseLeftButtonDown"
+                                                 MouseMove="RichTextBox_MouseMove"
+                                                 MouseLeave="RichTextBox_MouseLeave" />
+                                </Border>
+                                <!-- NUEVA SECCIÓN -->
+                                <Border Background="#FFFBEA" 
+                                        BorderBrush="#F5C16C" 
+                                        BorderThickness="1" 
+                                        CornerRadius="6"
+                                        Padding="12"
+                                        Margin="0,0,0,15">
+                                    <StackPanel>
+                                        <TextBlock Text="¡Ayúdanos a mejorar!" 
+                                                   FontWeight="Bold" 
+                                                   FontSize="14" 
+                                                   Foreground="DarkOrange"
+                                                   Margin="0,0,0,8"/>               
+                                        <TextBlock Text="Si ves un error en este vídeo, puedes comunicárnoslo:" 
+                                                   FontSize="12" 
+                                                   Foreground="Black"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,0,0,10"/>
+                                        <TextBlock Text="Hay productos en este vídeo a los que debemos asignar una referencia. Por favor, asígnala ahora. Gracias."
+                                                   Foreground="Red"
+                                                   FontWeight="Bold"
+                                                   Visibility="{Binding DataContext.HayVideosProductosSinReferencia, 
+                                            Converter={StaticResource BooleanToVisibilityConverter},
+                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,0,0,10"/>
+                                        <Button Content="📢 Reportar error"
+                                                Command="{Binding DataContext.CorrigeVideoProductoCommand,
+                                                          RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                HorizontalAlignment="Left"
+                                                Padding="8,4"
+                                                Background="DarkOrange"
+                                                Foreground="White"
+                                                FontWeight="Bold"
+                                                Cursor="Hand"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Kit" IsEnabled="{Binding MostrarPestannaKits}" Visibility="{Binding MostrarPestannaKits,Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition/>
@@ -238,6 +567,17 @@
                         <ColumnDefinition/>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Row="0" Grid.ColumnSpan="3">
+                        <TextBlock Text="Componentes del kit:" FontWeight="Bold" FontSize="14" Margin="0,0,0,5"/>
+                        <DataGrid Name="dgrProductosKit" ItemsSource="{Binding ProductosKit}" CanUserAddRows="False" IsReadOnly="True" AutoGenerateColumns="False" Height="200" MouseDoubleClick="dgrProductosKit_MouseDoubleClick">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Tipo" Binding="{Binding ContienePertenece}" Width="*"/>
+                                <DataGridTextColumn Header="Producto" Binding="{Binding ProductoId}" Width="*"/>
+                                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="4*"/>
+                                <DataGridTextColumn Header="Cantidad por kit" Binding="{Binding Cantidad}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Kits a montar (negativo para desmontar)" HorizontalAlignment="Right" Margin="3"></TextBlock>
                     <xctk:IntegerUpDown Grid.Row="1" Grid.Column="1" Margin="3" Value="{Binding CantidadKitMontar, UpdateSourceTrigger=PropertyChanged}"></xctk:IntegerUpDown>
                     <Button Grid.Row="2" Grid.Column="1" Margin="3" Command="{Binding MontarKitCommand}">Montar kit</Button>

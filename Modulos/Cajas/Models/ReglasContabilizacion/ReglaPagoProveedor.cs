@@ -46,9 +46,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             else if (EsTransferenciaInternacional(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto.Trim())).GetAwaiter().GetResult();
+                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto.Trim())).GetAwaiter().GetResult();
                 Regex regex = new(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
-                Match match = regex.Match(apunteBancario.RegistrosConcepto[2].ConceptoCompleto);
+                Match match = regex.Match(apunteBancario.RegistrosConcepto[1].ConceptoCompleto);
                 string documentoProveedor;
                 if (match.Success)
                 {
@@ -142,7 +142,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             else if (EsTransferenciaInternacional(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto.Trim())).GetAwaiter().GetResult();
+                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto.Trim())).GetAwaiter().GetResult();
                 liquidacionObligatoria = false;
             }
             else
@@ -166,7 +166,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             else
             {
                 Regex regex = new(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
-                Match match = regex.Match(apunteBancario.RegistrosConcepto[2].ConceptoCompleto);
+                Match match = regex.Match(apunteBancario.RegistrosConcepto[1].ConceptoCompleto);
                 if (!match.Success)
                 {
                     return false;
@@ -189,7 +189,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
         private static bool EsReciboDomiciliado(ApunteBancarioDTO apunteBancario)
         {
             return apunteBancario.ConceptoComun == "03" &&
-                            (apunteBancario.ConceptoPropio == "038" || apunteBancario.ConceptoPropio == "005" || apunteBancario.ConceptoPropio == "006") &&
+                            (apunteBancario.ConceptoPropio == "038" || apunteBancario.ConceptoPropio == "005" || apunteBancario.ConceptoPropio == "006" || apunteBancario.ConceptoPropio == "046") &&
                             apunteBancario.RegistrosConcepto != null &&
                             apunteBancario.RegistrosConcepto.Any() &&
                             apunteBancario.RegistrosConcepto[0] != null &&
@@ -202,8 +202,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                             apunteBancario.ConceptoPropio == "002" &&
                             apunteBancario.RegistrosConcepto != null &&
                             apunteBancario.RegistrosConcepto.Any() &&
-                            apunteBancario.RegistrosConcepto[2] != null &&
-                            apunteBancario.RegistrosConcepto[2].Concepto.Trim().ToLower().StartsWith("invoice");
+                            apunteBancario.RegistrosConcepto[1] != null &&
+                            apunteBancario.RegistrosConcepto[1].Concepto.Trim().ToLower().StartsWith("invoice");
         }
     }
 }

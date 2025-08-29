@@ -6,7 +6,9 @@ Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Services
 Imports ControlesUsuario.ViewModels
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modules.Producto
+Imports Nesto.Modules.Producto.ViewModels
 Imports Nesto.Modulos
 Imports Nesto.Modulos.Cajas
 Imports Nesto.Modulos.Cajas.Interfaces
@@ -18,6 +20,7 @@ Imports Nesto.Modulos.Cliente
 Imports Nesto.Modulos.Inventario
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PlantillaVenta
+Imports Nesto.Modulos.Producto.Views
 Imports Nesto.Modulos.Rapports
 Imports Nesto.ViewModels
 Imports Prism
@@ -50,6 +53,13 @@ Partial Public Class Application
         Dim interactiveBrowserCredential As New InteractiveBrowserCredential(interactiveBrowserCredentialOptions)
         Dim unused26 = containerRegistry.RegisterInstance(GetType(InteractiveBrowserCredential), interactiveBrowserCredential)
 
+        ' Registrar servicio de autenticación con la URL base de tu API
+        Dim unused31 = containerRegistry.RegisterSingleton(Of IServicioAutenticacion)(
+            Function(provider)
+                Dim cfg = provider.Resolve(Of IConfiguracion)()
+                Return New ServicioAutenticacion(cfg.servidorAPI)
+            End Function)
+
         Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
         Dim unused24 = containerRegistry.Register(GetType(IPlantillaVentaService), GetType(PlantillaVentaService))
         Dim unused23 = containerRegistry.Register(GetType(IInventario), GetType(Inventario))
@@ -80,6 +90,7 @@ Partial Public Class Application
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
         containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)
+        containerRegistry.RegisterDialog(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window
@@ -133,5 +144,18 @@ Partial Public Class Application
         ViewModelLocationProvider.Register(GetType(Alquileres).ToString, GetType(AlquileresViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorCliente).ToString, GetType(SelectorClienteViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorProveedor).ToString, GetType(SelectorProveedorViewModel))
+    End Sub
+
+    Protected Overrides Sub OnInitialized()
+        MyBase.OnInitialized()
+
+        Dim authService = Container.Resolve(Of IServicioAutenticacion)()
+        Dim unused = Task.Run(
+            Async Function()
+                Dim token = Await authService.ObtenerTokenWindowsAsync()
+                If token IsNot Nothing Then
+                    System.Diagnostics.Debug.WriteLine("Token obtenido exitosamente al iniciar la aplicación")
+                End If
+            End Function)
     End Sub
 End Class

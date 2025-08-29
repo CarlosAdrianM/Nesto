@@ -101,6 +101,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
             Titulo = "Bancos";
         }
+
+        #region "Propiedades"
+
         private ICollectionView _apuntesBancoCollectionView;
         public ICollectionView ApuntesBancoCollectionView
         {
@@ -210,7 +213,24 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _bancoSeleccionado, value))
                 {
-                    _ = CargarApuntes(FechaDesde, FechaHasta);
+                    if (!_fechasDesdePorBanco.TryGetValue(value.Banco.Codigo, out var fechaDesdeStr))
+                    {
+                        // Inicializa con la fecha actual o la que prefieras
+                        fechaDesdeStr = DateTime.Today.ToString("dd/MM/yy");
+                        _fechasDesdePorBanco[value.Banco.Codigo] = fechaDesdeStr;
+                        _ = _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaDesde, SerializarDiccionarioFechas(_fechasDesdePorBanco));
+                    }
+                    // Cambiamos la privada para que no se ejecute el setter y por lo tanto no ejecute CargarApuntes.
+                    _fechaDesde = DateTime.ParseExact(fechaDesdeStr, "dd/MM/yy", null);
+
+                    if (!_fechasHastaPorBanco.TryGetValue(value.Banco.Codigo, out var fechaHastaStr))
+                    {
+                        fechaHastaStr = DateTime.Today.ToString("dd/MM/yy");
+                        _fechasHastaPorBanco[value.Banco.Codigo] = fechaHastaStr;
+                        _ = _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaHasta, SerializarDiccionarioFechas(_fechasHastaPorBanco));
+                    }
+                    FechaHasta = DateTime.ParseExact(fechaHastaStr, "dd/MM/yy", null);
+                    RaisePropertyChanged(nameof(FechaDesde));
                 }
             }
         }
@@ -247,6 +267,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (_fechaDesde != value)
                 {
                     _ = SetProperty(ref _fechaDesde, value);
+                    // Guardar la fecha en el diccionario y persistir
+                    if (BancoSeleccionado?.Banco?.Codigo != null)
+                    {
+                        _fechasDesdePorBanco[BancoSeleccionado.Banco.Codigo] = value.ToString("dd/MM/yy");
+                        _ = _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaDesde, SerializarDiccionarioFechas(_fechasDesdePorBanco));
+                    }
                     _ = CargarApuntes(FechaDesde, FechaHasta);
                 }
             }
@@ -260,10 +286,20 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (_fechaHasta != value)
                 {
                     _ = SetProperty(ref _fechaHasta, value);
+                    // Guardar la fecha en el diccionario y persistir
+                    if (BancoSeleccionado?.Banco?.Codigo != null)
+                    {
+                        _fechasHastaPorBanco[BancoSeleccionado.Banco.Codigo] = value.ToString("dd/MM/yy");
+                        _ = _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaHasta, SerializarDiccionarioFechas(_fechasHastaPorBanco));
+                    }
                     _ = CargarApuntes(FechaDesde, FechaHasta);
                 }
             }
         }
+
+        private Dictionary<string, string> _fechasDesdePorBanco = [];
+        private Dictionary<string, string> _fechasHastaPorBanco = [];
+
         private bool _isBusyApuntesBanco;
         public bool IsBusyApuntesBanco
         {
@@ -415,11 +451,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
 
 
+        private ApunteBancarioWrapper _ultimoApunteBancoSeleccionado;
+        private ContabilidadWrapper _ultimoApunteContabilidadSeleccionado;
+        private int _ultimoIndiceBancoSeleccionado = -1;
+        private int _ultimoIndiceContabilidadSeleccionado = -1;
 
+        #endregion
 
-
-
-
+        #region "Comandos"
         public ICommand AbrirPedidoCommand { get; private set; }
         private void OnAbrirPedido(PrepagoDTO prepago)
         {
@@ -591,6 +630,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private async void OnContabilizarApunte()
         {
             IReglaContabilizacion? reglaContabilizable = null;
+            var idsAntesContabilizar = ApuntesContabilidad?.Select(a => a.Id).ToHashSet() ?? [];
+
             try
             {
                 IsBusyApuntesBanco = true;
@@ -653,8 +694,23 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     textoMensajeFinal = $"Apunte contabilizado correctamente en asiento {asiento}";
                 }
                 await CargarApuntesContabilidad(FechaDesde, FechaHasta);
-                _dialogService.ShowNotification(textoMensajeFinal);
                 FiltrarRegistros();
+
+                // Seleccionar los apuntes que están después y no estaban antes
+                if (ApuntesContabilidad?.Any() == true)
+                {
+                    var apuntesNuevos = ApuntesContabilidad
+                        .Where(a => !idsAntesContabilizar.Contains(a.Id))
+                        .ToList();
+
+                    if (apuntesNuevos.Any())
+                    {
+                        ApunteContabilidadSeleccionado = apuntesNuevos.First();
+                        ApuntesContabilidadSeleccionados = apuntesNuevos;
+                    }
+                }
+
+                _dialogService.ShowNotification(textoMensajeFinal);
             }
             catch (Exception ex)
             {
@@ -702,6 +758,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
         private async void OnPuntearApuntes()
         {
+            GuardarPosicionesSeleccionadas();
+
             if (ApuntesBancoSeleccionados is not null && ApuntesContabilidadSeleccionados is not null &&
                 ApuntesBancoSeleccionados.Any() && ApuntesContabilidadSeleccionados.Any())
             {
@@ -720,6 +778,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 throw new Exception("Tipo de apunte no permitido en el sistema");
             }
             FiltrarRegistros();
+
+            RestaurarSeleccionSiguiente();
         }
 
 
@@ -854,6 +914,11 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
 
 
+        #endregion
+
+        #region "Métodos Auxiliares"
+
+
         private bool ApuntesBancoFilter(object item)
         {
             return item is ApunteBancarioWrapper apunteBanco && apunteBanco.Visible;
@@ -902,9 +967,6 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     FiltrarRegistros();
                 }
             }, TaskScheduler.FromCurrentSynchronizationContext());
-            await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaUltimoBanco, BancoSeleccionado.Banco.Codigo).ConfigureAwait(false);
-            await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaDesde, FechaDesde.ToString("dd/MM/yy")).ConfigureAwait(false);
-            await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaHasta, FechaHasta.ToString("dd/MM/yy")).ConfigureAwait(false);
         }
         private async Task CargarApuntesBanco(DateTime fechaDesde, DateTime fechaHasta)
         {
@@ -1063,6 +1125,53 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
             }
         }
+
+        private void GuardarPosicionesSeleccionadas()
+        {
+            if (ApunteBancoSeleccionado != null && ApuntesBancoCollectionView != null)
+            {
+                _ultimoApunteBancoSeleccionado = ApunteBancoSeleccionado;
+                var listaOrdenada = ApuntesBancoCollectionView.Cast<ApunteBancarioWrapper>().ToList();
+                _ultimoIndiceBancoSeleccionado = listaOrdenada.IndexOf(ApunteBancoSeleccionado);
+            }
+
+            if (ApunteContabilidadSeleccionado != null && ApuntesContabilidadCollectionView != null)
+            {
+                _ultimoApunteContabilidadSeleccionado = ApunteContabilidadSeleccionado;
+                var listaOrdenada = ApuntesContabilidadCollectionView.Cast<ContabilidadWrapper>().ToList();
+                _ultimoIndiceContabilidadSeleccionado = listaOrdenada.IndexOf(ApunteContabilidadSeleccionado);
+            }
+        }
+        private static Dictionary<string, string> LeerDiccionarioFechas(string valor, string codigoBanco)
+        {
+            // Si está vacío, devolvemos diccionario vacío
+            if (string.IsNullOrWhiteSpace(valor))
+            {
+                return [];
+            }
+
+            // Intentamos deserializar como JSON
+            try
+            {
+                var diccionario = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(valor);
+                if (diccionario != null)
+                {
+                    return diccionario;
+                }
+            }
+            catch
+            {
+                // Si falla, comprobamos si es una fecha en formato antiguo
+                if (DateTime.TryParseExact(valor, "dd/MM/yy", null, System.Globalization.DateTimeStyles.None, out var fecha))
+                {
+                    // Creamos diccionario con el banco actual
+                    return new Dictionary<string, string> { [codigoBanco] = fecha.ToString("dd/MM/yy") };
+                }
+            }
+            // Si no es ni JSON ni fecha, devolvemos vacío
+            return [];
+        }
+
         private bool MostrarEstadoPunteo(EstadoPunteo estadoPunteo)
         {
             return estadoPunteo switch
@@ -1172,18 +1281,99 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 _dialogService.ShowError("Error al puntear:\n" + ex.Message);
             }
         }
+        private void RestaurarSeleccionSiguiente()
+        {
+            // Restaurar selección en ApuntesBanco
+            if (_ultimoApunteBancoSeleccionado != null && ApuntesBancoCollectionView != null)
+            {
+                var elementosVisibles = ApuntesBancoCollectionView.Cast<ApunteBancarioWrapper>()
+                    .Where(a => a.Visible).ToList();
+
+                if (elementosVisibles.Any())
+                {
+                    ApunteBancarioWrapper siguienteElemento = null;
+
+                    // Verificar si el elemento seleccionado original aún está visible
+                    if (_ultimoApunteBancoSeleccionado.Visible)
+                    {
+                        // Si el elemento original sigue visible, mantenerlo seleccionado
+                        siguienteElemento = _ultimoApunteBancoSeleccionado;
+                    }
+                    else
+                    {
+                        // Si el elemento original desapareció, buscar el siguiente en la posición guardada
+                        if (_ultimoIndiceBancoSeleccionado < elementosVisibles.Count)
+                        {
+                            siguienteElemento = elementosVisibles[_ultimoIndiceBancoSeleccionado];
+                        }
+                        else if (elementosVisibles.Count > 0)
+                        {
+                            // Si no hay elemento en esa posición, tomar el último disponible
+                            siguienteElemento = elementosVisibles[^1];
+                        }
+                    }
+
+                    ApunteBancoSeleccionado = siguienteElemento ?? elementosVisibles.FirstOrDefault();
+                }
+            }
+
+            // Restaurar selección en ApuntesContabilidad
+            if (_ultimoApunteContabilidadSeleccionado != null && ApuntesContabilidadCollectionView != null)
+            {
+                var elementosVisibles = ApuntesContabilidadCollectionView.Cast<ContabilidadWrapper>()
+                    .Where(a => a.Visible).ToList();
+
+                if (elementosVisibles.Any())
+                {
+                    ContabilidadWrapper siguienteElemento = null;
+
+                    // Verificar si el elemento seleccionado original aún está visible
+                    if (_ultimoApunteContabilidadSeleccionado.Visible)
+                    {
+                        // Si el elemento original sigue visible, mantenerlo seleccionado
+                        siguienteElemento = _ultimoApunteContabilidadSeleccionado;
+                    }
+                    else
+                    {
+                        // Si el elemento original desapareció, buscar el siguiente en la posición guardada
+                        if (_ultimoIndiceContabilidadSeleccionado < elementosVisibles.Count)
+                        {
+                            siguienteElemento = elementosVisibles[_ultimoIndiceContabilidadSeleccionado];
+                        }
+                        else if (elementosVisibles.Count > 0)
+                        {
+                            siguienteElemento = elementosVisibles[^1];
+                        }
+                    }
+
+                    ApunteContabilidadSeleccionado = siguienteElemento ?? elementosVisibles.FirstOrDefault();
+                }
+            }
+
+            // Limpiar las referencias guardadas
+            _ultimoApunteBancoSeleccionado = null;
+            _ultimoApunteContabilidadSeleccionado = null;
+            _ultimoIndiceBancoSeleccionado = -1;
+            _ultimoIndiceContabilidadSeleccionado = -1;
+        }
+        private static string SerializarDiccionarioFechas(Dictionary<string, string> diccionario)
+        {
+            return System.Text.Json.JsonSerializer.Serialize(diccionario);
+        }
+
+        #endregion
 
 
         public override async void OnNavigatedTo(NavigationContext navigationContext)
         {
             string parametroBanco = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaUltimoBanco);
+            string fechasDesdeJson = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaDesde);
+            _fechasDesdePorBanco = LeerDiccionarioFechas(fechasDesdeJson, parametroBanco);
+
+            string fechasHastaJson = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaHasta);
+            _fechasHastaPorBanco = LeerDiccionarioFechas(fechasHastaJson, parametroBanco);
+
             BancoSeleccionado = ListaBancos.Single(b => b.Banco.Codigo == parametroBanco);
-
-            string fechaDesdeString = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaDesde);
-            FechaDesde = DateTime.ParseExact(fechaDesdeString, "dd/MM/yy", null);
-
-            string fechaHastaString = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaFechaHasta);
-            FechaHasta = DateTime.ParseExact(fechaHastaString, "dd/MM/yy", null);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Prism.Services.Dialogs;
 using System;
+using System.Threading.Tasks;
 
 namespace ControlesUsuario.Dialogs
 {
@@ -7,7 +8,7 @@ namespace ControlesUsuario.Dialogs
     {
         public static void ShowNotification(this IDialogService dialogService, string message)
         {
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "message", message }
             };
@@ -16,7 +17,7 @@ namespace ControlesUsuario.Dialogs
 
         public static void ShowNotification(this IDialogService dialogService, string title, string message)
         {
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "title", title },
                 { "message", message }
@@ -26,7 +27,7 @@ namespace ControlesUsuario.Dialogs
 
         public static void ShowError(this IDialogService dialogService, string message)
         {
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "title", "¡Error!" },
                 { "message", message }
@@ -36,7 +37,7 @@ namespace ControlesUsuario.Dialogs
 
         public static void ShowConfirmation(this IDialogService dialogService, string message, Action<IDialogResult> callBack)
         {
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "message", message }
             };
@@ -45,7 +46,7 @@ namespace ControlesUsuario.Dialogs
 
         public static void ShowConfirmation(this IDialogService dialogService, string title, string message, Action<IDialogResult> callBack)
         {
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "title", title },
                 { "message", message }
@@ -57,7 +58,7 @@ namespace ControlesUsuario.Dialogs
         {
             bool confirmed = false;
 
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "title", title },
                 { "message", message }
@@ -70,7 +71,7 @@ namespace ControlesUsuario.Dialogs
 
         public static void ShowInputAmount(this IDialogService dialogService, string message, Action<IDialogResult> callback)
         {
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "message", message }
             };
@@ -79,7 +80,7 @@ namespace ControlesUsuario.Dialogs
 
         public static void ShowInputAmount(this IDialogService dialogService, string title, string message, Action<IDialogResult> callback)
         {
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "title", title },
                 { "message", message }
@@ -89,7 +90,7 @@ namespace ControlesUsuario.Dialogs
 
         public static void ShowInputAmount(this IDialogService dialogService, string title, string message, string defaultAmount, Action<IDialogResult> callback)
         {
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "title", title },
                 { "message", message },
@@ -103,7 +104,7 @@ namespace ControlesUsuario.Dialogs
         {
             decimal? result = null;
 
-            DialogParameters p = new DialogParameters
+            DialogParameters p = new()
             {
                 { "title", title },
                 { "message", message }
@@ -118,6 +119,18 @@ namespace ControlesUsuario.Dialogs
             });
 
             return result;
+        }
+
+        public static Task<IDialogResult> ShowDialogAsync(
+            this IDialogService dialogService,
+            string name,
+            IDialogParameters parameters = null)
+        {
+            var tcs = new TaskCompletionSource<IDialogResult>();
+
+            dialogService.ShowDialog(name, parameters, tcs.SetResult);
+
+            return tcs.Task;
         }
     }
 }

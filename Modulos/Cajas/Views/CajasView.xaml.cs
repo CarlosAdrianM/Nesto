@@ -19,23 +19,20 @@ namespace Nesto.Modulos.Cajas.Views
 
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            txtImporte.Focus();
+            _ = txtImporte.Focus();
         }
 
         private void txtImporte_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                
+
                 TextBox textBox = Keyboard.FocusedElement as TextBox;
-                if (textBox != null)
-                {
-                    textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
-                }
+                _ = textBox?.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
                 // Mover el foco al botón después de completar el evento KeyUp
-                Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                _ = Application.Current.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    btnContabilizarTraspaso.Focus();
+                    _ = btnContabilizarTraspaso.Focus();
                 }));
             }
             else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift) && e.Key == Key.E)
@@ -74,7 +71,7 @@ namespace Nesto.Modulos.Cajas.Views
         {
             if (e.Key == Key.Enter)
             {
-                btnContabilizarCobro.Focus();
+                _ = btnContabilizarCobro.Focus();
             }
             else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift) && e.Key == Key.E)
             {
@@ -101,7 +98,7 @@ namespace Nesto.Modulos.Cajas.Views
 
         private void drgListaDeudas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            txtTotalCobrado.Focus();
+            _ = txtTotalCobrado.Focus();
         }
     }
 }
