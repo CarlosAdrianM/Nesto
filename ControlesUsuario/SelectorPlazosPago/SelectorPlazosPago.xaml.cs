@@ -33,11 +33,7 @@ namespace ControlesUsuario
         /// </summary>
         public string Cliente
         {
-            get { return (string)GetValue(ClienteProperty); }
-            set
-            {
-                SetValue(ClienteProperty, value);
-            }
+            get => (string)GetValue(ClienteProperty); set => SetValue(ClienteProperty, value);
         }
 
         /// <summary>
@@ -58,10 +54,7 @@ namespace ControlesUsuario
         /// </summary>
         public IConfiguracion Configuracion
         {
-            get { return (IConfiguracion)GetValue(ConfiguracionProperty); }
-            set {
-                SetValue(ConfiguracionProperty, value);
-            }
+            get => (IConfiguracion)GetValue(ConfiguracionProperty); set => SetValue(ConfiguracionProperty, value);
         }
 
         /// <summary>
@@ -76,11 +69,7 @@ namespace ControlesUsuario
         /// </summary>
         public string Empresa
         {
-            get { return (string)GetValue(EmpresaProperty); }
-            set
-            {
-                SetValue(EmpresaProperty, value);
-            }
+            get => (string)GetValue(EmpresaProperty); set => SetValue(EmpresaProperty, value);
         }
 
         /// <summary>
@@ -96,30 +85,33 @@ namespace ControlesUsuario
         /// </summary>
         public string Seleccionada
         {
-            get { return (string)GetValue(SeleccionadaProperty); }
-            set
-            {
-                SetValue(SeleccionadaProperty, value);
-            }
+            get => (string)GetValue(SeleccionadaProperty); set => SetValue(SeleccionadaProperty, value);
         }
 
         /// <summary>
         /// Identified the SELECCIONADA dependency property
         /// </summary>
         public static readonly DependencyProperty SeleccionadaProperty =
-            DependencyProperty.Register("Seleccionada", typeof(string),
-              typeof(SelectorPlazosPago));
+            DependencyProperty.Register(nameof(Seleccionada), typeof(string),
+              typeof(SelectorPlazosPago),
+                new FrameworkPropertyMetadata(new PropertyChangedCallback(OnSeleccionadaChanged)));
+        private static void OnSeleccionadaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            SelectorPlazosPago selector = (SelectorPlazosPago)d;
+            if (selector.listaPlazosPago != null && !string.IsNullOrEmpty(e.NewValue?.ToString()))
+            {
+                selector.plazosPagoSeleccionado = selector.listaPlazosPago
+                    .Where(l => l.plazoPago == e.NewValue.ToString())
+                    .SingleOrDefault();
+            }
+        }
 
         /// <summary>
         /// Gets or sets the DESCUENTO para las llamadas a la API
         /// </summary>
         public decimal Descuento
         {
-            get { return (decimal)GetValue(DescuentoProperty); }
-            set
-            {
-                SetValue(DescuentoProperty, value);
-            }
+            get => (decimal)GetValue(DescuentoProperty); set => SetValue(DescuentoProperty, value);
         }
 
         /// <summary>
@@ -136,12 +128,8 @@ namespace ControlesUsuario
         /// </summary>
         public string FormaPago
         {
-            get { return (string)GetValue(FormaPagoProperty); }
-            set
-            {
-                SetValue(FormaPagoProperty, value);
-            }
-        }        
+            get => (string)GetValue(FormaPagoProperty); set => SetValue(FormaPagoProperty, value);
+        }
         /// <summary>
         /// Identified the FormaPago dependency property
         /// </summary>
@@ -161,11 +149,7 @@ namespace ControlesUsuario
         /// </summary>
         public decimal TotalPedido
         {
-            get { return (decimal)GetValue(TotalPedidoProperty); }
-            set
-            {
-                SetValue(TotalPedidoProperty, value);
-            }
+            get => (decimal)GetValue(TotalPedidoProperty); set => SetValue(TotalPedidoProperty, value);
         }
         /// <summary>
         /// Identified the TotalPedido dependency property
@@ -187,11 +171,7 @@ namespace ControlesUsuario
         /// </summary>
         public PlazosPago PlazoPagoCompleto
         {
-            get { return (PlazosPago)GetValue(PlazoPagoCompletoProperty); }
-            set
-            {
-                SetValue(PlazoPagoCompletoProperty, value);
-            }
+            get => (PlazosPago)GetValue(PlazoPagoCompletoProperty); set => SetValue(PlazoPagoCompletoProperty, value);
         }
 
         /// <summary>
@@ -202,14 +182,10 @@ namespace ControlesUsuario
               typeof(SelectorPlazosPago));
 
 
-        
+
         public string Etiqueta
         {
-            get { return (string)GetValue(EtiquetaProperty); }
-            set
-            {
-                SetValue(EtiquetaProperty, value);
-            }
+            get => (string)GetValue(EtiquetaProperty); set => SetValue(EtiquetaProperty, value);
         }
 
         /// <summary>
@@ -222,11 +198,7 @@ namespace ControlesUsuario
 
         public Visibility VisibilidadEtiqueta
         {
-            get { return (Visibility)GetValue(VisibilidadEtiquetaProperty); }
-            set
-            {
-                SetValue(VisibilidadEtiquetaProperty, value);
-            }
+            get => (Visibility)GetValue(VisibilidadEtiquetaProperty); set => SetValue(VisibilidadEtiquetaProperty, value);
         }
 
         /// <summary>
@@ -240,35 +212,35 @@ namespace ControlesUsuario
         #endregion
 
         #region "Propiedades"
+        private bool _actualizandoPlazosPago = false;
+
         private PlazosPago _plazosPagoSeleccionado;
-        public PlazosPago plazosPagoSeleccionado {
-            get
-            {
-                return _plazosPagoSeleccionado;
-            }
+        public PlazosPago plazosPagoSeleccionado
+        {
+            get => _plazosPagoSeleccionado;
 
             set
             {
-                if (_plazosPagoSeleccionado != value)
+                if (_plazosPagoSeleccionado != value && !_actualizandoPlazosPago)
                 {
+                    _actualizandoPlazosPago = true;
                     _plazosPagoSeleccionado = value;
-                    OnPropertyChanged("plazosPagoSeleccionado");
+                    OnPropertyChanged(nameof(plazosPagoSeleccionado));
+
                     if (plazosPagoSeleccionado != null)
                     {
                         Seleccionada = plazosPagoSeleccionado.plazoPago;
                         Descuento = plazosPagoSeleccionado.descuentoPP;
                     }
                     PlazoPagoCompleto = plazosPagoSeleccionado;
+                    _actualizandoPlazosPago = false;
                 }
             }
         }
         private ObservableCollection<PlazosPago> _listaPlazosPago;
         public ObservableCollection<PlazosPago> listaPlazosPago
         {
-            get
-            {
-                return _listaPlazosPago;
-            }
+            get => _listaPlazosPago;
             set
             {
                 _listaPlazosPago = value;
@@ -281,45 +253,43 @@ namespace ControlesUsuario
         #region "Funciones Auxiliares"
         private async void cargarDatos()
         {
-            using (HttpClient client = new HttpClient())
+            using HttpClient client = new();
+            client.BaseAddress = new Uri(Configuracion.servidorAPI);
+            HttpResponseMessage response;
+
+            try
             {
-                client.BaseAddress = new Uri(Configuracion.servidorAPI);
-                HttpResponseMessage response;
-
-                try
+                string urlConsulta = "PlazosPago?empresa=" + Empresa;
+                if (Cliente != string.Empty)
                 {
-                    string urlConsulta = "PlazosPago?empresa=" + Empresa;
-                    if (Cliente != string.Empty)
-                    {
-                        urlConsulta += "&cliente=" + Cliente;
-                    }
-                    if (!string.IsNullOrEmpty(FormaPago) && TotalPedido != 0)
-                    {
-                        urlConsulta += $"&formaPago={FormaPago}&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}";
-                    }
-
-                    response = await client.GetAsync(urlConsulta);
-                    
-                    if (response.IsSuccessStatusCode)
-                    {
-                        string resultado = await response.Content.ReadAsStringAsync();
-                        listaPlazosPago = JsonConvert.DeserializeObject<ObservableCollection<PlazosPago>>(resultado);
-                        plazosPagoSeleccionado = listaPlazosPago.Where(l => l.plazoPago == Seleccionada).SingleOrDefault();
-                    }                    
-                } catch
-                {
-                    MessageBox.Show("No se pudieron leer los plazos de pago");
+                    urlConsulta += "&cliente=" + Cliente;
                 }
+                if (!string.IsNullOrEmpty(FormaPago) && TotalPedido != 0)
+                {
+                    urlConsulta += $"&formaPago={FormaPago}&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}";
+                }
+
+                response = await client.GetAsync(urlConsulta);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    listaPlazosPago = JsonConvert.DeserializeObject<ObservableCollection<PlazosPago>>(resultado);
+                    if (!string.IsNullOrEmpty(Seleccionada))
+                    {
+                        plazosPagoSeleccionado = listaPlazosPago.Where(l => l.plazoPago == Seleccionada).SingleOrDefault();
+                    }
+                }
+            }
+            catch
+            {
+                _ = MessageBox.Show("No se pudieron leer los plazos de pago");
             }
         }
 
         protected void OnPropertyChanged(string name)
         {
-            PropertyChangedEventHandler handler = PropertyChanged;
-            if (handler != null)
-            {
-                handler(this, new PropertyChangedEventArgs(name));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
         #endregion
 

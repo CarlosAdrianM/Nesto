@@ -4,6 +4,7 @@
     <RootNamespace>Nesto.Models</RootNamespace>
     <MyType>Empty</MyType>
     <TargetFramework>net48</TargetFramework>
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>

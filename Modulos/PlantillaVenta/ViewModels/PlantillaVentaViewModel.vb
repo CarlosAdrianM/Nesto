@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.ComponentModel.DataAnnotations
 Imports System.Net.Http
 Imports System.Text
 Imports ControlesUsuario.Dialogs
@@ -1455,7 +1456,32 @@ Public Class PlantillaVentaViewModel
             Dim numPedido As String
 
             If PedidoPendienteSeleccionado = 0 Then
-                numPedido = Await servicio.CrearPedido(pedido)
+                Dim crearEx As Exception = Nothing
+                Try
+                    numPedido = Await servicio.CrearPedido(pedido)
+                Catch ex As ValidationException
+                    crearEx = ex
+                    Dim puedeCrearSinPasarValidacion As Boolean = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                        configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+                    If Not puedeCrearSinPasarValidacion Then
+                        Throw crearEx
+                    End If
+                End Try
+
+                If crearEx IsNot Nothing Then
+                    ' Ahora sí estamos fuera del Catch y podemos Await el diálogo
+                    Dim mensaje As String = crearEx.Message & vbCrLf & "¿Desea crearlo de todos modos?"
+                    Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Pedido no válido", mensaje)
+
+                    If confirmar Then
+                        pedido.CreadoSinPasarValidacion = True
+                        ' Reintento (si vuelve a fallar, la excepción se propagará y será capturada por el Catch exterior)
+                        numPedido = Await servicio.CrearPedido(pedido)
+                    Else
+                        ' El usuario no quiere forzar el pedido: relanzamos la excepción original para que la maneje el Catch exterior
+                        Throw crearEx
+                    End If
+                End If
             Else
                 Dim pedidoUnido As PedidoVentaDTO = Await servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido)
                 numPedido = pedidoUnido.numero.ToString

@@ -1,15 +1,13 @@
 ﻿Imports System.Collections.ObjectModel
-Imports System.ComponentModel
-Imports System.Runtime.CompilerServices
 Imports System.Runtime.Serialization
 
 
 Public Class PedidoVentaDTO
     Inherits PedidoBase(Of LineaPedidoVentaDTO)
     Public Sub New()
-        Me.Lineas = New List(Of LineaPedidoVentaDTO)()
-        Me.Prepagos = New ObservableCollection(Of PrepagoDTO)
-        Me.Efectos = New ListaEfectos()
+        Lineas = New List(Of LineaPedidoVentaDTO)()
+        Prepagos = New ObservableCollection(Of PrepagoDTO)
+        Efectos = New ListaEfectos()
     End Sub
 
     Public Property empresa() As String
@@ -21,7 +19,6 @@ Public Class PedidoVentaDTO
     Public Property plazosPago() As String
     Public Property primerVencimiento() As Nullable(Of System.DateTime)
     Public Property iva() As String
-
     Public Property vendedor As String
     Public Property comentarios() As String
     Public Property comentarioPicking() As String
@@ -49,6 +46,7 @@ Public Class PedidoVentaDTO
     Public Property servirJunto() As Boolean
     Public Property EsPresupuesto() As Boolean = False
     Public Property notaEntrega As Boolean
+    Public Property CreadoSinPasarValidacion As Boolean
 
     Public ReadOnly Property Bruto As Decimal
         Get
@@ -92,26 +90,6 @@ Public Class PedidoVentaDTO
             Return totalParcial
         End Get
     End Property
-
-    'Private Function calcularBaseImponibleLinea(linea As LineaPedidoVentaDTO)
-    '    ' Una vez veamos que funciona, eliminar esta función y usar el campo directamente
-    '    'Return linea.bruto * (1 - sumaDescuentos(linea)) * (1 - DescuentoPP)
-    '    Return linea.BaseImponible
-    'End Function
-
-    'Private Function calcularTotalLinea(linea As LineaPedidoVentaDTO)
-    '    ' Una vez veamos que funciona, eliminar esta función y usar el campo directamente
-    '    'If IsNothing(Me.iva) OrElse (iva = "EX") Then
-    '    '    Return calcularBaseImponibleLinea(linea)
-    '    'ElseIf Me.iva = "R10" Then
-    '    '    Return calcularBaseImponibleLinea(linea) * 1.1
-    '    'ElseIf Me.iva = "SR4" Then
-    '    '    Return calcularBaseImponibleLinea(linea) * 1.04
-    '    'Else
-    '    '    Return calcularBaseImponibleLinea(linea) * 1.21
-    '    'End If
-    '    Return linea.Total
-    'End Function
 
     Public Overridable Property Efectos As ListaEfectos
     Public Overridable Property Prepagos() As ObservableCollection(Of PrepagoDTO)

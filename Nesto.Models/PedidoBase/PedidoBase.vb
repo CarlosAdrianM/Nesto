@@ -29,13 +29,13 @@
     End Property
     Public ReadOnly Property BaseImponible As Decimal
         Get
-            Return Math.Round(Lineas.Sum(Function(l) l.BaseImponible), 2, MidpointRounding.AwayFromZero)
+            Return RoundingHelper.Vb6Round(Lineas.Sum(Function(l) l.BaseImponible), 2)
         End Get
     End Property
 
     Public ReadOnly Property Total As Decimal
         Get
-            Return Math.Round(Lineas.Sum(Function(l) l.Total), 2, MidpointRounding.AwayFromZero)
+            Return RoundingHelper.Vb6Round(Lineas.Sum(Function(l) l.Total), 2)
         End Get
     End Property
 

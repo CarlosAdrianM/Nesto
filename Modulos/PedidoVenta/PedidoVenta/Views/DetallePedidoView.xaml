@@ -15,17 +15,25 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
 
-        <Style x:Key="DataGridCellStyle" TargetType="DataGridRow">
-            <Setter Property="IsEnabled" Value="True"/>
+        <Style x:Key="DataGridRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="Cursor" Value="Arrow"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding estaAlbaraneada}" Value="True">
-                    <Setter Property="IsEnabled" Value="False" />
+                    <Setter Property="Background" Value="LightGray"/>
+                    <Setter Property="Foreground" Value="Gray"/>
+                    <Setter Property="Cursor" Value="No"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding tienePicking}" Value="True">
-                    <Setter Property="IsEnabled" Value="False" />
+                    <Setter Property="Background" Value="LightGray"/>
+                    <Setter Property="Foreground" Value="Gray"/>
+                    <Setter Property="Cursor" Value="No"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+
 
         <local:PercentageConverter x:Key="porcentajeConverter" />
     </UserControl.Resources>
@@ -36,7 +44,7 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TabControl Grid.Row="0">
+            <TabControl x:Name="TabControl" Grid.Row="0">
                 <TabItem Header="Cabecera">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top">
@@ -54,7 +62,26 @@
                                     <TextBlock Text="Pedido: "></TextBlock>
                                     <TextBlock Text="{Binding pedido.numero}"></TextBlock>
                                     <TextBlock Text="Cliente: "></TextBlock>
-                                    <TextBlock Text="{Binding pedido.cliente}"></TextBlock>
+                                    <controles:SelectorCliente Name="txtSelectorCliente"
+                                                               Empresa="1"
+                                                               Contacto="{Binding DataContext.pedido.contacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                               Cliente="{Binding DataContext.pedido.cliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                        <controles:SelectorCliente.Style>
+                                            <Style TargetType="controles:SelectorCliente">
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                                <!-- Por defecto habilitado -->
+                                                <Style.Triggers>
+                                                    <!-- Deshabilitar si está vacío o nulo -->
+                                                    <DataTrigger Binding="{Binding DataContext.pedido.cliente, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="">
+                                                        <Setter Property="IsEnabled" Value="True"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding DataContext.pedido.cliente, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="{x:Null}">
+                                                        <Setter Property="IsEnabled" Value="True"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </controles:SelectorCliente.Style>
+                                    </controles:SelectorCliente>
                                     <TextBlock Text="Fecha pedido:"></TextBlock>
                                     <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
                                     <CheckBox IsChecked="{Binding pedido.notaEntrega}" IsEnabled="False">Nota de Entrega</CheckBox>
@@ -86,17 +113,18 @@
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Grid.Row="0" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
-                                <Button Grid.Column="1" Grid.Row="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
-                                <Button Grid.Column="2" Grid.Row="0" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
-                                <Button Grid.Column="3" Grid.Row="0" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
-                                <Button Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
+                                <Button Grid.Column="0" Grid.Row="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
+                                <Button Grid.Column="1" Grid.Row="0" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
+                                <Button Grid.Column="2" Grid.Row="0" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
+                                <Button Grid.Column="3" Grid.Row="0" Command="{Binding ImprimirFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Factura</Button>
+                                <Button Grid.Column="0" Grid.Row="1" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
+                                <Button Grid.Column="1" Grid.Row="1" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
                                 <Button Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="2" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>
                         
-                        <DataGrid Name="grdLineasCabecera" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.Lineas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}" CanUserAddRows="False" IsReadOnly="True">
+                        <DataGrid Name="grdLineasCabecera" DockPanel.Dock="Bottom" ItemsSource="{Binding pedido.Lineas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridRowStyle}" CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
                                 <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
@@ -126,7 +154,7 @@
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
                                 <DataGridCheckBoxColumn Header="Aplicar Dto." Width="Auto" Binding="{Binding AplicarDescuento, UpdateSourceTrigger=PropertyChanged}"/>
-                                <DataGridTextColumn Header="Almacén" Width="Auto" Binding="{Binding almacen}"/>
+                                <DataGridTextColumn Header="Almacén" Width="Auto" Binding="{Binding Almacen}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </DockPanel>
@@ -137,7 +165,13 @@
                             <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
-                        <controles:SelectorDireccionEntrega Grid.Column="0" DireccionCompleta="{Binding DireccionEntregaSeleccionada, Mode=TwoWay}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.contacto, Mode=TwoWay}"></controles:SelectorDireccionEntrega>
+                        <controles:SelectorDireccionEntrega 
+                            Grid.Column="0" 
+                            DireccionCompleta="{Binding DireccionEntregaSeleccionada, Mode=TwoWay}" 
+                            Empresa="{Binding pedido.empresa}" 
+                            Cliente="{Binding pedido.cliente}" 
+                            Seleccionada="{Binding pedido.contacto, Mode=TwoWay}">
+                        </controles:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
                             <TextBlock Text="Fecha de Entrega:"></TextBlock>
                             <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>
@@ -171,7 +205,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="3">
                             <controles:SelectorFormaPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.formaPago, Mode=TwoWay}"></controles:SelectorFormaPago>
-                            <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}" Descuento="{Binding pedido.DescuentoPP, Mode=TwoWay}" TotalPedido="{Binding pedido.Total}" ></controles:SelectorPlazosPago>
+                            <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}" Descuento="{Binding pedido.DescuentoPP, Mode=TwoWay}" TotalPedido="{Binding pedido.Total}" PlazoPagoCompleto="{Binding PlazoPagoCompleto, Mode=TwoWay}" ></controles:SelectorPlazosPago>
                             <TextBlock Text="Fecha vencimiento:"></TextBlock>
                             <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
                             <TextBlock></TextBlock>
@@ -252,13 +286,16 @@
                     </Grid>
                     
                 </TabItem>
-                <TabItem Header="Líneas">
+                <TabItem Header="Líneas" ToolTip="Alt + L">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="3*"/>
                             <ColumnDefinition Width="2*"/>
                         </Grid.ColumnDefinitions>
-                        <DataGrid Name="grdLineas" Grid.Column="0" ItemsSource="{Binding pedido.Lineas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridCellStyle}" CanUserAddRows="True" IsReadOnly="False">
+                        <DataGrid Name="grdLineas"  Grid.Column="0" ItemsSource="{Binding pedido.Lineas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" 
+                                  CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridRowStyle}" CanUserAddRows="True" IsReadOnly="False"
+                                  BeginningEdit="grdLineas_BeginningEdit"
+                                  PreviewKeyDown="grdLineas_PreviewKeyDown">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
                                 <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
@@ -316,7 +353,7 @@
                                 </xctk:EditorTemplateDefinition>
                             </xctk:PropertyGrid.EditorDefinitions>
                             <xctk:PropertyGrid.PropertyDefinitions>
-                                <xctk:PropertyDefinition TargetProperties="almacen" DisplayName="Almacén"/>
+                                <xctk:PropertyDefinition TargetProperties="Almacen" DisplayName="Almacén"/>
                                 <xctk:PropertyDefinition TargetProperties="AplicarDescuento" DisplayName="Aplicar Descuento" />
                                 <xctk:PropertyDefinition TargetProperties="Bruto" DisplayName="Importe Bruto"/>
                                 <xctk:PropertyDefinition TargetProperties="Cantidad" DisplayName="Cantidad"/>
@@ -346,7 +383,7 @@
                 </TabItem>
             </TabControl>
             <StackPanel Grid.Row="1">
-                <Button Command="{Binding cmdModificarPedido}">Modificar Pedido</Button>
+                <Button Command="{Binding cmdModificarPedido}" Content="{Binding TextoBotonGuardar}" />
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3*"/>
@@ -376,11 +413,6 @@
                     <TextBlock Grid.Column="3" Grid.Row="0" Text="Descuento Pedido:"></TextBlock>
                     <TextBox Grid.Column="4" Grid.Row="0" Name="txtDescuentoPedido" Text="{Binding descuentoPedido, StringFormat=p, Converter={StaticResource porcentajeConverter}}"></TextBox>
                 </Grid>
-
-
-
-
-
             </StackPanel>
         </Grid>
     </xctk:BusyIndicator>

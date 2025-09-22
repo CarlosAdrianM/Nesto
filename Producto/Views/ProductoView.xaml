@@ -558,7 +558,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto"/>
                         <RowDefinition/>
                     </Grid.RowDefinitions>
@@ -580,7 +580,7 @@
                     </StackPanel>
                     <TextBlock Grid.Row="1" Grid.Column="0" Text="Kits a montar (negativo para desmontar)" HorizontalAlignment="Right" Margin="3"></TextBlock>
                     <xctk:IntegerUpDown Grid.Row="1" Grid.Column="1" Margin="3" Value="{Binding CantidadKitMontar, UpdateSourceTrigger=PropertyChanged}"></xctk:IntegerUpDown>
-                    <Button Grid.Row="2" Grid.Column="1" Margin="3" Command="{Binding MontarKitCommand}">Montar kit</Button>
+                    <Button Grid.Row="2" Grid.Column="1" Margin="3" Command="{Binding MontarKitCommand}" IsEnabled="{Binding ProductoActual.EsKit}">Montar kit</Button>
                 </Grid>
             </TabItem>
         </TabControl>

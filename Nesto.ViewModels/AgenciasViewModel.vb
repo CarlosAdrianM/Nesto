@@ -20,7 +20,9 @@ Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.Cajas.Interfaces
 Imports Nesto.Modulos.PedidoVenta
+Imports PdfiumViewer
 Imports Prism.Commands
+Imports Prism.Ioc
 Imports Prism.Mvvm
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
@@ -103,7 +105,9 @@ Public Class AgenciasViewModel
     ' tengamos todas esas propiedades con un PropertyChanged y change tracking
 
     Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
-        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService), configuracion, dialogService, New PedidoVentaService(configuracion))
+        Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
+        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion))
+        'Dim agenciasVM = container.Resolve(Of AgenciasViewModel)()
         agenciasVM.InsertarEnvioPendienteCommand.Execute()
         If etiqueta.Agencia = 0 Then
             agenciasVM.agenciaSeleccionada = agenciasVM.listaAgencias.Single(Function(a) a.Numero = 1) ' ASM/GLS
@@ -1427,16 +1431,15 @@ Public Class AgenciasViewModel
             If Not _imprimirFacturaAlFacturar OrElse factura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
                 Return
             End If
-            Dim pathFactura = Await _servicioPedidos.DescargarFactura(envioActual.Empresa, envioActual.Pedido, envioActual.Cliente.Trim())
-            Dim printProcess As New Process With {
-                .StartInfo = New ProcessStartInfo With {
-                    .FileName = pathFactura,
-                    .Verb = "print",
-                    .CreateNoWindow = True,
-                    .UseShellExecute = True
-                }
-            }
-            Dim unused = printProcess.Start()
+
+            Dim pdfBytes As Byte() = Await _servicioPedidos.CargarFactura(envioActual.Empresa, factura)
+            Using stream As New MemoryStream(pdfBytes)
+                Using document As PdfDocument = PdfDocument.Load(stream)
+                    Using printDocument = document.CreatePrintDocument()
+                        printDocument.Print()
+                    End Using
+                End Using
+            End Using
 
             RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
         Catch ex As Exception

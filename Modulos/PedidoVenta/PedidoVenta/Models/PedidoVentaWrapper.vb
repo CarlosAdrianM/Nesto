@@ -7,18 +7,21 @@ Imports Prism.Mvvm
 Public Class PedidoVentaWrapper
     Inherits BindableBase
 
+    Public Event IvaCambiado(nuevoIva As String)
+
     Public Sub New(pedido As PedidoVentaDTO)
         If IsNothing(pedido) Then
             Return
         End If
-        Me.Model = pedido
+        Model = pedido
         Lineas = New ObservableCollection(Of LineaPedidoVentaWrapper)
         AddHandler Lineas.CollectionChanged, AddressOf ContentCollectionChanged
         AddHandler Prepagos.CollectionChanged, AddressOf PrepagosCollectionChanged
 
         For Each linea In Model.Lineas
-            Dim lineaNueva As New LineaPedidoVentaWrapper(linea)
-            lineaNueva.Pedido = Me
+            Dim lineaNueva As New LineaPedidoVentaWrapper(linea) With {
+                .Pedido = Me
+            }
             Lineas.Add(lineaNueva)
         Next
     End Sub
@@ -34,7 +37,7 @@ Public Class PedidoVentaWrapper
             For Each detail In value
                 detail.Pedido = Me
             Next
-            SetProperty(_lineas, value)
+            Dim unused = SetProperty(_lineas, value)
         End Set
     End Property
 
@@ -97,6 +100,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As String)
             Model.plazosPago = value
+            RaisePropertyChanged(NameOf(plazosPago))
         End Set
     End Property
     Public Property primerVencimiento() As Nullable(Of System.DateTime)
@@ -105,6 +109,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As Nullable(Of System.DateTime))
             Model.primerVencimiento = value
+            RaisePropertyChanged(NameOf(primerVencimiento))
         End Set
     End Property
     Public Property iva() As String
@@ -113,6 +118,8 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As String)
             Model.iva = value
+            RaisePropertyChanged(NameOf(iva))
+            RaiseEvent IvaCambiado(value)
         End Set
     End Property
 
@@ -340,7 +347,8 @@ Public Class PedidoVentaWrapper
                     If item.id = 0 Then
                         item.Pedido = Me
                         Dim posicion As Integer = Lineas.IndexOf(item)
-                        DirectCast(Model.Lineas, List(Of LineaPedidoVentaDTO)).Insert(posicion, item.Model)
+                        Dim lista = DirectCast(Model.Lineas, IList(Of LineaPedidoVentaDTO))
+                        lista.Insert(posicion, item.Model)
                     End If
                 End If
             Next
@@ -350,7 +358,7 @@ Public Class PedidoVentaWrapper
             For Each item As LineaPedidoVentaWrapper In e.OldItems
                 If item IsNot Nothing Then
                     RemoveHandler item.PropertyChanged, AddressOf LineaOnPropertyChanged
-                    Model.Lineas.Remove(item.Model)
+                    Dim unused = Model.Lineas.Remove(item.Model)
                 End If
             Next
             RaisePropertyChanged(String.Empty)

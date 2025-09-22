@@ -13,7 +13,7 @@
 
     Public ReadOnly Property BaseImponible As Decimal
         Get
-            Return Math.Round(Bruto - ImporteDescuento, 2, MidpointRounding.AwayFromZero)
+            Return RoundingHelper.Vb6Round(Bruto - ImporteDescuento, 2)
         End Get
     End Property
     Public Overridable ReadOnly Property Bruto As Decimal
@@ -40,11 +40,7 @@
     End Property
     Public Overridable ReadOnly Property SumaDescuentos As Decimal
         Get
-            If AplicarDescuento Then
-                Return 1 - (1 - DescuentoEntidad) * (1 - DescuentoProducto) * (1 - DescuentoLinea)
-            Else
-                Return DescuentoLinea
-            End If
+            Return If(AplicarDescuento, 1 - ((1 - DescuentoEntidad) * (1 - DescuentoProducto) * (1 - DescuentoLinea)), DescuentoLinea)
         End Get
     End Property
     Public Overridable ReadOnly Property Total As Decimal

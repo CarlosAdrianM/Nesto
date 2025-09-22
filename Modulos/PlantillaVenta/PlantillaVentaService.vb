@@ -1,12 +1,10 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.ComponentModel.DataAnnotations
 Imports System.Net.Http
 Imports System.Text
-Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.[Shared]
-Imports Nesto.Infrastructure.Shared.Constantes
 Imports Nesto.Models
-Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.Cliente
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
@@ -17,8 +15,11 @@ Public Class PlantillaVentaService
     Implements IPlantillaVentaService
 
     Private ReadOnly configuracion As IConfiguracion
-    Public Sub New(configuracion As IConfiguracion)
+    Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+
+    Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
+        _servicioAutenticacion = servicioAutenticacion
     End Sub
 
     Public Async Sub EnviarCobroTarjeta(correo As String, movil As String, totalPedido As Decimal, pedido As String, cliente As String) Implements IPlantillaVentaService.EnviarCobroTarjeta
@@ -39,18 +40,10 @@ Public Class PlantillaVentaService
             Try
                 Dim urlConsulta As String = "ReclamacionDeuda"
                 Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
-                Dim content As StringContent = New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
+                Dim content As New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
                 response = Await client.PostAsync(urlConsulta, content)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                    'reclamacion = JsonConvert.DeserializeObject(Of ReclamacionDeuda)(respuesta)
-                    'If reclamacion.TramitadoOK Then
-                    '   EnlaceReclamarDeuda = reclamacion.Enlace
-                    'End If
-                Else
-                    respuesta = String.Empty
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), String.Empty)
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido procesar la reclamación de deuda")
@@ -68,11 +61,9 @@ Public Class PlantillaVentaService
 
 
             Try
-                If todosLosVendedores Then
-                    response = Await client.GetAsync("Clientes?empresa=1&filtro=" + filtroCliente)
-                Else
-                    response = Await client.GetAsync("Clientes?empresa=1&vendedor=" + vendedor + "&filtro=" + filtroCliente)
-                End If
+                response = If(todosLosVendedores,
+                    Await client.GetAsync("Clientes?empresa=1&filtro=" + filtroCliente),
+                    Await client.GetAsync("Clientes?empresa=1&vendedor=" + vendedor + "&filtro=" + filtroCliente))
 
 
                 If response.IsSuccessStatusCode Then
@@ -149,9 +140,10 @@ Public Class PlantillaVentaService
     End Function
 
     Public Async Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String) As Task(Of ObservableCollection(Of LineaPlantillaVenta)) Implements IPlantillaVentaService.PonerStocks
-        Dim param As PonerStockParam = New PonerStockParam()
-        param.Lineas = lineas.ToList()
-        param.Almacen = almacen
+        Dim param As New PonerStockParam With {
+            .Lineas = lineas.ToList(),
+            .Almacen = almacen
+        }
 
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
@@ -161,7 +153,7 @@ Public Class PlantillaVentaService
             Try
                 Dim urlConsulta As String = "PlantillaVentas/PonerStock"
                 Dim paramJson As String = JsonConvert.SerializeObject(param)
-                Dim content As StringContent = New StringContent(paramJson, Encoding.UTF8, "application/json")
+                Dim content As New StringContent(paramJson, Encoding.UTF8, "application/json")
                 response = Await client.PostAsync(urlConsulta, content)
 
                 If response.IsSuccessStatusCode Then
@@ -204,8 +196,12 @@ Public Class PlantillaVentaService
     End Function
 
     Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of String) Implements IPlantillaVentaService.CrearPedido
+        ' TO-DO: llamar al método CrearPedido del servicio de pedidos y eliminar este código duplicado
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
             Dim response As HttpResponseMessage
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
@@ -233,8 +229,20 @@ Public Class PlantillaVentaService
                         contenido = contenido + vbCr + contenido2
                     End While
 
-                    Throw New Exception(contenido)
+                    ' Aquí comprobamos si es ValidationException
+                    Dim tipoEx As String = CStr(detallesError("ExceptionType"))
+                    If String.IsNullOrEmpty(tipoEx) Then
+                        tipoEx = CStr(detallesError("exceptionType"))
+                    End If
+
+                    If Not String.IsNullOrEmpty(tipoEx) AndAlso tipoEx.Contains("ValidationException") Then
+                        Throw New System.ComponentModel.DataAnnotations.ValidationException(contenido)
+                    Else
+                        Throw New Exception(contenido)
+                    End If
                 End If
+            Catch ex As ValidationException
+                Throw
             Catch ex As Exception
                 Throw New Exception(ex.Message)
             End Try
@@ -297,12 +305,12 @@ Public Class PlantillaVentaService
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
             Try
-                Dim urlConsulta As String = $"PedidosVenta/FechaAjustada?fecha={fecha.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}&ruta={ruta}&almacen={almacen}"
+                Dim urlConsulta As String = $"PedidosVenta/FechaAjustada?fecha={fecha:yyyy-MM-ddTHH:mm:ss.fffZ}&ruta={ruta}&almacen={almacen}"
                 response = Await client.GetAsync(urlConsulta)
 
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
-                    Dim fechaAjustada As DateTime = JsonConvert.DeserializeObject(Of DateTime)(cadenaJson)
+                    Dim fechaAjustada As Date = JsonConvert.DeserializeObject(Of Date)(cadenaJson)
                     Return fechaAjustada
                 Else
                     Throw New Exception("Se ha producido un error al calcular la fecha de entrega")

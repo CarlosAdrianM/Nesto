@@ -314,14 +314,14 @@ namespace Nesto.Modules.Producto.ViewModels
                     RaisePropertyChanged(nameof(UrlVideoProductoSeleccionado));
 
                     // Filtrar productos del video que mencionan al producto actual (por referencia o por nombre)
-                    OtrosProductosEnEsteVideo = new ObservableCollection<ProductoVideoModel>(_videoCompletoSeleccionado?.Productos != null && ProductoActual != null
-                        ? _videoCompletoSeleccionado.Productos
-                            .Where(p =>
-                                string.Equals(p.Referencia, ProductoActual.Producto, StringComparison.OrdinalIgnoreCase) ||
-                                (p.NombreProducto?.Contains(ProductoActual.Nombre, StringComparison.OrdinalIgnoreCase) ?? false)
-                            )
-                            .ToList()
-                        : null);
+                    OtrosProductosEnEsteVideo = new ObservableCollection<ProductoVideoModel>(
+                         (_videoCompletoSeleccionado?.Productos != null && ProductoActual != null
+                             ? _videoCompletoSeleccionado.Productos
+                                 .ToList()
+                             : null
+                         ) ?? []
+                     );
+
                     RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
                     CorrigeVideoProductoCommand.RaiseCanExecuteChanged();
                 }

@@ -31,6 +31,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
             <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
@@ -104,6 +105,14 @@
             <CheckBox Grid.Row="3" IsChecked="{Binding mostrarPresupuestos}">Mostrar Presupuestos</CheckBox>
             <CheckBox Grid.Row="4" IsChecked="{Binding mostrarSoloPendientes}">Mostrar Sólo Pendientes</CheckBox>
             <CheckBox Grid.Row="5" IsChecked="{Binding mostrarSoloPicking}">Mostrar Sólo Picking</CheckBox>
+
+            <Button Grid.Row="6" Content="Crear Pedido Nuevo" 
+                    Command="{Binding CrearPedidoCommand}"
+                    Visibility="{Binding EstaCreandoPedidoInvertida, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <Button Grid.Row="6" Content="Cancelar Creación Pedido" 
+                    Command="{Binding CancelarCreacionCommand}"
+                    Visibility="{Binding EstaCreandoPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/> 
         </Grid>
         </xctk:BusyIndicator>
         

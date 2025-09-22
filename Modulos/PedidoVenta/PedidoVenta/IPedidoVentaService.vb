@@ -18,4 +18,6 @@ Public Interface IPedidoVentaService
     Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of String)
     Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
     Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String) As Task(Of String)
+    Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer)
+    Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase))
 End Interface

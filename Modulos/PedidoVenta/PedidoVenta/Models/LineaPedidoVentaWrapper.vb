@@ -19,11 +19,19 @@ Public Class LineaPedidoVentaWrapper
             Return _pedido
         End Get
         Set(value As PedidoVentaWrapper)
-            SetProperty(_pedido, value)
+            Dim unused = SetProperty(_pedido, value)
         End Set
     End Property
 
-    Public Property almacen() As String
+    Public Property Almacen() As String
+        Get
+            Return Model.almacen
+        End Get
+        Set(value As String)
+            Model.almacen = value
+            RaisePropertyChanged(NameOf(Almacen))
+        End Set
+    End Property
 
     Public Property AplicarDescuento() As Boolean
         Get
@@ -50,6 +58,14 @@ Public Class LineaPedidoVentaWrapper
         End Set
     End Property
     Public Property delegacion() As String
+        Get
+            Return Model.delegacion
+        End Get
+        Set(value As String)
+            Model.delegacion = value
+            RaisePropertyChanged(NameOf(delegacion))
+        End Set
+    End Property
     Public Property DescuentoCliente As Decimal
         Get
             Return Model.DescuentoCliente
@@ -107,11 +123,20 @@ Public Class LineaPedidoVentaWrapper
             RaisePropertyChanged(NameOf(estado))
         End Set
     End Property
-    Public Property fechaEntrega() As System.DateTime
+    Public Property Factura As String
+        Get
+            Return Model.Factura
+        End Get
+        Set(value As String)
+            Model.Factura = value
+            RaisePropertyChanged(NameOf(Factura))
+        End Set
+    End Property
+    Public Property fechaEntrega() As Date
         Get
             Return Model.fechaEntrega
         End Get
-        Set(value As System.DateTime)
+        Set(value As Date)
             Model.fechaEntrega = value
             RaisePropertyChanged(NameOf(fechaEntrega))
         End Set
@@ -138,7 +163,17 @@ Public Class LineaPedidoVentaWrapper
             Return Model.iva
         End Get
         Set(value As String)
-            Model.iva = value
+            Dim parametroIva = Pedido.Model.ParametrosIva.SingleOrDefault(Function(p) p.CodigoIvaProducto.ToLower() = value.ToLower())
+            If Not IsNothing(parametroIva) Then
+                Model.iva = parametroIva.CodigoIvaProducto
+                Model.PorcentajeIva = parametroIva.PorcentajeIvaProducto
+                Model.PorcentajeRecargoEquivalencia = parametroIva.PorcentajeIvaRecargoEquivalencia
+            Else
+                Model.iva = value
+                Model.PorcentajeIva = 0
+                Model.PorcentajeRecargoEquivalencia = 0
+            End If
+
             RaisePropertyChanged(NameOf(iva))
             RaisePropertyChanged(NameOf(Total))
         End Set

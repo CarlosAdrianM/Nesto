@@ -68,6 +68,28 @@ namespace ControlesUsuario.Dialogs
             return confirmed;
         }
 
+        public static Task<bool> ShowConfirmationAsync(this IDialogService dialogService, string message)
+        {
+            return dialogService.ShowConfirmationAsync("Confirmación", message);
+        }
+
+        public static Task<bool> ShowConfirmationAsync(this IDialogService dialogService, string title, string message)
+        {
+            var tcs = new TaskCompletionSource<bool>();
+
+            var p = new DialogParameters
+        {
+            { "title", title },
+            { "message", message }
+        };
+
+            dialogService.ShowDialog("ConfirmationDialog", p, r =>
+            {
+                tcs.SetResult(r.Result == ButtonResult.OK);
+            });
+
+            return tcs.Task;
+        }
 
         public static void ShowInputAmount(this IDialogService dialogService, string message, Action<IDialogResult> callback)
         {

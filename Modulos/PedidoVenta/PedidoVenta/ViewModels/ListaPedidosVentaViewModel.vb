@@ -1,15 +1,14 @@
 ﻿Imports System.Collections.ObjectModel
+Imports ControlesUsuario.Dialogs
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Events
+Imports Nesto.Models
+Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Commands
 Imports Prism.Events
-Imports Prism.Regions
-Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Mvvm
+Imports Prism.Regions
 Imports Prism.Services.Dialogs
-Imports ControlesUsuario.Dialogs
-Imports Nesto.Infrastructure.Events
-Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Infrastructure.Shared
-Imports Nesto.Models
 
 Public Class ListaPedidosVentaViewModel
     Inherits BindableBase
@@ -20,7 +19,10 @@ Public Class ListaPedidosVentaViewModel
     Private ReadOnly dialogService As IDialogService
 
     Private vendedor As String
-    Private verTodosLosVendedores As Boolean = False
+    Private ReadOnly verTodosLosVendedores As Boolean = False
+
+    Public Event PedidoCreadoConfirmado(numeroPedido As Integer)
+    Public Event PedidoCreacionCancelada()
 
     Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService)
         Me.configuracion = configuracion
@@ -28,9 +30,12 @@ Public Class ListaPedidosVentaViewModel
         Me.dialogService = dialogService
 
         cmdCargarListaPedidos = New DelegateCommand(AddressOf OnCargarListaPedidos)
+        CrearPedidoCommand = New DelegateCommand(AddressOf OnCrearPedido)
+        CancelarCreacionCommand = New DelegateCommand(AddressOf OnCancelarCreacion)
 
-        eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
-        eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
+        Dim unused3 = eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
+        Dim unused2 = eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
+        Dim unused1 = eventAggregator.GetEvent(Of PedidoCreadoEvent).Subscribe(AddressOf OnPedidoCreado)
 
         ListaPedidos = New ColeccionFiltrable With {
             .TieneDatosIniciales = True,
@@ -38,12 +43,14 @@ Public Class ListaPedidosVentaViewModel
         }
 
         'AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender, args) resumenSeleccionado = ListaPedidos.ElementoSeleccionado
-        AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender, args) CargarResumenSeleccionado()
+        AddHandler ListaPedidos.ElementoSeleccionadoChanged, Sub(sender, args)
+                                                                 Dim unused = CargarResumenSeleccionado()
+                                                             End Sub
 
         AddHandler ListaPedidos.HayQueCargarDatos, Sub()
                                                        Dim numeroPedido As Integer
                                                        If Not IsNothing(ListaPedidos) AndAlso Not IsNothing(ListaPedidos.Lista) AndAlso Not ListaPedidos.Lista.Any AndAlso Integer.TryParse(ListaPedidos.Filtro, numeroPedido) Then
-                                                           Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
+                                                           Dim nuevoResumen As New ResumenPedido With {
                                                                     .empresa = empresaSeleccionada,
                                                                     .numero = numeroPedido
                                                                  }
@@ -60,7 +67,7 @@ Public Class ListaPedidosVentaViewModel
             Return _empresaSeleccionada
         End Get
         Set(value As String)
-            SetProperty(_empresaSeleccionada, value)
+            Dim unused = SetProperty(_empresaSeleccionada, value)
         End Set
     End Property
 
@@ -70,8 +77,23 @@ Public Class ListaPedidosVentaViewModel
             Return _estaCargandoListaPedidos
         End Get
         Set(ByVal value As Boolean)
-            SetProperty(_estaCargandoListaPedidos, value)
+            Dim unused = SetProperty(_estaCargandoListaPedidos, value)
         End Set
+    End Property
+
+    Public ReadOnly Property EstaCreandoPedido As Boolean
+        Get
+            Dim resultado As Boolean = Not IsNothing(ListaPedidos.ElementoSeleccionado) AndAlso
+               TypeOf ListaPedidos.ElementoSeleccionado Is ResumenPedido AndAlso
+               CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero = 0
+            Return resultado
+        End Get
+    End Property
+
+    Public ReadOnly Property EstaCreandoPedidoInvertida As Boolean
+        Get
+            Return Not EstaCreandoPedido
+        End Get
     End Property
 
     Private _listaPedidos As ColeccionFiltrable
@@ -80,7 +102,7 @@ Public Class ListaPedidosVentaViewModel
             Return _listaPedidos
         End Get
         Set(ByVal value As ColeccionFiltrable)
-            SetProperty(_listaPedidos, value)
+            Dim unused = SetProperty(_listaPedidos, value)
         End Set
     End Property
 
@@ -90,7 +112,7 @@ Public Class ListaPedidosVentaViewModel
             Return _listaPedidosPendientes
         End Get
         Set(ByVal value As ObservableCollection(Of ResumenPedido))
-            SetProperty(_listaPedidosPendientes, value)
+            Dim unused = SetProperty(_listaPedidosPendientes, value)
         End Set
     End Property
 
@@ -101,7 +123,7 @@ Public Class ListaPedidosVentaViewModel
         End Get
         Set(value As Boolean)
             If value <> _mostrarPresupuestos Then
-                SetProperty(_mostrarPresupuestos, value)
+                Dim unused = SetProperty(_mostrarPresupuestos, value)
                 'listaPedidosOriginal = Nothing
                 'ListaPedidos = Nothing
                 ListaPedidos.ListaOriginal = Nothing
@@ -119,12 +141,10 @@ Public Class ListaPedidosVentaViewModel
         End Get
         Set(value As Boolean)
             If value <> _mostrarSoloPendientes Then
-                SetProperty(_mostrarSoloPendientes, value)
-                If value Then
-                    ListaPedidos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaPedidos.Lista.Where(Function(l) CType(l, ResumenPedido).tienePendientes))
-                Else
-                    ListaPedidos.Lista = ListaPedidos.ListaOriginal
-                End If
+                Dim unused = SetProperty(_mostrarSoloPendientes, value)
+                ListaPedidos.Lista = If(value,
+                    New ObservableCollection(Of IFiltrableItem)(ListaPedidos.Lista.Where(Function(l) CType(l, ResumenPedido).tienePendientes)),
+                    ListaPedidos.ListaOriginal)
 
             End If
         End Set
@@ -137,12 +157,10 @@ Public Class ListaPedidosVentaViewModel
         End Get
         Set(value As Boolean)
             If value <> _mostrarSoloPicking Then
-                SetProperty(_mostrarSoloPicking, value)
-                If value Then
-                    ListaPedidos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaPedidos.Lista.Where(Function(l) CType(l, ResumenPedido).tienePicking))
-                Else
-                    ListaPedidos.Lista = ListaPedidos.ListaOriginal
-                End If
+                Dim unused = SetProperty(_mostrarSoloPicking, value)
+                ListaPedidos.Lista = If(value,
+                    New ObservableCollection(Of IFiltrableItem)(ListaPedidos.Lista.Where(Function(l) CType(l, ResumenPedido).tienePicking)),
+                    ListaPedidos.ListaOriginal)
 
             End If
         End Set
@@ -154,17 +172,17 @@ Public Class ListaPedidosVentaViewModel
             Return _pedidoPendienteUnir
         End Get
         Set(value As ResumenPedido)
-            SetProperty(_pedidoPendienteUnir, value)
+            Dim unused2 = SetProperty(_pedidoPendienteUnir, value)
             If Not IsNothing(value) Then
                 Dim mensajeError As String = String.Format("Se van a unir los pedidos {0} y {1}, manteniendo los datos de cabecera del {0}", value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero)
                 Dim continuar As Boolean
                 dialogService.ShowConfirmation("Faltan datos en el cliente", mensajeError, Sub(r)
-                                                                                               continuar = (r.Result = ButtonResult.OK)
+                                                                                               continuar = r.Result = ButtonResult.OK
                                                                                            End Sub)
                 If continuar Then
                     Try
-                        servicio.UnirPedidos(value.empresa, value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero)
-                        CargarResumenSeleccionado()
+                        Dim unused1 = servicio.UnirPedidos(value.empresa, value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero)
+                        Dim unused = CargarResumenSeleccionado()
                         dialogService.ShowDialog(String.Format("Se han unido los pedidos {0} y {1} correctamente", value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero))
                     Catch ex As Exception
                         dialogService.ShowError(ex.Message)
@@ -180,16 +198,15 @@ Public Class ListaPedidosVentaViewModel
             Return _scopedRegionManager
         End Get
         Set(value As IRegionManager)
-            SetProperty(_scopedRegionManager, value)
+            Dim unused = SetProperty(_scopedRegionManager, value)
         End Set
     End Property
 
     Public ReadOnly Property TextoUnirPedido As String
         Get
-            If IsNothing(ListaPedidosPendientes) OrElse ListaPedidosPendientes.Count = 0 Then
-                Return String.Empty
-            End If
-            Return String.Format("Unir ({0})", ListaPedidosPendientes.Count)
+            Return If(IsNothing(ListaPedidosPendientes) OrElse ListaPedidosPendientes.Count = 0,
+                String.Empty,
+                String.Format("Unir ({0})", ListaPedidosPendientes.Count))
         End Get
     End Property
 
@@ -197,13 +214,28 @@ Public Class ListaPedidosVentaViewModel
 #End Region
 
 #Region "Comandos"
+
+    Private _cancelarCreacionCommand As DelegateCommand
+    Public Property CancelarCreacionCommand As DelegateCommand
+        Get
+            Return _cancelarCreacionCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_cancelarCreacionCommand, value)
+        End Set
+    End Property
+
+    Private Sub OnCancelarCreacion()
+        CancelarCreacionPedido()
+    End Sub
+
     Private _cmdCargarListaPedidos As DelegateCommand
     Public Property cmdCargarListaPedidos As DelegateCommand
         Get
             Return _cmdCargarListaPedidos
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_cmdCargarListaPedidos, value)
+            Dim unused = SetProperty(_cmdCargarListaPedidos, value)
         End Set
     End Property
     Private Async Sub OnCargarListaPedidos()
@@ -228,17 +260,40 @@ Public Class ListaPedidosVentaViewModel
         End Try
     End Sub
 
+
+    Private _crearPedidoCommand As DelegateCommand
+    Public Property CrearPedidoCommand As DelegateCommand
+        Get
+            Return _crearPedidoCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_crearPedidoCommand, value)
+        End Set
+    End Property
+    Private Async Sub OnCrearPedido()
+        Try
+            ' Crear un nuevo ResumenPedido para el pedido en creación
+            Dim nuevoResumen As ResumenPedido = Await CrearResumenPedidoNuevo()
+
+            ' Añadirlo a la lista (temporalmente, sin guardarlo en BD aún)
+            ListaPedidos.ListaOriginal.Insert(0, nuevoResumen)
+            ListaPedidos.RefrescarFiltro()
+
+            ' Seleccionarlo para que se navegue automáticamente al detalle
+            ListaPedidos.ElementoSeleccionado = nuevoResumen
+
+        Catch ex As Exception
+            dialogService.ShowError("Error al crear nuevo pedido: " & ex.Message)
+        End Try
+    End Sub
+
 #End Region
 
 #Region "Funciones auxiliares"
-    Private Function FechaEntregaAjustada(fecha As DateTime, ruta As String) As DateTime
-        Dim fechaMinima As DateTime
-
-        If ruta <> Constantes.Pedidos.RUTA_GLOVO AndAlso EsRutaConPortes(ruta) Then
-            fechaMinima = IIf(DateTime.Now.Hour < Constantes.Picking.HORA_MAXIMA_AMPLIAR_PEDIDOS, DateTime.Today, DateTime.Today.AddDays(1))
-        Else
-            fechaMinima = DateTime.Today
-        End If
+    Private Function FechaEntregaAjustada(fecha As Date, ruta As String) As Date
+        Dim fechaMinima = If(ruta <> Constantes.Pedidos.RUTA_GLOVO AndAlso EsRutaConPortes(ruta),
+            DirectCast(IIf(Date.Now.Hour < Constantes.Picking.HORA_MAXIMA_AMPLIAR_PEDIDOS, Date.Today, Date.Today.AddDays(1)), Date),
+            Date.Today)
         Return IIf(fechaMinima < fecha, fecha, fechaMinima)
     End Function
     Private Function EsRutaConPortes(ruta As String) As Boolean
@@ -252,37 +307,146 @@ Public Class ListaPedidosVentaViewModel
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).baseImponible = pedido.BaseImponible
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).contacto = pedido.contacto
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(DateTime.Now, pedido.ruta))
+        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(Date.Now, pedido.ruta))
         CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea = 1)
     End Sub
 
     Private Async Function CargarResumenSeleccionado() As Task
-        Dim parameters As NavigationParameters = New NavigationParameters()
-        parameters.Add("resumenPedidoParameter", CType(ListaPedidos.ElementoSeleccionado, ResumenPedido))
+        Dim parameters As New NavigationParameters From {
+            {"resumenPedidoParameter", CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)}
+        }
         scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
         If Not IsNothing(ListaPedidos.ElementoSeleccionado) Then
-            empresaSeleccionada = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).empresa
-            Dim pendientes As ObservableCollection(Of Integer) = Await servicio.CargarPedidosPendientes(CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).empresa, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).cliente)
-            ListaPedidosPendientes = New ObservableCollection(Of ResumenPedido)(pendientes.Where(Function(p) p <> CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero).Select(Function(p) New ResumenPedido With {
-                .empresa = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).empresa,
-                .numero = p
-                                                                                                                                                   }))
-            'ListaPedidos.ElementoSeleccionado = ListaPedidos.Lista.FirstOrDefault(Function(p) CType(p, ResumenPedido).numero = resumenSeleccionado.numero)
+            Dim resumenSeleccionado = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
+            empresaSeleccionada = resumenSeleccionado.empresa
+
+            If Not resumenSeleccionado.esNuevo AndAlso resumenSeleccionado.numero > 0 Then
+                Dim pendientes As ObservableCollection(Of Integer) = Await servicio.CargarPedidosPendientes(resumenSeleccionado.empresa, resumenSeleccionado.cliente)
+                ListaPedidosPendientes = New ObservableCollection(Of ResumenPedido)(pendientes.Where(Function(p) p <> resumenSeleccionado.numero).Select(Function(p) New ResumenPedido With {
+                    .empresa = resumenSeleccionado.empresa,
+                    .numero = p
+                }))
+            Else
+                ListaPedidosPendientes = New ObservableCollection(Of ResumenPedido)()
+            End If
+
             RaisePropertyChanged(NameOf(TextoUnirPedido))
+            RaisePropertyChanged(NameOf(EstaCreandoPedido))
+            RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
         End If
     End Function
-
-
 
     Public Async Function cargarPedidoPorDefecto() As Task(Of ResumenPedido)
         Dim empresaDefecto As String = Await configuracion.leerParametro("1", "EmpresaPorDefecto")
         Dim pedidoDefecto As String = Await configuracion.leerParametro(empresaDefecto, "UltNumPedidoVta")
-        Dim nuevoResumen As ResumenPedido = New ResumenPedido With {
+        Dim nuevoResumen As New ResumenPedido With {
             .empresa = empresaDefecto,
             .numero = pedidoDefecto
         }
         Return nuevoResumen
     End Function
+
+    Private Async Function CrearResumenPedidoNuevo() As Task(Of ResumenPedido)
+        Dim empresaDefecto As String = Await configuracion.leerParametro("1", "EmpresaPorDefecto")
+        Dim vendedorDefecto As String = Await configuracion.leerParametro("1", "Vendedor")
+
+        ' Crear un ResumenPedido con valores por defecto para nuevo pedido
+        Dim nuevoResumen As New ResumenPedido With {
+            .empresa = empresaDefecto,
+            .numero = 0, ' Número 0 indica que es un pedido nuevo sin guardar
+            .fecha = Date.Today,
+            .vendedor = vendedorDefecto,
+            .baseImponible = 0,
+            .contacto = String.Empty,
+            .cliente = String.Empty,
+            .nombre = "[NUEVO PEDIDO]", ' Texto que se mostrará en la lista
+            .tienePicking = False,
+            .tienePendientes = False,
+            .tieneFechasFuturas = False,
+            .tieneProductos = False,
+            .esNuevo = True ' Propiedad adicional para identificar pedidos nuevos
+        }
+
+        Return nuevoResumen
+    End Function
+
+    ' Método para eliminar un pedido nuevo si el usuario cancela la creación
+    Public Sub CancelarCreacionPedido()
+        If Not IsNothing(ListaPedidos.ElementoSeleccionado) AndAlso
+           TypeOf ListaPedidos.ElementoSeleccionado Is ResumenPedido AndAlso
+           CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero = 0 Then
+
+            Dim unused = ListaPedidos.ListaOriginal.Remove(ListaPedidos.ElementoSeleccionado)
+            ListaPedidos.RefrescarFiltro()
+
+            ' Seleccionar el primer elemento válido si existe
+            ListaPedidos.ElementoSeleccionado = If(ListaPedidos.ListaOriginal.Count > 0, ListaPedidos.ListaOriginal.First(), Nothing)
+        End If
+    End Sub
+
+    ' Método para confirmar la creación y actualizar el resumen con el número real
+    Public Sub ConfirmarCreacionPedido(numeroPedidoReal As Integer)
+        If Not IsNothing(ListaPedidos.ElementoSeleccionado) AndAlso
+           TypeOf ListaPedidos.ElementoSeleccionado Is ResumenPedido AndAlso
+           CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero = 0 Then
+
+            Dim resumen = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
+            resumen.numero = numeroPedidoReal
+            resumen.nombre = $"Pedido {numeroPedidoReal}" ' O el formato que uses
+            resumen.esNuevo = False
+
+            ' Notificar cambios en las propiedades
+            RaisePropertyChanged(NameOf(ListaPedidos))
+        End If
+    End Sub
+
+    Public Sub NotificarPedidoGuardado(numeroPedidoReal As Integer)
+        ConfirmarCreacionPedido(numeroPedidoReal)
+        RaiseEvent PedidoCreadoConfirmado(numeroPedidoReal)
+        RaisePropertyChanged(NameOf(EstaCreandoPedido))
+        RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
+    End Sub
+
+    Public Sub NotificarCancelacionCreacion()
+        CancelarCreacionPedido()
+        RaiseEvent PedidoCreacionCancelada()
+        RaisePropertyChanged(NameOf(EstaCreandoPedido))
+        RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
+    End Sub
+
+    Private Sub OnPedidoCreado(pedido As PedidoVentaDTO)
+        ' Si estamos creando un pedido y coincide la empresa
+        If EstaCreandoPedido AndAlso
+           CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).empresa = pedido.empresa Then
+
+            ' Actualizar el ResumenPedido temporal con los datos reales del pedido guardado
+            Dim resumen = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
+            resumen.numero = pedido.numero
+            resumen.cliente = pedido.cliente
+            resumen.nombre = $"Pedido {pedido.numero}" ' ajusta según tu formato
+            resumen.fecha = pedido.fecha
+            resumen.baseImponible = pedido.BaseImponible
+            resumen.contacto = pedido.contacto
+            resumen.vendedor = pedido.vendedor
+            resumen.esNuevo = False ' Ya no es nuevo, está persistido
+
+            ' Actualizar propiedades calculadas
+            If Not IsNothing(pedido.Lineas) Then
+                resumen.tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
+                resumen.tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(Date.Now, pedido.ruta))
+                resumen.tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea = 1)
+                resumen.tienePendientes = pedido.Lineas.Any(Function(l) l.estado <= 1 AndAlso l.estado >= -1)
+            End If
+
+            ' Notificar cambios en la UI
+            RaisePropertyChanged(NameOf(EstaCreandoPedido))
+            RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
+            RaisePropertyChanged(NameOf(ListaPedidos))
+
+            ' Mostrar mensaje de éxito
+            dialogService.ShowNotification("Pedido creado", $"Pedido {pedido.numero} creado correctamente")
+        End If
+    End Sub
 
 #End Region
 End Class

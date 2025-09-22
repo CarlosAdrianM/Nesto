@@ -1,10 +1,10 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.ComponentModel.DataAnnotations
 Imports System.IO
 Imports System.Net.Http
 Imports System.Runtime.InteropServices
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Infrastructure.Shared.Constantes
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
@@ -14,9 +14,11 @@ Public Class PedidoVentaService
     Implements IPedidoVentaService
 
     Private ReadOnly configuracion As IConfiguracion
+    Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
 
-    Public Sub New(configuracion As IConfiguracion)
+    Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
+        _servicioAutenticacion = servicioAutenticacion
     End Sub
 
     Private Async Function cargarListaPedidos(vendedor As String, verTodosLosVendedores As Boolean, mostrarPresupuestos As Boolean) As Task(Of ObservableCollection(Of ResumenPedido)) Implements IPedidoVentaService.cargarListaPedidos
@@ -41,11 +43,7 @@ Public Class PedidoVentaService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuesta = ""
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido recuperar la lista de pedidos")
@@ -72,11 +70,7 @@ Public Class PedidoVentaService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuesta = ""
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido recuperar el pedido " + numero.ToString)
@@ -106,11 +100,7 @@ Public Class PedidoVentaService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                Else
-                    respuesta = ""
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido cargar el producto " + id)
@@ -124,9 +114,13 @@ Public Class PedidoVentaService
 
         End Using
     End Function
-    Public Sub modificarPedido(pedido As PedidoVentaDTO) Implements IPedidoVentaService.modificarPedido
+    Public Async Sub modificarPedido(pedido As PedidoVentaDTO) Implements IPedidoVentaService.modificarPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -316,18 +310,10 @@ Public Class PedidoVentaService
             Try
                 Dim urlConsulta As String = "ReclamacionDeuda"
                 Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
-                Dim content As StringContent = New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
+                Dim content As New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
                 response = Await client.PostAsync(urlConsulta, content)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                    'reclamacion = JsonConvert.DeserializeObject(Of ReclamacionDeuda)(respuesta)
-                    'If reclamacion.TramitadoOK Then
-                    '   EnlaceReclamarDeuda = reclamacion.Enlace
-                    'End If
-                Else
-                    respuesta = String.Empty
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), String.Empty)
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido procesar la reclamación de deuda")
@@ -412,10 +398,14 @@ Public Class PedidoVentaService
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
+            ' Creo estas variables para que los campos .Empresa y .Usuario se creen con mayúscula
+            ' (si dejo empresa, como se llama igual que el campo, lo crea con minúscula
+            Dim empresaParametro = empresa
+            Dim usuarioParametro = configuracion.usuario
             Dim parametro As New With {
-                .Empresa = empresa,
+                .Empresa = empresaParametro,
                 .Pedido = numeroPedido,
-                .Usuario = configuracion.usuario
+                .Usuario = usuarioParametro
             }
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
@@ -457,10 +447,14 @@ Public Class PedidoVentaService
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
+            ' Creo estas variables para que los campos .Empresa y .Usuario se creen con mayúscula
+            ' (si dejo empresa, como se llama igual que el campo, lo crea con minúscula
+            Dim empresaParametro = empresa
+            Dim usuarioParametro = configuracion.usuario
             Dim parametro As New With {
-                .Empresa = empresa,
+                .Empresa = empresaParametro,
                 .Pedido = numeroPedido,
-                .Usuario = configuracion.usuario
+                .Usuario = usuarioParametro
             }
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
@@ -511,11 +505,7 @@ Public Class PedidoVentaService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsByteArrayAsync()
-                Else
-                    respuesta = Nothing
-                End If
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsByteArrayAsync(), Nothing)
 
             Catch ex As Exception
                 Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
@@ -528,10 +518,10 @@ Public Class PedidoVentaService
     End Function
 
     <DllImport("shell32")>
-    Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInt32, ByVal hToken As IntPtr, ByRef np As IntPtr) As Int32 : End Function
+    Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInteger, ByVal hToken As IntPtr, ByRef np As IntPtr) As Integer : End Function
     Public Async Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String) As Task(Of String) Implements IPedidoVentaService.DescargarFactura
         Dim np As IntPtr
-        SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
+        Dim unused = SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
         Dim path As String = Marshal.PtrToStringUni(np)
         Marshal.FreeCoTaskMem(np)
 
@@ -545,5 +535,87 @@ Public Class PedidoVentaService
         file.Close()
         ms.Close()
         Return nombreArchivo
+    End Function
+
+    Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer) Implements IPedidoVentaService.CrearPedido
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
+
+            Try
+                Dim response As HttpResponseMessage = Await client.PostAsync("PedidosVenta", content)
+
+                If response.IsSuccessStatusCode Then
+                    ' El número del pedido viene en el Location header
+                    Dim pathNumeroPedido = response.Headers.Location.LocalPath
+                    Dim numeroPedidoStr = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
+                    Return Integer.Parse(numeroPedidoStr)
+                Else
+                    Dim respuestaError = Await response.Content.ReadAsStringAsync()
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                    Dim contenido As String = detallesError("ExceptionMessage")?.ToString()
+
+                    If String.IsNullOrEmpty(contenido) Then
+                        contenido = detallesError("exceptionMessage")?.ToString()
+                    End If
+
+                    ' Recorrer inner exceptions
+                    While Not IsNothing(detallesError("InnerException"))
+                        detallesError = detallesError("InnerException")
+                        Dim contenido2 As String = detallesError("ExceptionMessage")?.ToString()
+                        If String.IsNullOrEmpty(contenido2) Then
+                            contenido2 = detallesError("exceptionMessage")?.ToString()
+                        End If
+                        If Not String.IsNullOrEmpty(contenido2) Then
+                            contenido = contenido + vbCr + contenido2
+                        End If
+                    End While
+
+                    ' Verificar si es ValidationException
+                    Dim tipoEx As String = detallesError("ExceptionType")?.ToString()
+                    If String.IsNullOrEmpty(tipoEx) Then
+                        tipoEx = detallesError("exceptionType")?.ToString()
+                    End If
+
+                    If Not String.IsNullOrEmpty(tipoEx) AndAlso tipoEx.Contains("ValidationException") Then
+                        Throw New System.ComponentModel.DataAnnotations.ValidationException(contenido)
+                    Else
+                        Throw New Exception(contenido)
+                    End If
+                End If
+
+            Catch ex As ValidationException
+                Throw
+            Catch ex As Exception
+                Throw New Exception("Error al crear el pedido: " + ex.Message)
+            End Try
+        End Using
+    End Function
+
+    Public Async Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase)) Implements IPedidoVentaService.CargarParametrosIva
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                Dim urlConsulta As String = "ParametrosIva"
+                urlConsulta += "?empresa=" + empresa
+                urlConsulta += "&ivaCabecera=" + ivaCabecera
+
+                response = Await client.GetAsync(urlConsulta)
+                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
+
+            Catch ex As Exception
+                Throw New Exception("No se han podido cargar los parámetros de IVA")
+            End Try
+
+            Dim parametrosIva As List(Of ParametrosIvaBase) = JsonConvert.DeserializeObject(Of List(Of ParametrosIvaBase))(respuesta)
+            Return parametrosIva
+        End Using
     End Function
 End Class
