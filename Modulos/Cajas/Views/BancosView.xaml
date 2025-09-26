@@ -201,8 +201,8 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
-                            <DataGridTextColumn Header="Delegación" Binding="{Binding Delegacion}" />
-                            <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" />
+                        <DataGridTextColumn Header="Delegación" Binding="{Binding Delegacion}" />
+                        <DataGridTextColumn Header="Asiento" Binding="{Binding Asiento}" />
                         <DataGridTextColumn Header="Diario" Binding="{Binding Diario}" />
                         <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" />
                     </DataGrid.Columns>

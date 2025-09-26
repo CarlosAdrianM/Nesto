@@ -185,9 +185,17 @@
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <TextBlock>
-                                                <Hyperlink Command="{Binding DataContext.AbrirEnlaceSeguimientoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" CommandParameter="{Binding EnlaceSeguimiento}">
-                                                    <Run Text="{Binding EnlaceSeguimiento}"/>
-                                                </Hyperlink>
+                                                    <Hyperlink Command="{Binding DataContext.AbrirEnlaceSeguimientoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" 
+                                                               CommandParameter="{Binding EnlaceSeguimiento}">
+                                                        <Hyperlink.ContextMenu>
+                                                            <ContextMenu>
+                                                                <MenuItem Header="Copiar enlace" 
+                                                                          Command="{Binding DataContext.CopiarEnlaceCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"
+                                                                          CommandParameter="{Binding EnlaceSeguimiento}"/>
+                                                            </ContextMenu>
+                                                        </Hyperlink.ContextMenu>
+                                                        <Run Text="{Binding EnlaceSeguimiento}"/>
+                                                    </Hyperlink>
                                                 </TextBlock>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>

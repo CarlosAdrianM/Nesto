@@ -56,6 +56,7 @@ Public Class DetallePedidoViewModel
         CrearFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
         CrearAlbaranYFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranYFacturaVenta, AddressOf CanCrearAlbaranYFacturaVenta)
         ImprimirFacturaCommand = New DelegateCommand(AddressOf OnImprimirFactura, AddressOf CanImprimirFactura)
+        CopiarEnlaceCommand = New DelegateCommand(Of String)(AddressOf OnCopiarEnlace)
 
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
 
@@ -621,6 +622,27 @@ Public Class DetallePedidoViewModel
         ClipboardHelper.CopyToClipboard(html.ToString, ToString)
         dialogService.ShowNotification("Datos del pedido copiados al portapapeles")
     End Sub
+
+    Private _copiarEnlaceCommand As DelegateCommand(Of String)
+    Public Property CopiarEnlaceCommand As DelegateCommand(Of String)
+        Get
+            Return _copiarEnlaceCommand
+        End Get
+        Private Set(value As DelegateCommand(Of String))
+            Dim unused = SetProperty(_copiarEnlaceCommand, value)
+        End Set
+    End Property
+    Private Sub OnCopiarEnlace(url As String)
+        Try
+            If Not String.IsNullOrEmpty(url) Then
+                Clipboard.SetText(url)
+                Dim unused1 = MessageBox.Show("Enlace copiado al portapapeles", "Información", MessageBoxButton.OK, MessageBoxImage.Information)
+            End If
+        Catch ex As Exception
+            Dim unused = MessageBox.Show($"Error al copiar enlace: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error)
+        End Try
+    End Sub
+
 
     Private _crearAlbaranVentaCommand As DelegateCommand
     Public Property CrearAlbaranVentaCommand As DelegateCommand

@@ -12,7 +12,10 @@ Public Class EtiquetaComisionConverter
         Dim jo As JObject = JObject.Load(reader)
 
         If jo("Venta") IsNot Nothing Then
-            Return jo.ToObject(Of EtiquetaComisionVenta)()
+            ' Si tiene propiedades de acumulada, crear EtiquetaComisionVentaAcumulada
+            Return If(jo("VentaAcumulada") IsNot Nothing OrElse jo("EsComisionAcumulada")?.Value(Of Boolean)() = True,
+                jo.ToObject(Of EtiquetaComisionVentaAcumulada)(),
+                jo.ToObject(Of EtiquetaComisionVenta)())
         ElseIf jo("Recuento") IsNot Nothing Then
             Return jo.ToObject(Of EtiquetaComisionClientes)()
         End If

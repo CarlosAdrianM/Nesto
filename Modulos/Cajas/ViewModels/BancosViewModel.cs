@@ -22,6 +22,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Input;
@@ -118,12 +119,17 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _apunteBancoSeleccionado, value))
                 {
+                    // Cancelar la tarea anterior si existe
+                    _cargarMovimientosTPVCancellation?.Cancel();
+                    _cargarMovimientosTPVCancellation = new CancellationTokenSource();
+
                     // Comprobamos las condiciones antes de cargar los movimientos relacionados
                     if (BancoSeleccionado.CumpleCondicionesTPV(_apunteBancoSeleccionado))
                     {
                         // Cargar los movimientos relacionados dependiendo del literal Concepto2
 
-                        _ = CargarMovimientosRelacionadosTPV(ApunteBancoSeleccionado.RegistrosConcepto[0].Concepto2[..3]);
+                        _ = CargarMovimientosRelacionadosTPV(ApunteBancoSeleccionado.RegistrosConcepto[0].Concepto2[..3],
+                                _cargarMovimientosTPVCancellation.Token);
                     }
                     else
                     {
@@ -234,6 +240,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
             }
         }
+        private CancellationTokenSource _cargarMovimientosTPVCancellation;
         private ContenidoCuaderno43 _contenidoCuaderno43;
         public ContenidoCuaderno43 ContenidoCuaderno43
         {
@@ -841,6 +848,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             List<ContabilidadDTO> movimientosApunte;
             ContabilidadDTO apunteGasto = new();
             ContabilidadDTO ultimoApunteIngreso = new();
+            ContabilidadDTO primerApunte = new();
 
             foreach (ContabilidadWrapper apunte in ApuntesContabilidadSeleccionados)
             {
@@ -851,11 +859,26 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     break;
                 }
                 ultimoApunteIngreso = movimientosApunte.Where(m => m.Cuenta.StartsWith("7")).FirstOrDefault();
+                primerApunte = movimientosApunte.FirstOrDefault();
             }
 
             if (apunteGasto is null && ultimoApunteIngreso is not null)
             {
                 apunteGasto = ultimoApunteIngreso;
+            }
+
+            if (apunteGasto is null && BancoSeleccionado.CumpleCondicionesTPV(ApunteBancoSeleccionado) && primerApunte is not null)
+            {
+                apunteGasto = primerApunte;
+                apunteGasto.Cuenta = Constantes.Cuentas.GASTOS_DATAFONO;
+                if (string.IsNullOrEmpty(apunteGasto.CentroCoste))
+                {
+                    apunteGasto.CentroCoste = Constantes.Empresas.CENTRO_COSTE_DEFECTO;
+                }
+                if (string.IsNullOrEmpty(apunteGasto.Departamento))
+                {
+                    apunteGasto.Departamento = Constantes.Empresas.DEPARTAMENTO_DEFECTO;
+                }                
             }
 
             if (apunteGasto is null)
@@ -1018,27 +1041,68 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
             ExtractosProveedorAsientoSeleccionado = await _bancosService.LeerExtractoProveedorAsiento(Constantes.Empresas.EMPRESA_DEFECTO, value.Asiento);
         }
-        private async Task CargarMovimientosRelacionadosTPV(string tipoDatafono)
+        private async Task CargarMovimientosRelacionadosTPV(string tipoDatafono, CancellationToken cancellationToken = default)
         {
-            string modoCaptura = tipoDatafono == "WEB" ? "3" : tipoDatafono == "ON " ? "1" : throw new Exception("Tipo de datáfono no contemplado");
-            MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: ApunteBancoSeleccionado.FechaOperacion.AddDays(-1), modoCaptura);
-            PrepagosPendientes = [];
-            MovimientosRelacionados = [.. MovimientosTPV];
-
-            if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
+            try
             {
-                MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: ApunteBancoSeleccionado.FechaOperacion.AddDays(-1), "4"); // terminal price
-                _ = MovimientosRelacionados.AddRange(MovimientosTPV);
+                // Guardar referencia al apunte actual para validación posterior
+                var apunteActual = ApunteBancoSeleccionado;
+                if (apunteActual == null)
+                {
+                    return;
+                }
+
+                string modoCaptura = tipoDatafono == "WEB" ? "3" : tipoDatafono == "ON " ? "1" : throw new Exception("Tipo de datáfono no contemplado");
+
+                MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: apunteActual.FechaOperacion.AddDays(-1), modoCaptura);
+
+                // Verificar que no se canceló la operación y que el apunte sigue siendo el mismo
+                if (cancellationToken.IsCancellationRequested || ApunteBancoSeleccionado != apunteActual)
+                {
+                    return;
+                }
+
+                PrepagosPendientes = [];
+                MovimientosRelacionados = [.. MovimientosTPV];
+
+                if (apunteActual.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
+                {
+                    MovimientosTPV = await _bancosService.LeerMovimientosTPV(fechaCaptura: apunteActual.FechaOperacion.AddDays(-1), "4");
+
+                    if (cancellationToken.IsCancellationRequested || ApunteBancoSeleccionado != apunteActual)
+                    {
+                        return;
+                    }
+
+                    _ = MovimientosRelacionados.AddRange(MovimientosTPV);
+                }
+
+                // Verificaciones finales con el apunte actual
+                if (cancellationToken.IsCancellationRequested || ApunteBancoSeleccionado != apunteActual)
+                {
+                    return;
+                }
+
+                if (apunteActual.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
+                {
+                    MovimientosRelacionados = new ObservableCollection<MovimientoTPV>(MovimientosRelacionados.Where(m => m.ModoCaptura == modoCaptura));
+                }
+
+                if (apunteActual.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
+                {
+                    _dialogService.ShowError($"El cierre de datáfono descuadra en {-apunteActual.ImporteMovimiento + MovimientosTPV.Sum(m => m.ImporteOperacion):C}");
+                }
             }
-
-            if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
+            catch (OperationCanceledException)
             {
-                MovimientosRelacionados = new ObservableCollection<MovimientoTPV>(MovimientosRelacionados.Where(m => m.ModoCaptura == modoCaptura));
+                // Operación cancelada, no hacer nada
             }
-
-            if (ApunteBancoSeleccionado.ImporteMovimiento != MovimientosRelacionados.Sum(m => m.ImporteOperacion))
+            catch (Exception ex)
             {
-                _dialogService.ShowError($"El cierre de datáfono descuadra en {-ApunteBancoSeleccionado.ImporteMovimiento + MovimientosTPV.Sum(m => m.ImporteOperacion):C}");
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    _dialogService.ShowError("Error al cargar movimientos relacionados: " + ex.Message);
+                }
             }
         }
         private async Task CargarPrepagosPendientes()

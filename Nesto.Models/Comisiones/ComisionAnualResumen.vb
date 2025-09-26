@@ -1,7 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
-Imports System.Windows.Media
-Imports Prism.Mvvm
 Imports Newtonsoft.Json
+Imports Prism.Mvvm
 
 Public Class ComisionAnualResumen
     Inherits BindableBase
@@ -12,43 +11,15 @@ Public Class ComisionAnualResumen
     Public Property Mes As Integer
     <JsonProperty(ItemConverterType:=GetType(EtiquetaComisionConverter))>
     Public Property Etiquetas As Collection(Of IEtiquetaComision)
-    Public Property GeneralProyeccion As Decimal
-    Public Property GeneralFaltaParaSalto As Decimal
-    Public Property GeneralInicioTramo As Decimal
-    Public Property GeneralFinalTramo As Decimal
-    Public Property GeneralBajaSaltoMesSiguiente As Boolean
-    Public Property GeneralVentaAcumulada As Decimal
-    Public Property GeneralComisionAcumulada As Decimal
-    Public Property GeneralTipoConseguido As Decimal
-    Public Property GeneralTipoReal As Decimal
-    Public ReadOnly Property GeneralTipoConseguidoYReal As String
-        Get
-            Return String.Format("{0} / {1}", GeneralTipoConseguido.ToString("P"), GeneralTipoReal.ToString("P"))
-        End Get
-    End Property
     Public Property TotalComisiones As Decimal
     Public Property TotalVentaAcumulada As Decimal
     Public Property TotalComisionAcumulada As Decimal
     Public Property TotalTipoAcumulado As Decimal
 
-    Public ReadOnly Property ColorProgreso As Brush
+    ' Propiedades de conveniencia para acceder a la etiqueta General
+    Public ReadOnly Property EtiquetaGeneral As IEtiquetaComisionAcumulada
         Get
-            If GeneralBajaSaltoMesSiguiente Then
-                Return Brushes.Red
-            Else
-                Return Brushes.Green
-            End If
-        End Get
-    End Property
-
-    Public ReadOnly Property ColorTipoConseguidoYReal As Brush
-        Get
-
-            If GeneralTipoReal = GeneralTipoConseguido Then
-                Return Brushes.Green
-            Else
-                Return Brushes.Black
-            End If
+            Return Etiquetas?.OfType(Of IEtiquetaComisionAcumulada)()?.FirstOrDefault()
         End Get
     End Property
 End Class

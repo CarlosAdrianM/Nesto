@@ -3,6 +3,9 @@ Imports System.Windows.Threading
 
 Public Class DetallePedidoView
     Private actualizarTotales As Boolean = False
+    Private lineaEnEdicion As LineaPedidoVentaWrapper = Nothing
+
+
 
     Private Sub grdLineas_CellEditEnding(sender As Object, e As DataGridCellEditEndingEventArgs) Handles grdLineas.CellEditEnding
         Dim unused = DataContext.cmdCeldaModificada.Execute(e)
@@ -12,6 +15,11 @@ Public Class DetallePedidoView
 
     Private Sub grdLineas_RowEditEnding(sender As Object, e As DataGridRowEditEndingEventArgs) Handles grdLineas.RowEditEnding
         ' Aquí comprobaremos las condiciones de precios (servicio.comprobarCondicionesPrecio)
+
+        ' Si se cancela la edición o se confirma, verificar la línea
+        If e.EditAction = DataGridEditAction.Commit Then
+            Dim unused = Dispatcher.BeginInvoke(Sub() VerificarYEliminarLineaVacia(), DispatcherPriority.Background)
+        End If
     End Sub
 
     Private Sub grdLineas_KeyUp(sender As Object, e As KeyEventArgs) Handles grdLineas.KeyUp
@@ -116,6 +124,7 @@ Public Class DetallePedidoView
     End Class
 
     Private Sub grdLineas_BeginningEdit(sender As Object, e As DataGridBeginningEditEventArgs)
+        lineaEnEdicion = TryCast(e.Row.Item, LineaPedidoVentaWrapper)
         Dim item As LineaPedidoVentaWrapper = TryCast(e.Row.Item, LineaPedidoVentaWrapper)
         If item Is Nothing Then
             Return
@@ -263,6 +272,29 @@ Public Class DetallePedidoView
 
         Return If(grdLineas.Items.Count > 0, 0, -1)
     End Function
+
+    Private Sub VerificarYEliminarLineaVacia()
+        If lineaEnEdicion IsNot Nothing Then
+            ' Verificar si la línea está vacía (sin producto y sin texto)
+            If String.IsNullOrWhiteSpace(lineaEnEdicion.Producto) AndAlso String.IsNullOrWhiteSpace(lineaEnEdicion.texto) Then
+                ' Verificar que no sea una línea que ya existía (tiene ID > 0 normalmente significa que ya estaba guardada)
+                If lineaEnEdicion.id = 0 OrElse lineaEnEdicion.id = Nothing Then
+                    Try
+                        ' Eliminar la línea de la colección
+                        Dim viewModel As DetallePedidoViewModel = TryCast(DataContext, DetallePedidoViewModel)
+                        If viewModel IsNot Nothing AndAlso viewModel.pedido IsNot Nothing AndAlso viewModel.pedido.Lineas IsNot Nothing Then
+                            If viewModel.pedido.Lineas.Contains(lineaEnEdicion) Then
+                                Dim unused = viewModel.pedido.Lineas.Remove(lineaEnEdicion)
+                            End If
+                        End If
+                    Catch ex As Exception
+                        ' Si hay error al eliminar, simplemente ignorar
+                    End Try
+                End If
+            End If
+            lineaEnEdicion = Nothing
+        End If
+    End Sub
 
     Private Sub DetallePedidoView_KeyUp(sender As Object, e As KeyEventArgs) Handles Me.KeyUp
         ' Alt + L para ir a pestaña de líneas

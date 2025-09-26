@@ -1,22 +1,20 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Nesto.Modulos.CanalesExternos.ApisExternas;
-using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
-using Nesto.Models.Nesto.Models;
-using System.Collections.Generic;
-using Nesto.Infrastructure.Contracts;
-using Nesto.Models;
-using Nesto.Modulos.CanalesExternos.Models;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using System.Transactions;
+using Nesto.Models;
+using Nesto.Models.Nesto.Models;
+using Nesto.Modulos.CanalesExternos.ApisExternas;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Nesto.Modulos.CanalesExternos
 {
     public class CanalExternoPedidosPrestashopNuevaVision : ICanalExternoPedidos
     {
-        private IConfiguracion configuracion;
+        private readonly IConfiguracion configuracion;
         private const string EMPRESA_DEFECTO = "1";
         private const string FORMA_PAGO_CONTRAREEMBOLSO = "Pago contra reembolso";
         private const string FORMA_PAGO_CONTRAREEMBOLSO_COMISION = "Pago contra reembolso con comisión";
@@ -51,17 +49,18 @@ namespace Nesto.Modulos.CanalesExternos
                 pedidoExterno.Observaciones += " " + pedidoExterno.PedidoCanalId;
                 listaNesto.Add(pedidoExterno);
             }
-                        
+
             return listaNesto;
         }
 
         private PedidoCanalExterno TransformarPedido(PedidoPrestashop pedidoEntrada)
         {
-            PedidoCanalExterno pedidoExterno = new PedidoCanalExterno();
-            PedidoVentaDTO pedidoSalida = new PedidoVentaDTO();
-
-            pedidoSalida.empresa = EMPRESA_DEFECTO;
-            pedidoSalida.origen = EMPRESA_DEFECTO;
+            PedidoCanalExterno pedidoExterno = new();
+            PedidoVentaDTO pedidoSalida = new()
+            {
+                empresa = EMPRESA_DEFECTO,
+                origen = EMPRESA_DEFECTO
+            };
             Clientes cliente = BuscarCliente(pedidoEntrada.Direccion.Element("dni")?.Value);
             pedidoSalida.cliente = cliente.Nº_Cliente;
             pedidoSalida.contacto = cliente.ContactoDefecto;
@@ -91,18 +90,20 @@ namespace Nesto.Modulos.CanalesExternos
 
             string formaPago = pedidoEntrada.Pedido.Element("payment")?.Value;
             decimal totalPedido = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products_wt")?.Value) / 1000000, 4);
-            
+
             // Aquí iban los totales
-            
-            if (formaPago == FORMA_PAGO_CONTRAREEMBOLSO || formaPago == FORMA_PAGO_CONTRAREEMBOLSO_INGLES || formaPago == FORMA_PAGO_CONTRAREEMBOLSO_COMISION)
+
+            if (formaPago is FORMA_PAGO_CONTRAREEMBOLSO or FORMA_PAGO_CONTRAREEMBOLSO_INGLES or FORMA_PAGO_CONTRAREEMBOLSO_COMISION)
             {
                 pedidoSalida.formaPago = "EFC";
                 pedidoSalida.plazosPago = "CONTADO";
-            } else if (formaPago == FORMA_PAGO_PAYPAL || formaPago == FORMA_PAGO_REDSYS || formaPago == FORMA_PAGO_BIZUM)
+            }
+            else if (formaPago is FORMA_PAGO_PAYPAL or FORMA_PAGO_REDSYS or FORMA_PAGO_BIZUM)
             {
                 pedidoSalida.formaPago = "TAR";
                 pedidoSalida.plazosPago = "PRE";
-            } else
+            }
+            else
             {
                 pedidoSalida.formaPago = "TRN";
                 pedidoSalida.plazosPago = "PRE";
@@ -123,7 +124,7 @@ namespace Nesto.Modulos.CanalesExternos
 
             // aquí iban las líneas
 
-            
+
             pedidoExterno.Pedido = pedidoSalida;
             pedidoExterno.PedidoCanalId = pedidoEntrada.Pedido.Element("reference").Value;
             pedidoExterno.PedidoNestoId = pedidoEntrada.PedidoNestoId;
@@ -140,23 +141,26 @@ namespace Nesto.Modulos.CanalesExternos
             if (pedidoEntrada.Provincia != null)
             {
                 pedidoExterno.Provincia = pedidoEntrada.Provincia.Element("name")?.Value.ToString().ToUpper();
-            } else
+            }
+            else
             {
                 pedidoExterno.Provincia = string.Empty;
             }
             pedidoExterno.Almacen = Constantes.Almacenes.ALMACEN_CENTRAL;
 
-            Dictionary<string, string> cuentasFormaPago = new Dictionary<string, string>();
-            cuentasFormaPago.Add(FORMA_PAGO_PAYPAL, "57200020"); 
-            cuentasFormaPago.Add(FORMA_PAGO_REDSYS, "57200013");
-            cuentasFormaPago.Add(FORMA_PAGO_BIZUM, "57200013");
-            cuentasFormaPago.Add(FORMA_PAGO_AMAZON_PAY, "57200013");
-            cuentasFormaPago.Add(FORMA_PAGO_APLAZAME, "57200013");
-            cuentasFormaPago.Add(FORMA_PAGO_MIRAVIA, "57200013");
+            Dictionary<string, string> cuentasFormaPago = new()
+            {
+                { FORMA_PAGO_PAYPAL, "57200020" },
+                { FORMA_PAGO_REDSYS, "57200013" },
+                { FORMA_PAGO_BIZUM, "57200013" },
+                { FORMA_PAGO_AMAZON_PAY, "57200013" },
+                { FORMA_PAGO_APLAZAME, "57200013" },
+                { FORMA_PAGO_MIRAVIA, "57200013" }
+            };
 
             if (cuentasFormaPago.ContainsKey(formaPago))
             {
-                PrepagoDTO prepago = new PrepagoDTO
+                PrepagoDTO prepago = new()
                 {
                     Importe = totalPagado != 0 ? totalPagado : pedidoSalida.Total,
                     CuentaContable = cuentasFormaPago[formaPago],
@@ -165,7 +169,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (prepago.ConceptoAdicional.Length > 50)
                 {
-                    prepago.ConceptoAdicional = prepago.ConceptoAdicional.Substring(0, 50);
+                    prepago.ConceptoAdicional = prepago.ConceptoAdicional[..50];
                 }
 
                 pedidoExterno.Pedido.Prepagos.Add(prepago);
@@ -175,7 +179,7 @@ namespace Nesto.Modulos.CanalesExternos
         }
         private Clientes BuscarCliente(string dniCliente)
         {
-            Clientes CLIENTE_TIENDA_ONLINE = new Clientes
+            Clientes CLIENTE_TIENDA_ONLINE = new()
             {
                 Nº_Cliente = "31517",
                 Contacto = "0",
@@ -191,20 +195,17 @@ namespace Nesto.Modulos.CanalesExternos
                 return CLIENTE_TIENDA_ONLINE;
             }
 
-            using (NestoEntities db = new NestoEntities())
+            using (NestoEntities db = new())
             {
                 Clientes clienteEncontrado = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Equals(dniCliente)).SingleOrDefault();
-                if (clienteEncontrado == null)
-                {
-                    clienteEncontrado = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Contains(dniCliente)).FirstOrDefault();
-                }
+                clienteEncontrado ??= db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Contains(dniCliente)).FirstOrDefault();
                 if (clienteEncontrado != null)
                 {
                     return clienteEncontrado;
                 }
             }
 
-            return CLIENTE_TIENDA_ONLINE;          
+            return CLIENTE_TIENDA_ONLINE;
         }
 
         public string LimpiarDni(string dniCliente)
@@ -232,14 +233,15 @@ namespace Nesto.Modulos.CanalesExternos
         public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
         {
             DatosEnvioConfirmarPrestashop datosEnvio = LeerDatosEnvio(pedido.UltimoSeguimiento);
-            string resultado = string.Empty;
+            string resultado;
             if (await PrestashopService.ConfirmarPedidoAsync(pedido.PedidoCanalId, datosEnvio.AgenciaId, datosEnvio.NumeroSeguimiento, true))
             {
                 resultado = $"Se ha añadido el número de seguimiento {datosEnvio.NumeroSeguimiento} al pedido {pedido.PedidoCanalId}";
                 if (await PrestashopService.CambiarEstadoPedidoAsync(pedido.PedidoCanalId, 4, false))
                 {
                     resultado += " y se ha pasado a estado Enviado.";
-                } else
+                }
+                else
                 {
                     resultado += " pero NO se ha podido pasar a estado Enviado.";
                 }
@@ -264,7 +266,7 @@ namespace Nesto.Modulos.CanalesExternos
                 return new DatosEnvioConfirmarPrestashop
                 {
                     AgenciaId = "105",
-                    NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
+                    NumeroSeguimiento = seguimiento[(indiceIgual + 1)..]
                 };
             }
             else if (seguimiento.Contains("sending"))
@@ -278,7 +280,7 @@ namespace Nesto.Modulos.CanalesExternos
                 return new DatosEnvioConfirmarPrestashop
                 {
                     AgenciaId = "103",
-                    NumeroSeguimiento = seguimiento.Substring(indiceIgual + 1)
+                    NumeroSeguimiento = seguimiento[(indiceIgual + 1)..]
                 };
             }
             else
@@ -296,34 +298,39 @@ namespace Nesto.Modulos.CanalesExternos
             PedidoVentaDTO pedidoSalida = pedido.Pedido;
             // añadir líneas
             var listaLineasXML = pedidoEntrada.Pedido.Element("associations").Element("order_rows").Elements();
-            foreach(var linea in listaLineasXML)
+            foreach (var linea in listaLineasXML)
             {
                 decimal porcentajeIva;
                 decimal importeSinIva = Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) / 1000000;
                 decimal importeConIva = Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000;
 
-                if (Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) != 0) {
-                    porcentajeIva = Math.Round(importeConIva / importeSinIva - 1, 2);
-                } else
+                if (Convert.ToDecimal(linea.Element("unit_price_tax_excl").Value) != 0)
+                {
+                    porcentajeIva = Math.Round((importeConIva / importeSinIva) - 1, 2);
+                }
+                else
                 {
                     porcentajeIva = 0;
                 }
-                    
+
                 string tipoIva;
                 if (porcentajeIva == .21M || porcentajeIva == 0 || Math.Round(importeSinIva * 1.21M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
                 {
                     tipoIva = "G21";
-                } else if (porcentajeIva == .10M || Math.Round(importeSinIva * 1.1M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+                }
+                else if (porcentajeIva == .10M || Math.Round(importeSinIva * 1.1M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
                 {
                     tipoIva = "R10";
-                } else if (porcentajeIva == .04M || Math.Round(importeSinIva * 1.04M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
+                }
+                else if (porcentajeIva == .04M || Math.Round(importeSinIva * 1.04M, 2, MidpointRounding.AwayFromZero) == Math.Round(importeConIva, 2, MidpointRounding.AwayFromZero))
                 {
                     tipoIva = "SR";
-                } else
+                }
+                else
                 {
                     throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", porcentajeIva.ToString("p")));
                 }
-                LineaPedidoVentaDTO lineaNesto = new LineaPedidoVentaDTO
+                LineaPedidoVentaDTO lineaNesto = new()
                 {
                     Pedido = pedidoSalida,
                     almacen = "ALG",
@@ -338,12 +345,13 @@ namespace Nesto.Modulos.CanalesExternos
                     Producto = linea.Element("product_reference").Value,
                     texto = linea.Element("product_name").Value.ToUpper(),
                     tipoLinea = 1, // producto
+                    vistoBueno = true,
                     Usuario = configuracion.usuario
                 };
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaNesto.PrecioUnitario = Math.Round(lineaNesto.PrecioUnitario / (decimal)(1+porcentajeIva), 4);
+                    lineaNesto.PrecioUnitario = Math.Round(lineaNesto.PrecioUnitario / (1 + porcentajeIva), 4);
                     //lineaNesto.BaseImponible = lineaNesto.precio * lineaNesto.cantidad;
                     lineaNesto.PorcentajeIva = porcentajeIva;
                 }
@@ -355,11 +363,11 @@ namespace Nesto.Modulos.CanalesExternos
             if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl").Value) != 0)
             {
                 decimal totalPortes = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_shipping_tax_incl")?.Value) / 1000000, 4);
-                LineaPedidoVentaDTO lineaPortes = new LineaPedidoVentaDTO
+                LineaPedidoVentaDTO lineaPortes = new()
                 {
                     almacen = "ALG",
                     AplicarDescuento = false,
-                    Cantidad = (short)1,
+                    Cantidad = 1,
                     delegacion = "ALG",
                     formaVenta = formaVenta,
                     estado = 1,
@@ -374,7 +382,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaPortes.PrecioUnitario = lineaPortes.PrecioUnitario / (decimal)1.21;
+                    lineaPortes.PrecioUnitario /= (decimal)1.21;
                     lineaPortes.PorcentajeIva = .21M;
                 }
 
@@ -385,11 +393,11 @@ namespace Nesto.Modulos.CanalesExternos
             if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl").Value) != 0)
             {
                 decimal totalEmbalaje = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_wrapping_tax_incl")?.Value) / 1000000, 4);
-                LineaPedidoVentaDTO lineaEmbalaje = new LineaPedidoVentaDTO
+                LineaPedidoVentaDTO lineaEmbalaje = new()
                 {
                     almacen = "ALG",
                     AplicarDescuento = false,
-                    Cantidad = (short)1,
+                    Cantidad = 1,
                     delegacion = "ALG",
                     formaVenta = formaVenta,
                     estado = 1,
@@ -404,7 +412,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaEmbalaje.PrecioUnitario = lineaEmbalaje.PrecioUnitario / (decimal)1.21;
+                    lineaEmbalaje.PrecioUnitario /= (decimal)1.21;
                     lineaEmbalaje.PorcentajeIva = .21M;
                 }
 
@@ -415,11 +423,11 @@ namespace Nesto.Modulos.CanalesExternos
             if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl").Value) != 0)
             {
                 decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
-                LineaPedidoVentaDTO lineaCupon = new LineaPedidoVentaDTO
+                LineaPedidoVentaDTO lineaCupon = new()
                 {
                     almacen = "ALG",
                     AplicarDescuento = false,
-                    Cantidad = (short)-1,
+                    Cantidad = -1,
                     delegacion = "ALG",
                     formaVenta = formaVenta,
                     estado = 1,
@@ -434,7 +442,7 @@ namespace Nesto.Modulos.CanalesExternos
 
                 if (pedidoSalida.iva != null)
                 {
-                    lineaCupon.PrecioUnitario = lineaCupon.PrecioUnitario / (decimal)1.21;
+                    lineaCupon.PrecioUnitario /= (decimal)1.21;
                     lineaCupon.PorcentajeIva = .21M;
                 }
 

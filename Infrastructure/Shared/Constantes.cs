@@ -38,6 +38,7 @@ namespace Nesto.Infrastructure.Shared
         }
         public class Cuentas
         {
+            public const string GASTOS_DATAFONO = "62600008";
             public const string CAJA_PENDIENTE_RECIBIR_TIENDAS = "57000016";
         }
 
@@ -50,12 +51,15 @@ namespace Nesto.Infrastructure.Shared
         }
         public class Empresas
         {
+            public const string CENTRO_COSTE_DEFECTO = "CA";
+            public const string DEPARTAMENTO_DEFECTO = "ADM";
             public const string EMPRESA_DEFECTO = "1";
             public const string EMPRESA_ESPEJO = "3  ";
             public const string DELEGACION_DEFECTO = "ALG";
             public const string FORMA_VENTA_DEFECTO = "VAR";
             public const string MONEDA_CONTABILIDAD = "EUR";
             public const string IVA_DEFECTO = "G21";
+
         }
         public class ExtractosCliente
         {
