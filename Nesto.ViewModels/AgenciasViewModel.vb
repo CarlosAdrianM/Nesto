@@ -66,6 +66,10 @@ Public Class AgenciasViewModel
 
         Titulo = "Agencias"
 
+        AgenciasEnCuarentena = New List(Of String)
+
+        InicializarAsync()
+
         ' Prism
         cmdCargarDatos = New DelegateCommand(AddressOf OnCargarDatos)
         cmdCargarEstado = New DelegateCommand(Of Object)(AddressOf OnCargarEstado, AddressOf CanCargarEstado)
@@ -89,6 +93,8 @@ Public Class AgenciasViewModel
         'factory.Add("Glovo", Function() New AgenciaGlovo(Me))
         factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
         factory.Add("Sending", Function() New AgenciaSending())
+
+
     End Sub
 
 
@@ -267,6 +273,16 @@ Public Class AgenciasViewModel
                 RaisePropertyChanged(NameOf(agenciaSeleccionada))
             End Try
 
+        End Set
+    End Property
+
+    Private _agenciasEnCuarentena As List(Of String)
+    Public Property AgenciasEnCuarentena As List(Of String)
+        Get
+            Return _agenciasEnCuarentena
+        End Get
+        Set(value As List(Of String))
+            Dim unused = SetProperty(_agenciasEnCuarentena, value)
         End Set
     End Property
 
@@ -2076,6 +2092,31 @@ Public Class AgenciasViewModel
 #End Region
 
 #Region "Funciones de Ayuda"
+
+    Private Async Sub InicializarAsync()
+        Try
+            Await CargarAgenciasEnCuarentenaAsync().ConfigureAwait(True)
+        Catch ex As Exception
+            ' Manejo de errores: registra o muestra un mensaje si procede
+            Console.WriteLine($"Error al cargar agencias en cuarentena: {ex.Message}")
+        End Try
+    End Sub
+
+    Private Async Function CargarAgenciasEnCuarentenaAsync() As Task
+        Dim valorParametro As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AgenciasEnCuarentena)
+
+        If Not String.IsNullOrWhiteSpace(valorParametro) Then
+            AgenciasEnCuarentena = valorParametro _
+                .Split(","c) _
+                .Select(Function(a) a.Trim()) _
+                .Where(Function(a) Not String.IsNullOrEmpty(a)) _
+                .ToList()
+        Else
+            ' Valor por defecto si no hay configuración
+            AgenciasEnCuarentena = New List(Of String)
+        End If
+    End Function
+
     Public Function correoUnico() As String
         Return If(Not pedidoSeleccionado.Clientes.PersonasContactoCliente.Any,
             String.Empty,
@@ -2718,8 +2759,8 @@ Public Class AgenciasViewModel
         Dim zona As ZonasEnvioAgencia = CalcularZonaEnvio(codigoPostal)
         Dim costosTotales As New Dictionary(Of ITarifaAgencia, Decimal)
 
-        ' Recorre todas las agencias en el factory
-        For Each agenciaFactory In factory
+        ' Recorre todas las agencias en el factory (menos las que tengamos en cuarentena)
+        For Each agenciaFactory In factory.Where(Function(f) Not AgenciasEnCuarentena.Contains(f.Key))
             Dim agenciaFunc As Func(Of IAgencia) = agenciaFactory.Value
             Dim agencia As IAgencia = agenciaFunc()
             ' Recorre todos los servicios de la agencia actual

@@ -1,11 +1,11 @@
-﻿using Nesto.Modulos.Cajas.ViewModels;
+﻿using ControlesUsuario.Dialogs;
+using Nesto.Modulos.Cajas.Interfaces;
+using Nesto.Modulos.Cajas.ViewModels;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ControlesUsuario.Dialogs;
 using System.Threading.Tasks;
-using Nesto.Modulos.Cajas.Interfaces;
 
 namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
@@ -26,7 +26,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
         {
             var apuntesBancariosCargo = apuntesBancarios.Where(c => c.ImporteMovimiento < 0);
             var apuntesBancariosAbono = apuntesBancarios.Where(c => c.ImporteMovimiento > 0);
-            
+
             var diasAplazados = 90;
             var fechaOperacion = apuntesBancariosAbono.Max(a => a.FechaOperacion);
             var fechaVencimiento = fechaOperacion.AddDays(diasAplazados);
@@ -37,7 +37,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             while (!task.IsCompleted)
             {
                 System.Threading.Thread.Sleep(10); // Evitar que el ciclo sea demasiado agresivo
-                System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Background, new Action(delegate { }));
+                _ = System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(System.Windows.Threading.DispatcherPriority.Background, new Action(delegate { }));
             }
             fechaVencimiento = task.Result;
             diasAplazados = (int)(fechaVencimiento - fechaOperacion).TotalDays;
@@ -52,9 +52,9 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
 
             //var importeIngresado = apuntesBancariosAbono.Sum(a => a.ImporteMovimiento);
-            var importeIntereses = -importeDescuadre; 
+            var importeIntereses = -importeDescuadre;
             var importeOriginal = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento);
-            var tipoInteres = (importeIntereses / diasAplazados * 360) / importeOriginal; // Aplazamos 90 días y quiero mostrar el interés anual (Euribor 3M + 1,50%)
+            var tipoInteres = importeIntereses / diasAplazados * 360 / importeOriginal; // Aplazamos 90 días y quiero mostrar el interés anual (Euribor 3M + 1,50%)
             bool confirmado = false;
             bool primeraIteracion = true; // Para controlar si estamos en la primera iteración
 
@@ -65,14 +65,14 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 if (primeraIteracion && tipoInteres > 0.30m)
                 {
                     _dialogService.ShowNotification("Tipo de interés elevado",
-                        $"El tipo de interés calculado ({tipoInteres.ToString("p")}) es superior al 30%, por favor ajuste el importe.");
+                        $"El tipo de interés calculado ({tipoInteres:p}) es superior al 30%, por favor ajuste el importe.");
 
                     var importeManual = _dialogService.GetAmount("Financiación parcial", "Introduce el importe a financiar:");
                     if (importeManual.HasValue)
                     {
                         importeOriginal = importeManual.Value;
                         importeIntereses = importeOriginal - apuntesBancariosAbono.Sum(c => c.ImporteMovimiento);
-                        tipoInteres = (importeIntereses / diasAplazados * 360) / importeOriginal;
+                        tipoInteres = importeIntereses / diasAplazados * 360 / importeOriginal;
                         importeNoFinanciado = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento) - importeManual.Value;
                         primeraIteracion = false; // Ya no estamos en la primera iteración
                     }
@@ -86,7 +86,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 {
                     // Flujo normal de confirmación
                     if (_dialogService.ShowConfirmationAnswer("Contabilizar",
-                        $"¿Desea contabilizar los intereses de {importeIntereses.ToString("c")} ({tipoInteres.ToString("p")}) y vencimiento {fechaVencimiento.ToShortDateString()}?"))
+                        $"¿Desea contabilizar los intereses de {importeIntereses:c} ({tipoInteres:p}) y vencimiento {fechaVencimiento.ToShortDateString()}?"))
                     {
                         confirmado = true; // El usuario confirmó, salimos del bucle
                     }
@@ -108,7 +108,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                         {
                             importeOriginal = importeManual.Value;
                             importeIntereses = importeOriginal - apuntesBancariosAbono.Sum(c => c.ImporteMovimiento);
-                            tipoInteres = (importeIntereses / diasAplazados * 360) / importeOriginal;
+                            tipoInteres = importeIntereses / diasAplazados * 360 / importeOriginal;
                             importeNoFinanciado = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento) - importeManual.Value;
                             primeraIteracion = false; // Ya no estamos en la primera iteración
                         }
@@ -125,7 +125,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 if (tipoInteres > 0.30m && !confirmado)
                 {
                     _dialogService.ShowNotification("Advertencia",
-                        $"El tipo de interés sigue siendo alto ({tipoInteres.ToString("p")}). Considere ajustar más el importe.");
+                        $"El tipo de interés sigue siendo alto ({tipoInteres:p}). Considere ajustar más el importe.");
                 }
             }
 
@@ -135,7 +135,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
             linea1.Cuenta = "66200005";
-            linea1.Concepto = $"Interés financiación póliza riesgo ({tipoInteres.ToString("p")})";
+            linea1.Concepto = $"Interés financiación póliza riesgo ({tipoInteres:p})";
 
             // Obtener los últimos 10 caracteres
             string referenciaCompleta = apuntesContabilidad.Max(c => c.Id).ToString();
@@ -144,7 +144,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             string ultimos10Caracteres;
             if (longitud >= caracteresDeseados)
             {
-                ultimos10Caracteres = referenciaCompleta.Substring(longitud - caracteresDeseados);
+                ultimos10Caracteres = referenciaCompleta[(longitud - caracteresDeseados)..];
             }
             else
             {
@@ -175,7 +175,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea2.Debe = abono.ImporteMovimiento;
                 lineas.Add(linea2);
             }
-            
+
             foreach (var cargo in apuntesBancariosCargo)
             {
                 var linea3 = BancosViewModel.CrearPrecontabilidadDefecto();
@@ -188,7 +188,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea3.FormaVenta = "VAR";
                 linea3.Departamento = "ADM";
                 linea3.CentroCoste = "CA";
-                linea3.Haber = -cargo.ImporteMovimiento - importeNoFinanciado;
+                linea3.Haber = -cargo.ImporteMovimiento + importeNoFinanciado;
                 lineas.Add(linea3);
 
                 var linea4 = BancosViewModel.CrearPrecontabilidadDefecto();
@@ -202,14 +202,14 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea4.FormaVenta = "VAR";
                 linea4.Departamento = "ADM";
                 linea4.CentroCoste = "CA";
-                linea4.Debe = -cargo.ImporteMovimiento - importeNoFinanciado;
+                linea4.Debe = -cargo.ImporteMovimiento + importeNoFinanciado;
                 linea4.Contrapartida = banco.CuentaContable;
                 lineas.Add(linea4);
             }
-            
 
 
-            ReglaContabilizacionResponse response = new ReglaContabilizacionResponse
+
+            ReglaContabilizacionResponse response = new()
             {
                 Lineas = lineas
             };
@@ -253,7 +253,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             {
                 return true;
             }
-            
+
             // Si la suma de los apuntes contables es igual a la suma de los apuntes bancarios negativos y hay apuntes bancarios positivos y negativos devuelve false
             if (apuntesContabilidad.Sum(c => c.Importe) == apuntesBancarios.Where(b => b.ImporteMovimiento < 0).Sum(b => b.ImporteMovimiento) &&
                 apuntesBancarios.Any(b => b.ImporteMovimiento > 0) &&
@@ -261,14 +261,14 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             {
                 return false;
             }
-            
+
             // Si no hay el doble de apuntes bancarios que contables
             if (apuntesBancarios.Count() / apuntesContabilidad.Count() != 2)
             {
                 return true;
-            }            
+            }
 
-            return  false;
+            return false;
         }
 
         private async Task<DateTime> AjustarFechaNoFestiva(DateTime fecha)

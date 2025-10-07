@@ -16,11 +16,14 @@ Public Class RapportService
 
 
     Private ReadOnly configuracion As IConfiguracion
+    Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
     Private Property InteractiveBrowserCredential As InteractiveBrowserCredential
 
-    Public Sub New(configuracion As IConfiguracion, interactiveBrowserCredential As InteractiveBrowserCredential)
+
+    Public Sub New(configuracion As IConfiguracion, interactiveBrowserCredential As InteractiveBrowserCredential, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         Me.InteractiveBrowserCredential = interactiveBrowserCredential
+        _servicioAutenticacion = servicioAutenticacion
     End Sub
 
 
@@ -407,6 +410,9 @@ Public Class RapportService
         Try
             Using client As New Net.Http.HttpClient()
                 client.BaseAddress = New Uri(configuracion.servidorAPI)
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
                 Dim response = Await client.GetAsync(url)
                 Dim unused = response.EnsureSuccessStatusCode()
                 Dim json = Await response.Content.ReadAsStringAsync()

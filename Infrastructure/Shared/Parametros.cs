@@ -5,6 +5,7 @@
         public struct Claves
         {
             // Colocar por orden alfabético, por favor
+            public const string AgenciasEnCuarentena = "AgenciasEnCuarentena";
             public const string AlmacenInventario = "AlmacénInventario";
             public const string AlmacenPedidoVta = "AlmacénPedidoVta";
             public const string AlmacenReposición = "AlmacénReposición";
