@@ -4,6 +4,7 @@ Imports System.Net
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Windows
+Imports System.Xml
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Infrastructure.Shared.FuncionesAuxiliares
@@ -163,8 +164,10 @@ Public Class AgenciaASM
         Return PrefijoCodigoBarras + agenciaVM.envioActual.Numero.ToString("D7")
     End Function
     Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
-        'Comenzamos la llamada
-        Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" &
+        Try
+
+            'Comenzamos la llamada
+            Dim soap As String = "<?xml version=""1.0"" encoding=""utf-8""?>" &
              "<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" " &
               "xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" " &
               "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" &
@@ -176,40 +179,59 @@ Public Class AgenciaASM
                 "</soap:Body>" &
              "</soap:Envelope>"
 
-        Dim req As HttpWebRequest = WebRequest.Create("https://www.asmred.com/WebSrvs/b2b.asmx?op=GetPlazaXCP")
-        req.Headers.Add("SOAPAction", """http://www.asmred.com/GetPlazaXCP""")
-        req.ContentType = "text/xml; charset=""utf-8"""
-        req.Accept = "text/xml"
-        req.Method = "POST"
+            Dim req As HttpWebRequest = WebRequest.Create("https://www.asmred.com/WebSrvs/b2b.asmx?op=GetPlazaXCP")
+            req.Headers.Add("SOAPAction", """http://www.asmred.com/GetPlazaXCP""")
+            req.ContentType = "text/xml; charset=""utf-8"""
+            req.Accept = "text/xml"
+            req.Method = "POST"
+            req.Timeout = 15000
+            req.ReadWriteTimeout = 15000
 
-        Using stm As Stream = req.GetRequestStream()
-            Using stmw As New StreamWriter(stm)
-                stmw.Write(soap)
+            Using stm As Stream = req.GetRequestStream()
+                Using stmw As New StreamWriter(stm)
+                    stmw.Write(soap)
+                End Using
             End Using
-        End Using
 
-        Dim response As WebResponse = req.GetResponse()
-        Dim responseStream As New StreamReader(response.GetResponseStream())
-        soap = responseStream.ReadToEnd
+            Dim response As WebResponse = req.GetResponse()
+            Dim responseStream As New StreamReader(response.GetResponseStream())
+            soap = responseStream.ReadToEnd
 
-        Dim respuestaXML As XDocument
-        respuestaXML = XDocument.Parse(soap)
+            If String.IsNullOrWhiteSpace(soap) Then
+                Return
+            End If
 
-        Dim elementoXML As XElement
-        Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
-        elementoXML = respuestaXML.Descendants(Xns + "GetPlazaXCPResult").First().FirstNode
-        respuestaXML = New XDocument
-        respuestaXML.AddFirst(elementoXML)
+            Dim respuestaXML As XDocument
+            respuestaXML = XDocument.Parse(soap)
 
-        'Debug.Print(respuestaXML.ToString)
-        If Not IsNothing(elementoXML.Element("Nemonico")) Then
-            nemonico = elementoXML.Element("Nemonico").Value
-            nombrePlaza = elementoXML.Element("Nombre").Value
-            telefonoPlaza = elementoXML.Element("Telefono").Value
-            telefonoPlaza = Regex.Replace(telefonoPlaza, "([^0-9])", "")
-            'telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
-            emailPlaza = elementoXML.Element("Mail").Value
-        End If
+            Dim elementoXML As XElement
+            Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
+
+            ' ⭐ VALIDAR estructura
+            Dim resultNode = respuestaXML.Descendants(Xns + "GetPlazaXCPResult").FirstOrDefault()
+            If resultNode Is Nothing OrElse resultNode.FirstNode Is Nothing Then
+                Return
+            End If
+
+            elementoXML = resultNode.FirstNode
+            respuestaXML = New XDocument
+            respuestaXML.AddFirst(elementoXML)
+
+            'Debug.Print(respuestaXML.ToString)
+            If Not IsNothing(elementoXML.Element("Nemonico")) Then
+                nemonico = elementoXML.Element("Nemonico").Value
+                nombrePlaza = elementoXML.Element("Nombre").Value
+                telefonoPlaza = elementoXML.Element("Telefono").Value
+                telefonoPlaza = Regex.Replace(telefonoPlaza, "([^0-9])", "")
+                'telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
+                emailPlaza = elementoXML.Element("Mail").Value
+            End If
+        Catch ex As WebException
+            ' ⭐ Silencioso pero controlado - dejar valores por defecto
+            Debug.WriteLine($"Error en calcularPlaza: {ex.Message}")
+        Catch ex As Exception
+            Debug.WriteLine($"Error en calcularPlaza: {ex.Message}")
+        End Try
     End Sub
     Private Function construirXMLdeSalida(envio As EnviosAgencia, servicio As IAgenciaService) As XDocument 'Implements IAgencia.construirXMLdeSalida
         Dim empresa = servicio.CargarListaEmpresas().Single(Function(e) e.Número = envio.Empresa)
@@ -304,6 +326,8 @@ Public Class AgenciaASM
         req.ContentType = "text/xml; charset=""utf-8"""
         req.Accept = "text/xml"
         req.Method = "POST"
+        req.Timeout = 30000 ' 30 segundos para la conexión
+        req.ReadWriteTimeout = 30000 ' 30 segundos para lectura/escritura
 
         Dim respuesta As New RespuestaAgencia With {
             .Agencia = "ASM",
@@ -322,8 +346,25 @@ Public Class AgenciaASM
             Dim response As WebResponse = req.GetResponse()
             Dim responseStream As New StreamReader(response.GetResponseStream())
             soap = responseStream.ReadToEnd
+
+            ' ⭐ VALIDAR que hay contenido
+            If String.IsNullOrWhiteSpace(soap) Then
+                respuesta.Exito = False
+                respuesta.TextoRespuestaError = "La API devolvió una respuesta vacía"
+                respuesta.CuerpoRespuesta = String.Empty
+                Return respuesta
+            End If
+
             XMLdeEntrada = XDocument.Parse(soap)
             respuesta.CuerpoRespuesta = soap
+        Catch ex As XmlException
+            ' ⭐ CAPTURAR específicamente errores de XML
+            respuesta.Exito = False
+            respuesta.TextoRespuestaError = "Error al parsear respuesta XML: " & ex.Message
+            If IsNothing(respuesta.CuerpoRespuesta) Then
+                respuesta.CuerpoRespuesta = soap
+            End If
+            Return respuesta
         Catch ex As Exception
             respuesta.Exito = False
             respuesta.TextoRespuestaError = ex.Message
@@ -336,19 +377,49 @@ Public Class AgenciaASM
 
         Dim elementoXML As XElement
         Dim Xns As XNamespace = XNamespace.Get("http://www.asmred.com/")
+
+        ' ⭐ VALIDAR que existe el nodo esperado
+        Dim resultNode = XMLdeEntrada.Descendants(Xns + "GrabaServiciosResult").FirstOrDefault()
+        If resultNode Is Nothing OrElse resultNode.FirstNode Is Nothing Then
+            respuesta.Exito = False
+            respuesta.TextoRespuestaError = "Respuesta con formato inesperado: falta GrabaServiciosResult"
+            Return respuesta
+        End If
+
         elementoXML = XMLdeEntrada.Descendants(Xns + "GrabaServiciosResult").First().FirstNode
         XMLdeEntrada = New XDocument
         XMLdeEntrada.AddFirst(elementoXML)
 
-        If elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value <> "0" Then
+        ' ⭐ VALIDAR estructura del resultado
+        Dim envioNode = elementoXML.Element("Envio")
+        If envioNode Is Nothing Then
             respuesta.Exito = False
-            If elementoXML.Element("Envio").Element("Errores").HasElements Then
-                respuesta.TextoRespuestaError = elementoXML.Element("Envio").Element("Errores").Element("Error").Value
-                Return respuesta
+            respuesta.TextoRespuestaError = "Respuesta con formato inesperado: falta nodo Envio"
+            Return respuesta
+        End If
+
+        Dim resultadoNode = envioNode.Element("Resultado")
+        If resultadoNode Is Nothing OrElse resultadoNode.Attribute("return") Is Nothing Then
+            respuesta.Exito = False
+            respuesta.TextoRespuestaError = "Respuesta con formato inesperado: falta Resultado/return"
+            Return respuesta
+        End If
+
+        Dim returnValue As String = resultadoNode.Attribute("return").Value
+        If returnValue <> "0" Then
+            respuesta.Exito = False
+            Dim erroresNode = envioNode.Element("Errores")
+            If erroresNode IsNot Nothing AndAlso erroresNode.HasElements Then
+                Dim errorNode = erroresNode.Element("Error")
+                If errorNode IsNot Nothing Then
+                    respuesta.TextoRespuestaError = errorNode.Value
+                Else
+                    respuesta.TextoRespuestaError = calcularMensajeError(returnValue)
+                End If
             Else
-                respuesta.TextoRespuestaError = calcularMensajeError(elementoXML.Element("Envio").Element("Resultado").Attribute("return").Value)
-                Return respuesta
+                respuesta.TextoRespuestaError = calcularMensajeError(returnValue)
             End If
+            Return respuesta
         Else
             respuesta.Exito = True
             respuesta.TextoRespuestaError = "OK"
@@ -667,6 +738,8 @@ Public Class AgenciaASM
         req.Headers.Add("SOAPAction", """http://www.asmred.com/GetTSP""")
         req.ContentType = "text/xml; charset=utf-8"
         req.Method = "POST"
+        req.Timeout = 15000
+        req.ReadWriteTimeout = 15000
 
         Using stm As Stream = Await req.GetRequestStreamAsync()
             Using stmw As New StreamWriter(stm)
@@ -678,6 +751,9 @@ Public Class AgenciaASM
             Using response As WebResponse = Await req.GetResponseAsync()
                 Using responseStream As New StreamReader(response.GetResponseStream())
                     Dim responseXml As String = Await responseStream.ReadToEndAsync()
+                    If String.IsNullOrWhiteSpace(responseXml) Then
+                        Return "Error"
+                    End If
                     Return ParseCodTSP(responseXml)
                 End Using
             End Using
@@ -689,15 +765,27 @@ Public Class AgenciaASM
                 End Using
             End Using
             Throw New Exception("Error en la llamada al servicio: " & errorResponse)
+        Catch ex As Exception
+            Throw
         End Try
     End Function
 
 
     Private Function ParseCodTSP(responseXml As String) As String
-        Dim xdoc As XDocument = XDocument.Parse(responseXml)
-        Dim Xns As XNamespace = "http://www.asmred.com/"
-        Dim codTSP As String = xdoc.Descendants(Xns + "CodTSP").FirstOrDefault()?.Value
-        Return codTSP
+        Try
+            Dim xdoc As XDocument = XDocument.Parse(responseXml)
+            Dim Xns As XNamespace = "http://www.asmred.com/"
+            Dim codTSPElement = xdoc.Descendants(Xns + "CodTSP").FirstOrDefault()
+
+            ' ⭐ VALIDAR que existe
+            If codTSPElement Is Nothing OrElse String.IsNullOrWhiteSpace(codTSPElement.Value) Then
+                Return "N/A"
+            End If
+
+            Return codTSPElement.Value
+        Catch ex As Exception
+            Return "ERROR"
+        End Try
     End Function
 
 End Class

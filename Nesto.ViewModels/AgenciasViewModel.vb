@@ -1374,22 +1374,39 @@ Public Class AgenciasViewModel
         If envioActual.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
             Throw New Exception("No se puede tramitar un pedido ya tramitado")
         End If
-        Try
-            Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioActual, _servicio)
 
-            ' Guardamos la llamada
+        Dim envioATramitar = envioActual ' Capturar referencia
+
+        Try
+            Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioATramitar, _servicio)
             Await _servicio.GuardarLlamadaAgencia(respuesta)
 
             If respuesta.Exito OrElse agenciaEspecifica.RespuestaYaTramitada(respuesta.TextoRespuestaError) Then
-                mensajeError = _servicio.TramitarEnvio(envioActual)
-                listaEnvios = _servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
-                envioActual = listaEnvios.LastOrDefault ' lo pongo para que no se vaya al último
+                Dim resultado = _servicio.TramitarEnvio(envioATramitar)
+
+                ' ⭐ VERIFICAR que realmente se tramitó
+                If resultado.Contains("Error") Then
+                    mensajeError = resultado
+                    ' ⚠️ NO recargar lista si hubo error
+                Else
+                    mensajeError = resultado
+                    listaEnvios = _servicio.CargarListaEnvios(agenciaSeleccionada.Numero)
+
+                    ' ⭐ Verificar en BD que el estado cambió
+                    Dim envioVerificacion = listaEnvios.FirstOrDefault(Function(e) e.Numero = envioATramitar.Numero)
+                    If envioVerificacion IsNot Nothing AndAlso envioVerificacion.Estado <> Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Then
+                        mensajeError = "ADVERTENCIA: El envío no se marcó como tramitado en BD"
+                    Else
+                        envioActual = listaEnvios.LastOrDefault
+                    End If
+                End If
             Else
                 mensajeError = respuesta.TextoRespuestaError
             End If
         Catch ex As Exception
             mensajeError = ex.Message
         End Try
+
         RaisePropertyChanged(NameOf(listaReembolsos))
         RaisePropertyChanged(NameOf(mensajeError))
     End Sub

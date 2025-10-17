@@ -135,6 +135,7 @@
                                         <DataGridTextColumn Header="Nombre" Binding="{Binding nombre}" Width="7*" />
                                         <DataGridTextColumn Header="Cantidad" Binding="{Binding cantidad}" Width="*" />
                                         <DataGridTextColumn Header="Subgrupo" Binding="{Binding subGrupo}" Width="6*" />
+                                        <DataGridTextColumn Header="Familia" Binding="{Binding familia}" Width="6*" />
                                         <DataGridTextColumn Header="Última Venta" Binding="{Binding fechaUltVenta, StringFormat=d}" Width="2*" />
                                     </DataGrid.Columns>
                                 </DataGrid>

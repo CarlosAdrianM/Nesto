@@ -1,28 +1,27 @@
-﻿Imports Nesto.Models
+﻿Imports System.Collections.ObjectModel
 Imports System.ComponentModel
-Imports System.Windows
-Imports System.Collections.ObjectModel
-Imports System.Windows.Input
-Imports System.IO
-Imports Microsoft.Win32
-Imports System.Windows.Data
 Imports System.Globalization
-Imports Nesto.Models.LineaPedidoVentaDTO
+Imports System.IO
 Imports System.Net.Http
-Imports Newtonsoft.Json
-Imports System.Text
 Imports System.Runtime.InteropServices
-Imports Nesto.Models.Nesto.Models
-Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Nesto.Modulos.PedidoVenta
-Imports Unity
-Imports Prism.Mvvm
-Imports Prism.Commands
-Imports Prism.Services.Dialogs
+Imports System.Text
+Imports System.Windows
+Imports System.Windows.Data
+Imports System.Windows.Input
+Imports ControlesUsuario.Dialogs
+Imports Microsoft.Win32
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
-Imports ControlesUsuario.Dialogs
+Imports Nesto.Models
+Imports Nesto.Models.Nesto.Models
+Imports Nesto.Modulos.PedidoVenta
+Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.Rapports
+Imports Newtonsoft.Json
+Imports Prism.Commands
+Imports Prism.Mvvm
+Imports Prism.Services.Dialogs
+Imports Unity
 
 Public Interface IOService
     Function OpenFileDialog(defaultPath As String) As String
@@ -56,8 +55,9 @@ Public Class ClientesViewModel
             id = _id
             descripcion = _descripcion
         End Sub
-        Property id As String
-        Property descripcion As String
+
+        Public Property id As String
+        Public Property descripcion As String
     End Structure
 
     Public Sub New()
@@ -65,7 +65,7 @@ Public Class ClientesViewModel
         ' Deberíamos separarlo en dos ViewModels diferentes, uno para Clientes y otro para ClientesComercial
         '***************************
         cargarDatos()
-        Me.configuracion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IConfiguracion))
+        configuracion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IConfiguracion))
     End Sub
 
     Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService)
@@ -102,7 +102,7 @@ Public Class ClientesViewModel
             Return _titulo
         End Get
         Set(value As String)
-            SetProperty(_titulo, value)
+            Dim unused = SetProperty(_titulo, value)
         End Set
     End Property
 
@@ -115,7 +115,7 @@ Public Class ClientesViewModel
             _empresaActual = value
             listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             If IsNothing(contactoActual) Then
-                CargarClienteActualEmpresa()
+                Dim unused = CargarClienteActualEmpresa()
                 listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             End If
             actualizarCliente(_empresaActual, clienteActual, contactoActual)
@@ -174,7 +174,7 @@ Public Class ClientesViewModel
             Return _deudaSeleccionada
         End Get
         Set(value As ExtractoClienteDTO)
-            SetProperty(_deudaSeleccionada, value)
+            Dim unused = SetProperty(_deudaSeleccionada, value)
             GuardarEfectoDeudaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -332,12 +332,12 @@ Public Class ClientesViewModel
                     cargarVendedoresPorGrupo()
                     seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
                     If rangoFechasVenta = "System.Windows.Controls.ComboBoxItem: Ventas de siempre" Then 'esto está fatal, hay que desacoplarlo de la vista 
-                        fechaDesde = DateTime.MinValue
+                        fechaDesde = Date.MinValue
                     Else
-                        fechaDesde = DateTime.Now.AddYears(-1)
+                        fechaDesde = Date.Now.AddYears(-1)
                     End If
-                    listaVentas = New ObservableCollection(Of lineaVentaAgrupada)(From l In DbContext.LinPedidoVta Where (l.Empresa = "1" Or l.Empresa = "3") And l.Nº_Cliente = clienteActivo.Nº_Cliente And l.Contacto = clienteActivo.Contacto And l.Estado >= 2 And l.Fecha_Albarán >= fechaDesde Group By l.Producto, l.Texto, l.SubGruposProducto.Descripción Into Sum(l.Cantidad), Max(l.Fecha_Albarán) Select New lineaVentaAgrupada With {.producto = Producto, .nombre = Texto, .cantidad = Sum, .fechaUltVenta = Max, .subGrupo = Descripción})
-                    deudaVencida = (Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?)))
+                    listaVentas = New ObservableCollection(Of lineaVentaAgrupada)(From l In DbContext.LinPedidoVta Where (l.Empresa = "1" Or l.Empresa = "3") And l.Nº_Cliente = clienteActivo.Nº_Cliente And l.Contacto = clienteActivo.Contacto And l.Estado >= 2 And l.Fecha_Albarán >= fechaDesde Group By l.Producto, l.Texto, l.SubGruposProducto.Descripción, l.Familia Into Sum(l.Cantidad), Max(l.Fecha_Albarán) Select New lineaVentaAgrupada With {.producto = Producto, .nombre = Texto, .cantidad = Sum, .fechaUltVenta = Max, .subGrupo = Descripción, .familia = Familia})
+                    deudaVencida = Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?))
                 Else
                     seguimientosOrdenados = Nothing
                     listaVentas = Nothing
@@ -467,7 +467,7 @@ Public Class ClientesViewModel
             Return _listaClientesFiltrable
         End Get
         Set(value As ColeccionFiltrable)
-            SetProperty(_listaClientesFiltrable, value)
+            Dim unused = SetProperty(_listaClientesFiltrable, value)
         End Set
     End Property
 
@@ -563,9 +563,9 @@ Public Class ClientesViewModel
             _rangoFechasVenta = value
             If Not IsNothing(clienteActivo) Then
                 If rangoFechasVenta = "System.Windows.Controls.ComboBoxItem: Ventas de siempre" Then 'esto hay que cambiarlo, que es una ñapa muy gorda
-                    fechaDesde = DateTime.MinValue
+                    fechaDesde = Date.MinValue
                 Else
-                    fechaDesde = DateTime.Now.AddYears(-1)
+                    fechaDesde = Date.Now.AddYears(-1)
                 End If
                 listaVentas = New ObservableCollection(Of lineaVentaAgrupada)(From l In DbContext.LinPedidoVta Where (l.Empresa = "1" Or l.Empresa = "3") And l.Nº_Cliente = clienteActivo.Nº_Cliente And l.Contacto = clienteActivo.Contacto And l.Estado >= 2 And l.Fecha_Albarán >= fechaDesde Group By l.Producto, l.Texto, l.SubGruposProducto.Descripción Into Sum(l.Cantidad), Max(l.Fecha_Albarán) Select New lineaVentaAgrupada With {.producto = Producto, .nombre = Texto, .cantidad = Sum, .fechaUltVenta = Max, .subGrupo = Descripción})
             End If
@@ -606,15 +606,7 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private _listaCodigosPostalesVendedor As List(Of String)
     Public Property listaCodigosPostalesVendedor As List(Of String)
-        Get
-            Return _listaCodigosPostalesVendedor
-        End Get
-        Set(value As List(Of String))
-            _listaCodigosPostalesVendedor = value
-        End Set
-    End Property
 
     Private _extractoCCC As ObservableCollection(Of ExtractoCliente)
     Public Property extractoCCC() As ObservableCollection(Of ExtractoCliente)
@@ -692,7 +684,7 @@ Public Class ClientesViewModel
             Return _listaDeudas
         End Get
         Set(value As ObservableCollection(Of ExtractoClienteDTO))
-            SetProperty(_listaDeudas, value)
+            Dim unused = SetProperty(_listaDeudas, value)
         End Set
     End Property
 
@@ -702,7 +694,7 @@ Public Class ClientesViewModel
             Return _listaFacturas
         End Get
         Set(value As ObservableCollection(Of ExtractoClienteDTO))
-            SetProperty(_listaFacturas, value)
+            Dim unused = SetProperty(_listaFacturas, value)
         End Set
     End Property
 
@@ -750,7 +742,7 @@ Public Class ClientesViewModel
             Return _importeReclamarDeuda
         End Get
         Set(value As Decimal)
-            SetProperty(_importeReclamarDeuda, value)
+            Dim unused = SetProperty(_importeReclamarDeuda, value)
             ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -761,7 +753,7 @@ Public Class ClientesViewModel
             Return _asuntoReclamarDeuda
         End Get
         Set(value As String)
-            SetProperty(_asuntoReclamarDeuda, value)
+            Dim unused = SetProperty(_asuntoReclamarDeuda, value)
         End Set
     End Property
 
@@ -771,7 +763,7 @@ Public Class ClientesViewModel
             Return _correoReclamarDeuda
         End Get
         Set(value As String)
-            SetProperty(_correoReclamarDeuda, value)
+            Dim unused = SetProperty(_correoReclamarDeuda, value)
             ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -782,7 +774,7 @@ Public Class ClientesViewModel
             Return _motivoCambioEstado
         End Get
         Set(value As String)
-            SetProperty(_motivoCambioEstado, value)
+            Dim unused = SetProperty(_motivoCambioEstado, value)
             GuardarEfectoDeudaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -793,7 +785,7 @@ Public Class ClientesViewModel
             Return _movilReclamarDeuda
         End Get
         Set(value As String)
-            SetProperty(_movilReclamarDeuda, value)
+            Dim unused = SetProperty(_movilReclamarDeuda, value)
             ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -804,7 +796,7 @@ Public Class ClientesViewModel
             Return _nombreReclamarDeuda
         End Get
         Set(value As String)
-            SetProperty(_nombreReclamarDeuda, value)
+            Dim unused = SetProperty(_nombreReclamarDeuda, value)
         End Set
     End Property
 
@@ -815,7 +807,7 @@ Public Class ClientesViewModel
             Return _enlaceReclamarDeuda
         End Get
         Set(value As String)
-            SetProperty(_enlaceReclamarDeuda, value)
+            Dim unused = SetProperty(_enlaceReclamarDeuda, value)
             AbrirEnlaceReclamacionCommand.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -845,7 +837,7 @@ Public Class ClientesViewModel
 
             ' hay que comprobar que no se queden dos CCC activos del mismo cliente
 
-            DbContext.SaveChanges()
+            Dim unused = DbContext.SaveChanges()
             mensajeError = ""
         Catch ex As Exception
             mensajeError = ex.InnerException.Message
@@ -875,10 +867,10 @@ Public Class ClientesViewModel
     Private Sub VerMandato(ByVal param As Object)
         Try
             Dim fileName As String = rutaMandato()
-            Dim process As System.Diagnostics.Process = New System.Diagnostics.Process
+            Dim process As New System.Diagnostics.Process
             process.StartInfo.FileName = fileName
             process.StartInfo.UseShellExecute = True
-            process.Start()
+            Dim unused = process.Start()
             process.WaitForExit()
             mensajeError = ""
         Catch ex As Exception
@@ -923,7 +915,7 @@ Public Class ClientesViewModel
                 .Secuencia = "FRST"
             }
             cuentasBanco.Add(cuentaActiva)
-            DbContext.CCC.Add(cuentaActiva)
+            Dim unused = DbContext.CCC.Add(cuentaActiva)
             mensajeError = ""
 
         Catch ex As Exception
@@ -948,10 +940,11 @@ Public Class ClientesViewModel
         Return True
     End Function
     Private Sub AsignarMandato(ByVal param As Object)
-        Dim elegirFichero = New OpenFileDialog
-        elegirFichero.Filter = "pdf files (*.pdf)|*.pdf|All files (*.*)|*.*"
-        elegirFichero.FilterIndex = 1
-        elegirFichero.RestoreDirectory = True
+        Dim elegirFichero = New OpenFileDialog With {
+            .Filter = "pdf files (*.pdf)|*.pdf|All files (*.*)|*.*",
+            .FilterIndex = 1,
+            .RestoreDirectory = True
+        }
 
         If elegirFichero.ShowDialog() Then
             Try
@@ -989,8 +982,9 @@ Public Class ClientesViewModel
     End Function
     Private Sub GuardarVendedores(ByVal param As Object)
         Dim continuar As Boolean = False
-        Dim p As New DialogParameters
-        p.Add("message", "¿Desea guardar los vendedores?")
+        Dim p As New DialogParameters From {
+            {"message", "¿Desea guardar los vendedores?"}
+        }
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
                                                               If r.Result = ButtonResult.OK Then
                                                                   continuar = True
@@ -1024,8 +1018,9 @@ Public Class ClientesViewModel
 
             mensajeError = "Cliente guardado correctamente"
 
-            Dim c As New DialogParameters
-            c.Add("message", "Se han guardado correctamente los cambios")
+            Dim c As New DialogParameters From {
+                {"message", "Se han guardado correctamente los cambios"}
+            }
             dialogService.ShowDialog("NotificationDialog", c, Sub(r)
 
                                                               End Sub)
@@ -1056,7 +1051,7 @@ Public Class ClientesViewModel
         estaOcupado = True
         Try
             Dim np As IntPtr
-            SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
+            Dim unused1 = SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
             Dim path As String = Marshal.PtrToStringUni(np)
             Marshal.FreeCoTaskMem(np)
 
@@ -1071,7 +1066,7 @@ Public Class ClientesViewModel
             Next
 
             ' Abrimos la carpeta de descargas
-            Process.Start(New ProcessStartInfo(path) With {
+            Dim unused = Process.Start(New ProcessStartInfo(path) With {
                 .UseShellExecute = True
             })
         Catch ex As Exception
@@ -1138,7 +1133,7 @@ Public Class ClientesViewModel
             '    .UseShellExecute = True
             '})
             Dim urlPdf As String = $"{configuracion.servidorAPI}Clientes/MandatoPDF?empresa={empresaActual.Trim}&cliente={clienteActual.Trim}&contacto={contactoActual.Trim}&ccc={cuentaActiva.Número.Trim}"
-            Process.Start(New ProcessStartInfo(urlPdf) With {
+            Dim unused = Process.Start(New ProcessStartInfo(urlPdf) With {
                 .UseShellExecute = True
             })
         Catch ex As Exception
@@ -1162,7 +1157,7 @@ Public Class ClientesViewModel
             Return _reclamarDeudaCommand
         End Get
         Private Set(value As DelegateCommand)
-            SetProperty(_reclamarDeudaCommand, value)
+            Dim unused = SetProperty(_reclamarDeudaCommand, value)
         End Set
     End Property
     Private Async Sub OnReclamarDeuda()
@@ -1185,7 +1180,7 @@ Public Class ClientesViewModel
             Try
                 Dim urlConsulta As String = "ReclamacionDeuda"
                 Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
-                Dim content As StringContent = New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
+                Dim content As New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
                 response = Await client.PostAsync(urlConsulta, content)
 
                 If response.IsSuccessStatusCode Then
@@ -1211,7 +1206,7 @@ Public Class ClientesViewModel
         Return Not String.IsNullOrEmpty(EnlaceReclamarDeuda)
     End Function
     Private Sub OnAbrirEnlaceReclamacion()
-        System.Diagnostics.Process.Start(EnlaceReclamarDeuda)
+        Dim unused = System.Diagnostics.Process.Start(EnlaceReclamarDeuda)
     End Sub
 
     Public Property ConfirmarReclamarDeudaCommand As DelegateCommand
@@ -1219,8 +1214,9 @@ Public Class ClientesViewModel
         Return ImporteReclamarDeuda >= 1 AndAlso (Not IsNothing(CorreoReclamarDeuda) OrElse Not IsNothing(MovilReclamarDeuda))
     End Function
     Private Sub OnConfirmarReclamarDeuda()
-        Dim p As New DialogParameters
-        p.Add("message", "¿Desea reclamar la deuda?")
+        Dim p As New DialogParameters From {
+            {"message", "¿Desea reclamar la deuda?"}
+        }
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
                                                               If r.Result = ButtonResult.OK Then
                                                                   ReclamarDeudaCommand.Execute()
@@ -1237,25 +1233,25 @@ Public Class ClientesViewModel
         Dim confirmacion As Boolean
         p.Add("message", "¿Desea guardar los cambios?")
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
-                                                              confirmacion = (r.Result = ButtonResult.OK)
+                                                              confirmacion = r.Result = ButtonResult.OK
                                                           End Sub)
         If Not confirmacion Then
             Return
         End If
 
         Try
-            Dim seguimientoMotivo As SeguimientoClienteDTO = New SeguimientoClienteDTO With {
+            Dim seguimientoMotivo As New SeguimientoClienteDTO With {
                 .Empresa = DeudaSeleccionada.Empresa,
                 .Cliente = DeudaSeleccionada.Cliente,
                 .Contacto = DeudaSeleccionada.Contacto,
                 .Tipo = Constantes.Rapports.Tipos.TIPO_VISITA_TELEFONICA,
                 .Estado = Constantes.Rapports.Estados.GESTION_ADMINISTRATIVA,
                 .Comentarios = $"{configuracion.usuario.Substring(configuracion.usuario.IndexOf("\") + 1).Trim()} cambió el estado del extracto de cliente con nº orden {DeudaSeleccionada.Id} a estado {If(String.IsNullOrEmpty(DeudaSeleccionada.Estado), "en blanco", DeudaSeleccionada.Estado.ToUpper)} dando como motivo: {MotivoCambioEstado.Trim()}",
-                .Fecha = DateTime.Now,
+                .Fecha = Date.Now,
                 .NumOrdenExtracto = DeudaSeleccionada.Id,
                 .Usuario = configuracion.usuario
             }
-            Await servicioRapports.crearRapport(seguimientoMotivo)
+            Dim unused = Await servicioRapports.crearRapport(seguimientoMotivo)
             DeudaSeleccionada.Usuario = configuracion.usuario
             Await servicio.ModificarExtractoCliente(DeudaSeleccionada)
             dialogService.ShowNotification("Efecto modificado correctamente")
@@ -1319,11 +1315,11 @@ Public Class ClientesViewModel
                 urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
                 urlConsulta += "&tipoApunte=1"
                 If EsUsuarioAdministracion Then
-                    urlConsulta += "&fechaDesde=" + DateTime.Today.AddMonths(-72).ToString("s")
+                    urlConsulta += "&fechaDesde=" + Date.Today.AddMonths(-72).ToString("s")
                 Else
-                    urlConsulta += "&fechaDesde=" + DateTime.Today.AddMonths(-6).ToString("s")
+                    urlConsulta += "&fechaDesde=" + Date.Today.AddMonths(-6).ToString("s")
                 End If
-                urlConsulta += "&fechaHasta=" + DateTime.Today.ToString("s")
+                urlConsulta += "&fechaHasta=" + Date.Today.ToString("s")
 
                 response = Await client.GetAsync(urlConsulta)
 
@@ -1450,7 +1446,7 @@ Public Class ClientesViewModel
             End Try
             Dim lista = JsonConvert.DeserializeObject(Of ObservableCollection(Of ExtractoClienteDTO))(respuesta)
             For Each l In lista
-                l.Seleccionada = l.Vencimiento < DateTime.Today OrElse IsNothing(l.Vencimiento)
+                l.Seleccionada = l.Vencimiento < Date.Today OrElse IsNothing(l.Vencimiento)
                 AddHandler l.PropertyChanged, New PropertyChangedEventHandler(AddressOf LineaDeudaPropertyChangedEventHandler)
             Next
             ListaDeudas = New ObservableCollection(Of ExtractoClienteDTO)(lista.OrderBy(Function(l) l.Fecha))
@@ -1545,31 +1541,33 @@ Public Class ClientesViewModel
 
         listaEstadosCCC = New ObservableCollection(Of EstadosCCC)(From c In DbContext.EstadosCCC Where c.Empresa = empresaActual)
 
-        Dim rangosFechas As New List(Of String)
-        rangosFechas.Add("Ventas del Último Año")
-        rangosFechas.Add("Ventas de Siempre")
+        Dim rangosFechas As New List(Of String) From {
+            "Ventas del Último Año",
+            "Ventas de Siempre"
+        }
 
         If clienteActivo IsNot Nothing Then
-            deudaVencida = (Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?)))
+            deudaVencida = Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?))
         Else
             deudaVencida = 0
         End If
 
+        listaSecuencias = New ObservableCollection(Of tipoIdDescripcion) From {
+            New tipoIdDescripcion("FRST", "Primer adeudo recurrente"),
+            New tipoIdDescripcion("RCUR", "Resto de adeudos recurrentes"),
+            New tipoIdDescripcion("OOFF", "Operación de un único pago"),
+            New tipoIdDescripcion("FNAL", "Último adeudo recurrente")
+        }
 
-        listaSecuencias = New ObservableCollection(Of tipoIdDescripcion)
-        listaSecuencias.Add(New tipoIdDescripcion("FRST", "Primer adeudo recurrente"))
-        listaSecuencias.Add(New tipoIdDescripcion("RCUR", "Resto de adeudos recurrentes"))
-        listaSecuencias.Add(New tipoIdDescripcion("OOFF", "Operación de un único pago"))
-        listaSecuencias.Add(New tipoIdDescripcion("FNAL", "Último adeudo recurrente"))
-
-        listaTipos = New ObservableCollection(Of tipoIdDescripcion)
-        listaTipos.Add(New tipoIdDescripcion(1, "Consumidor final"))
-        listaTipos.Add(New tipoIdDescripcion(2, "Profesional"))
+        listaTipos = New ObservableCollection(Of tipoIdDescripcion) From {
+            New tipoIdDescripcion(1, "Consumidor final"),
+            New tipoIdDescripcion(2, "Profesional")
+        }
 
         Titulo = "Clientes"
     End Sub
     <DllImport("shell32")>
-    Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInt32, ByVal hToken As IntPtr, ByRef np As IntPtr) As Int32 : End Function
+    Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInteger, ByVal hToken As IntPtr, ByRef np As IntPtr) As Integer : End Function
 #End Region
 End Class
 
@@ -1609,55 +1607,16 @@ Public Class datosBancoConverter
 End Class
 
 Public Class lineaVentaAgrupada
-    Private _producto As String
     Public Property producto As String
-        Get
-            Return _producto
-        End Get
-        Set(value As String)
-            _producto = value
-        End Set
-    End Property
 
-    Private _nombre As String
     Public Property nombre As String
-        Get
-            Return _nombre
-        End Get
-        Set(value As String)
-            _nombre = value
-        End Set
-    End Property
-
-    Private _cantidad As Integer
     Public Property cantidad As Integer
-        Get
-            Return _cantidad
-        End Get
-        Set(value As Integer)
-            _cantidad = value
-        End Set
-    End Property
 
-    Private _fechaUltVenta As Date
+    Public Property familia As String
+
     Public Property fechaUltVenta As Date
-        Get
-            Return _fechaUltVenta
-        End Get
-        Set(value As Date)
-            _fechaUltVenta = value
-        End Set
-    End Property
 
-    Private _subGrupo As String
     Public Property subGrupo As String
-        Get
-            Return _subGrupo
-        End Get
-        Set(value As String)
-            _subGrupo = value
-        End Set
-    End Property
 End Class
 
 Public Class cabeceraPedidoAgrupada
@@ -1673,7 +1632,7 @@ Public Class ExtractoClienteDTO
     Public Property Asiento As Integer
     Public Property Cliente As String
     Public Property Contacto As String
-    Public Property Fecha As DateTime
+    Public Property Fecha As Date
     Public Property Tipo As String
     Public Property Documento As String
     Public Property Efecto As String
@@ -1681,7 +1640,7 @@ Public Class ExtractoClienteDTO
     Public Property Importe As Decimal
     Public Property ImportePendiente As Decimal
     Public Property Vendedor As String
-    Public Property Vencimiento As DateTime
+    Public Property Vencimiento As Date
     Public Property CCC As String
     Public Property Ruta As String
     Public Property Estado As String
@@ -1693,7 +1652,7 @@ Public Class ExtractoClienteDTO
             Return _seleccionada
         End Get
         Set(value As Boolean)
-            SetProperty(_seleccionada, value)
+            Dim unused = SetProperty(_seleccionada, value)
         End Set
     End Property
 
