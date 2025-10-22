@@ -114,47 +114,52 @@ Public Class PedidoVentaService
 
         End Using
     End Function
-    Public Async Sub modificarPedido(pedido As PedidoVentaDTO) Implements IPedidoVentaService.modificarPedido
+    Public Async Function modificarPedido(pedido As PedidoVentaDTO) As Task Implements IPedidoVentaService.modificarPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
 
-            Dim response As HttpResponseMessage
-            Dim respuesta As String = ""
-
             Dim urlConsulta As String = "PedidosVenta"
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
-            response = client.PutAsync(urlConsulta, content).Result
+            Dim response As HttpResponseMessage = Await client.PutAsync(urlConsulta, content)
 
             If response.IsSuccessStatusCode Then
-                respuesta = response.Content.ReadAsStringAsync().Result
+                Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                ' Hacer algo con respuesta si es necesario
             Else
-                Dim respuestaError = response.Content.ReadAsStringAsync().Result
-                Dim detallesError As JObject
-                Dim contenido As String
-                Try
-                    detallesError = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    contenido = detallesError("ExceptionMessage")
-                Catch ex As Exception
-                    detallesError = New JObject()
-                    contenido = respuestaError
-                End Try
-
-
-                While Not IsNothing(detallesError("InnerException"))
-                    detallesError = detallesError("InnerException")
-                    Dim contenido2 As String = detallesError("ExceptionMessage")
-                    contenido = contenido + vbCr + contenido2
-                End While
-                Throw New Exception(contenido)
+                Dim mensajeError As String = Await ObtenerMensajeError(response)
+                Throw New Exception(mensajeError)
             End If
-
         End Using
+    End Function
 
-    End Sub
+    Private Async Function ObtenerMensajeError(response As HttpResponseMessage) As Task(Of String)
+        Dim respuestaError As String = Await response.Content.ReadAsStringAsync()
+        Dim contenido As String
+
+        Try
+            Dim detallesError As JObject = JsonConvert.DeserializeObject(Of JObject)(respuestaError)
+            contenido = detallesError("ExceptionMessage")?.ToString()
+
+            ' Recorrer InnerExceptions
+            While Not IsNothing(detallesError("InnerException"))
+                detallesError = detallesError("InnerException")
+                Dim contenido2 As String = detallesError("ExceptionMessage")?.ToString()
+                If Not String.IsNullOrEmpty(contenido2) Then
+                    contenido = contenido + vbCrLf + contenido2
+                End If
+            End While
+        Catch ex As Exception
+            contenido = respuestaError
+        End Try
+
+        Return contenido
+    End Function
+
     Public Sub sacarPickingPedido(empresa As String, numero As Integer) Implements IPedidoVentaService.sacarPickingPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)

@@ -572,10 +572,12 @@ Public Class DetallePedidoViewModel
                     Return
                 End If
             Else
-                If Not Double.TryParse(textBox.Text, style, culture, (lineaActual.DescuentoLinea)) Then
+                Dim valorDescuento As Double
+
+                If Not Double.TryParse(textBox.Text, style, culture, valorDescuento) Then
                     Return
                 Else
-                    lineaActual.DescuentoLinea = lineaActual.DescuentoLinea / 100
+                    lineaActual.DescuentoLinea = valorDescuento / 100
                 End If
             End If
         End If
@@ -848,22 +850,71 @@ Public Class DetallePedidoViewModel
 
         Try
             Dim esPedidoNuevo As Boolean = pedido.numero = 0
+            Dim crearModificarEx As Exception = Nothing
 
             If esPedidoNuevo Then
-                Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
-                pedido.Model.numero = numeroPedidoCreado
-                eventAggregator.GetEvent(Of PedidoCreadoEvent).Publish(pedido.Model)
-                dialogService.ShowNotification("Pedido Creado", $"Pedido {numeroPedidoCreado} creado correctamente")
+                Try
+                    Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
+                    pedido.Model.numero = numeroPedidoCreado
+                Catch ex As ValidationException
+                    crearModificarEx = ex
+                    ' Verificar si puede crear sin pasar validación
+                    Dim puedeCrearSinPasarValidacion As Boolean =
+                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                     configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+                     configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)) AndAlso
+                    pedido.Lineas.Any(Function(l) l.Almacen = AlmacenUsuario)
 
-                Titulo = $"Pedido Venta ({numeroPedidoCreado})"
+                    If Not puedeCrearSinPasarValidacion Then
+                        Throw crearModificarEx
+                    End If
+                End Try
+
+                If crearModificarEx IsNot Nothing Then
+                    ' Preguntar al usuario si desea forzar la creación
+                    Dim mensaje As String = crearModificarEx.Message & vbCrLf & "¿Desea crearlo de todos modos?"
+                    Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Pedido no válido", mensaje)
+
+                    If confirmar Then
+                        pedido.Model.CreadoSinPasarValidacion = True
+                        Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
+                        pedido.Model.numero = numeroPedidoCreado
+                    Else
+                        Throw crearModificarEx
+                    End If
+                End If
+                eventAggregator.GetEvent(Of PedidoCreadoEvent).Publish(pedido.Model)
+                dialogService.ShowNotification("Pedido Creado", $"Pedido {pedido.Model.numero} creado correctamente")
+                Titulo = $"Pedido Venta ({pedido.Model.numero})"
             Else
-                Await Task.Run(Sub()
-                                   Try
-                                       servicio.modificarPedido(pedido.Model)
-                                   Catch ex As Exception
-                                       Throw New Exception(ex.Message)
-                                   End Try
-                               End Sub)
+                Try
+                    Await servicio.modificarPedido(pedido.Model)
+                Catch ex As ValidationException
+                    crearModificarEx = ex
+                    ' Verificar si puede modificar sin pasar validación
+                    Dim puedeModificarSinPasarValidacion As Boolean =
+                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                     configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+                     configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)) AndAlso
+                    pedido.Lineas.Any(Function(l) l.Almacen = AlmacenUsuario)
+
+                    If Not puedeModificarSinPasarValidacion Then
+                        Throw crearModificarEx
+                    End If
+                End Try
+
+                If crearModificarEx IsNot Nothing Then
+                    ' Preguntar al usuario si desea forzar la modificación
+                    Dim mensaje As String = crearModificarEx.Message & vbCrLf & "¿Desea modificarlo de todos modos?"
+                    Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Pedido no válido", mensaje)
+
+                    If confirmar Then
+                        pedido.Model.CreadoSinPasarValidacion = True
+                        Await servicio.modificarPedido(pedido.Model)
+                    Else
+                        Throw crearModificarEx
+                    End If
+                End If
 
                 dialogService.ShowNotification("Pedido Modificado", "Pedido " + pedido.numero.ToString + " modificado correctamente")
                 eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)

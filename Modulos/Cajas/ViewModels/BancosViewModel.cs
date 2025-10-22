@@ -319,6 +319,18 @@ namespace Nesto.Modulos.Cajas.ViewModels
             get => _isBusyApuntesContabilidad;
             set => SetProperty(ref _isBusyApuntesContabilidad, value);
         }
+        private bool _isBusyPunteando;
+        public bool IsBusyPunteando
+        {
+            get => _isBusyPunteando;
+            set
+            {
+                if (SetProperty(ref _isBusyPunteando, value))
+                {
+                    ((DelegateCommand)PuntearApuntesCommand).RaiseCanExecuteChanged();
+                }
+            }
+        }
         private List<IBancoConciliacion> _listaBancos;
         public List<IBancoConciliacion> ListaBancos
         {
@@ -758,35 +770,44 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand PuntearApuntesCommand { get; private set; }
         private bool CanPuntearApuntes()
         {
-            return DescuadrePunteo == 0 && ApuntesBancoSeleccionados is not null
+            return !IsBusyPunteando &&
+                DescuadrePunteo == 0 && ApuntesBancoSeleccionados is not null
                 && ApuntesContabilidadSeleccionados is not null
                 && (ApuntesBancoSeleccionados.Any()
                 || ApuntesContabilidadSeleccionados.Any());
         }
         private async void OnPuntearApuntes()
         {
-            GuardarPosicionesSeleccionadas();
+            try
+            {
+                IsBusyPunteando = true;
+                GuardarPosicionesSeleccionadas();
 
-            if (ApuntesBancoSeleccionados is not null && ApuntesContabilidadSeleccionados is not null &&
-                ApuntesBancoSeleccionados.Any() && ApuntesContabilidadSeleccionados.Any())
-            {
-                await PuntearMovimientosBancoYContabilidad();
-            }
-            else if (ApuntesBancoSeleccionados is not null && ApuntesBancoSeleccionados.Any())
-            {
-                await PuntearMovimientosSoloBanco();
-            }
-            else if (ApuntesContabilidadSeleccionados is not null && ApuntesContabilidadSeleccionados.Any())
-            {
-                await PuntearMovimientosSoloContabilidad();
-            }
-            else
-            {
-                throw new Exception("Tipo de apunte no permitido en el sistema");
-            }
-            FiltrarRegistros();
+                if (ApuntesBancoSeleccionados is not null && ApuntesContabilidadSeleccionados is not null &&
+                    ApuntesBancoSeleccionados.Any() && ApuntesContabilidadSeleccionados.Any())
+                {
+                    await PuntearMovimientosBancoYContabilidad();
+                }
+                else if (ApuntesBancoSeleccionados is not null && ApuntesBancoSeleccionados.Any())
+                {
+                    await PuntearMovimientosSoloBanco();
+                }
+                else if (ApuntesContabilidadSeleccionados is not null && ApuntesContabilidadSeleccionados.Any())
+                {
+                    await PuntearMovimientosSoloContabilidad();
+                }
+                else
+                {
+                    throw new Exception("Tipo de apunte no permitido en el sistema");
+                }
+                FiltrarRegistros();
 
-            RestaurarSeleccionSiguiente();
+                RestaurarSeleccionSiguiente();
+            }
+            finally
+            {
+                IsBusyPunteando = false;
+            }
         }
 
 
@@ -878,7 +899,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (string.IsNullOrEmpty(apunteGasto.Departamento))
                 {
                     apunteGasto.Departamento = Constantes.Empresas.DEPARTAMENTO_DEFECTO;
-                }                
+                }
             }
 
             if (apunteGasto is null)
