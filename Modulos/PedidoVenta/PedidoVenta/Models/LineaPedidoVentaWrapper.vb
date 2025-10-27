@@ -6,7 +6,8 @@ Public Class LineaPedidoVentaWrapper
     Public Sub New()
         ' Este constructor solo permite la entrada desde el Datagrid
         Model = New LineaPedidoVentaDTO() With {
-            .Cantidad = 1
+            .Cantidad = 1,
+            .tipoLinea = 1
         }
     End Sub
     Public Sub New(model As LineaPedidoVentaDTO)
@@ -130,6 +131,15 @@ Public Class LineaPedidoVentaWrapper
         Set(value As String)
             Model.Factura = value
             RaisePropertyChanged(NameOf(Factura))
+        End Set
+    End Property
+    Public Property Albaran As Integer?
+        Get
+            Return Model.Albaran
+        End Get
+        Set(value As Integer?)
+            Model.Albaran = value
+            RaisePropertyChanged(NameOf(Albaran))
         End Set
     End Property
     Public Property fechaEntrega() As Date

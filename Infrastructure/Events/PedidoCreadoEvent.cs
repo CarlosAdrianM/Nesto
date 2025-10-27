@@ -1,7 +1,6 @@
-﻿using Nesto.Models;
-using Prism.Events;
+﻿using Prism.Events;
 
 namespace Nesto.Infrastructure.Events
 {
-    public class PedidoCreadoEvent : PubSubEvent<PedidoVentaDTO> { }
+    public class PedidoCreadoEvent : PubSubEvent<PedidoCreadoEventArgs> { }
 }

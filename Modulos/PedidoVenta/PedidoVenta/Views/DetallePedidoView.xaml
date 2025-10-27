@@ -65,7 +65,8 @@
                                     <controles:SelectorCliente Name="txtSelectorCliente"
                                                                Empresa="1"
                                                                Contacto="{Binding DataContext.pedido.contacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                               Cliente="{Binding DataContext.pedido.cliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                                                               Cliente="{Binding DataContext.pedido.cliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                               ClienteCompleto="{Binding DataContext.ClienteCompleto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}">
                                         <controles:SelectorCliente.Style>
                                             <Style TargetType="controles:SelectorCliente">
                                                 <Setter Property="IsEnabled" Value="False"/>
@@ -106,9 +107,9 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition/>
                                     <RowDefinition/>
+                                    <RowDefinition/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
@@ -116,10 +117,13 @@
                                 <Button Grid.Column="0" Grid.Row="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
                                 <Button Grid.Column="1" Grid.Row="0" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
                                 <Button Grid.Column="2" Grid.Row="0" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
-                                <Button Grid.Column="3" Grid.Row="0" Command="{Binding ImprimirFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Factura</Button>
-                                <Button Grid.Column="0" Grid.Row="1" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
-                                <Button Grid.Column="1" Grid.Row="1" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
-                                <Button Grid.Column="2" Grid.Row="1" Grid.ColumnSpan="2" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
+                                <Button Grid.Column="0" Grid.Row="1" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
+                                <Button Grid.Column="1" Grid.Row="1" Command="{Binding ImprimirAlbaranCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Albarán</Button>
+                                <Button Grid.Column="2" Grid.Row="1" Command="{Binding ImprimirFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Factura</Button>
+                                <Button Grid.Column="0" Grid.Row="2" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
+                                <Button Grid.Column="1" Grid.Row="2" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
+                                <CheckBox Grid.Column="2" Grid.Row="2" IsChecked="{Binding PapelConMembrete}" VerticalAlignment="Center" HorizontalAlignment="Center">Papel con membrete</CheckBox>
+
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>

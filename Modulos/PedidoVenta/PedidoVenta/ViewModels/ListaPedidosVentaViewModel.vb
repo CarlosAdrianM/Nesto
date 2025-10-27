@@ -304,11 +304,16 @@ Public Class ListaPedidosVentaViewModel
         If IsNothing(pedido) OrElse IsNothing(ListaPedidos.ElementoSeleccionado) OrElse pedido.numero <> CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero Then
             Return
         End If
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).baseImponible = pedido.BaseImponible
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).contacto = pedido.contacto
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(Date.Now, pedido.ruta))
-        CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea = 1)
+        Dim resumen = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
+        resumen.baseImponible = pedido.BaseImponible
+        resumen.contacto = pedido.contacto
+        resumen.vendedor = pedido.vendedor
+        resumen.fecha = pedido.fecha
+        resumen.cliente = pedido.cliente
+        resumen.tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
+        resumen.tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(Date.Now, pedido.ruta))
+        resumen.tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = 1)
+        resumen.tienePendientes = pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
     End Sub
 
     Private Async Function CargarResumenSeleccionado() As Task
@@ -414,38 +419,56 @@ Public Class ListaPedidosVentaViewModel
         RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
     End Sub
 
-    Private Sub OnPedidoCreado(pedido As PedidoVentaDTO)
-        ' Si estamos creando un pedido y coincide la empresa
-        If EstaCreandoPedido AndAlso
-           CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).empresa = pedido.empresa Then
+    Private Sub OnPedidoCreado(eventArgs As PedidoCreadoEventArgs)
+        ' Usar el ElementoSeleccionado si es un pedido nuevo (numero = 0)
+        ' Esto maneja correctamente el caso de estar creando el pedido actual
+        Dim resumenEnCreacion As ResumenPedido = Nothing
 
-            ' Actualizar el ResumenPedido temporal con los datos reales del pedido guardado
-            Dim resumen = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
-            resumen.numero = pedido.numero
-            resumen.cliente = pedido.cliente
-            resumen.nombre = $"Pedido {pedido.numero}" ' ajusta según tu formato
-            resumen.fecha = pedido.fecha
-            resumen.baseImponible = pedido.BaseImponible
-            resumen.contacto = pedido.contacto
-            resumen.vendedor = pedido.vendedor
-            resumen.esNuevo = False ' Ya no es nuevo, está persistido
+        If Not IsNothing(ListaPedidos.ElementoSeleccionado) AndAlso
+           TypeOf ListaPedidos.ElementoSeleccionado Is ResumenPedido Then
 
-            ' Actualizar propiedades calculadas
-            If Not IsNothing(pedido.Lineas) Then
-                resumen.tienePicking = pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
-                resumen.tieneFechasFuturas = pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(Date.Now, pedido.ruta))
-                resumen.tieneProductos = pedido.Lineas.Any(Function(l) l.tipoLinea = 1)
-                resumen.tienePendientes = pedido.Lineas.Any(Function(l) l.estado <= 1 AndAlso l.estado >= -1)
+            Dim resumenSeleccionado = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
+            If resumenSeleccionado.numero = 0 AndAlso resumenSeleccionado.empresa = eventArgs.Pedido.empresa Then
+                resumenEnCreacion = resumenSeleccionado
             End If
-
-            ' Notificar cambios en la UI
-            RaisePropertyChanged(NameOf(EstaCreandoPedido))
-            RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
-            RaisePropertyChanged(NameOf(ListaPedidos))
-
-            ' Mostrar mensaje de éxito
-            dialogService.ShowNotification("Pedido creado", $"Pedido {pedido.numero} creado correctamente")
         End If
+
+        If IsNothing(resumenEnCreacion) Then
+            Return
+        End If
+
+        ' Actualizar el ResumenPedido temporal con los datos reales del pedido guardado
+        resumenEnCreacion.numero = eventArgs.Pedido.numero
+        resumenEnCreacion.cliente = eventArgs.Pedido.cliente
+        resumenEnCreacion.contacto = eventArgs.Pedido.contacto
+        resumenEnCreacion.nombre = eventArgs.NombreCliente
+        resumenEnCreacion.direccion = eventArgs.DireccionCliente
+        resumenEnCreacion.codPostal = eventArgs.CodigoPostal
+        resumenEnCreacion.poblacion = eventArgs.Poblacion
+        resumenEnCreacion.provincia = eventArgs.Provincia
+        resumenEnCreacion.fecha = eventArgs.Pedido.fecha
+        resumenEnCreacion.baseImponible = eventArgs.Pedido.BaseImponible
+        resumenEnCreacion.vendedor = eventArgs.Pedido.vendedor
+        resumenEnCreacion.esNuevo = False ' Ya no es nuevo, está persistido
+
+        ' Actualizar propiedades calculadas
+        ' Usar el valor calculado en el evento para tieneProductos
+        resumenEnCreacion.tieneProductos = eventArgs.TieneProductos
+
+        If Not IsNothing(eventArgs.Pedido.Lineas) AndAlso eventArgs.Pedido.Lineas.Any() Then
+            resumenEnCreacion.tienePicking = eventArgs.Pedido.Lineas.Any(Function(p) p.picking <> 0 AndAlso p.estado < Constantes.LineasPedido.ESTADO_ALBARAN)
+            resumenEnCreacion.tieneFechasFuturas = eventArgs.Pedido.Lineas.Any(Function(c) c.estado >= -1 AndAlso c.estado <= 1 AndAlso c.fechaEntrega > FechaEntregaAjustada(Date.Now, eventArgs.Pedido.ruta))
+            resumenEnCreacion.tienePendientes = eventArgs.Pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE)
+        Else
+            resumenEnCreacion.tienePicking = False
+            resumenEnCreacion.tieneFechasFuturas = False
+            resumenEnCreacion.tienePendientes = False
+        End If
+
+        ' Notificar cambios en la UI
+        RaisePropertyChanged(NameOf(EstaCreandoPedido))
+        RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
+        RaisePropertyChanged(NameOf(ListaPedidos))
     End Sub
 
 #End Region

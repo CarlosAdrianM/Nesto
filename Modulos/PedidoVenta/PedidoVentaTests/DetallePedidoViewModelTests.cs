@@ -7,6 +7,7 @@ using Prism.Events;
 using Prism.Services.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
+using ControlesUsuario.Models;
 
 namespace PedidoVentaTests
 {
@@ -90,6 +91,103 @@ namespace PedidoVentaTests
 
             // Assert
             A.CallTo(() => handler.Invoke(A<object>._, A<PropertyChangedEventArgs>.That.Matches(s => s.PropertyName == "DescuentoProducto"))).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void DetallePedidoViewModel_alAsignarClienteCompleto_debeAsignarOrigenDesdeEmpresaCliente()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
+
+            // Simular que ya existe un pedido
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedido);
+
+            // Simular selección de cliente
+            ClienteDTO clienteSeleccionado = new ClienteDTO
+            {
+                empresa = "1",
+                cliente = "12345",
+                contacto = "1"
+            };
+
+            // Act
+            detallePedidoViewModel.ClienteCompleto = clienteSeleccionado;
+
+            // Assert
+            Assert.AreEqual("1", detallePedidoViewModel.pedido.Model.origen);
+        }
+
+        [TestMethod]
+        public void DetallePedidoViewModel_alAsignarClienteCompleto_debeAsignarContactoCobroDesdeContactoCliente()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
+
+            // Simular que ya existe un pedido
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedido);
+
+            // Simular selección de cliente
+            ClienteDTO clienteSeleccionado = new ClienteDTO
+            {
+                empresa = "1",
+                cliente = "12345",
+                contacto = "2"
+            };
+
+            // Act
+            detallePedidoViewModel.ClienteCompleto = clienteSeleccionado;
+
+            // Assert
+            Assert.AreEqual("2", detallePedidoViewModel.pedido.Model.contactoCobro);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task DetallePedidoViewModel_alCrearPedidoNuevo_debeInicializarOrigenYContactoCobroVacios()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+
+            // Mockear la configuración para devolver un vendedor por defecto
+            A.CallTo(() => configuracion.leerParametro("1", A<string>._)).Returns(System.Threading.Tasks.Task.FromResult("VEN01"));
+            A.CallTo(() => configuracion.usuario).Returns("TEST_USER");
+
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
+
+            // Crear un ResumenPedido para un pedido nuevo (numero = 0)
+            var resumenPedido = new PedidoVentaModel.ResumenPedido { empresa = "1", numero = 0 };
+
+            // Act - Cargar pedido nuevo mediante el comando (simulando OnNavigatedTo)
+            detallePedidoViewModel.cmdCargarPedido.Execute(resumenPedido);
+
+            // Esperar a que se complete la operación asíncrona (con timeout de 5 segundos)
+            var maxWait = 50; // 50 * 100ms = 5 segundos
+            while (detallePedidoViewModel.pedido == null && maxWait-- > 0)
+            {
+                await System.Threading.Tasks.Task.Delay(100);
+            }
+
+            // Assert - Verificar que se inicializan como cadenas vacías
+            Assert.IsNotNull(detallePedidoViewModel.pedido, "El pedido no debe ser null");
+            Assert.IsNotNull(detallePedidoViewModel.pedido.Model.origen, "El origen no debe ser null");
+            Assert.IsNotNull(detallePedidoViewModel.pedido.Model.contactoCobro, "El contactoCobro no debe ser null");
+            Assert.AreEqual(string.Empty, detallePedidoViewModel.pedido.Model.origen);
+            Assert.AreEqual(string.Empty, detallePedidoViewModel.pedido.Model.contactoCobro);
         }
     }
 }

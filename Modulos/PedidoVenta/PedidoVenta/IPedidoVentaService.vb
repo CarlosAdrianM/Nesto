@@ -16,8 +16,10 @@ Public Interface IPedidoVentaService
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer) As Task(Of PedidoVentaDTO)
     Function CrearAlbaranVenta(empresa As String, numeroPedido As Integer) As Task(Of Integer)
     Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of String)
-    Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
-    Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String) As Task(Of String)
+    Function CargarFactura(empresa As String, numeroFactura As String, Optional papelConMembrete As Boolean = False) As Task(Of Byte())
+    Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String, Optional papelConMembrete As Boolean = False) As Task(Of String)
+    Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False) As Task(Of Byte())
+    Function DescargarAlbaran(empresa As String, numeroAlbaran As Integer, cliente As String, Optional papelConMembrete As Boolean = False) As Task(Of String)
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer)
     Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase))
 End Interface

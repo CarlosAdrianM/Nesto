@@ -11,7 +11,7 @@ Public Class PedidoVentaWrapper
 
     Public Sub New(pedido As PedidoVentaDTO)
         If IsNothing(pedido) Then
-            Return
+            Throw New ArgumentNullException(NameOf(pedido), "El pedido no puede ser Nothing")
         End If
         Model = pedido
         Lineas = New ObservableCollection(Of LineaPedidoVentaWrapper)
@@ -55,6 +55,7 @@ Public Class PedidoVentaWrapper
         End Get
         Set(value As Integer)
             Model.numero = value
+            RaisePropertyChanged(NameOf(numero))
         End Set
     End Property
 

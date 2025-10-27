@@ -6,28 +6,120 @@ Public Class PedidoVentaModel
     Public Class ResumenPedido
         Inherits BindableBase
         Implements IFiltrableItem
+        Private _empresa As String
         Public Property empresa As String
+            Get
+                Return _empresa
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_empresa, value)
+            End Set
+        End Property
+
+        Private _numero As Integer
         Public Property numero As Integer
+            Get
+                Return _numero
+            End Get
+            Set(value As Integer)
+                Dim unused = SetProperty(_numero, value)
+            End Set
+        End Property
+
+        Private _cliente As String
         Public Property cliente As String
+            Get
+                Return _cliente
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_cliente, value)
+            End Set
+        End Property
+
+        Private _contacto As String
         Public Property contacto As String
+            Get
+                Return _contacto
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_contacto, value)
+            End Set
+        End Property
+
+        Private _nombre As String
         Public Property nombre As String
+            Get
+                Return _nombre
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_nombre, value)
+            End Set
+        End Property
+
+        Private _direccion As String
         Public Property direccion As String
+            Get
+                Return _direccion
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_direccion, value)
+            End Set
+        End Property
+
+        Private _codPostal As String
         Public Property codPostal As String
+            Get
+                Return _codPostal
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_codPostal, value)
+            End Set
+        End Property
+
         Public ReadOnly Property noTieneProductos As Boolean
             Get
                 Return Not tieneProductos
             End Get
         End Property
+
+        Private _poblacion As String
         Public Property poblacion As String
+            Get
+                Return _poblacion
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_poblacion, value)
+            End Set
+        End Property
+
+        Private _provincia As String
         Public Property provincia As String
+            Get
+                Return _provincia
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_provincia, value)
+            End Set
+        End Property
+
+        Private _fecha As Date
         Public Property fecha As Date
+            Get
+                Return _fecha
+            End Get
+            Set(value As Date)
+                Dim unused = SetProperty(_fecha, value)
+            End Set
+        End Property
         Private _tieneProductos As Boolean
         Public Property tieneProductos As Boolean
             Get
                 Return _tieneProductos
             End Get
             Set(value As Boolean)
-                Dim unused = SetProperty(_tieneProductos, value)
+                If SetProperty(_tieneProductos, value) Then
+                    RaisePropertyChanged(NameOf(noTieneProductos))
+                End If
             End Set
         End Property
         Private _tienePendientes As Boolean
@@ -90,7 +182,17 @@ Public Class PedidoVentaModel
                 Dim unused = SetProperty(_total, value)
             End Set
         End Property
+
+        Private _vendedor As String
         Public Property vendedor As String
+            Get
+                Return _vendedor
+            End Get
+            Set(value As String)
+                Dim unused = SetProperty(_vendedor, value)
+            End Set
+        End Property
+
         Private _ultimoSeguimiento As String
         Public Property ultimoSeguimiento As String
             Get
@@ -101,7 +203,15 @@ Public Class PedidoVentaModel
             End Set
         End Property
 
-        Public Property esNuevo As Boolean = False
+        Private _esNuevo As Boolean = False
+        Public Property esNuevo As Boolean
+            Get
+                Return _esNuevo
+            End Get
+            Set(value As Boolean)
+                Dim unused = SetProperty(_esNuevo, value)
+            End Set
+        End Property
 
         Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
             Return (Not IsNothing(direccion) AndAlso direccion.ToLower.Contains(filtro.ToLower)) OrElse

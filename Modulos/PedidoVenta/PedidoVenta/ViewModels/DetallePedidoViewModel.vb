@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.ComponentModel.DataAnnotations
 Imports System.Globalization
+Imports System.IO
 Imports System.Text
 Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Models
@@ -56,6 +57,7 @@ Public Class DetallePedidoViewModel
         CrearFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
         CrearAlbaranYFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranYFacturaVenta, AddressOf CanCrearAlbaranYFacturaVenta)
         ImprimirFacturaCommand = New DelegateCommand(AddressOf OnImprimirFactura, AddressOf CanImprimirFactura)
+        ImprimirAlbaranCommand = New DelegateCommand(AddressOf OnImprimirAlbaran, AddressOf CanImprimirAlbaran)
         CopiarEnlaceCommand = New DelegateCommand(Of String)(AddressOf OnCopiarEnlace)
 
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
@@ -178,11 +180,29 @@ Public Class DetallePedidoViewModel
                     pedido.formaPago = value.formaPago
                     pedido.plazosPago = value.plazosPago
                     pedido.iva = value.iva
+                    pedido.vendedor = value.vendedor
+                    pedido.ruta = value.ruta
+                    pedido.periodoFacturacion = value.periodoFacturacion
                 End If
             End If
         End Set
     End Property
 
+    Private _clienteCompleto As ControlesUsuario.Models.ClienteDTO
+    Public Property ClienteCompleto As ControlesUsuario.Models.ClienteDTO
+        Get
+            Return _clienteCompleto
+        End Get
+        Set(value As ControlesUsuario.Models.ClienteDTO)
+            If SetProperty(_clienteCompleto, value) Then
+                ' Actualizar origen y contactoCobro cuando cambia el cliente
+                If Not IsNothing(pedido) AndAlso Not IsNothing(value) Then
+                    pedido.Model.origen = value.empresa
+                    pedido.Model.contactoCobro = value.contacto
+                End If
+            End If
+        End Set
+    End Property
 
     Private _esGrupoAlmacen As Boolean
 
@@ -235,6 +255,16 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
+    Private _papelConMembrete As Boolean = False
+    Public Property PapelConMembrete As Boolean
+        Get
+            Return _papelConMembrete
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_papelConMembrete, value)
+        End Set
+    End Property
+
     Private _lineaActual As LineaPedidoVentaWrapper
     Public Property lineaActual As LineaPedidoVentaWrapper
         Get
@@ -244,6 +274,7 @@ Public Class DetallePedidoViewModel
             Dim unused = SetProperty(_lineaActual, value)
             RaisePropertyChanged(NameOf(pedido))
             ImprimirFacturaCommand.RaiseCanExecuteChanged()
+            ImprimirAlbaranCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -366,6 +397,26 @@ Public Class DetallePedidoViewModel
             If IsNothing(pedido.VendedoresGrupoProducto.Count = 0) Then
                 pedido.VendedoresGrupoProducto.Add(vendedorPorGrupo)
             End If
+        End Set
+    End Property
+
+    Private _serieFacturacionDefecto As String
+    Public Property SerieFacturacionDefecto As String
+        Get
+            Return _serieFacturacionDefecto
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_serieFacturacionDefecto, value)
+        End Set
+    End Property
+
+    Private _vistoBuenoVentas As String
+    Public Property VistoBuenoVentas As String
+        Get
+            Return _vistoBuenoVentas
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_vistoBuenoVentas, value)
         End Set
     End Property
 
@@ -544,6 +595,9 @@ Public Class DetallePedidoViewModel
         End If
         If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = Date.MinValue Then
             lineaActual.fechaEntrega = fechaEntrega
+        End If
+        If lineaActual.id = 0 AndAlso Not String.IsNullOrEmpty(VistoBuenoVentas) Then
+            lineaActual.vistoBueno = (VistoBuenoVentas = "1" OrElse VistoBuenoVentas.ToLower() = "true")
         End If
         Dim textoNuevo As String = String.Empty
         Dim esTextBox As Boolean = False
@@ -733,10 +787,49 @@ Public Class DetallePedidoViewModel
         If Not dialogService.ShowConfirmationAnswer("Abrir factura", "¿Desea abrir el documento de la factura?") Then
             Return
         End If
-        Dim pathFactura = Await servicio.DescargarFactura(pedido.empresa, factura, pedido.cliente)
-        Dim unused = Process.Start(New ProcessStartInfo(pathFactura) With {
-            .UseShellExecute = True
-        })
+        Try
+            Dim pathFactura = Await servicio.DescargarFactura(pedido.empresa, factura, pedido.cliente, PapelConMembrete)
+            Dim unused = Process.Start(New ProcessStartInfo(pathFactura) With {
+                .UseShellExecute = True
+            })
+        Catch ex As Exception
+            Dim mensajeError = If(IsNothing(ex.InnerException), ex.Message, ex.InnerException.Message)
+            dialogService.ShowError($"Error al abrir la factura: {mensajeError}")
+        End Try
+    End Function
+
+    Private _imprimirAlbaranCommand As DelegateCommand
+    Public Property ImprimirAlbaranCommand As DelegateCommand
+        Get
+            Return _imprimirAlbaranCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_imprimirAlbaranCommand, value)
+        End Set
+    End Property
+    Private Function CanImprimirAlbaran() As Boolean
+        Return Not IsNothing(pedido) AndAlso
+            Not IsNothing(lineaActual) AndAlso
+            lineaActual.estaAlbaraneada AndAlso
+            lineaActual.Albaran.HasValue AndAlso
+            lineaActual.Albaran.Value > 0
+    End Function
+    Private Async Sub OnImprimirAlbaran()
+        Await ImprimirAlbaran(lineaActual.Albaran.Value)
+    End Sub
+    Private Async Function ImprimirAlbaran(numeroAlbaran As Integer) As Task
+        If Not dialogService.ShowConfirmationAnswer("Abrir albarán", "¿Desea abrir el documento del albarán?") Then
+            Return
+        End If
+        Try
+            Dim pathAlbaran = Await servicio.DescargarAlbaran(pedido.empresa, numeroAlbaran, pedido.cliente, PapelConMembrete)
+            Dim unused = Process.Start(New ProcessStartInfo(pathAlbaran) With {
+                .UseShellExecute = True
+            })
+        Catch ex As Exception
+            Dim mensajeError = If(IsNothing(ex.InnerException), ex.Message, ex.InnerException.Message)
+            dialogService.ShowError($"Error al abrir el albarán: {mensajeError}")
+        End Try
     End Function
 
     Private _crearAlbaranYFacturaVentaCommand As DelegateCommand
@@ -787,7 +880,7 @@ Public Class DetallePedidoViewModel
         estaBloqueado = True
 
         Try
-            Dim path As String = Await servicio.DescargarFactura(pedido.empresa, pedido.numero.ToString, pedido.cliente)
+            Dim path As String = Await servicio.DescargarFactura(pedido.empresa, pedido.numero.ToString, pedido.cliente, PapelConMembrete)
             Dim pathDirectorio As String = path.Substring(0, path.LastIndexOf("\"))
 
             ' Abrimos la carpeta de descargas
@@ -855,7 +948,7 @@ Public Class DetallePedidoViewModel
             If esPedidoNuevo Then
                 Try
                     Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
-                    pedido.Model.numero = numeroPedidoCreado
+                    pedido.numero = numeroPedidoCreado
                 Catch ex As ValidationException
                     crearModificarEx = ex
                     ' Verificar si puede crear sin pasar validación
@@ -878,14 +971,33 @@ Public Class DetallePedidoViewModel
                     If confirmar Then
                         pedido.Model.CreadoSinPasarValidacion = True
                         Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
-                        pedido.Model.numero = numeroPedidoCreado
+                        pedido.numero = numeroPedidoCreado
                     Else
                         Throw crearModificarEx
                     End If
                 End If
-                eventAggregator.GetEvent(Of PedidoCreadoEvent).Publish(pedido.Model)
-                dialogService.ShowNotification("Pedido Creado", $"Pedido {pedido.Model.numero} creado correctamente")
-                Titulo = $"Pedido Venta ({pedido.Model.numero})"
+                RaisePropertyChanged(NameOf(EstaCreandoPedido))
+                RaisePropertyChanged(NameOf(TextoBotonGuardar))
+
+                ' Publicar evento con datos completos del cliente
+                ' Calcular tieneProductos desde el wrapper (no desde el modelo)
+                Dim tieneProductos As Boolean = False
+                If Not IsNothing(pedido.Lineas) AndAlso pedido.Lineas.Count > 0 Then
+                    ' Contar líneas con tipoLinea = 1
+                    tieneProductos = pedido.Lineas.Any(Function(l) Not IsNothing(l.tipoLinea) AndAlso l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = 1)
+                End If
+
+                Dim eventArgs As New PedidoCreadoEventArgs With {
+                    .Pedido = pedido.Model,
+                    .NombreCliente = If(DireccionEntregaSeleccionada?.nombre, String.Empty),
+                    .DireccionCliente = If(DireccionEntregaSeleccionada?.direccion, String.Empty),
+                    .CodigoPostal = If(DireccionEntregaSeleccionada?.codigoPostal, String.Empty),
+                    .Poblacion = If(DireccionEntregaSeleccionada?.poblacion, String.Empty),
+                    .Provincia = If(DireccionEntregaSeleccionada?.provincia, String.Empty),
+                    .TieneProductos = tieneProductos
+                }
+                eventAggregator.GetEvent(Of PedidoCreadoEvent).Publish(eventArgs)
+                Titulo = $"Pedido Venta ({pedido.numero})"
             Else
                 Try
                     Await servicio.modificarPedido(pedido.Model)
@@ -963,11 +1075,15 @@ Public Class DetallePedidoViewModel
             .empresa = empresa,
             .numero = 0, ' Indica que es nuevo
             .fecha = Date.Today,
-            .vendedor = Await configuracion.leerParametro("1", Parametros.Claves.Vendedor),
+            .vendedor = String.Empty,
             .ruta = String.Empty,
+            .periodoFacturacion = String.Empty,
+            .serie = SerieFacturacionDefecto,
             .iva = IVA_POR_DEFECTO,
             .contacto = String.Empty,
             .cliente = String.Empty,
+            .origen = String.Empty,
+            .contactoCobro = String.Empty,
             .Usuario = configuracion.usuario,
             .Lineas = New ObservableCollection(Of LineaPedidoVentaDTO),
             .VendedoresGrupoProducto = New ObservableCollection(Of VendedorGrupoProductoDTO),
@@ -987,11 +1103,11 @@ Public Class DetallePedidoViewModel
         End Try
     End Sub
 
-    Private Sub OnPedidoCreadoEnDetalle(pedido As PedidoVentaDTO)
+    Private Sub OnPedidoCreadoEnDetalle(eventArgs As PedidoCreadoEventArgs)
         ' Actualizar el pedido actual si coincide
-        If Not IsNothing(Me.pedido) AndAlso Me.pedido.numero = 0 AndAlso pedido.empresa = Me.pedido.empresa Then
-            Me.pedido = New PedidoVentaWrapper(pedido)
-            Titulo = $"Pedido Venta ({pedido.numero})"
+        If Not IsNothing(Me.pedido) AndAlso Me.pedido.numero = 0 AndAlso eventArgs.Pedido.empresa = Me.pedido.empresa Then
+            Me.pedido = New PedidoVentaWrapper(eventArgs.Pedido)
+            Titulo = $"Pedido Venta ({eventArgs.Pedido.numero})"
         End If
     End Sub
 #End Region
@@ -999,10 +1115,15 @@ Public Class DetallePedidoViewModel
 
     Public Overloads Async Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
         Dim resumen = navigationContext.Parameters("resumenPedidoParameter")
-        cmdCargarPedido.Execute(resumen)
+
+        ' Cargar parámetros de usuario
         AlmacenUsuario = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta)
         FormaVentaUsuario = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.FormaVentaDefecto)
         DelegacionUsuario = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto)
+        SerieFacturacionDefecto = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.SerieFacturacionDefecto)
+        VistoBuenoVentas = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.VistoBuenoVentas)
+
+        cmdCargarPedido.Execute(resumen)
     End Sub
 
     Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget

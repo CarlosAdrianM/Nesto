@@ -29,11 +29,13 @@
             public const string PathNormaFB500 = "PathNormaFB500";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
+            public const string SerieFacturacionDefecto = "SerieFacturaciónDefecto";
             public const string UltNumProducto = "UltNumProducto";
             public const string UltTipoSeguimientoCliente = "UltTipoSeguimientoCliente";
             public const string UsarBusquedaContextualAND = "UsarBusquedaContextualAND";
             public const string UsuarioAvisoImpagadoDefecto = "UsuarioAvisoImpagadoDefecto";
             public const string Vendedor = "Vendedor";
+            public const string VistoBuenoVentas = "VistoBuenoVentas";
         }
     }
 }
