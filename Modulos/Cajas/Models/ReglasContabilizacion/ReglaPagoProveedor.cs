@@ -47,10 +47,18 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             else if (EsTransferenciaInternacional(apunteBancario))
             {
                 proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto.Trim())).GetAwaiter().GetResult();
+                if (string.IsNullOrEmpty(proveedor))
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto.Trim())).GetAwaiter().GetResult();
+                }
                 Regex regex = new(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
-                Match match = regex.Match(apunteBancario.RegistrosConcepto[1].ConceptoCompleto);
+                var match = apunteBancario.RegistrosConcepto?
+                    .Where(r => r != null && r.ConceptoCompleto != null)
+                    .Select(r => regex.Match(r.ConceptoCompleto))
+                    .FirstOrDefault(m => m.Success);
+
                 string documentoProveedor;
-                if (match.Success)
+                if (match != null && match.Success)
                 {
                     documentoProveedor = match.Groups[2].Value;
                 }
@@ -143,6 +151,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             else if (EsTransferenciaInternacional(apunteBancario))
             {
                 proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto.Trim())).GetAwaiter().GetResult();
+                if (string.IsNullOrEmpty(proveedor))
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto.Trim())).GetAwaiter().GetResult();
+                }
                 liquidacionObligatoria = false;
             }
             else
@@ -166,8 +178,13 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             else
             {
                 Regex regex = new(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
-                Match match = regex.Match(apunteBancario.RegistrosConcepto[1].ConceptoCompleto);
-                if (!match.Success)
+
+                bool existeMatch = apunteBancario.RegistrosConcepto != null &&
+                                   apunteBancario.RegistrosConcepto
+                                       .Where(r => r != null && r.ConceptoCompleto != null)
+                                       .Any(r => regex.IsMatch(r.ConceptoCompleto));
+
+                if (!existeMatch)
                 {
                     return false;
                 }
@@ -199,11 +216,12 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
         private static bool EsTransferenciaInternacional(ApunteBancarioDTO apunteBancario)
         {
             return apunteBancario.ConceptoComun == "04" &&
-                            apunteBancario.ConceptoPropio == "002" &&
-                            apunteBancario.RegistrosConcepto != null &&
-                            apunteBancario.RegistrosConcepto.Any() &&
-                            apunteBancario.RegistrosConcepto[1] != null &&
-                            apunteBancario.RegistrosConcepto[1].Concepto.Trim().ToLower().StartsWith("invoice");
+                   apunteBancario.ConceptoPropio == "002" &&
+                   apunteBancario.RegistrosConcepto != null &&
+                   apunteBancario.RegistrosConcepto.Any(r =>
+                       r != null &&
+                       !string.IsNullOrWhiteSpace(r.Concepto) &&
+                       r.ConceptoCompleto.Trim().ToLower().StartsWith("invoice"));
         }
     }
 }

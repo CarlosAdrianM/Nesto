@@ -1,7 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.ComponentModel.DataAnnotations
 Imports System.Globalization
-Imports System.IO
 Imports System.Text
 Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Models
@@ -597,7 +596,7 @@ Public Class DetallePedidoViewModel
             lineaActual.fechaEntrega = fechaEntrega
         End If
         If lineaActual.id = 0 AndAlso Not String.IsNullOrEmpty(VistoBuenoVentas) Then
-            lineaActual.vistoBueno = (VistoBuenoVentas = "1" OrElse VistoBuenoVentas.ToLower() = "true")
+            lineaActual.vistoBueno = VistoBuenoVentas = "1" OrElse VistoBuenoVentas.ToLower() = "true"
         End If
         Dim textoNuevo As String = String.Empty
         Dim esTextBox As Boolean = False
@@ -1037,6 +1036,9 @@ Public Class DetallePedidoViewModel
             dialogService.ShowError(ex.Message)
         Finally
             estaBloqueado = False
+            CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
+            CrearFacturaVentaCommand.RaiseCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
         End Try
     End Sub
 
@@ -1105,8 +1107,8 @@ Public Class DetallePedidoViewModel
 
     Private Sub OnPedidoCreadoEnDetalle(eventArgs As PedidoCreadoEventArgs)
         ' Actualizar el pedido actual si coincide
-        If Not IsNothing(Me.pedido) AndAlso Me.pedido.numero = 0 AndAlso eventArgs.Pedido.empresa = Me.pedido.empresa Then
-            Me.pedido = New PedidoVentaWrapper(eventArgs.Pedido)
+        If Not IsNothing(pedido) AndAlso pedido.numero = 0 AndAlso eventArgs.Pedido.empresa = pedido.empresa Then
+            pedido = New PedidoVentaWrapper(eventArgs.Pedido)
             Titulo = $"Pedido Venta ({eventArgs.Pedido.numero})"
         End If
     End Sub
