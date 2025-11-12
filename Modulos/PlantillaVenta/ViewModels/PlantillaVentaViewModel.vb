@@ -1461,8 +1461,14 @@ Public Class PlantillaVentaViewModel
                     numPedido = Await servicio.CrearPedido(pedido)
                 Catch ex As ValidationException
                     crearEx = ex
-                    Dim puedeCrearSinPasarValidacion As Boolean = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-                        configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+                    ' Carlos 12/01/25: Verificar si puede crear sin pasar validación
+                    ' - Dirección o Almacén pueden crear sin importar almacenes
+                    ' - Tiendas puede crear solo si TODAS las líneas están en su almacén
+                    Dim puedeCrearSinPasarValidacion As Boolean =
+                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) AndAlso
+                     pedido.Lineas.All(Function(l) l.almacen = almacenRutaUsuario))
                     If Not puedeCrearSinPasarValidacion Then
                         Throw crearEx
                     End If

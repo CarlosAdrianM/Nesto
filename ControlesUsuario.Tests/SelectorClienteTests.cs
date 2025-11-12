@@ -192,6 +192,15 @@ namespace ControlesUsuario.Tests
                 sut.Contacto = null; // en ejecución esto lo hace txtFiltro.KeyUp
                 sut.Cliente = "10000";
 
+                // Esperar y bombear mensajes del Dispatcher para que se complete la operación asincrónica
+                var frame = new System.Windows.Threading.DispatcherFrame();
+                var timer = new System.Threading.Timer((state) =>
+                {
+                    ((System.Windows.Threading.DispatcherFrame)state).Continue = false;
+                }, frame, 500, System.Threading.Timeout.Infinite);
+                System.Windows.Threading.Dispatcher.PushFrame(frame);
+                timer.Dispose();
+
                 // Assert: Verificar que la propiedad Cliente del pedido seleccionado se ha actualizado correctamente
                 Assert.AreEqual("10000", PedidoFiltrableSeleccionado.Cliente);
                 Assert.AreEqual("1", PedidoFiltrableSeleccionado.Contacto);
@@ -200,9 +209,6 @@ namespace ControlesUsuario.Tests
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
-
-            // Esperar un breve momento para que se ejecute la operación asincrónica
-            Thread.Sleep(500);
         }
 
         [TestMethod]
@@ -273,6 +279,15 @@ namespace ControlesUsuario.Tests
                 sut.Contacto = null; // en ejecución esto lo hace txtFiltro.KeyUp
                 sut.Cliente = "10000";
 
+                // Esperar y bombear mensajes del Dispatcher para que se complete la operación asincrónica
+                var frame = new System.Windows.Threading.DispatcherFrame();
+                var timer = new System.Threading.Timer((state) =>
+                {
+                    ((System.Windows.Threading.DispatcherFrame)state).Continue = false;
+                }, frame, 500, System.Threading.Timeout.Infinite);
+                System.Windows.Threading.Dispatcher.PushFrame(frame);
+                timer.Dispose();
+
                 // Assert: Verificar que la propiedad Cliente del pedido seleccionado se ha actualizado correctamente
                 Assert.AreEqual("10000", PedidoFiltrableSeleccionado.Cliente);
                 Assert.AreEqual("1", PedidoFiltrableSeleccionado.Contacto);
@@ -281,9 +296,6 @@ namespace ControlesUsuario.Tests
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
-
-            // Esperar un breve momento para que se ejecute la operación asincrónica
-            Thread.Sleep(500);
         }
 
         [TestMethod]

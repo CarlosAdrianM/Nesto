@@ -1,10 +1,10 @@
-﻿Imports System.Net.Http
-Imports Newtonsoft.Json
-Imports System.DirectoryServices.AccountManagement
+﻿Imports System.DirectoryServices.AccountManagement
 Imports System.Globalization
-Imports Nesto.Infrastructure.Contracts
-Imports Newtonsoft.Json.Linq
+Imports System.Net.Http
 Imports System.Text
+Imports Nesto.Infrastructure.Contracts
+Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
 
 Public Class Configuracion
     Implements IConfiguracion
@@ -49,8 +49,8 @@ Public Class Configuracion
                 .Usuario = UsuarioSinDominio,
                 .Clave = clave,
                 .Valor = valor,
-                .Usuario2 = Me.usuario,
-                .Fecha_Modificación = DateTime.Now
+                .Usuario2 = usuario,
+                .Fecha_Modificación = Date.Now
             }
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
@@ -92,8 +92,8 @@ Public Class Configuracion
                 .Usuario = UsuarioSinDominio,
                 .Clave = clave,
                 .Valor = valor,
-                .Usuario2 = Me.usuario,
-                .Fecha_Modificación = DateTime.Now
+                .Usuario2 = usuario,
+                .Fecha_Modificación = Date.Now
             }
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
@@ -128,7 +128,7 @@ Public Class Configuracion
     Public Async Function leerParametro(empresa As String, clave As String) As Task(Of String) Implements IConfiguracion.leerParametro
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri(Me.servidorAPI)
+            client.BaseAddress = New Uri(servidorAPI)
             Dim response As HttpResponseMessage
 
             Try
@@ -153,7 +153,7 @@ Public Class Configuracion
     Public Function LeerParametroSync(empresa As String, clave As String) As String Implements IConfiguracion.LeerParametroSync
 
         Using client As New HttpClient
-            client.BaseAddress = New Uri(Me.servidorAPI)
+            client.BaseAddress = New Uri(servidorAPI)
             Dim response As HttpResponseMessage
 
             Try
@@ -192,5 +192,5 @@ Public Class ParametroUsuario
     Public Property Clave As String
     Public Property Valor As String
     Public Property Usuario2 As String
-    Public Property Fecha_Modificación As DateTime
+    Public Property Fecha_Modificación As Date
 End Class

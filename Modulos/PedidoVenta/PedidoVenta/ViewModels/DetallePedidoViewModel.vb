@@ -58,6 +58,7 @@ Public Class DetallePedidoViewModel
         ImprimirFacturaCommand = New DelegateCommand(AddressOf OnImprimirFactura, AddressOf CanImprimirFactura)
         ImprimirAlbaranCommand = New DelegateCommand(AddressOf OnImprimirAlbaran, AddressOf CanImprimirAlbaran)
         CopiarEnlaceCommand = New DelegateCommand(Of String)(AddressOf OnCopiarEnlace)
+        AbrirFacturarRutasCommand = New DelegateCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
 
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
 
@@ -861,6 +862,22 @@ Public Class DetallePedidoViewModel
         End Try
     End Sub
 
+    Private _abrirFacturarRutasCommand As DelegateCommand
+    Public Property AbrirFacturarRutasCommand As DelegateCommand
+        Get
+            Return _abrirFacturarRutasCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_abrirFacturarRutasCommand, value)
+        End Set
+    End Property
+    Private Sub OnAbrirFacturarRutas()
+        dialogService.ShowDialog("FacturarRutasPopup", Nothing, Nothing)
+    End Sub
+    Private Function CanAbrirFacturarRutas() As Boolean
+        ' Carlos 12/01/25: Solo el grupo Dirección puede acceder a facturar rutas
+        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+    End Function
 
     Private _descargarPresupuestoCommand As DelegateCommand
     Public Property DescargarPresupuestoCommand As DelegateCommand
@@ -950,12 +967,14 @@ Public Class DetallePedidoViewModel
                     pedido.numero = numeroPedidoCreado
                 Catch ex As ValidationException
                     crearModificarEx = ex
-                    ' Verificar si puede crear sin pasar validación
+                    ' Carlos 12/01/25: Verificar si puede crear sin pasar validación
+                    ' - Dirección o Almacén pueden crear sin importar almacenes
+                    ' - Tiendas puede crear solo si TODAS las líneas están en su almacén
                     Dim puedeCrearSinPasarValidacion As Boolean =
-                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-                     configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
-                     configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)) AndAlso
-                    pedido.Lineas.Any(Function(l) l.Almacen = AlmacenUsuario)
+                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) AndAlso
+                     pedido.Lineas.All(Function(l) l.Almacen = AlmacenUsuario))
 
                     If Not puedeCrearSinPasarValidacion Then
                         Throw crearModificarEx
@@ -1002,12 +1021,14 @@ Public Class DetallePedidoViewModel
                     Await servicio.modificarPedido(pedido.Model)
                 Catch ex As ValidationException
                     crearModificarEx = ex
-                    ' Verificar si puede modificar sin pasar validación
+                    ' Carlos 12/01/25: Verificar si puede modificar sin pasar validación
+                    ' - Dirección o Almacén pueden modificar sin importar almacenes
+                    ' - Tiendas puede modificar solo si TODAS las líneas están en su almacén
                     Dim puedeModificarSinPasarValidacion As Boolean =
-                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-                     configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
-                     configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)) AndAlso
-                    pedido.Lineas.Any(Function(l) l.Almacen = AlmacenUsuario)
+                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) AndAlso
+                     pedido.Lineas.All(Function(l) l.Almacen = AlmacenUsuario))
 
                     If Not puedeModificarSinPasarValidacion Then
                         Throw crearModificarEx

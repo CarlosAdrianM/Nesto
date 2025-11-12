@@ -1,19 +1,23 @@
 ﻿Imports System.Globalization
-Imports Prism.Modularity
-Imports Prism.Regions
-Imports Prism.Ioc
-Imports Nesto.Contratos
-Imports Prism.RibbonRegionAdapter
 Imports Nesto.Infrastructure.Contracts
+Imports Prism.Ioc
+Imports Prism.Modularity
+Imports Prism.RibbonRegionAdapter
 
 Public Class PedidoVenta
     Implements IModule, IPedidoVenta
 
 
     Public Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
-        containerRegistry.Register(Of Object, PedidoVentaView)("PedidoVentaView")
-        containerRegistry.Register(Of Object, DetallePedidoView)("DetallePedidoView")
+        Dim unused3 = containerRegistry.Register(Of Object, PedidoVentaView)("PedidoVentaView")
+        Dim unused2 = containerRegistry.Register(Of Object, DetallePedidoView)("DetallePedidoView")
         containerRegistry.RegisterDialog(Of PickingPopupView, PickingPopupViewModel)
+        containerRegistry.RegisterDialog(Of FacturarRutasPopup, FacturarRutasPopupViewModel)
+        containerRegistry.RegisterDialog(Of ErroresFacturacionRutasPopup, ErroresFacturacionRutasPopupViewModel)
+
+        ' Registrar servicios del módulo
+        Dim unused1 = containerRegistry.RegisterSingleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)
+        Dim unused = containerRegistry.RegisterSingleton(Of IServicioImpresionDocumentos, ServicioImpresionDocumentos)
     End Sub
 
     Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized
@@ -23,7 +27,7 @@ Public Class PedidoVenta
             Dim mainWindow = containerProvider.Resolve(Of IMainWindow)
             Dim region = regionAdapter.Initialize(mainWindow.mainRibbon, "PedidoVenta")
 
-            region.Add(view, "MenuBar")
+            Dim unused = region.Add(view, "MenuBar")
         End If
 
     End Sub

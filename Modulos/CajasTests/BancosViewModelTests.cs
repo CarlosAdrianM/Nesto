@@ -796,14 +796,14 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, A<decimal>._, "*", null)).Returns(4);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>.Ignored, A<DialogParameters>.Ignored, A<Action<IDialogResult>>.Ignored))
+            A.CallTo(() => _dialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
                 .Invokes(call =>
                 {
                     // Extraer el Action<IDialogResult> de los argumentos
                     Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
 
                     // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    callback.Invoke(new DialogResult(ButtonResult.OK));
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -858,14 +858,14 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(3, 4, A<decimal>._, "*", null)).Returns(4);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>.Ignored, A<DialogParameters>.Ignored, A<Action<IDialogResult>>.Ignored))
+            A.CallTo(() => _dialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
                 .Invokes(call =>
                 {
                     // Extraer el Action<IDialogResult> de los argumentos
                     Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
 
                     // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    callback.Invoke(new DialogResult(ButtonResult.OK));
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -927,14 +927,14 @@ namespace CajasTests
             var _pedidoCompraService = A.Fake<IPedidoCompraService>();
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).Returns(3);
             A.CallTo(() => _bancosService.CrearPunteo(1, 3, A<decimal>._, "*", null)).Returns(4);
-            A.CallTo(() => _dialogService.ShowDialog(A<string>.Ignored, A<DialogParameters>.Ignored, A<Action<IDialogResult>>.Ignored))
+            A.CallTo(() => _dialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._))
                 .Invokes(call =>
                 {
                     // Extraer el Action<IDialogResult> de los argumentos
                     Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
 
                     // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    callback.Invoke(new DialogResult(ButtonResult.OK));
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();

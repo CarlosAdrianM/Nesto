@@ -1,0 +1,114 @@
+<UserControl x:Class="ErroresFacturacionRutasPopup"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             MinWidth="800" MinHeight="400"
+             Background="White">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Título y resumen -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="Errores en la Facturación"
+                       FontSize="16" FontWeight="Bold"
+                       Margin="0,0,0,10"/>
+            <TextBlock FontSize="13" Foreground="#666666">
+                <Run Text="Se encontraron"/>
+                <Run Text="{Binding NumeroErrores, Mode=OneWay}" FontWeight="SemiBold"/>
+                <Run Text="pedidos con errores que no pudieron completarse."/>
+            </TextBlock>
+            <TextBlock Text="Haga doble clic en un pedido para abrirlo y revisar su estado."
+                       FontSize="12" Foreground="#999999"
+                       Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <!-- DataGrid con los errores -->
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Errores}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserReorderColumns="True"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="True"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  AlternatingRowBackground="#F5F5F5"
+                  MouseDoubleClick="DataGrid_MouseDoubleClick"
+                  HorizontalScrollBarVisibility="Auto"
+                  VerticalScrollBarVisibility="Auto">
+
+            <!-- Menú contextual para copiar errores -->
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Copiar error completo" Click="CopiarErrorCompleto_Click"/>
+                    <MenuItem Header="Copiar solo mensaje" Click="CopiarSoloMensaje_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Copiar número de pedido" Click="CopiarNumeroPedido_Click"/>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Pedido"
+                                    Binding="{Binding NumeroPedido}"
+                                    Width="80"/>
+                <DataGridTextColumn Header="Cliente"
+                                    Binding="{Binding Cliente}"
+                                    Width="80"/>
+                <DataGridTextColumn Header="Nombre Cliente"
+                                    Binding="{Binding NombreCliente}"
+                                    Width="200"/>
+                <DataGridTextColumn Header="Ruta"
+                                    Binding="{Binding Ruta}"
+                                    Width="60"/>
+                <DataGridTextColumn Header="Periodo"
+                                    Binding="{Binding PeriodoFacturacion}"
+                                    Width="70"/>
+                <DataGridTextColumn Header="Fecha Entrega"
+                                    Binding="{Binding FechaEntrega, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                    Width="100"/>
+                <DataGridTextColumn Header="Total"
+                                    Binding="{Binding Total, StringFormat='{}{0:N2} €'}"
+                                    Width="90"/>
+                <DataGridTextColumn Header="Tipo Error"
+                                    Binding="{Binding TipoError}"
+                                    Width="120"/>
+                <DataGridTextColumn Header="Mensaje de Error"
+                                    Binding="{Binding MensajeError}"
+                                    Width="*"/>
+            </DataGrid.Columns>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#E3F2FD"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+        </DataGrid>
+
+        <!-- Botones -->
+        <StackPanel Grid.Row="3"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,15,0,0">
+            <Button Content="Cerrar"
+                    Width="100" Height="32"
+                    Click="BtnCerrar_Click"
+                    IsDefault="True"
+                    IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
