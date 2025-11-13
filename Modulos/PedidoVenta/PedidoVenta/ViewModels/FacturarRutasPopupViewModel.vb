@@ -23,6 +23,11 @@ Public Class FacturarRutasPopupViewModel
     Private ReadOnly servicioImpresion As IServicioImpresionDocumentos
     Private ReadOnly container As IUnityContainer
 
+    ''' <summary>
+    ''' Referencia a la ventana padre cuando se usa como ventana no modal
+    ''' </summary>
+    Public Property ParentWindow As System.Windows.Window
+
 #Region "Constructor"
 
     Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos, container As IUnityContainer)
@@ -322,22 +327,70 @@ Public Class FacturarRutasPopupViewModel
 
     Private Sub MostrarVentanaErrores(errores As List(Of PedidoConErrorDTO))
         Try
-            System.Diagnostics.Debug.WriteLine($"MostrarVentanaErrores - Recibidos {If(errores Is Nothing, 0, errores.Count)} errores")
+            System.Diagnostics.Debug.WriteLine($"=== MostrarVentanaErrores INICIO ===")
+            System.Diagnostics.Debug.WriteLine($"Recibidos {If(errores Is Nothing, 0, errores.Count)} errores")
 
-            ' Persistir los errores en archivo JSON para que persistan aunque se cierre Nesto
+            If errores Is Nothing OrElse errores.Count = 0 Then
+                System.Diagnostics.Debug.WriteLine("No hay errores para mostrar")
+                Return
+            End If
+
+            ' IMPORTANTE: Persistir los errores PRIMERO para no perderlos si falla la ventana
             PersistirErrores(errores)
+            System.Diagnostics.Debug.WriteLine($"✓ Errores persistidos en archivo JSON")
 
-            ' Mostrar el diálogo usando el dialogService de Prism (con auto-wiring)
-            Dim parametros = New DialogParameters From {
-                {"errores", errores}
-            }
+            ' Crear ventana NO MODAL para poder abrir pedidos mientras se revisan errores
+            Dim errorWindow As New System.Windows.Window()
+            System.Diagnostics.Debug.WriteLine($"✓ Window creada")
 
-            System.Diagnostics.Debug.WriteLine($"MostrarVentanaErrores - Llamando ShowDialog con {errores.Count} errores")
-            dialogService.ShowDialog("ErroresFacturacionRutasPopup", parametros, Nothing)
-            System.Diagnostics.Debug.WriteLine("MostrarVentanaErrores - ShowDialog completado")
+            ' Resolver la vista desde el container (Prism hace auto-wiring del ViewModel gracias a RegisterDialog)
+            Dim errorView = container.Resolve(Of ErroresFacturacionRutasPopup)()
+            System.Diagnostics.Debug.WriteLine($"✓ Vista resuelta del container")
+
+            ' VALIDACIÓN: El ViewModel DEBE estar conectado por Prism
+            Dim errorViewModel = TryCast(errorView.DataContext, ErroresFacturacionRutasPopupViewModel)
+            If errorViewModel Is Nothing Then
+                Throw New InvalidOperationException("ERROR CRÍTICO: Prism no conectó el ViewModel automáticamente. DataContext es Nothing.")
+            End If
+            System.Diagnostics.Debug.WriteLine($"✓ ViewModel resuelto correctamente por Prism")
+
+            ' Cargar los errores en el ViewModel
+            System.Diagnostics.Debug.WriteLine($"Cargando {errores.Count} errores en el ViewModel...")
+            errorViewModel.CargarErrores(errores)
+            errorViewModel.ParentWindow = errorWindow
+            System.Diagnostics.Debug.WriteLine($"✓ Errores cargados en ViewModel. NumeroErrores={errorViewModel.NumeroErrores}")
+
+            ' VALIDACIÓN: Verificar que los errores se cargaron correctamente
+            If errorViewModel.Errores Is Nothing OrElse errorViewModel.Errores.Count = 0 Then
+                Throw New InvalidOperationException($"ERROR CRÍTICO: Los errores no se cargaron en el ViewModel. Errores.Count={If(errorViewModel.Errores Is Nothing, "Nothing", errorViewModel.Errores.Count.ToString())}")
+            End If
+
+            ' Configurar la ventana
+            errorWindow.Content = errorView
+            errorWindow.Title = "Errores en Facturación de Rutas"
+            errorWindow.Width = 1000
+            errorWindow.Height = 600
+            errorWindow.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen
+            System.Diagnostics.Debug.WriteLine($"✓ Ventana configurada")
+
+            ' Mostrar la ventana NO MODAL para que permita interactuar con otras ventanas
+            System.Diagnostics.Debug.WriteLine($"Mostrando ventana NO MODAL con {errorViewModel.Errores.Count} errores...")
+            errorWindow.Show()
+            System.Diagnostics.Debug.WriteLine($"✓✓✓ VENTANA MOSTRADA CORRECTAMENTE ✓✓✓")
+            System.Diagnostics.Debug.WriteLine($"=== MostrarVentanaErrores FIN ===")
 
         Catch ex As Exception
             ' Si falla la ventana completa, fallback al diálogo simple
+            System.Diagnostics.Debug.WriteLine($"")
+            System.Diagnostics.Debug.WriteLine($"❌❌❌ ERROR en MostrarVentanaErrores ❌❌❌")
+            System.Diagnostics.Debug.WriteLine($"Mensaje: {ex.Message}")
+            System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}")
+            If ex.InnerException IsNot Nothing Then
+                System.Diagnostics.Debug.WriteLine($"InnerException: {ex.InnerException.Message}")
+            End If
+            System.Diagnostics.Debug.WriteLine($"")
+
+            ' Mostrar diálogo de error simple como fallback
             Dim mensaje As String = String.Format("Se encontraron {0} pedidos con errores.{1}{1}", errores.Count, Environment.NewLine)
             For Each errorItem In errores.Take(5)
                 mensaje &= String.Format("Pedido {0} - {1}: {2}{3}", errorItem.NumeroPedido, errorItem.TipoError, errorItem.MensajeError, Environment.NewLine)
@@ -347,12 +400,17 @@ Public Class FacturarRutasPopupViewModel
                 mensaje &= String.Format("... y {0} errores más", errores.Count - 5)
             End If
 
+            mensaje &= Environment.NewLine & Environment.NewLine
+            mensaje &= "NOTA: Los errores se han guardado en el archivo de log para no perderlos."
+
             dialogService.ShowError(mensaje)
         End Try
     End Sub
 
     Private Sub PersistirErrores(errores As List(Of PedidoConErrorDTO))
         Try
+            System.Diagnostics.Debug.WriteLine($"PersistirErrores - Guardando {errores.Count} errores...")
+
             ' Guardar en AppData\Local\Nesto\ErroresFacturacion.json
             Dim appDataPath As String = System.IO.Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -361,6 +419,7 @@ Public Class FacturarRutasPopupViewModel
             ' Crear directorio si no existe
             If Not System.IO.Directory.Exists(appDataPath) Then
                 Dim unused = System.IO.Directory.CreateDirectory(appDataPath)
+                System.Diagnostics.Debug.WriteLine($"Directorio creado: {appDataPath}")
             End If
 
             Dim archivoErrores As String = System.IO.Path.Combine(appDataPath, "ErroresFacturacion.json")
@@ -378,10 +437,12 @@ Public Class FacturarRutasPopupViewModel
 
             ' Guardar en archivo
             System.IO.File.WriteAllText(archivoErrores, json)
+            System.Diagnostics.Debug.WriteLine($"✓ Errores guardados en: {archivoErrores}")
 
         Catch ex As Exception
             ' Si falla la persistencia, no bloquear la aplicación
-            System.Diagnostics.Debug.WriteLine($"Error al persistir errores: {ex.Message}")
+            System.Diagnostics.Debug.WriteLine($"❌ Error al persistir errores: {ex.Message}")
+            System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}")
         End Try
     End Sub
 
@@ -492,7 +553,13 @@ Public Class FacturarRutasPopupViewModel
     End Sub
 
     Private Sub Cancelar()
+        ' Si se está usando como diálogo de Prism (modal), usar el evento RequestClose
         RaiseEvent RequestClose(New DialogResult(ButtonResult.Cancel))
+
+        ' Si se está usando como ventana independiente (no modal), cerrar la ventana directamente
+        If ParentWindow IsNot Nothing Then
+            ParentWindow.Close()
+        End If
     End Sub
 
     ''' <summary>

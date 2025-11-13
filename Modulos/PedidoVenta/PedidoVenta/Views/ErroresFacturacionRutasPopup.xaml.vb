@@ -16,20 +16,33 @@ Public Class ErroresFacturacionRutasPopup
     End Sub
 
     Private Sub DataGrid_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs)
-        ' Verificar que el doble clic fue en una fila y no en el header o scrollbar
-        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
-        If IsNothing(src) Then
-            Return
-        End If
+        System.Diagnostics.Debug.WriteLine("=== DataGrid_MouseDoubleClick ejecutado ===")
 
-        ' Solo procesar si se hizo clic en el contenido del ScrollViewer (es decir, en una fila)
-        If src.[GetType]() = GetType(ScrollContentPresenter) Then
-            Dim dataGrid As DataGrid = DirectCast(sender, DataGrid)
-            Dim errorSeleccionado As PedidoConErrorDTO = TryCast(dataGrid.SelectedItem, PedidoConErrorDTO)
+        Dim dataGrid As DataGrid = DirectCast(sender, DataGrid)
+        Dim errorSeleccionado As PedidoConErrorDTO = TryCast(dataGrid.SelectedItem, PedidoConErrorDTO)
 
-            If Not IsNothing(errorSeleccionado) AndAlso Not IsNothing(DataContext) Then
-                ' Llamar al comando del ViewModel para abrir el pedido
-                DirectCast(DataContext, ErroresFacturacionRutasPopupViewModel).cmdAbrirPedido.Execute(errorSeleccionado)
+        System.Diagnostics.Debug.WriteLine($"Item seleccionado: {If(errorSeleccionado Is Nothing, "Nothing", $"Pedido {errorSeleccionado.NumeroPedido}")}")
+
+        If Not IsNothing(errorSeleccionado) AndAlso Not IsNothing(DataContext) Then
+            System.Diagnostics.Debug.WriteLine($"Ejecutando comando cmdAbrirPedido para pedido {errorSeleccionado.NumeroPedido}")
+            Try
+                Dim viewModel = DirectCast(DataContext, ErroresFacturacionRutasPopupViewModel)
+                If viewModel.cmdAbrirPedido.CanExecute(errorSeleccionado) Then
+                    viewModel.cmdAbrirPedido.Execute(errorSeleccionado)
+                    System.Diagnostics.Debug.WriteLine("Comando ejecutado correctamente")
+                Else
+                    System.Diagnostics.Debug.WriteLine("ERROR: El comando CanExecute devolvió False")
+                End If
+            Catch ex As Exception
+                System.Diagnostics.Debug.WriteLine($"ERROR al ejecutar comando: {ex.Message}")
+                System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}")
+            End Try
+        Else
+            If IsNothing(errorSeleccionado) Then
+                System.Diagnostics.Debug.WriteLine("ERROR: No hay item seleccionado")
+            End If
+            If IsNothing(DataContext) Then
+                System.Diagnostics.Debug.WriteLine("ERROR: DataContext es Nothing")
             End If
         End If
     End Sub

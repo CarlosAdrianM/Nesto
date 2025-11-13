@@ -20,6 +20,8 @@ Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.Cajas.Interfaces
 Imports Nesto.Modulos.PedidoVenta
+Imports Nesto.Modulos.PedidoVenta.Models.Facturas
+Imports Nesto.Modulos.PedidoVenta.Services
 Imports PdfiumViewer
 Imports Prism.Commands
 Imports Prism.Ioc
@@ -1345,13 +1347,17 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private _imprimirFacturaAlFacturar As Boolean
-    Public Property ImprimirFacturaAlFacturar As Boolean
+    Private _imprimirDocumentoAlFacturar As Boolean
+    ''' <summary>
+    ''' Indica si se debe imprimir el documento correspondiente al facturar.
+    ''' Puede ser factura, albarán o nota de entrega según el periodo de facturación.
+    ''' </summary>
+    Public Property ImprimirDocumentoAlFacturar As Boolean
         Get
-            Return _imprimirFacturaAlFacturar
+            Return _imprimirDocumentoAlFacturar
         End Get
         Set(value As Boolean)
-            Dim unused = SetProperty(_imprimirFacturaAlFacturar, value)
+            Dim unused = SetProperty(_imprimirDocumentoAlFacturar, value)
         End Set
     End Property
 
@@ -1454,6 +1460,8 @@ Public Class AgenciasViewModel
                 RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
                 Return
             End If
+
+            ' Crear albarán y factura
             Dim albaran = Await _servicioPedidos.CrearAlbaranVenta(envioActual.Empresa, envioActual.Pedido)
             Dim factura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
 
@@ -1461,21 +1469,66 @@ Public Class AgenciasViewModel
                 $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}",
                 $"Albarán del pedido {envioActual.Pedido} creado correctamente en albarán {albaran}")
             _dialogService.ShowNotification("Facturación", mensaje)
-            If Not _imprimirFacturaAlFacturar OrElse factura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
+
+            ' Si el checkbox "Imprimir documento" NO está marcado, no imprimir
+            If Not _imprimirDocumentoAlFacturar Then
+                RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
                 Return
             End If
 
-            Dim pdfBytes As Byte() = Await _servicioPedidos.CargarFactura(envioActual.Empresa, factura)
-            Using stream As New MemoryStream(pdfBytes)
-                Using document As PdfDocument = PdfDocument.Load(stream)
-                    Using printDocument = document.CreatePrintDocument()
-                        printDocument.Print()
-                    End Using
-                End Using
-            End Using
+            ' IMPORTANTE: Usar el mismo servicio que facturación de rutas para determinar qué imprimir
+            ' Esto asegura que se apliquen las mismas reglas: copias, bandeja, tipo de documento
+            System.Diagnostics.Debug.WriteLine($"=== IMPRESIÓN AGENCIAS - Pedido {envioActual.Pedido} ===")
+            System.Diagnostics.Debug.WriteLine($"Factura: {factura}, Albarán: {albaran}")
+
+            Try
+                ' Obtener documentos con la misma lógica que facturación de rutas
+                Dim documentos = Await _servicioPedidos.ObtenerDocumentosImpresion(
+                    envioActual.Empresa,
+                    envioActual.Pedido,
+                    factura,
+                    albaran)
+
+                System.Diagnostics.Debug.WriteLine($"Documentos recibidos: {documentos.TipoDocumentoPrincipal}")
+                System.Diagnostics.Debug.WriteLine($"Total documentos para imprimir: {documentos.TotalDocumentosParaImprimir}")
+
+                If Not documentos.HayDocumentosParaImprimir Then
+                    System.Diagnostics.Debug.WriteLine("⚠ No hay documentos para imprimir")
+                    RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
+                    Return
+                End If
+
+                ' Imprimir usando ServicioImpresionDocumentos (ya usado en facturación de rutas)
+                Dim servicioImpresion As New ServicioImpresionDocumentos()
+
+                ' Imprimir facturas
+                If documentos.Facturas IsNot Nothing AndAlso documentos.Facturas.Any() Then
+                    Dim resultadoFacturas = Await servicioImpresion.ImprimirFacturas(documentos.Facturas)
+                    System.Diagnostics.Debug.WriteLine($"✓ Facturas impresas: {resultadoFacturas.DocumentosImpresos}, Errores: {resultadoFacturas.DocumentosConError}")
+                End If
+
+                ' Imprimir albaranes
+                If documentos.Albaranes IsNot Nothing AndAlso documentos.Albaranes.Any() Then
+                    Dim resultadoAlbaranes = Await servicioImpresion.ImprimirAlbaranes(documentos.Albaranes)
+                    System.Diagnostics.Debug.WriteLine($"✓ Albaranes impresos: {resultadoAlbaranes.DocumentosImpresos}, Errores: {resultadoAlbaranes.DocumentosConError}")
+                End If
+
+                ' Imprimir notas de entrega
+                If documentos.NotasEntrega IsNot Nothing AndAlso documentos.NotasEntrega.Any() Then
+                    Dim resultadoNotas = Await servicioImpresion.ImprimirNotasEntrega(documentos.NotasEntrega)
+                    System.Diagnostics.Debug.WriteLine($"✓ Notas de entrega impresas: {resultadoNotas.DocumentosImpresos}, Errores: {resultadoNotas.DocumentosConError}")
+                End If
+
+                System.Diagnostics.Debug.WriteLine($"✓✓✓ IMPRESIÓN COMPLETADA ✓✓✓")
+
+            Catch ex As Exception
+                System.Diagnostics.Debug.WriteLine($"❌ Error al imprimir documentos: {ex.Message}")
+                _dialogService.ShowError($"Error al imprimir documento: {ex.Message}")
+            End Try
 
             RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
         Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"❌ Error en ImprimirEtiquetaPedido: {ex.Message}")
             _dialogService.ShowError(ex.Message)
         End Try
     End Sub

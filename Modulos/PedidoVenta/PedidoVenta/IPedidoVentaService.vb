@@ -1,5 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Nesto.Models
+Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
 Public Interface IPedidoVentaService
@@ -22,4 +23,15 @@ Public Interface IPedidoVentaService
     Function DescargarAlbaran(empresa As String, numeroAlbaran As Integer, cliente As String, Optional papelConMembrete As Boolean = False) As Task(Of String)
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer)
     Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase))
+
+    ''' <summary>
+    ''' Obtiene los documentos de impresión para un pedido ya facturado.
+    ''' Genera PDFs con las copias y bandeja apropiadas según el tipo de ruta.
+    ''' </summary>
+    ''' <param name="empresa">Empresa del pedido</param>
+    ''' <param name="numeroPedido">Número del pedido</param>
+    ''' <param name="numeroFactura">Número de factura (opcional, Nothing o "FDM" si es fin de mes)</param>
+    ''' <param name="numeroAlbaran">Número de albarán (opcional)</param>
+    ''' <returns>Documentos listos para imprimir</returns>
+    Function ObtenerDocumentosImpresion(empresa As String, numeroPedido As Integer, Optional numeroFactura As String = Nothing, Optional numeroAlbaran As Integer? = Nothing) As Task(Of DocumentosImpresionPedidoDTO)
 End Interface

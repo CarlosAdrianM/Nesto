@@ -6,6 +6,7 @@ Imports System.Runtime.InteropServices
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Models
+Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
@@ -675,6 +676,58 @@ Public Class PedidoVentaService
 
             Dim parametrosIva As List(Of ParametrosIvaBase) = JsonConvert.DeserializeObject(Of List(Of ParametrosIvaBase))(respuesta)
             Return parametrosIva
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Obtiene los documentos de impresión para un pedido ya facturado.
+    ''' Genera PDFs con las copias y bandeja apropiadas según el tipo de ruta.
+    ''' </summary>
+    Public Async Function ObtenerDocumentosImpresion(empresa As String, numeroPedido As Integer, Optional numeroFactura As String = Nothing, Optional numeroAlbaran As Integer? = Nothing) As Task(Of DocumentosImpresionPedidoDTO) Implements IPedidoVentaService.ObtenerDocumentosImpresion
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                ' Construir la URL del endpoint
+                Dim urlConsulta As String = $"PedidosVenta/{empresa}/{numeroPedido}/DocumentosImpresion"
+
+                ' Agregar parámetros opcionales si están presentes
+                Dim parametros As New List(Of String)()
+                If Not String.IsNullOrEmpty(numeroFactura) Then
+                    parametros.Add($"numeroFactura={Uri.EscapeDataString(numeroFactura)}")
+                End If
+                If numeroAlbaran.HasValue Then
+                    parametros.Add($"numeroAlbaran={numeroAlbaran.Value}")
+                End If
+
+                If parametros.Count > 0 Then
+                    urlConsulta += "?" + String.Join("&", parametros)
+                End If
+
+                System.Diagnostics.Debug.WriteLine($"Llamando a API: {urlConsulta}")
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If Not response.IsSuccessStatusCode Then
+                    Dim errorContent = Await response.Content.ReadAsStringAsync()
+                    System.Diagnostics.Debug.WriteLine($"Error de API: {response.StatusCode} - {errorContent}")
+                    Throw New Exception($"Error al obtener documentos de impresión: {response.StatusCode}")
+                End If
+
+                respuesta = Await response.Content.ReadAsStringAsync()
+                System.Diagnostics.Debug.WriteLine($"Respuesta recibida: {respuesta.Substring(0, Math.Min(200, respuesta.Length))}...")
+
+            Catch ex As HttpRequestException
+                Throw New Exception("Error de conexión al obtener documentos de impresión: " + ex.Message)
+            Catch ex As Exception
+                Throw New Exception("Error al obtener documentos de impresión: " + ex.Message)
+            End Try
+
+            Dim documentos As DocumentosImpresionPedidoDTO = JsonConvert.DeserializeObject(Of DocumentosImpresionPedidoDTO)(respuesta)
+            System.Diagnostics.Debug.WriteLine($"✓ Documentos deserializados correctamente. Total para imprimir: {documentos.TotalDocumentosParaImprimir}")
+            Return documentos
         End Using
     End Function
 End Class

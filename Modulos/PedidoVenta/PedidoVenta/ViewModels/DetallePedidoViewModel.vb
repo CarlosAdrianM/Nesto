@@ -8,11 +8,13 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Nesto.Modulos.PedidoVenta.Views
 Imports Prism.Commands
 Imports Prism.Events
 Imports Prism.Mvvm
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
+Imports Unity
 Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 
 Public Class DetallePedidoViewModel
@@ -25,18 +27,20 @@ Public Class DetallePedidoViewModel
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly eventAggregator As IEventAggregator
     Private ReadOnly dialogService As IDialogService
+    Private ReadOnly container As IUnityContainer
 
     Private ivaOriginal As String
 
     Private Const IVA_POR_DEFECTO = "G21"
     Private Const EMPRESA_POR_DEFECTO = "1"
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, container As IUnityContainer)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
         Me.dialogService = dialogService
+        Me.container = container
 
         cmdAbrirPicking = New DelegateCommand(AddressOf OnAbrirPicking)
         AceptarPresupuestoCommand = New DelegateCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
@@ -872,7 +876,24 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Sub OnAbrirFacturarRutas()
-        dialogService.ShowDialog("FacturarRutasPopup", Nothing, Nothing)
+        ' Abrir el diálogo de Facturar Rutas como ventana NO MODAL
+        ' para permitir interacciones con otras ventanas (como abrir pedidos desde errores)
+        Dim facturarWindow As New System.Windows.Window()
+        Dim facturarView = container.Resolve(Of FacturarRutasPopup)()
+        Dim facturarViewModel = TryCast(facturarView.DataContext, FacturarRutasPopupViewModel)
+
+        If facturarViewModel Is Nothing Then
+            Throw New InvalidOperationException("ERROR: Prism no conectó el ViewModel de FacturarRutasPopup")
+        End If
+
+        facturarViewModel.ParentWindow = facturarWindow
+
+        facturarWindow.Content = facturarView
+        facturarWindow.Title = "Facturar Rutas"
+        facturarWindow.Width = 1200
+        facturarWindow.Height = 800
+        facturarWindow.WindowStartupLocation = Windows.WindowStartupLocation.CenterScreen
+        facturarWindow.Show() ' NO MODAL
     End Sub
     Private Function CanAbrirFacturarRutas() As Boolean
         ' Carlos 12/01/25: Solo el grupo Dirección puede acceder a facturar rutas

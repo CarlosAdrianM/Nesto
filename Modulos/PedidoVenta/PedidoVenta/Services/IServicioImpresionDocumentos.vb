@@ -1,7 +1,7 @@
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 
 ''' <summary>
-''' Servicio para imprimir documentos (facturas y albaranes) usando PdfiumViewer.
+''' Servicio para imprimir documentos (facturas, albaranes y notas de entrega) usando PdfiumViewer.
 ''' Recibe bytes de PDFs desde la API y los envía a la impresora física.
 ''' </summary>
 Public Interface IServicioImpresionDocumentos
@@ -20,9 +20,16 @@ Public Interface IServicioImpresionDocumentos
     Function ImprimirAlbaranes(albaranes As IEnumerable(Of AlbaranCreadoDTO)) As Task(Of ResultadoImpresion)
 
     ''' <summary>
+    ''' Imprime una lista de notas de entrega que contienen bytes del PDF.
+    ''' </summary>
+    ''' <param name="notasEntrega">Lista de notas de entrega con DatosImpresion rellenos</param>
+    ''' <returns>Número de documentos impresos exitosamente</returns>
+    Function ImprimirNotasEntrega(notasEntrega As IEnumerable(Of NotaEntregaCreadaDTO)) As Task(Of ResultadoImpresion)
+
+    ''' <summary>
     ''' Imprime todos los documentos de una respuesta de facturación de rutas.
     ''' </summary>
-    ''' <param name="response">Response con listas de facturas y albaranes</param>
+    ''' <param name="response">Response con listas de facturas, albaranes y notas de entrega</param>
     ''' <returns>Resultado consolidado de impresión</returns>
     Function ImprimirDocumentos(response As FacturarRutasResponseDTO) As Task(Of ResultadoImpresion)
 End Interface

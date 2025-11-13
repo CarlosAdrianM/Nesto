@@ -50,7 +50,7 @@
             <ComboBox Grid.Column="0" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Número" SelectedItem="{Binding empresaSeleccionada}" VerticalAlignment="Center"/>
             <ComboBox Grid.Column="1" Margin="3" ItemsSource="{Binding listaAgencias}" DisplayMemberPath="Nombre" SelectedValuePath="Numero" SelectedItem="{Binding agenciaSeleccionada}" VerticalAlignment="Center"/>
             <CheckBox Grid.Column="2" Margin="3" IsChecked="{Binding FacturarAlImprimirEtiqueta}" VerticalAlignment="Center">Facturar al imprimir etiqueta</CheckBox>
-            <CheckBox Grid.Column="3" Margin="3" IsChecked="{Binding ImprimirFacturaAlFacturar}" VerticalAlignment="Center">Imprimir factura al facturar</CheckBox>
+            <CheckBox Grid.Column="3" Margin="3" IsChecked="{Binding ImprimirDocumentoAlFacturar}" VerticalAlignment="Center">Imprimir documento al facturar</CheckBox>
             <TextBlock Grid.Column="4" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
         </Grid>
         <TabControl Grid.Row="2" TabStripPlacement="Top" SelectedItem="{Binding PestañaSeleccionada}">

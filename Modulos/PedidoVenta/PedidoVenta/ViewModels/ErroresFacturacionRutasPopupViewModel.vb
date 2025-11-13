@@ -13,6 +13,11 @@ Public Class ErroresFacturacionRutasPopupViewModel
 
     Private ReadOnly container As IUnityContainer
 
+    ''' <summary>
+    ''' Referencia a la ventana que contiene este ViewModel (para poder cerrarla desde código)
+    ''' </summary>
+    Public Property ParentWindow As System.Windows.Window
+
 #Region "Constructor"
 
     Public Sub New(container As IUnityContainer)
@@ -63,20 +68,32 @@ Public Class ErroresFacturacionRutasPopupViewModel
     End Property
 
     Private Function CanAbrirPedido(pedidoError As PedidoConErrorDTO) As Boolean
-        Return Not IsNothing(pedidoError) AndAlso pedidoError.NumeroPedido > 0
+        Dim resultado = Not IsNothing(pedidoError) AndAlso pedidoError.NumeroPedido > 0
+        System.Diagnostics.Debug.WriteLine($"CanAbrirPedido: {If(pedidoError Is Nothing, "pedidoError es Nothing", $"Pedido {pedidoError.NumeroPedido}")} -> {resultado}")
+        Return resultado
     End Function
 
     Private Sub OnAbrirPedido(pedidoError As PedidoConErrorDTO)
+        System.Diagnostics.Debug.WriteLine($"=== OnAbrirPedido EJECUTADO ===")
+        System.Diagnostics.Debug.WriteLine($"PedidoError: {If(pedidoError Is Nothing, "Nothing", $"Pedido {pedidoError.NumeroPedido}, Empresa {pedidoError.Empresa}")}")
+        System.Diagnostics.Debug.WriteLine($"Container: {If(container Is Nothing, "Nothing", "OK")}")
+
         If IsNothing(pedidoError) OrElse String.IsNullOrWhiteSpace(pedidoError.Empresa) Then
+            System.Diagnostics.Debug.WriteLine("ERROR: pedidoError es Nothing o Empresa está vacía")
             Return
         End If
 
         Try
-            ' Usar el mismo código que comisiones para abrir el pedido
+            System.Diagnostics.Debug.WriteLine($"Llamando a PedidoVentaViewModel.CargarPedido('{pedidoError.Empresa}', {pedidoError.NumeroPedido})")
+            ' Abrir el pedido - la ventana de errores se mantiene abierta para poder revisar otros errores
             PedidoVentaViewModel.CargarPedido(pedidoError.Empresa, pedidoError.NumeroPedido, container)
+            System.Diagnostics.Debug.WriteLine("CargarPedido ejecutado sin excepciones")
         Catch ex As Exception
-            ' Log del error si es necesario
-            System.Diagnostics.Debug.WriteLine(String.Format("Error al abrir pedido {0}: {1}", pedidoError.NumeroPedido, ex.Message))
+            System.Diagnostics.Debug.WriteLine($"EXCEPCIÓN al abrir pedido {pedidoError.NumeroPedido}: {ex.Message}")
+            System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}")
+            If ex.InnerException IsNot Nothing Then
+                System.Diagnostics.Debug.WriteLine($"InnerException: {ex.InnerException.Message}")
+            End If
         End Try
     End Sub
 
@@ -149,10 +166,17 @@ Public Class ErroresFacturacionRutasPopupViewModel
     End Sub
 
     ''' <summary>
-    ''' Cierra el diálogo
+    ''' Cierra la ventana de errores
     ''' </summary>
     Public Sub Cerrar()
+        ' Si se está usando como diálogo de Prism (modal), usar el evento RequestClose
         RaiseEvent RequestClose(New DialogResult(ButtonResult.OK))
+
+        ' Si se está usando como ventana independiente (no modal), cerrar la ventana directamente
+        If ParentWindow IsNot Nothing Then
+            System.Diagnostics.Debug.WriteLine("Cerrando ventana de errores (no modal)")
+            ParentWindow.Close()
+        End If
     End Sub
 
 #End Region
