@@ -23,14 +23,11 @@ Public Class FacturarRutasPopupViewModel
     Private ReadOnly servicioImpresion As IServicioImpresionDocumentos
     Private ReadOnly container As IUnityContainer
 
-    ''' <summary>
-    ''' Referencia a la ventana padre cuando se usa como ventana no modal
-    ''' </summary>
-    Public Property ParentWindow As System.Windows.Window
-
 #Region "Constructor"
 
     Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicioFacturacion As IServicioFacturacionRutas, servicioImpresion As IServicioImpresionDocumentos, container As IUnityContainer)
+        System.Diagnostics.Debug.WriteLine("=== FacturarRutasPopupViewModel.New() EJECUTADO ===")
+
         Me.configuracion = configuracion
         Me.dialogService = dialogService
         Me.servicioFacturacion = servicioFacturacion
@@ -44,6 +41,8 @@ Public Class FacturarRutasPopupViewModel
 
         ' Inicializar colección vacía
         TiposRutaDisponibles = New ObservableCollection(Of TipoRutaInfoDTO)()
+
+        System.Diagnostics.Debug.WriteLine("=== FacturarRutasPopupViewModel constructor completado ===")
     End Sub
 
 #End Region
@@ -63,8 +62,13 @@ Public Class FacturarRutasPopupViewModel
     End Sub
 
     Public Async Sub OnDialogOpened(parameters As IDialogParameters) Implements IDialogAware.OnDialogOpened
+        System.Diagnostics.Debug.WriteLine("=== OnDialogOpened EJECUTADO ===")
+        System.Diagnostics.Debug.WriteLine($"Parameters is Nothing: {parameters Is Nothing}")
+
         ' Cargar tipos de ruta desde la API
         Await CargarTiposRuta()
+
+        System.Diagnostics.Debug.WriteLine("=== OnDialogOpened COMPLETADO ===")
     End Sub
 
     Public Function CanCloseDialog() As Boolean Implements IDialogAware.CanCloseDialog
@@ -80,24 +84,38 @@ Public Class FacturarRutasPopupViewModel
     ''' </summary>
     Private Async Function CargarTiposRuta() As Task
         Try
+            System.Diagnostics.Debug.WriteLine("=== CargarTiposRuta INICIO ===")
+
             ' Usar el servicio de facturación que maneja la autenticación
             Dim tipos = Await servicioFacturacion.ObtenerTiposRuta()
+            System.Diagnostics.Debug.WriteLine($"Tipos de ruta obtenidos: {If(tipos Is Nothing, 0, tipos.Count)}")
 
             TiposRutaDisponibles.Clear()
             For Each tipo In tipos
+                System.Diagnostics.Debug.WriteLine($"  - Agregando: {tipo.Id} / {tipo.DisplayText}")
                 TiposRutaDisponibles.Add(tipo)
             Next
+
+            System.Diagnostics.Debug.WriteLine($"TiposRutaDisponibles.Count = {TiposRutaDisponibles.Count}")
 
             ' Seleccionar el primero por defecto
             If TiposRutaDisponibles.Count > 0 Then
                 TipoRutaSeleccionado = TiposRutaDisponibles(0)
+                System.Diagnostics.Debug.WriteLine($"Tipo seleccionado por defecto: {TipoRutaSeleccionado.DisplayText}")
+            Else
+                System.Diagnostics.Debug.WriteLine("ADVERTENCIA: No hay tipos de ruta disponibles")
             End If
 
+            System.Diagnostics.Debug.WriteLine("=== CargarTiposRuta COMPLETADO ===")
+
         Catch uex As UnauthorizedAccessException
+            System.Diagnostics.Debug.WriteLine($"ERROR UnauthorizedAccessException: {uex.Message}")
             MensajeEstado = "Sesión expirada. Por favor, inicie sesión nuevamente."
             ColorMensaje = Brushes.Red
             dialogService.ShowError("Su sesión ha expirado. Por favor, inicie sesión nuevamente.")
         Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"ERROR en CargarTiposRuta: {ex.Message}")
+            System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}")
             MensajeEstado = $"Error al cargar tipos de ruta: {ex.Message}"
             ColorMensaje = Brushes.Red
             dialogService.ShowError($"No se pudieron cargar los tipos de ruta: {ex.Message}")
@@ -302,9 +320,10 @@ Public Class FacturarRutasPopupViewModel
 
     Private Sub MostrarResumen(response As FacturarRutasResponseDTO)
         Dim sb As New System.Text.StringBuilder()
-        Dim unused6 = sb.AppendLine($"✓ Procesados: {response.PedidosProcesados}")
-        Dim unused5 = sb.AppendLine($"✓ Albaranes: {response.AlbaranesCreados}")
-        Dim unused4 = sb.AppendLine($"✓ Facturas: {response.FacturasCreadas}")
+        Dim unused7 = sb.AppendLine($"✓ Procesados: {response.PedidosProcesados}")
+        Dim unused6 = sb.AppendLine($"✓ Albaranes: {response.AlbaranesCreados}")
+        Dim unused5 = sb.AppendLine($"✓ Facturas: {response.FacturasCreadas}")
+        Dim unused4 = sb.AppendLine($"✓ Notas de entrega: {response.NotasEntregaCreadas}")
 
         If response.FacturasParaImprimir > 0 Then
             Dim unused3 = sb.AppendLine($"🖨 Facturas para imprimir: {response.FacturasParaImprimir}")
@@ -327,70 +346,32 @@ Public Class FacturarRutasPopupViewModel
 
     Private Sub MostrarVentanaErrores(errores As List(Of PedidoConErrorDTO))
         Try
-            System.Diagnostics.Debug.WriteLine($"=== MostrarVentanaErrores INICIO ===")
-            System.Diagnostics.Debug.WriteLine($"Recibidos {If(errores Is Nothing, 0, errores.Count)} errores")
+            System.Diagnostics.Debug.WriteLine($"=== MostrarVentanaErrores - Recibidos {If(errores Is Nothing, 0, errores.Count)} errores ===")
 
             If errores Is Nothing OrElse errores.Count = 0 Then
                 System.Diagnostics.Debug.WriteLine("No hay errores para mostrar")
                 Return
             End If
 
-            ' IMPORTANTE: Persistir los errores PRIMERO para no perderlos si falla la ventana
+            ' Persistir los errores PRIMERO para no perderlos si falla la ventana
             PersistirErrores(errores)
-            System.Diagnostics.Debug.WriteLine($"✓ Errores persistidos en archivo JSON")
 
-            ' Crear ventana NO MODAL para poder abrir pedidos mientras se revisan errores
-            Dim errorWindow As New System.Windows.Window()
-            System.Diagnostics.Debug.WriteLine($"✓ Window creada")
+            ' Crear parámetros para el diálogo
+            Dim parametros As New DialogParameters From {
+                {"errores", errores}
+            }
 
-            ' Resolver la vista desde el container (Prism hace auto-wiring del ViewModel gracias a RegisterDialog)
-            Dim errorView = container.Resolve(Of ErroresFacturacionRutasPopup)()
-            System.Diagnostics.Debug.WriteLine($"✓ Vista resuelta del container")
+            System.Diagnostics.Debug.WriteLine($"MostrarVentanaErrores - Llamando ShowDialog con {errores.Count} errores")
 
-            ' VALIDACIÓN: El ViewModel DEBE estar conectado por Prism
-            Dim errorViewModel = TryCast(errorView.DataContext, ErroresFacturacionRutasPopupViewModel)
-            If errorViewModel Is Nothing Then
-                Throw New InvalidOperationException("ERROR CRÍTICO: Prism no conectó el ViewModel automáticamente. DataContext es Nothing.")
-            End If
-            System.Diagnostics.Debug.WriteLine($"✓ ViewModel resuelto correctamente por Prism")
+            ' Mostrar el diálogo de errores usando Prism DialogService (modal)
+            dialogService.ShowDialog("ErroresFacturacionRutasPopup", parametros, Nothing)
 
-            ' Cargar los errores en el ViewModel
-            System.Diagnostics.Debug.WriteLine($"Cargando {errores.Count} errores en el ViewModel...")
-            errorViewModel.CargarErrores(errores)
-            errorViewModel.ParentWindow = errorWindow
-            System.Diagnostics.Debug.WriteLine($"✓ Errores cargados en ViewModel. NumeroErrores={errorViewModel.NumeroErrores}")
-
-            ' VALIDACIÓN: Verificar que los errores se cargaron correctamente
-            If errorViewModel.Errores Is Nothing OrElse errorViewModel.Errores.Count = 0 Then
-                Throw New InvalidOperationException($"ERROR CRÍTICO: Los errores no se cargaron en el ViewModel. Errores.Count={If(errorViewModel.Errores Is Nothing, "Nothing", errorViewModel.Errores.Count.ToString())}")
-            End If
-
-            ' Configurar la ventana
-            errorWindow.Content = errorView
-            errorWindow.Title = "Errores en Facturación de Rutas"
-            errorWindow.Width = 1000
-            errorWindow.Height = 600
-            errorWindow.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterScreen
-            System.Diagnostics.Debug.WriteLine($"✓ Ventana configurada")
-
-            ' Mostrar la ventana NO MODAL para que permita interactuar con otras ventanas
-            System.Diagnostics.Debug.WriteLine($"Mostrando ventana NO MODAL con {errorViewModel.Errores.Count} errores...")
-            errorWindow.Show()
-            System.Diagnostics.Debug.WriteLine($"✓✓✓ VENTANA MOSTRADA CORRECTAMENTE ✓✓✓")
-            System.Diagnostics.Debug.WriteLine($"=== MostrarVentanaErrores FIN ===")
+            System.Diagnostics.Debug.WriteLine($"MostrarVentanaErrores - ShowDialog completado")
 
         Catch ex As Exception
-            ' Si falla la ventana completa, fallback al diálogo simple
-            System.Diagnostics.Debug.WriteLine($"")
-            System.Diagnostics.Debug.WriteLine($"❌❌❌ ERROR en MostrarVentanaErrores ❌❌❌")
-            System.Diagnostics.Debug.WriteLine($"Mensaje: {ex.Message}")
-            System.Diagnostics.Debug.WriteLine($"StackTrace: {ex.StackTrace}")
-            If ex.InnerException IsNot Nothing Then
-                System.Diagnostics.Debug.WriteLine($"InnerException: {ex.InnerException.Message}")
-            End If
-            System.Diagnostics.Debug.WriteLine($"")
+            ' Si falla, mostrar diálogo de error simple como fallback
+            System.Diagnostics.Debug.WriteLine($"ERROR en MostrarVentanaErrores: {ex.Message}")
 
-            ' Mostrar diálogo de error simple como fallback
             Dim mensaje As String = String.Format("Se encontraron {0} pedidos con errores.{1}{1}", errores.Count, Environment.NewLine)
             For Each errorItem In errores.Take(5)
                 mensaje &= String.Format("Pedido {0} - {1}: {2}{3}", errorItem.NumeroPedido, errorItem.TipoError, errorItem.MensajeError, Environment.NewLine)
@@ -553,13 +534,8 @@ Public Class FacturarRutasPopupViewModel
     End Sub
 
     Private Sub Cancelar()
-        ' Si se está usando como diálogo de Prism (modal), usar el evento RequestClose
+        ' Cerrar el diálogo usando Prism DialogService
         RaiseEvent RequestClose(New DialogResult(ButtonResult.Cancel))
-
-        ' Si se está usando como ventana independiente (no modal), cerrar la ventana directamente
-        If ParentWindow IsNot Nothing Then
-            ParentWindow.Close()
-        End If
     End Sub
 
     ''' <summary>

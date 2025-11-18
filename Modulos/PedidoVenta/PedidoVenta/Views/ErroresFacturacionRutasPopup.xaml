@@ -54,6 +54,8 @@
                     <MenuItem Header="Copiar solo mensaje" Click="CopiarSoloMensaje_Click"/>
                     <Separator/>
                     <MenuItem Header="Copiar número de pedido" Click="CopiarNumeroPedido_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Copiar TODOS los errores completos" Click="CopiarTodosErrores_Click" FontWeight="Bold"/>
                 </ContextMenu>
             </DataGrid.ContextMenu>
 

@@ -13,11 +13,6 @@ Public Class ErroresFacturacionRutasPopupViewModel
 
     Private ReadOnly container As IUnityContainer
 
-    ''' <summary>
-    ''' Referencia a la ventana que contiene este ViewModel (para poder cerrarla desde código)
-    ''' </summary>
-    Public Property ParentWindow As System.Windows.Window
-
 #Region "Constructor"
 
     Public Sub New(container As IUnityContainer)
@@ -169,14 +164,8 @@ Public Class ErroresFacturacionRutasPopupViewModel
     ''' Cierra la ventana de errores
     ''' </summary>
     Public Sub Cerrar()
-        ' Si se está usando como diálogo de Prism (modal), usar el evento RequestClose
+        ' Cerrar el diálogo usando Prism DialogService
         RaiseEvent RequestClose(New DialogResult(ButtonResult.OK))
-
-        ' Si se está usando como ventana independiente (no modal), cerrar la ventana directamente
-        If ParentWindow IsNot Nothing Then
-            System.Diagnostics.Debug.WriteLine("Cerrando ventana de errores (no modal)")
-            ParentWindow.Close()
-        End If
     End Sub
 
 #End Region

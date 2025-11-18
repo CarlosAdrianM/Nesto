@@ -102,4 +102,38 @@ Public Class ErroresFacturacionRutasPopup
         End If
     End Sub
 
+    Private Sub CopiarTodosErrores_Click(sender As Object, e As RoutedEventArgs)
+        ' Copiar TODOS los errores completos al portapapeles
+        Dim viewModel = TryCast(DataContext, ErroresFacturacionRutasPopupViewModel)
+
+        If viewModel IsNot Nothing AndAlso viewModel.Errores IsNot Nothing AndAlso viewModel.Errores.Count > 0 Then
+            Dim textoCompleto As New System.Text.StringBuilder()
+
+            textoCompleto.AppendLine("===== ERRORES DE FACTURACIÓN DE RUTAS =====")
+            textoCompleto.AppendLine($"Total de errores: {viewModel.Errores.Count}")
+            textoCompleto.AppendLine($"Fecha: {DateTime.Now:dd/MM/yyyy HH:mm:ss}")
+            textoCompleto.AppendLine()
+
+            For i As Integer = 0 To viewModel.Errores.Count - 1
+                Dim errorActual = viewModel.Errores(i)
+
+                textoCompleto.AppendLine($"--- Error {i + 1} de {viewModel.Errores.Count} ---")
+                textoCompleto.AppendLine($"Pedido: {errorActual.NumeroPedido}")
+                textoCompleto.AppendLine($"Cliente: {errorActual.Cliente.PadRight(10)} ({errorActual.NombreCliente})")
+                textoCompleto.AppendLine($"Ruta: {errorActual.Ruta}")
+                textoCompleto.AppendLine($"Periodo: {errorActual.PeriodoFacturacion}")
+                textoCompleto.AppendLine($"Fecha Entrega: {errorActual.FechaEntrega:dd/MM/yyyy}")
+                textoCompleto.AppendLine($"Total: {errorActual.Total:N2} €")
+                textoCompleto.AppendLine($"Tipo de Error: {errorActual.TipoError}")
+                textoCompleto.AppendLine($"Mensaje: {errorActual.MensajeError}")
+                textoCompleto.AppendLine()
+            Next
+
+            Clipboard.SetText(textoCompleto.ToString())
+
+            ' Opcional: Mostrar un mensaje de confirmación
+            System.Diagnostics.Debug.WriteLine($"✓ {viewModel.Errores.Count} errores copiados al portapapeles")
+        End If
+    End Sub
+
 End Class

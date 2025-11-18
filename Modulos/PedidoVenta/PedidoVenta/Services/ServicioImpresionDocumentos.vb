@@ -1,6 +1,5 @@
 Imports System.Drawing.Printing
 Imports System.IO
-Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports PdfiumViewer
 
 ''' <summary>
@@ -170,20 +169,73 @@ Public Class ServicioImpresionDocumentos
 
                     ' Buscar la bandeja por Kind (tipo estándar independiente del fabricante)
                     Dim bandejaEncontrada As Boolean = False
-                    Dim targetKind As PaperSourceKind = CType(tipoBandeja, PaperSourceKind)
+                    Dim targetKind As PaperSourceKind = tipoBandeja
+                    Dim bandejaSeleccionada As PaperSource = Nothing
 
+                    ' PASO 1: Intentar buscar por RawKind/Kind (impresoras compatibles con estándares)
                     For Each source As PaperSource In printDocument.PrinterSettings.PaperSources
-                        ' Comparar por RawKind (que contiene el valor numérico del PaperSourceKind)
-                        If source.RawKind = CInt(tipoBandeja) OrElse source.Kind = targetKind Then
-                            printDocument.DefaultPageSettings.PaperSource = source
+                        If source.RawKind = tipoBandeja OrElse source.Kind = targetKind Then
+                            bandejaSeleccionada = source
                             bandejaEncontrada = True
-                            System.Diagnostics.Debug.WriteLine($"✓ Bandeja configurada: '{source.SourceName}' (Kind={source.Kind}, RawKind={source.RawKind})")
+                            System.Diagnostics.Debug.WriteLine($"✓ Bandeja encontrada por Kind/RawKind: '{source.SourceName}' (Kind={source.Kind}, RawKind={source.RawKind})")
                             Exit For
                         End If
                     Next
 
+                    ' PASO 2: Si no se encontró por Kind, buscar por nombre de bandeja (impresoras HP y similares)
                     If Not bandejaEncontrada Then
-                        System.Diagnostics.Debug.WriteLine($"⚠ ADVERTENCIA: No se encontró una bandeja con Kind={tipoBandeja}. Se usará la bandeja predeterminada.")
+                        System.Diagnostics.Debug.WriteLine($"⚠ No se encontró bandeja por Kind={tipoBandeja}. Buscando por nombre...")
+
+                        ' Obtener todas las bandejas numeradas (ej: "Bandeja 1", "Bandeja 2", etc.)
+                        Dim bandejasPorNombre = printDocument.PrinterSettings.PaperSources.Cast(Of PaperSource)() _
+                            .Where(Function(s) s.SourceName.Trim().ToLower().Contains("bandeja") AndAlso
+                                              System.Text.RegularExpressions.Regex.IsMatch(s.SourceName, "\d+")) _
+                            .OrderBy(Function(s) s.SourceName) _
+                            .ToList()
+
+                        If bandejasPorNombre.Any() Then
+                            Select Case tipoBandeja
+                                Case TipoBandejaImpresion.Upper
+                                    ' Bandeja superior = primera bandeja (Bandeja 1)
+                                    bandejaSeleccionada = bandejasPorNombre.First()
+                                    bandejaEncontrada = True
+                                    System.Diagnostics.Debug.WriteLine($"✓ Bandeja UPPER mapeada a: '{bandejaSeleccionada.SourceName}'")
+
+                                Case TipoBandejaImpresion.Middle
+                                    ' Bandeja media = segunda bandeja si existe, sino la primera
+                                    If bandejasPorNombre.Count >= 2 Then
+                                        bandejaSeleccionada = bandejasPorNombre(1)
+                                    Else
+                                        bandejaSeleccionada = bandejasPorNombre.First()
+                                    End If
+                                    bandejaEncontrada = True
+                                    System.Diagnostics.Debug.WriteLine($"✓ Bandeja MIDDLE mapeada a: '{bandejaSeleccionada.SourceName}'")
+
+                                Case TipoBandejaImpresion.Lower, TipoBandejaImpresion.Manual
+                                    ' Bandeja inferior/manual = última bandeja disponible
+                                    bandejaSeleccionada = bandejasPorNombre.Last()
+                                    bandejaEncontrada = True
+                                    System.Diagnostics.Debug.WriteLine($"✓ Bandeja LOWER/MANUAL mapeada a: '{bandejaSeleccionada.SourceName}'")
+
+                                Case TipoBandejaImpresion.AutomaticFeed
+                                    ' Selección automática: buscar bandeja con "automática" en el nombre
+                                    Dim bandejaAuto = printDocument.PrinterSettings.PaperSources.Cast(Of PaperSource)() _
+                                        .FirstOrDefault(Function(s) s.SourceName.ToLower().Contains("autom"))
+                                    If bandejaAuto IsNot Nothing Then
+                                        bandejaSeleccionada = bandejaAuto
+                                        bandejaEncontrada = True
+                                        System.Diagnostics.Debug.WriteLine($"✓ Bandeja AUTO mapeada a: '{bandejaSeleccionada.SourceName}'")
+                                    End If
+                            End Select
+                        End If
+                    End If
+
+                    ' PASO 3: Aplicar la bandeja seleccionada
+                    If bandejaEncontrada AndAlso bandejaSeleccionada IsNot Nothing Then
+                        printDocument.DefaultPageSettings.PaperSource = bandejaSeleccionada
+                        System.Diagnostics.Debug.WriteLine($"✓✓ Bandeja CONFIGURADA: '{bandejaSeleccionada.SourceName}' (Kind={bandejaSeleccionada.Kind}, RawKind={bandejaSeleccionada.RawKind})")
+                    Else
+                        System.Diagnostics.Debug.WriteLine($"⚠ ADVERTENCIA: No se pudo mapear la bandeja {tipoBandeja}. Se usará la bandeja predeterminada.")
                     End If
 
                     ' Enviar a impresora

@@ -8,7 +8,6 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Nesto.Modulos.PedidoVenta.Views
 Imports Prism.Commands
 Imports Prism.Events
 Imports Prism.Mvvm
@@ -180,6 +179,9 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As DireccionesEntregaCliente)
             If SetProperty(_direccionEntregaSeleccionada, value) Then
+                ' Copiar datos de facturación desde la dirección de entrega seleccionada
+                ' IMPORTANTE: El CCC está asociado a la dirección de entrega, NO al cliente
+                ' Razón: Cada dirección puede tener su propio CCC para facturación
                 If EstaCreandoPedido AndAlso Not IsNothing(pedido) Then
                     pedido.formaPago = value.formaPago
                     pedido.plazosPago = value.plazosPago
@@ -187,6 +189,7 @@ Public Class DetallePedidoViewModel
                     pedido.vendedor = value.vendedor
                     pedido.ruta = value.ruta
                     pedido.periodoFacturacion = value.periodoFacturacion
+                    pedido.CCC = value.ccc ' Fix 18/11/2024: Agregar CCC de la dirección de entrega
                 End If
             End If
         End Set
@@ -876,24 +879,11 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Sub OnAbrirFacturarRutas()
-        ' Abrir el diálogo de Facturar Rutas como ventana NO MODAL
-        ' para permitir interacciones con otras ventanas (como abrir pedidos desde errores)
-        Dim facturarWindow As New System.Windows.Window()
-        Dim facturarView = container.Resolve(Of FacturarRutasPopup)()
-        Dim facturarViewModel = TryCast(facturarView.DataContext, FacturarRutasPopupViewModel)
-
-        If facturarViewModel Is Nothing Then
-            Throw New InvalidOperationException("ERROR: Prism no conectó el ViewModel de FacturarRutasPopup")
-        End If
-
-        facturarViewModel.ParentWindow = facturarWindow
-
-        facturarWindow.Content = facturarView
-        facturarWindow.Title = "Facturar Rutas"
-        facturarWindow.Width = 1200
-        facturarWindow.Height = 800
-        facturarWindow.WindowStartupLocation = Windows.WindowStartupLocation.CenterScreen
-        facturarWindow.Show() ' NO MODAL
+        ' Abrir el diálogo de Facturar Rutas usando Prism DialogService (modal)
+        System.Diagnostics.Debug.WriteLine("=== OnAbrirFacturarRutas - Llamando dialogService.ShowDialog ===")
+        dialogService.ShowDialog("FacturarRutasPopup", Nothing, Sub(result)
+                                                                    System.Diagnostics.Debug.WriteLine($"=== Diálogo cerrado. Result: {result.Result} ===")
+                                                                End Sub)
     End Sub
     Private Function CanAbrirFacturarRutas() As Boolean
         ' Carlos 12/01/25: Solo el grupo Dirección puede acceder a facturar rutas
