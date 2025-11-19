@@ -16,7 +16,7 @@ Public Interface IPedidoVentaService
     Function CargarPedidosPendientes(empresa As String, cliente As String) As Task(Of ObservableCollection(Of Integer))
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer) As Task(Of PedidoVentaDTO)
     Function CrearAlbaranVenta(empresa As String, numeroPedido As Integer) As Task(Of Integer)
-    Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of String)
+    Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of CrearFacturaResponseDTO)
     Function CargarFactura(empresa As String, numeroFactura As String, Optional papelConMembrete As Boolean = False) As Task(Of Byte())
     Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String, Optional papelConMembrete As Boolean = False) As Task(Of String)
     Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False) As Task(Of Byte())

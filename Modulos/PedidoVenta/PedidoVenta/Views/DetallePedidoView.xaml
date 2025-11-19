@@ -222,6 +222,23 @@
                             <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}" Descuento="{Binding pedido.DescuentoPP, Mode=TwoWay}" TotalPedido="{Binding pedido.Total}" PlazoPagoCompleto="{Binding PlazoPagoCompleto, Mode=TwoWay}" ></controles:SelectorPlazosPago>
                             <TextBlock Text="Fecha vencimiento:"></TextBlock>
                             <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
+                            <TextBlock Text="CCC (Cuenta Corriente):" Margin="0,5,0,0"></TextBlock>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding pedido.ccc, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Margin="0,3,3,3"
+                                         ToolTip="Cuenta corriente del contacto. Puede modificarse manualmente si es necesario."/>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding CCCDisponibles[0].Descripcion, FallbackValue='(del contacto)'}"
+                                           VerticalAlignment="Center"
+                                           Foreground="Gray"
+                                           FontSize="10"
+                                           Margin="3,0,0,0"/>
+                            </Grid>
                             <TextBlock></TextBlock>
                             <TextBox Text="{Binding pedido.iva}" IsReadOnly="True">
                                 <i:Interaction.Triggers>

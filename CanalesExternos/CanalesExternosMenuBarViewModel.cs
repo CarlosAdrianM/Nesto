@@ -18,6 +18,7 @@ namespace Nesto.Modulos.CanalesExternos
             AbrirModuloPedidosCommand = new DelegateCommand(OnAbrirPedidosModulo, CanAbrirModuloPedidos);
             AbrirModuloPagosCommand = new DelegateCommand(OnAbrirModuloPagos, CanAbrirModuloPagos);
             AbrirModuloProductosCommand = new DelegateCommand(OnAbrirModuloProductos, CanAbrirModuloProductos);
+            AbrirModuloPoisonPillsCommand = new DelegateCommand(OnAbrirModuloPoisonPills, CanAbrirModuloPoisonPills);
         }
 
         public ICommand AbrirModuloPedidosCommand { get; private set; }
@@ -49,6 +50,16 @@ namespace Nesto.Modulos.CanalesExternos
         private void OnAbrirModuloProductos()
         {
             RegionManager.RequestNavigate("MainRegion", "CanalesExternosProductosView");
+        }
+
+        public ICommand AbrirModuloPoisonPillsCommand { get; private set; }
+        private bool CanAbrirModuloPoisonPills()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
+        }
+        private void OnAbrirModuloPoisonPills()
+        {
+            RegionManager.RequestNavigate("MainRegion", "PoisonPillsView");
         }
     }
 }

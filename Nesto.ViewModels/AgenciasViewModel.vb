@@ -1463,7 +1463,8 @@ Public Class AgenciasViewModel
 
             ' Crear albarán y factura
             Dim albaran = Await _servicioPedidos.CrearAlbaranVenta(envioActual.Empresa, envioActual.Pedido)
-            Dim factura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
+            Dim resultadoFactura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
+            Dim factura = resultadoFactura.NumeroFactura
 
             Dim mensaje = If(factura <> Constantes.PeriodosFacturacion.FIN_DE_MES,
                 $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}",

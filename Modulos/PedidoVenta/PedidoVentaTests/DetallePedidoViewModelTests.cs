@@ -196,5 +196,228 @@ namespace PedidoVentaTests
             Assert.AreEqual(string.Empty, detallePedidoViewModel.pedido.Model.origen);
             Assert.AreEqual(string.Empty, detallePedidoViewModel.pedido.Model.contactoCobro);
         }
+
+        #region Tests CCC (Cuenta Corriente Cliente)
+
+        [TestMethod]
+        [TestCategory("CCC")]
+        public void DetallePedidoViewModel_alCambiarDireccionEntregaEnPedidoNuevo_debeCopiarCCC()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Simular pedido NUEVO (numero = 0)
+            PedidoVentaDTO pedido = new PedidoVentaDTO
+            {
+                empresa = "1",
+                numero = 0,  // Pedido nuevo
+                ccc = ""     // Sin CCC inicial
+            };
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedido);
+
+            // Simular selección de dirección con CCC
+            DireccionesEntregaCliente direccionConCCC = new DireccionesEntregaCliente
+            {
+                contacto = "1",
+                nombre = "Dirección Principal",
+                ccc = "ES1234567890123456789012",
+                formaPago = "EFC",
+                plazosPago = "CONTADO",
+                iva = "G21",
+                vendedor = "VEN01",
+                ruta = "1",
+                periodoFacturacion = "NRM"
+            };
+
+            // Act
+            detallePedidoViewModel.DireccionEntregaSeleccionada = direccionConCCC;
+
+            // Assert
+            Assert.AreEqual("ES1234567890123456789012", detallePedidoViewModel.pedido.ccc,
+                "En un pedido NUEVO, el CCC debe copiarse desde la dirección de entrega seleccionada");
+        }
+
+        [TestMethod]
+        [TestCategory("CCC")]
+        public void DetallePedidoViewModel_alCambiarDireccionEntregaEnPedidoExistente_NOdebeCambiarCCC()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Simular pedido EXISTENTE (numero > 0) con CCC ya establecido
+            PedidoVentaDTO pedido = new PedidoVentaDTO
+            {
+                empresa = "1",
+                numero = 900630,  // Pedido existente
+                ccc = "ES3333333333333333333333"  // CCC original del pedido
+            };
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedido);
+
+            // Simular selección de dirección con CCC DIFERENTE
+            DireccionesEntregaCliente direccionConOtroCCC = new DireccionesEntregaCliente
+            {
+                contacto = "1",
+                nombre = "Dirección Secundaria",
+                ccc = "ES1111111111111111111111",  // CCC diferente
+                formaPago = "EFC",
+                plazosPago = "CONTADO",
+                iva = "G21",
+                vendedor = "VEN01",
+                ruta = "1",
+                periodoFacturacion = "NRM"
+            };
+
+            // Act
+            detallePedidoViewModel.DireccionEntregaSeleccionada = direccionConOtroCCC;
+
+            // Assert
+            Assert.AreEqual("ES3333333333333333333333", detallePedidoViewModel.pedido.ccc,
+                "En un pedido EXISTENTE, el CCC NO debe cambiar al seleccionar otra dirección de entrega");
+        }
+
+        [TestMethod]
+        [TestCategory("CCC")]
+        public void DetallePedidoViewModel_EstaCreandoPedido_esTrueSoloParaPedidosNuevos()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Test 1: Pedido nuevo (numero = 0)
+            PedidoVentaDTO pedidoNuevo = new PedidoVentaDTO { empresa = "1", numero = 0 };
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedidoNuevo);
+
+            Assert.IsTrue(detallePedidoViewModel.EstaCreandoPedido,
+                "EstaCreandoPedido debe ser TRUE cuando numero = 0");
+
+            // Test 2: Pedido existente (numero > 0)
+            PedidoVentaDTO pedidoExistente = new PedidoVentaDTO { empresa = "1", numero = 900630 };
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedidoExistente);
+
+            Assert.IsFalse(detallePedidoViewModel.EstaCreandoPedido,
+                "EstaCreandoPedido debe ser FALSE cuando numero > 0");
+
+            // Test 3: Sin pedido
+            detallePedidoViewModel.pedido = null;
+
+            Assert.IsFalse(detallePedidoViewModel.EstaCreandoPedido,
+                "EstaCreandoPedido debe ser FALSE cuando pedido es null");
+        }
+
+        [TestMethod]
+        [TestCategory("CCC")]
+        public void DetallePedidoViewModel_alCambiarDireccion_copiaTodosDatosFacturacionEnPedidoNuevo()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Simular pedido NUEVO
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedido);
+
+            // Simular dirección con todos los datos de facturación
+            DireccionesEntregaCliente direccion = new DireccionesEntregaCliente
+            {
+                contacto = "1",
+                formaPago = "TRF",
+                plazosPago = "30D",
+                iva = "G04",
+                vendedor = "VEN02",
+                ruta = "5",
+                periodoFacturacion = "QUI",
+                ccc = "ES9999999999999999999999"
+            };
+
+            // Act
+            detallePedidoViewModel.DireccionEntregaSeleccionada = direccion;
+
+            // Assert - Verificar que todos los campos se copian
+            Assert.AreEqual("TRF", detallePedidoViewModel.pedido.formaPago, "formaPago debe copiarse");
+            Assert.AreEqual("30D", detallePedidoViewModel.pedido.plazosPago, "plazosPago debe copiarse");
+            Assert.AreEqual("G04", detallePedidoViewModel.pedido.iva, "iva debe copiarse");
+            Assert.AreEqual("VEN02", detallePedidoViewModel.pedido.vendedor, "vendedor debe copiarse");
+            Assert.AreEqual("5", detallePedidoViewModel.pedido.ruta, "ruta debe copiarse");
+            Assert.AreEqual("QUI", detallePedidoViewModel.pedido.periodoFacturacion, "periodoFacturacion debe copiarse");
+            Assert.AreEqual("ES9999999999999999999999", detallePedidoViewModel.pedido.ccc, "CCC debe copiarse");
+        }
+
+        [TestMethod]
+        [TestCategory("CCC")]
+        public void DetallePedidoViewModel_alCambiarDireccion_NOcopiaDatosEnPedidoExistente()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Simular pedido EXISTENTE con datos originales
+            PedidoVentaDTO pedido = new PedidoVentaDTO
+            {
+                empresa = "1",
+                numero = 900630,
+                formaPago = "EFC",
+                plazosPago = "CONTADO",
+                iva = "G21",
+                vendedor = "VEN01",
+                ruta = "1",
+                periodoFacturacion = "NRM",
+                ccc = "ES_ORIGINAL_CCC"
+            };
+            detallePedidoViewModel.pedido = new PedidoVentaWrapper(pedido);
+
+            // Simular dirección con datos DIFERENTES
+            DireccionesEntregaCliente direccion = new DireccionesEntregaCliente
+            {
+                contacto = "2",
+                formaPago = "TRF",
+                plazosPago = "60D",
+                iva = "G04",
+                vendedor = "VEN99",
+                ruta = "9",
+                periodoFacturacion = "QUI",
+                ccc = "ES_OTRO_CCC_COMPLETAMENTE_DIFERENTE"
+            };
+
+            // Act
+            detallePedidoViewModel.DireccionEntregaSeleccionada = direccion;
+
+            // Assert - Verificar que NINGÚN campo cambia
+            Assert.AreEqual("EFC", detallePedidoViewModel.pedido.formaPago, "formaPago NO debe cambiar");
+            Assert.AreEqual("CONTADO", detallePedidoViewModel.pedido.plazosPago, "plazosPago NO debe cambiar");
+            Assert.AreEqual("G21", detallePedidoViewModel.pedido.iva, "iva NO debe cambiar");
+            Assert.AreEqual("VEN01", detallePedidoViewModel.pedido.vendedor, "vendedor NO debe cambiar");
+            Assert.AreEqual("1", detallePedidoViewModel.pedido.ruta, "ruta NO debe cambiar");
+            Assert.AreEqual("NRM", detallePedidoViewModel.pedido.periodoFacturacion, "periodoFacturacion NO debe cambiar");
+            Assert.AreEqual("ES_ORIGINAL_CCC", detallePedidoViewModel.pedido.ccc, "CCC NO debe cambiar");
+        }
+
+        #endregion
     }
 }

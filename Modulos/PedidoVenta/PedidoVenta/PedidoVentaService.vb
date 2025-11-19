@@ -384,12 +384,31 @@ Public Class PedidoVentaService
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
-                        contenido = contenido + vbCr + contenido2
-                    End While
+                    Dim contenido As String = ""
+
+                    ' Intentar leer el nuevo formato de errores (desde GlobalExceptionFilter)
+                    If Not IsNothing(detallesError("error")) Then
+                        ' Nuevo formato: { "error": { "code": "...", "message": "..." } }
+                        Dim errorObj As JObject = detallesError("error")
+                        contenido = errorObj("message")?.ToString()
+
+                        ' Opcionalmente agregar código de error si existe
+                        Dim errorCode As String = errorObj("code")?.ToString()
+                        If Not String.IsNullOrEmpty(errorCode) AndAlso errorCode <> "INTERNAL_ERROR" Then
+                            contenido = $"[{errorCode}] {contenido}"
+                        End If
+                    ElseIf Not IsNothing(detallesError("ExceptionMessage")) Then
+                        ' Formato antiguo: { "ExceptionMessage": "...", "InnerException": {...} }
+                        contenido = detallesError("ExceptionMessage")
+                        While Not IsNothing(detallesError("InnerException"))
+                            detallesError = detallesError("InnerException")
+                            Dim contenido2 As String = detallesError("ExceptionMessage")
+                            contenido = contenido + vbCr + contenido2
+                        End While
+                    Else
+                        ' Fallback: usar el contenido raw
+                        contenido = respuestaError
+                    End If
 
                     Throw New Exception(contenido)
                 End If
@@ -433,12 +452,31 @@ Public Class PedidoVentaService
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
-                        contenido = contenido + vbCr + contenido2
-                    End While
+                    Dim contenido As String = ""
+
+                    ' Intentar leer el nuevo formato de errores (desde GlobalExceptionFilter)
+                    If Not IsNothing(detallesError("error")) Then
+                        ' Nuevo formato: { "error": { "code": "...", "message": "..." } }
+                        Dim errorObj As JObject = detallesError("error")
+                        contenido = errorObj("message")?.ToString()
+
+                        ' Opcionalmente agregar código de error si existe
+                        Dim errorCode As String = errorObj("code")?.ToString()
+                        If Not String.IsNullOrEmpty(errorCode) AndAlso errorCode <> "INTERNAL_ERROR" Then
+                            contenido = $"[{errorCode}] {contenido}"
+                        End If
+                    ElseIf Not IsNothing(detallesError("ExceptionMessage")) Then
+                        ' Formato antiguo: { "ExceptionMessage": "...", "InnerException": {...} }
+                        contenido = detallesError("ExceptionMessage")
+                        While Not IsNothing(detallesError("InnerException"))
+                            detallesError = detallesError("InnerException")
+                            Dim contenido2 As String = detallesError("ExceptionMessage")
+                            contenido = contenido + vbCr + contenido2
+                        End While
+                    Else
+                        ' Fallback: usar el contenido raw
+                        contenido = respuestaError
+                    End If
 
                     Throw New Exception(contenido)
                 End If
@@ -451,7 +489,7 @@ Public Class PedidoVentaService
         End Using
     End Function
 
-    Public Async Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of String) Implements IPedidoVentaService.CrearFacturaVenta
+    Public Async Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of CrearFacturaResponseDTO) Implements IPedidoVentaService.CrearFacturaVenta
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -473,21 +511,40 @@ Public Class PedidoVentaService
 
                 If response.IsSuccessStatusCode Then
                     Dim respuestaString As String = Await response.Content.ReadAsStringAsync()
-                    Dim pedidoRespuesta As String = JsonConvert.DeserializeObject(Of String)(respuestaString)
-                    If Not IsNothing(pedidoRespuesta) Then
-                        Return pedidoRespuesta
+                    Dim resultado As CrearFacturaResponseDTO = JsonConvert.DeserializeObject(Of CrearFacturaResponseDTO)(respuestaString)
+                    If Not IsNothing(resultado) Then
+                        Return resultado
                     Else
                         Throw New Exception("Factura no creada")
                     End If
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
-                        contenido = contenido + vbCr + contenido2
-                    End While
+                    Dim contenido As String = ""
+
+                    ' Intentar leer el nuevo formato de errores (desde GlobalExceptionFilter)
+                    If Not IsNothing(detallesError("error")) Then
+                        ' Nuevo formato: { "error": { "code": "...", "message": "..." } }
+                        Dim errorObj As JObject = detallesError("error")
+                        contenido = errorObj("message")?.ToString()
+
+                        ' Opcionalmente agregar código de error si existe
+                        Dim errorCode As String = errorObj("code")?.ToString()
+                        If Not String.IsNullOrEmpty(errorCode) AndAlso errorCode <> "INTERNAL_ERROR" Then
+                            contenido = $"[{errorCode}] {contenido}"
+                        End If
+                    ElseIf Not IsNothing(detallesError("ExceptionMessage")) Then
+                        ' Formato antiguo: { "ExceptionMessage": "...", "InnerException": {...} }
+                        contenido = detallesError("ExceptionMessage")
+                        While Not IsNothing(detallesError("InnerException"))
+                            detallesError = detallesError("InnerException")
+                            Dim contenido2 As String = detallesError("ExceptionMessage")
+                            contenido = contenido + vbCr + contenido2
+                        End While
+                    Else
+                        ' Fallback: usar el contenido raw
+                        contenido = respuestaError
+                    End If
 
                     Throw New Exception(contenido)
                 End If

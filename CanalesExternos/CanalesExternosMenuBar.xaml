@@ -14,6 +14,28 @@
                 <RibbonButton Label="Pedidos" LargeImageSource="Images/CanalesExternos.png" Command="{Binding AbrirModuloPedidosCommand}" />
                 <RibbonButton Label="Pagos" LargeImageSource="Images/CanalesExternosPagos.png" Command="{Binding AbrirModuloPagosCommand}" />
                 <RibbonButton Label="Productos" LargeImageSource="Images/Prestashop.png" Command="{Binding AbrirModuloProductosCommand}" />
+                <RibbonButton Label="Poison Pills" Command="{Binding AbrirModuloPoisonPillsCommand}">
+                    <RibbonButton.LargeImageSource>
+                        <DrawingImage>
+                            <DrawingImage.Drawing>
+                                <DrawingGroup>
+                                    <!-- Octágono de alerta rojo -->
+                                    <GeometryDrawing Brush="#D32F2F">
+                                        <GeometryDrawing.Geometry>
+                                            <PathGeometry Figures="M12,2L4.2,4.2L2,12L4.2,19.8L12,22L19.8,19.8L22,12L19.8,4.2L12,2Z"/>
+                                        </GeometryDrawing.Geometry>
+                                    </GeometryDrawing>
+                                    <!-- Signo de exclamación blanco -->
+                                    <GeometryDrawing Brush="White">
+                                        <GeometryDrawing.Geometry>
+                                            <PathGeometry Figures="M11,7H13V13H11V7M11,15H13V17H11V15Z"/>
+                                        </GeometryDrawing.Geometry>
+                                    </GeometryDrawing>
+                                </DrawingGroup>
+                            </DrawingImage.Drawing>
+                        </DrawingImage>
+                    </RibbonButton.LargeImageSource>
+                </RibbonButton>
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

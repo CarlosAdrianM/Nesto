@@ -2,6 +2,8 @@
 using Prism.RibbonRegionAdapter;
 using Prism.Ioc;
 using Nesto.Modulos.CanalesExternos.Views;
+using Nesto.Modulos.CanalesExternos.Interfaces;
+using Nesto.Modulos.CanalesExternos.Services;
 using Nesto.Infrastructure.Contracts;
 
 namespace Nesto.Modulos.CanalesExternos
@@ -26,6 +28,10 @@ namespace Nesto.Modulos.CanalesExternos
             containerRegistry.Register<object, CanalesExternosPedidosView>("CanalesExternosPedidosView");
             containerRegistry.Register<object, CanalesExternosPagosView>("CanalesExternosPagosView");
             containerRegistry.Register<object, CanalesExternosProductosView>("CanalesExternosProductosView");
+            containerRegistry.Register<object, PoisonPillsView>("PoisonPillsView");
+
+            // Registrar servicios
+            containerRegistry.Register<IPoisonPillsService, PoisonPillsService>();
         }
     }
 }
