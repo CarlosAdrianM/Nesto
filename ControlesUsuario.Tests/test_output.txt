@@ -1,0 +1,131 @@
+  Determinando los proyectos que se van a restaurar...
+C:\Users\Carlos\source\repos\Nesto\Infrastructure\Infrastructure.csproj : warning NU1902: El paquete "System.IdentityModel.Tokens.Jwt" 6.26.1 tiene una vulnerabilidad de gravedad moderada conocida, https://github.com/advisories/GHSA-59j7-ghrg-fj52 [C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\ControlesUsuario.Tests.csproj]
+  Todos los proyectos están actualizados para la restauración.
+C:\Program Files\dotnet\sdk\9.0.306\Microsoft.Common.CurrentVersion.targets(1889,5): warning NU1702: El elemento ProjectReference "C:\Users\Carlos\source\repos\Nesto\Nesto.Models\Models.vbproj" se resolvió con ".NETFramework,Version=v4.8" en lugar de la plataforma de destino del proyecto ".NETCoreApp,Version=v8.0". Puede que el proyecto no sea totalmente compatible con el suyo. [C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\ControlesUsuario.Tests.csproj]
+C:\Program Files\dotnet\sdk\9.0.306\Sdks\Microsoft.NET.Sdk\targets\Microsoft.NET.Sdk.DefaultItems.targets(149,5): warning NETSDK1137: Ya no es necesario usar el SDK de Microsoft.NET.Sdk.WindowsDesktop. Puede cambiar el atributo Sdk del elemento del proyecto raíz a "Microsoft.NET.Sdk". [C:\Users\Carlos\source\repos\Nesto\ControlesUsuario\ControlesUsuario.csproj]
+C:\Program Files\dotnet\sdk\9.0.306\Microsoft.Common.CurrentVersion.targets(1889,5): warning NU1702: El elemento ProjectReference "C:\Users\Carlos\source\repos\Nesto\Nesto.Models\Models.vbproj" se resolvió con ".NETFramework,Version=v4.8" en lugar de la plataforma de destino del proyecto ".NETCoreApp,Version=v8.0". Puede que el proyecto no sea totalmente compatible con el suyo. [C:\Users\Carlos\source\repos\Nesto\ControlesUsuario\ControlesUsuario.csproj]
+C:\Users\Carlos\source\repos\Nesto\Infrastructure\Infrastructure.csproj : warning NU1902: El paquete "System.IdentityModel.Tokens.Jwt" 6.26.1 tiene una vulnerabilidad de gravedad moderada conocida, https://github.com/advisories/GHSA-59j7-ghrg-fj52
+C:\Program Files\dotnet\sdk\9.0.306\Microsoft.Common.CurrentVersion.targets(1889,5): warning NU1702: El elemento ProjectReference "C:\Users\Carlos\source\repos\Nesto\Nesto.Models\Models.vbproj" se resolvió con ".NETFramework,Version=v4.8" en lugar de la plataforma de destino del proyecto ".NETCoreApp,Version=v8.0". Puede que el proyecto no sea totalmente compatible con el suyo. [C:\Users\Carlos\source\repos\Nesto\Infrastructure\Infrastructure.csproj]
+  Models -> C:\Users\Carlos\source\repos\Nesto\Nesto.Models\bin\Debug\net48\Models.dll
+  Infrastructure -> C:\Users\Carlos\source\repos\Nesto\Infrastructure\bin\Debug\net8.0-windows\Infrastructure.dll
+  ControlesUsuario -> C:\Users\Carlos\source\repos\Nesto\ControlesUsuario\bin\Debug\net8.0-windows\ControlesUsuario.dll
+  ControlesUsuario.Tests -> C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\bin\Debug\net8.0-windows\ControlesUsuario.Tests.dll
+Serie de pruebas para C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\bin\Debug\net8.0-windows\ControlesUsuario.Tests.dll (.NETCoreApp,Version=v8.0)
+Versión 17.14.1 (x64) de VSTest
+
+Iniciando la ejecución de pruebas, espere...
+1 archivos de prueba en total coincidieron con el patrón especificado.
+C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\bin\Debug\net8.0-windows\ControlesUsuario.Tests.dll
+  Correctas BarraFiltro_AlCargarUnSoloElemento_NoBorraLaListaOriginal [10 ms]
+  Correctas SelectorCCC_AlCambiarEmpresa_PropiedadSeEstableceCorrectamente [559 ms]
+  Correctas SelectorCCC_AlCambiarCliente_PropiedadSeEstableceCorrectamente [12 ms]
+  Correctas SelectorCCC_AlCambiarContacto_PropiedadSeEstableceCorrectamente [7 ms]
+  Correctas SelectorCCC_AlCambiarFormaPago_PropiedadSeEstableceCorrectamente [11 ms]
+  Correctas SelectorCCC_ConFormaPagoRCB_DeberiAutoSeleccionarPrimerCCCValido [< 1 ms]
+  Correctas SelectorCCC_ConFormaPagoNoRCB_DeberiAutoSeleccionarSinCCC [< 1 ms]
+  Correctas SelectorCCC_ConSeleccionPreviaValida_DebeMantenerSeleccion [< 1 ms]
+  Correctas SelectorCCC_SiempreDebeTenerOpcionSinCCC [< 1 ms]
+  Correctas SelectorCCC_OpcionSinCCCDebeRetornarNull [< 1 ms]
+  Correctas SelectorCCC_CCCsInvalidosDebenMostrarseEnCursiva [< 1 ms]
+  Correctas SelectorCCC_CCCsInvalidosNoDebenSerSeleccionables [< 1 ms]
+  Correctas SelectorCCC_CCCsInvalidosDebenMostrarTextoINVALIDO [< 1 ms]
+  Correctas SelectorCCC_UsaFlagEstaCargandoParaEvitarBucles [< 1 ms]
+  Correctas SelectorCCC_ComparaValoresEnOnCCCSeleccionadoChanged [< 1 ms]
+  Correctas SelectorCCC_ConParametrosIncompletos_NoLanzaExcepcion [< 1 ms]
+  Correctas SelectorCCC_SinServicio_FuncionaEnModoDegradado [< 1 ms]
+  Correctas SelectorCCC_ConErrorHTTP_MuestraSoloSinCCC [< 1 ms]
+  Correctas SelectorCCC_ConstructorConServicio_CreaControlCorrectamente [20 ms]
+  Correctas SelectorCCC_ConstructorSinParametros_CreaControlParaXAMLDesigner [28 ms]
+  Correctas CCCSeleccionado_AlCambiarValor_DeberiaNotificarPropertyChanged [27 ms]
+  Correctas CCCSeleccionado_AlCambiarDe1A2_DeberiaActualizarValor [18 ms]
+  Correctas CCCSeleccionado_AlCambiarDeNullA1_DeberiaActualizarValor [8 ms]
+  Correctas CCCSeleccionado_AlCambiarDe1ANull_DeberiaActualizarValor [7 ms]
+  Correctas SelectorCliente_SiCambiaElCliente_CogeElContactoPorDefecto [64 ms]
+  Correctas SelectorCliente_SiCambiaElClienteEnElBinding_ActualizaElClienteEnElSelector [911 ms]
+  Mensajes de salida estándar:
+ 
+ 
+ Seguimiento de depuración:
+ 
+ *********************************************************************************************************
+ WARNING: The component "Extended WPF Toolkit" you are currently using is governed by the Xceed Community License Agreement
+ and permits NON-commercial use only. By continuing using this version, you are confirming that this component
+ is only being used for a non-commercial purpose. If you are using this component in a commercial application,
+ please contact Xceed's sales team by email at sales@xceed.com or visit
+ https://xceed.com/en/our-products/product/toolkit-plus-for-wpf to purchase a subscription license.
+ *************************************************************************************************************
+ 
+
+
+  Correctas SelectorCliente_SiCambiaElContactoEnElBinding_ActualizaElContactoEnElSelector [544 ms]
+  Correctas SelectorCliente_SiCambiaElClienteEnElSelector_ActualizaElClienteEnElBinding [537 ms]
+  Correctas SelectorCliente_SiCambiaElContactoEnElSelector_ActualizaElContactoEnElBinding [533 ms]
+  Correctas SelectorCliente_SiNoHayNingunClienteSeleccionadoYSeSeleccionaUnClienteEnElSelector_ActualizaElClienteEnElBinding [545 ms]
+  Correctas SelectorCliente_SiCambiaElElementoEnlazado_ActualizaElClienteYContactoEnElSelector [1 s]
+  Correctas SelectorCliente_SiCambiaElContactoDelElementoEnlazadoYDespuesSeleccionamosOtroElementoEnlazado_ActualizaElClienteYContactoEnElElementoEnlazadoAnteriorPeroNoEnElNuevo [1 s]
+  Correctas SelectorDireccionEntrega_AlCambiarEmpresa_LlamaCargarDatosDirectamente [34 ms]
+  Correctas SelectorDireccionEntrega_AlCambiarCliente_UsaDebouncing [22 ms]
+  Correctas SelectorDireccionEntrega_AlCambiarTotalPedido_LlamaCargarDatos [29 ms]
+  Correctas SelectorDireccionEntrega_AlCambiarDireccionCompleta_ActualizaSeleccionada [17 ms]
+  Correctas SelectorDireccionEntrega_AlCambiarSeleccionada_TrimmeaElValor [15 ms]
+  Correctas SelectorDireccionEntrega_AlCargarse_SeSuscribeAClienteCreadoEvent [< 1 ms]
+  Correctas SelectorDireccionEntrega_AlDescargarse_SeDesuscribeDeClienteCreadoEvent [< 1 ms]
+  Correctas SelectorDireccionEntrega_AlCrearse_InicializaColeccionFiltrable [13 ms]
+  Correctas SelectorDireccionEntrega_AlSeleccionarElemento_ActualizaDireccionCompleta [< 1 ms]
+  Correctas SelectorDireccionEntrega_CargarDatos_RequiereConfiguracionEmpresaYCliente [< 1 ms]
+  Correctas SelectorDireccionEntrega_ConstructorSinParametros_PermiteInstanciacionParaXaml [12 ms]
+  Correctas SelectorDireccionEntrega_DebounceTimer_TieneDelay100Milisegundos [< 1 ms]
+  Correctas SelectorDireccionEntrega_AlCargarDatos_SeleccionaDireccionPorDefectoSiNoHaySeleccion [< 1 ms]
+  Correctas SelectorDireccionEntrega_AlCargarDatos_RespetaSeleccionExistente [< 1 ms]
+  Con error CargarDatos_ConEmpresaYCliente_LlamaServicioConParametrosCorrectos [262 ms]
+  Mensaje de error:
+   Excepción método de prueba ControlesUsuario.Tests.SelectorDireccionEntregaTestsReales.CargarDatos_ConEmpresaYCliente_LlamaServicioConParametrosCorrectos: 
+FakeItEasy.ExpectationException: 
+
+  Assertion failed for the following call:
+    ControlesUsuario.Services.IServicioDireccionesEntrega.ObtenerDireccionesEntrega(empresa: "1", cliente: "10", totalPedido: NULL)
+  Expected to find it once or more but no calls were made to the fake object.
+
+
+  Seguimiento de la pila:
+     at FakeItEasy.Core.FakeAsserter.AssertWasCalled(Func`2 callPredicate, Action`1 callDescriber, CallCountConstraint callCountConstraint) in D:\a\FakeItEasy\FakeItEasy\src\FakeItEasy\Core\FakeAsserter.cs:line 40
+   at FakeItEasy.Configuration.RuleBuilder.MustHaveHappened(CallCountConstraint callCountConstraint) in D:\a\FakeItEasy\FakeItEasy\src\FakeItEasy\Configuration\RuleBuilder.cs:line 170
+   at FakeItEasy.Configuration.RuleBuilder.MustHaveHappened(Int32 numberOfTimes, Times timesOption) in D:\a\FakeItEasy\FakeItEasy\src\FakeItEasy\Configuration\RuleBuilder.cs:line 147
+   at FakeItEasy.Configuration.RuleBuilder.ReturnValueConfiguration`1.MustHaveHappened(Int32 numberOfTimes, Times timesOption) in D:\a\FakeItEasy\FakeItEasy\src\FakeItEasy\Configuration\RuleBuilder.cs:line 254
+   at FakeItEasy.AssertConfigurationExtensions.MustHaveHappened(IAssertConfiguration configuration) in D:\a\FakeItEasy\FakeItEasy\src\FakeItEasy\AssertConfigurationExtensions.cs:line 19
+   at ControlesUsuario.Tests.SelectorDireccionEntregaTestsReales.CargarDatos_ConEmpresaYCliente_LlamaServicioConParametrosCorrectos() in C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\SelectorDireccionEntregaTestsReales.cs:line 75
+
+  Con error CargarDatos_ConDireccionesDevueltas_ActualizaListaDirecciones [125 ms]
+  Mensaje de error:
+   Error de Assert.AreEqual. Se esperaba <2>, pero es <0>. Debería haber cargado 2 direcciones desde el servicio mockeado
+  Seguimiento de la pila:
+     at ControlesUsuario.Tests.SelectorDireccionEntregaTestsReales.CargarDatos_ConDireccionesDevueltas_ActualizaListaDirecciones() in C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\SelectorDireccionEntregaTestsReales.cs:line 119
+
+  Correctas CargarDatos_ConTotalPedido_PasaTotalPedidoAlServicio [123 ms]
+Unhandled exception. System.InvalidOperationException: El subproceso que realiza la llamada no puede obtener acceso a este objeto porque el propietario es otro subproceso.
+   at System.Windows.Threading.Dispatcher.<VerifyAccess>g__ThrowVerifyAccess|7_0()
+   at System.Windows.DependencyObject.GetValue(DependencyProperty dp)
+   at ControlesUsuario.SelectorDireccionEntrega.get_DireccionCompleta() in C:\Users\Carlos\source\repos\Nesto\ControlesUsuario\SelectorDireccionEntrega\SelectorDireccionEntrega.xaml.cs:line 205
+   at ControlesUsuario.Tests.SelectorDireccionEntregaTestsReales.<>c__DisplayClass4_0.<<CargarDatos_SinSeleccionPrevia_SeleccionaDireccionPorDefecto>b__1>d.MoveNext() in C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\SelectorDireccionEntregaTestsReales.cs:line 247
+--- End of stack trace from previous location ---
+   at System.Threading.Tasks.Task.<>c.<ThrowAsync>b__128_1(Object state)
+   at System.Threading.QueueUserWorkItemCallback.Execute()
+   at System.Threading.ThreadPoolWorkQueue.Dispatch()
+   at System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart()
+Se ha anulado la serie de pruebas activa. Motivo: Proceso de host de pruebas bloqueado : Unhandled exception. System.InvalidOperationException: El subproceso que realiza la llamada no puede obtener acceso a este objeto porque el propietario es otro subproceso.
+   at System.Windows.Threading.Dispatcher.<VerifyAccess>g__ThrowVerifyAccess|7_0()
+   at System.Windows.DependencyObject.GetValue(DependencyProperty dp)
+   at ControlesUsuario.SelectorDireccionEntrega.get_DireccionCompleta() in C:\Users\Carlos\source\repos\Nesto\ControlesUsuario\SelectorDireccionEntrega\SelectorDireccionEntrega.xaml.cs:line 205
+   at ControlesUsuario.Tests.SelectorDireccionEntregaTestsReales.<>c__DisplayClass4_0.<<CargarDatos_SinSeleccionPrevia_SeleccionaDireccionPorDefecto>b__1>d.MoveNext() in C:\Users\Carlos\source\repos\Nesto\ControlesUsuario.Tests\SelectorDireccionEntregaTestsReales.cs:line 247
+--- End of stack trace from previous location ---
+   at System.Threading.Tasks.Task.<>c.<ThrowAsync>b__128_1(Object state)
+   at System.Threading.QueueUserWorkItemCallback.Execute()
+   at System.Threading.ThreadPoolWorkQueue.Dispatch()
+   at System.Threading.PortableThreadPool.WorkerThread.WorkerThreadStart()
+
+
+Serie de pruebas anulada.
+Pruebas totales: desconocido
+     Correcto: 47
+     Incorrecto: 2
+ Tiempo total: 8,5129 Segundos

@@ -179,33 +179,36 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As DireccionesEntregaCliente)
             If SetProperty(_direccionEntregaSeleccionada, value) Then
+                ' Carlos 20/11/24: Logs deshabilitados - Ahora el SelectorCCC maneja el CCC
                 ' LOG: Detectar cambios de dirección de entrega
-                Dim cccAnterior As String = If(IsNothing(pedido), "NULL", If(String.IsNullOrEmpty(pedido.ccc), "EMPTY", pedido.ccc))
-                Dim cccNuevo As String = If(IsNothing(value), "NULL", If(String.IsNullOrEmpty(value.ccc), "EMPTY", value.ccc))
-                Dim numeroPedido As Integer = If(IsNothing(pedido), -1, pedido.numero)
-                Dim contactoNuevo As String = If(IsNothing(value), "NULL", value.contacto)
-
-                Debug.WriteLine($"[CCC] DireccionEntregaSeleccionada cambiada:")
-                Debug.WriteLine($"      Pedido #{numeroPedido}, EstaCreandoPedido={EstaCreandoPedido}")
-                Debug.WriteLine($"      Contacto nuevo: {contactoNuevo}")
-                Debug.WriteLine($"      CCC anterior del pedido: {cccAnterior}")
-                Debug.WriteLine($"      CCC de la dirección nueva: {cccNuevo}")
+                'Dim cccAnterior As String = If(IsNothing(pedido), "NULL", If(String.IsNullOrEmpty(pedido.ccc), "EMPTY", pedido.ccc))
+                'Dim cccNuevo As String = If(IsNothing(value), "NULL", If(String.IsNullOrEmpty(value.ccc), "EMPTY", value.ccc))
+                'Dim numeroPedido As Integer = If(IsNothing(pedido), -1, pedido.numero)
+                'Dim contactoNuevo As String = If(IsNothing(value), "NULL", value.contacto)
+                '
+                'Debug.WriteLine($"[CCC] DireccionEntregaSeleccionada cambiada:")
+                'Debug.WriteLine($"      Pedido #{numeroPedido}, EstaCreandoPedido={EstaCreandoPedido}")
+                'Debug.WriteLine($"      Contacto nuevo: {contactoNuevo}")
+                'Debug.WriteLine($"      CCC anterior del pedido: {cccAnterior}")
+                'Debug.WriteLine($"      CCC de la dirección nueva: {cccNuevo}")
 
                 ' Copiar datos de facturación desde la dirección de entrega seleccionada
                 ' IMPORTANTE: El CCC está asociado a la dirección de entrega, NO al cliente
                 ' Razón: Cada dirección puede tener su propio CCC para facturación
+                ' Carlos 20/11/24: Mantenemos la copia de datos EXCEPTO el CCC (lo maneja SelectorCCC)
                 If EstaCreandoPedido AndAlso Not IsNothing(pedido) Then
-                    Debug.WriteLine($"      → COPIANDO datos (pedido nuevo)")
+                    'Debug.WriteLine($"      → COPIANDO datos (pedido nuevo)")
                     pedido.formaPago = value.formaPago
                     pedido.plazosPago = value.plazosPago
                     pedido.iva = value.iva
                     pedido.vendedor = value.vendedor
                     pedido.ruta = value.ruta
                     pedido.periodoFacturacion = value.periodoFacturacion
-                    pedido.ccc = value.ccc ' Fix 18/11/2024: Agregar CCC de la dirección de entrega
-                    Debug.WriteLine($"      → CCC copiado: {If(String.IsNullOrEmpty(pedido.ccc), "EMPTY", pedido.ccc)}")
-                Else
-                    Debug.WriteLine($"      → NO copiando (pedido existente o null)")
+                    ' Carlos 20/11/24: NO copiar CCC aquí - lo maneja SelectorCCC automáticamente
+                    ' pedido.ccc = value.ccc
+                    'Debug.WriteLine($"      → CCC copiado: {If(String.IsNullOrEmpty(pedido.ccc), "EMPTY", pedido.ccc)}")
+                'Else
+                    'Debug.WriteLine($"      → NO copiando (pedido existente o null)")
                 End If
             End If
         End Set
@@ -222,8 +225,8 @@ Public Class DetallePedidoViewModel
                 If Not IsNothing(pedido) AndAlso Not IsNothing(value) Then
                     pedido.Model.origen = value.empresa
                     pedido.Model.contactoCobro = value.contacto
-                    ' Cargar CCC disponibles para el nuevo cliente
-                    CargarCCCDisponibles()
+                    ' Carlos 20/11/24: DESHABILITADO - Ahora el SelectorCCC maneja esto automáticamente
+                    ' CargarCCCDisponibles()
                 End If
             End If
         End Set
@@ -250,39 +253,54 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
-    ' Propiedades para el selector de CCC
-    Private ReadOnly _estaCargandoCCC As Boolean = False
-    Private _cccDisponibles As ObservableCollection(Of CCCDisponible)
-    Public Property CCCDisponibles As ObservableCollection(Of CCCDisponible)
-        Get
-            Return _cccDisponibles
-        End Get
-        Set(value As ObservableCollection(Of CCCDisponible))
-            Dim unused = SetProperty(_cccDisponibles, value)
-        End Set
-    End Property
-
-    Private _cccSeleccionado As CCCDisponible
-    Public Property CCCSeleccionado As CCCDisponible
-        Get
-            Return _cccSeleccionado
-        End Get
-        Set(value As CCCDisponible)
-            If SetProperty(_cccSeleccionado, value) Then
-                ' Solo actualizar el CCC del pedido si es un cambio MANUAL del usuario
-                ' (no cuando estamos cargando automáticamente)
-                If Not _estaCargandoCCC AndAlso Not IsNothing(pedido) AndAlso Not IsNothing(value) Then
-                    Dim cccAnterior As String = If(String.IsNullOrEmpty(pedido.ccc), "EMPTY", pedido.ccc)
-                    pedido.ccc = value.CCC
-                    Debug.WriteLine($"[CCC] ✋ Usuario cambió CCC manualmente:")
-                    Debug.WriteLine($"      Pedido #{pedido.numero}")
-                    Debug.WriteLine($"      CCC anterior: {cccAnterior}")
-                    Debug.WriteLine($"      CCC nuevo: {If(String.IsNullOrEmpty(value.CCC), "EMPTY", value.CCC)}")
-                    Debug.WriteLine($"      Contacto seleccionado: {value.Contacto}")
-                End If
-            End If
-        End Set
-    End Property
+    ' Carlos 20/11/24: CÓDIGO VIEJO DE CCC - DESHABILITADO
+    ' Ahora el control SelectorCCC maneja el CCC automáticamente con su propio servicio
+    ' Este código compite con SelectorCCC y causa problemas de sincronización
+    '
+    '' Propiedades para el selector de CCC
+    'Private _estaCargandoCCC As Boolean = False
+    'Private _cccDisponibles As ObservableCollection(Of CCCDisponible)
+    'Public Property CCCDisponibles As ObservableCollection(Of CCCDisponible)
+    '    Get
+    '        Return _cccDisponibles
+    '    End Get
+    '    Set(value As ObservableCollection(Of CCCDisponible))
+    '        Dim unused = SetProperty(_cccDisponibles, value)
+    '    End Set
+    'End Property
+    '
+    'Private _cccSeleccionado As CCCDisponible
+    'Public Property CCCSeleccionado As CCCDisponible
+    '    Get
+    '        Return _cccSeleccionado
+    '    End Get
+    '    Set(value As CCCDisponible)
+    '        If SetProperty(_cccSeleccionado, value) Then
+    '            ' Solo actualizar el CCC del pedido si es un cambio MANUAL del usuario
+    '            ' (no cuando estamos cargando automáticamente)
+    '            ' Carlos 20/11/24: Agregada validación adicional para evitar falsos positivos
+    '            ' - Verificar que NO estamos en proceso de carga automática (_estaCargandoCCC)
+    '            ' - Verificar que el valor del CCC realmente cambió (no solo la referencia del objeto)
+    '            If Not _estaCargandoCCC AndAlso Not IsNothing(pedido) AndAlso Not IsNothing(value) Then
+    '                Dim cccNuevo As String = If(String.IsNullOrEmpty(value.CCC), "", value.CCC?.Trim())
+    '                Dim cccAnterior As String = If(String.IsNullOrEmpty(pedido.ccc), "", pedido.ccc?.Trim())
+    '
+    '                ' Solo logear y actualizar si el CCC realmente cambió de valor
+    '                If cccAnterior <> cccNuevo Then
+    '                    pedido.ccc = value.CCC
+    '                    Debug.WriteLine($"[CCC] ✋ Usuario cambió CCC manualmente:")
+    '                    Debug.WriteLine($"      Pedido #{pedido.numero}")
+    '                    Debug.WriteLine($"      CCC anterior: {If(String.IsNullOrEmpty(cccAnterior), "EMPTY", cccAnterior)}")
+    '                    Debug.WriteLine($"      CCC nuevo: {If(String.IsNullOrEmpty(cccNuevo), "EMPTY", cccNuevo)}")
+    '                    Debug.WriteLine($"      Contacto seleccionado: {value.Contacto}")
+    '                Else
+    '                    ' El valor no cambió, solo actualizar silenciosamente
+    '                    pedido.ccc = value.CCC
+    '                End If
+    '            End If
+    '        End If
+    '    End Set
+    'End Property
 
     Public ReadOnly Property EstaCreandoPedido As Boolean
         Get
@@ -594,8 +612,8 @@ Public Class DetallePedidoViewModel
                     If Not IsNothing(pedido) Then
                         ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
                         CobroTarjetaImporte = pedido.Total
-                        ' Cargar CCC disponibles para el cliente del pedido
-                        CargarCCCDisponibles()
+                        ' Carlos 20/11/24: DESHABILITADO - Ahora el SelectorCCC maneja esto automáticamente
+                        ' CargarCCCDisponibles()
                     End If
                 End If
             Else
@@ -622,71 +640,80 @@ Public Class DetallePedidoViewModel
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
-    ''' <summary>
-    ''' Carga el CCC del contacto actual del pedido
-    ''' IMPORTANTE: Solo muestra el CCC del contacto específico para evitar errores de PK
-    ''' </summary>
-    Private Async Sub CargarCCCDisponibles()
-        If IsNothing(pedido) OrElse String.IsNullOrWhiteSpace(pedido.empresa) OrElse String.IsNullOrWhiteSpace(pedido.cliente) Then
-            Debug.WriteLine("[CCC] No se pueden cargar CCC: pedido, empresa o cliente son null")
-            Return
-        End If
-
-        Try
-            Using client As New System.Net.Http.HttpClient()
-                client.BaseAddress = New Uri(configuracion.servidorAPI)
-                Dim urlConsulta As String = $"PlantillaVentas/DireccionesEntrega?empresa={pedido.empresa}&clienteDirecciones={pedido.cliente}"
-
-                Debug.WriteLine($"[CCC] Cargando CCC disponibles desde API: {urlConsulta}")
-                Dim response = Await client.GetAsync(urlConsulta)
-
-                If response.IsSuccessStatusCode Then
-                    Dim resultado As String = Await response.Content.ReadAsStringAsync()
-                    Dim direcciones = Newtonsoft.Json.JsonConvert.DeserializeObject(Of ObservableCollection(Of ControlesUsuario.Models.DireccionesEntregaCliente))(resultado)
-
-                    ' FILTRAR solo la dirección del contacto actual del pedido
-                    Dim contactoActual As String = If(String.IsNullOrWhiteSpace(pedido.contacto), "0", pedido.contacto.Trim())
-                    Dim direccionContacto = direcciones.FirstOrDefault(Function(d) d.contacto?.Trim() = contactoActual)
-
-                    ' Crear lista de CCC disponibles (solo 1 elemento: el del contacto actual)
-                    Dim listaCC As New ObservableCollection(Of CCCDisponible)
-
-                    If Not IsNothing(direccionContacto) Then
-                        Dim cccItem As New CCCDisponible(
-                            If(String.IsNullOrWhiteSpace(direccionContacto.ccc), "", direccionContacto.ccc),
-                            direccionContacto.contacto,
-                            If(String.IsNullOrWhiteSpace(direccionContacto.nombre), "Sin nombre", direccionContacto.nombre)
-                        )
-                        listaCC.Add(cccItem)
-                    Else
-                        Debug.WriteLine($"[CCC] ADVERTENCIA: No se encontró dirección para contacto '{contactoActual}'")
-                    End If
-
-                    CCCDisponibles = listaCC
-                    Debug.WriteLine($"[CCC] Cargado CCC del contacto {contactoActual}")
-
-                    ' Seleccionar automáticamente el CCC actual del pedido
-                    If Not String.IsNullOrWhiteSpace(pedido.ccc) Then
-                        Dim cccActual = CCCDisponibles.FirstOrDefault(Function(c) c.CCC?.Trim() = pedido.ccc?.Trim())
-                        If Not IsNothing(cccActual) Then
-                            CCCSeleccionado = cccActual
-                            Debug.WriteLine($"[CCC] Auto-seleccionado CCC del pedido: {cccActual.Descripcion}")
-                        Else
-                            Debug.WriteLine($"[CCC] ADVERTENCIA: CCC del pedido '{pedido.ccc}' no encontrado en las direcciones disponibles")
-                        End If
-                    ElseIf CCCDisponibles.Count > 0 Then
-                        ' Si no hay CCC en el pedido, seleccionar el primero (contacto 0 generalmente)
-                        CCCSeleccionado = CCCDisponibles.FirstOrDefault()
-                        Debug.WriteLine($"[CCC] Auto-seleccionado primer CCC disponible: {CCCSeleccionado.Descripcion}")
-                    End If
-                Else
-                    Debug.WriteLine($"[CCC] ERROR: API retornó {response.StatusCode}")
-                End If
-            End Using
-        Catch ex As Exception
-            Debug.WriteLine($"[CCC] ERROR al cargar CCC disponibles: {ex.Message}")
-        End Try
-    End Sub
+    ' Carlos 20/11/24: MÉTODO VIEJO DE CCC - DESHABILITADO
+    ' Ahora el control SelectorCCC maneja el CCC automáticamente
+    '
+    '''' <summary>
+    '''' Carga el CCC del contacto actual del pedido
+    '''' IMPORTANTE: Solo muestra el CCC del contacto específico para evitar errores de PK
+    '''' </summary>
+    'Private Async Sub CargarCCCDisponibles()
+    '    If IsNothing(pedido) OrElse String.IsNullOrWhiteSpace(pedido.empresa) OrElse String.IsNullOrWhiteSpace(pedido.cliente) Then
+    '        Debug.WriteLine("[CCC] No se pueden cargar CCC: pedido, empresa o cliente son null")
+    '        Return
+    '    End If
+    '
+    '    Try
+    '        Using client As New System.Net.Http.HttpClient()
+    '            client.BaseAddress = New Uri(configuracion.servidorAPI)
+    '            Dim urlConsulta As String = $"PlantillaVentas/DireccionesEntrega?empresa={pedido.empresa}&clienteDirecciones={pedido.cliente}"
+    '
+    '            Debug.WriteLine($"[CCC] Cargando CCC disponibles desde API: {urlConsulta}")
+    '            Dim response = Await client.GetAsync(urlConsulta)
+    '
+    '            If response.IsSuccessStatusCode Then
+    '                Dim resultado As String = Await response.Content.ReadAsStringAsync()
+    '                Dim direcciones = Newtonsoft.Json.JsonConvert.DeserializeObject(Of ObservableCollection(Of ControlesUsuario.Models.DireccionesEntregaCliente))(resultado)
+    '
+    '                ' FILTRAR solo la dirección del contacto actual del pedido
+    '                Dim contactoActual As String = If(String.IsNullOrWhiteSpace(pedido.contacto), "0", pedido.contacto.Trim())
+    '                Dim direccionContacto = direcciones.FirstOrDefault(Function(d) d.contacto?.Trim() = contactoActual)
+    '
+    '                ' Crear lista de CCC disponibles (solo 1 elemento: el del contacto actual)
+    '                Dim listaCC As New ObservableCollection(Of CCCDisponible)
+    '
+    '                If Not IsNothing(direccionContacto) Then
+    '                    Dim cccItem As New CCCDisponible(
+    '                        If(String.IsNullOrWhiteSpace(direccionContacto.ccc), "", direccionContacto.ccc),
+    '                        direccionContacto.contacto,
+    '                        If(String.IsNullOrWhiteSpace(direccionContacto.nombre), "Sin nombre", direccionContacto.nombre)
+    '                    )
+    '                    listaCC.Add(cccItem)
+    '                Else
+    '                    Debug.WriteLine($"[CCC] ADVERTENCIA: No se encontró dirección para contacto '{contactoActual}'")
+    '                End If
+    '
+    '                CCCDisponibles = listaCC
+    '                Debug.WriteLine($"[CCC] Cargado CCC del contacto {contactoActual}")
+    '
+    '                ' Seleccionar automáticamente el CCC actual del pedido
+    '                ' Carlos 20/11/24: Establecer flag para prevenir falsos positivos de "cambio manual"
+    '                _estaCargandoCCC = True
+    '                Try
+    '                    If Not String.IsNullOrWhiteSpace(pedido.ccc) Then
+    '                        Dim cccActual = CCCDisponibles.FirstOrDefault(Function(c) c.CCC?.Trim() = pedido.ccc?.Trim())
+    '                        If Not IsNothing(cccActual) Then
+    '                            CCCSeleccionado = cccActual
+    '                            Debug.WriteLine($"[CCC] Auto-seleccionado CCC del pedido: {cccActual.Descripcion}")
+    '                        Else
+    '                            Debug.WriteLine($"[CCC] ADVERTENCIA: CCC del pedido '{pedido.ccc}' no encontrado en las direcciones disponibles")
+    '                        End If
+    '                    ElseIf CCCDisponibles.Count > 0 Then
+    '                        ' Si no hay CCC en el pedido, seleccionar el primero (contacto 0 generalmente)
+    '                        CCCSeleccionado = CCCDisponibles.FirstOrDefault()
+    '                        Debug.WriteLine($"[CCC] Auto-seleccionado primer CCC disponible: {CCCSeleccionado.Descripcion}")
+    '                    End If
+    '                Finally
+    '                    _estaCargandoCCC = False
+    '                End Try
+    '            Else
+    '                Debug.WriteLine($"[CCC] ERROR: API retornó {response.StatusCode}")
+    '            End If
+    '        End Using
+    '    Catch ex As Exception
+    '        Debug.WriteLine($"[CCC] ERROR al cargar CCC disponibles: {ex.Message}")
+    '    End Try
+    'End Sub
 
     Private _cmdCeldaModificada As DelegateCommand(Of DataGridCellEditEndingEventArgs)
     Public Property cmdCeldaModificada As DelegateCommand(Of DataGridCellEditEndingEventArgs)
@@ -1316,23 +1343,26 @@ End Class
 ''' <summary>
 ''' Representa una cuenta corriente disponible para el cliente/contacto
 ''' </summary>
-Public Class CCCDisponible
-    Public Property CCC As String
-    Public Property Descripcion As String
-    Public Property Contacto As String
-    Public Property NombreContacto As String
-
-    Public Sub New(ccc As String, contacto As String, nombreContacto As String)
-        Me.CCC = If(String.IsNullOrWhiteSpace(ccc), "", ccc.Trim())
-        Me.Contacto = contacto
-        Me.NombreContacto = nombreContacto
-
-        ' Generar descripción amigable
-        If String.IsNullOrWhiteSpace(Me.CCC) Then
-            Descripcion = $"Contacto {contacto}: Sin CCC"
-        Else
-            Dim cccCorto = If(Me.CCC.Length > 20, Me.CCC.Substring(0, 20) & "...", Me.CCC)
-            Descripcion = $"Contacto {contacto} ({nombreContacto}): ...{Me.CCC.Substring(Math.Max(0, Me.CCC.Length - 8))}"
-        End If
-    End Sub
-End Class
+' Carlos 20/11/24: CLASE VIEJA DE CCC - DESHABILITADA
+' Ahora el control SelectorCCC usa su propio modelo (CCCItem en ControlesUsuario.Models)
+'
+'Public Class CCCDisponible
+'    Public Property CCC As String
+'    Public Property Descripcion As String
+'    Public Property Contacto As String
+'    Public Property NombreContacto As String
+'
+'    Public Sub New(ccc As String, contacto As String, nombreContacto As String)
+'        Me.CCC = If(String.IsNullOrWhiteSpace(ccc), "", ccc.Trim())
+'        Me.Contacto = contacto
+'        Me.NombreContacto = nombreContacto
+'
+'        ' Generar descripción amigable
+'        If String.IsNullOrWhiteSpace(Me.CCC) Then
+'            Descripcion = $"Contacto {contacto}: Sin CCC"
+'        Else
+'            Dim cccCorto = If(Me.CCC.Length > 20, Me.CCC.Substring(0, 20) & "...", Me.CCC)
+'            Descripcion = $"Contacto {contacto} ({nombreContacto}): ...{Me.CCC.Substring(Math.Max(0, Me.CCC.Length - 8))}"
+'        End If
+'    End Sub
+'End Class

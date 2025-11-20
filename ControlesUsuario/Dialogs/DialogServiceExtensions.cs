@@ -27,12 +27,72 @@ namespace ControlesUsuario.Dialogs
 
         public static void ShowError(this IDialogService dialogService, string message)
         {
+            // Carlos 20/11/24: Extraer mensaje limpio en caso de que contenga JSON
+            string cleanMessage = ExtraerMensajeLimpio(message);
+
             DialogParameters p = new()
             {
                 { "title", "¡Error!" },
-                { "message", message }
+                { "message", cleanMessage }
             };
             dialogService.ShowDialog("NotificationDialog", p, null);
+        }
+
+        /// <summary>
+        /// Extrae un mensaje de error limpio, eliminando JSON si está presente.
+        /// Carlos 20/11/24: Soluciona problema de mostrar JSON completo en errores de APIs externas.
+        ///
+        /// Formato esperado del JSON (según GlobalExceptionFilter de NestoAPI):
+        /// {
+        ///   "error": {
+        ///     "code": "ERROR_CODE",
+        ///     "message": "Mensaje de error legible",
+        ///     "details": { ... }
+        ///   }
+        /// }
+        /// </summary>
+        private static string ExtraerMensajeLimpio(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                return message;
+
+            // Si el mensaje contiene JSON, intentar parsearlo para extraer error.message
+            if (message.Contains('{'))
+            {
+                try
+                {
+                    // Buscar el inicio del JSON
+                    int indexJson = message.IndexOf('{');
+                    string jsonPart = indexJson == 0 ? message : message.Substring(indexJson);
+
+                    // Intentar parsear el JSON
+                    var errorResponse = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(jsonPart);
+
+                    if (errorResponse != null && errorResponse.ContainsKey("error"))
+                    {
+                        // Obtener el objeto "error"
+                        var errorObj = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(errorResponse["error"].ToString());
+
+                        if (errorObj != null && errorObj.ContainsKey("message"))
+                        {
+                            // Extraer el mensaje limpio desde error.message
+                            string errorMessage = errorObj["message"].ToString();
+                            return string.IsNullOrWhiteSpace(errorMessage) ? message : errorMessage;
+                        }
+                    }
+                }
+                catch
+                {
+                    // Si falla el parseo JSON, intentar extraer texto antes del JSON
+                    int indexJson = message.IndexOf('{');
+                    if (indexJson > 0)
+                    {
+                        return message.Substring(0, indexJson).Trim('\r', '\n', ' ', '.');
+                    }
+                }
+            }
+
+            return message;
         }
 
         public static void ShowConfirmation(this IDialogService dialogService, string message, Action<IDialogResult> callBack)

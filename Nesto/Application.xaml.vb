@@ -87,6 +87,12 @@ Partial Public Class Application
         Dim unused1 = containerRegistry.Register(GetType(ICanalesExternosProductosService), GetType(CanalesExternosProductosService))
         Dim unused = containerRegistry.Register(GetType(ICanalesExternosPagosService), GetType(CanalesExternosPagosService))
 
+        ' Carlos 20/11/24: FASE 3 - Registrar servicio de direcciones de entrega para SelectorDireccionEntrega
+        Dim unused32 = containerRegistry.RegisterSingleton(GetType(IServicioDireccionesEntrega), GetType(ServicioDireccionesEntrega))
+
+        ' Carlos 20/11/24: Registrar servicio de CCCs para SelectorCCC
+        Dim unused33 = containerRegistry.RegisterSingleton(GetType(IServicioCCC), GetType(ServicioCCC))
+
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
         containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)

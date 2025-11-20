@@ -1,0 +1,34 @@
+<UserControl x:Class="ControlesUsuario.SelectorCCC"
+             x:Name="Root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ControlesUsuario">
+
+    <!--
+    Carlos 20/11/24: Control SelectorCCC
+    IMPORTANTE: NO establecer DataContext aquí para permitir herencia del parent
+    Lección aprendida de SelectorDireccionEntrega
+    -->
+
+    <UserControl.Resources>
+        <!-- Estilo para items inválidos (estado < 0) -->
+        <Style x:Key="ItemCCCStyle" TargetType="ComboBoxItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding EsInvalido}" Value="True">
+                    <Setter Property="FontStyle" Value="Italic" />
+                    <Setter Property="Foreground" Value="Gray" />
+                    <Setter Property="IsEnabled" Value="False" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <ComboBox x:Name="comboCCC"
+              ItemsSource="{Binding ElementName=Root, Path=ListaCCCs}"
+              SelectedValue="{Binding ElementName=Root, Path=CCCSeleccionado, Mode=TwoWay}"
+              SelectedValuePath="numero"
+              DisplayMemberPath="Descripcion"
+              ItemContainerStyle="{StaticResource ItemCCCStyle}"
+              MinWidth="200"
+              ToolTip="Seleccione el CCC para el recibo bancario. Auto-selecciona según forma de pago."/>
+</UserControl>

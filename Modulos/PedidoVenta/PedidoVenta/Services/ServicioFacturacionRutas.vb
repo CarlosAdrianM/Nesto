@@ -26,6 +26,9 @@ Namespace Services
         Public Async Function FacturarRutas(request As FacturarRutasRequestDTO) As Task(Of FacturarRutasResponseDTO) Implements IServicioFacturacionRutas.FacturarRutas
             Using client As New HttpClient
                 Try
+                    ' Carlos 20/11/24: Aumentar timeout para facturación masiva de rutas (500 segundos)
+                    client.Timeout = TimeSpan.FromSeconds(500)
+
                     ' Configurar autorización con token
                     If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
                         Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -73,6 +76,9 @@ Namespace Services
         Public Async Function PreviewFacturarRutas(request As FacturarRutasRequestDTO) As Task(Of PreviewFacturacionRutasResponseDTO) Implements IServicioFacturacionRutas.PreviewFacturarRutas
             Using client As New HttpClient
                 Try
+                    ' Carlos 20/11/24: Aumentar timeout para preview de facturación masiva (500 segundos)
+                    client.Timeout = TimeSpan.FromSeconds(500)
+
                     ' Configurar autorización con token
                     If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
                         Throw New UnauthorizedAccessException("No se pudo configurar la autorización")

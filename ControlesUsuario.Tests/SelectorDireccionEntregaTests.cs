@@ -1,4 +1,5 @@
 using ControlesUsuario.Models;
+using ControlesUsuario.Services;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -7,8 +8,11 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
 using Prism.Events;
 using Prism.Regions;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Data;
 
 namespace ControlesUsuario.Tests
@@ -23,6 +27,8 @@ namespace ControlesUsuario.Tests
     /// - Sincronización entre propiedades Seleccionada y DireccionCompleta
     /// - Debouncing con DispatcherTimer (100ms) para cambios de Cliente
     /// - Suscripción a eventos ClienteCreadoEvent y ClienteModificadoEvent
+    ///
+    /// Carlos 20/11/24: FASE 3 completada - Actualizado para usar IServicioDireccionesEntrega
     /// </summary>
     [TestClass]
     public class SelectorDireccionEntregaTests
@@ -38,13 +44,14 @@ namespace ControlesUsuario.Tests
             var configuracion = A.Fake<IConfiguracion>();
             var eventAggregator = A.Fake<IEventAggregator>();
             var regionManager = A.Fake<IRegionManager>();
+            var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             SelectorDireccionEntrega sut = null;
             bool cargarDatosLlamado = false;
 
             Thread thread = new Thread(() =>
             {
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion);
+                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Empresa debería llamar a cargarDatos() directamente
                 // (sin debouncing, según línea 226 de SelectorDireccionEntrega.xaml.cs)
@@ -72,12 +79,13 @@ namespace ControlesUsuario.Tests
             var configuracion = A.Fake<IConfiguracion>();
             var eventAggregator = A.Fake<IEventAggregator>();
             var regionManager = A.Fake<IRegionManager>();
+            var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             string resultado = null;
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion);
+                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Cliente debería usar ResetTimer() para debouncing
                 // (100ms delay, según líneas 128-130 y 337-348)
@@ -103,12 +111,13 @@ namespace ControlesUsuario.Tests
             var configuracion = A.Fake<IConfiguracion>();
             var eventAggregator = A.Fake<IEventAggregator>();
             var regionManager = A.Fake<IRegionManager>();
+            var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             decimal resultado = 0;
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion);
+                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
 
                 // Act: Cambiar TotalPedido debería llamar a cargarDatos()
                 // (según líneas 290-297)
@@ -136,6 +145,7 @@ namespace ControlesUsuario.Tests
             var configuracion = A.Fake<IConfiguracion>();
             var eventAggregator = A.Fake<IEventAggregator>();
             var regionManager = A.Fake<IRegionManager>();
+            var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             DireccionesEntregaCliente direccionTest = new DireccionesEntregaCliente
             {
@@ -149,7 +159,7 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion);
+                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
 
                 // Inicializar la lista para evitar NullReferenceException
                 sut.listaDireccionesEntrega.ListaOriginal = new ObservableCollection<IFiltrableItem>
@@ -184,12 +194,13 @@ namespace ControlesUsuario.Tests
             var configuracion = A.Fake<IConfiguracion>();
             var eventAggregator = A.Fake<IEventAggregator>();
             var regionManager = A.Fake<IRegionManager>();
+            var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             string resultado = null;
 
             Thread thread = new Thread(() =>
             {
-                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion);
+                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
 
                 // Act: Cambiar Seleccionada con espacios debería trimmearse
                 // (según OnSeleccionadaChanged, líneas 252-257)
@@ -270,13 +281,14 @@ namespace ControlesUsuario.Tests
             var configuracion = A.Fake<IConfiguracion>();
             var eventAggregator = A.Fake<IEventAggregator>();
             var regionManager = A.Fake<IRegionManager>();
+            var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
             SelectorDireccionEntrega sut = null;
 
             Thread thread = new Thread(() =>
             {
                 // Act
-                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion);
+                sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
             });
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
@@ -354,8 +366,9 @@ namespace ControlesUsuario.Tests
 
             Thread thread = new Thread(() =>
             {
-                // El constructor sin parámetros usa try-catch para permitir
-                // instanciación en XAML y en tests (líneas 35-65)
+                // Carlos 20/11/24: FASE 3 - El constructor sin parámetros ahora requiere que
+                // IServicioDireccionesEntrega esté registrado en el container.
+                // Este test solo verifica que el constructor no lanza excepción si el container no está disponible.
                 sut = new SelectorDireccionEntrega();
             });
             thread.SetApartmentState(ApartmentState.STA);

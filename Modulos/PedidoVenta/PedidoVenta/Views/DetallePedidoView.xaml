@@ -223,22 +223,15 @@
                             <TextBlock Text="Fecha vencimiento:"></TextBlock>
                             <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
                             <TextBlock Text="CCC (Cuenta Corriente):" Margin="0,5,0,0"></TextBlock>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0"
-                                         Text="{Binding pedido.ccc, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                         Margin="0,3,3,3"
-                                         ToolTip="Cuenta corriente del contacto. Puede modificarse manualmente si es necesario."/>
-                                <TextBlock Grid.Column="1"
-                                           Text="{Binding CCCDisponibles[0].Descripcion, FallbackValue='(del contacto)'}"
-                                           VerticalAlignment="Center"
-                                           Foreground="Gray"
-                                           FontSize="10"
-                                           Margin="3,0,0,0"/>
-                            </Grid>
+                            <controles:SelectorCCC
+                                Empresa="{Binding pedido.empresa, Mode=OneWay}"
+                                Cliente="{Binding pedido.cliente, Mode=OneWay}"
+                                Contacto="{Binding pedido.contacto, Mode=OneWay}"
+                                FormaPago="{Binding pedido.formaPago, Mode=OneWay}"
+                                CCCSeleccionado="{Binding pedido.ccc, Mode=TwoWay}"
+                                MinWidth="250"
+                                Margin="0,3,0,3"
+                                ToolTip="Seleccione el CCC para el recibo bancario. Auto-selecciona según forma de pago."/>
                             <TextBlock></TextBlock>
                             <TextBox Text="{Binding pedido.iva}" IsReadOnly="True">
                                 <i:Interaction.Triggers>

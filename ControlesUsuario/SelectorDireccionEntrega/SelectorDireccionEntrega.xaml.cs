@@ -1,4 +1,5 @@
 ﻿using ControlesUsuario.Models;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
 using Prism.Regions;
@@ -29,34 +30,40 @@ namespace ControlesUsuario
         private readonly IRegionManager regionManager;
         private readonly IEventAggregator eventAggregator;
         private readonly IConfiguracion _configuracion;
+        private readonly IServicioDireccionesEntrega _servicioDirecciones; // Carlos 20/11/24: FASE 3 - Inyección de servicio
         private DispatcherTimer timer;
 
 
+        /// <summary>
+        /// Constructor sin parámetros para uso desde XAML.
+        /// Carlos 20/11/24: DEPRECADO - Usa Service Locator. Preferir constructor con DI.
+        /// </summary>
         public SelectorDireccionEntrega()
         {
             InitializeComponent();
 
+            // TODO REFACTORIZACIÓN FUTURA: Quitar esta línea para mejorar reutilizabilidad del control
+            // GridPrincipal.DataContext = this; rompe la herencia de DataContext del padre.
+            // Para quitarlo:
+            // 1. En el XAML, cambiar todos los bindings internos a usar ElementName="Root" (donde Root es x:Name del UserControl)
+            // 2. Ejemplo: {Binding listaDireccionesEntrega.Lista} → {Binding ElementName=Root, Path=listaDireccionesEntrega.Lista}
+            // 3. Esto hace los bindings más verbosos DENTRO del control, pero lo hace mucho más reutilizable FUERA
+            // Carlos 20/11/24: Decisión consensuada - DependencyProperties + ElementName es el patrón correcto para UserControls
             GridPrincipal.DataContext = this;
 
             listaDireccionesEntrega = new();
             listaDireccionesEntrega.TieneDatosIniciales = true;
             listaDireccionesEntrega.VaciarAlSeleccionar = false;
             listaDireccionesEntrega.SeleccionarPrimerElemento = false;
-            
+
             try
             {
                 regionManager = ContainerLocator.Container.Resolve<IRegionManager>();
                 eventAggregator = ContainerLocator.Container.Resolve<IEventAggregator>();
                 _configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+                _servicioDirecciones = ContainerLocator.Container.Resolve<IServicioDireccionesEntrega>(); // Carlos 20/11/24: FASE 3
 
-                listaDireccionesEntrega.ElementoSeleccionadoChanged += (sender, args) =>
-                {
-                    if (listaDireccionesEntrega is not null && listaDireccionesEntrega.ElementoSeleccionado is not null && DireccionCompleta != listaDireccionesEntrega.ElementoSeleccionado)
-                    {
-                        //DireccionCompleta = listaDireccionesEntrega.ElementoSeleccionado as DireccionesEntregaCliente; // ¿SetValue?
-                        this.SetValue(DireccionCompletaProperty, listaDireccionesEntrega.ElementoSeleccionado as DireccionesEntregaCliente); 
-                    }                    
-                };
+                ConfigurarEventHandlers();
             }
             catch
             {
@@ -64,11 +71,19 @@ namespace ControlesUsuario
             }
         }
 
-        public SelectorDireccionEntrega(IRegionManager regionManager, IEventAggregator eventAggregator, IConfiguracion configuracion)
+        /// <summary>
+        /// Constructor con Dependency Injection (PREFERIDO).
+        /// Carlos 20/11/24: FASE 3 - Agregado parámetro servicioDirecciones para hacerlo testeable.
+        /// </summary>
+        public SelectorDireccionEntrega(
+            IRegionManager regionManager,
+            IEventAggregator eventAggregator,
+            IConfiguracion configuracion,
+            IServicioDireccionesEntrega servicioDirecciones)
         {
-            // Este constructor lo usamos para poder hacer tests
             InitializeComponent();
 
+            // TODO REFACTORIZACIÓN FUTURA: Ver comentario en constructor sin parámetros sobre DataContext
             GridPrincipal.DataContext = this;
 
             listaDireccionesEntrega = new();
@@ -78,9 +93,30 @@ namespace ControlesUsuario
             this.regionManager = regionManager;
             this.eventAggregator = eventAggregator;
             this._configuracion = configuracion;
+            this._servicioDirecciones = servicioDirecciones; // Carlos 20/11/24: FASE 3
+
+            ConfigurarEventHandlers();
         }
 
 
+
+        /// <summary>
+        /// Configura los event handlers del control.
+        /// Carlos 20/11/24: FASE 3 - Extraído para evitar duplicación entre constructores.
+        /// </summary>
+        private void ConfigurarEventHandlers()
+        {
+            listaDireccionesEntrega.ElementoSeleccionadoChanged += (sender, args) =>
+            {
+                if (listaDireccionesEntrega is not null &&
+                    listaDireccionesEntrega.ElementoSeleccionado is not null &&
+                    DireccionCompleta != listaDireccionesEntrega.ElementoSeleccionado)
+                {
+                    this.SetValue(DireccionCompletaProperty,
+                        listaDireccionesEntrega.ElementoSeleccionado as DireccionesEntregaCliente);
+                }
+            };
+        }
 
         private async void OnClienteCreado(Clientes clienteCreado)
         {
@@ -353,48 +389,52 @@ namespace ControlesUsuario
             cargarDatos();
         }
 
+        /// <summary>
+        /// Carga las direcciones de entrega del cliente desde la API.
+        /// Carlos 20/11/24: FASE 3 - Refactorizado para usar IServicioDireccionesEntrega en lugar de HttpClient directo.
+        /// </summary>
         private async Task cargarDatos()
         {
-            if (Configuracion is null && _configuracion is not null)
-            {
-                Configuracion = _configuracion;
-            }
-
-            if (Configuracion == null || Empresa == null || Cliente == null)
+            // Modo degradado: si no hay servicio inyectado, no hacer nada
+            if (_servicioDirecciones == null)
             {
                 return;
             }
-            using (HttpClient client = new HttpClient())
+
+            // Validaciones
+            if (Empresa == null || Cliente == null)
             {
-                client.BaseAddress = new Uri(Configuracion.servidorAPI);
-                HttpResponseMessage response;
+                return;
+            }
 
-                try
-                {
-                    string urlConsulta = "PlantillaVentas/DireccionesEntrega?empresa=" + Empresa + "&clienteDirecciones=" + Cliente;
-                    if (TotalPedido != 0)
-                    {
-                        urlConsulta += $"&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}";
-                    }
-                    response = await client.GetAsync(urlConsulta);
+            try
+            {
+                // Llamar al servicio en lugar de HttpClient directo
+                var direcciones = await _servicioDirecciones.ObtenerDireccionesEntrega(
+                    Empresa,
+                    Cliente,
+                    TotalPedido != 0 ? TotalPedido : (decimal?)null
+                );
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        string resultado = await response.Content.ReadAsStringAsync();
-                        listaDireccionesEntrega.ListaOriginal = new ObservableCollection<IFiltrableItem>(JsonConvert.DeserializeObject<ObservableCollection<DireccionesEntregaCliente>>(resultado)); 
-                        if (DireccionCompleta == null && Seleccionada != null)
-                        {
-                            DireccionCompleta = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).contacto == Seleccionada);
-                        }
-                        if (DireccionCompleta == null && Seleccionada == null)
-                        {
-                            DireccionCompleta = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.SingleOrDefault(l => (l as DireccionesEntregaCliente).esDireccionPorDefecto);
-                        }
-                    }
-                } catch
+                // Actualizar la lista de direcciones
+                listaDireccionesEntrega.ListaOriginal = new ObservableCollection<IFiltrableItem>(direcciones);
+
+                // Lógica de auto-selección (sin cambios)
+                if (DireccionCompleta == null && Seleccionada != null)
                 {
-                    throw new Exception("No se pudieron leer las direcciones de entrega");
+                    DireccionCompleta = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista
+                        .SingleOrDefault(l => (l as DireccionesEntregaCliente).contacto == Seleccionada);
                 }
+
+                if (DireccionCompleta == null && Seleccionada == null)
+                {
+                    DireccionCompleta = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista
+                        .SingleOrDefault(l => (l as DireccionesEntregaCliente).esDireccionPorDefecto);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"No se pudieron leer las direcciones de entrega: {ex.Message}", ex);
             }
         }
 
