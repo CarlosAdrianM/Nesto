@@ -16,10 +16,12 @@ Public Class AgenciaService
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _dialogService As IDialogService
+    Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
 
-    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService)
+    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _dialogService = dialogService
+        _servicioAutenticacion = servicioAutenticacion
     End Sub
 
     Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
@@ -451,6 +453,12 @@ Public Class AgenciaService
         Using client As New HttpClient
             Try
                 client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+                ' Carlos 21/11/24: Agregar autenticación
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 Dim response As HttpResponseMessage
                 Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(envioActual), Encoding.UTF8, "application/json")
                 response = Await client.PostAsync("EnviosAgencias/EnviarCorreoEntregaAgencia", content)
@@ -473,6 +481,12 @@ Public Class AgenciaService
         Using client As New HttpClient
             Try
                 client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+                ' Carlos 21/11/24: Agregar autenticación
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 Dim response As HttpResponseMessage
                 Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(respuesta), Encoding.UTF8, "application/json")
                 response = Await client.PostAsync("AgenciasLlamadasWeb", content)
@@ -486,6 +500,12 @@ Public Class AgenciaService
     Public Async Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal) Implements IAgenciaService.ImporteReembolso
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            ' Carlos 21/11/24: Agregar autenticación
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 

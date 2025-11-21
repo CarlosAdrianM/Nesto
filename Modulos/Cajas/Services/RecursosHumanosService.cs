@@ -10,15 +10,24 @@ namespace Nesto.Modulos.Cajas.Services
     public class RecursosHumanosService : IRecursosHumanosService
     {
         private readonly IConfiguracion _configuracion;
-        public RecursosHumanosService(IConfiguracion configuracion)
+        private readonly IServicioAutenticacion _servicioAutenticacion;
+
+        public RecursosHumanosService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             _configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
         }
         public async Task<bool> EsFestivo(DateTime fecha, string delegacion)
         {
             using (HttpClient _httpClient = new HttpClient())
             {
                 _httpClient.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(_httpClient))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
 
                 // Convertimos la fecha al formato esperado por la API
                 string fechaString = fecha.ToString("yyyy-MM-dd");

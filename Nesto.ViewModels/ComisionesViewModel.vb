@@ -36,7 +36,8 @@ Public Class ComisionesViewModel
         Me.container = container
         Me.configuracion = configuracion
         dialogService = dialogService
-        _servicio = New ComisionesService(configuracion)
+        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
+        _servicio = New ComisionesService(configuracion, servicioAutenticacion)
 
         colMeses = New Collection(Of String)
         For i = 12 To 1 Step -1

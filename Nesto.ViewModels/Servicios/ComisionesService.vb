@@ -9,13 +9,22 @@ Imports Newtonsoft.Json
 
 Public Class ComisionesService
     Private ReadOnly configuracion As IConfiguracion
-    Public Sub New(configuracion As IConfiguracion)
+    Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+
+    Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
+        _servicioAutenticacion = servicioAutenticacion
     End Sub
 
     Public Async Function LeerVendedores() As Task(Of List(Of VendedorDTO))
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            ' Carlos 21/11/24: Agregar autenticación
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
             Dim response As HttpResponseMessage
             Dim respuesta As String = String.Empty
             Dim vendedor As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.Vendedor)

@@ -16,10 +16,12 @@ namespace Nesto.Modulos.CanalesExternos.Services
     public class PoisonPillsService : IPoisonPillsService
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IServicioAutenticacion _servicioAutenticacion;
 
-        public PoisonPillsService(IConfiguracion configuracion)
+        public PoisonPillsService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             _configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
         }
 
         /// <summary>
@@ -30,6 +32,12 @@ namespace Nesto.Modulos.CanalesExternos.Services
             using (var client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
 
                 try
                 {
@@ -84,6 +92,12 @@ namespace Nesto.Modulos.CanalesExternos.Services
             using (var client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
 
                 try
                 {

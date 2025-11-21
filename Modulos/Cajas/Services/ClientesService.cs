@@ -14,18 +14,27 @@ namespace Nesto.Modulos.Cajas.Services
     public class ClientesService : IClientesService
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IServicioAutenticacion _servicioAutenticacion;
 
-        public ClientesService(IConfiguracion configuracion)
+        public ClientesService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             _configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
         }
 
         public async Task<List<ExtractoClienteDTO>> LeerDeudas(string cliente)
-        {            
+        {
             List<ExtractoClienteDTO> deudas;
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try

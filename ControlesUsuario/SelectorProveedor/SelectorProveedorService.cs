@@ -21,7 +21,16 @@ namespace ControlesUsuario.Services
             using (HttpClient client = new HttpClient())
             {
                 IConfiguracion configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+                IServicioAutenticacion servicioAutenticacion = ContainerLocator.Container.Resolve<IServicioAutenticacion>();
+
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -53,7 +62,16 @@ namespace ControlesUsuario.Services
             using (HttpClient client = new HttpClient())
             {
                 IConfiguracion configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+                IServicioAutenticacion servicioAutenticacion = ContainerLocator.Container.Resolve<IServicioAutenticacion>();
+
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try

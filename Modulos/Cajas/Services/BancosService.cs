@@ -18,16 +18,24 @@ namespace Nesto.Modulos.Cajas.Services
     public class BancosService : IBancosService
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IServicioAutenticacion _servicioAutenticacion;
 
-        public BancosService(IConfiguracion configuracion)
+        public BancosService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             _configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
         }
 
         public async Task<ContenidoCuaderno43> CargarFicheroCuaderno43(string contenidoFichero)
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
 
             try
             {
@@ -98,6 +106,12 @@ namespace Nesto.Modulos.Cajas.Services
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             try
             {
                 string urlConsulta = "Bancos/CargarFicheroTarjetas";
@@ -166,6 +180,12 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
 
             try
             {
@@ -239,6 +259,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -270,6 +297,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -300,6 +334,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -329,6 +370,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -358,6 +406,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -388,6 +443,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -420,6 +482,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -449,6 +518,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -478,6 +554,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -507,6 +590,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -542,6 +632,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try
@@ -572,6 +669,13 @@ namespace Nesto.Modulos.Cajas.Services
         {
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            // Carlos 21/11/24: Agregar autenticación
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
             HttpResponseMessage response;
 
             try

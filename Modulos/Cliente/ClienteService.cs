@@ -13,10 +13,12 @@ namespace Nesto.Modulos.Cliente
     public class ClienteService : IClienteService
     {
         private readonly IConfiguracion configuracion;
+        private readonly IServicioAutenticacion _servicioAutenticacion;
 
-        public ClienteService(IConfiguracion configuracion)
+        public ClienteService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             this.configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
         }
 
         public async Task<Clientes> CrearCliente(ClienteCrear cliente)
@@ -26,6 +28,13 @@ namespace Nesto.Modulos.Cliente
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -86,13 +95,20 @@ namespace Nesto.Modulos.Cliente
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
                 {
-                    string urlConsulta = "Clientes/GetClienteCrear?empresa=" + empresa + 
+                    string urlConsulta = "Clientes/GetClienteCrear?empresa=" + empresa +
                         "&cliente=" + cliente + "&contacto=" + contacto;
-                    
+
                     response = await client.GetAsync(urlConsulta);
 
                     if (response.IsSuccessStatusCode)
@@ -121,6 +137,13 @@ namespace Nesto.Modulos.Cliente
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -171,6 +194,13 @@ namespace Nesto.Modulos.Cliente
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -211,11 +241,18 @@ namespace Nesto.Modulos.Cliente
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
                 {
-                    string urlConsulta = "Clientes/ComprobarDatosBanco?formaPago=" + formaPago + 
+                    string urlConsulta = "Clientes/ComprobarDatosBanco?formaPago=" + formaPago +
                         "&plazosPago=" + plazosPago +
                         "&iban="+ iban;
 
@@ -244,10 +281,17 @@ namespace Nesto.Modulos.Cliente
         public async Task<RespuestaNifNombreCliente> ValidarNif(string nif, string nombre)
         {
             RespuestaNifNombreCliente respuesta;
-            
+
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try

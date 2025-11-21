@@ -114,7 +114,7 @@ Public Class AgenciasViewModel
 
     Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
         Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
-        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion))
+        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion))
         'Dim agenciasVM = container.Resolve(Of AgenciasViewModel)()
         agenciasVM.InsertarEnvioPendienteCommand.Execute()
         If etiqueta.Agencia = 0 Then

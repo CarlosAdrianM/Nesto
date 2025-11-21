@@ -1,14 +1,18 @@
 ﻿Imports System.Net.Http
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
 Public Class ClienteComercialService
     Implements IClienteComercialService
     Public ReadOnly Property Configuracion As IConfiguracion
-    Public Sub New(configuracion As IConfiguracion)
+    Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+
+    Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.Configuracion = configuracion
+        _servicioAutenticacion = servicioAutenticacion
     End Sub
 
     Public Async Function ModificarExtractoCliente(extracto As ExtractoClienteDTO) As Task Implements IClienteComercialService.ModificarExtractoCliente
@@ -18,6 +22,12 @@ Public Class ClienteComercialService
         End If
         Using client As New HttpClient
             client.BaseAddress = New Uri(Configuracion.servidorAPI)
+
+            ' Carlos 21/11/24: Agregar autenticación
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -32,14 +42,8 @@ Public Class ClienteComercialService
             Else
                 Dim respuestaError = response.Content.ReadAsStringAsync().Result
                 Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                Dim contenido As String = detallesError("ExceptionMessage")
-                While Not IsNothing(detallesError("InnerException"))
-                    detallesError = detallesError("InnerException")
-                    Dim contenido2 As String = detallesError("ExceptionMessage")
-                    If Not contenido2.Contains("See the inner exception") Then
-                        contenido = contenido + vbCr + contenido2
-                    End If
-                End While
+                ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
                 Throw New Exception(contenido)
             End If
         End Using

@@ -17,10 +17,12 @@ namespace Nesto.Modulos.PedidoCompra
     public class PedidoCompraService : IPedidoCompraService
     {
         private readonly IConfiguracion configuracion;
+        private readonly IServicioAutenticacion _servicioAutenticacion;
 
-        public PedidoCompraService(IConfiguracion configuracion)
+        public PedidoCompraService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             this.configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
         }
 
         public async Task<PedidoCompraDTO> AmpliarHastaStockMaximo(PedidoCompraDTO pedido)
@@ -29,6 +31,13 @@ namespace Nesto.Modulos.PedidoCompra
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
                 HttpContent content = new StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json");
 
@@ -61,6 +70,13 @@ namespace Nesto.Modulos.PedidoCompra
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -94,6 +110,13 @@ namespace Nesto.Modulos.PedidoCompra
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -127,6 +150,13 @@ namespace Nesto.Modulos.PedidoCompra
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -161,6 +191,13 @@ namespace Nesto.Modulos.PedidoCompra
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -218,6 +255,13 @@ namespace Nesto.Modulos.PedidoCompra
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -275,6 +319,13 @@ namespace Nesto.Modulos.PedidoCompra
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -306,6 +357,13 @@ namespace Nesto.Modulos.PedidoCompra
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try

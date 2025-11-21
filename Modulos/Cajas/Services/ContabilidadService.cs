@@ -16,8 +16,12 @@ namespace Nesto.Modulos.Cajas.Services
     public class ContabilidadService : IContabilidadService
     {
         private readonly IConfiguracion _configuracion;
-        public ContabilidadService(IConfiguracion configuracion) {
+        private readonly IServicioAutenticacion _servicioAutenticacion;
+
+        public ContabilidadService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
+        {
             _configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
         }
                 
 
@@ -27,6 +31,13 @@ namespace Nesto.Modulos.Cajas.Services
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -67,6 +78,13 @@ namespace Nesto.Modulos.Cajas.Services
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -134,6 +152,13 @@ namespace Nesto.Modulos.Cajas.Services
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -164,6 +189,13 @@ namespace Nesto.Modulos.Cajas.Services
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -197,6 +229,13 @@ namespace Nesto.Modulos.Cajas.Services
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -230,6 +269,13 @@ namespace Nesto.Modulos.Cajas.Services
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try
@@ -260,10 +306,16 @@ namespace Nesto.Modulos.Cajas.Services
         }
 
         public async Task<bool> PuntearPorImporte(string empresa, string cuenta, decimal importe)
-        {            
+        {
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
 
                 try
                 {
@@ -336,6 +388,13 @@ namespace Nesto.Modulos.Cajas.Services
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // Carlos 21/11/24: Agregar autenticación
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
                 HttpResponseMessage response;
 
                 try

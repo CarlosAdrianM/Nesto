@@ -252,7 +252,8 @@ Public Class MenuBarView
         Me.container = containerProvider.GetContainer()
         Me.regionManager = container.Resolve(Of IRegionManager)
         Me.configuracion = container.Resolve(Of Configuracion)
-        servicioComisiones = New ComisionesService(configuracion)
+        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
+        servicioComisiones = New ComisionesService(configuracion, servicioAutenticacion)
         Me.DataContext = New MainViewModel(container, regionManager)
         DataContext.Titulo = "Sin Título"
 
