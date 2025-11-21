@@ -5,6 +5,7 @@ Imports System.Net.Http
 Imports System.Runtime.InteropServices
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
@@ -145,18 +146,10 @@ Public Class PedidoVentaService
         Dim respuestaError As String = Await response.Content.ReadAsStringAsync()
         Dim contenido As String
 
+        ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
         Try
             Dim detallesError As JObject = JsonConvert.DeserializeObject(Of JObject)(respuestaError)
-            contenido = detallesError("ExceptionMessage")?.ToString()
-
-            ' Recorrer InnerExceptions
-            While Not IsNothing(detallesError("InnerException"))
-                detallesError = detallesError("InnerException")
-                Dim contenido2 As String = detallesError("ExceptionMessage")?.ToString()
-                If Not String.IsNullOrEmpty(contenido2) Then
-                    contenido = contenido + vbCrLf + contenido2
-                End If
-            End While
+            contenido = HttpErrorHelper.ParsearErrorHttp(detallesError)
         Catch ex As Exception
             contenido = respuestaError
         End Try
@@ -384,32 +377,8 @@ Public Class PedidoVentaService
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = ""
-
-                    ' Intentar leer el nuevo formato de errores (desde GlobalExceptionFilter)
-                    If Not IsNothing(detallesError("error")) Then
-                        ' Nuevo formato: { "error": { "code": "...", "message": "..." } }
-                        Dim errorObj As JObject = detallesError("error")
-                        contenido = errorObj("message")?.ToString()
-
-                        ' Opcionalmente agregar código de error si existe
-                        Dim errorCode As String = errorObj("code")?.ToString()
-                        If Not String.IsNullOrEmpty(errorCode) AndAlso errorCode <> "INTERNAL_ERROR" Then
-                            contenido = $"[{errorCode}] {contenido}"
-                        End If
-                    ElseIf Not IsNothing(detallesError("ExceptionMessage")) Then
-                        ' Formato antiguo: { "ExceptionMessage": "...", "InnerException": {...} }
-                        contenido = detallesError("ExceptionMessage")
-                        While Not IsNothing(detallesError("InnerException"))
-                            detallesError = detallesError("InnerException")
-                            Dim contenido2 As String = detallesError("ExceptionMessage")
-                            contenido = contenido + vbCr + contenido2
-                        End While
-                    Else
-                        ' Fallback: usar el contenido raw
-                        contenido = respuestaError
-                    End If
-
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
                     Throw New Exception(contenido)
                 End If
             Catch ex As Exception
@@ -452,32 +421,8 @@ Public Class PedidoVentaService
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = ""
-
-                    ' Intentar leer el nuevo formato de errores (desde GlobalExceptionFilter)
-                    If Not IsNothing(detallesError("error")) Then
-                        ' Nuevo formato: { "error": { "code": "...", "message": "..." } }
-                        Dim errorObj As JObject = detallesError("error")
-                        contenido = errorObj("message")?.ToString()
-
-                        ' Opcionalmente agregar código de error si existe
-                        Dim errorCode As String = errorObj("code")?.ToString()
-                        If Not String.IsNullOrEmpty(errorCode) AndAlso errorCode <> "INTERNAL_ERROR" Then
-                            contenido = $"[{errorCode}] {contenido}"
-                        End If
-                    ElseIf Not IsNothing(detallesError("ExceptionMessage")) Then
-                        ' Formato antiguo: { "ExceptionMessage": "...", "InnerException": {...} }
-                        contenido = detallesError("ExceptionMessage")
-                        While Not IsNothing(detallesError("InnerException"))
-                            detallesError = detallesError("InnerException")
-                            Dim contenido2 As String = detallesError("ExceptionMessage")
-                            contenido = contenido + vbCr + contenido2
-                        End While
-                    Else
-                        ' Fallback: usar el contenido raw
-                        contenido = respuestaError
-                    End If
-
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
                     Throw New Exception(contenido)
                 End If
             Catch ex As Exception
@@ -520,32 +465,8 @@ Public Class PedidoVentaService
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = ""
-
-                    ' Intentar leer el nuevo formato de errores (desde GlobalExceptionFilter)
-                    If Not IsNothing(detallesError("error")) Then
-                        ' Nuevo formato: { "error": { "code": "...", "message": "..." } }
-                        Dim errorObj As JObject = detallesError("error")
-                        contenido = errorObj("message")?.ToString()
-
-                        ' Opcionalmente agregar código de error si existe
-                        Dim errorCode As String = errorObj("code")?.ToString()
-                        If Not String.IsNullOrEmpty(errorCode) AndAlso errorCode <> "INTERNAL_ERROR" Then
-                            contenido = $"[{errorCode}] {contenido}"
-                        End If
-                    ElseIf Not IsNothing(detallesError("ExceptionMessage")) Then
-                        ' Formato antiguo: { "ExceptionMessage": "...", "InnerException": {...} }
-                        contenido = detallesError("ExceptionMessage")
-                        While Not IsNothing(detallesError("InnerException"))
-                            detallesError = detallesError("InnerException")
-                            Dim contenido2 As String = detallesError("ExceptionMessage")
-                            contenido = contenido + vbCr + contenido2
-                        End While
-                    Else
-                        ' Fallback: usar el contenido raw
-                        contenido = respuestaError
-                    End If
-
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
                     Throw New Exception(contenido)
                 End If
             Catch ex As Exception
@@ -674,31 +595,21 @@ Public Class PedidoVentaService
                 Else
                     Dim respuestaError = Await response.Content.ReadAsStringAsync()
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")?.ToString()
 
-                    If String.IsNullOrEmpty(contenido) Then
-                        contenido = detallesError("exceptionMessage")?.ToString()
+                    ' Carlos 21/11/24: Detectar si es un error de validación de pedido (PEDIDO_VALIDACION_FALLO)
+                    ' para lanzar ValidationException que el ViewModel pueda capturar
+                    Dim errorCode As String = Nothing
+                    If Not IsNothing(detallesError("error")) Then
+                        Dim errorObj As JObject = detallesError("error")
+                        errorCode = errorObj("code")?.ToString()
                     End If
 
-                    ' Recorrer inner exceptions
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")?.ToString()
-                        If String.IsNullOrEmpty(contenido2) Then
-                            contenido2 = detallesError("exceptionMessage")?.ToString()
-                        End If
-                        If Not String.IsNullOrEmpty(contenido2) Then
-                            contenido = contenido + vbCr + contenido2
-                        End If
-                    End While
+                    ' Parsear el mensaje de error usando HttpErrorHelper
+                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
 
-                    ' Verificar si es ValidationException
-                    Dim tipoEx As String = detallesError("ExceptionType")?.ToString()
-                    If String.IsNullOrEmpty(tipoEx) Then
-                        tipoEx = detallesError("exceptionType")?.ToString()
-                    End If
-
-                    If Not String.IsNullOrEmpty(tipoEx) AndAlso tipoEx.Contains("ValidationException") Then
+                    ' Si es error de validación de pedido, lanzar ValidationException
+                    ' para que el ViewModel pueda preguntar "¿Crear sin pasar validación?"
+                    If errorCode = "PEDIDO_VALIDACION_FALLO" Then
                         Throw New System.ComponentModel.DataAnnotations.ValidationException(contenido)
                     Else
                         Throw New Exception(contenido)

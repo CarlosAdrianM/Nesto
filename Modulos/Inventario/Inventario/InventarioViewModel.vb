@@ -185,7 +185,8 @@ Public Class InventarioViewModel
                 If Not response.IsSuccessStatusCode Then
                     Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
-                    dialogService.ShowError(detallesError("ExceptionMessage"))
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    dialogService.ShowError(HttpErrorHelper.ParsearErrorHttp(detallesError))
                 Else
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     movimientosTotal = JsonConvert.DeserializeObject(Of ObservableCollection(Of InventarioDTO))(cadenaJson)
@@ -223,7 +224,8 @@ Public Class InventarioViewModel
                 If Not response.IsSuccessStatusCode Then
                     Dim cadenaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
-                    dialogService.ShowError(detallesError("ExceptionMessage"))
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    dialogService.ShowError(HttpErrorHelper.ParsearErrorHttp(detallesError))
                 Else
                     movimientoActual = New Movimiento With {
                         .Cantidad = cantidad,
@@ -313,7 +315,8 @@ Public Class InventarioViewModel
                 Dim detallesError = JsonConvert.DeserializeObject(cadenaError)
 
                 If Not response.IsSuccessStatusCode Then
-                    dialogService.ShowError(detallesError("ExceptionMessage"))
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    dialogService.ShowError(HttpErrorHelper.ParsearErrorHttp(detallesError))
                 Else
                     linea.Producto = detallesError("Número")
                     linea.Descripcion = detallesError("Descripción")

@@ -85,12 +85,8 @@ Public Class RapportService
                 Else
                     Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
-                        contenido = contenido + vbCr + contenido2
-                    End While
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
                     Throw New Exception("Se ha producido un error al crear el rapport" + vbCr + contenido)
                 End If
             Catch ex As Exception
@@ -336,12 +332,8 @@ Public Class RapportService
                 If Not response.IsSuccessStatusCode Then
                     Dim respuestaError As String = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
-                        contenido = contenido + vbCr + contenido2
-                    End While
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
                     Throw New Exception("Se ha producido un error al quitar el cliente del listado" + vbCr + contenido)
                 End If
             Catch ex As Exception

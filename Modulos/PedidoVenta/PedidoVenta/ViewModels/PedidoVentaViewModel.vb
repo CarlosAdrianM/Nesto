@@ -8,6 +8,7 @@ Imports Prism.Ioc
 Imports Prism.Mvvm
 Imports Unity
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 
 Public Class PedidoVentaViewModel
@@ -108,15 +109,8 @@ Public Class PedidoVentaViewModel
                 Else
                     Dim respuestaError = response.Content.ReadAsStringAsync().Result
                     Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    Dim contenido As String = detallesError("ExceptionMessage")
-                    If IsNothing(contenido) Then
-                        contenido = detallesError.ToString
-                    End If
-                    While Not IsNothing(detallesError("InnerException"))
-                        detallesError = detallesError("InnerException")
-                        Dim contenido2 As String = detallesError("ExceptionMessage")
-                        contenido = contenido + vbCr + contenido2
-                    End While
+                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
+                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
                     Return contenido
                 End If
             Catch ex As Exception

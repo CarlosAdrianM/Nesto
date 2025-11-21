@@ -3,6 +3,7 @@ Imports System.Globalization
 Imports System.Net.Http
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
@@ -62,20 +63,14 @@ Public Class Configuracion
             Else
                 Dim respuestaError = response.Content.ReadAsStringAsync().Result
                 Dim detallesError As JObject
+                ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
                 Dim contenido As String
                 Try
                     detallesError = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    contenido = detallesError("ExceptionMessage")
+                    contenido = HttpErrorHelper.ParsearErrorHttp(detallesError)
                 Catch ex As Exception
-                    detallesError = New JObject()
                     contenido = respuestaError
                 End Try
-
-                While Not IsNothing(detallesError("InnerException"))
-                    detallesError = detallesError("InnerException")
-                    Dim contenido2 As String = detallesError("ExceptionMessage")
-                    contenido = contenido + vbCr + contenido2
-                End While
                 Throw New Exception(contenido)
             End If
 
@@ -105,20 +100,14 @@ Public Class Configuracion
             Else
                 Dim respuestaError = response.Content.ReadAsStringAsync().Result
                 Dim detallesError As JObject
+                ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
                 Dim contenido As String
                 Try
                     detallesError = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    contenido = detallesError("ExceptionMessage")
+                    contenido = HttpErrorHelper.ParsearErrorHttp(detallesError)
                 Catch ex As Exception
-                    detallesError = New JObject()
                     contenido = respuestaError
                 End Try
-
-                While Not IsNothing(detallesError("InnerException"))
-                    detallesError = detallesError("InnerException")
-                    Dim contenido2 As String = detallesError("ExceptionMessage")
-                    contenido = contenido + vbCr + contenido2
-                End While
                 Throw New Exception(contenido)
             End If
 
