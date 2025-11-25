@@ -1,4 +1,5 @@
 ﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -51,37 +52,17 @@ namespace Nesto.Modulos.Cliente
                     }
                     else
                     {
+                        // Carlos 24/11/24: Usar HttpErrorHelper para parsear errores correctamente
                         string textoError = await response.Content.ReadAsStringAsync();
                         JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                        string errorMostrar = "No se ha podido crear el cliente " + cliente.Nombre + "\n";
-                        if (requestException["exceptionMessage"]!=null)
-                        {
-                            errorMostrar += requestException["exceptionMessage"] + "\n";
-                        }
-                        if (requestException["ExceptionMessage"] != null)
-                        {
-                            errorMostrar += requestException["ExceptionMessage"] + "\n";
-                        }
-                        if (requestException["ModelState"]!=null)
-                        {
-                            var firstError = requestException["ModelState"];
-                            var nodoError = firstError.LastOrDefault();
-                            errorMostrar += nodoError.FirstOrDefault()[0];
-                        }
-                        var innerException = requestException["InnerException"];
-                        while (innerException!=null)
-                        {
-                            errorMostrar += "\n" + innerException["ExceptionMessage"];
-                            innerException = innerException["InnerException"];
-                        }
-                        throw new Exception(errorMostrar);
-                                
+                        string mensajeError = HttpErrorHelper.ParsearErrorHttp(requestException);
+                        throw new Exception("No se ha podido crear el cliente " + cliente.Nombre + "\n" + mensajeError);
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    throw ex;
+                    // Carlos 24/11/24: Solo 'throw' para preservar el stack trace completo
+                    throw;
                 }
             }
 
@@ -118,12 +99,17 @@ namespace Nesto.Modulos.Cliente
                     }
                     else
                     {
-                        throw new Exception(String.Format("No existe el cliente {0}/{1}/{2}", empresa, cliente, contacto));
+                        // Carlos 24/11/24: Usar HttpErrorHelper para parsear errores correctamente
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+                        string mensajeError = HttpErrorHelper.ParsearErrorHttp(requestException);
+                        throw new Exception(String.Format("No existe el cliente {0}/{1}/{2}\n{3}", empresa, cliente, contacto, mensajeError));
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    throw ex;
+                    // Carlos 24/11/24: Solo 'throw' para preservar el stack trace completo
+                    throw;
                 }
             }
 
@@ -160,27 +146,17 @@ namespace Nesto.Modulos.Cliente
                     }
                     else
                     {
+                        // Carlos 24/11/24: Usar HttpErrorHelper para parsear errores correctamente
                         string textoError = await response.Content.ReadAsStringAsync();
                         JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
-
-                        string errorMostrar = "No se ha podido modificar el cliente " + cliente.Nombre + "\n";
-                        if (requestException["exceptionMessage"] != null)
-                        {
-                            errorMostrar += requestException["exceptionMessage"] + "\n";
-                        }
-                        if (requestException["ModelState"] != null)
-                        {
-                            var firstError = requestException["ModelState"];
-                            var nodoError = firstError.LastOrDefault();
-                            errorMostrar += nodoError.FirstOrDefault()[0];
-                        }
-                        throw new Exception(errorMostrar);
-
+                        string mensajeError = HttpErrorHelper.ParsearErrorHttp(requestException);
+                        throw new Exception("No se ha podido modificar el cliente " + cliente.Nombre + "\n" + mensajeError);
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    throw ex;
+                    // Carlos 24/11/24: Solo 'throw' para preservar el stack trace completo
+                    throw;
                 }
             }
 
@@ -219,15 +195,17 @@ namespace Nesto.Modulos.Cliente
                     }
                     else
                     {
+                        // Carlos 24/11/24: Usar HttpErrorHelper para parsear errores correctamente
                         string textoError = await response.Content.ReadAsStringAsync();
-                        dynamic requestException = JsonConvert.DeserializeObject<dynamic>(textoError);
-                        throw new Exception("No se ha podido validar la dirección en el código postal " + codigoPostal + "\n" +
-                            requestException["exceptionMessage"]);
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+                        string mensajeError = HttpErrorHelper.ParsearErrorHttp(requestException);
+                        throw new Exception("No se ha podido validar la dirección en el código postal " + codigoPostal + "\n" + mensajeError);
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    throw ex;
+                    // Carlos 24/11/24: Solo 'throw' para preservar el stack trace completo
+                    throw;
                 }
             }
 
@@ -266,12 +244,17 @@ namespace Nesto.Modulos.Cliente
                     }
                     else
                     {
-                        throw new Exception("No se ha podido validar la forma de pago " + formaPago);
+                        // Carlos 24/11/24: Usar HttpErrorHelper para parsear errores correctamente
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+                        string mensajeError = HttpErrorHelper.ParsearErrorHttp(requestException);
+                        throw new Exception("No se ha podido validar la forma de pago " + formaPago + "\n" + mensajeError);
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    throw ex;
+                    // Carlos 24/11/24: Solo 'throw' para preservar el stack trace completo
+                    throw;
                 }
             }
 
@@ -308,12 +291,17 @@ namespace Nesto.Modulos.Cliente
                     }
                     else
                     {
-                        throw new Exception("No se ha podido validar el NIF " + nif);
+                        // Carlos 24/11/24: Usar HttpErrorHelper para parsear errores correctamente
+                        string textoError = await response.Content.ReadAsStringAsync();
+                        JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+                        string mensajeError = HttpErrorHelper.ParsearErrorHttp(requestException);
+                        throw new Exception("No se ha podido validar el NIF " + nif + "\n" + mensajeError);
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    throw ex;
+                    // Carlos 24/11/24: Solo 'throw' para preservar el stack trace completo
+                    throw;
                 }
             }
 

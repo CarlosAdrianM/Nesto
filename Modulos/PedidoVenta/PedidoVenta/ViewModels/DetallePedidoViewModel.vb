@@ -895,9 +895,11 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Function CanCrearFacturaVenta() As Boolean
+        ' La factura es un documento administrativo, no requiere estar en el almacén específico
+        ' Solo verificamos que el usuario tenga permisos para facturar
         Return Not IsNothing(pedido) AndAlso pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES AndAlso Not IsNothing(pedido.Lineas) AndAlso
             pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_ALBARAN) AndAlso
-            pedido.Lineas.Any(Function(l) l.Almacen = AlmacenUsuario)
+            EsGrupoQuePuedeFacturar
     End Function
 
     Private Async Sub OnCrearFacturaVenta()
@@ -1000,9 +1002,12 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Function CanCrearAlbaranYFacturaVenta() As Boolean
-        Return Not IsNothing(pedido) AndAlso pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES AndAlso Not IsNothing(pedido.Lineas) AndAlso
-            pedido.Lineas.Any(Function(l) l.estado < Constantes.LineasPedido.ESTADO_FACTURA AndAlso l.estado >= Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE) AndAlso
-            pedido.Lineas.Any(Function(l) l.Almacen = AlmacenUsuario)
+        ' Reutilizamos la lógica: necesitamos poder crear albarán (líneas pendientes en nuestro almacén)
+        ' Y que el pedido sea facturable (no FIN_DE_MES y usuario con permisos)
+        Return CanCrearAlbaranVenta() AndAlso
+               Not IsNothing(pedido) AndAlso
+               pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES AndAlso
+               EsGrupoQuePuedeFacturar
     End Function
 
     Private Async Sub OnCrearAlbaranYFacturaVenta()
