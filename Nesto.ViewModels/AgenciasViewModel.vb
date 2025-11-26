@@ -381,6 +381,10 @@ Public Class AgenciasViewModel
                 movilEnvio = telefono.MovilUnico
                 correoEnvio = correoUnico()
                 observacionesEnvio = pedidoSeleccionado.Comentarios
+
+                ' Auto-marcar checkbox de impresión si los comentarios contienen palabras clave
+                ImprimirDocumentoAlFacturar = Await _servicioPedidos.DebeImprimirDocumento(pedidoSeleccionado.Comentarios)
+
                 attEnvio = nombreEnvio
                 fechaEnvio = If(empresaSeleccionada?.FechaPicking, Today)
                 listaEnviosPedido = _servicio.CargarListaEnviosPedido(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
@@ -410,6 +414,7 @@ Public Class AgenciasViewModel
                 observacionesEnvio = String.Empty
                 attEnvio = String.Empty
                 fechaEnvio = Today
+                ImprimirDocumentoAlFacturar = False
                 _dialogService.ShowError(ex.Message)
             End Try
 
@@ -1469,10 +1474,10 @@ Public Class AgenciasViewModel
             Dim mensaje = If(factura <> Constantes.PeriodosFacturacion.FIN_DE_MES,
                 $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}",
                 $"Albarán del pedido {envioActual.Pedido} creado correctamente en albarán {albaran}")
-            _dialogService.ShowNotification("Facturación", mensaje)
 
-            ' Si el checkbox "Imprimir documento" NO está marcado, no imprimir
+            ' Si el checkbox "Imprimir documento" NO está marcado, mostrar notificación y salir
             If Not _imprimirDocumentoAlFacturar Then
+                _dialogService.ShowNotification("Facturación", mensaje)
                 RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
                 Return
             End If
@@ -1495,6 +1500,7 @@ Public Class AgenciasViewModel
 
                 If Not documentos.HayDocumentosParaImprimir Then
                     System.Diagnostics.Debug.WriteLine("⚠ No hay documentos para imprimir")
+                    _dialogService.ShowNotification("Facturación", mensaje)
                     RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
                     Return
                 End If
@@ -1521,6 +1527,9 @@ Public Class AgenciasViewModel
                 End If
 
                 System.Diagnostics.Debug.WriteLine($"✓✓✓ IMPRESIÓN COMPLETADA ✓✓✓")
+
+                ' Mostrar notificación DESPUÉS de imprimir (no antes, para no bloquear la impresión)
+                _dialogService.ShowNotification("Facturación", mensaje)
 
             Catch ex As Exception
                 System.Diagnostics.Debug.WriteLine($"❌ Error al imprimir documentos: {ex.Message}")

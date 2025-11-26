@@ -86,6 +86,10 @@
                                     <TextBlock Text="Fecha pedido:"></TextBlock>
                                     <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
                                     <CheckBox IsChecked="{Binding pedido.notaEntrega}" IsEnabled="False">Nota de Entrega</CheckBox>
+                                    <controles:SelectorPeriodoFacturacion
+                                        Seleccionado="{Binding pedido.periodoFacturacion, Mode=TwoWay}"
+                                        VisibilidadEtiqueta="Visible"
+                                        Margin="0,5,0,0"/>
                                 </StackPanel>
                                 <DockPanel Grid.Column="1">
                                     <TextBox DockPanel.Dock="Top" Text="{Binding pedido.comentarios}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>

@@ -12,4 +12,20 @@
         public decimal descuentoPP { get; set; }
         public decimal? financiacion { get; set; }
     }
+
+    public class PlazosPagoResponse
+    {
+        public System.Collections.Generic.List<PlazosPago> PlazosPago { get; set; }
+        public InfoDeudaCliente InfoDeuda { get; set; }
+    }
+
+    public class InfoDeudaCliente
+    {
+        public bool TieneDeudaVencida { get; set; }
+        public decimal? ImporteDeudaVencida { get; set; }
+        public int? DiasVencimiento { get; set; }
+        public bool TieneImpagados { get; set; }
+        public decimal? ImporteImpagados { get; set; }
+        public string MotivoRestriccion { get; set; }
+    }
 }

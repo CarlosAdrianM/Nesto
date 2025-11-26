@@ -50,7 +50,8 @@
     <ManifestKeyFile>Nesto_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
-    <GenerateManifests>true</GenerateManifests>
+    <!-- Solo generar manifiestos ClickOnce en Visual Studio, no en dotnet CLI -->
+    <GenerateManifests Condition="'$(MSBuildRuntimeType)' != 'Core'">true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
     <SignManifests>false</SignManifests>

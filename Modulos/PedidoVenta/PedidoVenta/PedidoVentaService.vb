@@ -698,4 +698,39 @@ Public Class PedidoVentaService
             Return documentos
         End Using
     End Function
+
+    ''' <summary>
+    ''' Verifica si un pedido debe imprimir documento físico según sus comentarios.
+    ''' Detecta frases como "factura física", "factura en papel", "albarán físico".
+    ''' </summary>
+    Public Async Function DebeImprimirDocumento(comentarios As String) As Task(Of Boolean) Implements IPedidoVentaService.DebeImprimirDocumento
+        If String.IsNullOrWhiteSpace(comentarios) Then
+            Return False
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Dim response As HttpResponseMessage
+            Dim respuesta As String = ""
+
+            Try
+                Dim urlConsulta As String = $"PedidosVenta/DebeImprimirDocumento?comentarios={Uri.EscapeDataString(comentarios)}"
+
+                response = Await client.GetAsync(urlConsulta)
+
+                If Not response.IsSuccessStatusCode Then
+                    ' Si hay error, por defecto no imprimir
+                    Return False
+                End If
+
+                respuesta = Await response.Content.ReadAsStringAsync()
+                Return Boolean.Parse(respuesta)
+
+            Catch ex As Exception
+                ' Si hay error de conexión, por defecto no imprimir
+                System.Diagnostics.Debug.WriteLine($"Error al verificar DebeImprimirDocumento: {ex.Message}")
+                Return False
+            End Try
+        End Using
+    End Function
 End Class

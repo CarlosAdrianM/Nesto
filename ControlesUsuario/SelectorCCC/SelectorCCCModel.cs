@@ -20,6 +20,8 @@ namespace ControlesUsuario.Models
         public short estado { get; set; }
         public short? tipoMandato { get; set; }
         public DateTime? fechaMandato { get; set; }
+        public string ibanFormateado { get; set; }
+        public string nombreEntidad { get; set; }
 
         /// <summary>
         /// Indica si el CCC es válido (estado >= 0).

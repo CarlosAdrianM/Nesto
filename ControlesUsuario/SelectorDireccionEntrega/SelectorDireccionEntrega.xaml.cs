@@ -89,6 +89,7 @@ namespace ControlesUsuario
             listaDireccionesEntrega = new();
             listaDireccionesEntrega.TieneDatosIniciales = true;
             listaDireccionesEntrega.VaciarAlSeleccionar = false;
+            listaDireccionesEntrega.SeleccionarPrimerElemento = false;
 
             this.regionManager = regionManager;
             this.eventAggregator = eventAggregator;

@@ -79,6 +79,7 @@ namespace ControlesUsuario
         private static void OnEmpresaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var selector = (SelectorCCC)d;
+            Debug.WriteLine($"[SelectorCCC] OnEmpresaChanged: '{e.OldValue}' -> '{e.NewValue}', _estaCargando={selector._estaCargando}");
             if (selector._estaCargando) return; // Prevenir bucles
             selector.CargarCCCsAsync();
         }
@@ -99,6 +100,7 @@ namespace ControlesUsuario
         private static void OnClienteChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var selector = (SelectorCCC)d;
+            Debug.WriteLine($"[SelectorCCC] OnClienteChanged: '{e.OldValue}' -> '{e.NewValue}', _estaCargando={selector._estaCargando}");
             if (selector._estaCargando) return; // Prevenir bucles
             selector.CargarCCCsAsync();
         }
@@ -119,6 +121,7 @@ namespace ControlesUsuario
         private static void OnContactoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var selector = (SelectorCCC)d;
+            Debug.WriteLine($"[SelectorCCC] OnContactoChanged: '{e.OldValue}' -> '{e.NewValue}', _estaCargando={selector._estaCargando}");
             if (selector._estaCargando) return; // Prevenir bucles
             selector.CargarCCCsAsync();
         }
@@ -204,11 +207,14 @@ namespace ControlesUsuario
         /// </summary>
         private async void CargarCCCsAsync()
         {
+            Debug.WriteLine($"[SelectorCCC] CargarCCCsAsync - Empresa='{Empresa}', Cliente='{Cliente}', Contacto='{Contacto}'");
+
             // Validar que tenemos los datos necesarios
             if (string.IsNullOrWhiteSpace(Empresa) ||
                 string.IsNullOrWhiteSpace(Cliente) ||
                 string.IsNullOrWhiteSpace(Contacto))
             {
+                Debug.WriteLine($"[SelectorCCC] Datos incompletos - Saliendo");
                 // Limpiar lista si faltan datos
                 ListaCCCs = new ObservableCollection<CCCItem>();
                 return;
@@ -224,8 +230,10 @@ namespace ControlesUsuario
             _estaCargando = true;
             try
             {
+                Debug.WriteLine($"[SelectorCCC] Llamando servicio ObtenerCCCs...");
                 // Llamar al servicio
                 var cccs = await _servicioCCC.ObtenerCCCs(Empresa, Cliente, Contacto);
+                Debug.WriteLine($"[SelectorCCC] Servicio retornó {cccs?.Count() ?? 0} CCCs");
 
                 // Construir lista con opción "(Sin CCC)"
                 var lista = new ObservableCollection<CCCItem>();
@@ -244,34 +252,38 @@ namespace ControlesUsuario
                 // 2. Agregar CCCs de la API
                 foreach (var ccc in cccs)
                 {
-                    // Construir descripción formateada
+                    // Construir descripción formateada: "1 -> ES91 2100 0418 4502 0005 1332 (BBVA)"
                     if (ccc.EsInvalido)
                     {
-                        ccc.Descripcion = $"{ccc.numero} - {ccc.entidad ?? "Sin entidad"} (INVÁLIDO)";
+                        ccc.Descripcion = $"{ccc.numero} (INVÁLIDO)";
                     }
                     else
                     {
-                        if (!string.IsNullOrWhiteSpace(ccc.entidad))
+                        // Formato preferido: número -> IBAN formateado (entidad)
+                        string descripcion = ccc.numero;
+
+                        if (!string.IsNullOrWhiteSpace(ccc.ibanFormateado))
                         {
-                            if (!string.IsNullOrWhiteSpace(ccc.oficina))
-                            {
-                                ccc.Descripcion = $"{ccc.numero} - {ccc.entidad} ({ccc.oficina})";
-                            }
-                            else
-                            {
-                                ccc.Descripcion = $"{ccc.numero} - {ccc.entidad}";
-                            }
+                            descripcion = $"{ccc.numero} -> {ccc.ibanFormateado}";
                         }
-                        else
+
+                        if (!string.IsNullOrWhiteSpace(ccc.nombreEntidad))
                         {
-                            ccc.Descripcion = ccc.numero;
+                            descripcion += $" ({ccc.nombreEntidad})";
                         }
+                        else if (!string.IsNullOrWhiteSpace(ccc.entidad))
+                        {
+                            descripcion += $" ({ccc.entidad})";
+                        }
+
+                        ccc.Descripcion = descripcion;
                     }
 
                     lista.Add(ccc);
                 }
 
                 ListaCCCs = lista;
+                Debug.WriteLine($"[SelectorCCC] Lista asignada con {lista.Count} elementos");
 
                 // Auto-seleccionar según lógica de negocio
                 AutoSeleccionarCCC(lista);

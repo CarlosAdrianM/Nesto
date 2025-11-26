@@ -382,10 +382,12 @@ Public Class DetallePedidoViewModel
             End If
             If Not IsNothing(_pedido) Then
                 RemoveHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
+                RemoveHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
             End If
             Dim unused = SetProperty(_pedido, value)
             If Not IsNothing(_pedido) Then
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
+                AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
             End If
             eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
             estaActualizarFechaActivo = False
@@ -1295,6 +1297,12 @@ Public Class DetallePedidoViewModel
         Catch ex As Exception
             dialogService.ShowError("Error al cargar los parámetros de IVA: " + ex.Message)
         End Try
+    End Sub
+
+    ' Carlos 26/11/24: Actualizar comandos de facturación cuando cambia el periodo
+    Private Sub OnPeriodoFacturacionCambiado(nuevoPeriodo As String)
+        CrearFacturaVentaCommand.RaiseCanExecuteChanged()
+        CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
     End Sub
 
     Private Sub OnPedidoCreadoEnDetalle(eventArgs As PedidoCreadoEventArgs)

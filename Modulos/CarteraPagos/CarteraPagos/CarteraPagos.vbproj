@@ -39,7 +39,8 @@
     <TargetZone>LocalIntranet</TargetZone>
   </PropertyGroup>
   <PropertyGroup>
-    <GenerateManifests>true</GenerateManifests>
+    <!-- Solo generar manifiestos ClickOnce en Visual Studio, no en dotnet CLI -->
+    <GenerateManifests Condition="'$(MSBuildRuntimeType)' != 'Core'">true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>My Project\app.manifest</ApplicationManifest>

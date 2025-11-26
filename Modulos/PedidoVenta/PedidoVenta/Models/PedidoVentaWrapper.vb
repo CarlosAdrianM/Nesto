@@ -8,6 +8,7 @@ Public Class PedidoVentaWrapper
     Inherits BindableBase
 
     Public Event IvaCambiado(nuevoIva As String)
+    Public Event PeriodoFacturacionCambiado(nuevoPeriodo As String)
 
     Public Sub New(pedido As PedidoVentaDTO)
         If IsNothing(pedido) Then
@@ -165,7 +166,11 @@ Public Class PedidoVentaWrapper
             Return Model.periodoFacturacion
         End Get
         Set(value As String)
-            Model.periodoFacturacion = value
+            If Model.periodoFacturacion <> value Then
+                Model.periodoFacturacion = value
+                RaisePropertyChanged(NameOf(periodoFacturacion))
+                RaiseEvent PeriodoFacturacionCambiado(value)
+            End If
         End Set
     End Property
     Public Property ruta() As String

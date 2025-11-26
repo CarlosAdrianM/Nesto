@@ -3,6 +3,7 @@ using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -25,8 +26,6 @@ namespace ControlesUsuario.Services
 
         /// <summary>
         /// Obtiene los CCCs para un cliente/contacto desde la API.
-        /// TEMPORAL: Usa PlantillaVentas/DireccionesEntrega (endpoint existente)
-        /// TODO: Cambiar a api/Clientes/CCCs cuando se despliegue
         /// </summary>
         public async Task<IEnumerable<CCCItem>> ObtenerCCCs(
             string empresa,
@@ -47,8 +46,10 @@ namespace ControlesUsuario.Services
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
-                // TEMPORAL: Usar endpoint de direcciones de entrega y extraer CCCs
-                string urlConsulta = $"PlantillaVentas/DireccionesEntrega?empresa={empresa}&clienteDirecciones={cliente}";
+                // Usar endpoint correcto de CCCs
+                // Nota: servidorAPI ya incluye "/api/" al final
+                string urlConsulta = $"Clientes/CCCs?empresa={empresa}&cliente={cliente}&contacto={contacto}";
+                Debug.WriteLine($"[ServicioCCC] URL Base: {_configuracion.servidorAPI}, Consulta: {urlConsulta}");
 
                 HttpResponseMessage response = await client.GetAsync(urlConsulta);
 
@@ -59,55 +60,14 @@ namespace ControlesUsuario.Services
 
                 string resultado = await response.Content.ReadAsStringAsync();
 
-                // Deserializar direcciones y convertir a CCCItems
-                var direcciones = JsonConvert.DeserializeObject<List<DireccionEntregaDTO>>(resultado);
+                // Deserializar directamente a CCCItems
+                var cccs = JsonConvert.DeserializeObject<List<CCCItem>>(resultado);
 
-                if (direcciones == null || !direcciones.Any())
+                if (cccs == null || !cccs.Any())
                     return Enumerable.Empty<CCCItem>();
-
-                // Convertir direcciones a CCCItems
-                var cccs = direcciones
-                    .Select(d => new CCCItem
-                    {
-                        empresa = empresa,
-                        cliente = cliente,
-                        contacto = d.contacto?.Trim() ?? "0",
-                        numero = d.ccc?.Trim(),
-                        entidad = null, // No disponible en DireccionesEntrega
-                        oficina = null,
-                        estado = 1, // Asumir válido por defecto
-                        Descripcion = GenerarDescripcion(d)
-                    })
-                    .Where(c => !string.IsNullOrWhiteSpace(c.numero)) // Solo CCCs con valor
-                    .OrderBy(c => c.contacto)
-                    .ToList();
 
                 return cccs;
             }
-        }
-
-        private string GenerarDescripcion(DireccionEntregaDTO direccion)
-        {
-            if (string.IsNullOrWhiteSpace(direccion.ccc))
-                return $"Contacto {direccion.contacto}: Sin CCC";
-
-            string cccCorto = direccion.ccc.Length > 8
-                ? "..." + direccion.ccc.Substring(Math.Max(0, direccion.ccc.Length - 8))
-                : direccion.ccc;
-
-            string nombre = !string.IsNullOrWhiteSpace(direccion.nombre)
-                ? direccion.nombre.Trim()
-                : "Sin nombre";
-
-            return $"Contacto {direccion.contacto} ({nombre}): {cccCorto}";
-        }
-
-        // DTO temporal para parsear DireccionesEntrega
-        private class DireccionEntregaDTO
-        {
-            public string contacto { get; set; }
-            public string ccc { get; set; }
-            public string nombre { get; set; }
         }
     }
 }

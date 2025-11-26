@@ -8,6 +8,23 @@
 
     <StackPanel Name="GridPrincipal">
         <TextBlock Text="{Binding Etiqueta}" Visibility="{Binding VisibilidadEtiqueta}"></TextBlock>
+
+        <!-- Mensaje de deuda vencida/impagados -->
+        <TextBlock Text="{Binding MensajeDeuda}"
+                   Visibility="{Binding VisibilidadMensajeDeuda}"
+                   Foreground="Orange"
+                   FontWeight="Bold"
+                   TextWrapping="Wrap"
+                   Margin="0,5,0,5"/>
+
+        <!-- Mensaje de plazo no permitido -->
+        <TextBlock Text="{Binding MensajePlazoNoPermitido}"
+                   Visibility="{Binding VisibilidadMensajePlazoNoPermitido}"
+                   Foreground="Red"
+                   FontWeight="Bold"
+                   TextWrapping="Wrap"
+                   Margin="0,5,0,5"/>
+
         <ComboBox MinWidth="300" ItemsSource="{Binding listaPlazosPago}" SelectedItem="{Binding plazosPagoSeleccionado}" DisplayMemberPath="descripcion"></ComboBox>
     </StackPanel>
 </UserControl>

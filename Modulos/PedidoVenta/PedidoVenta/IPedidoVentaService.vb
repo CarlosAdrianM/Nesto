@@ -34,4 +34,12 @@ Public Interface IPedidoVentaService
     ''' <param name="numeroAlbaran">Número de albarán (opcional)</param>
     ''' <returns>Documentos listos para imprimir</returns>
     Function ObtenerDocumentosImpresion(empresa As String, numeroPedido As Integer, Optional numeroFactura As String = Nothing, Optional numeroAlbaran As Integer? = Nothing) As Task(Of DocumentosImpresionPedidoDTO)
+
+    ''' <summary>
+    ''' Verifica si un pedido debe imprimir documento físico según sus comentarios.
+    ''' Detecta frases como "factura física", "factura en papel", "albarán físico".
+    ''' </summary>
+    ''' <param name="comentarios">Comentarios del pedido</param>
+    ''' <returns>True si debe imprimir documento físico</returns>
+    Function DebeImprimirDocumento(comentarios As String) As Task(Of Boolean)
 End Interface

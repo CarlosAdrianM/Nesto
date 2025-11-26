@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -17,6 +18,9 @@ namespace ControlesUsuario
     /// </summary>
     public partial class SelectorPlazosPago : UserControl, INotifyPropertyChanged
     {
+        private Timer _debounceTimer;
+        private const int DEBOUNCE_DELAY = 300; // ms
+
         public SelectorPlazosPago()
         {
             InitializeComponent();
@@ -47,7 +51,7 @@ namespace ControlesUsuario
         private static void OnClienteChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorPlazosPago selector = (SelectorPlazosPago)d;
-            selector.cargarDatos();
+            selector.CargarDatosConDebounce();
         }
         /// <summary>
         /// Gets or sets the Configuracion para las llamadas a la API
@@ -141,7 +145,7 @@ namespace ControlesUsuario
         private static void OnFormaPagoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorPlazosPago selector = (SelectorPlazosPago)d;
-            selector.cargarDatos();
+            selector.CargarDatosConDebounce();
         }
 
         /// <summary>
@@ -162,7 +166,7 @@ namespace ControlesUsuario
         private static void OnTotalPedidoChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             SelectorPlazosPago selector = (SelectorPlazosPago)d;
-            selector.cargarDatos();
+            selector.CargarDatosConDebounce();
         }
 
 
@@ -214,6 +218,68 @@ namespace ControlesUsuario
         #region "Propiedades"
         private bool _actualizandoPlazosPago = false;
 
+        private InfoDeudaCliente _infoDeuda;
+        public InfoDeudaCliente InfoDeuda
+        {
+            get => _infoDeuda;
+            set
+            {
+                _infoDeuda = value;
+                OnPropertyChanged(nameof(InfoDeuda));
+                OnPropertyChanged(nameof(MensajeDeuda));
+                OnPropertyChanged(nameof(VisibilidadMensajeDeuda));
+            }
+        }
+
+        private string _mensajePlazoNoPermitido;
+        public string MensajePlazoNoPermitido
+        {
+            get => _mensajePlazoNoPermitido;
+            set
+            {
+                _mensajePlazoNoPermitido = value;
+                OnPropertyChanged(nameof(MensajePlazoNoPermitido));
+                OnPropertyChanged(nameof(VisibilidadMensajePlazoNoPermitido));
+            }
+        }
+
+        public Visibility VisibilidadMensajePlazoNoPermitido
+        {
+            get => !string.IsNullOrEmpty(MensajePlazoNoPermitido)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
+        public string MensajeDeuda
+        {
+            get
+            {
+                if (InfoDeuda == null || string.IsNullOrEmpty(InfoDeuda.MotivoRestriccion))
+                    return string.Empty;
+
+                var mensaje = "⚠️ Solo se permiten formas de pago al contado debido a: " + InfoDeuda.MotivoRestriccion;
+
+                if (InfoDeuda.TieneImpagados && InfoDeuda.ImporteImpagados.HasValue)
+                {
+                    mensaje += $"\n   • Impagados: {InfoDeuda.ImporteImpagados.Value:C}";
+                }
+
+                if (InfoDeuda.TieneDeudaVencida && InfoDeuda.ImporteDeudaVencida.HasValue && InfoDeuda.DiasVencimiento.HasValue)
+                {
+                    mensaje += $"\n   • Cartera vencida: {InfoDeuda.ImporteDeudaVencida.Value:C} ({InfoDeuda.DiasVencimiento.Value} días)";
+                }
+
+                return mensaje;
+            }
+        }
+
+        public Visibility VisibilidadMensajeDeuda
+        {
+            get => InfoDeuda != null && !string.IsNullOrEmpty(InfoDeuda.MotivoRestriccion)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
         private PlazosPago _plazosPagoSeleccionado;
         public PlazosPago plazosPagoSeleccionado
         {
@@ -251,6 +317,21 @@ namespace ControlesUsuario
         #endregion
 
         #region "Funciones Auxiliares"
+
+        private void CargarDatosConDebounce()
+        {
+            // Cancelar el timer previo si existe
+            _debounceTimer?.Dispose();
+
+            // Crear nuevo timer que ejecutará cargarDatos() después de DEBOUNCE_DELAY ms
+            _debounceTimer = new Timer(
+                _ => Dispatcher.Invoke(() => cargarDatos()),
+                null,
+                DEBOUNCE_DELAY,
+                Timeout.Infinite
+            );
+        }
+
         private async void cargarDatos()
         {
             using HttpClient client = new();
@@ -259,31 +340,97 @@ namespace ControlesUsuario
 
             try
             {
-                string urlConsulta = "PlazosPago?empresa=" + Empresa;
-                if (Cliente != string.Empty)
+                // Si hay cliente especificado, usar el nuevo endpoint con info de deuda
+                if (!string.IsNullOrEmpty(Cliente))
                 {
-                    urlConsulta += "&cliente=" + Cliente;
-                }
-                if (!string.IsNullOrEmpty(FormaPago) && TotalPedido != 0)
-                {
-                    urlConsulta += $"&formaPago={FormaPago}&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}";
-                }
+                    string urlConsulta = $"PlazosPago/ConInfoDeuda?empresa={Empresa}&cliente={Cliente}";
 
-                response = await client.GetAsync(urlConsulta);
+                    response = await client.GetAsync(urlConsulta);
 
-                if (response.IsSuccessStatusCode)
-                {
-                    string resultado = await response.Content.ReadAsStringAsync();
-                    listaPlazosPago = JsonConvert.DeserializeObject<ObservableCollection<PlazosPago>>(resultado);
-                    if (!string.IsNullOrEmpty(Seleccionada))
+                    if (response.IsSuccessStatusCode)
                     {
-                        plazosPagoSeleccionado = listaPlazosPago.Where(l => l.plazoPago == Seleccionada).SingleOrDefault();
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        var respuesta = JsonConvert.DeserializeObject<PlazosPagoResponse>(resultado);
+
+                        listaPlazosPago = new ObservableCollection<PlazosPago>(respuesta.PlazosPago);
+                        InfoDeuda = respuesta.InfoDeuda;
+
+                        ValidarYAjustarPlazoSeleccionado();
+                    }
+                }
+                else
+                {
+                    // Sin cliente, usar el endpoint original
+                    string urlConsulta = "PlazosPago?empresa=" + Empresa;
+                    if (!string.IsNullOrEmpty(FormaPago) && TotalPedido != 0)
+                    {
+                        urlConsulta += $"&formaPago={FormaPago}&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}";
+                    }
+
+                    response = await client.GetAsync(urlConsulta);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string resultado = await response.Content.ReadAsStringAsync();
+                        listaPlazosPago = JsonConvert.DeserializeObject<ObservableCollection<PlazosPago>>(resultado);
+                        InfoDeuda = null; // Sin cliente no hay info de deuda
+
+                        ValidarYAjustarPlazoSeleccionado();
                     }
                 }
             }
             catch
             {
                 _ = MessageBox.Show("No se pudieron leer los plazos de pago");
+            }
+        }
+
+        /// <summary>
+        /// Valida que el plazo seleccionado esté en la lista disponible.
+        /// Si no está (ej: pedido antiguo con plazo ya no permitido), auto-selecciona contado y muestra advertencia.
+        /// </summary>
+        private void ValidarYAjustarPlazoSeleccionado()
+        {
+            // Limpiar mensaje previo
+            MensajePlazoNoPermitido = null;
+
+            if (string.IsNullOrEmpty(Seleccionada) || listaPlazosPago == null || !listaPlazosPago.Any())
+            {
+                return;
+            }
+
+            // Buscar el plazo seleccionado en la lista
+            var plazoEncontrado = listaPlazosPago.FirstOrDefault(l => l.plazoPago == Seleccionada);
+
+            if (plazoEncontrado != null)
+            {
+                // El plazo existe, todo bien
+                plazosPagoSeleccionado = plazoEncontrado;
+            }
+            else
+            {
+                // El plazo NO existe (ej: pedido con "30 días" pero cliente tiene impagados)
+                // Auto-seleccionar primer plazo de contado
+                var plazoContado = listaPlazosPago.FirstOrDefault(p =>
+                    p.numeroPlazos == 1 &&
+                    p.diasPrimerPlazo == 0 &&
+                    p.mesesPrimerPlazo == 0);
+
+                if (plazoContado != null)
+                {
+                    string plazoAnterior = Seleccionada;
+                    plazosPagoSeleccionado = plazoContado;
+
+                    // Generar mensaje de advertencia
+                    string motivoRestriccion = InfoDeuda?.MotivoRestriccion ?? "restricciones del cliente";
+                    MensajePlazoNoPermitido = $"⚠️ Se cambió de '{plazoAnterior}' a '{plazoContado.descripcion}' debido a: {motivoRestriccion}";
+                }
+                else
+                {
+                    // No hay plazos de contado disponibles (caso raro)
+                    plazosPagoSeleccionado = null;
+                    MensajePlazoNoPermitido = $"⚠️ El plazo '{Seleccionada}' ya no está permitido y no hay plazos al contado disponibles";
+                }
             }
         }
 

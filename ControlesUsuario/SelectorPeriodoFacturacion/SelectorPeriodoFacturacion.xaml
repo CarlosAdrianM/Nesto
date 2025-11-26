@@ -1,0 +1,24 @@
+<UserControl x:Class="ControlesUsuario.SelectorPeriodoFacturacion"
+             x:Name="Root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="60" d:DesignWidth="200">
+
+    <!--
+    Carlos 26/11/24: Control SelectorPeriodoFacturacion
+    IMPORTANTE: NO establecer DataContext aquí para permitir herencia del parent
+    Usa ElementName=Root para bindings internos
+    -->
+
+    <StackPanel>
+        <TextBlock Text="{Binding ElementName=Root, Path=Etiqueta}"
+                   Visibility="{Binding ElementName=Root, Path=VisibilidadEtiqueta}"/>
+        <ComboBox ItemsSource="{Binding ElementName=Root, Path=ListaPeriodosFacturacion}"
+                  SelectedValue="{Binding ElementName=Root, Path=Seleccionado, Mode=TwoWay}"
+                  SelectedValuePath="Codigo"
+                  DisplayMemberPath="Descripcion"/>
+    </StackPanel>
+</UserControl>

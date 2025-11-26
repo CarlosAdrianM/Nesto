@@ -201,8 +201,12 @@ namespace PedidoVentaTests
 
         [TestMethod]
         [TestCategory("CCC")]
-        public void DetallePedidoViewModel_alCambiarDireccionEntregaEnPedidoNuevo_debeCopiarCCC()
+        public void DetallePedidoViewModel_alCambiarDireccionEntregaEnPedidoNuevo_NOcopiaCCC_loManejaElSelectorCCC()
         {
+            // Carlos 20/11/24: El CCC ya NO se copia automáticamente en DireccionEntregaSeleccionada.
+            // Ahora lo maneja el control SelectorCCC de forma independiente.
+            // Este test verifica que el setter de DireccionEntregaSeleccionada NO modifica el CCC.
+
             // Arrange
             IRegionManager regionManager = A.Fake<IRegionManager>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
@@ -238,9 +242,9 @@ namespace PedidoVentaTests
             // Act
             detallePedidoViewModel.DireccionEntregaSeleccionada = direccionConCCC;
 
-            // Assert
-            Assert.AreEqual("ES1234567890123456789012", detallePedidoViewModel.pedido.ccc,
-                "En un pedido NUEVO, el CCC debe copiarse desde la dirección de entrega seleccionada");
+            // Assert: El CCC NO se copia - lo maneja SelectorCCC
+            Assert.IsTrue(string.IsNullOrEmpty(detallePedidoViewModel.pedido.ccc),
+                "El CCC NO debe copiarse desde DireccionEntregaSeleccionada - lo maneja SelectorCCC automáticamente");
         }
 
         [TestMethod]
@@ -323,8 +327,11 @@ namespace PedidoVentaTests
 
         [TestMethod]
         [TestCategory("CCC")]
-        public void DetallePedidoViewModel_alCambiarDireccion_copiaTodosDatosFacturacionEnPedidoNuevo()
+        public void DetallePedidoViewModel_alCambiarDireccion_copiaDatosFacturacionExceptoCCCEnPedidoNuevo()
         {
+            // Carlos 20/11/24: El CCC ya NO se copia aquí - lo maneja SelectorCCC.
+            // Los demás datos de facturación SÍ se copian.
+
             // Arrange
             IRegionManager regionManager = A.Fake<IRegionManager>();
             IConfiguracion configuracion = A.Fake<IConfiguracion>();
@@ -354,14 +361,16 @@ namespace PedidoVentaTests
             // Act
             detallePedidoViewModel.DireccionEntregaSeleccionada = direccion;
 
-            // Assert - Verificar que todos los campos se copian
+            // Assert - Verificar que todos los campos EXCEPTO CCC se copian
             Assert.AreEqual("TRF", detallePedidoViewModel.pedido.formaPago, "formaPago debe copiarse");
             Assert.AreEqual("30D", detallePedidoViewModel.pedido.plazosPago, "plazosPago debe copiarse");
             Assert.AreEqual("G04", detallePedidoViewModel.pedido.iva, "iva debe copiarse");
             Assert.AreEqual("VEN02", detallePedidoViewModel.pedido.vendedor, "vendedor debe copiarse");
             Assert.AreEqual("5", detallePedidoViewModel.pedido.ruta, "ruta debe copiarse");
             Assert.AreEqual("QUI", detallePedidoViewModel.pedido.periodoFacturacion, "periodoFacturacion debe copiarse");
-            Assert.AreEqual("ES9999999999999999999999", detallePedidoViewModel.pedido.ccc, "CCC debe copiarse");
+            // CCC NO se copia - lo maneja SelectorCCC
+            Assert.IsTrue(string.IsNullOrEmpty(detallePedidoViewModel.pedido.ccc),
+                "CCC NO debe copiarse desde DireccionEntregaSeleccionada - lo maneja SelectorCCC");
         }
 
         [TestMethod]

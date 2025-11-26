@@ -3,6 +3,7 @@ using ControlesUsuario.Services;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -142,69 +143,130 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         [TestCategory("SelectorCCC")]
         [TestCategory("AutoSeleccion")]
-        public void SelectorCCC_ConFormaPagoRCB_DeberiAutoSeleccionarPrimerCCCValido()
+        public async Task SelectorCCC_ConFormaPagoRCB_DeberiAutoSeleccionarPrimerCCCValido()
         {
-            // Este test documenta que cuando FormaPago = "RCB" (Recibo Bancario),
-            // el control debería auto-seleccionar el primer CCC válido (estado >= 0).
-            //
-            // Lógica esperada (según AutoSeleccionarCCC):
-            // 1. Filtrar CCCs con estado >= 0 y numero != null
-            // 2. Seleccionar el primero de ellos
-            // 3. Asignar a CCCSeleccionado
-            //
-            // Ejemplo:
-            // Lista CCCs: [(Sin CCC), ES1234...BBVA (válido), ES9876...Santander (inválido)]
-            // FormaPago: "RCB"
-            // Esperado: CCCSeleccionado = "ES1234...BBVA"
+            // Arrange
+            var servicioCCC = A.Fake<IServicioCCC>();
 
-            Assert.IsTrue(true,
-                "Cuando FormaPago = 'RCB', el control debe auto-seleccionar el primer CCC válido. " +
-                "Ver método AutoSeleccionarCCC() en SelectorCCC.xaml.cs");
+            var cccsEsperados = new List<CCCItem>
+            {
+                new CCCItem { numero = "ES1234567890", estado = 1 }, // Válido
+                new CCCItem { numero = "ES9876543210", estado = -1 } // Inválido
+            };
+
+            A.CallTo(() => servicioCCC.ObtenerCCCs("1", "10", "0"))
+                .Returns(Task.FromResult<IEnumerable<CCCItem>>(cccsEsperados));
+
+            SelectorCCC sut = null;
+            string cccSeleccionado = null;
+
+            // Act
+            Thread thread = new Thread(() =>
+            {
+                sut = new SelectorCCC(servicioCCC);
+                sut.FormaPago = "RCB"; // Recibo bancario - debe auto-seleccionar primer CCC válido
+                sut.Contacto = "0";    // Establecer Contacto primero
+                sut.Cliente = "10";    // Luego Cliente
+                sut.Empresa = "1";     // Empresa al final (dispara CargarCCCsAsync)
+
+                System.Threading.Thread.Sleep(300);
+                cccSeleccionado = sut.CCCSeleccionado;
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            await Task.Delay(200);
+
+            // Assert
+            Assert.AreEqual("ES1234567890", cccSeleccionado,
+                "Cuando FormaPago = 'RCB', debe auto-seleccionar el primer CCC válido");
         }
 
         [TestMethod]
         [TestCategory("SelectorCCC")]
         [TestCategory("AutoSeleccion")]
-        public void SelectorCCC_ConFormaPagoNoRCB_DeberiAutoSeleccionarSinCCC()
+        public async Task SelectorCCC_ConFormaPagoNoRCB_DeberiAutoSeleccionarSinCCC()
         {
-            // Este test documenta que cuando FormaPago != "RCB" (no es Recibo),
-            // el control debería auto-seleccionar "(Sin CCC)" (NULL).
-            //
-            // Lógica esperada (según AutoSeleccionarCCC):
-            // if (FormaPago?.Trim() == "RCB") → seleccionar CCC válido
-            // else → CCCSeleccionado = null (que corresponde a "(Sin CCC)")
-            //
-            // Ejemplo:
-            // FormaPago: "EFC" (Efectivo)
-            // Esperado: CCCSeleccionado = null
+            // Arrange
+            var servicioCCC = A.Fake<IServicioCCC>();
 
-            Assert.IsTrue(true,
-                "Cuando FormaPago != 'RCB', el control debe seleccionar '(Sin CCC)' (NULL). " +
-                "Ver método AutoSeleccionarCCC() en SelectorCCC.xaml.cs");
+            var cccsEsperados = new List<CCCItem>
+            {
+                new CCCItem { numero = "ES1234567890", estado = 1 }, // Válido
+            };
+
+            A.CallTo(() => servicioCCC.ObtenerCCCs("1", "10", "0"))
+                .Returns(Task.FromResult<IEnumerable<CCCItem>>(cccsEsperados));
+
+            SelectorCCC sut = null;
+            string cccSeleccionado = "valorInicial"; // Para detectar si cambió a null
+
+            // Act
+            Thread thread = new Thread(() =>
+            {
+                sut = new SelectorCCC(servicioCCC);
+                sut.FormaPago = "EFC"; // Efectivo - NO es RCB, debe auto-seleccionar "(Sin CCC)"
+                sut.Contacto = "0";
+                sut.Cliente = "10";
+                sut.Empresa = "1";
+
+                System.Threading.Thread.Sleep(300);
+                cccSeleccionado = sut.CCCSeleccionado;
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            await Task.Delay(200);
+
+            // Assert
+            Assert.IsNull(cccSeleccionado,
+                "Cuando FormaPago != 'RCB', debe auto-seleccionar '(Sin CCC)' que es NULL");
         }
 
         [TestMethod]
         [TestCategory("SelectorCCC")]
         [TestCategory("AutoSeleccion")]
-        public void SelectorCCC_ConSeleccionPreviaValida_DebeMantenerSeleccion()
+        public async Task SelectorCCC_ConSeleccionPreviaValida_DebeMantenerSeleccion()
         {
-            // Este test documenta que si ya hay un CCC seleccionado y ese CCC
-            // sigue existiendo en la lista cargada, el control debe mantener
-            // la selección (no cambiarla automáticamente).
-            //
-            // Lógica esperada (según AutoSeleccionarCCC):
-            // if (!string.IsNullOrEmpty(CCCSeleccionado))
-            // {
-            //     var existe = lista.Any(c => c.numero == CCCSeleccionado);
-            //     if (existe) return; // Mantener selección actual
-            // }
-            //
-            // Esto evita que cambios en FormaPago o recargas sobrescriban
-            // la selección del usuario.
+            // Arrange
+            var servicioCCC = A.Fake<IServicioCCC>();
 
-            Assert.IsTrue(true,
-                "Si ya hay un CCC seleccionado y sigue siendo válido, debe mantenerse. " +
-                "Ver método AutoSeleccionarCCC() en SelectorCCC.xaml.cs");
+            var cccsEsperados = new List<CCCItem>
+            {
+                new CCCItem { numero = "ES1111111111", estado = 1 }, // Válido
+                new CCCItem { numero = "ES2222222222", estado = 1 }, // Válido - el que pre-seleccionaremos
+            };
+
+            A.CallTo(() => servicioCCC.ObtenerCCCs("1", "10", "0"))
+                .Returns(Task.FromResult<IEnumerable<CCCItem>>(cccsEsperados));
+
+            SelectorCCC sut = null;
+            string cccSeleccionado = null;
+
+            // Act
+            Thread thread = new Thread(() =>
+            {
+                sut = new SelectorCCC(servicioCCC);
+                sut.CCCSeleccionado = "ES2222222222"; // Pre-seleccionar antes de cargar
+                sut.FormaPago = "RCB"; // Aunque sea RCB, debe respetar la selección previa
+                sut.Contacto = "0";
+                sut.Cliente = "10";
+                sut.Empresa = "1";
+
+                System.Threading.Thread.Sleep(300);
+                cccSeleccionado = sut.CCCSeleccionado;
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            await Task.Delay(200);
+
+            // Assert
+            Assert.AreEqual("ES2222222222", cccSeleccionado,
+                "Debe respetar la selección previa 'ES2222222222', NO auto-seleccionar el primero");
         }
 
         #endregion
@@ -214,25 +276,50 @@ namespace ControlesUsuario.Tests
         [TestMethod]
         [TestCategory("SelectorCCC")]
         [TestCategory("SinCCC")]
-        public void SelectorCCC_SiempreDebeTenerOpcionSinCCC()
+        public async Task SelectorCCC_SiempreDebeTenerOpcionSinCCC()
         {
-            // Este test documenta que la lista de CCCs siempre debe incluir
-            // una opción "(Sin CCC)" como primer elemento.
-            //
-            // Lógica esperada (según CargarCCCsAsync):
-            // lista.Add(new CCC
-            // {
-            //     numero = null, // NULL = Sin CCC
-            //     Descripcion = "(Sin CCC)",
-            //     estado = 1 // Válido
-            // });
-            //
-            // Esta opción permite al usuario indicar que no quiere usar CCC,
-            // y retorna NULL al binding CCCSeleccionado.
+            // Arrange
+            var servicioCCC = A.Fake<IServicioCCC>();
 
-            Assert.IsTrue(true,
-                "La lista de CCCs siempre debe incluir '(Sin CCC)' como primera opción (numero = NULL). " +
-                "Ver método CargarCCCsAsync() en SelectorCCC.xaml.cs");
+            var cccsEsperados = new List<CCCItem>
+            {
+                new CCCItem { numero = "ES1234567890", estado = 1 },
+            };
+
+            A.CallTo(() => servicioCCC.ObtenerCCCs("1", "10", "0"))
+                .Returns(Task.FromResult<IEnumerable<CCCItem>>(cccsEsperados));
+
+            SelectorCCC sut = null;
+            ObservableCollection<CCCItem> listaCCCs = null;
+            CCCItem primerItem = null;
+
+            // Act
+            Thread thread = new Thread(() =>
+            {
+                sut = new SelectorCCC(servicioCCC);
+                sut.Contacto = "0";
+                sut.Cliente = "10";
+                sut.Empresa = "1";
+
+                System.Threading.Thread.Sleep(300);
+                listaCCCs = sut.ListaCCCs;
+                if (listaCCCs != null && listaCCCs.Any())
+                {
+                    primerItem = listaCCCs.First();
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            await Task.Delay(200);
+
+            // Assert
+            Assert.IsNotNull(listaCCCs, "La lista de CCCs debería estar cargada");
+            Assert.IsTrue(listaCCCs.Count >= 2, "La lista debería tener al menos 2 elementos (Sin CCC + el CCC del servicio)");
+            Assert.IsNotNull(primerItem, "El primer item debería existir");
+            Assert.IsNull(primerItem.numero, "El primer item '(Sin CCC)' debe tener numero = NULL");
+            Assert.AreEqual("(Sin CCC)", primerItem.Descripcion, "El primer item debe ser '(Sin CCC)'");
         }
 
         [TestMethod]
