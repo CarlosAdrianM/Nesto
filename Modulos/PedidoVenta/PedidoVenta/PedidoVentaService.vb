@@ -130,15 +130,41 @@ Public Class PedidoVentaService
             Dim urlConsulta As String = "PedidosVenta"
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
-            Dim response As HttpResponseMessage = Await client.PutAsync(urlConsulta, content)
+            Try
+                Dim response As HttpResponseMessage = Await client.PutAsync(urlConsulta, content)
 
-            If response.IsSuccessStatusCode Then
-                Dim respuesta As String = Await response.Content.ReadAsStringAsync()
-                ' Hacer algo con respuesta si es necesario
-            Else
-                Dim mensajeError As String = Await ObtenerMensajeError(response)
-                Throw New Exception(mensajeError)
-            End If
+                If response.IsSuccessStatusCode Then
+                    Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    ' Hacer algo con respuesta si es necesario
+                Else
+                    Dim respuestaError = Await response.Content.ReadAsStringAsync()
+                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+
+                    ' Carlos 28/11/25: Detectar si es un error de validación de pedido (PEDIDO_VALIDACION_FALLO)
+                    ' para lanzar ValidationException que el ViewModel pueda capturar (igual que en CrearPedido)
+                    Dim errorCode As String = Nothing
+                    If Not IsNothing(detallesError("error")) Then
+                        Dim errorObj As JObject = detallesError("error")
+                        errorCode = errorObj("code")?.ToString()
+                    End If
+
+                    ' Parsear el mensaje de error usando HttpErrorHelper
+                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
+
+                    ' Si es error de validación de pedido, lanzar ValidationException
+                    ' para que el ViewModel pueda preguntar "¿Crear sin pasar validación?"
+                    If errorCode = "PEDIDO_VALIDACION_FALLO" Then
+                        Throw New System.ComponentModel.DataAnnotations.ValidationException(contenido)
+                    Else
+                        Throw New Exception(contenido)
+                    End If
+                End If
+
+            Catch ex As ValidationException
+                Throw
+            Catch ex As Exception
+                Throw New Exception("Error al modificar el pedido: " + ex.Message)
+            End Try
         End Using
     End Function
 
