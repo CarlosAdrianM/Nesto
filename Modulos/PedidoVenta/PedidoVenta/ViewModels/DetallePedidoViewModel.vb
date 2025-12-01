@@ -207,7 +207,7 @@ Public Class DetallePedidoViewModel
                     ' Carlos 20/11/24: NO copiar CCC aquí - lo maneja SelectorCCC automáticamente
                     ' pedido.ccc = value.ccc
                     'Debug.WriteLine($"      → CCC copiado: {If(String.IsNullOrEmpty(pedido.ccc), "EMPTY", pedido.ccc)}")
-                'Else
+                    'Else
                     'Debug.WriteLine($"      → NO copiando (pedido existente o null)")
                 End If
             End If
@@ -899,7 +899,7 @@ Public Class DetallePedidoViewModel
     Private Function CanCrearFacturaVenta() As Boolean
         ' La factura es un documento administrativo, no requiere estar en el almacén específico
         ' Solo verificamos que el usuario tenga permisos para facturar
-        Return Not IsNothing(pedido) AndAlso pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES AndAlso Not IsNothing(pedido.Lineas) AndAlso
+        Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso
             pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_ALBARAN) AndAlso
             EsGrupoQuePuedeFacturar
     End Function
@@ -910,9 +910,9 @@ Public Class DetallePedidoViewModel
         End If
         Try
             Dim resultado As CrearFacturaResponseDTO = Await servicio.CrearFacturaVenta(pedido.empresa.ToString, pedido.numero.ToString)
-            If resultado.NumeroFactura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
-                Throw New Exception("No se pudo crear factura porque el cliente es de fin de mes")
-            End If
+            'If resultado.NumeroFactura = Constantes.PeriodosFacturacion.FIN_DE_MES Then
+            '    Throw New Exception("No se pudo crear factura porque el cliente es de fin de mes")
+            'End If
 
             ' IMPORTANTE: Usar la empresa del resultado, no la original
             ' Si hubo traspaso a empresa espejo, resultado.Empresa contendrá la empresa correcta

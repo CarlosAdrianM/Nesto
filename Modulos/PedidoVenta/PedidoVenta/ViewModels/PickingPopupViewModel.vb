@@ -272,27 +272,21 @@ Public Class PickingPopupViewModel
     Private Async Sub OnSacarPicking(pedidoPicking As PedidoVentaDTO)
         Try
             estaSacandoPicking = True
-            Await Task.Run(Sub()
-                               Try
-                                   If esPickingPedido Then
-                                       Dim empresaPicking As String
-                                       If Not IsNothing(pedidoPicking) Then
-                                           empresaPicking = pedidoPicking.empresa
-                                       Else
-                                           empresaPicking = Constantes.Empresas.EMPRESA_DEFECTO
-                                       End If
-                                       servicio.sacarPickingPedido(empresaPicking, numeroPedidoPicking)
-                                   ElseIf esPickingCliente Then
-                                       servicio.sacarPickingPedido(numeroClientePicking)
-                                   ElseIf esPickingRutas Then
-                                       servicio.sacarPickingPedido()
-                                   Else
-                                       Throw New Exception("No hay ningún tipo de picking seleccionado")
-                                   End If
-                               Catch ex As Exception
-                                   Throw ex
-                               End Try
-                           End Sub)
+            If esPickingPedido Then
+                Dim empresaPicking As String
+                If Not IsNothing(pedidoPicking) Then
+                    empresaPicking = pedidoPicking.empresa
+                Else
+                    empresaPicking = Constantes.Empresas.EMPRESA_DEFECTO
+                End If
+                Await servicio.sacarPickingPedido(empresaPicking, numeroPedidoPicking)
+            ElseIf esPickingCliente Then
+                Await servicio.sacarPickingPedido(numeroClientePicking)
+            ElseIf esPickingRutas Then
+                Await servicio.sacarPickingPedido()
+            Else
+                Throw New Exception("No hay ningún tipo de picking seleccionado")
+            End If
             Dim textoMensaje As String
             If esPickingPedido Then
                 textoMensaje = "Se ha asignado el picking correctamente al pedido " + numeroPedidoPicking.ToString

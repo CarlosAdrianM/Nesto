@@ -8,9 +8,9 @@ Public Interface IPedidoVentaService
     Function cargarPedido(empresa As String, numero As Integer) As Task(Of PedidoVentaDTO)
     Function cargarProducto(empresa As String, id As String, cliente As String, contacto As String, cantidad As Short) As Task(Of Producto)
     Function modificarPedido(pedido As PedidoVentaDTO) As Task
-    Sub sacarPickingPedido(empresa As String, numero As Integer)
-    Sub sacarPickingPedido(cliente As String)
-    Sub sacarPickingPedido()
+    Function sacarPickingPedido(empresa As String, numero As Integer) As Task
+    Function sacarPickingPedido(cliente As String) As Task
+    Function sacarPickingPedido() As Task
     Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO))
     Sub EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, cliente As String)
     Function CargarPedidosPendientes(empresa As String, cliente As String) As Task(Of ObservableCollection(Of Integer))

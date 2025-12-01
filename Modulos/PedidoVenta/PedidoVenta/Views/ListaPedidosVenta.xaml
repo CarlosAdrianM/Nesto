@@ -106,11 +106,11 @@
             <CheckBox Grid.Row="4" IsChecked="{Binding mostrarSoloPendientes}">Mostrar Sólo Pendientes</CheckBox>
             <CheckBox Grid.Row="5" IsChecked="{Binding mostrarSoloPicking}">Mostrar Sólo Picking</CheckBox>
 
-            <Button Grid.Row="6" Content="Crear Pedido Nuevo" 
+            <Button Grid.Row="6" Content="Iniciar Pedido Nuevo" 
                     Command="{Binding CrearPedidoCommand}"
                     Visibility="{Binding EstaCreandoPedidoInvertida, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-            <Button Grid.Row="6" Content="Cancelar Creación Pedido" 
+            <Button Grid.Row="6" Content="Cancelar pedido sin crear" 
                     Command="{Binding CancelarCreacionCommand}"
                     Visibility="{Binding EstaCreandoPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/> 
         </Grid>

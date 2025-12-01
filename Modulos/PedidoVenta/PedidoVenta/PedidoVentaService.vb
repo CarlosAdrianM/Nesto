@@ -183,29 +183,27 @@ Public Class PedidoVentaService
         Return contenido
     End Function
 
-    Public Sub sacarPickingPedido(empresa As String, numero As Integer) Implements IPedidoVentaService.sacarPickingPedido
+    Public Async Function sacarPickingPedido(empresa As String, numero As Integer) As Task Implements IPedidoVentaService.sacarPickingPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
             Try
+                ' Agregar autenticación
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 Dim urlConsulta As String = "Picking"
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroPedido=" + numero.ToString
 
-                response = client.GetAsync(urlConsulta).Result
+                response = Await client.GetAsync(urlConsulta)
 
-                respuesta = response.Content.ReadAsStringAsync().Result
+                respuesta = Await response.Content.ReadAsStringAsync()
                 If Not response.IsSuccessStatusCode Then
-                    Dim objetoRespuesta As JObject
-                    objetoRespuesta = JsonConvert.DeserializeObject(respuesta)
-                    If Not IsNothing(objetoRespuesta("ExceptionMessage")) Then
-                        Dim textoError As String = objetoRespuesta("ExceptionMessage")
-                        Throw New Exception(textoError)
-                    Else
-                        Throw New Exception(respuesta)
-                    End If
+                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
                 End If
 
             Catch ex As Exception
@@ -215,29 +213,27 @@ Public Class PedidoVentaService
             End Try
 
         End Using
-    End Sub
-    Public Sub sacarPickingPedido(cliente As String) Implements IPedidoVentaService.sacarPickingPedido
+    End Function
+    Public Async Function sacarPickingPedido(cliente As String) As Task Implements IPedidoVentaService.sacarPickingPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
             Try
+                ' Agregar autenticación
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 Dim urlConsulta As String = "Picking"
                 urlConsulta += "?cliente=" + cliente
 
-                response = client.GetAsync(urlConsulta).Result
+                response = Await client.GetAsync(urlConsulta)
 
-                respuesta = response.Content.ReadAsStringAsync().Result
+                respuesta = Await response.Content.ReadAsStringAsync()
                 If Not response.IsSuccessStatusCode Then
-                    Dim objetoRespuesta As JObject
-                    objetoRespuesta = JsonConvert.DeserializeObject(respuesta)
-                    If Not IsNothing(objetoRespuesta("ExceptionMessage")) Then
-                        Dim textoError As String = objetoRespuesta("ExceptionMessage")
-                        Throw New Exception(textoError)
-                    Else
-                        Throw New Exception(respuesta)
-                    End If
+                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
                 End If
 
             Catch ex As Exception
@@ -247,28 +243,26 @@ Public Class PedidoVentaService
             End Try
 
         End Using
-    End Sub
-    Public Sub sacarPickingPedido() Implements IPedidoVentaService.sacarPickingPedido
+    End Function
+    Public Async Function sacarPickingPedido() As Task Implements IPedidoVentaService.sacarPickingPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
             Try
+                ' Agregar autenticación
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 Dim urlConsulta As String = "Picking"
 
-                response = client.GetAsync(urlConsulta).Result
+                response = Await client.GetAsync(urlConsulta)
 
-                respuesta = response.Content.ReadAsStringAsync().Result
+                respuesta = Await response.Content.ReadAsStringAsync()
                 If Not response.IsSuccessStatusCode Then
-                    Dim objetoRespuesta As JObject
-                    objetoRespuesta = JsonConvert.DeserializeObject(respuesta)
-                    If Not IsNothing(objetoRespuesta("ExceptionMessage")) Then
-                        Dim textoError As String = objetoRespuesta("ExceptionMessage")
-                        Throw New Exception(textoError)
-                    Else
-                        Throw New Exception(respuesta)
-                    End If
+                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
                 End If
 
             Catch ex As Exception
@@ -278,7 +272,7 @@ Public Class PedidoVentaService
             End Try
 
         End Using
-    End Sub
+    End Function
 
     Public Async Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO)) Implements IPedidoVentaService.CargarEnlacesSeguimiento
         Using client As New HttpClient
