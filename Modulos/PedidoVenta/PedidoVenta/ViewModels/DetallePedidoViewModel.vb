@@ -879,7 +879,7 @@ Public Class DetallePedidoViewModel
             Dim albaran As Integer = Await servicio.CrearAlbaranVenta(pedido.empresa.ToString, pedido.numero.ToString)
             dialogService.ShowNotification($"Albarán {albaran} creado correctamente")
         Catch ex As Exception
-            dialogService.ShowError("No se ha podido crear el albarán")
+            dialogService.ShowError($"No se ha podido crear el albarán: {ex.Message}")
         Finally
             CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
             CrearFacturaVentaCommand.RaiseCanExecuteChanged()
@@ -1027,7 +1027,7 @@ Public Class DetallePedidoViewModel
             dialogService.ShowNotification($"Albarán {albaran} y factura {resultado.NumeroFactura} creados correctamente")
             Await ImprimirFactura(resultado.NumeroFactura)
         Catch ex As Exception
-            dialogService.ShowError("No se ha podido crear el albarán o la factura")
+            dialogService.ShowError($"No se ha podido crear el albarán o la factura: {ex.Message}")
         End Try
     End Sub
 
@@ -1293,6 +1293,17 @@ Public Class DetallePedidoViewModel
         Try
             If Not String.IsNullOrEmpty(nuevoIva) AndAlso Not IsNothing(pedido) Then
                 pedido.Model.ParametrosIva = Await servicio.CargarParametrosIva(pedido.empresa, nuevoIva)
+
+                ' Carlos 02/12/25: Actualizar PorcentajeIva en líneas existentes cuando cambia el IVA de cabecera (Issue #246)
+                If pedido.Model.ParametrosIva IsNot Nothing AndAlso pedido.Model.ParametrosIva.Any() Then
+                    For Each linea In pedido.Lineas.Where(Function(l) Not String.IsNullOrEmpty(l.iva))
+                        Dim parametro = pedido.Model.ParametrosIva.SingleOrDefault(Function(p) p.CodigoIvaProducto.Equals(linea.iva.Trim(), StringComparison.OrdinalIgnoreCase))
+                        If parametro IsNot Nothing Then
+                            linea.Model.PorcentajeIva = parametro.PorcentajeIvaProducto
+                            linea.Model.PorcentajeRecargoEquivalencia = parametro.PorcentajeRecargoEquivalencia
+                        End If
+                    Next
+                End If
             End If
         Catch ex As Exception
             dialogService.ShowError("Error al cargar los parámetros de IVA: " + ex.Message)
