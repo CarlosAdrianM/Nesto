@@ -2,8 +2,13 @@
 Imports System.Runtime.Serialization
 
 
+''' <summary>
+''' DTO para pedidos de venta. Implementa IEquatable para detectar cambios sin guardar.
+''' </summary>
 Public Class PedidoVentaDTO
     Inherits PedidoBase(Of LineaPedidoVentaDTO)
+    Implements IEquatable(Of PedidoVentaDTO)
+
     Public Sub New()
         Lineas = New List(Of LineaPedidoVentaDTO)()
         Prepagos = New ObservableCollection(Of PrepagoDTO)
@@ -102,6 +107,81 @@ Public Class PedidoVentaDTO
             linea.Pedido = Me
         Next
     End Sub
+
+#Region "IEquatable - Comparación para detectar cambios sin guardar (Issue #254)"
+
+    ''' <summary>
+    ''' Compara los campos editables del pedido que afectan a la facturación.
+    ''' No compara las líneas (solo cabecera) ni campos de solo lectura.
+    ''' </summary>
+    Public Overloads Function Equals(other As PedidoVentaDTO) As Boolean Implements IEquatable(Of PedidoVentaDTO).Equals
+        If other Is Nothing Then Return False
+        If ReferenceEquals(Me, other) Then Return True
+
+        ' Comparamos solo los campos que el usuario puede modificar y afectan a facturación
+        Return String.Equals(formaPago, other.formaPago, StringComparison.Ordinal) AndAlso
+               String.Equals(plazosPago, other.plazosPago, StringComparison.Ordinal) AndAlso
+               String.Equals(ccc, other.ccc, StringComparison.Ordinal) AndAlso
+               String.Equals(iva, other.iva, StringComparison.Ordinal) AndAlso
+               String.Equals(vendedor, other.vendedor, StringComparison.Ordinal) AndAlso
+               String.Equals(periodoFacturacion, other.periodoFacturacion, StringComparison.Ordinal) AndAlso
+               String.Equals(ruta, other.ruta, StringComparison.Ordinal) AndAlso
+               String.Equals(serie, other.serie, StringComparison.Ordinal) AndAlso
+               String.Equals(contacto, other.contacto, StringComparison.Ordinal) AndAlso
+               String.Equals(contactoCobro, other.contactoCobro, StringComparison.Ordinal) AndAlso
+               String.Equals(comentarios, other.comentarios, StringComparison.Ordinal) AndAlso
+               String.Equals(comentarioPicking, other.comentarioPicking, StringComparison.Ordinal) AndAlso
+               Nullable.Equals(primerVencimiento, other.primerVencimiento) AndAlso
+               noComisiona = other.noComisiona AndAlso
+               mantenerJunto = other.mantenerJunto AndAlso
+               servirJunto = other.servirJunto AndAlso
+               notaEntrega = other.notaEntrega
+    End Function
+
+    Public Overrides Function Equals(obj As Object) As Boolean
+        Return Equals(TryCast(obj, PedidoVentaDTO))
+    End Function
+
+    Public Overrides Function GetHashCode() As Integer
+        ' Usamos XOR para evitar overflow en las operaciones
+        Dim hash As Integer = 17
+        hash = hash Xor If(formaPago IsNot Nothing, formaPago.GetHashCode(), 0)
+        hash = hash Xor If(ccc IsNot Nothing, ccc.GetHashCode(), 0)
+        hash = hash Xor If(plazosPago IsNot Nothing, plazosPago.GetHashCode(), 0)
+        hash = hash Xor If(iva IsNot Nothing, iva.GetHashCode(), 0)
+        Return hash
+    End Function
+
+    ''' <summary>
+    ''' Crea una copia superficial del pedido para guardar como snapshot.
+    ''' Solo copia los campos comparados en Equals.
+    ''' </summary>
+    Public Function CrearSnapshot() As PedidoVentaDTO
+        Return New PedidoVentaDTO() With {
+            .empresa = Me.empresa,
+            .numero = Me.numero,
+            .cliente = Me.cliente,
+            .contacto = Me.contacto,
+            .formaPago = Me.formaPago,
+            .plazosPago = Me.plazosPago,
+            .primerVencimiento = Me.primerVencimiento,
+            .ccc = Me.ccc,
+            .iva = Me.iva,
+            .vendedor = Me.vendedor,
+            .periodoFacturacion = Me.periodoFacturacion,
+            .ruta = Me.ruta,
+            .serie = Me.serie,
+            .contactoCobro = Me.contactoCobro,
+            .comentarios = Me.comentarios,
+            .comentarioPicking = Me.comentarioPicking,
+            .noComisiona = Me.noComisiona,
+            .mantenerJunto = Me.mantenerJunto,
+            .servirJunto = Me.servirJunto,
+            .notaEntrega = Me.notaEntrega
+        }
+    End Function
+
+#End Region
 
 End Class
 

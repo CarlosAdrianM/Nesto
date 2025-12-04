@@ -308,6 +308,24 @@ Public Class DetallePedidoViewModel
         End Get
     End Property
 
+    ' Carlos 04/12/25: Snapshot del pedido guardado para detectar cambios sin guardar (Issue #254)
+    Private _snapshotPedidoGuardado As PedidoVentaDTO
+
+    ''' <summary>
+    ''' Indica si el pedido tiene cambios sin guardar.
+    ''' True si: es un pedido nuevo (numero=0) O si los datos actuales difieren del último guardado.
+    ''' </summary>
+    Public ReadOnly Property TieneCambiosSinGuardar As Boolean
+        Get
+            If IsNothing(pedido) Then Return False
+            ' Pedido nuevo sin guardar
+            If EstaCreandoPedido Then Return True
+            ' Pedido existente: comparar con snapshot
+            If IsNothing(_snapshotPedidoGuardado) Then Return False
+            Return Not pedido.Model.Equals(_snapshotPedidoGuardado)
+        End Get
+    End Property
+
     Private _fechaEntrega As Date
     Public Property fechaEntrega As Date
         Get
@@ -610,6 +628,8 @@ Public Class DetallePedidoViewModel
                     Titulo = "Pedido Venta (" + resumen.numero.ToString + ")"
                     Dim pedidoDTO As PedidoVentaDTO = Await servicio.cargarPedido(resumen.empresa, resumen.numero)
                     pedido = New PedidoVentaWrapper(pedidoDTO)
+                    ' Carlos 04/12/25: Guardar snapshot para detectar cambios sin guardar (Issue #254)
+                    _snapshotPedidoGuardado = pedidoDTO.CrearSnapshot()
                     ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(resumen.empresa, resumen.numero)
                     If Not IsNothing(pedido) Then
                         ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
@@ -872,6 +892,11 @@ Public Class DetallePedidoViewModel
     End Function
 
     Private Async Sub OnCrearAlbaranVenta()
+        ' Carlos 04/12/25: Verificar cambios sin guardar antes de crear albarán (Issue #254)
+        If Not Await VerificarYGuardarCambiosPendientes() Then
+            Return
+        End If
+
         If Not dialogService.ShowConfirmationAnswer("Crear albarán", "¿Desea crear el albarán del pedido?") Then
             Return
         End If
@@ -905,6 +930,11 @@ Public Class DetallePedidoViewModel
     End Function
 
     Private Async Sub OnCrearFacturaVenta()
+        ' Carlos 04/12/25: Verificar cambios sin guardar antes de crear factura (Issue #254)
+        If Not Await VerificarYGuardarCambiosPendientes() Then
+            Return
+        End If
+
         If Not dialogService.ShowConfirmationAnswer("Crear factura", "¿Desea crear la factura del pedido?") Then
             Return
         End If
@@ -1013,6 +1043,11 @@ Public Class DetallePedidoViewModel
     End Function
 
     Private Async Sub OnCrearAlbaranYFacturaVenta()
+        ' Carlos 04/12/25: Verificar cambios sin guardar antes de crear albarán y factura (Issue #254)
+        If Not Await VerificarYGuardarCambiosPendientes() Then
+            Return
+        End If
+
         If Not dialogService.ShowConfirmationAnswer("Crear albarán y factura", "¿Desea crear la factura del pedido directamente?") Then
             Return
         End If
@@ -1030,6 +1065,60 @@ Public Class DetallePedidoViewModel
             dialogService.ShowError($"No se ha podido crear el albarán o la factura: {ex.Message}")
         End Try
     End Sub
+
+    ''' <summary>
+    ''' Carlos 04/12/25: Verifica si hay cambios sin guardar y pregunta al usuario si desea guardarlos (Issue #254).
+    ''' Retorna True si se puede continuar (no hay cambios, o se guardaron correctamente, o el usuario canceló).
+    ''' Retorna False si hay cambios y el usuario no quiso guardar o hubo error al guardar.
+    ''' </summary>
+    Private Async Function VerificarYGuardarCambiosPendientes() As Task(Of Boolean)
+        If Not TieneCambiosSinGuardar Then
+            Return True ' No hay cambios, continuar
+        End If
+
+        ' Hay cambios sin guardar
+        Dim mensaje As String
+        If EstaCreandoPedido Then
+            mensaje = "El pedido aún no ha sido guardado. Debe guardar el pedido antes de crear albarán o factura." & vbCrLf & vbCrLf &
+                     "¿Desea guardar el pedido ahora?"
+        Else
+            mensaje = "El pedido tiene cambios sin guardar. Si continúa sin guardar, el albarán/factura se creará con los datos anteriores." & vbCrLf & vbCrLf &
+                     "¿Desea guardar los cambios antes de continuar?"
+        End If
+
+        Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Cambios sin guardar", mensaje)
+
+        If Not confirmar Then
+            Return False ' Usuario no quiso guardar, cancelar operación
+        End If
+
+        ' Intentar guardar el pedido
+        Try
+            textoBusyIndicator = "Guardando pedido..."
+            estaBloqueado = True
+
+            If EstaCreandoPedido Then
+                Dim numeroPedidoCreado As Integer = Await servicio.CrearPedido(pedido.Model)
+                pedido.numero = numeroPedidoCreado
+                RaisePropertyChanged(NameOf(EstaCreandoPedido))
+                RaisePropertyChanged(NameOf(TextoBotonGuardar))
+                Titulo = $"Pedido Venta ({pedido.numero})"
+            Else
+                Await servicio.modificarPedido(pedido.Model)
+            End If
+
+            ' Actualizar snapshot
+            _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
+            Return True ' Guardado exitoso, continuar
+
+        Catch ex As Exception
+            dialogService.ShowError($"Error al guardar el pedido: {ex.Message}" & vbCrLf & vbCrLf &
+                                   "No se puede crear el albarán/factura sin guardar primero.")
+            Return False ' Error al guardar, cancelar operación
+        Finally
+            estaBloqueado = False
+        End Try
+    End Function
 
     Private _abrirFacturarRutasCommand As DelegateCommand
     Public Property AbrirFacturarRutasCommand As DelegateCommand
@@ -1189,6 +1278,8 @@ Public Class DetallePedidoViewModel
                 }
                 eventAggregator.GetEvent(Of PedidoCreadoEvent).Publish(eventArgs)
                 Titulo = $"Pedido Venta ({pedido.numero})"
+                ' Carlos 04/12/25: Actualizar snapshot después de crear (Issue #254)
+                _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
             Else
                 Try
                     Await servicio.modificarPedido(pedido.Model)
@@ -1222,6 +1313,8 @@ Public Class DetallePedidoViewModel
                 End If
 
                 dialogService.ShowNotification("Pedido Modificado", "Pedido " + pedido.numero.ToString + " modificado correctamente")
+                ' Carlos 04/12/25: Actualizar snapshot después de guardar (Issue #254)
+                _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
                 eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
             End If
         Catch ex As ValidationException
@@ -1300,7 +1393,7 @@ Public Class DetallePedidoViewModel
                         Dim parametro = pedido.Model.ParametrosIva.SingleOrDefault(Function(p) p.CodigoIvaProducto.Equals(linea.iva.Trim(), StringComparison.OrdinalIgnoreCase))
                         If parametro IsNot Nothing Then
                             linea.Model.PorcentajeIva = parametro.PorcentajeIvaProducto
-                            linea.Model.PorcentajeRecargoEquivalencia = parametro.PorcentajeRecargoEquivalencia
+                            linea.Model.PorcentajeRecargoEquivalencia = parametro.PorcentajeIvaRecargoEquivalencia
                         End If
                     Next
                 End If
