@@ -465,7 +465,8 @@ Public Class DetallePedidoViewModel
     Public ReadOnly Property EsSerieCursos As Boolean
         Get
             Return Not IsNothing(pedido) AndAlso
-                   pedido.serie?.Trim().Equals(Constantes.Series.SERIE_CURSOS, StringComparison.OrdinalIgnoreCase)
+                   Not String.IsNullOrEmpty(pedido.serie) AndAlso
+                   pedido.serie.Trim().Equals(Constantes.Series.SERIE_CURSOS, StringComparison.OrdinalIgnoreCase)
         End Get
     End Property
 
