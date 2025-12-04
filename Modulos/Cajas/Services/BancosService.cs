@@ -316,7 +316,8 @@ namespace Nesto.Modulos.Cajas.Services
                 {
                     string resultado = await response.Content.ReadAsStringAsync();
                     BancoDTO? banco = JsonConvert.DeserializeObject<BancoDTO>(resultado);
-                    banco.Nombre = banco.Nombre.Trim();
+                    banco.Codigo = banco.Codigo?.Trim();
+                    banco.Nombre = banco.Nombre?.Trim();
                     return banco;
                 }
                 else
@@ -353,6 +354,8 @@ namespace Nesto.Modulos.Cajas.Services
                 {
                     string resultado = await response.Content.ReadAsStringAsync();
                     BancoDTO? banco = JsonConvert.DeserializeObject<BancoDTO>(resultado);
+                    banco.Codigo = banco.Codigo?.Trim();
+                    banco.Nombre = banco.Nombre?.Trim();
                     return banco;
                 }
                 else
