@@ -90,6 +90,14 @@
                                         Seleccionado="{Binding pedido.periodoFacturacion, Mode=TwoWay}"
                                         VisibilidadEtiqueta="Visible"
                                         Margin="0,5,0,0"/>
+                                    <!-- Carlos 04/12/24: Issue #252 - Selector de Forma de Venta para serie CV -->
+                                    <StackPanel Visibility="{Binding EsSerieCursos, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,5,0,0">
+                                        <TextBlock Text="Forma de Venta:"/>
+                                        <controles:SelectorFormaVenta
+                                            Empresa="{Binding pedido.empresa}"
+                                            FormaVentaSeleccionada="{Binding FormaVentaSeleccionadaParaLineas, Mode=TwoWay}"
+                                            MinWidth="200"/>
+                                    </StackPanel>
                                 </StackPanel>
                                 <DockPanel Grid.Column="1">
                                     <TextBox DockPanel.Dock="Top" Text="{Binding pedido.comentarios}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>

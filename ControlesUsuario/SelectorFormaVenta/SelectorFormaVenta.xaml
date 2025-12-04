@@ -1,0 +1,23 @@
+<UserControl x:Class="ControlesUsuario.SelectorFormaVenta"
+             x:Name="Root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ControlesUsuario">
+
+    <!--
+    Carlos 04/12/24: Control SelectorFormaVenta (Issue #252)
+    IMPORTANTE: NO establecer DataContext aquí para permitir herencia del parent
+    Lección aprendida de SelectorDireccionEntrega y SelectorCCC
+
+    Soporta dos modos de binding:
+    - FormaVentaSeleccionada: string con el número de la forma de venta
+    - FormaVentaSeleccionadaCompleta: objeto FormaVentaItem completo
+    -->
+
+    <ComboBox x:Name="comboFormaVenta"
+              ItemsSource="{Binding ElementName=Root, Path=ListaFormasVenta}"
+              SelectedItem="{Binding ElementName=Root, Path=FormaVentaSeleccionadaCompleta, Mode=TwoWay}"
+              DisplayMemberPath="TextoFormateado"
+              MinWidth="150"
+              ToolTip="Seleccione la forma de venta para las líneas del pedido."/>
+</UserControl>

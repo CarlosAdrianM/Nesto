@@ -256,6 +256,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     : 0;
             }
         }
+        public int ContadorApuntesBanco => ApuntesBancoCollectionView?.Cast<object>().Count() ?? 0;
+        public int ContadorApuntesContabilidad => ApuntesContabilidadCollectionView?.Cast<object>().Count() ?? 0;
         public decimal DescuadrePunteo => SaldoPunteoApuntesBanco - SaldoPunteoApuntesContabilidad;
         public decimal DescuadreSaldoFinal => SaldoFinalBanco - SaldoFinalContabilidad;
         public decimal DescuadreSaldoInicial => SaldoInicialBanco - SaldoInicialContabilidad;
@@ -1209,6 +1211,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     ApuntesContabilidadCollectionView.Filter = ApuntesContabilidadFilter;
                 }
             }
+
+            RaisePropertyChanged(nameof(ContadorApuntesBanco));
+            RaisePropertyChanged(nameof(ContadorApuntesContabilidad));
         }
 
         private void GuardarPosicionesSeleccionadas()

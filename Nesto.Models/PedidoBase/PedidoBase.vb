@@ -27,15 +27,17 @@
             Next
         End Set
     End Property
+    ' Usamos AwayFromZeroRound para ser coherentes con SQL Server ROUND()
     Public ReadOnly Property BaseImponible As Decimal
         Get
-            Return RoundingHelper.Vb6Round(Lineas.Sum(Function(l) l.BaseImponible), 2)
+            Return RoundingHelper.AwayFromZeroRound(Lineas.Sum(Function(l) l.BaseImponible), 2)
         End Get
     End Property
 
+    ' Usamos AwayFromZeroRound para ser coherentes con SQL Server ROUND()
     Public ReadOnly Property Total As Decimal
         Get
-            Return RoundingHelper.Vb6Round(Lineas.Sum(Function(l) l.Total), 2)
+            Return RoundingHelper.AwayFromZeroRound(Lineas.Sum(Function(l) l.Total), 2)
         End Get
     End Property
 

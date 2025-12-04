@@ -93,6 +93,9 @@ Partial Public Class Application
         ' Carlos 20/11/24: Registrar servicio de CCCs para SelectorCCC
         Dim unused33 = containerRegistry.RegisterSingleton(GetType(IServicioCCC), GetType(ServicioCCC))
 
+        ' Carlos 04/12/24: Issue #252 - Registrar servicio de formas de venta para SelectorFormaVenta
+        Dim unused34 = containerRegistry.RegisterSingleton(GetType(IServicioFormaVenta), GetType(ServicioFormaVenta))
+
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
         containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)

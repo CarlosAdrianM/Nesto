@@ -6,6 +6,7 @@ Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Prism.Commands
@@ -425,6 +426,8 @@ Public Class DetallePedidoViewModel
             RaisePropertyChanged(NameOf(mostrarAceptarPresupuesto))
             RaisePropertyChanged(NameOf(EstaCreandoPedido))
             RaisePropertyChanged(NameOf(TextoBotonGuardar))
+            RaisePropertyChanged(NameOf(EsSerieCursos))
+            InicializarFormaVentaParaLineas()
             AceptarPresupuestoCommand.RaiseCanExecuteChanged()
             DescargarPresupuestoCommand.RaiseCanExecuteChanged()
             CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
@@ -453,6 +456,70 @@ Public Class DetallePedidoViewModel
             End If
         End Set
     End Property
+
+#Region "Selector Forma de Venta (Issue #252)"
+
+    ''' <summary>
+    ''' Indica si el pedido es de la serie CV (Cursos) para mostrar el selector de forma de venta.
+    ''' </summary>
+    Public ReadOnly Property EsSerieCursos As Boolean
+        Get
+            Return Not IsNothing(pedido) AndAlso
+                   pedido.serie?.Trim().Equals(Constantes.Series.SERIE_CURSOS, StringComparison.OrdinalIgnoreCase)
+        End Get
+    End Property
+
+    Private _formaVentaSeleccionadaParaLineas As String
+    ''' <summary>
+    ''' Forma de venta seleccionada para aplicar a todas las líneas del pedido.
+    ''' </summary>
+    Public Property FormaVentaSeleccionadaParaLineas As String
+        Get
+            Return _formaVentaSeleccionadaParaLineas
+        End Get
+        Set(value As String)
+            If SetProperty(_formaVentaSeleccionadaParaLineas, value) AndAlso Not String.IsNullOrEmpty(value) Then
+                AplicarFormaVentaALineas(value)
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Aplica la forma de venta seleccionada a todas las líneas del pedido.
+    ''' </summary>
+    Private Sub AplicarFormaVentaALineas(formaVenta As String)
+        If IsNothing(pedido) OrElse IsNothing(pedido.Model.Lineas) Then
+            Return
+        End If
+
+        For Each linea In pedido.Model.Lineas
+            linea.formaVenta = formaVenta
+        Next
+
+        RaisePropertyChanged(NameOf(pedido))
+    End Sub
+
+    ''' <summary>
+    ''' Inicializa la forma de venta para líneas basándose en la primera línea del pedido.
+    ''' </summary>
+    Private Sub InicializarFormaVentaParaLineas()
+        If Not EsSerieCursos Then
+            Return
+        End If
+
+        If IsNothing(pedido) OrElse IsNothing(pedido.Model.Lineas) OrElse Not pedido.Model.Lineas.Any() Then
+            Return
+        End If
+
+        ' Obtener la forma de venta de la primera línea
+        Dim primeraLinea = pedido.Model.Lineas.FirstOrDefault()
+        If primeraLinea IsNot Nothing AndAlso Not String.IsNullOrEmpty(primeraLinea.formaVenta) Then
+            _formaVentaSeleccionadaParaLineas = primeraLinea.formaVenta.Trim()
+            RaisePropertyChanged(NameOf(FormaVentaSeleccionadaParaLineas))
+        End If
+    End Sub
+
+#End Region
 
     Public ReadOnly Property TextoBotonGuardar As String
         Get

@@ -15,6 +15,7 @@ Public Class LineaPlantillaVenta
         Set(value As Integer)
             SetProperty(_cantidad, value)
             RaisePropertyChanged(NameOf(colorStock))
+            RaisePropertyChanged(NameOf(baseImponible))
         End Set
     End Property
     Private _cantidadOferta As Integer
@@ -44,7 +45,16 @@ Public Class LineaPlantillaVenta
     Public Property cantidadAbonada() As Integer
     Public Property fechaUltimaVenta() As System.Nullable(Of DateTime)
     Public Property iva() As String
+    Private _precio As Decimal
     Public Property precio() As Decimal
+        Get
+            Return _precio
+        End Get
+        Set(value As Decimal)
+            SetProperty(_precio, value)
+            RaisePropertyChanged(NameOf(baseImponible))
+        End Set
+    End Property
     Private _aplicarDescuento As Boolean
     Public Property aplicarDescuento As Boolean
         Get
@@ -75,7 +85,16 @@ Public Class LineaPlantillaVenta
     Public Property StockDisponibleTodosLosAlmacenes As Integer
     Public Property stockActualizado As Boolean
     Public Property fechaInsercion As DateTime = DateTime.MaxValue
+    Private _descuento As Decimal
     Public Property descuento As Decimal
+        Get
+            Return _descuento
+        End Get
+        Set(value As Decimal)
+            SetProperty(_descuento, value)
+            RaisePropertyChanged(NameOf(baseImponible))
+        End Set
+    End Property
     Public Property descuentoProducto As Decimal
     Public Property clasificacionMasVendidos As Integer
     Private _urlImagen As String
@@ -217,6 +236,17 @@ Public Class LineaPlantillaVenta
     Public ReadOnly Property precioHabilitado As Boolean
         Get
             Return aplicarDescuento OrElse subGrupo = "Productos depilación ceras"
+        End Get
+    End Property
+    Public ReadOnly Property baseImponible As Decimal
+        Get
+            ' Cálculo coherente con GestorPedidosVenta.CalcularImportesLinea (Issue #242/#243)
+            ' Bruto = Cantidad * Precio (sin redondear)
+            ' ImporteDto = ROUND(Bruto * Descuento, 2)
+            ' BaseImponible = ROUND(Bruto, 2) - ImporteDto
+            Dim bruto As Decimal = cantidad * precio
+            Dim importeDescuento As Decimal = Math.Round(bruto * descuento, 2, MidpointRounding.AwayFromZero)
+            Return Math.Round(bruto, 2, MidpointRounding.AwayFromZero) - importeDescuento
         End Get
     End Property
     Public ReadOnly Property textoUnidadesDisponibles As String

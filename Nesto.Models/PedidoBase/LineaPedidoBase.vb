@@ -11,9 +11,21 @@
     Public Property PrecioUnitario As Decimal
     Public Property Usuario As String
 
+    ' CLAVE PARA EL ASIENTO CONTABLE (02/12/25):
+    ' El SP prdCrearFacturaVta construye el asiento usando:
+    '   - HABER Ventas (700): SUM(ROUND(Bruto, 2))
+    '   - DEBE Descuentos (665): SUM(ROUND(Bruto * Dto, 2))
+    '   - La diferencia (Ventas - Descuentos) debe coincidir con SUM(BaseImponible)
+    '
+    ' Por tanto, BaseImponible DEBE calcularse como:
+    '   BaseImponible = ROUND(Bruto, 2) - ROUND(Bruto * SumaDescuentos, 2)
+    ' Y NO como antes:
+    '   BaseImponible = ROUND(Bruto - (Bruto * SumaDescuentos), 2)  <-- INCORRECTO
+    '
+    ' Usamos AwayFromZeroRound para ser coherentes con SQL Server ROUND()
     Public ReadOnly Property BaseImponible As Decimal
         Get
-            Return RoundingHelper.Vb6Round(Bruto - ImporteDescuento, 2)
+            Return RoundingHelper.AwayFromZeroRound(Bruto, 2) - ImporteDescuento
         End Get
     End Property
     Public Overridable ReadOnly Property Bruto As Decimal
@@ -22,9 +34,11 @@
         End Get
     End Property
 
+    ' ImporteDescuento se redondea a 2 decimales (coherente con el SP)
+    ' Usamos AwayFromZeroRound para ser coherentes con SQL Server ROUND()
     Public ReadOnly Property ImporteDescuento As Decimal
         Get
-            Return Bruto * SumaDescuentos
+            Return RoundingHelper.AwayFromZeroRound(Bruto * SumaDescuentos, 2)
         End Get
     End Property
 
