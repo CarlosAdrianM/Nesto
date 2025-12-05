@@ -87,6 +87,60 @@ Public Class PedidoVentaDTOTests
         Assert.IsFalse(pedido.Equals(Nothing))
     End Sub
 
+    <TestMethod()>
+    Public Sub Equals_NothingYStringVacio_DevuelveTrue()
+        ' Arrange - Simula el caso donde API devuelve Nothing y el DTO tiene ""
+        Dim pedido1 As New PedidoVentaDTO() With {
+            .formaPago = "TRN",
+            .comentarios = Nothing,
+            .comentarioPicking = Nothing,
+            .contactoCobro = Nothing
+        }
+        Dim pedido2 As New PedidoVentaDTO() With {
+            .formaPago = "TRN",
+            .comentarios = "",
+            .comentarioPicking = "",
+            .contactoCobro = ""
+        }
+
+        ' Act & Assert - Nothing y "" deben considerarse iguales
+        Assert.IsTrue(pedido1.Equals(pedido2))
+    End Sub
+
+    <TestMethod()>
+    Public Sub Equals_AmbosNothing_DevuelveTrue()
+        ' Arrange
+        Dim pedido1 As New PedidoVentaDTO() With {
+            .formaPago = "TRN",
+            .comentarios = Nothing
+        }
+        Dim pedido2 As New PedidoVentaDTO() With {
+            .formaPago = "TRN",
+            .comentarios = Nothing
+        }
+
+        ' Act & Assert
+        Assert.IsTrue(pedido1.Equals(pedido2))
+    End Sub
+
+    <TestMethod()>
+    Public Sub Equals_StringsConEspaciosAlFinal_DevuelveTrue()
+        ' Arrange - Simula el caso de campos de BD con longitud fija (espacios al final)
+        Dim pedido1 As New PedidoVentaDTO() With {
+            .formaPago = "TRN",
+            .vendedor = "NV",
+            .contactoCobro = "0"
+        }
+        Dim pedido2 As New PedidoVentaDTO() With {
+            .formaPago = "TRN",
+            .vendedor = "NV ",
+            .contactoCobro = "0  "
+        }
+
+        ' Act & Assert - Los espacios al final deben ignorarse
+        Assert.IsTrue(pedido1.Equals(pedido2))
+    End Sub
+
 #End Region
 
 #Region "Equals - Detección de cambios en campos críticos"

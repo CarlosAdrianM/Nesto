@@ -971,6 +971,10 @@ Public Class DetallePedidoViewModel
         Try
             Dim albaran As Integer = Await servicio.CrearAlbaranVenta(pedido.empresa.ToString, pedido.numero.ToString)
             dialogService.ShowNotification($"Albarán {albaran} creado correctamente")
+
+            ' Carlos 05/12/24: Recargar pedido para que las líneas muestren estado 2 (albarán)
+            ' y se habilite el botón de crear factura
+            cmdCargarPedido.Execute(New ResumenPedido With {.empresa = pedido.empresa, .numero = pedido.numero})
         Catch ex As Exception
             dialogService.ShowError($"No se ha podido crear el albarán: {ex.Message}")
         Finally

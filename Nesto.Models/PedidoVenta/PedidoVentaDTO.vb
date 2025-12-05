@@ -119,23 +119,36 @@ Public Class PedidoVentaDTO
         If ReferenceEquals(Me, other) Then Return True
 
         ' Comparamos solo los campos que el usuario puede modificar y afectan a facturación
-        Return String.Equals(formaPago, other.formaPago, StringComparison.Ordinal) AndAlso
-               String.Equals(plazosPago, other.plazosPago, StringComparison.Ordinal) AndAlso
-               String.Equals(ccc, other.ccc, StringComparison.Ordinal) AndAlso
-               String.Equals(iva, other.iva, StringComparison.Ordinal) AndAlso
-               String.Equals(vendedor, other.vendedor, StringComparison.Ordinal) AndAlso
-               String.Equals(periodoFacturacion, other.periodoFacturacion, StringComparison.Ordinal) AndAlso
-               String.Equals(ruta, other.ruta, StringComparison.Ordinal) AndAlso
-               String.Equals(serie, other.serie, StringComparison.Ordinal) AndAlso
-               String.Equals(contacto, other.contacto, StringComparison.Ordinal) AndAlso
-               String.Equals(contactoCobro, other.contactoCobro, StringComparison.Ordinal) AndAlso
-               String.Equals(comentarios, other.comentarios, StringComparison.Ordinal) AndAlso
-               String.Equals(comentarioPicking, other.comentarioPicking, StringComparison.Ordinal) AndAlso
+        Return StringsIguales(formaPago, other.formaPago) AndAlso
+               StringsIguales(plazosPago, other.plazosPago) AndAlso
+               StringsIguales(ccc, other.ccc) AndAlso
+               StringsIguales(iva, other.iva) AndAlso
+               StringsIguales(vendedor, other.vendedor) AndAlso
+               StringsIguales(periodoFacturacion, other.periodoFacturacion) AndAlso
+               StringsIguales(ruta, other.ruta) AndAlso
+               StringsIguales(serie, other.serie) AndAlso
+               StringsIguales(contacto, other.contacto) AndAlso
+               StringsIguales(contactoCobro, other.contactoCobro) AndAlso
+               StringsIguales(comentarios, other.comentarios) AndAlso
+               StringsIguales(comentarioPicking, other.comentarioPicking) AndAlso
                Nullable.Equals(primerVencimiento, other.primerVencimiento) AndAlso
                noComisiona = other.noComisiona AndAlso
                mantenerJunto = other.mantenerJunto AndAlso
                servirJunto = other.servirJunto AndAlso
                notaEntrega = other.notaEntrega
+    End Function
+
+    ''' <summary>
+    ''' Compara dos strings tratando Nothing y "" como iguales, y aplicando Trim().
+    ''' Esto es necesario porque:
+    ''' - La API puede devolver Nothing y el DTO puede tener ""
+    ''' - La BD tiene campos de longitud fija que vienen con espacios al final
+    ''' </summary>
+    Private Shared Function StringsIguales(s1 As String, s2 As String) As Boolean
+        ' Normalizar: tratar Nothing como "" y quitar espacios
+        Dim str1 = If(s1, String.Empty).Trim()
+        Dim str2 = If(s2, String.Empty).Trim()
+        Return String.Equals(str1, str2, StringComparison.Ordinal)
     End Function
 
     Public Overrides Function Equals(obj As Object) As Boolean
