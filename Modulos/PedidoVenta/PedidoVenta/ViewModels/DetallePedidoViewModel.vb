@@ -33,6 +33,11 @@ Public Class DetallePedidoViewModel
 
     Private Const IVA_POR_DEFECTO = "G21"
     Private Const EMPRESA_POR_DEFECTO = "1"
+    ''' <summary>
+    ''' Valor especial para indicar que hay diferentes valores en las líneas.
+    ''' Carlos 09/12/25: Usado por selectores de FormaVenta y Almacén.
+    ''' </summary>
+    Public Const VALOR_VARIOS = "VARIOS"
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, container As IUnityContainer)
         Me.regionManager = regionManager
@@ -402,11 +407,13 @@ Public Class DetallePedidoViewModel
             If Not IsNothing(_pedido) Then
                 RemoveHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 RemoveHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
+                RemoveHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
             End If
             Dim unused = SetProperty(_pedido, value)
             If Not IsNothing(_pedido) Then
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
+                AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
             End If
             eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
             estaActualizarFechaActivo = False
@@ -427,7 +434,10 @@ Public Class DetallePedidoViewModel
             RaisePropertyChanged(NameOf(EstaCreandoPedido))
             RaisePropertyChanged(NameOf(TextoBotonGuardar))
             RaisePropertyChanged(NameOf(EsSerieCursos))
+            RaisePropertyChanged(NameOf(HayLineasEditables))
+            RaisePropertyChanged(NameOf(PuedeEditarSelectoresLinea))
             InicializarFormaVentaParaLineas()
+            InicializarAlmacenParaLineas() ' Carlos 09/12/25: Issue #253/#52
             AceptarPresupuestoCommand.RaiseCanExecuteChanged()
             DescargarPresupuestoCommand.RaiseCanExecuteChanged()
             CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
@@ -470,6 +480,31 @@ Public Class DetallePedidoViewModel
         End Get
     End Property
 
+    ''' <summary>
+    ''' Indica si hay líneas editables (no albaraneadas ni facturadas) en el pedido.
+    ''' Carlos 09/12/25: Usado para deshabilitar selectores cuando todo está facturado.
+    ''' </summary>
+    Public ReadOnly Property HayLineasEditables As Boolean
+        Get
+            Return Not IsNothing(pedido) AndAlso
+                   Not IsNothing(pedido.Model.Lineas) AndAlso
+                   pedido.Model.Lineas.Any(Function(l) Not l.estaAlbaraneada)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Indica si los selectores de FormaVenta y Almacén deben estar habilitados.
+    ''' Carlos 09/12/25: Combina EsSerieCursos Y HayLineasEditables.
+    ''' Los selectores se habilitan solo si:
+    ''' - Es serie CV (Cursos)
+    ''' - Hay al menos una línea que no esté albaraneada/facturada
+    ''' </summary>
+    Public ReadOnly Property PuedeEditarSelectoresLinea As Boolean
+        Get
+            Return EsSerieCursos AndAlso HayLineasEditables
+        End Get
+    End Property
+
     Private _formaVentaSeleccionadaParaLineas As String
     ''' <summary>
     ''' Forma de venta seleccionada para aplicar a todas las líneas del pedido.
@@ -479,14 +514,15 @@ Public Class DetallePedidoViewModel
             Return _formaVentaSeleccionadaParaLineas
         End Get
         Set(value As String)
-            If SetProperty(_formaVentaSeleccionadaParaLineas, value) AndAlso Not String.IsNullOrEmpty(value) Then
+            If SetProperty(_formaVentaSeleccionadaParaLineas, value) AndAlso Not String.IsNullOrEmpty(value) AndAlso value <> VALOR_VARIOS Then
                 AplicarFormaVentaALineas(value)
             End If
         End Set
     End Property
 
     ''' <summary>
-    ''' Aplica la forma de venta seleccionada a todas las líneas del pedido.
+    ''' Aplica la forma de venta seleccionada a todas las líneas editables del pedido.
+    ''' Carlos 09/12/25: Bug fix - No modifica líneas albaraneadas o facturadas (estado >= 2).
     ''' </summary>
     Private Sub AplicarFormaVentaALineas(formaVenta As String)
         If IsNothing(pedido) OrElse IsNothing(pedido.Model.Lineas) Then
@@ -494,30 +530,136 @@ Public Class DetallePedidoViewModel
         End If
 
         For Each linea In pedido.Model.Lineas
-            linea.formaVenta = formaVenta
+            ' Solo modificar líneas que no estén albaraneadas ni facturadas
+            If Not linea.estaAlbaraneada Then
+                linea.formaVenta = formaVenta
+            End If
         Next
 
         RaisePropertyChanged(NameOf(pedido))
     End Sub
 
     ''' <summary>
-    ''' Inicializa la forma de venta para líneas basándose en la primera línea del pedido.
+    ''' Inicializa la forma de venta para líneas basándose en las líneas del pedido.
+    ''' Si todas las líneas tienen la misma forma de venta, la selecciona.
+    ''' Si hay diferentes, muestra "VARIOS".
+    ''' Carlos 09/12/25: Mejorado para detectar valores diferentes y usar valor por defecto.
+    ''' Carlos 09/12/25: Siempre inicializa para mostrar valores (selector visible siempre, editable solo en CV).
     ''' </summary>
     Private Sub InicializarFormaVentaParaLineas()
-        If Not EsSerieCursos Then
-            Return
-        End If
+        Debug.WriteLine($"[DetallePedidoVM] InicializarFormaVentaParaLineas - EsSerieCursos={EsSerieCursos}, Serie={pedido?.serie}")
 
         If IsNothing(pedido) OrElse IsNothing(pedido.Model.Lineas) OrElse Not pedido.Model.Lineas.Any() Then
+            Debug.WriteLine($"[DetallePedidoVM] InicializarFormaVentaParaLineas - Sin líneas, usando defecto: '{FormaVentaUsuario}'")
+            _formaVentaSeleccionadaParaLineas = FormaVentaUsuario
+            RaisePropertyChanged(NameOf(FormaVentaSeleccionadaParaLineas))
             Return
         End If
 
-        ' Obtener la forma de venta de la primera línea
-        Dim primeraLinea = pedido.Model.Lineas.FirstOrDefault()
-        If primeraLinea IsNot Nothing AndAlso Not String.IsNullOrEmpty(primeraLinea.formaVenta) Then
-            _formaVentaSeleccionadaParaLineas = primeraLinea.formaVenta.Trim()
-            RaisePropertyChanged(NameOf(FormaVentaSeleccionadaParaLineas))
+        ' Obtener todas las formas de venta distintas (no nulas ni vacías)
+        Dim formasVentaDistintas = pedido.Model.Lineas _
+            .Where(Function(l) Not String.IsNullOrWhiteSpace(l.formaVenta)) _
+            .Select(Function(l) l.formaVenta.Trim()) _
+            .Distinct() _
+            .ToList()
+
+        Debug.WriteLine($"[DetallePedidoVM] InicializarFormaVentaParaLineas - {formasVentaDistintas.Count} formas distintas: {String.Join(", ", formasVentaDistintas)}")
+
+        If formasVentaDistintas.Count = 0 Then
+            ' No hay formas de venta definidas en las líneas - usar valor por defecto
+            _formaVentaSeleccionadaParaLineas = FormaVentaUsuario
+        ElseIf formasVentaDistintas.Count = 1 Then
+            ' Todas las líneas tienen la misma forma de venta
+            _formaVentaSeleccionadaParaLineas = formasVentaDistintas.First()
+        Else
+            ' Hay diferentes formas de venta - mostrar valor especial
+            _formaVentaSeleccionadaParaLineas = VALOR_VARIOS
         End If
+
+        Debug.WriteLine($"[DetallePedidoVM] InicializarFormaVentaParaLineas - Resultado: '{_formaVentaSeleccionadaParaLineas}'")
+        RaisePropertyChanged(NameOf(FormaVentaSeleccionadaParaLineas))
+    End Sub
+
+#End Region
+
+#Region "Selector Almacén (Issue #253/#52)"
+
+    Private _almacenSeleccionadoParaLineas As String
+    ''' <summary>
+    ''' Almacén seleccionado para aplicar a las líneas con productos ficticios.
+    ''' Carlos 09/12/25: Issue #253/#52
+    ''' </summary>
+    Public Property AlmacenSeleccionadoParaLineas As String
+        Get
+            Return _almacenSeleccionadoParaLineas
+        End Get
+        Set(value As String)
+            If SetProperty(_almacenSeleccionadoParaLineas, value) AndAlso Not String.IsNullOrEmpty(value) AndAlso value <> VALOR_VARIOS Then
+                AplicarAlmacenALineas(value)
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Aplica el almacén seleccionado a todas las líneas editables del pedido.
+    ''' Carlos 09/12/25: Issue #253/#52 - Cambiado para aplicar a TODAS las líneas, no solo ficticias.
+    ''' Carlos 09/12/25: Bug fix - No modifica líneas albaraneadas o facturadas (estado >= 2).
+    ''' </summary>
+    Private Sub AplicarAlmacenALineas(almacen As String)
+        If IsNothing(pedido) OrElse IsNothing(pedido.Model.Lineas) Then
+            Return
+        End If
+
+        For Each linea In pedido.Model.Lineas
+            ' Solo modificar líneas que no estén albaraneadas ni facturadas
+            If Not linea.estaAlbaraneada Then
+                linea.almacen = almacen
+            End If
+        Next
+
+        RaisePropertyChanged(NameOf(pedido))
+    End Sub
+
+    ''' <summary>
+    ''' Inicializa el almacén basándose en las líneas del pedido.
+    ''' Si todas las líneas tienen el mismo almacén, lo selecciona.
+    ''' Si hay diferentes, muestra "VARIOS".
+    ''' Carlos 09/12/25: Issue #253/#52 - Mejorado para detectar valores diferentes y usar valor por defecto.
+    ''' Carlos 09/12/25: Siempre inicializa para mostrar valores (selector visible siempre, editable solo en CV).
+    ''' NOTA: Considera TODAS las líneas, no solo las ficticias, para consistencia con FormaVenta.
+    ''' </summary>
+    Private Sub InicializarAlmacenParaLineas()
+        Debug.WriteLine($"[DetallePedidoVM] InicializarAlmacenParaLineas - EsSerieCursos={EsSerieCursos}, Serie={pedido?.serie}")
+
+        If IsNothing(pedido) OrElse IsNothing(pedido.Model.Lineas) OrElse Not pedido.Model.Lineas.Any() Then
+            Debug.WriteLine($"[DetallePedidoVM] InicializarAlmacenParaLineas - Sin líneas, usando defecto: '{AlmacenUsuario}'")
+            _almacenSeleccionadoParaLineas = AlmacenUsuario
+            RaisePropertyChanged(NameOf(AlmacenSeleccionadoParaLineas))
+            Return
+        End If
+
+        ' Obtener todos los almacenes distintos de TODAS las líneas (no nulos ni vacíos)
+        Dim almacenesDistintos = pedido.Model.Lineas _
+            .Where(Function(l) Not String.IsNullOrWhiteSpace(l.almacen)) _
+            .Select(Function(l) l.almacen.Trim()) _
+            .Distinct() _
+            .ToList()
+
+        Debug.WriteLine($"[DetallePedidoVM] InicializarAlmacenParaLineas - {almacenesDistintos.Count} almacenes distintos: {String.Join(", ", almacenesDistintos)}")
+
+        If almacenesDistintos.Count = 0 Then
+            ' No hay almacenes definidos en las líneas - usar valor por defecto
+            _almacenSeleccionadoParaLineas = AlmacenUsuario
+        ElseIf almacenesDistintos.Count = 1 Then
+            ' Todas las líneas tienen el mismo almacén
+            _almacenSeleccionadoParaLineas = almacenesDistintos.First()
+        Else
+            ' Hay diferentes almacenes - mostrar valor especial
+            _almacenSeleccionadoParaLineas = VALOR_VARIOS
+        End If
+
+        Debug.WriteLine($"[DetallePedidoVM] InicializarAlmacenParaLineas - Resultado: '{_almacenSeleccionadoParaLineas}'")
+        RaisePropertyChanged(NameOf(AlmacenSeleccionadoParaLineas))
     End Sub
 
 #End Region
@@ -823,13 +965,19 @@ Public Class DetallePedidoViewModel
             lineaActual.Almacen = pedido.Lineas.FirstOrDefault()?.Almacen
         End If
         If IsNothing(lineaActual.Almacen) Then
-            lineaActual.Almacen = AlmacenUsuario
+            ' Carlos 09/12/25: Issue #253/#52 - Usar valor del selector para serie CV
+            lineaActual.Almacen = If(EsSerieCursos AndAlso Not String.IsNullOrEmpty(AlmacenSeleccionadoParaLineas) AndAlso AlmacenSeleccionadoParaLineas <> VALOR_VARIOS,
+                                     AlmacenSeleccionadoParaLineas,
+                                     AlmacenUsuario)
         End If
         If IsNothing(lineaActual.formaVenta) Then
             lineaActual.formaVenta = pedido.Lineas.FirstOrDefault()?.formaVenta
         End If
         If IsNothing(lineaActual.formaVenta) Then
-            lineaActual.formaVenta = FormaVentaUsuario
+            ' Carlos 09/12/25: Issue #253/#52 - Usar valor del selector para serie CV
+            lineaActual.formaVenta = If(EsSerieCursos AndAlso Not String.IsNullOrEmpty(FormaVentaSeleccionadaParaLineas) AndAlso FormaVentaSeleccionadaParaLineas <> VALOR_VARIOS,
+                                        FormaVentaSeleccionadaParaLineas,
+                                        FormaVentaUsuario)
         End If
         If IsNothing(lineaActual.delegacion) Then
             lineaActual.delegacion = pedido.Lineas.FirstOrDefault()?.delegacion
@@ -1479,6 +1627,19 @@ Public Class DetallePedidoViewModel
     Private Sub OnPeriodoFacturacionCambiado(nuevoPeriodo As String)
         CrearFacturaVentaCommand.RaiseCanExecuteChanged()
         CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+    End Sub
+
+    ' Carlos 09/12/25: Issue #245 - Actualizar EsSerieCursos cuando cambia la serie
+    ' Carlos 09/12/25: Issue #253/#52 - Reinicializar FormaVenta y Almacén cuando cambia la serie
+    Private Sub OnPedidoPropertyChanged(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
+        If e.PropertyName = NameOf(pedido.serie) Then
+            RaisePropertyChanged(NameOf(EsSerieCursos))
+            RaisePropertyChanged(NameOf(HayLineasEditables))
+            RaisePropertyChanged(NameOf(PuedeEditarSelectoresLinea))
+            ' Reinicializar selectores cuando cambia la serie (ej: al cambiar a CV)
+            InicializarFormaVentaParaLineas()
+            InicializarAlmacenParaLineas()
+        End If
     End Sub
 
     Private Sub OnPedidoCreadoEnDetalle(eventArgs As PedidoCreadoEventArgs)

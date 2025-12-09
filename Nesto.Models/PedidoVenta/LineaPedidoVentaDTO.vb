@@ -21,6 +21,10 @@ Public Class LineaPedidoVentaDTO
     Public Property tipoLinea() As Nullable(Of Byte) = 1
     Public Property vistoBueno() As Boolean
 
+    ' Carlos 09/12/25: Issue #253/#52 - Indica si el producto es ficticio (cuenta contable, etc.)
+    ' Se usa para determinar si se puede cambiar el almacén de la línea
+    Public Property EsFicticio() As Boolean
+
     Public ReadOnly Property estaAlbaraneada() As Boolean
         Get
             Return estado >= 2

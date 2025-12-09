@@ -277,4 +277,11 @@ Public Class LineaPedidoVentaWrapper
             Return Model.SumaDescuentos
         End Get
     End Property
+
+    ' Carlos 09/12/25: Issue #253/#52 - Indica si el producto es ficticio
+    Public ReadOnly Property EsFicticio As Boolean
+        Get
+            Return Model.EsFicticio
+        End Get
+    End Property
 End Class

@@ -1,0 +1,25 @@
+<UserControl x:Class="ControlesUsuario.SelectorSerie"
+             x:Name="Root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ControlesUsuario">
+
+    <!--
+    Carlos 09/12/25: Control SelectorSerie (Issue #245)
+    IMPORTANTE: NO establecer DataContext aquí para permitir herencia del parent
+    Siguiendo el patrón de SelectorPeriodoFacturacion (etiqueta arriba, vertical)
+    -->
+
+    <StackPanel>
+        <TextBlock x:Name="txtEtiqueta"
+                   Text="{Binding ElementName=Root, Path=Etiqueta}"
+                   Visibility="{Binding ElementName=Root, Path=VisibilidadEtiqueta}"/>
+        <ComboBox x:Name="comboSerie"
+                  ItemsSource="{Binding ElementName=Root, Path=ListaSeries}"
+                  SelectedValue="{Binding ElementName=Root, Path=SerieSeleccionada, Mode=TwoWay}"
+                  SelectedValuePath="Codigo"
+                  DisplayMemberPath="TextoFormateado"
+                  IsEnabled="{Binding ElementName=Root, Path=IsEnabled}"
+                  ToolTip="Seleccione la serie de facturación del pedido"/>
+    </StackPanel>
+</UserControl>

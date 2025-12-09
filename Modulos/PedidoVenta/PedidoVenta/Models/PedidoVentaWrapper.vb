@@ -181,12 +181,16 @@ Public Class PedidoVentaWrapper
             Model.ruta = value
         End Set
     End Property
+    ' Carlos 09/12/25: Issue #245 - Añadido RaisePropertyChanged para actualizar EsSerieCursos
     Public Property serie() As String
         Get
             Return Model.serie
         End Get
         Set(value As String)
-            Model.serie = value
+            If Model.serie <> value Then
+                Model.serie = value
+                RaisePropertyChanged(NameOf(serie))
+            End If
         End Set
     End Property
     Public Property ccc() As String

@@ -85,37 +85,70 @@
                                     </controles:SelectorCliente>
                                     <TextBlock Text="Fecha pedido:"></TextBlock>
                                     <DatePicker SelectedDate="{Binding pedido.fecha}"></DatePicker>
-                                    <CheckBox IsChecked="{Binding pedido.notaEntrega}" IsEnabled="False">Nota de Entrega</CheckBox>
-                                    <controles:SelectorPeriodoFacturacion
-                                        Seleccionado="{Binding pedido.periodoFacturacion, Mode=TwoWay}"
-                                        VisibilidadEtiqueta="Visible"
-                                        Margin="0,5,0,0"/>
-                                    <!-- Carlos 04/12/24: Issue #252 - Selector de Forma de Venta para serie CV -->
-                                    <StackPanel Visibility="{Binding EsSerieCursos, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,5,0,0">
-                                        <TextBlock Text="Forma de Venta:"/>
-                                        <controles:SelectorFormaVenta
+                                    <CheckBox IsChecked="{Binding pedido.notaEntrega}" IsEnabled="False" Margin="0,5,0,0">Nota de Entrega</CheckBox>
+
+                                    <!-- Carlos 09/12/25: Grid reorganizada para selectores (Issue #245, #252, #253) -->
+                                    <!-- Fila 1: Serie, Periodo, Vendedor Pedido, Vendedor Peluquería -->
+                                    <!-- Fila 2 (solo CV): Forma Venta, Almacén -->
+                                    <Grid Margin="0,5,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Fila 1: Serie, Periodo, Vendedor Pedido, Vendedor Peluquería -->
+                                        <controles:SelectorSerie Grid.Row="0" Grid.Column="0"
+                                            SerieSeleccionada="{Binding pedido.serie, Mode=TwoWay}"
+                                            VisibilidadEtiqueta="Visible"
+                                            Margin="0,0,5,0"/>
+                                        <controles:SelectorPeriodoFacturacion Grid.Row="0" Grid.Column="1"
+                                            Seleccionado="{Binding pedido.periodoFacturacion, Mode=TwoWay}"
+                                            VisibilidadEtiqueta="Visible"
+                                            Margin="0,0,5,0"/>
+                                        <controles:SelectorVendedor Grid.Row="0" Grid.Column="2"
+                                            Configuracion="{Binding configuracion}"
                                             Empresa="{Binding pedido.empresa}"
-                                            FormaVentaSeleccionada="{Binding FormaVentaSeleccionadaParaLineas, Mode=TwoWay}"
-                                            MinWidth="200"/>
-                                    </StackPanel>
+                                            Seleccionado="{Binding pedido.vendedor, Mode=TwoWay}"
+                                            Etiqueta="Vendedor Pedido:"
+                                            Margin="0,0,5,0"/>
+                                        <controles:SelectorVendedor Grid.Row="0" Grid.Column="3"
+                                            Configuracion="{Binding configuracion}"
+                                            Empresa="{Binding pedido.empresa}"
+                                            Seleccionado="{Binding vendedorPorGrupo.vendedor, Mode=TwoWay}"
+                                            Etiqueta="Vendedor Peluquería:"/>
+
+                                        <!-- Fila 2: Forma Venta y Almacén (siempre visibles, editables en serie CV con líneas editables) -->
+                                        <StackPanel Grid.Row="1" Grid.Column="0"
+                                            Margin="0,5,5,0">
+                                            <TextBlock Text="Forma de Venta:"/>
+                                            <controles:SelectorFormaVenta
+                                                Empresa="{Binding pedido.empresa}"
+                                                FormaVentaSeleccionada="{Binding FormaVentaSeleccionadaParaLineas, Mode=TwoWay}"
+                                                IsEnabled="{Binding PuedeEditarSelectoresLinea}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Row="1" Grid.Column="1"
+                                            Margin="0,5,5,0">
+                                            <TextBlock Text="Almacén:"/>
+                                            <controles:SelectorAlmacen
+                                                AlmacenSeleccionado="{Binding AlmacenSeleccionadoParaLineas, Mode=TwoWay}"
+                                                IsEnabled="{Binding PuedeEditarSelectoresLinea}"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </StackPanel>
                                 <DockPanel Grid.Column="1">
                                     <TextBox DockPanel.Dock="Top" Text="{Binding pedido.comentarios}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
                                     <TextBox DockPanel.Dock="Bottom" Text="{Binding pedido.comentarioPicking}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
                                 </DockPanel>
                             </Grid>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition/>
-                                    <ColumnDefinition/>
-                                </Grid.ColumnDefinitions>
-                                <controles:SelectorVendedor Grid.Column="0" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Seleccionado="{Binding pedido.vendedor, Mode=TwoWay}" Etiqueta="Vendedor del Pedido:"></controles:SelectorVendedor>
-                                <controles:SelectorVendedor Grid.Column="1" Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Seleccionado="{Binding vendedorPorGrupo.vendedor, Mode=TwoWay}" Etiqueta="Vendedor de Peluquería:"></controles:SelectorVendedor>
-                            </Grid>
 
-                            <TextBlock></TextBlock>
-                            
-                            <Grid>
+                            <!-- Botones de acción -->
+                            <Grid Margin="0,10,0,0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition/>
                                     <RowDefinition/>

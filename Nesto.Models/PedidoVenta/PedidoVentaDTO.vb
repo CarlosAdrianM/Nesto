@@ -30,7 +30,19 @@ Public Class PedidoVentaDTO
     Public Property CrearEfectosManualmente As Boolean
     Public Property periodoFacturacion() As String
     Public Property ruta() As String
+    Private _serie As String
+    ''' <summary>
+    ''' Serie del pedido (NV, CV, etc.). Se normaliza con Trim() para evitar problemas con valores de BD.
+    ''' Carlos 09/12/25: Fix para evitar que "CV " no coincida con "CV" en selectores.
+    ''' </summary>
     Public Property serie() As String
+        Get
+            Return _serie
+        End Get
+        Set(value As String)
+            _serie = value?.Trim()
+        End Set
+    End Property
     Private _ccc As String
     Public Property ccc() As String
         Get

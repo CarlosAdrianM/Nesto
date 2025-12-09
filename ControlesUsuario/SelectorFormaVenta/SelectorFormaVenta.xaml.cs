@@ -20,6 +20,7 @@ namespace ControlesUsuario
     {
         private readonly IServicioFormaVenta _servicioFormaVenta;
         private bool _estaCargando = false;
+        private bool _estaAutoSeleccionando = false;
 
         #region Constructores
 
@@ -124,16 +125,17 @@ namespace ControlesUsuario
             if (e.OldValue?.ToString() == e.NewValue?.ToString())
                 return;
 
-            Debug.WriteLine($"[SelectorFormaVenta] OnFormaVentaSeleccionadaChanged: '{e.OldValue}' -> '{e.NewValue}'");
+            // Evitar bucle infinito cuando AutoSeleccionarFormaVenta() cambia el valor
+            if (selector._estaAutoSeleccionando)
+                return;
 
-            // Sincronizar con FormaVentaSeleccionadaCompleta
-            if (selector.ListaFormasVenta != null && e.NewValue != null)
+            Debug.WriteLine($"[SelectorFormaVenta] OnFormaVentaSeleccionadaChanged: '{e.OldValue}' -> '{e.NewValue}', _estaCargando={selector._estaCargando}");
+
+            // Si no estamos cargando y ya hay lista, intentar auto-seleccionar
+            // Esto maneja el caso cuando el valor se establece después de que la lista ya cargó
+            if (!selector._estaCargando && selector.ListaFormasVenta != null && selector.ListaFormasVenta.Any())
             {
-                var formaVenta = selector.ListaFormasVenta.FirstOrDefault(f => f.Numero == e.NewValue.ToString());
-                if (formaVenta != null && selector.FormaVentaSeleccionadaCompleta?.Numero != formaVenta.Numero)
-                {
-                    selector.FormaVentaSeleccionadaCompleta = formaVenta;
-                }
+                selector.AutoSeleccionarFormaVenta();
             }
 
             selector.OnPropertyChanged(nameof(FormaVentaSeleccionada));
@@ -202,6 +204,12 @@ namespace ControlesUsuario
         #region Lógica de Carga
 
         /// <summary>
+        /// Valor especial para indicar que hay diferentes formas de venta en las líneas.
+        /// Carlos 09/12/25: Debe coincidir con VALOR_VARIOS en DetallePedidoViewModel.
+        /// </summary>
+        public const string VALOR_VARIOS = "VARIOS";
+
+        /// <summary>
         /// Carga las Formas de Venta desde la API para la Empresa actual.
         /// Incluye anti-loop con flag _estaCargando.
         /// </summary>
@@ -238,7 +246,16 @@ namespace ControlesUsuario
                     Debug.WriteLine($"[SelectorFormaVenta] Filtradas a {formasVenta.Count()} visibles por comerciales");
                 }
 
-                var lista = new ObservableCollection<FormaVentaItem>(formasVenta);
+                // Añadir item especial para indicar valores diferentes al principio
+                var lista = new ObservableCollection<FormaVentaItem>
+                {
+                    new FormaVentaItem { Numero = VALOR_VARIOS, Descripcion = "(Diferentes formas de venta)" }
+                };
+                foreach (var fv in formasVenta)
+                {
+                    lista.Add(fv);
+                }
+
                 ListaFormasVenta = lista;
                 Debug.WriteLine($"[SelectorFormaVenta] Lista asignada con {lista.Count} elementos");
 
@@ -262,37 +279,55 @@ namespace ControlesUsuario
 
         /// <summary>
         /// Auto-selecciona la forma de venta si ya hay una selección válida en la lista.
+        /// Usa Trim() para manejar valores con espacios que pueden venir de la BD.
+        /// Carlos 09/12/25: Necesario porque la carga async significa que el valor
+        /// se establece antes de que la lista esté disponible.
         /// </summary>
         private void AutoSeleccionarFormaVenta()
         {
             if (ListaFormasVenta == null || !ListaFormasVenta.Any())
                 return;
 
-            // Si ya hay una selección válida en la lista (por string), sincronizar con objeto completo
-            if (!string.IsNullOrEmpty(FormaVentaSeleccionada))
+            _estaAutoSeleccionando = true;
+            try
             {
-                var formaVenta = ListaFormasVenta.FirstOrDefault(f => f.Numero == FormaVentaSeleccionada);
-                if (formaVenta != null)
+                // Si ya hay una selección válida en la lista (por string), sincronizar con objeto completo
+                if (!string.IsNullOrEmpty(FormaVentaSeleccionada))
                 {
-                    Debug.WriteLine($"[SelectorFormaVenta] Selección existente '{FormaVentaSeleccionada}' válida - sincronizando objeto completo");
-                    FormaVentaSeleccionadaCompleta = formaVenta;
-                    return;
+                    var seleccionTrim = FormaVentaSeleccionada.Trim();
+                    var formaVenta = ListaFormasVenta.FirstOrDefault(f => f.Numero?.Trim() == seleccionTrim);
+                    if (formaVenta != null)
+                    {
+                        Debug.WriteLine($"[SelectorFormaVenta] Selección existente '{FormaVentaSeleccionada}' válida - forzando re-selección con objeto de la lista");
+                        // Forzar re-selección con el objeto exacto de la lista para que el ComboBox lo encuentre
+                        // Esto es necesario porque WPF ComboBox compara por referencia cuando usa SelectedItem
+                        FormaVentaSeleccionadaCompleta = null;
+                        FormaVentaSeleccionadaCompleta = formaVenta;
+                        return;
+                    }
                 }
-            }
 
-            // Si ya hay selección completa válida, respetarla
-            if (FormaVentaSeleccionadaCompleta != null)
+                // Si ya hay selección completa válida, buscar el objeto equivalente en la lista
+                if (FormaVentaSeleccionadaCompleta != null)
+                {
+                    var formaVentaEnLista = ListaFormasVenta.FirstOrDefault(f => f.Numero?.Trim() == FormaVentaSeleccionadaCompleta.Numero?.Trim());
+                    if (formaVentaEnLista != null)
+                    {
+                        Debug.WriteLine($"[SelectorFormaVenta] Selección completa existente '{FormaVentaSeleccionadaCompleta.Numero}' válida - forzando re-selección");
+                        // Usar el objeto de la lista, no el original (que puede ser una instancia diferente)
+                        FormaVentaSeleccionadaCompleta = null;
+                        FormaVentaSeleccionadaCompleta = formaVentaEnLista;
+                        return;
+                    }
+                }
+
+                // No auto-seleccionar por defecto - dejar vacío para que el usuario elija
+                Debug.WriteLine($"[SelectorFormaVenta] Sin selección previa, dejando vacío");
+            }
+            finally
             {
-                var existe = ListaFormasVenta.Any(f => f.Numero == FormaVentaSeleccionadaCompleta.Numero);
-                if (existe)
-                {
-                    Debug.WriteLine($"[SelectorFormaVenta] Selección completa existente '{FormaVentaSeleccionadaCompleta.Numero}' válida");
-                    return;
-                }
+                _estaAutoSeleccionando = false;
             }
-
-            // No auto-seleccionar por defecto - dejar vacío para que el usuario elija
-            Debug.WriteLine($"[SelectorFormaVenta] Sin selección previa, dejando vacío");
         }
 
         #endregion
