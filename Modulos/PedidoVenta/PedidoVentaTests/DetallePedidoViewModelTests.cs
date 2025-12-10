@@ -428,5 +428,195 @@ namespace PedidoVentaTests
         }
 
         #endregion
+
+        #region Tests PasarAPresupuestoCommand (Issue #257)
+
+        [TestMethod]
+        [TestCategory("PasarAPresupuesto")]
+        public void PasarAPresupuestoCommand_CanExecute_esTrueCuandoHayLineasPendientesSinPicking()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Pedido NO es presupuesto, con línea en estado -1 (pendiente) y sin picking
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
+            LineaPedidoVentaDTO linea = new LineaPedidoVentaDTO
+            {
+                id = 1,
+                estado = -1,  // ESTADO_LINEA_PENDIENTE
+                picking = 0   // Sin picking
+            };
+            pedido.Lineas.Add(linea);
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            // Act & Assert
+            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(),
+                "CanExecute debe ser TRUE cuando hay líneas pendientes sin picking");
+        }
+
+        [TestMethod]
+        [TestCategory("PasarAPresupuesto")]
+        public void PasarAPresupuestoCommand_CanExecute_esTrueCuandoHayLineasEnCursoSinPicking()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Pedido NO es presupuesto, con línea en estado 1 (en curso) y sin picking
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
+            LineaPedidoVentaDTO linea = new LineaPedidoVentaDTO
+            {
+                id = 1,
+                estado = 1,   // ESTADO_LINEA_EN_CURSO
+                picking = 0   // Sin picking
+            };
+            pedido.Lineas.Add(linea);
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            // Act & Assert
+            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(),
+                "CanExecute debe ser TRUE cuando hay líneas en curso sin picking");
+        }
+
+        [TestMethod]
+        [TestCategory("PasarAPresupuesto")]
+        public void PasarAPresupuestoCommand_CanExecute_esFalseCuandoPedidoEsPresupuesto()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Pedido YA es presupuesto (todas las líneas en estado -3)
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
+            LineaPedidoVentaDTO linea = new LineaPedidoVentaDTO
+            {
+                id = 1,
+                estado = -3,  // ESTADO_LINEA_PRESUPUESTO
+                picking = 0
+            };
+            pedido.Lineas.Add(linea);
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            // Act & Assert
+            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(),
+                "CanExecute debe ser FALSE cuando el pedido ya es presupuesto");
+        }
+
+        [TestMethod]
+        [TestCategory("PasarAPresupuesto")]
+        public void PasarAPresupuestoCommand_CanExecute_esFalseCuandoTodasLasLineasTienenPicking()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Pedido con líneas pendientes pero CON picking asignado
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
+            LineaPedidoVentaDTO linea = new LineaPedidoVentaDTO
+            {
+                id = 1,
+                estado = -1,  // ESTADO_LINEA_PENDIENTE
+                picking = 100 // CON picking
+            };
+            pedido.Lineas.Add(linea);
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            // Act & Assert
+            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(),
+                "CanExecute debe ser FALSE cuando todas las líneas tienen picking asignado");
+        }
+
+        [TestMethod]
+        [TestCategory("PasarAPresupuesto")]
+        public void PasarAPresupuestoCommand_CanExecute_esFalseCuandoLineasEstanAlbaranadas()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Pedido con líneas en estado albarán (2) - no se pueden pasar a presupuesto
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
+            LineaPedidoVentaDTO linea = new LineaPedidoVentaDTO
+            {
+                id = 1,
+                estado = 2,   // ESTADO_ALBARAN
+                picking = 0
+            };
+            pedido.Lineas.Add(linea);
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            // Act & Assert
+            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(),
+                "CanExecute debe ser FALSE cuando las líneas están albaraneadas");
+        }
+
+        [TestMethod]
+        [TestCategory("PasarAPresupuesto")]
+        public void PasarAPresupuestoCommand_CanExecute_esTrueCuandoAlgunasLineasSonValidasYOtrasNo()
+        {
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+
+            // Pedido con mezcla de líneas: una válida y una albaraneada
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
+
+            // Línea albaraneada (NO válida para pasar a presupuesto)
+            LineaPedidoVentaDTO lineaAlbaranada = new LineaPedidoVentaDTO
+            {
+                id = 1,
+                estado = 2,   // ESTADO_ALBARAN
+                picking = 0
+            };
+            pedido.Lineas.Add(lineaAlbaranada);
+
+            // Línea pendiente sin picking (SÍ válida para pasar a presupuesto)
+            LineaPedidoVentaDTO lineaPendiente = new LineaPedidoVentaDTO
+            {
+                id = 2,
+                estado = -1,  // ESTADO_LINEA_PENDIENTE
+                picking = 0   // Sin picking
+            };
+            pedido.Lineas.Add(lineaPendiente);
+
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            // Act & Assert
+            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(),
+                "CanExecute debe ser TRUE cuando al menos una línea es válida para pasar a presupuesto");
+        }
+
+        #endregion
     }
 }
