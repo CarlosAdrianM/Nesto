@@ -36,6 +36,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             if (EsPagoNacional(apunteBancario))
             {
                 proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto)).GetAwaiter().GetResult();
+                if (string.IsNullOrEmpty(proveedor))
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto)).GetAwaiter().GetResult();
+                }
                 pagoPendiente = Task.Run(async () => await _bancosService.PagoPendienteUnico(proveedor, apunteBancario.ImporteMovimiento)).GetAwaiter().GetResult();
             }
             else if (EsReciboDomiciliado(apunteBancario))
@@ -143,6 +147,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             if (EsPagoNacional(apunteBancario))
             {
                 proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto)).GetAwaiter().GetResult();
+                if (string.IsNullOrEmpty(proveedor))
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto)).GetAwaiter().GetResult();
+                }
             }
             else if (EsReciboDomiciliado(apunteBancario))
             {
@@ -195,12 +203,16 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         private static bool EsPagoNacional(ApunteBancarioDTO apunteBancario)
         {
-            return ((apunteBancario.ConceptoComun == "99" && apunteBancario.ConceptoPropio == "067") ||
-                    (apunteBancario.ConceptoComun == "04" && apunteBancario.ConceptoPropio == "002")) &&
-                            apunteBancario.RegistrosConcepto != null &&
-                            apunteBancario.RegistrosConcepto.Any() &&
-                            apunteBancario.RegistrosConcepto[1] != null &&
-                            apunteBancario.RegistrosConcepto[1].Concepto.ToLower().Contains("pago");
+            return (
+                (apunteBancario.ConceptoComun == "99" && apunteBancario.ConceptoPropio == "067") ||
+                (apunteBancario.ConceptoComun == "04" && apunteBancario.ConceptoPropio == "002")
+            ) &&
+            apunteBancario.RegistrosConcepto != null &&
+            apunteBancario.RegistrosConcepto.Any(r =>
+                r != null &&
+                r.Concepto != null &&
+                r.Concepto.ToLower().Contains("pago")
+            );
         }
 
         private static bool EsReciboDomiciliado(ApunteBancarioDTO apunteBancario)

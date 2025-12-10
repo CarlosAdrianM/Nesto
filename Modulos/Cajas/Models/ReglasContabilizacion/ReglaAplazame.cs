@@ -97,7 +97,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
         private bool VerificarImportesAplazameZero(decimal importeOriginal, decimal importeComision)
         {
             var limiteInferior = 0.02m;
-            var limiteSuperior = 0.07m;
+            var limiteSuperior = 0.20m;
             var comision = importeComision / importeOriginal;
 
             return comision > limiteInferior && comision < limiteSuperior;
