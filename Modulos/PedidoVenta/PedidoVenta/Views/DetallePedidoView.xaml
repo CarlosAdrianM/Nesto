@@ -153,24 +153,27 @@
                                     <RowDefinition/>
                                     <RowDefinition/>
                                     <RowDefinition/>
-                                    <RowDefinition/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
+                                    <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
-                                <Button Grid.Column="0" Grid.Row="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
-                                <Button Grid.Column="1" Grid.Row="0" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
-                                <Button Grid.Column="2" Grid.Row="0" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
-                                <Button Grid.Column="0" Grid.Row="1" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
-                                <Button Grid.Column="1" Grid.Row="1" Command="{Binding ImprimirAlbaranCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Albarán</Button>
-                                <Button Grid.Column="2" Grid.Row="1" Command="{Binding ImprimirFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Factura</Button>
-                                <Button Grid.Column="0" Grid.Row="2" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
-                                <Button Grid.Column="1" Grid.Row="2" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
-                                <CheckBox Grid.Column="2" Grid.Row="2" IsChecked="{Binding PapelConMembrete}" VerticalAlignment="Center" HorizontalAlignment="Center">Papel con membrete</CheckBox>
-                                <Button Grid.Column="0" Grid.Row="3" Command="{Binding AbrirFacturarRutasCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Facturar Rutas</Button>
-
+                                <!-- Fila 0: Creación de documentos -->
+                                <Button Grid.Row="0" Grid.Column="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
+                                <Button Grid.Row="0" Grid.Column="1" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
+                                <Button Grid.Row="0" Grid.Column="2" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
+                                <CheckBox Grid.Row="0" Grid.Column="3" IsChecked="{Binding PapelConMembrete}" VerticalAlignment="Center" HorizontalAlignment="Center">Papel con membrete</CheckBox>
+                                <!-- Fila 1: Impresión (alineado con fila 0) -->
+                                <Button Grid.Row="1" Grid.Column="0" Command="{Binding ImprimirAlbaranCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Albarán</Button>
+                                <Button Grid.Row="1" Grid.Column="1" Command="{Binding ImprimirFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Factura</Button>
+                                <Button Grid.Row="1" Grid.Column="2" Command="{Binding AbrirFacturarRutasCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Facturar Rutas</Button>
+                                <!-- Fila 2: Picking, PDF y presupuestos -->
+                                <Button Grid.Row="2" Grid.Column="0" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
+                                <Button Grid.Row="2" Grid.Column="1" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>
+                                <Button Grid.Row="2" Grid.Column="2" Command="{Binding AceptarPresupuestoCommand}" Visibility="{Binding mostrarAceptarPresupuesto, Converter={StaticResource BooleanToVisibilityConverter}}">Aceptar Presupuesto</Button>
+                                <Button Grid.Row="2" Grid.Column="3" Command="{Binding PasarAPresupuestoCommand}">Pasar a Presupuesto</Button>
                             </Grid>
                             <TextBlock></TextBlock>
                         </StackPanel>

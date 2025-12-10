@@ -49,6 +49,7 @@ Public Class DetallePedidoViewModel
 
         cmdAbrirPicking = New DelegateCommand(AddressOf OnAbrirPicking)
         AceptarPresupuestoCommand = New DelegateCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
+        PasarAPresupuestoCommand = New DelegateCommand(AddressOf OnPasarAPresupuesto, AddressOf CanPasarAPresupuesto)
         DescargarPresupuestoCommand = New DelegateCommand(AddressOf OnDescargarPresupuesto, AddressOf CanDescargarPresupuesto)
         cmdActualizarTotales = New DelegateCommand(AddressOf OnActualizarTotales)
         cmdCambiarFechaEntrega = New DelegateCommand(AddressOf OnCambiarFechaEntrega)
@@ -439,6 +440,7 @@ Public Class DetallePedidoViewModel
             InicializarFormaVentaParaLineas()
             InicializarAlmacenParaLineas() ' Carlos 09/12/25: Issue #253/#52
             AceptarPresupuestoCommand.RaiseCanExecuteChanged()
+            PasarAPresupuestoCommand.RaiseCanExecuteChanged()
             DescargarPresupuestoCommand.RaiseCanExecuteChanged()
             CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
             CrearFacturaVentaCommand.RaiseCanExecuteChanged()
@@ -760,6 +762,54 @@ Public Class DetallePedidoViewModel
     Private Sub OnAceptarPresupuesto()
         pedido.EsPresupuesto = False
         cmdModificarPedido.Execute()
+    End Sub
+
+    Private _pasarAPresupuestoCommand As DelegateCommand
+    Public Property PasarAPresupuestoCommand As DelegateCommand
+        Get
+            Return _pasarAPresupuestoCommand
+        End Get
+        Set(value As DelegateCommand)
+            Dim unused = SetProperty(_pasarAPresupuestoCommand, value)
+        End Set
+    End Property
+    ''' <summary>
+    ''' Indica si se puede pasar el pedido a presupuesto.
+    ''' Es posible cuando el pedido no es presupuesto y tiene líneas en estado -1 (pendiente) o 1 (en curso)
+    ''' que además no tengan picking asignado.
+    ''' </summary>
+    Private Function CanPasarAPresupuesto() As Boolean
+        Return (Not IsNothing(pedido)) AndAlso
+               (Not pedido.EsPresupuesto) AndAlso
+               Not IsNothing(pedido.Lineas) AndAlso
+               pedido.Lineas.Any(Function(l) (l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE OrElse
+                                              l.estado = Constantes.LineasPedido.ESTADO_LINEA_EN_CURSO) AndAlso
+                                              l.picking = 0)
+    End Function
+    ''' <summary>
+    ''' Pasa las líneas pendientes o en curso (sin picking) a estado presupuesto (-3).
+    ''' Las líneas con picking o en otros estados (albarán, factura) no se modifican.
+    ''' </summary>
+    Private Sub OnPasarAPresupuesto()
+        If Not dialogService.ShowConfirmationAnswer("Pasar a Presupuesto", "¿Desea pasar las líneas pendientes a presupuesto?") Then
+            Return
+        End If
+
+        ' Cambiar estado de las líneas que están en -1 (pendiente) o 1 (en curso) y sin picking
+        For Each linea In pedido.Lineas.Where(Function(l) (l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE OrElse
+                                                           l.estado = Constantes.LineasPedido.ESTADO_LINEA_EN_CURSO) AndAlso
+                                                           l.picking = 0)
+            linea.estado = Constantes.LineasPedido.ESTADO_LINEA_PRESUPUESTO
+        Next
+
+        ' Guardar los cambios
+        cmdModificarPedido.Execute()
+
+        ' Actualizar visibilidad de botones
+        RaisePropertyChanged(NameOf(mostrarAceptarPresupuesto))
+        AceptarPresupuestoCommand.RaiseCanExecuteChanged()
+        PasarAPresupuestoCommand.RaiseCanExecuteChanged()
+        CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
     End Sub
 
     Private _cmdActualizarTotales As DelegateCommand

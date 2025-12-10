@@ -105,7 +105,9 @@ namespace Nesto.Infrastructure.Shared
             public const int ESTADO_FACTURA = 4;
             public const int ESTADO_ALBARAN = 2;
             public const int ESTADO_SIN_FACTURAR = 1;
+            public const int ESTADO_LINEA_EN_CURSO = 1; // Alias de ESTADO_SIN_FACTURAR
             public const int ESTADO_LINEA_PENDIENTE = -1;
+            public const int ESTADO_LINEA_PRESUPUESTO = -3;
             public class TiposLinea
             {
                 public const string LINEA_TEXTO = "0";
