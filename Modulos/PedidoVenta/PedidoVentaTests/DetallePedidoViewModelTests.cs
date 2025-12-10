@@ -536,11 +536,13 @@ namespace PedidoVentaTests
             LineaPedidoVentaDTO linea = new LineaPedidoVentaDTO
             {
                 id = 1,
-                estado = -1,  // ESTADO_LINEA_PENDIENTE
-                picking = 100 // CON picking
+                estado = -1  // ESTADO_LINEA_PENDIENTE
             };
             pedido.Lineas.Add(linea);
             vm.pedido = new PedidoVentaWrapper(pedido);
+            // NOTA: picking es propiedad auto-implementada en el Wrapper, no lee del DTO
+            // Hay que asignarlo directamente al wrapper
+            vm.pedido.Lineas[0].picking = 100;
 
             // Act & Assert
             Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(),
