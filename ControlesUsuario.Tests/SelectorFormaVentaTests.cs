@@ -147,7 +147,10 @@ namespace ControlesUsuario.Tests
 
             // Assert
             Assert.IsNotNull(listaFormasVenta, "La lista de formas de venta debería estar cargada");
-            Assert.AreEqual(2, listaFormasVenta.Count, "Deberían haberse cargado 2 formas de venta");
+            // NOTA: La lista incluye un elemento vacío al principio para permitir "sin selección"
+            Assert.AreEqual(3, listaFormasVenta.Count, "Deberían haberse cargado 2 formas de venta + 1 elemento vacío");
+            Assert.IsTrue(listaFormasVenta.Any(f => f.Numero == "DIR"), "Debería contener 'DIR'");
+            Assert.IsTrue(listaFormasVenta.Any(f => f.Numero == "TEL"), "Debería contener 'TEL'");
         }
 
         [TestMethod]
@@ -189,8 +192,11 @@ namespace ControlesUsuario.Tests
 
             // Assert
             Assert.IsNotNull(listaFormasVenta, "La lista de formas de venta debería estar cargada");
-            Assert.AreEqual(2, listaFormasVenta.Count, "Deberían haberse cargado solo 2 formas de venta (visibles por comerciales)");
+            // NOTA: La lista incluye un elemento vacío al principio para permitir "sin selección"
+            Assert.AreEqual(3, listaFormasVenta.Count, "Deberían haberse cargado 2 formas visibles + 1 elemento vacío");
             Assert.IsFalse(listaFormasVenta.Any(f => f.Numero == "INT"), "La forma de venta 'INT' no debería estar en la lista");
+            Assert.IsTrue(listaFormasVenta.Any(f => f.Numero == "DIR"), "Debería contener 'DIR'");
+            Assert.IsTrue(listaFormasVenta.Any(f => f.Numero == "TEL"), "Debería contener 'TEL'");
         }
 
         #endregion
