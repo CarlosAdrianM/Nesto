@@ -10,7 +10,9 @@
 		Icon="/Icono2_NV_256x256.ico" WindowState="Maximized"  VerticalContentAlignment="Center" VerticalAlignment="Center">
     
     <Window.Resources>
-
+        <!-- Convertidor para el color del indicador de autenticación -->
+        <SolidColorBrush x:Key="ColorAutenticado" Color="#4CAF50"/>
+        <SolidColorBrush x:Key="ColorNoAutenticado" Color="#F44336"/>
     </Window.Resources>
 
     <Grid>
@@ -22,7 +24,25 @@
                 prism:RegionManager.RegionName="MainMenuRegion"/>
         <!-- MainRegion -->
         <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center">
-            <TextBlock Text="{Binding Usuario, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="72" Foreground="DarkSlateGray"></TextBlock>
+            <!-- Usuario con indicador de autenticación (línea sutil debajo) -->
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="{Binding Usuario, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="72" Foreground="DarkSlateGray"/>
+                <Border Height="4" CornerRadius="2" Margin="0,-5,0,0" HorizontalAlignment="Center" MinWidth="100">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource ColorNoAutenticado}"/>
+                            <Setter Property="ToolTip" Value="No autenticado con la API"/>
+                            <Setter Property="Width" Value="{Binding ActualWidth, ElementName=textoUsuario}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding EstaAutenticado, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource ColorAutenticado}"/>
+                                    <Setter Property="ToolTip" Value="Autenticado correctamente"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+            </StackPanel>
             <TextBlock Text="{Binding Maquina, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="96" Foreground="DarkSlateGray"></TextBlock>
             <cu:SelectorSede Seleccionado="{Binding Delegacion, RelativeSource={RelativeSource AncestorType=Window}}" Etiqueta="Delegación:" ColorEtiqueta="DarkSlateGray" IsEnabled="False"></cu:SelectorSede>
             <TextBlock Text="{Binding TextoAdvertencia, RelativeSource={RelativeSource AncestorType=Window}}" HorizontalAlignment="Center" Foreground="Red" FontSize="24"/>
