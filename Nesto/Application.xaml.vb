@@ -102,6 +102,12 @@ Partial Public Class Application
         ' Carlos 09/12/25: Issue #245 - Registrar servicio de series para SelectorSerie
         Dim unused36 = containerRegistry.RegisterSingleton(GetType(IServicioSeries), GetType(ServicioSeries))
 
+        ' Carlos 11/12/25: Issue #258 - Registrar servicio de cuentas contables para CuentaContableBehavior
+        Dim unused37 = containerRegistry.Register(GetType(IServicioCuentaContable), GetType(ServicioCuentaContable))
+
+        ' Carlos 11/12/25: Issue #258 - Registrar servicio de productos para ProductoBehavior
+        Dim unused38 = containerRegistry.Register(GetType(IServicioProducto), GetType(ServicioProducto))
+
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
         containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)

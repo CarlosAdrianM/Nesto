@@ -52,6 +52,10 @@ Public Class LineaPedidoVentaWrapper
             Return Model.Cantidad
         End Get
         Set(value As Short)
+            ' Issue #258: En líneas de texto (TipoLinea=0), Cantidad debe ser 0
+            If tipoLinea.HasValue AndAlso tipoLinea.Value = 0 AndAlso value <> 0 Then
+                Return ' No permitir cantidad distinta de 0 en líneas de texto
+            End If
             Model.Cantidad = value
             RaisePropertyChanged(NameOf(Cantidad))
             RaisePropertyChanged(NameOf(BaseImponible))
@@ -195,6 +199,10 @@ Public Class LineaPedidoVentaWrapper
             Return Model.PrecioUnitario
         End Get
         Set(value As Decimal)
+            ' Issue #258: En líneas de texto (TipoLinea=0), Precio debe ser 0
+            If tipoLinea.HasValue AndAlso tipoLinea.Value = 0 AndAlso value <> 0 Then
+                Return ' No permitir precio distinto de 0 en líneas de texto
+            End If
             Model.PrecioUnitario = value
             RaisePropertyChanged(NameOf(PrecioUnitario))
             RaisePropertyChanged(NameOf(Bruto))
@@ -207,6 +215,12 @@ Public Class LineaPedidoVentaWrapper
             Return Model.Producto
         End Get
         Set(value As String)
+            ' Issue #258: En líneas de texto (TipoLinea=0), Producto debe estar vacío
+            If tipoLinea.HasValue AndAlso tipoLinea.Value = 0 Then
+                If Not String.IsNullOrEmpty(value) Then
+                    Return ' No permitir establecer un producto en líneas de texto
+                End If
+            End If
             Model.Producto = value
             RaisePropertyChanged(NameOf(Producto))
         End Set
@@ -225,10 +239,60 @@ Public Class LineaPedidoVentaWrapper
             Return Model.tipoLinea
         End Get
         Set(value As Nullable(Of Byte))
+            Dim valorAnterior = Model.tipoLinea
             Model.tipoLinea = value
             RaisePropertyChanged(NameOf(tipoLinea))
+
+            ' Issue #258: Aplicar reglas según TipoLinea
+            If value.HasValue AndAlso value.Value <> valorAnterior Then
+                AplicarReglasTipoLinea(value.Value)
+            End If
         End Set
     End Property
+
+    ' Issue #258: Aplica las reglas correspondientes al cambiar el tipo de línea
+    ' Esto evita estados incoherentes como tener un código de producto en una línea de cuenta contable
+    Private Sub AplicarReglasTipoLinea(tipo As Byte)
+        Select Case tipo
+            Case 0 ' Línea de texto: solo el campo texto es válido
+                Producto = String.Empty
+                texto = String.Empty ' El usuario escribirá el texto que quiera
+                Cantidad = 0
+                PrecioUnitario = 0
+                DescuentoLinea = 0
+                DescuentoProducto = 0
+                AplicarDescuento = False
+            Case 1 ' Producto: limpiar para que el usuario busque el producto
+                ' Si venía de cuenta contable (8 dígitos numéricos), limpiar
+                If Not String.IsNullOrEmpty(Producto) AndAlso Producto.Length = 8 AndAlso Producto.All(Function(c) Char.IsDigit(c)) Then
+                    Producto = String.Empty
+                    texto = String.Empty
+                    PrecioUnitario = 0
+                End If
+                ' Los productos sí pueden tener descuentos
+                AplicarDescuento = True
+            Case 2 ' Cuenta contable: limpiar datos de producto
+                ' Si venía de producto, limpiar (los códigos de producto no son cuentas válidas)
+                If Not String.IsNullOrEmpty(Producto) AndAlso (Producto.Length <> 8 OrElse Not Producto.All(Function(c) Char.IsDigit(c))) Then
+                    Producto = String.Empty
+                    texto = String.Empty
+                    PrecioUnitario = 0
+                End If
+                ' Las cuentas contables no tienen descuentos
+                DescuentoLinea = 0
+                DescuentoProducto = 0
+                AplicarDescuento = False
+            Case 3 ' Inmovilizado: similar a cuenta contable
+                If Not String.IsNullOrEmpty(Producto) AndAlso (Producto.Length <> 8 OrElse Not Producto.All(Function(c) Char.IsDigit(c))) Then
+                    Producto = String.Empty
+                    texto = String.Empty
+                    PrecioUnitario = 0
+                End If
+                DescuentoLinea = 0
+                DescuentoProducto = 0
+                AplicarDescuento = False
+        End Select
+    End Sub
     Public Property Usuario() As String
         Get
             Return Model.Usuario

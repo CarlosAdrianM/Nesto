@@ -7,6 +7,7 @@
              xmlns:prism="http://prismlibrary.com/"
              prism:ViewModelLocator.AutoWireViewModel="True"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" d:DataContext="{d:DesignInstance Type=local:DetallePedidoViewModel}"
              mc:Ignorable="d" 
@@ -36,6 +37,31 @@
 
 
         <local:PercentageConverter x:Key="porcentajeConverter" />
+
+        <!-- Issue #258: Estilo para celdas que se deshabilitan cuando TipoLinea=0 (Texto) -->
+        <Style x:Key="CeldaDeshabilitadaParaTexto" TargetType="DataGridCell">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding tipoLinea}" Value="0">
+                    <Setter Property="Background" Value="LightGray"/>
+                    <Setter Property="Foreground" Value="Gray"/>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="No aplicable a líneas de texto"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Issue #258: Estilo para celdas numéricas que se deshabilitan cuando TipoLinea=0 -->
+        <Style x:Key="CeldaNumericaDeshabilitadaParaTexto" TargetType="DataGridCell">
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding tipoLinea}" Value="0">
+                    <Setter Property="Background" Value="LightGray"/>
+                    <Setter Property="Foreground" Value="Gray"/>
+                    <Setter Property="IsEnabled" Value="False"/>
+                    <Setter Property="ToolTip" Value="No aplicable a líneas de texto"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding estaBloqueado}" BusyContent="{Binding textoBusyIndicator}">
@@ -364,40 +390,98 @@
                             <ColumnDefinition Width="3*"/>
                             <ColumnDefinition Width="2*"/>
                         </Grid.ColumnDefinitions>
-                        <DataGrid Name="grdLineas"  Grid.Column="0" ItemsSource="{Binding pedido.Lineas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" 
+                        <DataGrid Name="grdLineas"  Grid.Column="0" ItemsSource="{Binding pedido.Lineas}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"
                                   CurrentCell="{Binding celdaActual, Mode=OneWayToSource}" SelectedItem="{Binding lineaActual}" RowStyle="{StaticResource DataGridRowStyle}" CanUserAddRows="True" IsReadOnly="False"
                                   BeginningEdit="grdLineas_BeginningEdit"
                                   PreviewKeyDown="grdLineas_PreviewKeyDown">
+                            <!-- Issue #258: CommandBinding para interceptar CancelEdit y evitar crash con DataGridTemplateColumn -->
+                            <DataGrid.CommandBindings>
+                                <CommandBinding Command="DataGrid.CancelEditCommand" CanExecute="CancelEditCommand_CanExecute" Executed="CancelEditCommand_Executed"/>
+                            </DataGrid.CommandBindings>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Estado" Binding="{Binding estado}" IsReadOnly="True" />
-                                <DataGridTextColumn Header="Tipo" Binding="{Binding tipoLinea}" />
-                                <DataGridTextColumn Header="Producto" Width="3*" Binding="{Binding Producto}" />
+                                <!-- Issue #258: ComboBox para TipoLinea con valores válidos (0-3) -->
+                                <DataGridComboBoxColumn Header="Tipo"
+                                    ItemsSource="{x:Static local:DetallePedidoViewModel.TiposLinea}"
+                                    SelectedValueBinding="{Binding tipoLinea, UpdateSourceTrigger=PropertyChanged}"
+                                    SelectedValuePath="Valor"
+                                    DisplayMemberPath="Descripcion"/>
+                                <!-- Issue #258: Cambiado a DataGridTemplateColumn para soportar CuentaContableBehavior (TipoLinea=2) -->
+                                <DataGridTemplateColumn Header="Producto" Width="3*" CellStyle="{StaticResource CeldaDeshabilitadaParaTexto}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Producto}" VerticalAlignment="Center" Margin="2,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <!-- Issue #258: NO usar UpdateSourceTrigger=PropertyChanged para que OnCeldaModificada
+                                                 pueda comparar el texto nuevo con el valor anterior (que aún no se ha actualizado) -->
+                                            <TextBox Text="{Binding Producto}"
+                                                     VerticalAlignment="Center">
+                                                <i:Interaction.Behaviors>
+                                                    <!-- Issue #258: ProductoBehavior para visual feedback cuando TipoLinea=1 (productos) -->
+                                                    <behaviors:ProductoBehavior
+                                                        Empresa="{Binding DataContext.pedido.empresa, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        Cliente="{Binding DataContext.pedido.cliente, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        Contacto="{Binding DataContext.pedido.contacto, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        TipoLineaActual="{Binding tipoLinea}"
+                                                        TipoLineaRequerido="1"
+                                                        Cantidad="{Binding Cantidad}"/>
+                                                    <!-- CuentaContableBehavior: Solo activo cuando TipoLinea=2 (cuentas contables) -->
+                                                    <behaviors:CuentaContableBehavior
+                                                        Empresa="{Binding DataContext.pedido.empresa, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        TipoLineaActual="{Binding tipoLinea}"
+                                                        TipoLineaRequerido="2"
+                                                        Texto="{Binding texto, Mode=TwoWay}"
+                                                        Iva="{Binding iva, Mode=TwoWay}"/>
+                                                </i:Interaction.Behaviors>
+                                            </TextBox>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Texto" Width="8*" Binding="{Binding texto}" />
 
-                                <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding Cantidad}" />
+                                <!-- Issue #258: Columnas deshabilitadas visualmente cuando TipoLinea=0 (Texto) -->
+                                <DataGridTextColumn Header="Cantidad" Width="2*" Binding="{Binding Cantidad}" CellStyle="{StaticResource CeldaDeshabilitadaParaTexto}"/>
                                 <DataGridTextColumn Header="Precio" Width="3*" Binding="{Binding PrecioUnitario, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
-                                        <Style>
-                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource CeldaNumericaDeshabilitadaParaTexto}">
+                                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                            <Style.Resources>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                </Style>
+                                            </Style.Resources>
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="Descuento" Width="3*" Binding="{Binding DescuentoLinea, Converter={StaticResource porcentajeConverter}}" >
                                     <DataGridTextColumn.CellStyle>
-                                        <Style>
-                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource CeldaNumericaDeshabilitadaParaTexto}">
+                                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                            <Style.Resources>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                </Style>
+                                            </Style.Resources>
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="Descuento Producto" Width="3*" Binding="{Binding DescuentoProducto, Converter={StaticResource porcentajeConverter}}" IsReadOnly="True" >
                                     <DataGridTextColumn.CellStyle>
-                                        <Style>
-                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource CeldaNumericaDeshabilitadaParaTexto}">
+                                            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                            <Style.Resources>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                </Style>
+                                            </Style.Resources>
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding AplicarDescuento, UpdateSourceTrigger=PropertyChanged}"/>
-                                <DataGridTextColumn Header="BI" Width="3*" Binding="{Binding BaseImponible, StringFormat=c}">
+                                <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding AplicarDescuento, UpdateSourceTrigger=PropertyChanged}" CellStyle="{StaticResource CeldaDeshabilitadaParaTexto}"/>
+                                <DataGridTextColumn Header="BI" Width="3*" Binding="{Binding BaseImponible, StringFormat=c}" IsReadOnly="True">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />

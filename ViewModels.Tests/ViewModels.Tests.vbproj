@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
+    <ProjectReference Include="..\Modulos\PedidoVenta\PedidoVenta\PedidoVenta.vbproj" />
     <ProjectReference Include="..\Nesto.Models\Models.vbproj" />
     <ProjectReference Include="..\Nesto.ViewModels\ViewModels.vbproj" />
   </ItemGroup>

@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Cajas\Cajas.csproj" />
+    <ProjectReference Include="..\..\ControlesUsuario\ControlesUsuario.csproj" />
   </ItemGroup>
 
 </Project>

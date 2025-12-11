@@ -119,6 +119,7 @@ Public Class PedidoVentaService
 
         End Using
     End Function
+
     Public Async Function modificarPedido(pedido As PedidoVentaDTO) As Task Implements IPedidoVentaService.modificarPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)

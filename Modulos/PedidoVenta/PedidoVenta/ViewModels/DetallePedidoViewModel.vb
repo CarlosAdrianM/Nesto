@@ -14,6 +14,8 @@ Imports Prism.Events
 Imports Prism.Mvvm
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
+Imports System.Windows
+Imports System.Windows.Media
 Imports Unity
 Imports VendedorGrupoProductoDTO = Nesto.Models.VendedorGrupoProductoDTO
 
@@ -38,6 +40,31 @@ Public Class DetallePedidoViewModel
     ''' Carlos 09/12/25: Usado por selectores de FormaVenta y Almacén.
     ''' </summary>
     Public Const VALOR_VARIOS = "VARIOS"
+
+#Region "Issue #258: Tipos de línea para ComboBox"
+    ''' <summary>
+    ''' Clase para los items del ComboBox de TipoLinea.
+    ''' </summary>
+    Public Class TipoLineaItem
+        Public Property Valor As Byte
+        Public Property Descripcion As String
+
+        Public Overrides Function ToString() As String
+            Return Descripcion
+        End Function
+    End Class
+
+    ''' <summary>
+    ''' Lista de tipos de línea válidos para el ComboBox.
+    ''' Issue #258: Evita que el usuario ponga valores inválidos como 33.
+    ''' </summary>
+    Public Shared ReadOnly TiposLinea As New List(Of TipoLineaItem) From {
+        New TipoLineaItem With {.Valor = 0, .Descripcion = "0 - Texto"},
+        New TipoLineaItem With {.Valor = 1, .Descripcion = "1 - Producto"},
+        New TipoLineaItem With {.Valor = 2, .Descripcion = "2 - Cuenta"},
+        New TipoLineaItem With {.Valor = 3, .Descripcion = "3 - Inmovilizado"}
+    }
+#End Region
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, container As IUnityContainer)
         Me.regionManager = regionManager
@@ -1043,37 +1070,51 @@ Public Class DetallePedidoViewModel
         End If
         Dim textoNuevo As String = String.Empty
         Dim esTextBox As Boolean = False
-        If TypeOf eventArgs.EditingElement Is TextBox Then
-            Dim textBox As TextBox = DirectCast(eventArgs.EditingElement, TextBox)
-            textoNuevo = textBox.Text
+        ' Issue #258: Soporta tanto DataGridTextColumn (TextBox directo) como DataGridTemplateColumn (TextBox dentro de ContentPresenter)
+        Dim textBoxEncontrado As TextBox = TryCast(eventArgs.EditingElement, TextBox)
+        If textBoxEncontrado Is Nothing Then
+            textBoxEncontrado = FindVisualChild(Of TextBox)(eventArgs.EditingElement)
+        End If
+        If textBoxEncontrado IsNot Nothing Then
+            textoNuevo = textBoxEncontrado.Text
             esTextBox = True
         End If
 
+        ' Issue #258: Solo buscar producto si TipoLinea=1 (producto) - las cuentas contables se manejan en CuentaContableBehavior
         If esTextBox AndAlso eventArgs.Column.Header = "Producto" AndAlso Not IsNothing(lineaActual) AndAlso textoNuevo <> lineaActual.Producto Then
-            Await CargarDatosProducto(textoNuevo, lineaActual.Cantidad)
+            If lineaActual.tipoLinea.HasValue AndAlso lineaActual.tipoLinea.Value = 1 Then
+                Await CargarDatosProducto(textoNuevo, lineaActual.Cantidad)
+            End If
         End If
-        If esTextBox AndAlso eventArgs.Column.Header = "Cantidad" AndAlso Not IsNothing(lineaActual) AndAlso CType(textoNuevo, Short) <> lineaActual.Cantidad Then
-            Await CargarDatosProducto(lineaActual.Producto, textoNuevo)
+        ' Issue #258: Verificar que textoNuevo sea un número válido antes de convertir
+        ' Solo recalcular por cantidad si TipoLinea=1 (producto)
+        Dim cantidadNueva As Short = 0
+        If esTextBox AndAlso eventArgs.Column.Header = "Cantidad" AndAlso Not IsNothing(lineaActual) AndAlso Short.TryParse(textoNuevo, cantidadNueva) AndAlso cantidadNueva <> lineaActual.Cantidad Then
+            If lineaActual.tipoLinea.HasValue AndAlso lineaActual.tipoLinea.Value = 1 Then
+                Await CargarDatosProducto(lineaActual.Producto, cantidadNueva)
+            End If
         End If
         If (esTextBox AndAlso eventArgs.Column.Header = "Precio") OrElse eventArgs.Column.Header = "Descuento" Then
-            Dim textBox As TextBox = eventArgs.EditingElement
-            ' Windows debería hacer que el teclado numérico escribiese coma en vez de punto
-            ' pero como no lo hace, lo cambiamos nosotros
-            textBox.Text = Replace(textBox.Text, ".", ",")
-            Dim style As NumberStyles = NumberStyles.Number Or NumberStyles.AllowCurrencySymbol
-            Dim culture As CultureInfo = CultureInfo.CurrentCulture
+            ' Issue #258: Reutilizar textBoxEncontrado (ya busca en DataGridTemplateColumn)
+            If textBoxEncontrado IsNot Nothing Then
+                ' Windows debería hacer que el teclado numérico escribiese coma en vez de punto
+                ' pero como no lo hace, lo cambiamos nosotros
+                textBoxEncontrado.Text = Replace(textBoxEncontrado.Text, ".", ",")
+                Dim style As NumberStyles = NumberStyles.Number Or NumberStyles.AllowCurrencySymbol
+                Dim culture As CultureInfo = CultureInfo.CurrentCulture
 
-            If eventArgs.Column.Header = "Precio" Then
-                If Not Double.TryParse(textBox.Text, style, culture, (lineaActual.PrecioUnitario)) Then
-                    Return
-                End If
-            Else
-                Dim valorDescuento As Double
-
-                If Not Double.TryParse(textBox.Text, style, culture, valorDescuento) Then
-                    Return
+                If eventArgs.Column.Header = "Precio" Then
+                    If Not Double.TryParse(textBoxEncontrado.Text, style, culture, (lineaActual.PrecioUnitario)) Then
+                        Return
+                    End If
                 Else
-                    lineaActual.DescuentoLinea = valorDescuento / 100
+                    Dim valorDescuento As Double
+
+                    If Not Double.TryParse(textBoxEncontrado.Text, style, culture, valorDescuento) Then
+                        Return
+                    Else
+                        lineaActual.DescuentoLinea = valorDescuento / 100
+                    End If
                 End If
             End If
         End If
@@ -1083,6 +1124,11 @@ Public Class DetallePedidoViewModel
     End Sub
 
     Private Async Function CargarDatosProducto(numeroProducto As String, cantidad As Short) As Task
+        ' Issue #258: Ignorar si el número de producto está vacío
+        If String.IsNullOrWhiteSpace(numeroProducto) Then
+            Return
+        End If
+
         Dim lineaCambio As LineaPedidoVentaWrapper = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
         Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, cantidad)
         If Not IsNothing(producto) Then
@@ -1097,6 +1143,12 @@ Public Class DetallePedidoViewModel
             If IsNothing(lineaCambio.Usuario) Then
                 lineaCambio.Usuario = configuracion.usuario
             End If
+        Else
+            ' Issue #258: Mostrar error cuando no se encuentra el producto
+            dialogService.ShowError($"El producto '{numeroProducto}' no existe")
+            lineaCambio.Producto = String.Empty
+            lineaCambio.texto = String.Empty
+            lineaCambio.PrecioUnitario = 0
         End If
         If pedido.EsPresupuesto Then
             lineaCambio.estado = -3
@@ -1362,6 +1414,18 @@ Public Class DetallePedidoViewModel
             Return False ' Usuario no quiso guardar, cancelar operación
         End If
 
+        ' Issue #258: Eliminar líneas de producto (TipoLinea=1) sin referencia antes de guardar
+        Dim lineasInvalidas = pedido.Model.Lineas.Where(
+            Function(l) l.TipoLinea = 1 AndAlso String.IsNullOrWhiteSpace(l.Producto)
+        ).ToList()
+        For Each lineaInvalida In lineasInvalidas
+            Dim unused = pedido.Model.Lineas.Remove(lineaInvalida)
+            Dim wrapperInvalido = pedido.Lineas.FirstOrDefault(Function(w) w.Model Is lineaInvalida)
+            If wrapperInvalido IsNot Nothing Then
+                Dim unused2 = pedido.Lineas.Remove(wrapperInvalido)
+            End If
+        Next
+
         ' Intentar guardar el pedido
         Try
             textoBusyIndicator = "Guardando pedido..."
@@ -1488,6 +1552,19 @@ Public Class DetallePedidoViewModel
         ' Modificamos el usuario del pedido
         pedido.Model.Usuario = configuracion.usuario
 
+        ' Issue #258: Eliminar líneas de producto (TipoLinea=1) sin referencia
+        ' Esto evita enviar la línea en blanco que se crea al dar Enter tras la última referencia
+        Dim lineasInvalidas = pedido.Model.Lineas.Where(
+            Function(l) l.TipoLinea = 1 AndAlso String.IsNullOrWhiteSpace(l.Producto)
+        ).ToList()
+        For Each lineaInvalida In lineasInvalidas
+            Dim unused = pedido.Model.Lineas.Remove(lineaInvalida)
+            ' También quitar del wrapper para mantener sincronizado
+            Dim wrapperInvalido = pedido.Lineas.FirstOrDefault(Function(w) w.Model Is lineaInvalida)
+            If wrapperInvalido IsNot Nothing Then
+                Dim unused2 = pedido.Lineas.Remove(wrapperInvalido)
+            End If
+        Next
 
         Try
             Dim esPedidoNuevo As Boolean = pedido.numero = 0
@@ -1737,6 +1814,29 @@ Public Class DetallePedidoViewModel
         Return pedidoString
     End Function
 
+#Region "Helper Visual Tree"
+    ''' <summary>
+    ''' Busca un hijo de tipo T en el árbol visual.
+    ''' Issue #258: Necesario para encontrar TextBox dentro de DataGridTemplateColumn.
+    ''' </summary>
+    Private Shared Function FindVisualChild(Of T As DependencyObject)(parent As DependencyObject) As T
+        If parent Is Nothing Then Return Nothing
+
+        For i As Integer = 0 To VisualTreeHelper.GetChildrenCount(parent) - 1
+            Dim child As DependencyObject = VisualTreeHelper.GetChild(parent, i)
+            If TypeOf child Is T Then
+                Return DirectCast(child, T)
+            End If
+
+            Dim result As T = FindVisualChild(Of T)(child)
+            If result IsNot Nothing Then
+                Return result
+            End If
+        Next
+
+        Return Nothing
+    End Function
+#End Region
 
 End Class
 

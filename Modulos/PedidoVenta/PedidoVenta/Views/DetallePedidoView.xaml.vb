@@ -1,16 +1,91 @@
 ﻿Imports System.Globalization
+Imports System.Windows.Input
 Imports System.Windows.Threading
 
 Public Class DetallePedidoView
     Private actualizarTotales As Boolean = False
     Private lineaEnEdicion As LineaPedidoVentaWrapper = Nothing
+    ' Issue #258: Guardar el último tipoLinea usado para heredarlo en líneas nuevas
+    Private ultimoTipoLineaUsado As Byte = 1
 
+#Region "Helper Visual Tree"
+    ''' <summary>
+    ''' Busca un hijo de tipo T en el árbol visual.
+    ''' Issue #258: Necesario para encontrar TextBox dentro de DataGridTemplateColumn.
+    ''' </summary>
+    Private Shared Function FindVisualChild(Of T As DependencyObject)(parent As DependencyObject) As T
+        If parent Is Nothing Then Return Nothing
 
+        For i As Integer = 0 To VisualTreeHelper.GetChildrenCount(parent) - 1
+            Dim child As DependencyObject = VisualTreeHelper.GetChild(parent, i)
+            If TypeOf child Is T Then
+                Return DirectCast(child, T)
+            End If
+
+            Dim result As T = FindVisualChild(Of T)(child)
+            If result IsNot Nothing Then
+                Return result
+            End If
+        Next
+
+        Return Nothing
+    End Function
+#End Region
 
     Private Sub grdLineas_CellEditEnding(sender As Object, e As DataGridCellEditEndingEventArgs) Handles grdLineas.CellEditEnding
         Dim unused = DataContext.cmdCeldaModificada.Execute(e)
         actualizarTotales = True
+
+        ' Issue #258: Guardar el tipoLinea usado y mover foco a Texto si es tipo 0
+        Dim linea As LineaPedidoVentaWrapper = TryCast(e.Row.Item, LineaPedidoVentaWrapper)
+        If linea IsNot Nothing AndAlso linea.tipoLinea.HasValue Then
+            ultimoTipoLineaUsado = linea.tipoLinea.Value
+
+            ' Si se cambió la columna Tipo a 0 (Texto), mover foco a columna Texto
+            If e.Column.Header?.ToString() = "Tipo" AndAlso linea.tipoLinea.Value = 0 Then
+                Dim unused2 = Dispatcher.BeginInvoke(Sub() MoverAColumnaTexto(), DispatcherPriority.Background)
+            End If
+        End If
     End Sub
+
+    ''' <summary>
+    ''' Mueve el foco a la columna Texto de la fila actual y entra en modo edición.
+    ''' Issue #258: Llamado automáticamente cuando TipoLinea cambia a 0.
+    ''' </summary>
+    Private Sub MoverAColumnaTexto()
+        Try
+            Dim filaActual = grdLineas.Items.IndexOf(grdLineas.CurrentItem)
+            If filaActual >= 0 Then
+                Dim columnaTexto = grdLineas.Columns(3) ' Texto es la columna 3 (después de Estado, Tipo, Producto)
+                grdLineas.CurrentCell = New DataGridCellInfo(grdLineas.Items(filaActual), columnaTexto)
+                Dim unused = grdLineas.BeginEdit()
+            End If
+        Catch
+            ' Ignorar errores de visual tree
+        End Try
+    End Sub
+
+#Region "Issue #258: Valores por defecto en líneas nuevas"
+    ''' <summary>
+    ''' Al crear una nueva línea, hereda tipoLinea del último usado y establece estado=1.
+    ''' Issue #258: Mejora UX - si vas a meter tres líneas de texto, solo cambias TipoLinea una vez.
+    ''' </summary>
+    Private Sub grdLineas_InitializingNewItem(sender As Object, e As InitializingNewItemEventArgs) Handles grdLineas.InitializingNewItem
+        Dim nuevaLinea As LineaPedidoVentaWrapper = TryCast(e.NewItem, LineaPedidoVentaWrapper)
+        If nuevaLinea Is Nothing Then Return
+
+        ' Establecer estado = 1 (en curso) por defecto
+        nuevaLinea.estado = 1
+
+        ' Heredar tipoLinea del último usado (guardado en CellEditEnding)
+        nuevaLinea.tipoLinea = ultimoTipoLineaUsado
+
+        ' Si el tipo es 0 (Texto), mover automáticamente a la columna Texto
+        If ultimoTipoLineaUsado = 0 Then
+            Dim unused = Dispatcher.BeginInvoke(Sub() MoverAColumnaTexto(), DispatcherPriority.Background)
+        End If
+    End Sub
+#End Region
 
 
     Private Sub grdLineas_RowEditEnding(sender As Object, e As DataGridRowEditEndingEventArgs) Handles grdLineas.RowEditEnding
@@ -35,9 +110,44 @@ Public Class DetallePedidoView
     End Sub
 
     Private Sub grdLineas_PreviewKeyDown(sender As Object, e As KeyEventArgs) Handles grdLineas.PreviewKeyDown
+        ' Issue #258: Mejorar navegación con DataGridTemplateColumn
         If e.Key = Key.Enter Then
-            If grdLineas.CurrentColumn.Header = "Cantidad" Then
-                grdLineas.CurrentColumn = grdLineas.Columns(2) ' Producto
+            Dim columnaActual = grdLineas.CurrentColumn?.Header?.ToString()
+
+            If columnaActual = "Cantidad" Then
+                ' Desde Cantidad, Enter va a la siguiente línea
+                e.Handled = True
+                grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
+                MoverASiguienteLineaProducto()
+            ElseIf columnaActual = "Tipo" Then
+                ' Issue #258: Desde Tipo, ir a Producto o Texto según el tipo seleccionado
+                e.Handled = True
+                grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
+                ' El foco se mueve automáticamente en CellEditEnding si tipo=0
+                If ultimoTipoLineaUsado <> 0 Then
+                    MoverAColumnaProducto()
+                End If
+            ElseIf columnaActual = "Producto" Then
+                ' Desde Producto, Enter confirma y va a la siguiente línea
+                e.Handled = True
+                grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
+                grdLineas.CommitEdit(DataGridEditingUnit.Row, True)
+                Dim unused = Dispatcher.BeginInvoke(Sub() MoverASiguienteLineaProducto(), DispatcherPriority.Background)
+            ElseIf columnaActual = "Texto" AndAlso ultimoTipoLineaUsado = 0 Then
+                ' Issue #258: Desde Texto en línea de texto, Enter va a Texto de la siguiente línea
+                e.Handled = True
+                grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
+                grdLineas.CommitEdit(DataGridEditingUnit.Row, True)
+                Dim unused = Dispatcher.BeginInvoke(Sub() MoverASiguienteLineaProducto(), DispatcherPriority.Background)
+            End If
+        ElseIf e.Key = Key.Tab Then
+            Dim columnaActual = grdLineas.CurrentColumn?.Header?.ToString()
+
+            If columnaActual = "Tipo" Then
+                ' Desde Tipo, Tab va a Producto y entra en modo edición
+                e.Handled = True
+                grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
+                MoverAColumnaProducto()
             End If
         ElseIf e.Key = Key.Delete Then
             Dim dataGrid As DataGrid = TryCast(sender, DataGrid)
@@ -48,7 +158,142 @@ Public Class DetallePedidoView
                     Return
                 End If
             End If
+        ElseIf e.Key = Key.Escape Then
+            ' Issue #258: Manejar Escape manualmente para evitar crash con DataGridTemplateColumn
+            ' El error "'{0}' no es un Visual ni un Visual3D" ocurre cuando WPF intenta cancelar
+            ' la edición en un DataGridTemplateColumn que tiene un Behavior adjunto.
+            ' La solución es marcar el evento como manejado y usar Dispatcher para cancelar
+            ' de forma segura después de que el visual tree se estabilice.
+            e.Handled = True
+            Dim unused = Dispatcher.BeginInvoke(
+                Sub()
+                    Try
+                        ' Primero commit (no cancel) para guardar el estado actual
+                        grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
+                        grdLineas.CommitEdit(DataGridEditingUnit.Row, True)
+                        ' Mover el foco al DataGrid
+                        Dim unused2 = grdLineas.Focus()
+                    Catch
+                        ' Si falla, simplemente ignorar
+                    End Try
+                End Sub, DispatcherPriority.Background)
         End If
+    End Sub
+
+#Region "Issue #258: CancelEdit Command Handlers"
+    ''' <summary>
+    ''' Maneja CanExecute del comando CancelEdit para evitar crash con DataGridTemplateColumn.
+    ''' Issue #258: El error "'{0}' no es un Visual ni un Visual3D" ocurre cuando WPF intenta
+    ''' cancelar la edición en una celda con DataGridTemplateColumn que tiene Behaviors.
+    ''' </summary>
+    Private Sub CancelEditCommand_CanExecute(sender As Object, e As CanExecuteRoutedEventArgs)
+        ' Siempre permitir el comando, pero manejarlo nosotros en Executed
+        e.CanExecute = True
+        e.Handled = True
+    End Sub
+
+    ''' <summary>
+    ''' Maneja la ejecución del comando CancelEdit de forma segura.
+    ''' </summary>
+    Private Sub CancelEditCommand_Executed(sender As Object, e As ExecutedRoutedEventArgs)
+        Try
+            ' Intentar commit en lugar de cancel para evitar problemas con el visual tree
+            grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
+            grdLineas.CommitEdit(DataGridEditingUnit.Row, True)
+        Catch
+            ' Si falla, simplemente mover el foco
+        End Try
+
+        Try
+            ' Mover el foco al DataGrid
+            Dim unused = grdLineas.Focus()
+        Catch
+            ' Ignorar errores
+        End Try
+
+        e.Handled = True
+    End Sub
+#End Region
+
+    ''' <summary>
+    ''' Mueve el foco a la columna Producto de la fila actual y entra en modo edición.
+    ''' Issue #258: Necesario para DataGridTemplateColumn.
+    ''' </summary>
+    Private Sub MoverAColumnaProducto()
+        Try
+            Dim filaActual = grdLineas.Items.IndexOf(grdLineas.CurrentItem)
+            If filaActual >= 0 Then
+                Dim columnaProducto = grdLineas.Columns(2) ' Producto es la columna 2
+                grdLineas.CurrentCell = New DataGridCellInfo(grdLineas.Items(filaActual), columnaProducto)
+                Dim unused = grdLineas.BeginEdit()
+                ' Enfocar el TextBox dentro de la celda
+                Dim unused2 = Dispatcher.BeginInvoke(Sub()
+                                                         Try
+                                                             Dim cellContent = columnaProducto.GetCellContent(grdLineas.Items(filaActual))
+                                                             If cellContent IsNot Nothing Then
+                                                                 Dim textBox = FindVisualChild(Of TextBox)(cellContent)
+                                                                 If textBox IsNot Nothing Then
+                                                                     Dim unused3 = textBox.Focus()
+                                                                     textBox.SelectAll()
+                                                                 End If
+                                                             End If
+                                                         Catch
+                                                             ' Ignorar errores de visual tree
+                                                         End Try
+                                                     End Sub, DispatcherPriority.Background)
+            End If
+        Catch
+            ' Ignorar errores si el visual tree fue destruido
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Mueve el foco a la columna apropiada de la siguiente línea y entra en modo edición.
+    ''' Issue #258: Para tipoLinea=0 va a Texto, para otros va a Producto.
+    ''' </summary>
+    Private Sub MoverASiguienteLineaProducto()
+        Try
+            Dim filaActual = grdLineas.Items.IndexOf(grdLineas.CurrentItem)
+            Dim siguienteFila = filaActual + 1
+
+            ' Si no hay siguiente fila, intentar crear una nueva (si CanUserAddRows)
+            If siguienteFila >= grdLineas.Items.Count Then
+                If grdLineas.CanUserAddRows Then
+                    siguienteFila = grdLineas.Items.Count - 1 ' La última fila es la de nueva entrada
+                Else
+                    Return
+                End If
+            End If
+
+            grdLineas.SelectedIndex = siguienteFila
+            grdLineas.CurrentItem = grdLineas.Items(siguienteFila)
+
+            ' Issue #258: Elegir columna según el tipo de línea
+            ' Si ultimoTipoLineaUsado=0 (Texto), ir a columna Texto (3)
+            ' Si no, ir a columna Producto (2)
+            Dim columnaDestino = If(ultimoTipoLineaUsado = 0, grdLineas.Columns(3), grdLineas.Columns(2))
+            grdLineas.CurrentCell = New DataGridCellInfo(grdLineas.Items(siguienteFila), columnaDestino)
+            Dim unused = grdLineas.Focus()
+            Dim unused2 = grdLineas.BeginEdit()
+
+            ' Enfocar el TextBox dentro de la celda
+            Dim unused3 = Dispatcher.BeginInvoke(Sub()
+                                                     Try
+                                                         Dim cellContent = columnaDestino.GetCellContent(grdLineas.Items(siguienteFila))
+                                                         If cellContent IsNot Nothing Then
+                                                             Dim textBox = FindVisualChild(Of TextBox)(cellContent)
+                                                             If textBox IsNot Nothing Then
+                                                                 Dim unused4 = textBox.Focus()
+                                                                 textBox.SelectAll()
+                                                             End If
+                                                         End If
+                                                     Catch
+                                                         ' Ignorar errores de visual tree
+                                                     End Try
+                                                 End Sub, DispatcherPriority.Background)
+        Catch
+            ' Ignorar errores si el visual tree fue destruido
+        End Try
     End Sub
 
     Private Sub txtDescuentoPedido_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtDescuentoPedido.GotFocus
@@ -132,6 +377,18 @@ Public Class DetallePedidoView
 
         If item.estaAlbaraneada OrElse item.tienePicking Then
             e.Cancel = True
+            Return
+        End If
+
+        ' Issue #258: Cuando TipoLinea=0 (Texto), solo permitir editar Tipo y Texto
+        ' Esto mejora la UX al hacer evidente que esos campos no aplican a líneas de texto
+        If item.tipoLinea.HasValue AndAlso item.tipoLinea.Value = 0 Then
+            Dim columnHeader = e.Column.Header?.ToString()
+            ' Columnas permitidas para TipoLinea=0: "Tipo" y "Texto"
+            Dim columnasPermitidas = {"Tipo", "Texto", "Estado"}
+            If Not columnasPermitidas.Contains(columnHeader) Then
+                e.Cancel = True
+            End If
         End If
     End Sub
 
@@ -173,10 +430,15 @@ Public Class DetallePedidoView
                 ' Usar otro Dispatcher para asegurar que BeginEdit funcione correctamente
                 Dim unused3 = Dispatcher.BeginInvoke(Sub()
                                                          Dim unused2 = grdLineas.BeginEdit()
-                                                         ' Si hay un TextBox, enfocarlo
+                                                         ' Issue #258: Buscar TextBox en el árbol visual (soporta DataGridTemplateColumn)
                                                          Dim cellContent = grdLineas.CurrentCell.Column.GetCellContent(grdLineas.CurrentCell.Item)
                                                          If cellContent IsNot Nothing Then
+                                                             ' Primero intentar cast directo (DataGridTextColumn)
                                                              Dim textBox = TryCast(cellContent, TextBox)
+                                                             ' Si no es TextBox directamente, buscar dentro (DataGridTemplateColumn)
+                                                             If textBox Is Nothing Then
+                                                                 textBox = FindVisualChild(Of TextBox)(cellContent)
+                                                             End If
                                                              If textBox IsNot Nothing Then
                                                                  Dim unused1 = textBox.Focus()
                                                                  textBox.SelectAll()
