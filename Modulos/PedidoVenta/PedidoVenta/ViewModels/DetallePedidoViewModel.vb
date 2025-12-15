@@ -481,16 +481,24 @@ Public Class DetallePedidoViewModel
             Return _plazoPagoCompleto
         End Get
         Set(value As PlazosPago)
+            ' Carlos 15/12/25: Guardar si es primera asignación (carga inicial) para no recalcular vencimiento
+            Dim esPrimeraAsignacion = IsNothing(_plazoPagoCompleto)
             If SetProperty(_plazoPagoCompleto, value) Then
                 If IsNothing(PlazoPagoCompleto) Then
                     Return
                 End If
-                pedido.primerVencimiento = pedido.fecha.Value
-                If PlazoPagoCompleto.diasPrimerPlazo <> 0 Then
-                    pedido.primerVencimiento = pedido.primerVencimiento.Value.AddDays(PlazoPagoCompleto.diasPrimerPlazo)
-                End If
-                If PlazoPagoCompleto.mesesPrimerPlazo <> 0 Then
-                    pedido.primerVencimiento = pedido.primerVencimiento.Value.AddMonths(PlazoPagoCompleto.mesesPrimerPlazo)
+                ' Carlos 15/12/25: Solo recalcular vencimiento si:
+                ' - Es pedido nuevo (EstaCreandoPedido), O
+                ' - El usuario cambió el plazo manualmente (no es primera carga)
+                ' Esto evita sobrescribir el vencimiento guardado al cargar pedidos existentes (Issue #254)
+                If EstaCreandoPedido OrElse Not esPrimeraAsignacion Then
+                    pedido.primerVencimiento = pedido.fecha.Value
+                    If PlazoPagoCompleto.diasPrimerPlazo <> 0 Then
+                        pedido.primerVencimiento = pedido.primerVencimiento.Value.AddDays(PlazoPagoCompleto.diasPrimerPlazo)
+                    End If
+                    If PlazoPagoCompleto.mesesPrimerPlazo <> 0 Then
+                        pedido.primerVencimiento = pedido.primerVencimiento.Value.AddMonths(PlazoPagoCompleto.mesesPrimerPlazo)
+                    End If
                 End If
             End If
         End Set

@@ -131,6 +131,25 @@ Public Class PedidoVentaDTO
         If ReferenceEquals(Me, other) Then Return True
 
         ' Comparamos solo los campos que el usuario puede modificar y afectan a facturación
+        ' Log temporal para diagnóstico (Issue #254)
+        If Not StringsIguales(formaPago, other.formaPago) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en formaPago: '{formaPago}' vs '{other.formaPago}'")
+        If Not StringsIguales(plazosPago, other.plazosPago) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en plazosPago: '{plazosPago}' vs '{other.plazosPago}'")
+        If Not StringsIguales(ccc, other.ccc) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en ccc: '{ccc}' vs '{other.ccc}'")
+        If Not StringsIguales(iva, other.iva) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en iva: '{iva}' vs '{other.iva}'")
+        If Not StringsIguales(vendedor, other.vendedor) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en vendedor: '{vendedor}' vs '{other.vendedor}'")
+        If Not StringsIguales(periodoFacturacion, other.periodoFacturacion) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en periodoFacturacion: '{periodoFacturacion}' vs '{other.periodoFacturacion}'")
+        If Not StringsIguales(ruta, other.ruta) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en ruta: '{ruta}' vs '{other.ruta}'")
+        If Not StringsIguales(serie, other.serie) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en serie: '{serie}' vs '{other.serie}'")
+        If Not StringsIguales(contacto, other.contacto) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en contacto: '{contacto}' vs '{other.contacto}'")
+        If Not StringsIguales(contactoCobro, other.contactoCobro) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en contactoCobro: '{contactoCobro}' vs '{other.contactoCobro}'")
+        If Not StringsIguales(comentarios, other.comentarios) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en comentarios: '{comentarios}' vs '{other.comentarios}'")
+        If Not StringsIguales(comentarioPicking, other.comentarioPicking) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en comentarioPicking: '{comentarioPicking}' vs '{other.comentarioPicking}'")
+        If Not Nullable.Equals(primerVencimiento, other.primerVencimiento) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en primerVencimiento: '{primerVencimiento}' vs '{other.primerVencimiento}'")
+        If noComisiona <> other.noComisiona Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en noComisiona: '{noComisiona}' vs '{other.noComisiona}'")
+        If mantenerJunto <> other.mantenerJunto Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en mantenerJunto: '{mantenerJunto}' vs '{other.mantenerJunto}'")
+        If servirJunto <> other.servirJunto Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en servirJunto: '{servirJunto}' vs '{other.servirJunto}'")
+        If notaEntrega <> other.notaEntrega Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en notaEntrega: '{notaEntrega}' vs '{other.notaEntrega}'")
+
         Return StringsIguales(formaPago, other.formaPago) AndAlso
                StringsIguales(plazosPago, other.plazosPago) AndAlso
                StringsIguales(ccc, other.ccc) AndAlso

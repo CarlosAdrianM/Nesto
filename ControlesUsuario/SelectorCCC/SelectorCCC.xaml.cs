@@ -327,12 +327,16 @@ namespace ControlesUsuario
         /// </summary>
         private void AutoSeleccionarCCC(ObservableCollection<CCCItem> lista)
         {
+            Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - CCCSeleccionado actual='{CCCSeleccionado}', FormaPago='{FormaPago}', items en lista={lista?.Count ?? 0}");
+
             // Si ya hay una selección válida en la lista, respetarla
             if (!string.IsNullOrEmpty(CCCSeleccionado))
             {
                 var existe = lista.Any(c => c.numero == CCCSeleccionado);
+                Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - CCC '{CCCSeleccionado}' existe en lista: {existe}");
                 if (existe)
                     return; // Mantener selección actual
+                Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - ¡CCC NO EXISTE EN LISTA! Se va a resetear...");
             }
 
             // Lógica de auto-selección según forma de pago
@@ -340,13 +344,16 @@ namespace ControlesUsuario
             {
                 // Forma de pago es RCB (Recibo) → Seleccionar primer CCC válido
                 var primerValido = lista.FirstOrDefault(c => c.EsValido && !string.IsNullOrEmpty(c.numero));
+                Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - FormaPago=RCB, seleccionando primerValido='{primerValido?.numero}'");
                 CCCSeleccionado = primerValido?.numero;
             }
             else
             {
                 // Forma de pago NO es Recibo → Seleccionar "(Sin CCC)"
+                Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - FormaPago!=RCB, seleccionando null (Sin CCC)");
                 CCCSeleccionado = null;
             }
+            Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - CCCSeleccionado final='{CCCSeleccionado}'");
         }
 
         /// <summary>
