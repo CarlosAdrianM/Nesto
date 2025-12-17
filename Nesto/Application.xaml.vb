@@ -111,6 +111,7 @@ Partial Public Class Application
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
         containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)
+        containerRegistry.RegisterDialog(Of InputTextDialog, InputTextDialogViewModel)
         containerRegistry.RegisterDialog(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
         containerRegistry.RegisterDialog(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
     End Sub

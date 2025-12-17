@@ -214,5 +214,78 @@ namespace ControlesUsuario.Dialogs
 
             return tcs.Task;
         }
+
+        public static void ShowInputText(this IDialogService dialogService, string message, Action<IDialogResult> callback)
+        {
+            DialogParameters p = new()
+            {
+                { "message", message }
+            };
+            dialogService.ShowDialog("InputTextDialog", p, callback);
+        }
+
+        public static void ShowInputText(this IDialogService dialogService, string title, string message, Action<IDialogResult> callback)
+        {
+            DialogParameters p = new()
+            {
+                { "title", title },
+                { "message", message }
+            };
+            dialogService.ShowDialog("InputTextDialog", p, callback);
+        }
+
+        public static void ShowInputText(this IDialogService dialogService, string title, string message, string defaultText, Action<IDialogResult> callback)
+        {
+            DialogParameters p = new()
+            {
+                { "title", title },
+                { "message", message },
+                { "defaultText", defaultText }
+            };
+            dialogService.ShowDialog("InputTextDialog", p, callback);
+        }
+
+        public static string GetText(this IDialogService dialogService, string title, string message)
+        {
+            string result = null;
+
+            DialogParameters p = new()
+            {
+                { "title", title },
+                { "message", message }
+            };
+
+            dialogService.ShowDialog("InputTextDialog", p, r =>
+            {
+                if (r.Result == ButtonResult.OK && r.Parameters.ContainsKey("text"))
+                {
+                    result = r.Parameters.GetValue<string>("text");
+                }
+            });
+
+            return result;
+        }
+
+        public static string GetText(this IDialogService dialogService, string title, string message, string defaultText)
+        {
+            string result = null;
+
+            DialogParameters p = new()
+            {
+                { "title", title },
+                { "message", message },
+                { "defaultText", defaultText }
+            };
+
+            dialogService.ShowDialog("InputTextDialog", p, r =>
+            {
+                if (r.Result == ButtonResult.OK && r.Parameters.ContainsKey("text"))
+                {
+                    result = r.Parameters.GetValue<string>("text");
+                }
+            });
+
+            return result;
+        }
     }
 }

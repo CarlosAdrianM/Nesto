@@ -2,6 +2,7 @@ using ControlesUsuario.Models;
 using FakeItEasy;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.Cajas.Interfaces;
+using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
 using Prism.Services.Dialogs;
 
