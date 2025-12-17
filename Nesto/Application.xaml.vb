@@ -112,6 +112,7 @@ Partial Public Class Application
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
         containerRegistry.RegisterDialog(Of InputAmountDialog, InputAmountDialogViewModel)
         containerRegistry.RegisterDialog(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
+        containerRegistry.RegisterDialog(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window

@@ -1,0 +1,202 @@
+<UserControl x:Class="Nesto.Modulos.Producto.Views.ActualizarControlesStockPopupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:prism="http://prismlibrary.com/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="750"
+             MinWidth="750" MinHeight="450">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+    </UserControl.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Selectores -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Column="0" Grid.Row="0" Text="Proveedor:" VerticalAlignment="Top" Margin="0,5,10,0"/>
+            <controlesusuario:SelectorProveedor Grid.Column="1" Grid.Row="0" Grid.ColumnSpan="3"
+                                                 MinHeight="60" MaxHeight="200"
+                                                 Margin="0,0,0,5"
+                                                 x:Name="selectorProveedor"/>
+
+            <TextBlock Grid.Column="0" Grid.Row="1" Text="Almacen:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <controlesusuario:SelectorAlmacen Grid.Column="1" Grid.Row="1"
+                                               AlmacenSeleccionado="{Binding AlmacenSeleccionado, Mode=TwoWay}"
+                                               Width="120" HorizontalAlignment="Left"/>
+
+            <Button Grid.Column="3" Grid.Row="1" Content="Buscar"
+                    Command="{Binding BuscarProductosCommand}"
+                    Padding="15,5" Margin="10,0,0,0"/>
+        </Grid>
+
+        <!-- Resumen -->
+        <Border Grid.Row="1" Background="#F0F0F0" Padding="8" Margin="0,0,0,5"
+                Visibility="{Binding HayProductos, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <WrapPanel>
+                <TextBlock Text="Total: "/>
+                <TextBlock Text="{Binding TotalProductos}" FontWeight="Bold" Margin="0,0,15,0"/>
+                <TextBlock Text="Actualizar: "/>
+                <TextBlock Text="{Binding ProductosAActualizar}" FontWeight="Bold" Foreground="Green" Margin="0,0,15,0"/>
+                <TextBlock Text="Crear: "/>
+                <TextBlock Text="{Binding ProductosACrear}" FontWeight="Bold" Foreground="Blue" Margin="0,0,15,0"/>
+                <TextBlock Text="OK: "/>
+                <TextBlock Text="{Binding ProductosActualizados}" FontWeight="Bold" Foreground="DarkGreen" Margin="0,0,15,0"/>
+                <TextBlock Text="Error: "/>
+                <TextBlock Text="{Binding ProductosConError}" FontWeight="Bold" Foreground="Red" Margin="0,0,15,0"/>
+                <TextBlock Text="Sin cambios: "/>
+                <TextBlock Text="{Binding ProductosSinCambios}" FontWeight="Bold" Foreground="Gray"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- Lista de productos -->
+        <xctk:BusyIndicator Grid.Row="2" IsBusy="{Binding EstaCargando}" BusyContent="Cargando...">
+            <DataGrid ItemsSource="{Binding Productos}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      SelectionMode="Single"
+                      GridLinesVisibility="Horizontal"
+                      AlternatingRowBackground="#F9F9F9"
+                      FontSize="11">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Producto" Binding="{Binding ProductoId}" Width="70"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                    <DataGridTextColumn Header="Min" Binding="{Binding StockMinimoActual}" Width="40">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Min Sug" Binding="{Binding StockMinimoCalculado}" Width="55">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Max" Binding="{Binding StockMaximoActual}" Width="40">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Max Sug" Binding="{Binding StockMaximoCalculado}" Width="55">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="Múlt" Binding="{Binding Multiplos}" Width="40">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTemplateColumn Header="Estado" Width="70">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock HorizontalAlignment="Center" ToolTip="{Binding MensajeError}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="-"/>
+                                            <Setter Property="Foreground" Value="Gray"/>
+                                            <Style.Triggers>
+                                                <!-- Error tiene prioridad -->
+                                                <DataTrigger Binding="{Binding TieneError}" Value="True">
+                                                    <Setter Property="Text" Value="ERROR"/>
+                                                    <Setter Property="Foreground" Value="Red"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                                <!-- Actualizado correctamente -->
+                                                <DataTrigger Binding="{Binding Actualizado}" Value="True">
+                                                    <Setter Property="Text" Value="OK"/>
+                                                    <Setter Property="Foreground" Value="DarkGreen"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                                <!-- Pendiente de crear -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding RequiereActualizacion}" Value="True"/>
+                                                        <Condition Binding="{Binding YaExiste}" Value="False"/>
+                                                        <Condition Binding="{Binding TieneError}" Value="False"/>
+                                                        <Condition Binding="{Binding Actualizado}" Value="False"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Text" Value="Crear"/>
+                                                    <Setter Property="Foreground" Value="Blue"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </MultiDataTrigger>
+                                                <!-- Pendiente de actualizar -->
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding TieneCambios}" Value="True"/>
+                                                        <Condition Binding="{Binding YaExiste}" Value="True"/>
+                                                        <Condition Binding="{Binding TieneError}" Value="False"/>
+                                                        <Condition Binding="{Binding Actualizado}" Value="False"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Text" Value="Actualizar"/>
+                                                    <Setter Property="Foreground" Value="Green"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </xctk:BusyIndicator>
+
+        <!-- Barra de progreso -->
+        <StackPanel Grid.Row="3" Margin="0,5,0,0"
+                    Visibility="{Binding EstaActualizando, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Text="{Binding MensajeProgreso}" Margin="0,0,0,3" FontSize="11"/>
+            <ProgressBar Height="15" Minimum="0" Maximum="{Binding TotalAActualizar}" Value="{Binding ProgresoActual}"/>
+        </StackPanel>
+
+        <!-- Botones -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <TextBlock Text="{Binding MensajeResultado}" VerticalAlignment="Center" Margin="0,0,10,0"
+                       Foreground="Green" FontWeight="Bold" FontSize="11"
+                       Visibility="{Binding HayResultado, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <Button Content="Cancelar" Width="80" Margin="0,0,10,0" Click="Button_Cancelar_Click"/>
+
+            <Button Content="Actualizar" Width="80"
+                    Command="{Binding ActualizarCommand}"
+                    IsEnabled="{Binding PuedeActualizar}"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

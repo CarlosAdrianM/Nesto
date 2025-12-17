@@ -24,5 +24,6 @@ namespace Nesto.Modules.Producto
         // TO-DO: implementar
         //Task<List<HistorialCambioDto>> ObtenerHistorialCambios(int videoProductoId);
         Task DeshacerCambio(int videoProductoId, int logId, string observaciones = null);
+        Task<List<ProductoControlStockModel>> LeerProductosProveedorControlStock(string proveedorId, string almacen);
     }
 }

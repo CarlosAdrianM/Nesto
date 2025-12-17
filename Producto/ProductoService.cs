@@ -177,6 +177,11 @@ namespace Nesto.Modules.Producto
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
             HttpResponseMessage response;
 
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new Exception("No se pudo configurar la autorización para crear el control de stock");
+            }
+
             try
             {
                 string urlConsulta = "ControlesStock";
@@ -224,6 +229,11 @@ namespace Nesto.Modules.Producto
             using HttpClient client = new();
             client.BaseAddress = new Uri(_configuracion.servidorAPI);
             HttpResponseMessage response;
+
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new Exception("No se pudo configurar la autorización para guardar el control de stock");
+            }
 
             try
             {
@@ -637,6 +647,33 @@ namespace Nesto.Modules.Producto
                 {
                     string error = await response.Content.ReadAsStringAsync();
                     throw new Exception($"Error al deshacer: {response.StatusCode} - {error}");
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<ProductoControlStockModel>> LeerProductosProveedorControlStock(string proveedorId, string almacen)
+        {
+            using HttpClient client = new();
+            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            try
+            {
+                string urlConsulta = $"ControlesStock/ProductosProveedor?proveedorId={proveedorId}&almacen={almacen}";
+                var response = await client.GetAsync(urlConsulta).ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string resultado = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return JsonConvert.DeserializeObject<List<ProductoControlStockModel>>(resultado);
+                }
+                else
+                {
+                    string error = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    throw new Exception($"Error al obtener productos del proveedor: {response.StatusCode} - {error}");
                 }
             }
             catch (Exception)

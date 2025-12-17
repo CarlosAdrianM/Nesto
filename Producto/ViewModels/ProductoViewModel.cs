@@ -57,6 +57,7 @@ namespace Nesto.Modules.Producto.ViewModels
             _eventAggregator = eventAggregator;
             _dialogService = dialogService;
 
+            AbrirActualizarControlesStockCommand = new DelegateCommand(OnAbrirActualizarControlesStock);
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
             AbrirProductoCommand = new DelegateCommand<string>(OnAbrirProducto);
             AbrirProductoWebCommand = new DelegateCommand(OnAbrirProductoWeb, CanAbrirProductoWeb);
@@ -375,6 +376,12 @@ namespace Nesto.Modules.Producto.ViewModels
         #endregion
 
         #region "Comandos"
+        public DelegateCommand AbrirActualizarControlesStockCommand { get; }
+        private async void OnAbrirActualizarControlesStock()
+        {
+            await _dialogService.ShowDialogAsync("ActualizarControlesStockPopupView", new DialogParameters());
+        }
+
         public ICommand AbrirModuloCommand { get; private set; }
         private bool CanAbrirModulo()
         {
