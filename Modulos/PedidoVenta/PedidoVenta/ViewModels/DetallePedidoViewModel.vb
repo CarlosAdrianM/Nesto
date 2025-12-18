@@ -374,6 +374,52 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
+#Region "Issue #51: Fechas de entrega individuales por línea"
+    ''' <summary>
+    ''' Indica si se usan fechas de entrega individuales por línea en lugar de una fecha global.
+    ''' Se activa automáticamente para la serie CV (Cursos).
+    ''' </summary>
+    Private _usarFechasIndividuales As Boolean = False
+    Public Property UsarFechasIndividuales As Boolean
+        Get
+            Return _usarFechasIndividuales
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_usarFechasIndividuales, value) Then
+                RaisePropertyChanged(NameOf(MostrarFechaEntregaGlobal))
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Indica si se debe mostrar el DatePicker de fecha de entrega global.
+    ''' Se oculta cuando UsarFechasIndividuales está activo.
+    ''' </summary>
+    Public ReadOnly Property MostrarFechaEntregaGlobal As Boolean
+        Get
+            Return Not UsarFechasIndividuales
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Comprueba si las líneas del pedido tienen fechas de entrega diferentes.
+    ''' Se usa para activar automáticamente el modo de fechas individuales al cargar un pedido.
+    ''' </summary>
+    Private Function TieneFechasEntregaDiferentes() As Boolean
+        If IsNothing(pedido) OrElse IsNothing(pedido.Lineas) OrElse pedido.Lineas.Count < 2 Then
+            Return False
+        End If
+
+        Dim lineasConFecha = pedido.Lineas.Where(Function(l) l.fechaEntrega <> Date.MinValue).ToList()
+        If lineasConFecha.Count < 2 Then
+            Return False
+        End If
+
+        Dim primeraFecha = lineasConFecha.First().fechaEntrega.Date
+        Return lineasConFecha.Any(Function(l) l.fechaEntrega.Date <> primeraFecha)
+    End Function
+#End Region
+
     Private _formaVentaUsuario As String
     Public Property FormaVentaUsuario As String
         Get
@@ -449,6 +495,8 @@ Public Class DetallePedidoViewModel
             If Not IsNothing(linea) AndAlso Not IsNothing(linea.fechaEntrega) Then
                 fechaEntrega = linea.fechaEntrega
             End If
+            ' Issue #51: Detectar si hay fechas de entrega diferentes en las líneas
+            UsarFechasIndividuales = TieneFechasEntregaDiferentes() OrElse EsSerieCursos
             estaActualizarFechaActivo = True
             vendedorPorGrupo = pedido.VendedoresGrupoProducto?.FirstOrDefault
             If IsNothing(vendedorPorGrupo) Then
@@ -870,7 +918,16 @@ Public Class DetallePedidoViewModel
             Dim unused = SetProperty(_cmdCambiarFechaEntrega, value)
         End Set
     End Property
+    ''' <summary>
+    ''' Propaga la fecha de entrega global a todas las líneas del pedido.
+    ''' Issue #51: Solo propaga si no se están usando fechas individuales por línea.
+    ''' </summary>
     Private Sub OnCambiarFechaEntrega()
+        ' Issue #51: No propagar si se usan fechas individuales
+        If UsarFechasIndividuales Then
+            Return
+        End If
+
         For Each linea In pedido.Lineas
             linea.fechaEntrega = fechaEntrega
         Next
@@ -1070,8 +1127,20 @@ Public Class DetallePedidoViewModel
         If IsNothing(lineaActual.delegacion) Then
             lineaActual.delegacion = DelegacionUsuario
         End If
+        ' Issue #51: Asignar fecha de entrega a nueva línea
         If IsNothing(lineaActual.fechaEntrega) OrElse lineaActual.fechaEntrega = Date.MinValue Then
-            lineaActual.fechaEntrega = fechaEntrega
+            If UsarFechasIndividuales Then
+                ' Copiar fecha de la última línea con fecha válida
+                Dim ultimaLineaConFecha = pedido.Lineas.LastOrDefault(Function(l) l.fechaEntrega <> Date.MinValue AndAlso l IsNot lineaActual)
+                lineaActual.fechaEntrega = If(ultimaLineaConFecha IsNot Nothing, ultimaLineaConFecha.fechaEntrega, fechaEntrega)
+            Else
+                ' Usar fecha global
+                lineaActual.fechaEntrega = fechaEntrega
+            End If
+            ' Asegurar que nunca quede en MinValue
+            If lineaActual.fechaEntrega = Date.MinValue Then
+                lineaActual.fechaEntrega = Date.Today
+            End If
         End If
         If lineaActual.id = 0 AndAlso Not String.IsNullOrEmpty(VistoBuenoVentas) Then
             lineaActual.vistoBueno = VistoBuenoVentas = "1" OrElse VistoBuenoVentas.ToLower() = "true"
@@ -1774,6 +1843,8 @@ Public Class DetallePedidoViewModel
             ' Reinicializar selectores cuando cambia la serie (ej: al cambiar a CV)
             InicializarFormaVentaParaLineas()
             InicializarAlmacenParaLineas()
+            ' Issue #51: Activar fechas individuales automáticamente para serie CV
+            UsarFechasIndividuales = EsSerieCursos
         End If
     End Sub
 

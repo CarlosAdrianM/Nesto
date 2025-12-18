@@ -8,6 +8,44 @@ Public Class DetallePedidoView
     ' Issue #258: Guardar el último tipoLinea usado para heredarlo en líneas nuevas
     Private ultimoTipoLineaUsado As Byte = 1
 
+#Region "Issue #51: Refrescar columnas al cambiar visibilidad de Fecha Entrega"
+    Private Sub DetallePedidoView_DataContextChanged(sender As Object, e As DependencyPropertyChangedEventArgs) Handles Me.DataContextChanged
+        ' Suscribirse al PropertyChanged del ViewModel para detectar cambios en UsarFechasIndividuales
+        Dim oldVm = TryCast(e.OldValue, DetallePedidoViewModel)
+        Dim newVm = TryCast(e.NewValue, DetallePedidoViewModel)
+
+        If oldVm IsNot Nothing Then
+            RemoveHandler oldVm.PropertyChanged, AddressOf ViewModel_PropertyChanged
+        End If
+
+        If newVm IsNot Nothing Then
+            AddHandler newVm.PropertyChanged, AddressOf ViewModel_PropertyChanged
+        End If
+    End Sub
+
+    Private Sub ViewModel_PropertyChanged(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
+        If e.PropertyName = NameOf(DetallePedidoViewModel.UsarFechasIndividuales) Then
+            ' Refrescar anchos de columnas del DataGrid después de cambiar visibilidad
+            Dim unused = Dispatcher.BeginInvoke(Sub() RefrescarAnchosColumnas(), DispatcherPriority.Background)
+        End If
+    End Sub
+
+    Private Sub RefrescarAnchosColumnas()
+        Try
+            ' Forzar recálculo de anchos de columna
+            For Each columna In grdLineas.Columns
+                If columna.Width.IsStar Then
+                    Dim starValue = columna.Width.Value
+                    columna.Width = New DataGridLength(starValue, DataGridLengthUnitType.Star)
+                End If
+            Next
+            grdLineas.UpdateLayout()
+        Catch
+            ' Ignorar errores
+        End Try
+    End Sub
+#End Region
+
 #Region "Helper Visual Tree"
     ''' <summary>
     ''' Busca un hijo de tipo T en el árbol visual.

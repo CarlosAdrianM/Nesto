@@ -1,8 +1,9 @@
 ﻿<UserControl x:Class="DetallePedidoView"
+             x:Name="detallePedidoControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Nesto.Modulos.PedidoVenta"
              xmlns:prism="http://prismlibrary.com/"
              prism:ViewModelLocator.AutoWireViewModel="True"
@@ -10,11 +11,13 @@
              xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" d:DataContext="{d:DesignInstance Type=local:DetallePedidoViewModel}"
-             mc:Ignorable="d" 
+             mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <!-- Issue #51: Proxy para bindings desde DataGridColumn (no está en árbol visual) -->
+        <controles:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
 
         <Style x:Key="DataGridRowStyle" TargetType="DataGridRow">
             <Setter Property="Background" Value="White"/>
@@ -253,8 +256,10 @@
                             Seleccionada="{Binding pedido.contacto, Mode=TwoWay}">
                         </controles:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="Fecha de Entrega:"></TextBlock>
-                            <DatePicker SelectedDate="{Binding fechaEntrega}"></DatePicker>
+                            <!-- Issue #51: Fechas de entrega individuales por línea -->
+                            <CheckBox IsChecked="{Binding UsarFechasIndividuales}" ToolTip="Cuando está activo, cada línea tiene su propia fecha de entrega (editable en la pestaña Líneas)">Fechas individuales por línea</CheckBox>
+                            <TextBlock Text="Fecha de Entrega:" Visibility="{Binding MostrarFechaEntregaGlobal, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
+                            <DatePicker SelectedDate="{Binding fechaEntrega}" Visibility="{Binding MostrarFechaEntregaGlobal, Converter={StaticResource BooleanToVisibilityConverter}}"></DatePicker>
                             <CheckBox IsChecked="{Binding pedido.servirJunto}">Servir Junto</CheckBox>
                             <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
                             <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">
@@ -481,6 +486,20 @@
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
                                 <DataGridCheckBoxColumn Header="Aplicar Dto." Binding="{Binding AplicarDescuento, UpdateSourceTrigger=PropertyChanged}" CellStyle="{StaticResource CeldaDeshabilitadaParaTexto}"/>
+                                <!-- Issue #51: Columna de fecha de entrega individual por línea -->
+                                <DataGridTemplateColumn Header="Fecha Entrega" Width="3*"
+                                    Visibility="{Binding Data.UsarFechasIndividuales, Source={StaticResource ViewModelProxy}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding fechaEntrega, StringFormat=d}" VerticalAlignment="Center" Margin="2,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <DatePicker SelectedDate="{Binding fechaEntrega, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="BI" Width="3*" Binding="{Binding BaseImponible, StringFormat=c}" IsReadOnly="True">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
