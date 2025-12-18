@@ -436,7 +436,13 @@ Public Class DetallePedidoViewModel
             Return _papelConMembrete
         End Get
         Set(value As Boolean)
-            Dim unused = SetProperty(_papelConMembrete, value)
+            If SetProperty(_papelConMembrete, value) Then
+                ' Guardar preferencia del usuario (sync porque estamos en un setter)
+                configuracion.GuardarParametroSync(
+                    Constantes.Empresas.EMPRESA_DEFECTO,
+                    Parametros.Claves.PedidoVentaPapelMembrete,
+                    value.ToString())
+            End If
         End Set
     End Property
 
@@ -1867,6 +1873,9 @@ Public Class DetallePedidoViewModel
         DelegacionUsuario = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto)
         SerieFacturacionDefecto = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.SerieFacturacionDefecto)
         VistoBuenoVentas = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.VistoBuenoVentas)
+        Dim papelMembrete = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PedidoVentaPapelMembrete)
+        _papelConMembrete = papelMembrete?.ToLower() = "true"
+        RaisePropertyChanged(NameOf(PapelConMembrete))
 
         cmdCargarPedido.Execute(resumen)
     End Sub
