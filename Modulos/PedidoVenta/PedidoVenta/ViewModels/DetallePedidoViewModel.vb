@@ -1177,8 +1177,8 @@ Public Class DetallePedidoViewModel
                 Await CargarDatosProducto(lineaActual.Producto, cantidadNueva)
             End If
         End If
-        If (esTextBox AndAlso eventArgs.Column.Header = "Precio") OrElse eventArgs.Column.Header = "Descuento" Then
-            ' Issue #258: Reutilizar textBoxEncontrado (ya busca en DataGridTemplateColumn)
+        ' Issue #266: Solo manejar Precio manualmente. Descuento lo maneja PercentageConverter
+        If esTextBox AndAlso eventArgs.Column.Header = "Precio" Then
             If textBoxEncontrado IsNot Nothing Then
                 ' Windows debería hacer que el teclado numérico escribiese coma en vez de punto
                 ' pero como no lo hace, lo cambiamos nosotros
@@ -1186,18 +1186,8 @@ Public Class DetallePedidoViewModel
                 Dim style As NumberStyles = NumberStyles.Number Or NumberStyles.AllowCurrencySymbol
                 Dim culture As CultureInfo = CultureInfo.CurrentCulture
 
-                If eventArgs.Column.Header = "Precio" Then
-                    If Not Double.TryParse(textBoxEncontrado.Text, style, culture, (lineaActual.PrecioUnitario)) Then
-                        Return
-                    End If
-                Else
-                    Dim valorDescuento As Double
-
-                    If Not Double.TryParse(textBoxEncontrado.Text, style, culture, valorDescuento) Then
-                        Return
-                    Else
-                        lineaActual.DescuentoLinea = valorDescuento / 100
-                    End If
+                If Not Double.TryParse(textBoxEncontrado.Text, style, culture, (lineaActual.PrecioUnitario)) Then
+                    Return
                 End If
             End If
         End If
