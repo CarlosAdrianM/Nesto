@@ -6,12 +6,13 @@
              xmlns:prism="http://prismlibrary.com/"
              xmlns:local="clr-namespace:Nesto.Modulos.PlantillaVenta"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-             xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:converters="clr-namespace:ControlesUsuario.Converters;assembly=ControlesUsuario"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              prism:ViewModelLocator.AutoWireViewModel="True">
 
     <UserControl.Resources>
-        <local:PercentageConverter x:Key="porcentajeConverter" />
+        <converters:PercentageConverter x:Key="porcentajeConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 

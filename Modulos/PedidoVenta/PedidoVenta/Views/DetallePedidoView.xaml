@@ -10,6 +10,7 @@
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:converters="clr-namespace:ControlesUsuario.Converters;assembly=ControlesUsuario"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" d:DataContext="{d:DesignInstance Type=local:DetallePedidoViewModel}"
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300">
@@ -18,6 +19,8 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <!-- Issue #51: Proxy para bindings desde DataGridColumn (no está en árbol visual) -->
         <controles:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
+        <!-- Issue #266: Converter compartido desde ControlesUsuario -->
+        <converters:PercentageConverter x:Key="porcentajeConverter" />
 
         <Style x:Key="DataGridRowStyle" TargetType="DataGridRow">
             <Setter Property="Background" Value="White"/>
@@ -36,10 +39,6 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-
-
-
-        <local:PercentageConverter x:Key="porcentajeConverter" />
 
         <!-- Issue #258: Estilo para celdas que se deshabilitan cuando TipoLinea=0 (Texto) -->
         <Style x:Key="CeldaDeshabilitadaParaTexto" TargetType="DataGridCell">
