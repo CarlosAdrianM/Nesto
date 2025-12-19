@@ -272,7 +272,8 @@ namespace Nesto.Modules.Producto.ViewModels
                             StockMáximo = producto.StockMaximoCalculado,
                             Categoria = producto.Categoria ?? string.Empty,
                             Estacionalidad = producto.Estacionalidad ?? string.Empty,
-                            Múltiplos = producto.Multiplos > 0 ? producto.Multiplos : 1
+                            Múltiplos = producto.Multiplos > 0 ? producto.Multiplos : 1,
+                            Fecha_Modificación = DateTime.Now
                         };
 
                         if (producto.YaExiste)
