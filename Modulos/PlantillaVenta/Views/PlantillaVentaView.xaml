@@ -357,14 +357,30 @@
                                             </Style>
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
-                                    <DataGridTextColumn Header="% Dto." Binding="{Binding descuento, Converter={StaticResource porcentajeConverter}}" IsReadOnly="False">
-                                        <DataGridTextColumn.CellStyle>
+                                    <DataGridTemplateColumn Header="% Dto.">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding descuento, Converter={StaticResource porcentajeConverter}}"
+                                                           HorizontalAlignment="Right"
+                                                           IsEnabled="{Binding aplicarDescuento}"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <TextBox x:Name="txtDescuento"
+                                                         Text="{Binding descuento, Converter={StaticResource porcentajeConverter}, UpdateSourceTrigger=LostFocus}"
+                                                         HorizontalAlignment="Stretch"
+                                                         IsEnabled="{Binding aplicarDescuento}"
+                                                         Loaded="TextBox_Loaded"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataGridTemplateColumn.CellStyle>
                                             <Style TargetType="DataGridCell">
-                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                                                 <Setter Property="IsEnabled" Value="{Binding aplicarDescuento}" />
+                                                <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DataGridCell_PreviewMouseLeftButtonDown"/>
                                             </Style>
-                                        </DataGridTextColumn.CellStyle>
-                                    </DataGridTextColumn>
+                                        </DataGridTemplateColumn.CellStyle>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="Base Imp." Binding="{Binding baseImponible, StringFormat=c}" IsReadOnly="True">
                                         <DataGridTextColumn.CellStyle>
                                             <Style TargetType="DataGridCell">

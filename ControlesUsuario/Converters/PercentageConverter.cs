@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -15,11 +16,15 @@ namespace ControlesUsuario.Converters
         /// </summary>
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            Debug.WriteLine($"[PercentageConverter.Convert] value={value}, type={value?.GetType().Name}");
+
             if (value == null) return "0,00 %";
 
             if (decimal.TryParse(value.ToString(), out decimal fraction))
             {
-                return fraction.ToString("P2", culture);
+                var result = fraction.ToString("P2", culture);
+                Debug.WriteLine($"[PercentageConverter.Convert] result={result}");
+                return result;
             }
             return "0,00 %";
         }
@@ -29,8 +34,11 @@ namespace ControlesUsuario.Converters
         /// </summary>
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            Debug.WriteLine($"[PercentageConverter.ConvertBack] value={value}, type={value?.GetType().Name}");
+
             if (value == null || string.IsNullOrWhiteSpace(value.ToString()))
             {
+                Debug.WriteLine($"[PercentageConverter.ConvertBack] value es null/vacío, retornando 0");
                 return 0m;
             }
 
@@ -38,29 +46,36 @@ namespace ControlesUsuario.Converters
             // Esto puede pasar en DataGrid cuando el binding pasa el valor del source en vez del TextBox
             if (value is decimal decValue)
             {
+                Debug.WriteLine($"[PercentageConverter.ConvertBack] value es Decimal, retornando tal cual: {decValue}");
                 return decValue;
             }
             if (value is double dblValue)
             {
+                Debug.WriteLine($"[PercentageConverter.ConvertBack] value es Double, retornando tal cual: {dblValue}");
                 return (decimal)dblValue;
             }
 
             string valueString = value.ToString().Trim();
+            Debug.WriteLine($"[PercentageConverter.ConvertBack] valueString después de Trim: '{valueString}'");
 
             // Quitar el símbolo de porcentaje si existe
             valueString = valueString.Replace("%", "").Trim();
+            Debug.WriteLine($"[PercentageConverter.ConvertBack] valueString después de quitar %: '{valueString}'");
 
             if (!decimal.TryParse(valueString, NumberStyles.Any, culture, out decimal parsedValue))
             {
+                Debug.WriteLine($"[PercentageConverter.ConvertBack] TryParse con cultura {culture.Name} falló, intentando InvariantCulture");
                 // Si falla con la cultura actual, intentar con cultura invariante
                 if (!decimal.TryParse(valueString, NumberStyles.Any, CultureInfo.InvariantCulture, out parsedValue))
                 {
+                    Debug.WriteLine($"[PercentageConverter.ConvertBack] TryParse con InvariantCulture también falló, retornando 0");
                     return 0m;
                 }
             }
 
-            // El usuario escribe 30 para representar 30%, internamente guardamos 0.30
-            return parsedValue / 100m;
+            var result = parsedValue / 100m;
+            Debug.WriteLine($"[PercentageConverter.ConvertBack] parsedValue={parsedValue}, result={result}");
+            return result;
         }
     }
 }

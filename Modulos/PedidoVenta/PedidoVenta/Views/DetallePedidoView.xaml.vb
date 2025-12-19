@@ -68,6 +68,60 @@ Public Class DetallePedidoView
 
         Return Nothing
     End Function
+
+    ''' <summary>
+    ''' Busca un padre de tipo T en el árbol visual.
+    ''' Issue #266: Necesario para encontrar DataGrid desde DataGridCell.
+    ''' </summary>
+    Private Shared Function FindVisualParent(Of T As DependencyObject)(child As DependencyObject) As T
+        Dim parentObject As DependencyObject = VisualTreeHelper.GetParent(child)
+        If parentObject Is Nothing Then Return Nothing
+        Dim parent As T = TryCast(parentObject, T)
+        If parent IsNot Nothing Then
+            Return parent
+        Else
+            Return FindVisualParent(Of T)(parentObject)
+        End If
+    End Function
+#End Region
+
+#Region "Issue #266: Single-click edit y select-all para columna Descuento"
+    ''' <summary>
+    ''' Entrar en modo edición con un solo clic para DataGridTemplateColumn.
+    ''' </summary>
+    Private Sub DescuentoCell_PreviewMouseLeftButtonDown(sender As Object, e As MouseButtonEventArgs)
+        Dim cell As DataGridCell = TryCast(sender, DataGridCell)
+        If cell IsNot Nothing AndAlso Not cell.IsEditing AndAlso Not cell.IsReadOnly Then
+            If Not cell.IsFocused Then
+                Dim unused = cell.Focus()
+            End If
+            Dim dataGrid As DataGrid = FindVisualParent(Of DataGrid)(cell)
+            If dataGrid IsNot Nothing Then
+                If dataGrid.SelectionUnit <> DataGridSelectionUnit.FullRow Then
+                    If Not cell.IsSelected Then
+                        cell.IsSelected = True
+                    End If
+                Else
+                    Dim row As DataGridRow = FindVisualParent(Of DataGridRow)(cell)
+                    If row IsNot Nothing AndAlso Not row.IsSelected Then
+                        row.IsSelected = True
+                    End If
+                End If
+                dataGrid.BeginEdit()
+            End If
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Seleccionar todo el texto cuando el TextBox se carga (al entrar en modo edición).
+    ''' </summary>
+    Private Sub DescuentoTextBox_Loaded(sender As Object, e As RoutedEventArgs)
+        Dim textBox As TextBox = TryCast(sender, TextBox)
+        If textBox IsNot Nothing Then
+            Dim unused = textBox.Focus()
+            textBox.SelectAll()
+        End If
+    End Sub
 #End Region
 
     Private Sub grdLineas_CellEditEnding(sender As Object, e As DataGridCellEditEndingEventArgs) Handles grdLineas.CellEditEnding

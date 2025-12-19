@@ -829,6 +829,17 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    ''' <summary>
+    ''' Issue #266: Actualiza los totales en la UI sin recargar datos del servidor.
+    ''' Se usa cuando el usuario modifica manualmente el precio o descuento.
+    ''' </summary>
+    Public Sub ActualizarTotales()
+        RaisePropertyChanged(NameOf(listaProductosPedido))
+        RaisePropertyChanged(NameOf(baseImponiblePedido))
+        RaisePropertyChanged(NameOf(baseImponibleParaPortes))
+        RaisePropertyChanged(NameOf(totalPedido))
+        RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
+    End Sub
 
     'Enum PaginasWizard
     '    SeleccionCliente
