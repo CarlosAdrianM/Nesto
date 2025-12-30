@@ -66,8 +66,12 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var apunteBancario = apuntesBancarios.First();
             var apunteContabilidad = apuntesContabilidad.First();
 
-            if (apunteBancario.ConceptoComun == "99" &&
-                apunteBancario.ConceptoPropio == "067" &&
+            if (((apunteBancario.ConceptoComun == "99" &&
+                apunteBancario.ConceptoPropio == "067") ||
+                (apunteBancario.ConceptoComun == "04" &&
+                apunteBancario.ConceptoPropio == "002")
+                )
+                &&
                 apunteBancario.RegistrosConcepto != null &&
                 apunteBancario.RegistrosConcepto.Count > 2 &&
                 ((apunteBancario.RegistrosConcepto[2].Concepto?.ToUpper().Trim() == "3202-0000-05-0233-20") ||

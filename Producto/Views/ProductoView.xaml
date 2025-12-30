@@ -102,7 +102,7 @@
         </ItemsControl>
 
 
-        <Border BorderBrush="PaleVioletRed" BorderThickness="3" Grid.Column="1" Grid.Row="10" Visibility="{Binding EsDelGrupoCompras, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <Border BorderBrush="PaleVioletRed" BorderThickness="3" Grid.Column="1" Grid.Row="10" Visibility="{Binding EsDelGrupoCompras, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
             <xctk:BusyIndicator IsBusy="{Binding EstaCargandoControlesStock}" BusyContent="Calculando stock mínimo...">
                 <Grid Name="grdStockMinimo">
                     <Grid.ColumnDefinitions>
@@ -155,7 +155,7 @@
 
         <StackPanel Grid.Row="12" Grid.Column="1" Orientation="Horizontal" Margin="0,5">
             <Button Command="{Binding GuardarProductoCommand}" Visibility="{Binding EsDeGrupoPermitido, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,10,0" Padding="10,5">Guardar Cambios</Button>
-            <Button Command="{Binding AbrirActualizarControlesStockCommand}" Visibility="{Binding EsDelGrupoCompras, Converter={StaticResource BooleanToVisibilityConverter}}" Padding="10,5">Actualizar Stocks por Proveedor</Button>
+            <Button Command="{Binding AbrirActualizarControlesStockCommand}" Visibility="{Binding EsDelGrupoCompras, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}" Padding="10,5">Actualizar Stocks por Proveedor</Button>
         </StackPanel>
 
         <Image Grid.Row="13" Grid.Column="1" Source="{Binding ProductoActual.UrlFoto}" Height="Auto" Width="Auto" Margin="0,0,10,0"/>
