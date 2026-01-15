@@ -41,6 +41,7 @@ namespace Nesto.Modulos.Cliente
             DialogService = dialogService;
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo);
+            AbrirModelo347Command = new DelegateCommand(OnAbrirModelo347);
             AnnadirPersonaContactoCommand = new DelegateCommand(OnAnnadirPersonaContacto);
             BorrarPersonaContactoCommand = new DelegateCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
             CrearClienteCommand = new DelegateCommand(OnCrearCliente);
@@ -356,6 +357,12 @@ namespace Nesto.Modulos.Cliente
         private void OnAbrirModulo()
         {
             RegionManager.RequestNavigate("MainRegion", "CrearClienteView");
+        }
+
+        public ICommand AbrirModelo347Command { get; private set; }
+        private void OnAbrirModelo347()
+        {
+            RegionManager.RequestNavigate("MainRegion", "Modelo347View");
         }
 
         public ICommand AnnadirPersonaContactoCommand { get; private set; }
