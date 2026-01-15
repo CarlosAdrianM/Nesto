@@ -9,6 +9,8 @@ Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
+Imports Nesto.Modulos.PedidoVenta.Models.Facturas
+Imports Nesto.Modulos.PedidoVenta.Services
 Imports Prism.Commands
 Imports Prism.Events
 Imports Prism.Mvvm
@@ -93,7 +95,9 @@ Public Class DetallePedidoViewModel
         CrearFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
         CrearAlbaranYFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranYFacturaVenta, AddressOf CanCrearAlbaranYFacturaVenta)
         ImprimirFacturaCommand = New DelegateCommand(AddressOf OnImprimirFactura, AddressOf CanImprimirFactura)
+        ImprimirFacturaDirectoCommand = New DelegateCommand(AddressOf OnImprimirFacturaDirecto, AddressOf CanImprimirFactura)
         ImprimirAlbaranCommand = New DelegateCommand(AddressOf OnImprimirAlbaran, AddressOf CanImprimirAlbaran)
+        ImprimirAlbaranDirectoCommand = New DelegateCommand(AddressOf OnImprimirAlbaranDirecto, AddressOf CanImprimirAlbaran)
         CopiarEnlaceCommand = New DelegateCommand(Of String)(AddressOf OnCopiarEnlace)
         AbrirFacturarRutasCommand = New DelegateCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
 
@@ -455,7 +459,9 @@ Public Class DetallePedidoViewModel
             Dim unused = SetProperty(_lineaActual, value)
             RaisePropertyChanged(NameOf(pedido))
             ImprimirFacturaCommand.RaiseCanExecuteChanged()
+            ImprimirFacturaDirectoCommand.RaiseCanExecuteChanged()
             ImprimirAlbaranCommand.RaiseCanExecuteChanged()
+            ImprimirAlbaranDirectoCommand.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -1418,6 +1424,136 @@ Public Class DetallePedidoViewModel
             dialogService.ShowError($"Error al abrir el albarán: {mensajeError}")
         End Try
     End Function
+
+#Region "Issue #269: Impresión directa a impresora con selección de bandeja"
+    Private _imprimirFacturaDirectoCommand As DelegateCommand
+    Public Property ImprimirFacturaDirectoCommand As DelegateCommand
+        Get
+            Return _imprimirFacturaDirectoCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_imprimirFacturaDirectoCommand, value)
+        End Set
+    End Property
+
+    Private Async Sub OnImprimirFacturaDirecto()
+        Await ImprimirFacturaDirecto(lineaActual.Factura)
+    End Sub
+
+    ''' <summary>
+    ''' Imprime la factura directamente a la impresora, seleccionando la bandeja según PapelConMembrete.
+    ''' Issue #269: Soluciona el problema de que los lectores de PDF no respetan la bandeja.
+    ''' </summary>
+    Private Async Function ImprimirFacturaDirecto(factura As String) As Task
+        If Not dialogService.ShowConfirmationAnswer("Imprimir factura", "¿Desea imprimir la factura directamente en la impresora?") Then
+            Return
+        End If
+        Try
+            ' Obtener bytes del PDF desde la API
+            Dim bytesPdf = Await servicio.CargarFactura(pedido.empresa, factura, PapelConMembrete)
+
+            If bytesPdf Is Nothing OrElse bytesPdf.Length = 0 Then
+                dialogService.ShowError("No se pudo obtener el PDF de la factura")
+                Return
+            End If
+
+            ' Determinar bandeja según PapelConMembrete
+            ' Upper = bandeja con papel preimpreso (membrete)
+            ' Lower = bandeja con papel blanco normal
+            Dim bandeja = If(PapelConMembrete, TipoBandejaImpresion.Upper, TipoBandejaImpresion.Lower)
+
+            ' Crear datos de impresión
+            Dim datosImpresion As New DocumentoParaImprimir With {
+                .BytesPDF = bytesPdf,
+                .NumeroCopias = 1,
+                .TipoBandeja = bandeja
+            }
+
+            ' Crear factura DTO para el servicio de impresión
+            Dim facturaDTO As New FacturaCreadaDTO With {
+                .NumeroFactura = factura,
+                .DatosImpresion = datosImpresion
+            }
+
+            ' Imprimir usando el servicio existente
+            Dim servicioImpresion As New ServicioImpresionDocumentos()
+            Dim resultado = Await servicioImpresion.ImprimirFacturas({facturaDTO})
+
+            If resultado.TieneErrores Then
+                dialogService.ShowError($"Error al imprimir: {resultado.Errores.First().MensajeError}")
+            Else
+                dialogService.ShowNotification($"Factura {factura} enviada a la impresora")
+            End If
+
+        Catch ex As Exception
+            Dim mensajeError = If(IsNothing(ex.InnerException), ex.Message, ex.InnerException.Message)
+            dialogService.ShowError($"Error al imprimir la factura: {mensajeError}")
+        End Try
+    End Function
+
+    Private _imprimirAlbaranDirectoCommand As DelegateCommand
+    Public Property ImprimirAlbaranDirectoCommand As DelegateCommand
+        Get
+            Return _imprimirAlbaranDirectoCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_imprimirAlbaranDirectoCommand, value)
+        End Set
+    End Property
+
+    Private Async Sub OnImprimirAlbaranDirecto()
+        Await ImprimirAlbaranDirecto(lineaActual.Albaran.Value)
+    End Sub
+
+    ''' <summary>
+    ''' Imprime el albarán directamente a la impresora, seleccionando la bandeja según PapelConMembrete.
+    ''' Issue #269: Soluciona el problema de que los lectores de PDF no respetan la bandeja.
+    ''' </summary>
+    Private Async Function ImprimirAlbaranDirecto(numeroAlbaran As Integer) As Task
+        If Not dialogService.ShowConfirmationAnswer("Imprimir albarán", "¿Desea imprimir el albarán directamente en la impresora?") Then
+            Return
+        End If
+        Try
+            ' Obtener bytes del PDF desde la API
+            Dim bytesPdf = Await servicio.CargarAlbaran(pedido.empresa, numeroAlbaran, PapelConMembrete)
+
+            If bytesPdf Is Nothing OrElse bytesPdf.Length = 0 Then
+                dialogService.ShowError("No se pudo obtener el PDF del albarán")
+                Return
+            End If
+
+            ' Determinar bandeja según PapelConMembrete
+            Dim bandeja = If(PapelConMembrete, TipoBandejaImpresion.Upper, TipoBandejaImpresion.Lower)
+
+            ' Crear datos de impresión
+            Dim datosImpresion As New DocumentoParaImprimir With {
+                .BytesPDF = bytesPdf,
+                .NumeroCopias = 1,
+                .TipoBandeja = bandeja
+            }
+
+            ' Crear albarán DTO para el servicio de impresión
+            Dim albaranDTO As New AlbaranCreadoDTO With {
+                .NumeroAlbaran = numeroAlbaran,
+                .DatosImpresion = datosImpresion
+            }
+
+            ' Imprimir usando el servicio existente
+            Dim servicioImpresion As New ServicioImpresionDocumentos()
+            Dim resultado = Await servicioImpresion.ImprimirAlbaranes({albaranDTO})
+
+            If resultado.TieneErrores Then
+                dialogService.ShowError($"Error al imprimir: {resultado.Errores.First().MensajeError}")
+            Else
+                dialogService.ShowNotification($"Albarán {numeroAlbaran} enviado a la impresora")
+            End If
+
+        Catch ex As Exception
+            Dim mensajeError = If(IsNothing(ex.InnerException), ex.Message, ex.InnerException.Message)
+            dialogService.ShowError($"Error al imprimir el albarán: {mensajeError}")
+        End Try
+    End Function
+#End Region
 
     Private _crearAlbaranYFacturaVentaCommand As DelegateCommand
     Public Property CrearAlbaranYFacturaVentaCommand As DelegateCommand

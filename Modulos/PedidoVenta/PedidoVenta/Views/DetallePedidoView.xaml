@@ -193,9 +193,25 @@
                                 <Button Grid.Row="0" Grid.Column="1" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
                                 <Button Grid.Row="0" Grid.Column="2" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
                                 <CheckBox Grid.Row="0" Grid.Column="3" IsChecked="{Binding PapelConMembrete}" VerticalAlignment="Center" HorizontalAlignment="Center">Papel con membrete</CheckBox>
-                                <!-- Fila 1: Impresión (alineado con fila 0) -->
-                                <Button Grid.Row="1" Grid.Column="0" Command="{Binding ImprimirAlbaranCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Albarán</Button>
-                                <Button Grid.Row="1" Grid.Column="1" Command="{Binding ImprimirFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Imprimir Factura</Button>
+                                <!-- Fila 1: Impresión (Issue #269: Impresión directa con selección de bandeja) -->
+                                <!-- Clic izquierdo: Imprime directo a impresora con bandeja según "Papel con membrete" -->
+                                <!-- Clic derecho: Menú para descargar PDF (comportamiento anterior) -->
+                                <Button Grid.Row="1" Grid.Column="0" Command="{Binding ImprimirAlbaranDirectoCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Clic izquierdo: Imprimir directo. Clic derecho: Descargar PDF">
+                                    <Button.Content>Imprimir Albarán</Button.Content>
+                                    <Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Descargar PDF" Command="{Binding ImprimirAlbaranCommand}"/>
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                </Button>
+                                <Button Grid.Row="1" Grid.Column="1" Command="{Binding ImprimirFacturaDirectoCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Clic izquierdo: Imprimir directo. Clic derecho: Descargar PDF">
+                                    <Button.Content>Imprimir Factura</Button.Content>
+                                    <Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Descargar PDF" Command="{Binding ImprimirFacturaCommand}"/>
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                </Button>
                                 <Button Grid.Row="1" Grid.Column="2" Command="{Binding AbrirFacturarRutasCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Facturar Rutas</Button>
                                 <!-- Fila 2: Picking, PDF y presupuestos -->
                                 <Button Grid.Row="2" Grid.Column="0" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
