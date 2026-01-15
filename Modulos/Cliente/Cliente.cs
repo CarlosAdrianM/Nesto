@@ -11,6 +11,7 @@ namespace Nesto.Modulos.Cliente
         public void RegisterTypes(IContainerRegistry containerRegistry)
         {
             containerRegistry.Register<object, CrearClienteView>("CrearClienteView");
+            containerRegistry.Register<object, Modelo347View>("Modelo347View");
             containerRegistry.RegisterDialog<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
         }
 

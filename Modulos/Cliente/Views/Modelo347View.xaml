@@ -1,0 +1,75 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.Modelo347View"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:prism="http://prismlibrary.com/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="500"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             Background="White">
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Descargando certificado...">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Titulo -->
+            <TextBlock Grid.Row="0" Grid.ColumnSpan="3"
+                       Text="Certificado Modelo 347"
+                       FontSize="20" FontWeight="Bold"
+                       HorizontalAlignment="Center"/>
+
+            <!-- Selector de Cliente -->
+            <TextBlock Grid.Row="2" Grid.Column="0"
+                       Text="Cliente:"
+                       VerticalAlignment="Center"/>
+            <controles:SelectorCliente Grid.Row="2" Grid.Column="2"
+                                       Name="txtSelectorCliente"
+                                       Empresa="1"
+                                       Cliente="{Binding Path=DataContext.ClienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       Etiqueta=""
+                                       HorizontalAlignment="Stretch"/>
+
+            <!-- Selector de Ejercicio -->
+            <TextBlock Grid.Row="4" Grid.Column="0"
+                       Text="Ejercicio:"
+                       VerticalAlignment="Center"/>
+            <ComboBox Grid.Row="4" Grid.Column="2"
+                      ItemsSource="{Binding Ejercicios}"
+                      SelectedItem="{Binding EjercicioSeleccionado}"
+                      Width="100"
+                      HorizontalAlignment="Left"/>
+
+            <!-- Boton Descargar -->
+            <Button Grid.Row="6" Grid.Column="2"
+                    Command="{Binding DescargarPdfCommand}"
+                    Content="Descargar PDF"
+                    Padding="20,10"
+                    HorizontalAlignment="Left"
+                    FontSize="14"/>
+
+            <!-- Mensaje de Estado -->
+            <TextBlock Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3"
+                       Text="{Binding MensajeEstado}"
+                       VerticalAlignment="Bottom"
+                       Foreground="Green"
+                       FontStyle="Italic"/>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

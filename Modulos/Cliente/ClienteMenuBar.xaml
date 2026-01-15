@@ -13,6 +13,10 @@
                                 Header="Mantenimiento">
                 <RibbonButton Label="Crear Cliente" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirModuloCommand}" />
             </RibbonGroup>
+            <RibbonGroup x:Name="grpDocumentos"
+                                Header="Documentos">
+                <RibbonButton Label="Modelo 347" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirModelo347Command}" />
+            </RibbonGroup>
         </RibbonTab>
     </Ribbon>
 </UserControl>
