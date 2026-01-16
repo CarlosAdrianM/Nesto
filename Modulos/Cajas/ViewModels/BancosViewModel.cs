@@ -639,11 +639,18 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             foreach (IReglaContabilizacion regla in _reglasContabilizacion)
             {
-                bool esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
-                if (esContabilizable)
+                try
                 {
-                    TextoBotonContabilizar = regla.Nombre;
-                    return true;
+                    bool esContabilizable = regla.EsContabilizable(ApuntesBancoSeleccionados?.Select(a => a.Model), ApuntesContabilidadSeleccionados?.Select(c => c.Model));
+                    if (esContabilizable)
+                    {
+                        TextoBotonContabilizar = regla.Nombre;
+                        return true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error en regla {regla.Nombre}: {ex.Message}");
                 }
             }
             TextoBotonContabilizar = string.Empty;

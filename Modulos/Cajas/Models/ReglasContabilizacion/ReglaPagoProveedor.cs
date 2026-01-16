@@ -30,30 +30,41 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var apunteContabilidad = apuntesContabilidad.First();
             var importeDescuadre = apuntesBancarios.Sum(b => b.ImporteMovimiento) - apuntesContabilidad.Sum(c => c.Importe);
 
-            string proveedor;
+            string proveedor = null;
             ExtractoProveedorDTO pagoPendiente;
+            var registros = apunteBancario.RegistrosConcepto;
 
             if (EsPagoNacional(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto)).GetAwaiter().GetResult();
-                if (string.IsNullOrEmpty(proveedor))
+                // Buscar proveedor en registro 2, y si no se encuentra, en registro 3
+                if (registros.Count > 2 && registros[2]?.Concepto != null)
                 {
-                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto)).GetAwaiter().GetResult();
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(registros[2].Concepto)).GetAwaiter().GetResult();
+                }
+                if (string.IsNullOrEmpty(proveedor) && registros.Count > 3 && registros[3]?.Concepto != null)
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(registros[3].Concepto)).GetAwaiter().GetResult();
                 }
                 pagoPendiente = Task.Run(async () => await _bancosService.PagoPendienteUnico(proveedor, apunteBancario.ImporteMovimiento)).GetAwaiter().GetResult();
             }
             else if (EsReciboDomiciliado(apunteBancario))
             {
-                //proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[0].Concepto.Substring(4))).GetAwaiter().GetResult();
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(apunteBancario.RegistrosConcepto[1].Concepto.Substring(7, 9))).GetAwaiter().GetResult();
+                if (registros.Count > 1 && registros[1]?.Concepto != null && registros[1].Concepto.Length >= 16)
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(registros[1].Concepto.Substring(7, 9))).GetAwaiter().GetResult();
+                }
                 pagoPendiente = Task.Run(async () => await _bancosService.PagoPendienteUnico(proveedor, apunteBancario.ImporteMovimiento)).GetAwaiter().GetResult();
             }
             else if (EsTransferenciaInternacional(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto.Trim())).GetAwaiter().GetResult();
-                if (string.IsNullOrEmpty(proveedor))
+                // Buscar proveedor en registro 2, y si no se encuentra, en registro 3
+                if (registros.Count > 2 && registros[2]?.Concepto != null)
                 {
-                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto.Trim())).GetAwaiter().GetResult();
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(registros[2].Concepto.Trim())).GetAwaiter().GetResult();
+                }
+                if (string.IsNullOrEmpty(proveedor) && registros.Count > 3 && registros[3]?.Concepto != null)
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(registros[3].Concepto.Trim())).GetAwaiter().GetResult();
                 }
                 Regex regex = new(@"invoice\s*(nº|)\s+(\b\w+\b)", RegexOptions.IgnoreCase);
                 var match = apunteBancario.RegistrosConcepto?
@@ -142,26 +153,39 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             }
             var apunteBancario = apuntesBancarios.First();
 
-            string proveedor;
+            string proveedor = null;
             bool liquidacionObligatoria = true;
+            var registros = apunteBancario.RegistrosConcepto;
+
             if (EsPagoNacional(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto)).GetAwaiter().GetResult();
-                if (string.IsNullOrEmpty(proveedor))
+                // Buscar proveedor en registro 2, y si no se encuentra, en registro 3
+                if (registros.Count > 2 && registros[2]?.Concepto != null)
                 {
-                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto)).GetAwaiter().GetResult();
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(registros[2].Concepto)).GetAwaiter().GetResult();
+                }
+                if (string.IsNullOrEmpty(proveedor) && registros.Count > 3 && registros[3]?.Concepto != null)
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(registros[3].Concepto)).GetAwaiter().GetResult();
                 }
             }
             else if (EsReciboDomiciliado(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(apunteBancario.RegistrosConcepto[1].Concepto.Substring(7, 9))).GetAwaiter().GetResult();
+                if (registros.Count > 1 && registros[1]?.Concepto != null && registros[1].Concepto.Length >= 16)
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNif(registros[1].Concepto.Substring(7, 9))).GetAwaiter().GetResult();
+                }
             }
             else if (EsTransferenciaInternacional(apunteBancario))
             {
-                proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[2].Concepto.Trim())).GetAwaiter().GetResult();
-                if (string.IsNullOrEmpty(proveedor))
+                // Buscar proveedor en registro 2, y si no se encuentra, en registro 3
+                if (registros.Count > 2 && registros[2]?.Concepto != null)
                 {
-                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(apunteBancario.RegistrosConcepto[3].Concepto.Trim())).GetAwaiter().GetResult();
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(registros[2].Concepto.Trim())).GetAwaiter().GetResult();
+                }
+                if (string.IsNullOrEmpty(proveedor) && registros.Count > 3 && registros[3]?.Concepto != null)
+                {
+                    proveedor = Task.Run(async () => await _bancosService.LeerProveedorPorNombre(registros[3].Concepto.Trim())).GetAwaiter().GetResult();
                 }
                 liquidacionObligatoria = false;
             }
