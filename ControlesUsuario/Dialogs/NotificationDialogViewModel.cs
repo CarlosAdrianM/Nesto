@@ -56,8 +56,15 @@ namespace ControlesUsuario.Dialogs
 
         public virtual void OnDialogOpened(IDialogParameters parameters)
         {
-            Message = parameters.GetValue<string>("message");
-            Title = parameters.GetValue<string>("title");
+            if (parameters.ContainsKey("message"))
+            {
+                Message = parameters.GetValue<string>("message");
+            }
+
+            if (parameters.ContainsKey("title"))
+            {
+                Title = parameters.GetValue<string>("title");
+            }
         }
     }
 }

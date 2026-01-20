@@ -333,6 +333,12 @@ namespace ControlesUsuario
         #region "Funciones Auxiliares"
         private async Task cargarDatos()
         {
+            // Issue #274: Verificar que Configuracion no sea null antes de cargar datos
+            if (Configuracion == null)
+            {
+                return;
+            }
+
             using (HttpClient client = new HttpClient())
             {
                 client.BaseAddress = new Uri(Configuracion.servidorAPI);

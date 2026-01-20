@@ -328,16 +328,28 @@
                             <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}" Descuento="{Binding pedido.DescuentoPP, Mode=TwoWay}" TotalPedido="{Binding pedido.Total}" PlazoPagoCompleto="{Binding PlazoPagoCompleto, Mode=TwoWay}" ></controles:SelectorPlazosPago>
                             <TextBlock Text="Fecha vencimiento:"></TextBlock>
                             <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
-                            <TextBlock Text="CCC (Cuenta Corriente):" Margin="0,5,0,0"></TextBlock>
-                            <controles:SelectorCCC
-                                Empresa="{Binding pedido.empresa, Mode=OneWay}"
-                                Cliente="{Binding pedido.cliente, Mode=OneWay}"
-                                Contacto="{Binding pedido.contacto, Mode=OneWay}"
-                                FormaPago="{Binding pedido.formaPago, Mode=OneWay}"
-                                CCCSeleccionado="{Binding pedido.ccc, Mode=TwoWay}"
-                                MinWidth="250"
-                                Margin="0,3,0,3"
-                                ToolTip="Seleccione el CCC para el recibo bancario. Auto-selecciona según forma de pago."/>
+                            <!-- Issue #274: Ocultar SelectorCCC superior cuando CrearEfectosManualmente=true -->
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding pedido.CrearEfectosManualmente}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="CCC (Cuenta Corriente):" Margin="0,5,0,0"></TextBlock>
+                                <controles:SelectorCCC
+                                    Empresa="{Binding pedido.empresa, Mode=OneWay}"
+                                    Cliente="{Binding pedido.cliente, Mode=OneWay}"
+                                    Contacto="{Binding pedido.contacto, Mode=OneWay}"
+                                    FormaPago="{Binding pedido.formaPago, Mode=OneWay}"
+                                    CCCSeleccionado="{Binding pedido.ccc, Mode=TwoWay}"
+                                    MinWidth="250"
+                                    Margin="0,3,0,3"
+                                    ToolTip="Seleccione el CCC para el recibo bancario. Auto-selecciona según forma de pago."/>
+                            </StackPanel>
                             <TextBlock></TextBlock>
                             <TextBox Text="{Binding pedido.iva}" IsReadOnly="True">
                                 <i:Interaction.Triggers>
@@ -361,29 +373,45 @@
                             </Grid>
                             <CheckBox IsChecked="{Binding pedido.CrearEfectosManualmente}">Crear vencimientos manualmente</CheckBox>
                             <StackPanel Visibility="{Binding pedido.CrearEfectosManualmente, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <ListBox ItemsSource="{Binding pedido.Efectos}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" >
+                                <!-- Issue #274: Grid.IsSharedSizeScope para alinear columnas entre filas -->
+                                <ListBox ItemsSource="{Binding pedido.Efectos}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Grid.IsSharedSizeScope="True">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition/>
-                                                    <ColumnDefinition Width="Auto"/>
-                                                    <ColumnDefinition/>
-                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="LblVencimiento"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Vencimiento"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="LblImporte"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Importe"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="LblFormaPago"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="FormaPago"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="LblCCC"/>
+                                                    <ColumnDefinition Width="*" SharedSizeGroup="CCC"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Borrar"/>
                                                 </Grid.ColumnDefinitions>
                                                 <TextBlock Grid.Column="0" Margin="3,0" VerticalAlignment="Center">Vencimiento:</TextBlock>
                                                 <DatePicker Grid.Column="1" VerticalContentAlignment="Center" SelectedDate="{Binding FechaVencimiento, StringFormat=d}"></DatePicker>
                                                 <TextBlock Grid.Column="2" VerticalAlignment="Center" Margin="3,0">Importe:</TextBlock>
                                                 <TextBox Grid.Column="3" VerticalContentAlignment="Center" Text="{Binding Importe, StringFormat=c}"></TextBox>
                                                 <TextBlock Grid.Column="4" VerticalAlignment="Center" Margin="3,0">Forma Pago:</TextBlock>
-                                                <TextBox Grid.Column="5" VerticalContentAlignment="Center" Text="{Binding FormaPago}"></TextBox>
+                                                <!-- Issue #274: Cambiar TextBox por SelectorFormaPago para evitar errores de entrada -->
+                                                <controles:SelectorFormaPago Grid.Column="5"
+                                                    Configuracion="{Binding DataContext.configuracion, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    Empresa="{Binding DataContext.pedido.empresa, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"
+                                                    Cliente="{Binding DataContext.pedido.cliente, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"
+                                                    Seleccionada="{Binding FormaPago, Mode=TwoWay}"
+                                                    VisibilidadEtiqueta="Collapsed"
+                                                    VerticalAlignment="Center"/>
                                                 <TextBlock Grid.Column="6" VerticalAlignment="Center" Margin="3,0">CCC:</TextBlock>
-                                                <TextBox Grid.Column="7" VerticalContentAlignment="Center" Text="{Binding CCC}"></TextBox>
+                                                <!-- Issue #274: Cambiar TextBox por SelectorCCC para evitar errores de entrada -->
+                                                <controles:SelectorCCC Grid.Column="7"
+                                                    Empresa="{Binding DataContext.pedido.empresa, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"
+                                                    Cliente="{Binding DataContext.pedido.cliente, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"
+                                                    Contacto="{Binding DataContext.pedido.contacto, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}"
+                                                    FormaPago="{Binding FormaPago, Mode=OneWay}"
+                                                    CCCSeleccionado="{Binding CCC, Mode=TwoWay}"
+                                                    MinWidth="150"
+                                                    VerticalAlignment="Center"/>
                                                 <Button Grid.Column="8" Margin="3" Command="{Binding RelativeSource={RelativeSource FindAncestor, 
                                                     AncestorType={x:Type ListBox}}, Path=ItemsSource.BorrarEfectoCommand}" 
                                                     CommandParameter="{Binding}"
