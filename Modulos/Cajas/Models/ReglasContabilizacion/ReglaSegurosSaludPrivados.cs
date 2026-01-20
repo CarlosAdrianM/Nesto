@@ -83,6 +83,15 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 return true;
             }
 
+            if (apunteBancario.ConceptoComun == "03" &&
+                apunteBancario.ConceptoPropio == "035" &&
+                apunteBancario.RegistrosConcepto != null &&
+                apunteBancario.RegistrosConcepto.Any() &&
+                apunteBancario.RegistrosConcepto[0].Concepto.Contains("SEGURCAIXA, S.A."))
+            {
+                return true;
+            }
+
             return false;
         }
     }
