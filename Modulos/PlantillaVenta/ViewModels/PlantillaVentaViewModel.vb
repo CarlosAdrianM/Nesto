@@ -143,7 +143,7 @@ Public Class PlantillaVentaViewModel
                                                                      For Each linea In ListaFiltrableProductos.ListaOriginal
                                                                          listaCast.Add(linea)
                                                                      Next
-                                                                     Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo)
+                                                                     Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo, Constantes.Almacenes.ALMACENES_STOCK)
                                                                      ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
                                                                      estaOcupado = False
                                                                      Dim fechaPuente = Await ObtenerFechaMinimaEntregaAsync()
@@ -1017,7 +1017,7 @@ Public Class PlantillaVentaViewModel
                     For Each item In ListaFiltrableProductos.ListaFijada
                         listaPlantilla.Add(item)
                     Next
-                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo))
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList()))
                     Dim productoOriginal As LineaPlantillaVenta
                     Dim producto As LineaPlantillaVenta
                     For i = 0 To ListaFiltrableProductos.ListaFijada.Count - 1
@@ -1074,7 +1074,7 @@ Public Class PlantillaVentaViewModel
                     For Each item In ListaFiltrableProductos.ListaFijada
                         listaPlantilla.Add(item)
                     Next
-                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo))
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList()))
                     Dim productoOriginal As LineaPlantillaVenta
                     Dim producto As LineaPlantillaVenta
                     For i = 0 To ListaFiltrableProductos.ListaFijada.Count - 1
@@ -1285,7 +1285,7 @@ Public Class PlantillaVentaViewModel
             For Each item In ListaFiltrableProductos.ListaOriginal
                 listaPlantilla.Add(item)
             Next
-            ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo))
+            ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList()))
             estaOcupado = False
         Catch ex As Exception
             dialogService.ShowError(ex.Message)

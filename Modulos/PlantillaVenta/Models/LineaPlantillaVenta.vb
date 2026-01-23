@@ -97,6 +97,7 @@ Public Class LineaPlantillaVenta
     End Property
     Public Property descuentoProducto As Decimal
     Public Property clasificacionMasVendidos As Integer
+    Public Property stocks As List(Of StockAlmacenDTO)
     Private _urlImagen As String
     Public Property urlImagen As String
         Get
@@ -261,6 +262,22 @@ Public Class LineaPlantillaVenta
             Else
                 Return String.Format("{0} und. disponibles", cantidadMenor)
             End If
+        End Get
+    End Property
+    Public ReadOnly Property textoStocksPorAlmacen As String
+        Get
+            If stocks Is Nothing OrElse stocks.Count = 0 Then
+                Return String.Empty
+            End If
+            Return String.Join(" | ", stocks.Select(Function(s) $"{s.almacen}:{s.cantidadDisponible}"))
+        End Get
+    End Property
+    Public ReadOnly Property stockTotalTodosAlmacenes As Integer
+        Get
+            If stocks Is Nothing OrElse stocks.Count = 0 Then
+                Return cantidadDisponible
+            End If
+            Return stocks.Sum(Function(s) s.cantidadDisponible)
         End Get
     End Property
 

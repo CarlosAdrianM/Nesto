@@ -10,7 +10,7 @@ Public Interface IPlantillaVentaService
     Function CargarProductosPlantilla(clienteSeleccionado As ClienteJson) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
     Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of String)
     Sub EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, cliente As String)
-    Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
+    Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String, Optional almacenes As List(Of String) = Nothing) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO)
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
     Function CalcularFechaEntrega(fecha As DateTime, ruta As String, almacen As String) As Task(Of DateTime)

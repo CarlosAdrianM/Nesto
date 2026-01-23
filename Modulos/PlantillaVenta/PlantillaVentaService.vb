@@ -129,10 +129,11 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    Public Async Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String) As Task(Of ObservableCollection(Of LineaPlantillaVenta)) Implements IPlantillaVentaService.PonerStocks
+    Public Async Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String, Optional almacenes As List(Of String) = Nothing) As Task(Of ObservableCollection(Of LineaPlantillaVenta)) Implements IPlantillaVentaService.PonerStocks
         Dim param As New PonerStockParam With {
             .Lineas = lineas.ToList(),
-            .Almacen = almacen
+            .Almacen = almacen,
+            .Almacenes = almacenes
         }
 
         Using client As New HttpClient

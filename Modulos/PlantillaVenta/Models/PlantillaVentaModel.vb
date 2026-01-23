@@ -69,5 +69,12 @@ End Class
 Public Class PonerStockParam
     Public Property Lineas As List(Of LineaPlantillaVenta)
     Public Property Almacen As String
+    Public Property Almacenes As List(Of String)
     Public Property Ordenar As Boolean
+End Class
+
+Public Class StockAlmacenDTO
+    Public Property almacen As String
+    Public Property stock As Integer
+    Public Property cantidadDisponible As Integer
 End Class

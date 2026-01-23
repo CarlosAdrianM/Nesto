@@ -218,6 +218,7 @@
 
                                                     <StackPanel Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center">
                                                         <TextBlock Text="{Binding textoUnidadesDisponibles}" Foreground="{Binding colorStock}"/>
+                                                        <TextBlock Text="{Binding textoStocksPorAlmacen}" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Grid>
                                                 <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">

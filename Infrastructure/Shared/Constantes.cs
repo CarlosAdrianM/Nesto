@@ -16,6 +16,10 @@ namespace Nesto.Infrastructure.Shared
         public class Almacenes
         {
             public const string ALMACEN_CENTRAL = "ALG";
+            public const string ALMACEN_ALGETE = "ALG";
+            public const string ALMACEN_REINA = "REI";
+            public const string ALMACEN_ALCOBENDAS = "ALC";
+            public static readonly List<string> ALMACENES_STOCK = new List<string> { ALMACEN_ALGETE, ALMACEN_REINA, ALMACEN_ALCOBENDAS };
         }
         public class Clientes
         {
