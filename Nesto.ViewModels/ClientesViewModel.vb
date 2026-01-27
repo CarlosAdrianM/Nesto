@@ -40,6 +40,7 @@ Public Class ClientesViewModel
     Private ReadOnly Property dialogService As IDialogService
     Private ReadOnly Property servicio As IClienteComercialService
     Private ReadOnly Property servicioRapports As IRapportService
+    Private ReadOnly Property servicioAutenticacion As IServicioAutenticacion
 
     'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
@@ -66,14 +67,16 @@ Public Class ClientesViewModel
         '***************************
         cargarDatos()
         configuracion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IConfiguracion))
+        _servicioAutenticacion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IServicioAutenticacion))
     End Sub
 
-    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService)
+    Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         Me.contenedor = contenedor
         Me.dialogService = dialogService
         Me.servicio = servicio
         Me.servicioRapports = servicioRapports
+        Me.servicioAutenticacion = servicioAutenticacion
         cargarDatos()
         clienteActivo = Nothing
         'inicializarListaClientesVendedor()
@@ -1273,6 +1276,10 @@ Public Class ClientesViewModel
             Dim respuesta As Byte()
 
             Try
+                If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 Dim urlConsulta As String = "Facturas"
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroFactura=" + numeroFactura

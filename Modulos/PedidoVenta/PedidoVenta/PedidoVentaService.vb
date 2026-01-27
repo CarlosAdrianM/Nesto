@@ -506,6 +506,10 @@ Public Class PedidoVentaService
             Dim respuesta As Byte()
 
             Try
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 Dim urlConsulta As String = "Facturas"
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroFactura=" + numeroFactura
@@ -553,6 +557,10 @@ Public Class PedidoVentaService
             Dim respuesta As Byte()
 
             Try
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 Dim urlConsulta As String = "AlbaranesVenta"
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroAlbaran=" + numeroAlbaran.ToString
@@ -679,6 +687,10 @@ Public Class PedidoVentaService
             Dim respuesta As String = ""
 
             Try
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 ' Construir la URL del endpoint
                 Dim urlConsulta As String = $"PedidosVenta/{empresa}/{numeroPedido}/DocumentosImpresion"
 
