@@ -12,6 +12,7 @@ namespace Nesto.Modulos.Producto
         {
             containerRegistry.Register<object, ProductoView>("ProductoView");
             containerRegistry.Register<object, ReposicionView>("ReposicionView");
+            containerRegistry.Register<object, VideosView>("VideosView");
         }
 
         public void OnInitialized(IContainerProvider containerProvider)

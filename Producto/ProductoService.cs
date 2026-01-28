@@ -681,5 +681,67 @@ namespace Nesto.Modules.Producto
                 throw;
             }
         }
+
+        public async Task<List<VideoLookupModel>> CargarVideos(int skip, int take)
+        {
+            using HttpClient client = new();
+            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
+            try
+            {
+                string urlConsulta = $"Videos?skip={skip}&take={take}";
+                var response = await client.GetAsync(urlConsulta);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<List<VideoLookupModel>>(resultado);
+                }
+                else
+                {
+                    throw new Exception($"Error al cargar los videos: {response.StatusCode}");
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        public async Task<List<VideoLookupModel>> BuscarVideos(string busqueda, int skip, int take)
+        {
+            using HttpClient client = new();
+            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
+            try
+            {
+                string urlConsulta = $"Videos/Buscar?q={Uri.EscapeDataString(busqueda)}&skip={skip}&take={take}";
+                var response = await client.GetAsync(urlConsulta);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    return JsonConvert.DeserializeObject<List<VideoLookupModel>>(resultado);
+                }
+                else
+                {
+                    throw new Exception($"Error al buscar videos: {response.StatusCode}");
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

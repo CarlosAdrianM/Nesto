@@ -61,6 +61,10 @@ Public Class MenuBarView
         If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) Then
             grpAlmacen.Visibility = Visibility.Visible
         End If
+
+        If configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE) Then
+            grpVideos.Visibility = Visibility.Visible
+        End If
     End Sub
 
     Private Async Function ComprobarSiEsJefeDeVentas() As Task
@@ -202,6 +206,10 @@ Public Class MenuBarView
     Private Sub btnPrestashop_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnPrestashop.Click
         Dim frmPrestashop As New Prestashop
         frmPrestashop.Show()
+    End Sub
+
+    Private Sub btnVideos_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVideos.Click
+        regionManager.RequestNavigate("MainRegion", "VideosView")
     End Sub
     Private Sub btnVendedoresComisiones_Click(sender As System.Object, e As System.Windows.RoutedEventArgs) Handles btnVendedoresComisiones.Click
         Dim region As IRegion = regionManager.Regions("MainRegion")

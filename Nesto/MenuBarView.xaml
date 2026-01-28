@@ -102,6 +102,10 @@
 
                 <RibbonButton Label="Prestashop" LargeImageSource="/Images/Prestashop.png" Name="btnPrestashop" />
             </RibbonGroup>
+            <RibbonGroup x:Name="grpVideos"
+                                    Header="Contenido" Visibility="Collapsed">
+                <RibbonButton Label="Videos" LargeImageSource="/Images/Prestashop.png" Name="btnVideos" />
+            </RibbonGroup>
         </RibbonTab>
 
         <RibbonTab x:Name="tabInformes"
