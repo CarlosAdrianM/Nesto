@@ -13,6 +13,7 @@ Public Class PedidoVenta
         containerRegistry.RegisterDialog(Of PickingPopupView, PickingPopupViewModel)
         containerRegistry.RegisterDialog(Of FacturarRutasPopup, FacturarRutasPopupViewModel)
         containerRegistry.RegisterDialog(Of ErroresFacturacionRutasPopup, ErroresFacturacionRutasPopupViewModel)
+        containerRegistry.RegisterDialog(Of CopiarFacturaView, CopiarFacturaViewModel)
 
         ' Registrar servicios del módulo
         Dim unused1 = containerRegistry.RegisterSingleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)

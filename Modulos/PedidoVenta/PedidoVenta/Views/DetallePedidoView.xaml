@@ -213,6 +213,7 @@
                                     </Button.ContextMenu>
                                 </Button>
                                 <Button Grid.Row="1" Grid.Column="2" Command="{Binding AbrirFacturarRutasCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Facturar Rutas</Button>
+                                <Button Grid.Row="1" Grid.Column="3" Command="{Binding CopiarFacturaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}" ToolTip="Copiar líneas de una factura existente para crear rectificativa o duplicar">Copiar Factura</Button>
                                 <!-- Fila 2: Picking, PDF y presupuestos -->
                                 <Button Grid.Row="2" Grid.Column="0" Command="{Binding cmdAbrirPicking}">Sacar Picking</Button>
                                 <Button Grid.Row="2" Grid.Column="1" Command="{Binding DescargarPresupuestoCommand}">Descargar PDF</Button>

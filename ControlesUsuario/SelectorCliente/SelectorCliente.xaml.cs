@@ -448,7 +448,13 @@ namespace ControlesUsuario
         {
             // Por aquí entra cuando se cambian el Cliente y Contacto seleccionados por Binding
             timer.Stop();
-            vm.cargarCliente(selectorCliente.Empresa, selectorCliente.Cliente, selectorCliente.Contacto);
+            // Obtener el ViewModel actual del DataContext en lugar de usar el campo vm
+            // que puede estar desactualizado si el DataContext cambió después del constructor
+            var vmActual = DataContext as SelectorClienteViewModel;
+            if (vmActual != null)
+            {
+                vmActual.cargarCliente(selectorCliente.Empresa, selectorCliente.Cliente, selectorCliente.Contacto);
+            }
         }
 
 

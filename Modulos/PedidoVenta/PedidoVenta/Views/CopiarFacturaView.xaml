@@ -1,0 +1,220 @@
+<UserControl x:Class="CopiarFacturaView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:prism="http://prismlibrary.com/"
+        xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+        prism:ViewModelLocator.AutoWireViewModel="True"
+        MinWidth="500" MinHeight="600">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <Style TargetType="TextBlock" x:Key="LabelStyle">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style TargetType="TextBox" x:Key="InputStyle">
+            <Setter Property="Margin" Value="0,5"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="IsEnabled" Value="True"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding EstaProcesando}" Value="True">
+                    <Setter Property="IsEnabled" Value="False"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="CheckBox" x:Key="CheckBoxStyle">
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="IsEnabled" Value="True"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding EstaProcesando}" Value="True">
+                    <Setter Property="IsEnabled" Value="False"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Titulo -->
+        <TextBlock Grid.Row="0" Text="Copiar Factura / Crear Rectificativa"
+                   FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
+
+        <!-- Datos de origen -->
+        <GroupBox Grid.Row="1" Header="Factura Origen" Margin="0,0,0,10">
+            <StackPanel Margin="10">
+                <TextBlock Text="Cliente:" Style="{StaticResource LabelStyle}"/>
+                <controles:SelectorCliente
+                    Empresa="{Binding Empresa, Mode=TwoWay}"
+                    Cliente="{Binding Cliente, Mode=TwoWay}"
+                    Contacto="{Binding Contacto, Mode=TwoWay}"
+                    ClienteCompleto="{Binding ClienteCompleto, Mode=TwoWay}"
+                    Margin="0,5,0,10">
+                    <controles:SelectorCliente.Style>
+                        <Style TargetType="controles:SelectorCliente">
+                            <Setter Property="IsEnabled" Value="True"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding EstaProcesando}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controles:SelectorCliente.Style>
+                </controles:SelectorCliente>
+
+                <TextBlock Text="Numero de Factura:" Style="{StaticResource LabelStyle}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" Text="{Binding NumeroFactura, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputStyle}"
+                             ToolTip="Introduzca el numero de factura (ej: NV26/001234)"/>
+                    <Button Grid.Column="1" Content="Buscar" Command="{Binding BuscarClienteCommand}"
+                            Width="60" Height="28" Margin="5,0,0,0" VerticalAlignment="Center"
+                            ToolTip="Buscar cliente por numero de factura"/>
+                </Grid>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Opciones -->
+        <GroupBox Grid.Row="2" Header="Opciones" Margin="0,0,0,10">
+            <StackPanel Margin="10">
+                <CheckBox Content="Invertir cantidades (crear rectificativa/abono)"
+                          IsChecked="{Binding InvertirCantidades}"
+                          Style="{StaticResource CheckBoxStyle}"/>
+
+                <CheckBox Content="Anadir al pedido original (en lugar de crear uno nuevo)"
+                          IsChecked="{Binding AnadirAPedidoOriginal}"
+                          Style="{StaticResource CheckBoxStyle}"/>
+
+                <CheckBox Content="Crear albaran y factura automaticamente"
+                          IsChecked="{Binding CrearAlbaranYFactura}"
+                          Style="{StaticResource CheckBoxStyle}"/>
+
+                <CheckBox Content="Mantener condiciones originales (precios, descuentos)"
+                          IsChecked="{Binding MantenerCondicionesOriginales}"
+                          Style="{StaticResource CheckBoxStyle}"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Cliente destino -->
+        <GroupBox Grid.Row="3" Header="Cliente Destino (opcional - dejar vacio para mismo cliente)" Margin="0,0,0,10">
+            <StackPanel Margin="10">
+                <TextBlock Text="Cliente:" Style="{StaticResource LabelStyle}"/>
+                <controles:SelectorCliente
+                    Empresa="{Binding Empresa, Mode=TwoWay}"
+                    Cliente="{Binding ClienteDestino, Mode=TwoWay}"
+                    Contacto="{Binding ContactoDestino, Mode=TwoWay}"
+                    ClienteCompleto="{Binding ClienteCompletoDestino, Mode=TwoWay}"
+                    Margin="0,5,0,0">
+                    <controles:SelectorCliente.Style>
+                        <Style TargetType="controles:SelectorCliente">
+                            <Setter Property="IsEnabled" Value="True"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding EstaProcesando}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controles:SelectorCliente.Style>
+                </controles:SelectorCliente>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Resultado -->
+        <GroupBox Grid.Row="4" Header="Resultado" Margin="0,0,0,10">
+            <StackPanel Margin="10">
+                <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                <StackPanel Orientation="Horizontal" Visibility="{Binding MostrarResultado, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                    <TextBlock Text="Pedido: " FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding Resultado.NumeroPedido}"/>
+
+                    <TextBlock Text="  |  Albaran: " FontWeight="SemiBold">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TieneAlbaran}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding Resultado.NumeroAlbaran}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TieneAlbaran}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <TextBlock Text="  |  Factura: " FontWeight="SemiBold">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TieneFactura}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding Resultado.NumeroFactura}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding TieneFactura}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Progress -->
+        <ProgressBar Grid.Row="5" IsIndeterminate="True" Height="5" Margin="0,10"
+                     Visibility="{Binding EstaProcesando, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- Espacio flexible -->
+        <Grid Grid.Row="6"/>
+
+        <!-- Botones -->
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Abrir Pedido" Command="{Binding AbrirPedidoCommand}"
+                    Width="100" Height="35" Margin="0,0,10,0"
+                    Visibility="{Binding MostrarResultado, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
+
+            <Button Content="Ejecutar" Command="{Binding EjecutarCommand}"
+                    Width="100" Height="35" Margin="0,0,10,0"/>
+
+            <Button Content="Cerrar" Command="{Binding CancelarCommand}"
+                    Width="100" Height="35"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

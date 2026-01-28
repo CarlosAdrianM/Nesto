@@ -8,6 +8,7 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
+Imports Nesto.Modulos.PedidoVenta.Models.Rectificativas
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
@@ -763,6 +764,70 @@ Public Class PedidoVentaService
                 ' Si hay error de conexión, por defecto no imprimir
                 System.Diagnostics.Debug.WriteLine($"Error al verificar DebeImprimirDocumento: {ex.Message}")
                 Return False
+            End Try
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Copia las líneas de una factura a un pedido nuevo o existente.
+    ''' Issue #85
+    ''' </summary>
+    Public Async Function CopiarFactura(request As CopiarFacturaRequestDTO) As Task(Of CopiarFacturaResponseDTO) Implements IPedidoVentaService.CopiarFactura
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            ' Configurar autorización
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Try
+                Dim urlConsulta As String = "PedidosVenta/CopiarFactura"
+                Dim jsonContent = JsonConvert.SerializeObject(request)
+                Dim content = New StringContent(jsonContent, Encoding.UTF8, "application/json")
+
+                Dim response = Await client.PostAsync(urlConsulta, content)
+
+                If Not response.IsSuccessStatusCode Then
+                    Dim respuestaError = Await response.Content.ReadAsStringAsync()
+                    Throw New Exception($"Error al copiar factura: {respuestaError}")
+                End If
+
+                Dim respuesta = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of CopiarFacturaResponseDTO)(respuesta)
+
+            Catch ex As Exception
+                Throw New Exception($"Error al copiar factura {request.NumeroFactura}: {ex.Message}", ex)
+            End Try
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Obtiene el cliente y empresa asociados a una factura.
+    ''' Busca primero en la empresa especificada, si no encuentra busca en todas.
+    ''' Issue #85
+    ''' </summary>
+    Public Async Function ObtenerClientePorFactura(empresa As String, numeroFactura As String) As Task(Of Models.Rectificativas.ClienteFacturaDTO) Implements IPedidoVentaService.ObtenerClientePorFactura
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorizacion")
+            End If
+
+            Try
+                Dim urlConsulta As String = $"PedidosVenta/ClientePorFactura?empresa={empresa}&numeroFactura={Uri.EscapeDataString(numeroFactura)}"
+                Dim response = Await client.GetAsync(urlConsulta)
+
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+
+                Dim respuesta = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of Models.Rectificativas.ClienteFacturaDTO)(respuesta)
+
+            Catch ex As Exception
+                Return Nothing
             End Try
         End Using
     End Function

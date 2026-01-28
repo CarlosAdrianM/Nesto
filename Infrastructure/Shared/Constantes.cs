@@ -101,6 +101,7 @@ namespace Nesto.Infrastructure.Shared
             public const string COMPRAS = "Compras";
             public const string DIRECCION = "Dirección";
             public const string FACTURACION = "Facturación";
+            public const string INFORMATICA = "Informática";
             public const string TIENDA_ON_LINE = "TiendaOnline";
             public const string TIENDAS = "Tiendas";
         }

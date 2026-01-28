@@ -100,6 +100,7 @@ Public Class DetallePedidoViewModel
         ImprimirAlbaranDirectoCommand = New DelegateCommand(AddressOf OnImprimirAlbaranDirecto, AddressOf CanImprimirAlbaran)
         CopiarEnlaceCommand = New DelegateCommand(Of String)(AddressOf OnCopiarEnlace)
         AbrirFacturarRutasCommand = New DelegateCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
+        CopiarFacturaCommand = New DelegateCommand(AddressOf OnCopiarFactura, AddressOf CanCopiarFactura)
 
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
 
@@ -1683,6 +1684,51 @@ Public Class DetallePedidoViewModel
         ' Carlos 12/01/25: Solo el grupo Dirección puede acceder a facturar rutas
         Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
     End Function
+
+#Region "Copiar Factura (Issue #85)"
+    Private _copiarFacturaCommand As DelegateCommand
+    Public Property CopiarFacturaCommand As DelegateCommand
+        Get
+            Return _copiarFacturaCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_copiarFacturaCommand, value)
+        End Set
+    End Property
+
+    Private Sub OnCopiarFactura()
+        ' Abrir el diálogo de Copiar Factura / Crear Rectificativa usando Prism DialogService
+        Dim parameters As New DialogParameters()
+
+        ' Si tenemos un pedido cargado, pasar su empresa y cliente como valores iniciales
+        If Not IsNothing(pedido) Then
+            parameters.Add("empresa", pedido.empresa)
+            parameters.Add("cliente", pedido.cliente)
+        End If
+
+        ' Si hay una linea seleccionada con factura, pasar el numero de factura
+        If Not IsNothing(lineaActual) AndAlso Not String.IsNullOrWhiteSpace(lineaActual.Factura) Then
+            parameters.Add("numeroFactura", lineaActual.Factura.Trim())
+        End If
+
+        dialogService.ShowDialog("CopiarFacturaView", parameters, Sub(result)
+                                                                      If result.Result = ButtonResult.OK Then
+                                                                          ' El usuario quiere abrir el pedido creado
+                                                                          Dim numeroPedido = result.Parameters.GetValue(Of Integer)("numeroPedido")
+                                                                          If numeroPedido > 0 Then
+                                                                              ' Cargar el pedido creado en la vista actual
+                                                                              Dim empresaPedido = If(Not IsNothing(pedido), pedido.empresa, "1")
+                                                                              cmdCargarPedido.Execute(New ResumenPedido With {.empresa = empresaPedido, .numero = numeroPedido})
+                                                                          End If
+                                                                      End If
+                                                                  End Sub)
+    End Sub
+
+    Private Function CanCopiarFactura() As Boolean
+        ' Issue #85: Temporalmente restringido solo a Informatica mientras se termina de desarrollar
+        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA)
+    End Function
+#End Region
 
     Private _descargarPresupuestoCommand As DelegateCommand
     Public Property DescargarPresupuestoCommand As DelegateCommand

@@ -1,6 +1,7 @@
 ﻿Imports System.Collections.ObjectModel
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
+Imports Nesto.Modulos.PedidoVenta.Models.Rectificativas
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 
 Public Interface IPedidoVentaService
@@ -42,4 +43,23 @@ Public Interface IPedidoVentaService
     ''' <param name="comentarios">Comentarios del pedido</param>
     ''' <returns>True si debe imprimir documento físico</returns>
     Function DebeImprimirDocumento(comentarios As String) As Task(Of Boolean)
+
+    ''' <summary>
+    ''' Copia las líneas de una factura a un pedido nuevo o existente.
+    ''' Útil para crear rectificativas rápidas o traspasar facturas entre clientes.
+    ''' Issue #85
+    ''' </summary>
+    ''' <param name="request">Parámetros de la copia</param>
+    ''' <returns>Resultado con los números de documentos creados</returns>
+    Function CopiarFactura(request As CopiarFacturaRequestDTO) As Task(Of CopiarFacturaResponseDTO)
+
+    ''' <summary>
+    ''' Obtiene el cliente y empresa asociados a una factura.
+    ''' Busca primero en la empresa especificada, si no encuentra busca en todas.
+    ''' Issue #85
+    ''' </summary>
+    ''' <param name="empresa">Empresa preferida para buscar la factura</param>
+    ''' <param name="numeroFactura">Numero de factura</param>
+    ''' <returns>ClienteFacturaDTO con empresa y cliente, o Nothing si no se encuentra</returns>
+    Function ObtenerClientePorFactura(empresa As String, numeroFactura As String) As Task(Of Models.Rectificativas.ClienteFacturaDTO)
 End Interface
