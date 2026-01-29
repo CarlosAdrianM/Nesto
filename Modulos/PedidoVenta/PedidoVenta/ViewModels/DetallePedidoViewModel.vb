@@ -1726,7 +1726,7 @@ Public Class DetallePedidoViewModel
 
     Private Function CanCopiarFactura() As Boolean
         ' Issue #85: Temporalmente restringido solo a Informatica mientras se termina de desarrollar
-        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA)
+        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
     End Function
 #End Region
 

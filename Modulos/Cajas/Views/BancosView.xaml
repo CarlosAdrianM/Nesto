@@ -225,9 +225,9 @@
             <Button Command="{Binding CargarArchivoTarjetasCommand}">Cargar archivo tarjetas FB 500</Button>
             <Button Command="{Binding RegularizarDiferenciaCommand}" ToolTip="Debe tener marcado un apunte de banco y uno de contabilidad">Regularizar diferencia</Button>
             <Button Command="{Binding ContabilizarApunteCommand}" ToolTip="{Binding TextoBotonContabilizar}">Contabilizar apunte</Button>
+            <Button Command="{Binding DeshacerUltimaConciliacionCommand}" ToolTip="Elimina el último punteo realizado">Deshacer último punteo</Button>
             <Button Command="{Binding PuntearAutomaticamenteCommand}">Puntear automáticamente</Button>
             <Button Command="{Binding PuntearApuntesCommand}">Puntear seleccionados</Button>
-            <Button Command="{Binding DeshacerUltimaConciliacionCommand}" ToolTip="Elimina el último punteo realizado">Deshacer último punteo</Button>
         </UniformGrid>
 
         <!-- Panel en la tercera fila -->
