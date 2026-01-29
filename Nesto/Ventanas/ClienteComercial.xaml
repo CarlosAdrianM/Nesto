@@ -148,29 +148,18 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <DataGrid Grid.Row="0" ItemsSource="{Binding ListaFacturas}" AutoGenerateColumns="False" CanUserAddRows="False">
-                                    <DataGrid.Columns>
-                                        <DataGridTemplateColumn Header="Seleccionada">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <CheckBox HorizontalAlignment="Center" IsChecked="{Binding Seleccionada, UpdateSourceTrigger=PropertyChanged}"  />
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
-                                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
-                                        <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" />
-                                        <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
-                                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="4*"/>
-                                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe,StringFormat=c}">
-                                            <DataGridTextColumn.CellStyle>
-                                                <Style>
-                                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
-                                                </Style>
-                                            </DataGridTextColumn.CellStyle>
-                                        </DataGridTextColumn>
-                                        <DataGridTextColumn Header="CCC" Binding="{Binding CCC}"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
+                                <controles:SelectorFacturas
+                                    x:Name="selectorFacturasCliente"
+                                    Grid.Row="0"
+                                    Empresa="{Binding clienteServidor.empresa}"
+                                    Cliente="{Binding clienteActivo.Nº_Cliente}"
+                                    Configuracion="{Binding configuracion}"
+                                    FacturasSeleccionadas="{Binding FacturasSeleccionadas, Mode=TwoWay}"
+                                    MostrarBusqueda="True"
+                                    MostrarResumenSeleccion="True"
+                                    MostrarSeleccionarTodas="True"
+                                    MostrarIndicadorRectificativa="True"
+                                    PermitirSeleccionMultiple="True"/>
                                 <Button Grid.Row="1" Command="{Binding DescargarFacturasCommand}">Descargar</Button>
                             </Grid>
                         </TabItem>

@@ -1,0 +1,144 @@
+<UserControl x:Class="ControlesUsuario.SelectorFacturas"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="500"
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!-- Estilo para filas de rectificativas -->
+        <Style x:Key="RectificativaRowStyle" TargetType="DataGridRow">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding EsRectificativa}" Value="True">
+                    <Setter Property="Background" Value="#FFFDE7E7"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Name="GridPrincipal">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Barra de busqueda -->
+        <Grid Grid.Row="0"
+              Visibility="{Binding MostrarBusqueda, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Buscar:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <TextBox Grid.Column="1"
+                     Text="{Binding TextoBusqueda, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalAlignment="Center"
+                     Margin="0,5"/>
+            <Button Grid.Column="2"
+                    Content="X"
+                    Width="20" Height="20"
+                    Margin="5,0,0,0"
+                    Command="{Binding LimpiarBusquedaCommand}"
+                    ToolTip="Limpiar busqueda"
+                    Visibility="{Binding TieneBusqueda, Converter={StaticResource BoolToVisibility}}"/>
+        </Grid>
+
+        <!-- DataGrid de facturas -->
+        <DataGrid Grid.Row="1"
+                  Name="dgFacturas"
+                  ItemsSource="{Binding FacturasFiltradas}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="False"
+                  SelectionMode="Single"
+                  SelectedItem="{Binding FacturaSeleccionadaInterna, Mode=TwoWay}"
+                  RowStyle="{Binding MostrarIndicadorRectificativa, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}, ConverterParameter={StaticResource RectificativaRowStyle}}"
+                  MaxHeight="{Binding AlturaMaxima, RelativeSource={RelativeSource AncestorType=UserControl}}">
+
+            <DataGrid.Resources>
+                <!-- Estilo condicional para filas de rectificativas -->
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding EsRectificativa}" Value="True"/>
+                                <Condition Binding="{Binding MostrarIndicadorRectificativa, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FFFDE7E7"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Resources>
+
+            <DataGrid.Columns>
+                <!-- Columna checkbox para seleccion multiple -->
+                <DataGridTemplateColumn Width="Auto"
+                                        Visibility="{Binding PermitirSeleccionMultiple, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}">
+                    <DataGridTemplateColumn.Header>
+                        <CheckBox IsChecked="{Binding TodasSeleccionadas, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  ToolTip="Seleccionar/Deseleccionar todas"
+                                  Visibility="{Binding MostrarSeleccionarTodas, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}"
+                                  Checked="CheckBoxSeleccionarTodas_Changed"
+                                  Unchecked="CheckBoxSeleccionarTodas_Changed"/>
+                    </DataGridTemplateColumn.Header>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox HorizontalAlignment="Center"
+                                      IsChecked="{Binding Seleccionada, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="Fecha"
+                                    Binding="{Binding Fecha, StringFormat=d}"
+                                    Width="Auto"
+                                    IsReadOnly="True"/>
+
+                <DataGridTextColumn Header="Documento"
+                                    Binding="{Binding Documento}"
+                                    Width="Auto"
+                                    IsReadOnly="True"/>
+
+                <DataGridTextColumn Header="Contacto"
+                                    Binding="{Binding Contacto}"
+                                    Width="Auto"
+                                    IsReadOnly="True"/>
+
+                <DataGridTextColumn Header="Concepto"
+                                    Binding="{Binding Concepto}"
+                                    Width="3*"
+                                    IsReadOnly="True"/>
+
+                <DataGridTextColumn Header="Importe"
+                                    Binding="{Binding Importe, StringFormat=c}"
+                                    Width="Auto"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Panel de resumen de seleccion -->
+        <Border Grid.Row="2"
+                Background="#FFF5F5F5"
+                Padding="5"
+                Visibility="{Binding MostrarResumenSeleccion, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock>
+                <Run Text="{Binding NumeroFacturasSeleccionadas, Mode=OneWay}"/>
+                <Run Text=" factura(s) seleccionada(s) | Total: "/>
+                <Run Text="{Binding TotalFacturasSeleccionadas, StringFormat={}{0:N2} €, ConverterCulture=es-ES, Mode=OneWay}" FontWeight="Bold"/>
+            </TextBlock>
+        </Border>
+    </Grid>
+</UserControl>

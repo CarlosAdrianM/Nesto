@@ -1,3 +1,4 @@
+Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
 Imports Prism.Commands
 Imports Prism.Mvvm
@@ -5,6 +6,7 @@ Imports Prism.Services.Dialogs
 Imports Nesto.Modulos.PedidoVenta.Models.Rectificativas
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
+Imports ControlesUsuario.Models
 
 Public Class CopiarFacturaViewModel
     Inherits BindableBase
@@ -38,7 +40,9 @@ Public Class CopiarFacturaViewModel
             Return _cliente
         End Get
         Set(value As String)
-            SetProperty(_cliente, value)
+            If SetProperty(_cliente, value) Then
+                RaisePropertyChanged(NameOf(TieneCliente))
+            End If
         End Set
     End Property
 
@@ -112,6 +116,33 @@ Public Class CopiarFacturaViewModel
         End Get
         Set(value As Boolean)
             SetProperty(_crearAlbaranYFactura, value)
+        End Set
+    End Property
+
+    Private _crearAbonoYCargo As Boolean = False
+    ''' <summary>
+    ''' Si true, crea abono al cliente origen + cargo al cliente destino en un solo clic.
+    ''' Util para corregir errores de direccion o traspasos de cliente.
+    ''' </summary>
+    Public Property CrearAbonoYCargo As Boolean
+        Get
+            Return _crearAbonoYCargo
+        End Get
+        Set(value As Boolean)
+            SetProperty(_crearAbonoYCargo, value)
+        End Set
+    End Property
+
+    Private _comentarios As String
+    ''' <summary>
+    ''' Comentarios a anadir en el pedido creado.
+    ''' </summary>
+    Public Property Comentarios As String
+        Get
+            Return _comentarios
+        End Get
+        Set(value As String)
+            SetProperty(_comentarios, value)
         End Set
     End Property
 
@@ -214,6 +245,72 @@ Public Class CopiarFacturaViewModel
         End Get
     End Property
 
+    ''' <summary>
+    ''' Indica si hay un cliente seleccionado para mostrar el SelectorFacturas.
+    ''' </summary>
+    Public ReadOnly Property TieneCliente As Boolean
+        Get
+            Return Not String.IsNullOrWhiteSpace(Cliente)
+        End Get
+    End Property
+
+    Private _facturasSeleccionadas As ObservableCollection(Of FacturaClienteDTO)
+    ''' <summary>
+    ''' Facturas seleccionadas en el SelectorFacturas.
+    ''' </summary>
+    Public Property FacturasSeleccionadas As ObservableCollection(Of FacturaClienteDTO)
+        Get
+            Return _facturasSeleccionadas
+        End Get
+        Set(value As ObservableCollection(Of FacturaClienteDTO))
+            If SetProperty(_facturasSeleccionadas, value) Then
+                RaisePropertyChanged(NameOf(TieneMultiplesFacturasSeleccionadas))
+                EjecutarCommand?.RaiseCanExecuteChanged()
+            End If
+        End Set
+    End Property
+
+    Private _facturaSeleccionadaEnLista As FacturaClienteDTO
+    ''' <summary>
+    ''' Factura actualmente seleccionada (fila activa) en el SelectorFacturas.
+    ''' </summary>
+    Public Property FacturaSeleccionadaEnLista As FacturaClienteDTO
+        Get
+            Return _facturaSeleccionadaEnLista
+        End Get
+        Set(value As FacturaClienteDTO)
+            If SetProperty(_facturaSeleccionadaEnLista, value) Then
+                ' Actualizar NumeroFactura con el documento de la factura seleccionada
+                If value IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(value.Documento) Then
+                    NumeroFactura = value.Documento.Trim()
+                End If
+            End If
+        End Set
+    End Property
+
+    Private _agruparFacturas As Boolean = True
+    ''' <summary>
+    ''' Si true, agrupa todas las facturas seleccionadas en una sola rectificativa.
+    ''' Si false, crea una rectificativa por cada factura seleccionada.
+    ''' </summary>
+    Public Property AgruparFacturas As Boolean
+        Get
+            Return _agruparFacturas
+        End Get
+        Set(value As Boolean)
+            SetProperty(_agruparFacturas, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Indica si hay mas de una factura seleccionada (para mostrar opcion de agrupar).
+    ''' </summary>
+    Public ReadOnly Property TieneMultiplesFacturasSeleccionadas As Boolean
+        Get
+            Return FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Count > 1
+        End Get
+    End Property
+
 #End Region
 
 #Region "Commands"
@@ -313,7 +410,10 @@ Public Class CopiarFacturaViewModel
 #Region "Command Handlers"
 
     Private Function CanEjecutar() As Boolean
-        Return Not EstaProcesando AndAlso Not String.IsNullOrWhiteSpace(NumeroFactura)
+        ' Puede ejecutar si no esta procesando Y (tiene numero de factura O tiene facturas seleccionadas)
+        Dim tieneFacturaManual = Not String.IsNullOrWhiteSpace(NumeroFactura)
+        Dim tieneFacturasSeleccionadas = FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Any()
+        Return Not EstaProcesando AndAlso (tieneFacturaManual OrElse tieneFacturasSeleccionadas)
     End Function
 
     Private Async Sub OnEjecutar()
@@ -321,16 +421,26 @@ Public Class CopiarFacturaViewModel
         Mensaje = "Procesando..."
 
         Try
+            ' Construir lista de facturas a copiar
+            Dim numerosFactura As List(Of String) = Nothing
+            If FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Any() Then
+                numerosFactura = FacturasSeleccionadas.Select(Function(f) f.Documento?.Trim()).Where(Function(d) Not String.IsNullOrWhiteSpace(d)).ToList()
+            End If
+
             Dim request As New CopiarFacturaRequestDTO With {
                 .Empresa = Empresa,
                 .Cliente = Cliente,
                 .NumeroFactura = NumeroFactura,
+                .NumerosFactura = numerosFactura,
+                .AgruparEnUnaRectificativa = AgruparFacturas,
                 .InvertirCantidades = InvertirCantidades,
                 .AnadirAPedidoOriginal = AnadirAPedidoOriginal,
                 .MantenerCondicionesOriginales = MantenerCondicionesOriginales,
                 .CrearAlbaranYFactura = CrearAlbaranYFactura,
-                .ClienteDestino = If(EsCambioCliente, ClienteDestino, Nothing),
-                .ContactoDestino = If(EsCambioCliente, ContactoDestino, Nothing)
+                .CrearAbonoYCargo = CrearAbonoYCargo,
+                .Comentarios = Comentarios,
+                .ClienteDestino = If(EsCambioCliente OrElse CrearAbonoYCargo, ClienteDestino, Nothing),
+                .ContactoDestino = If(EsCambioCliente OrElse CrearAbonoYCargo, ContactoDestino, Nothing)
             }
 
             Resultado = Await _servicio.CopiarFactura(request)
@@ -408,7 +518,7 @@ Public Class CopiarFacturaViewModel
                 Contacto = "0" ' Contacto por defecto
                 Mensaje = $"Cliente {resultado.Cliente} encontrado (Empresa: {resultado.Empresa})"
             Else
-                Mensaje = "No se encontro la factura"
+                Mensaje = "No se encontró la factura ni el pedido"
             End If
         Catch ex As Exception
             Mensaje = $"Error al buscar factura: {ex.Message}"

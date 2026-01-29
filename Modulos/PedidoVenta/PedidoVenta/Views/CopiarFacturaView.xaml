@@ -4,7 +4,7 @@
         xmlns:prism="http://prismlibrary.com/"
         xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
         prism:ViewModelLocator.AutoWireViewModel="True"
-        MinWidth="500" MinHeight="600">
+        Width="500" MinHeight="600">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -36,7 +36,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="20">
+    <Grid x:Name="rootGrid" Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -55,26 +55,8 @@
         <!-- Datos de origen -->
         <GroupBox Grid.Row="1" Header="Factura Origen" Margin="0,0,0,10">
             <StackPanel Margin="10">
-                <TextBlock Text="Cliente:" Style="{StaticResource LabelStyle}"/>
-                <controles:SelectorCliente
-                    Empresa="{Binding Empresa, Mode=TwoWay}"
-                    Cliente="{Binding Cliente, Mode=TwoWay}"
-                    Contacto="{Binding Contacto, Mode=TwoWay}"
-                    ClienteCompleto="{Binding ClienteCompleto, Mode=TwoWay}"
-                    Margin="0,5,0,10">
-                    <controles:SelectorCliente.Style>
-                        <Style TargetType="controles:SelectorCliente">
-                            <Setter Property="IsEnabled" Value="True"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding EstaProcesando}" Value="True">
-                                    <Setter Property="IsEnabled" Value="False"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </controles:SelectorCliente.Style>
-                </controles:SelectorCliente>
-
-                <TextBlock Text="Numero de Factura:" Style="{StaticResource LabelStyle}"/>
+                <!-- Entrada rapida por numero -->
+                <TextBlock Text="Número de factura o pedido:" Style="{StaticResource LabelStyle}"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -82,11 +64,49 @@
                     </Grid.ColumnDefinitions>
                     <TextBox Grid.Column="0" Text="{Binding NumeroFactura, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputStyle}"
-                             ToolTip="Introduzca el numero de factura (ej: NV26/001234)"/>
+                             ToolTip="Introduzca el número de factura (ej: NV26/001234) o de pedido"/>
                     <Button Grid.Column="1" Content="Buscar" Command="{Binding BuscarClienteCommand}"
                             Width="60" Height="28" Margin="5,0,0,0" VerticalAlignment="Center"
-                            ToolTip="Buscar cliente por numero de factura"/>
+                            ToolTip="Buscar cliente por número de factura o pedido"/>
                 </Grid>
+
+                <!-- Separador -->
+                <TextBlock Text="─── O buscar por cliente ───"
+                           HorizontalAlignment="Center"
+                           Foreground="Gray"
+                           Margin="0,10,0,5"/>
+
+                <!-- Selector de cliente -->
+                <TextBlock Text="Cliente:" Style="{StaticResource LabelStyle}"/>
+                <controles:SelectorCliente
+                    Empresa="{Binding DataContext.Empresa, ElementName=rootGrid, Mode=TwoWay}"
+                    Cliente="{Binding DataContext.Cliente, ElementName=rootGrid, Mode=TwoWay}"
+                    Contacto="{Binding DataContext.Contacto, ElementName=rootGrid, Mode=TwoWay}"
+                    ClienteCompleto="{Binding DataContext.ClienteCompleto, ElementName=rootGrid, Mode=TwoWay}"
+                    Margin="0,5,0,10"/>
+
+                <!-- Selector de facturas -->
+                <TextBlock Text="Facturas del cliente:" Style="{StaticResource LabelStyle}"
+                           Visibility="{Binding DataContext.TieneCliente, ElementName=rootGrid, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                <controles:SelectorFacturas
+                    Empresa="{Binding DataContext.Empresa, ElementName=rootGrid}"
+                    Cliente="{Binding DataContext.Cliente, ElementName=rootGrid}"
+                    Contacto="{Binding DataContext.Contacto, ElementName=rootGrid}"
+                    FacturasSeleccionadas="{Binding DataContext.FacturasSeleccionadas, ElementName=rootGrid, Mode=TwoWay}"
+                    FacturaSeleccionada="{Binding DataContext.FacturaSeleccionadaEnLista, ElementName=rootGrid, Mode=TwoWay}"
+                    MostrarBusqueda="False"
+                    MostrarResumenSeleccion="True"
+                    MostrarSeleccionarTodas="True"
+                    AlturaMaxima="150"
+                    Margin="0,5,0,0"
+                    Visibility="{Binding DataContext.TieneCliente, ElementName=rootGrid, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                <!-- Opcion agrupar facturas (visible cuando hay mas de una seleccionada) -->
+                <CheckBox Content="Agrupar facturas en una sola rectificativa"
+                          IsChecked="{Binding AgruparFacturas}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          ToolTip="Si no se marca, se creará una rectificativa por cada factura seleccionada"
+                          Visibility="{Binding TieneMultiplesFacturasSeleccionadas, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
         </GroupBox>
 
@@ -97,48 +117,58 @@
                           IsChecked="{Binding InvertirCantidades}"
                           Style="{StaticResource CheckBoxStyle}"/>
 
-                <CheckBox Content="Anadir al pedido original (en lugar de crear uno nuevo)"
+                <CheckBox Content="Añadir al pedido original (en lugar de crear uno nuevo)"
                           IsChecked="{Binding AnadirAPedidoOriginal}"
                           Style="{StaticResource CheckBoxStyle}"/>
 
-                <CheckBox Content="Crear albaran y factura automaticamente"
+                <CheckBox Content="Crear albarán y factura automáticamente"
                           IsChecked="{Binding CrearAlbaranYFactura}"
                           Style="{StaticResource CheckBoxStyle}"/>
+
+                <CheckBox Content="Crear abono y cargo (rectificativa al origen + factura al destino)"
+                          IsChecked="{Binding CrearAbonoYCargo}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          ToolTip="Crea una rectificativa al cliente origen y una factura nueva al cliente destino en un solo clic. Útil para corregir errores de dirección."/>
 
                 <CheckBox Content="Mantener condiciones originales (precios, descuentos)"
                           IsChecked="{Binding MantenerCondicionesOriginales}"
                           Style="{StaticResource CheckBoxStyle}"/>
+
+                <TextBlock Text="Comentarios:" Style="{StaticResource LabelStyle}" Margin="0,10,0,0"/>
+                <TextBox Text="{Binding Comentarios, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource InputStyle}"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         Height="50"
+                         VerticalScrollBarVisibility="Auto"
+                         ToolTip="Comentarios que se añadirán al pedido creado"/>
             </StackPanel>
         </GroupBox>
 
         <!-- Cliente destino -->
-        <GroupBox Grid.Row="3" Header="Cliente Destino (opcional - dejar vacio para mismo cliente)" Margin="0,0,0,10">
+        <GroupBox Grid.Row="3" Header="Cliente Destino (opcional - dejar vacío para mismo cliente)" Margin="0,0,0,10">
             <StackPanel Margin="10">
                 <TextBlock Text="Cliente:" Style="{StaticResource LabelStyle}"/>
                 <controles:SelectorCliente
-                    Empresa="{Binding Empresa, Mode=TwoWay}"
-                    Cliente="{Binding ClienteDestino, Mode=TwoWay}"
-                    Contacto="{Binding ContactoDestino, Mode=TwoWay}"
-                    ClienteCompleto="{Binding ClienteCompletoDestino, Mode=TwoWay}"
-                    Margin="0,5,0,0">
-                    <controles:SelectorCliente.Style>
-                        <Style TargetType="controles:SelectorCliente">
-                            <Setter Property="IsEnabled" Value="True"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding EstaProcesando}" Value="True">
-                                    <Setter Property="IsEnabled" Value="False"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </controles:SelectorCliente.Style>
-                </controles:SelectorCliente>
+                    Empresa="{Binding DataContext.Empresa, ElementName=rootGrid, Mode=TwoWay}"
+                    Cliente="{Binding DataContext.ClienteDestino, ElementName=rootGrid, Mode=TwoWay}"
+                    Contacto="{Binding DataContext.ContactoDestino, ElementName=rootGrid, Mode=TwoWay}"
+                    ClienteCompleto="{Binding DataContext.ClienteCompletoDestino, ElementName=rootGrid, Mode=TwoWay}"
+                    Margin="0,5,0,0"/>
             </StackPanel>
         </GroupBox>
 
         <!-- Resultado -->
         <GroupBox Grid.Row="4" Header="Resultado" Margin="0,0,0,10">
             <StackPanel Margin="10">
-                <TextBlock Text="{Binding Mensaje}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                <!-- TextBox de solo lectura para que se pueda copiar el mensaje -->
+                <TextBox Text="{Binding Mensaje, Mode=OneWay}"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         Margin="0,0,0,10"
+                         ToolTip="Seleccione el texto y pulse Ctrl+C para copiar"/>
 
                 <StackPanel Orientation="Horizontal" Visibility="{Binding MostrarResultado, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
                     <TextBlock Text="Pedido: " FontWeight="SemiBold"/>

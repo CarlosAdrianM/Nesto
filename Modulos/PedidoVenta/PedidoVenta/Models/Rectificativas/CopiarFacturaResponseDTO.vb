@@ -34,6 +34,34 @@ Public Class CopiarFacturaResponseDTO
     ''' Indica si la operación fue exitosa
     ''' &lt;/summary&gt;
     Public Property Exitoso As Boolean
+
+    ''' &lt;summary&gt;
+    ''' Datos del abono (rectificativa al cliente origen).
+    ''' Solo se rellena cuando CrearAbonoYCargo=true.
+    ''' &lt;/summary&gt;
+    Public Property Abono As OperacionFacturaDTO
+
+    ''' &lt;summary&gt;
+    ''' Datos del cargo (factura nueva al cliente destino).
+    ''' Solo se rellena cuando CrearAbonoYCargo=true.
+    ''' &lt;/summary&gt;
+    Public Property Cargo As OperacionFacturaDTO
+End Class
+
+''' &lt;summary&gt;
+''' Datos de una operación individual (abono o cargo) dentro de AbonoYCargo.
+''' &lt;/summary&gt;
+Public Class OperacionFacturaDTO
+    Public Property Cliente As String
+    Public Property Contacto As String
+    Public Property NumeroPedido As Integer
+    Public Property NumeroAlbaran As Integer?
+    Public Property NumeroFactura As String
+    Public Property Lineas As List(Of LineaCopiadaDTO)
+
+    Public Sub New()
+        Lineas = New List(Of LineaCopiadaDTO)()
+    End Sub
 End Class
 
 Public Class LineaCopiadaDTO

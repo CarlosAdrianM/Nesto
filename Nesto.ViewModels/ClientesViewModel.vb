@@ -9,6 +9,7 @@ Imports System.Windows
 Imports System.Windows.Data
 Imports System.Windows.Input
 Imports ControlesUsuario.Dialogs
+Imports ControlesUsuario.Models
 Imports Microsoft.Win32
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
@@ -193,7 +194,7 @@ Public Class ClientesViewModel
                 Return
             End If
             If clienteServidor.VendedoresGrupoProducto.Count = 0 Then
-                clienteServidor.VendedoresGrupoProducto.Add(New VendedorGrupoProductoDTO With
+                clienteServidor.VendedoresGrupoProducto.Add(New Nesto.Models.VendedorGrupoProductoDTO With
                                        {
                                        .grupoProducto = "PEL",
                                        .vendedor = "NV",
@@ -450,7 +451,7 @@ Public Class ClientesViewModel
                 Return
             End If
             If clienteServidor.VendedoresGrupoProducto.Count = 0 Then
-                clienteServidor.VendedoresGrupoProducto.Add(New VendedorGrupoProductoDTO With
+                clienteServidor.VendedoresGrupoProducto.Add(New Nesto.Models.VendedorGrupoProductoDTO With
                                        {
                                        .grupoProducto = "PEL",
                                        .vendedor = "NV",
@@ -698,6 +699,21 @@ Public Class ClientesViewModel
         End Get
         Set(value As ObservableCollection(Of ExtractoClienteDTO))
             Dim unused = SetProperty(_listaFacturas, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Facturas seleccionadas en el SelectorFacturas (Issue #279)
+    ''' </summary>
+    Private _facturasSeleccionadas As ObservableCollection(Of FacturaClienteDTO)
+    Public Property FacturasSeleccionadas As ObservableCollection(Of FacturaClienteDTO)
+        Get
+            Return _facturasSeleccionadas
+        End Get
+        Set(value As ObservableCollection(Of FacturaClienteDTO))
+            If SetProperty(_facturasSeleccionadas, value) Then
+                CommandManager.InvalidateRequerySuggested()
+            End If
         End Set
     End Property
 
@@ -1048,7 +1064,7 @@ Public Class ClientesViewModel
         End Get
     End Property
     Private Function CanDescargarFacturas(ByVal param As Object) As Boolean
-        Return ListaFacturas IsNot Nothing AndAlso ListaFacturas.Where(Function(f) f.Seleccionada).FirstOrDefault IsNot Nothing
+        Return FacturasSeleccionadas IsNot Nothing AndAlso FacturasSeleccionadas.Any()
     End Function
     Private Async Sub DescargarFacturas(ByVal param As Object)
         estaOcupado = True
@@ -1058,14 +1074,16 @@ Public Class ClientesViewModel
             Dim path As String = Marshal.PtrToStringUni(np)
             Marshal.FreeCoTaskMem(np)
 
-            For Each fra In ListaFacturas.Where(Function(f) f.Seleccionada)
+            For Each fra In FacturasSeleccionadas
                 Dim factura As Byte() = Await CargarFactura(fra.Empresa, fra.Documento)
-                Dim ms As New MemoryStream(factura)
-                'write to file
-                Dim file As New FileStream(path + "\Cliente_" + fra.Cliente + "_" + fra.Documento + ".pdf", FileMode.Create, FileAccess.Write)
-                ms.WriteTo(file)
-                file.Close()
-                ms.Close()
+                If factura IsNot Nothing Then
+                    Dim ms As New MemoryStream(factura)
+                    'write to file
+                    Dim file As New FileStream(path + "\Cliente_" + fra.Cliente?.Trim() + "_" + fra.Documento?.Trim() + ".pdf", FileMode.Create, FileAccess.Write)
+                    ms.WriteTo(file)
+                    file.Close()
+                    ms.Close()
+                End If
             Next
 
             ' Abrimos la carpeta de descargas
