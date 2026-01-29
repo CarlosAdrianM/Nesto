@@ -977,34 +977,23 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
                 if (conciliacion == null)
                 {
-                    _dialogService.ShowDialog("Notificación", new DialogParameters
-                    {
-                        { "Titulo", "Información" },
-                        { "Mensaje", "No hay conciliaciones que deshacer." }
-                    }, null);
+                    _dialogService.ShowNotification("No hay conciliaciones que deshacer.");
                     return;
                 }
 
                 // Refrescamos los apuntes para que se actualice el estado de punteo
                 await CargarApuntes(FechaDesde, FechaHasta);
 
-                _dialogService.ShowDialog("Notificación", new DialogParameters
-                {
-                    { "Titulo", "Conciliación deshecha" },
-                    { "Mensaje", $"Se ha eliminado la conciliación:\n" +
-                                 $"ID: {conciliacion.Id}\n" +
-                                 $"Importe: {conciliacion.ImportePunteado:C}\n" +
-                                 $"Usuario: {conciliacion.Usuario}\n" +
-                                 $"Fecha: {conciliacion.FechaCreacion:g}" }
-                }, null);
+                _dialogService.ShowNotification(
+                    $"Se ha eliminado la conciliación:\n" +
+                    $"ID: {conciliacion.Id}\n" +
+                    $"Importe: {conciliacion.ImportePunteado:C}\n" +
+                    $"Usuario: {conciliacion.Usuario}\n" +
+                    $"Fecha: {conciliacion.FechaCreacion:g}");
             }
             catch (Exception ex)
             {
-                _dialogService.ShowDialog("Notificación", new DialogParameters
-                {
-                    { "Titulo", "Error" },
-                    { "Mensaje", $"Error al deshacer la conciliación: {ex.Message}" }
-                }, null);
+                _dialogService.ShowError($"Error al deshacer la conciliación: {ex.Message}");
             }
         }
 
