@@ -70,6 +70,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             RegularizarDiferenciaCommand = new DelegateCommand(OnRegularizarDiferencia, CanRegularizarDiferencia);
             SeleccionarApuntesBancoCommand = new DelegateCommand<IList>(OnSeleccionarApuntesBanco);
             SeleccionarApuntesContabilidadCommand = new DelegateCommand<IList>(OnSeleccionarApuntesContabilidad);
+            DeshacerUltimaConciliacionCommand = new DelegateCommand(OnDeshacerUltimaConciliacion);
 
             _reglasContabilizacion =
             [
@@ -967,6 +968,45 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 .Sum();
         }
 
+        public ICommand DeshacerUltimaConciliacionCommand { get; private set; }
+        private async void OnDeshacerUltimaConciliacion()
+        {
+            try
+            {
+                ConciliacionEliminadaDTO conciliacion = await _bancosService.DeshacerUltimaConciliacion();
+
+                if (conciliacion == null)
+                {
+                    _dialogService.ShowDialog("Notificación", new DialogParameters
+                    {
+                        { "Titulo", "Información" },
+                        { "Mensaje", "No hay conciliaciones que deshacer." }
+                    }, null);
+                    return;
+                }
+
+                // Refrescamos los apuntes para que se actualice el estado de punteo
+                await CargarApuntes(FechaDesde, FechaHasta);
+
+                _dialogService.ShowDialog("Notificación", new DialogParameters
+                {
+                    { "Titulo", "Conciliación deshecha" },
+                    { "Mensaje", $"Se ha eliminado la conciliación:\n" +
+                                 $"ID: {conciliacion.Id}\n" +
+                                 $"Importe: {conciliacion.ImportePunteado:C}\n" +
+                                 $"Usuario: {conciliacion.Usuario}\n" +
+                                 $"Fecha: {conciliacion.FechaCreacion:g}" }
+                }, null);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowDialog("Notificación", new DialogParameters
+                {
+                    { "Titulo", "Error" },
+                    { "Mensaje", $"Error al deshacer la conciliación: {ex.Message}" }
+                }, null);
+            }
+        }
 
         #endregion
 

@@ -704,5 +704,42 @@ namespace Nesto.Modulos.Cajas.Services
                 throw;
             }
         }
+
+        public async Task<ConciliacionEliminadaDTO> DeshacerUltimaConciliacion()
+        {
+            using HttpClient client = new();
+            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
+            try
+            {
+                string urlConsulta = "Bancos/UltimaConciliacion";
+
+                HttpResponseMessage response = await client.DeleteAsync(urlConsulta);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    ConciliacionEliminadaDTO? conciliacion = JsonConvert.DeserializeObject<ConciliacionEliminadaDTO>(resultado);
+                    return conciliacion;
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                else
+                {
+                    throw new Exception("No se ha podido deshacer la última conciliación");
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }
