@@ -383,7 +383,9 @@ Public Class AgenciasViewModel
                 observacionesEnvio = pedidoSeleccionado.Comentarios
 
                 ' Auto-marcar checkbox de impresión si los comentarios contienen palabras clave
-                ImprimirDocumentoAlFacturar = Await _servicioPedidos.DebeImprimirDocumento(pedidoSeleccionado.Comentarios)
+                ' Issue #284: Verificar tanto Comentarios como ComentarioPicking
+                ImprimirDocumentoAlFacturar = Await _servicioPedidos.DebeImprimirDocumento(
+                    $"{pedidoSeleccionado.Comentarios} {pedidoSeleccionado.ComentarioPicking}")
 
                 attEnvio = nombreEnvio
                 fechaEnvio = If(empresaSeleccionada?.FechaPicking, Today)
