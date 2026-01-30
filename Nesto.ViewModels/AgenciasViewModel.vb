@@ -1464,6 +1464,8 @@ Public Class AgenciasViewModel
         Try
             agenciaEspecifica.imprimirEtiqueta(envioActual)
             If Not _facturarAlImprimirEtiqueta Then
+                ' Issue #282: Mostrar notificación y poner foco en número de pedido
+                _dialogService.ShowNotification("Envío", "Envío insertado correctamente e impresa la etiqueta")
                 RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
                 Return
             End If
@@ -1621,14 +1623,17 @@ Public Class AgenciasViewModel
         Try
             cmdInsertar.Execute(Nothing)
             If imprimirEtiqueta Then
+                ' Issue #282: ImprimirEtiquetaPedido es Async y maneja su propia notificación y foco
+                ' No debemos levantar el evento aquí porque causaría condición de carrera
                 cmdImprimirEtiquetaPedido.Execute(Nothing)
+                Return
             End If
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
             Return
         End Try
-        Dim textoImprimir = If(imprimirEtiqueta, "Envío insertado correctamente e impresa la etiqueta", "Envío ampliado correctamente")
-        _dialogService.ShowNotification("Envío", textoImprimir)
+        ' Solo llegamos aquí si NO se imprime etiqueta (envío ampliado)
+        _dialogService.ShowNotification("Envío", "Envío ampliado correctamente")
         RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
     End Sub
 
