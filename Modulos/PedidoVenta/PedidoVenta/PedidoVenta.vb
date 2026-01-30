@@ -1,4 +1,5 @@
-﻿Imports Nesto.Infrastructure.Contracts
+﻿Imports ControlesUsuario.Services
+Imports Nesto.Infrastructure.Contracts
 Imports Prism.Ioc
 Imports Prism.Modularity
 Imports Prism.RibbonRegionAdapter
@@ -18,6 +19,10 @@ Public Class PedidoVenta
         ' Registrar servicios del módulo
         Dim unused1 = containerRegistry.RegisterSingleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)
         Dim unused = containerRegistry.RegisterSingleton(Of IServicioImpresionDocumentos, ServicioImpresionDocumentos)
+
+        ' Issue #263: Servicios de autocomplete
+        containerRegistry.Register(Of ServicioBusquedaProductos)
+        containerRegistry.Register(Of ServicioBusquedaCuentas)
     End Sub
 
     Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized

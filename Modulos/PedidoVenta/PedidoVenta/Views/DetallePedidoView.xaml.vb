@@ -199,6 +199,30 @@ Public Class DetallePedidoView
         If e.Key = Key.System AndAlso e.SystemKey = Key.C AndAlso currentRowIndex > 1 Then ' Alt + C
             grdLineas.CurrentCell = New DataGridCellInfo(grdLineas.Items(currentRowIndex - 1), grdLineas.Columns(4)) ' Cantidad
         End If
+
+        ' Issue #263: Asegurar modo edición después de Enter en Producto.
+        ' El comportamiento por defecto del DataGrid ya movió a la siguiente fila,
+        ' solo necesitamos asegurar que entramos en modo edición.
+        If e.Key = Key.Enter Then
+            Dim columnaActual = grdLineas.CurrentColumn?.Header?.ToString()
+            If columnaActual = "Producto" Then
+                Dim unused2 = Dispatcher.BeginInvoke(Sub()
+                                                         grdLineas.BeginEdit()
+                                                         ' Enfocar el TextBox
+                                                         Try
+                                                             Dim cellContent = grdLineas.CurrentColumn.GetCellContent(grdLineas.CurrentItem)
+                                                             If cellContent IsNot Nothing Then
+                                                                 Dim textBox = FindVisualChild(Of TextBox)(cellContent)
+                                                                 If textBox IsNot Nothing Then
+                                                                     Dim unused3 = textBox.Focus()
+                                                                     textBox.SelectAll()
+                                                                 End If
+                                                             End If
+                                                         Catch
+                                                         End Try
+                                                     End Sub, DispatcherPriority.Background)
+            End If
+        End If
     End Sub
 
     Private Sub grdLineas_PreviewKeyDown(sender As Object, e As KeyEventArgs) Handles grdLineas.PreviewKeyDown
@@ -220,11 +244,11 @@ Public Class DetallePedidoView
                     MoverAColumnaProducto()
                 End If
             ElseIf columnaActual = "Producto" Then
-                ' Desde Producto, Enter confirma y va a la siguiente línea
-                e.Handled = True
-                grdLineas.CommitEdit(DataGridEditingUnit.Cell, True)
-                grdLineas.CommitEdit(DataGridEditingUnit.Row, True)
-                Dim unused = Dispatcher.BeginInvoke(Sub() MoverASiguienteLineaProducto(), DispatcherPriority.Background)
+                ' Issue #263: NO manejar Enter aquí para permitir que AutocompleteBehavior
+                ' actualice el texto antes del commit. El commit y navegación se harán
+                ' en CellEditEnding o dejando el comportamiento por defecto del DataGrid.
+                ' La navegación a la siguiente línea se hace en el evento KeyUp.
+                ' (No hacer nada aquí - dejar que el evento llegue al TextBox)
             ElseIf columnaActual = "Texto" AndAlso ultimoTipoLineaUsado = 0 Then
                 ' Issue #258: Desde Texto en línea de texto, Enter va a Texto de la siguiente línea
                 e.Handled = True

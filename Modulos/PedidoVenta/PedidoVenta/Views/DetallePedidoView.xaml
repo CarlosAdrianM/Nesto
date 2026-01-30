@@ -481,6 +481,15 @@
                                             <TextBox Text="{Binding Producto}"
                                                      VerticalAlignment="Center">
                                                 <i:Interaction.Behaviors>
+                                                    <!-- Issue #263: AutocompleteBehavior para sugerencias de productos mientras se escribe -->
+                                                    <behaviors:AutocompleteBehavior
+                                                        Empresa="{Binding DataContext.pedido.empresa, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        TipoLineaActual="{Binding tipoLinea}"
+                                                        TipoLineaRequerido="1"
+                                                        TipoBusqueda="Producto"
+                                                        MinChars="2"
+                                                        DebounceMs="300"
+                                                        MaxResults="10"/>
                                                     <!-- Issue #258: ProductoBehavior para visual feedback cuando TipoLinea=1 (productos) -->
                                                     <behaviors:ProductoBehavior
                                                         Empresa="{Binding DataContext.pedido.empresa, RelativeSource={RelativeSource AncestorType=DataGrid}}"
@@ -489,6 +498,15 @@
                                                         TipoLineaActual="{Binding tipoLinea}"
                                                         TipoLineaRequerido="1"
                                                         Cantidad="{Binding Cantidad}"/>
+                                                    <!-- Issue #263: AutocompleteBehavior para sugerencias de cuentas contables mientras se escribe -->
+                                                    <behaviors:AutocompleteBehavior
+                                                        Empresa="{Binding DataContext.pedido.empresa, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        TipoLineaActual="{Binding tipoLinea}"
+                                                        TipoLineaRequerido="2"
+                                                        TipoBusqueda="CuentaContable"
+                                                        MinChars="2"
+                                                        DebounceMs="300"
+                                                        MaxResults="10"/>
                                                     <!-- CuentaContableBehavior: Solo activo cuando TipoLinea=2 (cuentas contables) -->
                                                     <behaviors:CuentaContableBehavior
                                                         Empresa="{Binding DataContext.pedido.empresa, RelativeSource={RelativeSource AncestorType=DataGrid}}"
