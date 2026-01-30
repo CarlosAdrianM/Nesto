@@ -693,7 +693,8 @@ Public Class PedidoVentaService
                 End If
 
                 ' Construir la URL del endpoint
-                Dim urlConsulta As String = $"PedidosVenta/{empresa}/{numeroPedido}/DocumentosImpresion"
+                ' IMPORTANTE: Usar Trim() porque empresa puede tener espacios en BD (ej: "1  ")
+                Dim urlConsulta As String = $"PedidosVenta/{empresa.Trim()}/{numeroPedido}/DocumentosImpresion"
 
                 ' Agregar parámetros opcionales si están presentes
                 Dim parametros As New List(Of String)()
