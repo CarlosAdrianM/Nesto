@@ -260,8 +260,9 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As ControlesUsuario.Models.ClienteDTO)
             If SetProperty(_clienteCompleto, value) Then
-                ' Actualizar origen y contactoCobro cuando cambia el cliente
-                If Not IsNothing(pedido) AndAlso Not IsNothing(value) Then
+                ' Actualizar origen y contactoCobro solo en pedidos NUEVOS (Issue #254)
+                Dim esPedidoNuevo = Not IsNothing(pedido) AndAlso pedido.numero = 0
+                If PedidoVentaDTO.DebeSobrescribirDatosCliente(esPedidoNuevo) AndAlso Not IsNothing(pedido) AndAlso Not IsNothing(value) Then
                     pedido.Model.origen = value.empresa
                     pedido.Model.contactoCobro = value.contacto
                     ' Carlos 20/11/24: DESHABILITADO - Ahora el SelectorCCC maneja esto automáticamente
