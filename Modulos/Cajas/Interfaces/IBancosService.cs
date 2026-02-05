@@ -32,5 +32,6 @@ namespace Nesto.Modulos.Cajas.Interfaces
 
         // Conciliación bancaria
         Task<ConciliacionEliminadaDTO> DeshacerUltimaConciliacion();
+        Task<List<ConciliacionEliminadaDTO>> DeshacerConciliacionPorApunte(int apunteContabilidadId);
     }
 }

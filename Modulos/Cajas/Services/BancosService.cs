@@ -741,5 +741,50 @@ namespace Nesto.Modulos.Cajas.Services
                 throw;
             }
         }
+
+        public async Task<List<ConciliacionEliminadaDTO>> DeshacerConciliacionPorApunte(int apunteContabilidadId)
+        {
+            using HttpClient client = new();
+            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
+            try
+            {
+                string urlConsulta = $"Bancos/ConciliacionPorApunte?apunteContabilidadId={apunteContabilidadId}&usuario={_configuracion.usuario}";
+
+                HttpResponseMessage response = await client.DeleteAsync(urlConsulta);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    List<ConciliacionEliminadaDTO>? conciliaciones = JsonConvert.DeserializeObject<List<ConciliacionEliminadaDTO>>(resultado);
+                    return conciliaciones ?? new List<ConciliacionEliminadaDTO>();
+                }
+                else
+                {
+                    string textoError = await response.Content.ReadAsStringAsync();
+                    JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+
+                    string errorMostrar = "No se ha podido deshacer la conciliación\n";
+                    if (requestException != null && requestException["Message"] != null)
+                    {
+                        errorMostrar += requestException["Message"] + "\n";
+                    }
+                    if (requestException != null && requestException["message"] != null)
+                    {
+                        errorMostrar += requestException["message"] + "\n";
+                    }
+                    throw new Exception(errorMostrar);
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
     }
 }

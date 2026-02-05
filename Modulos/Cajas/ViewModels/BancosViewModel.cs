@@ -71,6 +71,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             SeleccionarApuntesBancoCommand = new DelegateCommand<IList>(OnSeleccionarApuntesBanco);
             SeleccionarApuntesContabilidadCommand = new DelegateCommand<IList>(OnSeleccionarApuntesContabilidad);
             DeshacerUltimaConciliacionCommand = new DelegateCommand(OnDeshacerUltimaConciliacion);
+            DeshacerConciliacionAnteriorCommand = new DelegateCommand(OnDeshacerConciliacionAnterior, CanDeshacerConciliacionAnterior);
 
             _reglasContabilizacion =
             [
@@ -335,6 +336,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
             }
         }
+        public bool EsUsuarioAdministracion => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION);
         private List<IBancoConciliacion> _listaBancos;
         public List<IBancoConciliacion> ListaBancos
         {
@@ -990,6 +992,62 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     $"Importe: {conciliacion.ImportePunteado:C}\n" +
                     $"Usuario: {conciliacion.Usuario}\n" +
                     $"Fecha: {conciliacion.FechaCreacion:g}");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"Error al deshacer la conciliación: {ex.Message}");
+            }
+        }
+
+        public ICommand DeshacerConciliacionAnteriorCommand { get; private set; }
+        private bool CanDeshacerConciliacionAnterior()
+        {
+            return EsUsuarioAdministracion;
+        }
+        private async void OnDeshacerConciliacionAnterior()
+        {
+            try
+            {
+                // Pedir el número de orden al usuario
+                string? numeroOrdenStr = _dialogService.GetText(
+                    "Deshacer conciliación anterior",
+                    "Introduzca el número de orden (ApunteContabilidadId) a deshacer:");
+
+                if (string.IsNullOrWhiteSpace(numeroOrdenStr))
+                {
+                    return;
+                }
+
+                if (!int.TryParse(numeroOrdenStr, out int apunteContabilidadId))
+                {
+                    _dialogService.ShowError("El número de orden debe ser un valor numérico válido.");
+                    return;
+                }
+
+                // Confirmar la operación
+                if (!_dialogService.ShowConfirmationAnswer(
+                    "Confirmar eliminación",
+                    $"¿Está seguro de que desea eliminar todas las conciliaciones asociadas al apunte de contabilidad {apunteContabilidadId}?"))
+                {
+                    return;
+                }
+
+                List<ConciliacionEliminadaDTO> conciliaciones = await _bancosService.DeshacerConciliacionPorApunte(apunteContabilidadId);
+
+                if (conciliaciones == null || !conciliaciones.Any())
+                {
+                    _dialogService.ShowNotification($"No se encontraron conciliaciones para el apunte de contabilidad {apunteContabilidadId}.");
+                    return;
+                }
+
+                // Refrescamos los apuntes para que se actualice el estado de punteo
+                await CargarApuntes(FechaDesde, FechaHasta);
+
+                decimal totalImporte = conciliaciones.Sum(c => c.ImportePunteado);
+                _dialogService.ShowNotification(
+                    $"Se han eliminado {conciliaciones.Count} conciliación(es):\n" +
+                    $"Apunte Contabilidad: {apunteContabilidadId}\n" +
+                    $"Importe total: {totalImporte:C}");
             }
             catch (Exception ex)
             {

@@ -970,6 +970,315 @@ namespace CajasTests
             // Arrange
             A.CallTo(() => _bancosService.CrearPunteo(1, 2, A<decimal>._, "*", null)).MustNotHaveHappened();
         }
+
+        #region Tests para EsUsuarioAdministracion (Issue #285)
+
+        [TestMethod]
+        public void BancosViewModel_EsUsuarioAdministracion_SiUsuarioEstaEnGrupoAdministracion_DevuelveTrue()
+        {
+            // Arrange
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(true);
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Act
+            bool resultado = sut.EsUsuarioAdministracion;
+
+            // Assert
+            Assert.IsTrue(resultado);
+        }
+
+        [TestMethod]
+        public void BancosViewModel_EsUsuarioAdministracion_SiUsuarioNoEstaEnGrupoAdministracion_DevuelveFalse()
+        {
+            // Arrange
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(false);
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Act
+            bool resultado = sut.EsUsuarioAdministracion;
+
+            // Assert
+            Assert.IsFalse(resultado);
+        }
+
+        #endregion
+
+        #region Tests para DeshacerConciliacionAnteriorCommand (Issue #285)
+
+        [TestMethod]
+        public void BancosViewModel_DeshacerConciliacionAnteriorCommand_SiUsuarioNoEsAdministrador_NoSePuedeEjecutar()
+        {
+            // Arrange
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(false);
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Act
+            bool canExecute = sut.DeshacerConciliacionAnteriorCommand.CanExecute(null);
+
+            // Assert
+            Assert.IsFalse(canExecute);
+        }
+
+        [TestMethod]
+        public void BancosViewModel_DeshacerConciliacionAnteriorCommand_SiUsuarioEsAdministrador_SePuedeEjecutar()
+        {
+            // Arrange
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(true);
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Act
+            bool canExecute = sut.DeshacerConciliacionAnteriorCommand.CanExecute(null);
+
+            // Assert
+            Assert.IsTrue(canExecute);
+        }
+
+        [TestMethod]
+        public async Task BancosViewModel_DeshacerConciliacionAnteriorCommand_SiSeConfirmaYExistenConciliaciones_LlamaAlServicioConApunteContabilidadId()
+        {
+            // Arrange
+            int apunteContabilidadId = 12345;
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(true);
+
+            // Simular GetText para devolver el número de orden
+            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call =>
+                {
+                    var callback = call.GetArgument<Action<IDialogResult>>(2);
+                    var parameters = new DialogParameters { { "text", apunteContabilidadId.ToString() } };
+                    callback?.Invoke(new DialogResult(ButtonResult.OK, parameters));
+                });
+
+            // Simular confirmación
+            A.CallTo(() => _dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call =>
+                {
+                    var callback = call.GetArgument<Action<IDialogResult>>(2);
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
+                });
+
+            A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(apunteContabilidadId))
+                .Returns(Task.FromResult(new List<ConciliacionEliminadaDTO>
+                {
+                    new ConciliacionEliminadaDTO { Id = 1, ApunteContabilidadId = apunteContabilidadId, ImportePunteado = 100m }
+                }));
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Act
+            sut.DeshacerConciliacionAnteriorCommand.Execute(null);
+
+            // Assert (esperar para que se ejecute el async)
+            await Task.Delay(100);
+            A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(apunteContabilidadId))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task BancosViewModel_DeshacerConciliacionAnteriorCommand_SiNoSeConfirma_NoLlamaAlServicio()
+        {
+            // Arrange
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(true);
+
+            // Simular GetText
+            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call =>
+                {
+                    var callback = call.GetArgument<Action<IDialogResult>>(2);
+                    var parameters = new DialogParameters { { "text", "12345" } };
+                    callback?.Invoke(new DialogResult(ButtonResult.OK, parameters));
+                });
+
+            // Simular cancelación de confirmación
+            A.CallTo(() => _dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call =>
+                {
+                    var callback = call.GetArgument<Action<IDialogResult>>(2);
+                    callback?.Invoke(new DialogResult(ButtonResult.Cancel));
+                });
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Act
+            sut.DeshacerConciliacionAnteriorCommand.Execute(null);
+
+            // Assert
+            await Task.Delay(100);
+            A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(A<int>._))
+                .MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task BancosViewModel_DeshacerConciliacionAnteriorCommand_SiNoExistenConciliaciones_MuestraNotificacion()
+        {
+            // Arrange
+            int apunteContabilidadId = 12345;
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(true);
+
+            // Simular GetText
+            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call =>
+                {
+                    var callback = call.GetArgument<Action<IDialogResult>>(2);
+                    var parameters = new DialogParameters { { "text", apunteContabilidadId.ToString() } };
+                    callback?.Invoke(new DialogResult(ButtonResult.OK, parameters));
+                });
+
+            // Simular confirmación
+            A.CallTo(() => _dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call =>
+                {
+                    var callback = call.GetArgument<Action<IDialogResult>>(2);
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
+                });
+
+            A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(apunteContabilidadId))
+                .Returns(Task.FromResult(new List<ConciliacionEliminadaDTO>()));
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+            bool notificacionMostrada = false;
+            A.CallTo(() => _dialogService.ShowDialog("NotificationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(() => notificacionMostrada = true);
+
+            // Act
+            sut.DeshacerConciliacionAnteriorCommand.Execute(null);
+
+            // Assert
+            await Task.Delay(100);
+            Assert.IsTrue(notificacionMostrada);
+        }
+
+        [TestMethod]
+        public void BancosViewModel_DeshacerConciliacionAnteriorCommand_SiElInputNoEsNumero_NoLlamaAlServicio()
+        {
+            // Arrange
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(true);
+
+            // Simular GetText con texto no numérico
+            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call =>
+                {
+                    var callback = call.GetArgument<Action<IDialogResult>>(2);
+                    var parameters = new DialogParameters { { "text", "texto_no_valido" } };
+                    callback?.Invoke(new DialogResult(ButtonResult.OK, parameters));
+                });
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Act
+            sut.DeshacerConciliacionAnteriorCommand.Execute(null);
+
+            // Assert
+            A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(A<int>._))
+                .MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void BancosViewModel_DeshacerConciliacionAnteriorCommand_SiElUsuarioCancelaElInput_NoLlamaAlServicio()
+        {
+            // Arrange
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(Nesto.Infrastructure.Shared.Constantes.GruposSeguridad.ADMINISTRACION))
+                .Returns(true);
+
+            // Simular cancelación del input
+            A.CallTo(() => _dialogService.ShowDialog("InputTextDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call =>
+                {
+                    var callback = call.GetArgument<Action<IDialogResult>>(2);
+                    callback?.Invoke(new DialogResult(ButtonResult.Cancel));
+                });
+
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Act
+            sut.DeshacerConciliacionAnteriorCommand.Execute(null);
+
+            // Assert
+            A.CallTo(() => _bancosService.DeshacerConciliacionPorApunte(A<int>._))
+                .MustNotHaveHappened();
+        }
+
+        #endregion
     }
 
 }
