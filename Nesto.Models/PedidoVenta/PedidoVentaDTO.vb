@@ -227,5 +227,20 @@ Public Class PedidoVentaDTO
 
 #End Region
 
+#Region "Helpers para lógica de negocio"
+
+    ''' <summary>
+    ''' Determina si se deben sobrescribir los datos del cliente (origen, contactoCobro)
+    ''' al asignar ClienteCompleto en el ViewModel.
+    ''' Solo se sobrescriben en pedidos NUEVOS, no en existentes.
+    ''' </summary>
+    ''' <param name="esPedidoNuevo">True si el pedido es nuevo (numero = 0)</param>
+    ''' <returns>True si se deben sobrescribir los datos del cliente</returns>
+    Public Shared Function DebeSobrescribirDatosCliente(esPedidoNuevo As Boolean) As Boolean
+        Return esPedidoNuevo
+    End Function
+
+#End Region
+
 End Class
 

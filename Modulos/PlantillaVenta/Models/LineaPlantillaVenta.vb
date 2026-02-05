@@ -3,12 +3,12 @@ Imports Nesto.Infrastructure.Contracts
 
 Public Class LineaPlantillaVenta
     Inherits BindableBase
-    Implements IFiltrableItem
+    Implements IFiltrableItem, ILineaConCantidad
 
     Public Property producto() As String
     Public Property texto() As String
     Private _cantidad As Integer
-    Public Property cantidad As Integer
+    Public Property cantidad As Integer Implements ILineaConCantidad.cantidad
         Get
             Return _cantidad
         End Get
@@ -19,7 +19,7 @@ Public Class LineaPlantillaVenta
         End Set
     End Property
     Private _cantidadOferta As Integer
-    Public Property cantidadOferta As Integer
+    Public Property cantidadOferta As Integer Implements ILineaConCantidad.cantidadOferta
         Get
             Return _cantidadOferta
         End Get
@@ -38,6 +38,11 @@ Public Class LineaPlantillaVenta
     Public Property unidadMedida() As String
     Public Property familia() As String
     Public Property subGrupo() As String
+    ''' <summary>
+    ''' Grupo del producto (ej: COS, ACC, PEL, APA).
+    ''' Issue #94: Sistema Ganavisiones - necesario para calcular base imponible bonificable.
+    ''' </summary>
+    Public Property grupo() As String
     Public Property codigoBarras As String
     Public Property estado() As Integer
     Public Property yaFacturado() As Boolean
@@ -69,7 +74,7 @@ Public Class LineaPlantillaVenta
             SetProperty(_aplicarDescuento, value)
         End Set
     End Property
-    Public Property aplicarDescuentoFicha() As Boolean?
+    Public Property aplicarDescuentoFicha() As Boolean? Implements ILineaConCantidad.aplicarDescuentoFicha
     Public Property stock As Integer
     Private _cantidadDisponible As Integer
     Public Property cantidadDisponible As Integer

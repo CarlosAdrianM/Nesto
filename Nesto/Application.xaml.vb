@@ -13,6 +13,9 @@ Imports Nesto.Modulos
 Imports Nesto.Modulos.Cajas
 Imports Nesto.Modulos.Cajas.Interfaces
 Imports Nesto.Modulos.Cajas.Services
+Imports Nesto.Modulos.Ganavisiones
+Imports Nesto.Modulos.Ganavisiones.Interfaces
+Imports Nesto.Modulos.Ganavisiones.Services
 Imports Nesto.Modulos.CanalesExternos.Interfaces
 Imports Nesto.Modulos.CanalesExternos.Services
 Imports Nesto.Modulos.CarteraPagos
@@ -81,6 +84,10 @@ Partial Public Class Application
         Dim unused7 = containerRegistry.Register(GetType(ICajas), GetType(Cajas))
         Dim unused6 = containerRegistry.Register(GetType(IContabilidadService), GetType(ContabilidadService))
         Dim unused5 = containerRegistry.Register(GetType(IBancosService), GetType(BancosService))
+
+        ' Carlos 04/02/26: Issue #281 - Ganavisiones
+        Dim unusedGanavisiones1 = containerRegistry.Register(GetType(IGanavisiones), GetType(Ganavisiones))
+        Dim unusedGanavisiones2 = containerRegistry.Register(GetType(IGanavisionesService), GetType(GanavisionesService))
         Dim unused4 = containerRegistry.Register(GetType(IClientesService), GetType(ClientesService))
         Dim unused3 = containerRegistry.Register(GetType(ISelectorProveedorService), GetType(SelectorProveedorService))
         Dim unused2 = containerRegistry.Register(GetType(IRecursosHumanosService), GetType(RecursosHumanosService))
@@ -107,6 +114,10 @@ Partial Public Class Application
 
         ' Carlos 11/12/25: Issue #258 - Registrar servicio de productos para ProductoBehavior
         Dim unused38 = containerRegistry.Register(GetType(IServicioProducto), GetType(ServicioProducto))
+
+        ' Carlos 04/02/26: Issue #281 - Registrar servicio de búsqueda para AutocompleteBehavior
+        Dim unused39 = containerRegistry.Register(Of ServicioBusquedaProductos)
+        Dim unused40 = containerRegistry.Register(Of ServicioBusquedaCuentas)
 
         containerRegistry.RegisterDialog(Of ConfirmationDialog, ConfirmationDialogViewModel)
         containerRegistry.RegisterDialog(Of NotificationDialog, NotificationDialogViewModel)
@@ -154,6 +165,9 @@ Partial Public Class Application
 
         ' Cajas - 19/12/23
         Dim unused = moduleCatalog.AddModule(GetType(ICajas))
+
+        ' Ganavisiones - 04/02/26 (Issue #281)
+        Dim unusedGanavisiones = moduleCatalog.AddModule(GetType(IGanavisiones))
     End Sub
 
     Protected Overrides Sub ConfigureRegionAdapterMappings(regionAdapterMappings As RegionAdapterMappings)

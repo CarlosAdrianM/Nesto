@@ -339,4 +339,96 @@ Public Class PlantillaVentaService
             End Try
         End Using
     End Function
+
+    ''' <summary>
+    ''' Obtiene los IDs de productos que estan en la tabla Ganavisiones (activos).
+    ''' Issue #94: Sistema Ganavisiones - FASE 6
+    ''' </summary>
+    Public Async Function CargarProductosBonificablesIds() As Task(Of HashSet(Of String)) Implements IPlantillaVentaService.CargarProductosBonificablesIds
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Try
+                Dim urlConsulta As String = $"Ganavisiones/ProductosIds?empresa={Constantes.Empresas.EMPRESA_DEFECTO}"
+                Dim response = Await client.GetAsync(urlConsulta).ConfigureAwait(False)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                    Dim productos = JsonConvert.DeserializeObject(Of List(Of String))(cadenaJson)
+                    Return New HashSet(Of String)(productos)
+                Else
+                    Return New HashSet(Of String)()
+                End If
+            Catch ex As Exception
+                Return New HashSet(Of String)()
+            End Try
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Obtiene los productos bonificables para un pedido segun los Ganavisiones disponibles.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public Async Function CargarProductosBonificablesParaPedido(empresa As String, baseImponibleBonificable As Decimal, almacen As String, servirJunto As Boolean, cliente As String) As Task(Of ProductosBonificablesResponse) Implements IPlantillaVentaService.CargarProductosBonificablesParaPedido
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Try
+                Dim urlConsulta As String = $"Ganavisiones/ProductosBonificables?empresa={empresa}&baseImponibleBonificable={baseImponibleBonificable.ToString(Globalization.CultureInfo.InvariantCulture)}&almacen={almacen}&servirJunto={servirJunto.ToString().ToLower()}&cliente={cliente}"
+                Dim response = Await client.GetAsync(urlConsulta).ConfigureAwait(False)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                    Return JsonConvert.DeserializeObject(Of ProductosBonificablesResponse)(cadenaJson)
+                Else
+                    Return New ProductosBonificablesResponse With {
+                        .GanavisionesDisponibles = 0,
+                        .BaseImponibleBonificable = baseImponibleBonificable,
+                        .Productos = New List(Of ProductoBonificableDTO)()
+                    }
+                End If
+            Catch ex As Exception
+                Return New ProductosBonificablesResponse With {
+                    .GanavisionesDisponibles = 0,
+                    .BaseImponibleBonificable = baseImponibleBonificable,
+                    .Productos = New List(Of ProductoBonificableDTO)()
+                }
+            End Try
+        End Using
+    End Function
+
+    ''' <summary>
+    ''' Valida si se puede desmarcar ServirJunto cuando hay productos bonificados.
+    ''' Issue #94: Sistema Ganavisiones - FASE 9
+    ''' </summary>
+    Public Async Function ValidarServirJunto(almacen As String, productosBonificados As List(Of String)) As Task(Of ValidarServirJuntoResponse) Implements IPlantillaVentaService.ValidarServirJunto
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Try
+                Dim request = New ValidarServirJuntoRequest With {
+                    .Almacen = almacen,
+                    .ProductosBonificados = productosBonificados
+                }
+                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(request), Text.Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("Ganavisiones/ValidarServirJunto", content).ConfigureAwait(False)
+
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                    Return JsonConvert.DeserializeObject(Of ValidarServirJuntoResponse)(cadenaJson)
+                Else
+                    ' Si hay error, permitir desmarcar (fail-safe)
+                    Return New ValidarServirJuntoResponse With {
+                        .PuedeDesmarcar = True,
+                        .ProductosProblematicos = New List(Of ProductoSinStockDTO)(),
+                        .Mensaje = Nothing
+                    }
+                End If
+            Catch ex As Exception
+                ' Si hay error, permitir desmarcar (fail-safe)
+                Return New ValidarServirJuntoResponse With {
+                    .PuedeDesmarcar = True,
+                    .ProductosProblematicos = New List(Of ProductoSinStockDTO)(),
+                    .Mensaje = Nothing
+                }
+            End Try
+        End Using
+    End Function
 End Class

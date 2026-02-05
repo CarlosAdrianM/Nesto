@@ -13,6 +13,17 @@ Public Interface IPlantillaVentaService
     Function PonerStocks(lineas As ObservableCollection(Of LineaPlantillaVenta), almacen As String, Optional almacenes As List(Of String) = Nothing) As Task(Of ObservableCollection(Of LineaPlantillaVenta))
     Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO)
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
+    Function CargarProductosBonificablesIds() As Task(Of HashSet(Of String))
+    ''' <summary>
+    ''' Obtiene los productos bonificables para un pedido segun los Ganavisiones disponibles.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Function CargarProductosBonificablesParaPedido(empresa As String, baseImponibleBonificable As Decimal, almacen As String, servirJunto As Boolean, cliente As String) As Task(Of ProductosBonificablesResponse)
     Function CalcularFechaEntrega(fecha As DateTime, ruta As String, almacen As String) As Task(Of DateTime)
     Function CargarVendedoresEquipo(jefeEquipo As String) As Task(Of List(Of VendedorDTO))
+    ''' <summary>
+    ''' Valida si se puede desmarcar ServirJunto cuando hay productos bonificados.
+    ''' Issue #94: Sistema Ganavisiones - FASE 9
+    ''' </summary>
+    Function ValidarServirJunto(almacen As String, productosBonificados As List(Of String)) As Task(Of ValidarServirJuntoResponse)
 End Interface

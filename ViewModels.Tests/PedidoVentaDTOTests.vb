@@ -545,4 +545,85 @@ Public Class PedidoVentaDTOTests
 
 #End Region
 
+#Region "Issue #254 - ContactoCobro no debe sobrescribirse al cargar pedido existente"
+
+    ''' <summary>
+    ''' BUG REPORTADO: Al abrir pedido 909349 y dar a "Crear Factura" sin modificar nada,
+    ''' dice "El pedido tiene cambios sin guardar".
+    '''
+    ''' CAUSA: El setter de ClienteCompleto en DetallePedidoViewModel sobrescribe contactoCobro
+    ''' con el contacto del cliente, incluso en pedidos existentes.
+    '''
+    ''' ESCENARIO:
+    ''' - Pedido en BD tiene contactoCobro = "0"
+    ''' - Cliente tiene contacto = "6"
+    ''' - Al cargar el pedido, ClienteCompleto se asigna y sobrescribe contactoCobro = "6"
+    ''' - El snapshot tiene "0", el pedido ahora tiene "6" → detecta cambios falsos
+    '''
+    ''' REGLA DE NEGOCIO: En pedidos EXISTENTES, contactoCobro NO debe sobrescribirse
+    ''' al asignar ClienteCompleto. Solo debe hacerse para pedidos NUEVOS.
+    '''
+    ''' FIX REQUERIDO: En DetallePedidoViewModel.vb línea 266, añadir protección EstaCreandoPedido
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ContactoCobro_PedidoExistente_NoDebeSobrescribirseAlAsignarCliente()
+        ' Arrange - Simula un pedido existente cargado de BD
+        Dim pedidoCargadoDeBD As New PedidoVentaDTO() With {
+            .empresa = "1",
+            .numero = 909349, ' Pedido EXISTENTE (numero > 0)
+            .cliente = "15191",
+            .contacto = "0",
+            .contactoCobro = "0", ' Valor guardado en BD
+            .formaPago = "TRN",
+            .plazosPago = "30D  "
+        }
+
+        ' Crear snapshot ANTES de que se asigne ClienteCompleto
+        Dim snapshot = pedidoCargadoDeBD.CrearSnapshot()
+
+        ' Act - Llamar al método extraído que decide si sobrescribir
+        Dim contactoDelCliente = "6" ' El cliente tiene contacto diferente
+        Dim esPedidoNuevo = (pedidoCargadoDeBD.numero = 0)
+
+        If PedidoVentaDTO.DebeSobrescribirDatosCliente(esPedidoNuevo) Then
+            pedidoCargadoDeBD.contactoCobro = contactoDelCliente
+        End If
+
+        ' Assert - El pedido debe seguir siendo igual al snapshot
+        Assert.IsTrue(pedidoCargadoDeBD.Equals(snapshot),
+            $"ContactoCobro no debe cambiar en pedidos existentes. " &
+            $"Esperado: '{snapshot.contactoCobro}', Actual: '{pedidoCargadoDeBD.contactoCobro}'")
+    End Sub
+
+    ''' <summary>
+    ''' Verifica que en pedidos NUEVOS sí se debe copiar el contactoCobro del cliente.
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ContactoCobro_PedidoNuevo_SiDebeSobrescribirseAlAsignarCliente()
+        ' Arrange - Simula un pedido NUEVO (numero = 0)
+        Dim pedidoNuevo As New PedidoVentaDTO() With {
+            .empresa = "1",
+            .numero = 0, ' Pedido NUEVO
+            .cliente = "15191",
+            .contacto = "0",
+            .contactoCobro = "", ' Vacío en pedido nuevo
+            .formaPago = "TRN",
+            .plazosPago = "30D  "
+        }
+
+        ' Act - Llamar al método extraído
+        Dim contactoDelCliente = "6"
+        Dim esPedidoNuevo = (pedidoNuevo.numero = 0)
+
+        If PedidoVentaDTO.DebeSobrescribirDatosCliente(esPedidoNuevo) Then
+            pedidoNuevo.contactoCobro = contactoDelCliente
+        End If
+
+        ' Assert - En pedidos nuevos, contactoCobro debe actualizarse
+        Assert.AreEqual(contactoDelCliente, pedidoNuevo.contactoCobro,
+            "En pedidos nuevos, contactoCobro SÍ debe copiarse del cliente")
+    End Sub
+
+#End Region
+
 End Class

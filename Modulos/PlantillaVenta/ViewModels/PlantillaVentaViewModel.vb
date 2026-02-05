@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.ComponentModel
 Imports System.ComponentModel.DataAnnotations
 Imports System.Net.Http
 Imports System.Text
@@ -33,6 +34,12 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly dialogService As IDialogService
     Private Const ESTADO_LINEA_CURSO As Integer = 1
     Private Const ESTADO_LINEA_PRESUPUESTO As Integer = -3
+
+    ''' <summary>
+    ''' Cache de IDs de productos bonificables (tabla Ganavisiones).
+    ''' Issue #94: Sistema Ganavisiones - FASE 6
+    ''' </summary>
+    Private _productosBonificablesIds As HashSet(Of String)
 
     Private Const PAGINA_SELECCION_CLIENTE As String = "SeleccionCliente"
     Private Const PAGINA_SELECCION_PRODUCTOS As String = "SeleccionProductos"
@@ -75,6 +82,13 @@ Public Class PlantillaVentaViewModel
         SoloConStockCommand = New DelegateCommand(AddressOf OnSoloConStock, AddressOf CanSoloConStock)
         CopiarClientePortapapelesCommand = New DelegateCommand(AddressOf OnCopiarClientePortapapeles)
         MostrarGanavisionesCommand = New DelegateCommand(AddressOf OnMostrarGanavisiones, AddressOf CanMostrarGanavisiones)
+        cmdCargarProductosBonificables = New DelegateCommand(AddressOf OnCargarProductosBonificables, AddressOf CanCargarProductosBonificables)
+        cmdActualizarRegalo = New DelegateCommand(Of LineaRegalo)(AddressOf OnActualizarRegalo)
+        cmdValidarServirJunto = New DelegateCommand(AddressOf OnValidarServirJunto)
+
+        ListaFiltrableRegalos = New ColeccionFiltrable(New ObservableCollection(Of LineaRegalo)) With {
+            .TieneDatosIniciales = True
+        }
 
         ' Al leer los clientes lo lee del parámetro PermitirVerClientesTodosLosVendedores
         todosLosVendedores = False
@@ -97,6 +111,7 @@ Public Class PlantillaVentaViewModel
                                                              RaisePropertyChanged(NameOf(listaProductosPedido))
                                                              RaisePropertyChanged(NameOf(baseImponiblePedido))
                                                              RaisePropertyChanged(NameOf(totalPedido))
+                                                             RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
                                                              SoloConStockCommand.RaiseCanExecuteChanged()
                                                          End Sub
         AddHandler ListaFiltrableProductos.ElementoSeleccionadoChanged, Sub(sender As Object, args As EventArgs)
@@ -175,6 +190,318 @@ Public Class PlantillaVentaViewModel
             Return baseImponible
         End Get
     End Property
+
+#Region "Ganavisiones - FASE 7"
+    ''' <summary>
+    ''' Grupos de productos que generan Ganavisiones (COS = Cosmetica, ACC = Accesorios, PEL = Peluqueria).
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Private Shared ReadOnly GRUPOS_BONIFICABLES As String() = {"COS", "ACC", "PEL"}
+
+    ''' <summary>
+    ''' Valor en EUR de cada Ganavision (1 Ganavision = 10 EUR).
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Private Const VALOR_GANAVISION_EN_EUROS As Decimal = 10D
+
+    ''' <summary>
+    ''' Base imponible de las lineas del pedido cuyos productos pertenecen a grupos bonificables (COS, ACC, PEL).
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public ReadOnly Property BaseImponibleBonificable As Decimal
+        Get
+            If IsNothing(listaProductosPedido) OrElse listaProductosPedido.Count = 0 Then
+                Return 0
+            End If
+            Return listaProductosPedido _
+                .Where(Function(l) Not String.IsNullOrEmpty(l.grupo) AndAlso GRUPOS_BONIFICABLES.Contains(l.grupo.Trim().ToUpper())) _
+                .Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Ganavisiones disponibles segun la base imponible bonificable (truncado, no redondeado).
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public ReadOnly Property GanavisionesDisponibles As Integer
+        Get
+            Return CInt(Math.Truncate(BaseImponibleBonificable / VALOR_GANAVISION_EN_EUROS))
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Ganavisiones consumidos por los regalos seleccionados.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public ReadOnly Property GanavisionesUsados As Integer
+        Get
+            If IsNothing(ListaRegalosSeleccionados) OrElse ListaRegalosSeleccionados.Count = 0 Then
+                Return 0
+            End If
+            Return ListaRegalosSeleccionados.Sum(Function(r) r.cantidad * r.ganavisiones)
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Porcentaje de Ganavisiones usados sobre disponibles (para barra de progreso).
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public ReadOnly Property PorcentajeGanavisionesUsados As Integer
+        Get
+            If GanavisionesDisponibles = 0 Then Return 0
+            Return Math.Min(100, CInt((GanavisionesUsados / GanavisionesDisponibles) * 100))
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Indica si hay Ganavisiones disponibles para canjear regalos.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' Debe haber puntos disponibles Y productos bonificables en la tabla Ganavisiones.
+    ''' </summary>
+    Public ReadOnly Property HayGanavisionesDisponibles As Boolean
+        Get
+            Return GanavisionesDisponibles > 0 AndAlso
+                   _productosBonificablesIds IsNot Nothing AndAlso
+                   _productosBonificablesIds.Count > 0
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Indica si se han excedido los Ganavisiones disponibles.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public ReadOnly Property GanavisionesExcedidos As Boolean
+        Get
+            Return GanavisionesUsados > GanavisionesDisponibles
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Indica si se puede pasar de la página de regalos (no se han excedido los Ganavisiones).
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public ReadOnly Property PuedePasarDePaginaRegalos As Boolean
+        Get
+            Return Not GanavisionesExcedidos
+        End Get
+    End Property
+
+    Private _listaProductosBonificables As ObservableCollection(Of LineaRegalo)
+    ''' <summary>
+    ''' Lista de productos que se pueden seleccionar como regalo.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public Property ListaProductosBonificables As ObservableCollection(Of LineaRegalo)
+        Get
+            Return _listaProductosBonificables
+        End Get
+        Set(value As ObservableCollection(Of LineaRegalo))
+            SetProperty(_listaProductosBonificables, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Lista de regalos seleccionados (productos bonificables con cantidad > 0).
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public ReadOnly Property ListaRegalosSeleccionados As List(Of LineaRegalo)
+        Get
+            If IsNothing(ListaProductosBonificables) Then Return New List(Of LineaRegalo)()
+            Return ListaProductosBonificables.Where(Function(r) r.cantidad > 0).ToList()
+        End Get
+    End Property
+
+    Private _listaFiltrableRegalos As ColeccionFiltrable
+    ''' <summary>
+    ''' Colección filtrable de productos bonificables para el BarraFiltro.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public Property ListaFiltrableRegalos As ColeccionFiltrable
+        Get
+            Return _listaFiltrableRegalos
+        End Get
+        Set(value As ColeccionFiltrable)
+            SetProperty(_listaFiltrableRegalos, value)
+        End Set
+    End Property
+
+    Private _cmdCargarProductosBonificables As DelegateCommand
+    ''' <summary>
+    ''' Comando para cargar los productos bonificables desde la API.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public Property cmdCargarProductosBonificables As DelegateCommand
+        Get
+            Return _cmdCargarProductosBonificables
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_cmdCargarProductosBonificables, value)
+        End Set
+    End Property
+    Private Function CanCargarProductosBonificables() As Boolean
+        Return Not IsNothing(clienteSeleccionado)
+    End Function
+    Private Async Sub OnCargarProductosBonificables()
+        Try
+            estaOcupado = True
+
+            ' Notificar los indicadores al entrar en la página
+            RaisePropertyChanged(NameOf(BaseImponibleBonificable))
+            RaisePropertyChanged(NameOf(GanavisionesDisponibles))
+
+            ' Si no hay Ganavisiones disponibles, no cargar productos
+            If GanavisionesDisponibles <= 0 Then
+                ListaProductosBonificables = New ObservableCollection(Of LineaRegalo)()
+                ListaFiltrableRegalos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)()
+                ActualizarIndicadoresGanavisiones()
+                Return
+            End If
+
+            Dim servirJunto As Boolean = If(direccionEntregaSeleccionada?.servirJunto, True)
+            Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
+
+            Dim respuesta = Await servicio.CargarProductosBonificablesParaPedido(
+                Constantes.Empresas.EMPRESA_DEFECTO,
+                BaseImponibleBonificable,
+                almacen,
+                servirJunto,
+                clienteSeleccionado.cliente).ConfigureAwait(True)
+
+            If Not IsNothing(respuesta) AndAlso Not IsNothing(respuesta.Productos) Then
+                ListaProductosBonificables = New ObservableCollection(Of LineaRegalo)(
+                    respuesta.Productos.Select(Function(p) New LineaRegalo With {
+                        .producto = p.ProductoId,
+                        .texto = p.ProductoNombre,
+                        .precio = p.PVP,
+                        .ganavisiones = p.Ganavisiones,
+                        .stocks = p.Stocks
+                    }))
+
+                ' Actualizar la colección filtrable con los productos
+                ListaFiltrableRegalos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(ListaProductosBonificables)
+
+                ' Suscribirse a cambios en cantidad para actualizar los indicadores
+                For Each linea In ListaProductosBonificables
+                    AddHandler linea.PropertyChanged, AddressOf OnRegaloPropertyChanged
+                Next
+            Else
+                ListaProductosBonificables = New ObservableCollection(Of LineaRegalo)()
+                ListaFiltrableRegalos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)()
+            End If
+
+            ActualizarIndicadoresGanavisiones()
+        Catch ex As Exception
+            dialogService.ShowError("Error al cargar productos bonificables: " & ex.Message)
+        Finally
+            estaOcupado = False
+        End Try
+    End Sub
+
+    Private Sub OnRegaloPropertyChanged(sender As Object, e As PropertyChangedEventArgs)
+        If e.PropertyName = NameOf(LineaRegalo.cantidad) Then
+            ActualizarIndicadoresGanavisiones()
+        End If
+    End Sub
+
+    Private Sub ActualizarIndicadoresGanavisiones()
+        RaisePropertyChanged(NameOf(GanavisionesUsados))
+        RaisePropertyChanged(NameOf(PorcentajeGanavisionesUsados))
+        RaisePropertyChanged(NameOf(GanavisionesExcedidos))
+        RaisePropertyChanged(NameOf(PuedePasarDePaginaRegalos))
+        RaisePropertyChanged(NameOf(ListaRegalosSeleccionados))
+    End Sub
+
+    Private _cmdActualizarRegalo As DelegateCommand(Of LineaRegalo)
+    ''' <summary>
+    ''' Comando para actualizar un regalo cuando cambia la cantidad.
+    ''' Carga la imagen del producto desde la API.
+    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' </summary>
+    Public Property cmdActualizarRegalo As DelegateCommand(Of LineaRegalo)
+        Get
+            Return _cmdActualizarRegalo
+        End Get
+        Private Set(value As DelegateCommand(Of LineaRegalo))
+            SetProperty(_cmdActualizarRegalo, value)
+        End Set
+    End Property
+
+    Private Async Sub OnActualizarRegalo(regalo As LineaRegalo)
+        If IsNothing(regalo) OrElse IsNothing(clienteSeleccionado) Then
+            Return
+        End If
+
+        ' Si tiene cantidad y no tiene imagen, cargar la imagen
+        If regalo.cantidad > 0 AndAlso String.IsNullOrEmpty(regalo.urlImagen) Then
+            Try
+                Using client As New HttpClient
+                    client.BaseAddress = New Uri(configuracion.servidorAPI)
+                    Dim response As HttpResponseMessage
+
+                    Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
+                    response = Await client.GetAsync("PlantillaVentas/CargarStocks?empresa=" + clienteSeleccionado.empresa + "&almacen=" + almacen + "&productoStock=" + regalo.producto)
+
+                    If response.IsSuccessStatusCode Then
+                        Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+                        Dim datosStock = JsonConvert.DeserializeObject(Of StockProductoDTO)(cadenaJson)
+                        If datosStock IsNot Nothing Then
+                            regalo.urlImagen = datosStock.urlImagen
+                        End If
+                    End If
+                End Using
+            Catch ex As Exception
+                ' Ignorar errores de carga de imagen, no es crítico
+            End Try
+        End If
+
+        ActualizarIndicadoresGanavisiones()
+    End Sub
+
+    Private _cmdValidarServirJunto As DelegateCommand
+    ''' <summary>
+    ''' Comando para validar si se puede desmarcar ServirJunto con productos bonificados.
+    ''' Issue #94: Sistema Ganavisiones - FASE 9
+    ''' </summary>
+    Public Property cmdValidarServirJunto As DelegateCommand
+        Get
+            Return _cmdValidarServirJunto
+        End Get
+        Private Set(value As DelegateCommand)
+            SetProperty(_cmdValidarServirJunto, value)
+        End Set
+    End Property
+
+    Private Async Sub OnValidarServirJunto()
+        ' Si se está marcando (no desmarcando), no validar
+        If direccionEntregaSeleccionada?.servirJunto Then
+            Return
+        End If
+
+        ' Si no hay regalos seleccionados, no validar
+        Dim regalosSeleccionados = ListaRegalosSeleccionados
+        If regalosSeleccionados Is Nothing OrElse Not regalosSeleccionados.Any() Then
+            Return
+        End If
+
+        Try
+            Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
+            Dim productosIds = regalosSeleccionados.Select(Function(r) r.producto).ToList()
+
+            Dim respuesta = Await servicio.ValidarServirJunto(almacen, productosIds).ConfigureAwait(True)
+
+            If Not respuesta.PuedeDesmarcar Then
+                ' Revertir el cambio - volver a marcar ServirJunto
+                direccionEntregaSeleccionada.servirJunto = True
+                RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+
+                ' Mostrar mensaje al usuario
+                dialogService.ShowError(respuesta.Mensaje)
+            End If
+        Catch ex As Exception
+            ' Si hay error, permitir desmarcar (fail-safe)
+        End Try
+    End Sub
+#End Region
 
     Private _clienteSeleccionado As ClienteJson
     Public Property clienteSeleccionado As ClienteJson
@@ -839,6 +1166,7 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(baseImponibleParaPortes))
         RaisePropertyChanged(NameOf(totalPedido))
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
+        RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
     End Sub
 
     'Enum PaginasWizard
@@ -952,6 +1280,26 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
+        ' Issue #94: Notificar si el producto es bonificable (Ganavisiones - FASE 6)
+        ' Solo notificar la primera vez que se añade (fechaInsercion = MaxValue significa que no está en el pedido)
+        Dim esPrimeraVezEnPedido = arg.fechaInsercion = DateTime.MaxValue
+        If esPrimeraVezEnPedido AndAlso (arg.cantidad > 0 OrElse arg.cantidadOferta > 0) Then
+            If _productosBonificablesIds IsNot Nothing AndAlso _productosBonificablesIds.Contains(arg.producto?.Trim()) Then
+                Dim continuar As Boolean = True
+                dialogService.ShowConfirmation(
+                    "Producto bonificable",
+                    $"El producto '{arg.textoNombreProducto}' puede obtenerse como regalo con Ganavisiones.{Environment.NewLine}{Environment.NewLine}¿Desea añadirlo al pedido como compra normal?{Environment.NewLine}{Environment.NewLine}Pulse 'Cancelar' si prefiere seleccionarlo como regalo en la página de Ganavisiones.",
+                    Sub(r)
+                        continuar = r.Result = ButtonResult.OK
+                    End Sub)
+                If Not continuar Then
+                    arg.cantidad = 0
+                    arg.cantidadOferta = 0
+                    Return
+                End If
+            End If
+        End If
+
         cmdActualizarPrecioProducto.Execute(arg)
 
         If arg.cantidadVendida = 0 AndAlso arg.cantidadAbonada = 0 Then
@@ -963,6 +1311,7 @@ Public Class PlantillaVentaViewModel
         End If
         RaisePropertyChanged(NameOf(hayProductosEnElPedido))
         RaisePropertyChanged(NameOf(NoHayProductosEnElPedido))
+        RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
         If Not IsNothing(ListaFiltrableProductos) AndAlso (IsNothing(ListaFiltrableProductos.ElementoSeleccionado) OrElse CType(ListaFiltrableProductos.ElementoSeleccionado, LineaPlantillaVenta).producto <> arg.producto) Then
             ListaFiltrableProductos.ElementoSeleccionado = arg
         End If
@@ -1663,6 +2012,39 @@ Public Class PlantillaVentaViewModel
 
         Next
 
+        ' Issue #94: Sistema Ganavisiones - FASE 8
+        ' Añadir productos de regalo (bonificados con Ganavisiones)
+        If ListaProductosBonificables IsNot Nothing Then
+            For Each lineaRegalo In ListaProductosBonificables.Where(Function(r) r.cantidad > 0)
+                Dim textoBonificado = lineaRegalo.texto & " (BONIFICADO)"
+                If textoBonificado.Length > 50 Then
+                    textoBonificado = textoBonificado.Substring(0, 50)
+                End If
+
+                Dim lineaPedidoRegalo = New LineaPedidoVentaDTO With {
+                    .Pedido = pedido,
+                    .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO),
+                    .tipoLinea = 1, ' Producto
+                    .Producto = lineaRegalo.producto,
+                    .texto = textoBonificado,
+                    .Cantidad = lineaRegalo.cantidad,
+                    .fechaEntrega = fechaEntrega,
+                    .PrecioUnitario = lineaRegalo.precio,
+                    .DescuentoLinea = 1, ' 100% descuento
+                    .DescuentoProducto = 0,
+                    .AplicarDescuento = False,
+                    .vistoBueno = 0,
+                    .Usuario = configuracion.usuario,
+                    .almacen = almacenRutaUsuario,
+                    .iva = clienteSeleccionado.iva,
+                    .delegacion = delegacionUsuario,
+                    .formaVenta = formaVentaPedido,
+                    .oferta = Nothing
+                }
+                pedido.Lineas.Add(lineaPedidoRegalo)
+            Next
+        End If
+
         Return pedido
     End Function
 
@@ -1824,8 +2206,14 @@ Public Class PlantillaVentaViewModel
     End Sub
 
 
-    Public Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
-
+    Public Async Sub OnNavigatedTo(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedTo
+        ' Issue #94: Cargar cache de productos bonificables (Ganavisiones)
+        If _productosBonificablesIds Is Nothing Then
+            ' Usar ConfigureAwait(True) para que RaisePropertyChanged se ejecute en el hilo de la UI
+            _productosBonificablesIds = Await servicio.CargarProductosBonificablesIds().ConfigureAwait(True)
+            ' Notificar que HayGanavisionesDisponibles puede haber cambiado ahora que tenemos los IDs
+            RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
+        End If
     End Sub
 
     Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget

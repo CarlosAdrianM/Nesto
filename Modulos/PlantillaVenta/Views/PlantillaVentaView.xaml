@@ -8,6 +8,7 @@
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              xmlns:converters="clr-namespace:ControlesUsuario.Converters;assembly=ControlesUsuario"
+             xmlns:controls="clr-namespace:Nesto.Modulos.PlantillaVenta"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              prism:ViewModelLocator.AutoWireViewModel="True">
 
@@ -88,7 +89,7 @@
                 <xctk:WizardPage x:Name="SeleccionProductos" PageType="Interior"
                                        Title="Productos que componen el pedido"
                                        Description="Ahora es el momento de seleccionar los productos que el cliente desea que le enviemos. Puede ir poniendo filtros para facilitar la búsqueda, y pulsando la tecla Enter se quedarán fijos (para quitarlos hay que pulsar Enter dejando el campo de filtrar en blanco). Si el producto que desea el cliente no lo ha comprado anteriormente, puede localizarlo pulsando el botón de Buscar en todos los productos y filtrando posteriormente los resultados."
-                                       NextPage="{Binding ElementName=SeleccionEntrega}"
+                                       NextPage="{Binding ElementName=SeleccionRegalos}"
                                        PreviousPage="{Binding ElementName=SeleccionCliente}"
                                        CanSelectNextPage="{Binding hayProductosEnElPedido}">
 
@@ -109,135 +110,66 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <StackPanel Grid.Row="0">
-                                <Grid>
+                            <!-- Botones de búsqueda -->
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
+                                    <AccessText>_Buscar en todos los productos</AccessText>
+                                </Button>
+                                <Grid Grid.Column="1">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition/>
-                                        <ColumnDefinition/>
-                                        <ColumnDefinition/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <Button Grid.Column="0" Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
-                                        <AccessText>_Buscar en todos los productos</AccessText>
+
+                                    <!-- Botón principal -->
+                                    <Button Grid.Column="0"
+                                            Name="btnBuscarContextual"
+                                            Command="{Binding BuscarContextualCommand}"
+                                            CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
+                                        <AccessText>Búsqueda _contextual</AccessText>
                                     </Button>
-                                    <Grid Grid.Column="1">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
 
-                                        <!-- Botón principal -->
-                                        <Button Grid.Column="0"
-                                                Name="btnBuscarContextual"
-                                                Command="{Binding BuscarContextualCommand}"
-                                                CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
-                                            <AccessText>Búsqueda _contextual</AccessText>
-                                        </Button>
-
-                                        <!-- Botón de flechita -->
-                                        <Button Grid.Column="1"
-                                                Padding="0"
-                                                Width="20"
-                                                IsEnabled="{Binding IsEnabled, ElementName=btnBuscarContextual}"
-                                                Click="OpcionesBusqueda_Click">
-                                            <Path Width="8" Height="5" Stretch="Uniform" Fill="Black" 
-                                                  Data="M 0 0 L 4 4 L 8 0 Z"/>
-                                            <Button.ContextMenu>
-                                                <ContextMenu Name="cmOpcionesBusqueda">
-                                                    <MenuItem Header="Incluye cualquiera de las palabras" 
-                                                              IsCheckable="True" 
-                                                              IsChecked="{Binding EsBusquedaConOR, Mode=TwoWay}" />
-                                                    <MenuItem Header="Incluye todas las palabras" 
-                                                              IsCheckable="True" 
-                                                              IsChecked="{Binding EsBusquedaConAND, Mode=TwoWay}" />
-                                                </ContextMenu>
-                                            </Button.ContextMenu>
-                                        </Button>
-
-                                    </Grid>
-
-
-                                    <Button Grid.Column="2" Name="btnSoloConStock" Command="{Binding SoloConStockCommand}">
-                                        <AccessText>Mostrar solo con _Stock</AccessText>
+                                    <!-- Botón de flechita -->
+                                    <Button Grid.Column="1"
+                                            Padding="0"
+                                            Width="20"
+                                            IsEnabled="{Binding IsEnabled, ElementName=btnBuscarContextual}"
+                                            Click="OpcionesBusqueda_Click">
+                                        <Path Width="8" Height="5" Stretch="Uniform" Fill="Black"
+                                              Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                        <Button.ContextMenu>
+                                            <ContextMenu Name="cmOpcionesBusqueda">
+                                                <MenuItem Header="Incluye cualquiera de las palabras"
+                                                          IsCheckable="True"
+                                                          IsChecked="{Binding EsBusquedaConOR, Mode=TwoWay}" />
+                                                <MenuItem Header="Incluye todas las palabras"
+                                                          IsCheckable="True"
+                                                          IsChecked="{Binding EsBusquedaConAND, Mode=TwoWay}" />
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
                                     </Button>
-                                    <!--ToggleButton Grid.Column="2" Name="btnGanavisiones" IsChecked="{Binding EstanGanavisionesMostrados}">
-                                        <AccessText>_Ganavisiones</AccessText>
-                                    </ToggleButton-->
+
                                 </Grid>
-                                <controlesusuario:BarraFiltro Name="txtFiltroProducto" ListaItems="{Binding ListaFiltrableProductos}"></controlesusuario:BarraFiltro>
-                            </StackPanel>
-                            <ListView x:Name="lstProductos" Grid.Row="1" ItemsSource="{Binding ListaFiltrableProductos.Lista}" SelectedItem="{Binding ListaFiltrableProductos.ElementoSeleccionado}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                <ListView.ItemTemplate>
-                                    <DataTemplate>
-                                        <DockPanel Height="110" Margin="6" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Hidden">
-                                            <StackPanel DockPanel.Dock="Left" Grid.Column="0" Width="110" MinWidth="110" Height="110" >
 
-                                                <Image Source="{Binding imagen}" Height="100" Width="100" Visibility="{Binding imagenVisible}" Margin="0,0,10,0">
-                                                    <xctk:MagnifierManager.Magnifier>
-                                                        <xctk:Magnifier Radius="100" ZoomFactor=".3" />
-                                                    </xctk:MagnifierManager.Magnifier>
-                                                </Image>
-                                                <Border Background="{Binding colorEstado}" Height="110" Width="110" HorizontalAlignment="Left" Margin="0,0,10,0">
-                                                    <TextBlock Text="{Binding clasificacionMasVendidos}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="White" FontWeight="Bold" FontSize="24" Visibility="{Binding clasificacionVisible}"></TextBlock>
-                                                </Border>
-                                            </StackPanel>
-
-                                            <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
-
-                                                <Grid DockPanel.Dock="Right" Width="110" MinWidth="110" Height="110" HorizontalAlignment="Stretch">
-
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition/>
-                                                        <ColumnDefinition/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto"/>
-                                                        <RowDefinition/>
-                                                    </Grid.RowDefinitions>
-
-                                                    <StackPanel Grid.Column="0">
-                                                        <TextBlock Margin="3" TextWrapping="WrapWithOverflow" Text="Cantidad Cobrada"></TextBlock>
-                                                        <xctk:ShortUpDown Value="{Binding cantidad}" Margin="3">
-                                                            <i:Interaction.Triggers>
-                                                                <i:EventTrigger EventName="ValueChanged">
-                                                                    <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
-                                                                </i:EventTrigger>
-                                                            </i:Interaction.Triggers>
-                                                        </xctk:ShortUpDown>
-                                                    </StackPanel>
-
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
-                                                        <xctk:ShortUpDown Value="{Binding cantidadOferta}" Margin="3" IsEnabled="{Binding aplicarDescuentoFicha}" >
-                                                            <i:Interaction.Triggers>
-                                                                <i:EventTrigger EventName="ValueChanged">
-                                                                    <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdActualizarProductosPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}"/>
-                                                                </i:EventTrigger>
-                                                            </i:Interaction.Triggers>
-                                                        </xctk:ShortUpDown>
-                                                    </StackPanel>
-
-                                                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center">
-                                                        <TextBlock Text="{Binding textoUnidadesDisponibles}" Foreground="{Binding colorStock}"/>
-                                                        <TextBlock Text="{Binding textoStocksPorAlmacen}" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
-                                                    </StackPanel>
-                                                </Grid>
-                                                <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
-                                                    <StackPanel DockPanel.Dock="Left" VerticalAlignment="Top" Margin="10,0,0,0" HorizontalAlignment="Stretch">
-                                                        <TextBlock Text="{Binding textoNombreProducto}" FontWeight="Bold" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                        <TextBlock Text="{Binding producto}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                        <TextBlock Text="{Binding familia}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                        <TextBlock Text="{Binding subGrupo}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                        <TextBlock Text="{Binding precio, StringFormat=c}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                        <TextBlock Text="{Binding textoFechaUltimaVenta}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                        <TextBlock Text="{Binding textoUnidadesVendidas}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
-                                                    </StackPanel>
-                                                </DockPanel>
-                                            </DockPanel>
-
-                                        </DockPanel>
-                                    </DataTemplate>
-                                </ListView.ItemTemplate>
-                            </ListView>
+                                <Button Grid.Column="2" Name="btnSoloConStock" Command="{Binding SoloConStockCommand}">
+                                    <AccessText>Mostrar solo con _Stock</AccessText>
+                                </Button>
+                            </Grid>
+                            <!-- Control reutilizable SelectorLineasPlantillaVenta con BarraFiltro integrada -->
+                            <controls:SelectorLineasPlantillaVenta
+                                x:Name="lstProductos"
+                                Grid.Row="1"
+                                ListaFiltrable="{Binding ListaFiltrableProductos}"
+                                SelectedItem="{Binding ListaFiltrableProductos.ElementoSeleccionado, Mode=TwoWay}"
+                                ActualizarProductoCommand="{Binding cmdActualizarProductosPedido}"
+                                PermitirCantidadOferta="True"
+                                MostrarPrecio="True"
+                                MostrarBarraFiltro="True"/>
                         </Grid>
 
                         <Grid  Grid.Row="0" Grid.Column="1" Margin="3,0">
@@ -404,6 +336,145 @@
                         </StackPanel>
                     </Grid>
                 </xctk:WizardPage>
+                <!-- Issue #94: Sistema Ganavisiones - FASE 7 - Página de selección de regalos -->
+                <xctk:WizardPage x:Name="SeleccionRegalos" PageType="Interior"
+                                       Title="Selección de Regalos (Ganavisiones)"
+                                       Description="Según el importe del pedido en productos bonificables, puede seleccionar regalos para su cliente. Cada 10 € de base imponible en Cosmética, Accesorios o Peluquería genera 1 Ganavision que puede canjear por productos."
+                                       NextPage="{Binding ElementName=SeleccionEntrega}"
+                                       PreviousPage="{Binding ElementName=SeleccionProductos}"
+                                       CanSelectNextPage="{Binding PuedePasarDePaginaRegalos}">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Enter">
+                            <i:InvokeCommandAction Command="{Binding Path=DataContext.cmdCargarProductosBonificables, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- IZQUIERDA: Selector de productos bonificables con BarraFiltro integrada -->
+                        <controls:SelectorLineasPlantillaVenta
+                            x:Name="lstRegalos"
+                            Grid.Column="0"
+                            ListaFiltrable="{Binding ListaFiltrableRegalos}"
+                            ActualizarProductoCommand="{Binding cmdActualizarRegalo}"
+                            PermitirCantidadOferta="False"
+                            MostrarPrecio="True"
+                            MostrarBarraFiltro="True"/>
+
+                        <!-- DERECHA: Indicadores y resumen -->
+                        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                        <Grid Margin="10,0,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Icono de Ganavisiones -->
+                            <Image Grid.Row="0" Source="/Nesto;component/Images/Ganavisiones.png" Width="128" Height="128" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+
+                            <!-- Indicadores de Ganavisiones -->
+                            <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="GANAVISIONES" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                        </Grid.RowDefinitions>
+
+                                        <StackPanel Grid.Column="0" Grid.Row="0" Margin="5">
+                                            <TextBlock Text="Disponibles" FontWeight="Bold" FontSize="11"/>
+                                            <TextBlock Text="{Binding GanavisionesDisponibles}" FontSize="24" Foreground="Green" HorizontalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Grid.Row="0" Margin="5">
+                                            <TextBlock Text="Usados" FontWeight="Bold" FontSize="11"/>
+                                            <TextBlock FontSize="24" HorizontalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="Orange"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding GanavisionesExcedidos}" Value="True">
+                                                                <Setter Property="Foreground" Value="Red"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                                <Run Text="{Binding GanavisionesUsados, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1" Margin="5">
+                                            <ProgressBar Height="25" Value="{Binding PorcentajeGanavisionesUsados, Mode=OneWay}" Maximum="100">
+                                                <ProgressBar.Style>
+                                                    <Style TargetType="ProgressBar">
+                                                        <Setter Property="Foreground" Value="Green"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding GanavisionesExcedidos}" Value="True">
+                                                                <Setter Property="Foreground" Value="Red"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ProgressBar.Style>
+                                            </ProgressBar>
+                                            <TextBlock HorizontalAlignment="Center" FontSize="10" Margin="0,3,0,0">
+                                                <Run Text="{Binding PorcentajeGanavisionesUsados, Mode=OneWay}"/>
+                                                <Run Text="% utilizado"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Base Imponible Bonificable -->
+                            <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" Padding="10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock Text="Base Imponible Bonificable" FontWeight="Bold" FontSize="11"/>
+                                    <TextBlock Text="{Binding BaseImponibleBonificable, StringFormat=c}" FontSize="20" Foreground="DarkBlue" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="(grupos COS, ACC, PEL)" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Mensaje de advertencia si se exceden los Ganavisiones -->
+                            <Border Grid.Row="3" Background="LightCoral" Padding="10" CornerRadius="5" Margin="0,0,0,10"
+                                    Visibility="{Binding GanavisionesExcedidos, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock Text="¡Atención! Ha seleccionado más regalos de los que tiene disponibles. Reduzca la cantidad para continuar."
+                                           Foreground="DarkRed" FontWeight="Bold" TextWrapping="Wrap"/>
+                            </Border>
+
+                            <!-- Lista de regalos seleccionados -->
+                            <Border Grid.Row="4" BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" Padding="10">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Top" Text="Regalos seleccionados:" FontWeight="Bold" Margin="0,0,0,5"/>
+                                    <ListView ItemsSource="{Binding ListaRegalosSeleccionados}">
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding cantidad}" FontWeight="Bold" Margin="0,0,5,0"/>
+                                                    <TextBlock Text="x"/>
+                                                    <TextBlock Text="{Binding texto}" Margin="5,0,0,0"/>
+                                                    <TextBlock Text="{Binding ganavisiones, StringFormat=' ({0} Gan.)'}" Foreground="Gray"/>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </DockPanel>
+                            </Border>
+                        </Grid>
+                        </ScrollViewer>
+                    </Grid>
+                </xctk:WizardPage>
                 <xctk:WizardPage x:Name="SeleccionEntrega" PageType="Interior"
                                        Title="Dirección de Entrega del Pedido"
                                        Description="¿Dónde quiere que le entreguemos el pedido?">
@@ -421,7 +492,13 @@
                         <StackPanel Grid.Column="1">
                             <TextBlock TextWrapping="Wrap" Margin="3,0">Este comentario lo leerá la agencia y también el cliente, porque aparecerá en la factura:</TextBlock>
                             <TextBox TextWrapping="Wrap" Text="{Binding ComentarioRuta}" Margin="3,0"/>
-                            <CheckBox Content="Servir Junto" IsChecked="{Binding direccionEntregaSeleccionada.servirJunto}" Margin="3,0"/>
+                            <CheckBox Content="Servir Junto" IsChecked="{Binding direccionEntregaSeleccionada.servirJunto}" Margin="3,0">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="Unchecked">
+                                        <i:InvokeCommandAction Command="{Binding cmdValidarServirJunto}"/>
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </CheckBox>
                             <CheckBox Content="Mantener Junto" IsChecked="{Binding direccionEntregaSeleccionada.mantenerJunto}" Margin="3,0"/>
                             <TextBlock Margin="3,0">
                                 <Run Text="Periodo de Facturación:"></Run>

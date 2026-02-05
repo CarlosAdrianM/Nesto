@@ -1,4 +1,5 @@
-﻿Imports System.Windows.Threading
+Imports System.ComponentModel
+Imports System.Windows.Threading
 
 Partial Public Class PlantillaVentaView
     Public Sub New()
@@ -12,84 +13,8 @@ Partial Public Class PlantillaVentaView
 
     Private Async Sub SeleccionProductos_Enter(sender As Object, e As RoutedEventArgs) Handles SeleccionProductos.Enter
         Await Task.Delay(2000)
-        Dim unused1 = Keyboard.Focus(txtFiltroProducto)
-        Dim unused = txtFiltroProducto.Focus()
-    End Sub
-
-    Private Async Sub txtFiltroProducto_KeyUp(sender As Object, e As KeyEventArgs) Handles txtFiltroProducto.KeyUp
-        If e.Key = System.Windows.Input.Key.Enter Then
-            Await Task.Delay(500)
-            Dim unused = Keyboard.Focus(txtFiltroProducto)
-            txtFiltroProducto.SelectAll()
-        End If
-        If IsNothing(lstProductos) OrElse lstProductos.Items.Count = 0 Then
-            Return
-        End If
-        If e.Key = Key.D1 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 0 Then
-            lstProductos.SelectedItem = lstProductos.Items(0)
-        End If
-        If e.Key = Key.D2 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 1 Then
-            lstProductos.SelectedItem = lstProductos.Items(1)
-        End If
-        If e.Key = Key.D3 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control AndAlso lstProductos.Items.Count > 2 Then
-            lstProductos.SelectedItem = lstProductos.Items(2)
-        End If
-        If (e.Key = Key.OemPlus OrElse e.Key = Key.Add) AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then ' Cantidad + 1
-            If IsNothing(lstProductos.SelectedItem) Then
-                lstProductos.SelectedItem = lstProductos.Items(0)
-            End If
-            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
-            linea.cantidad += 1
-            txtFiltroProducto.SelectAll()
-        End If
-        If (e.Key = Key.OemPlus OrElse e.Key = Key.Add) AndAlso e.KeyboardDevice.Modifiers = (ModifierKeys.Control Or ModifierKeys.Shift) Then ' Oferta + 1
-            If IsNothing(lstProductos.SelectedItem) Then
-                lstProductos.SelectedItem = lstProductos.Items(0)
-            End If
-            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
-            If linea.aplicarDescuentoFicha Then
-                linea.cantidadOferta += 1
-                txtFiltroProducto.SelectAll()
-            End If
-        End If
-        If (e.Key = Key.OemMinus OrElse e.Key = Key.Subtract) AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then ' Cantidad + 1
-            If IsNothing(lstProductos.SelectedItem) Then
-                lstProductos.SelectedItem = lstProductos.Items(0)
-            End If
-            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
-            If linea.cantidad > 0 Then
-                linea.cantidad -= 1
-            End If
-            txtFiltroProducto.SelectAll()
-        End If
-        If (e.Key = Key.OemMinus OrElse e.Key = Key.Subtract) AndAlso e.KeyboardDevice.Modifiers = (ModifierKeys.Control Or ModifierKeys.Shift) Then ' Oferta + 1
-            If IsNothing(lstProductos.SelectedItem) Then
-                lstProductos.SelectedItem = lstProductos.Items(0)
-            End If
-            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
-            If linea.aplicarDescuentoFicha AndAlso linea.cantidadOferta > 0 Then
-                linea.cantidadOferta -= 1
-                txtFiltroProducto.SelectAll()
-            End If
-        End If
-        If e.Key = Key.D6 AndAlso e.KeyboardDevice.Modifiers = ModifierKeys.Control Then ' 6+1
-            If IsNothing(lstProductos.SelectedItem) Then
-                lstProductos.SelectedItem = lstProductos.Items(0)
-            End If
-            Dim linea As LineaPlantillaVenta = lstProductos.SelectedItem
-            If linea.aplicarDescuentoFicha Then
-                linea.cantidad = 6
-                linea.cantidadOferta = 1
-            End If
-        End If
-    End Sub
-
-    Private Sub txtFiltroProducto_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtFiltroProducto.GotFocus
-        txtFiltroProducto.SelectAll()
-    End Sub
-
-    Private Sub txtFiltroProducto_MouseUp(sender As Object, e As MouseButtonEventArgs) Handles txtFiltroProducto.MouseUp
-        txtFiltroProducto.SelectAll()
+        ' Usar el método del control para enfocar la barra de filtro integrada
+        lstProductos.EnfocarBarraFiltro()
     End Sub
 
     Private Sub txtFiltroCliente_GotFocus(sender As Object, e As RoutedEventArgs) Handles txtFiltroCliente.GotFocus
@@ -210,7 +135,38 @@ Partial Public Class PlantillaVentaView
             vm.PaginasWizard.Add(SeleccionEntrega)
             vm.PaginasWizard.Add(Finalizar)
         End If
-        IndicadorOcupado.FocusAfterBusy = txtFiltroProducto
+        ' Usar la BarraFiltro expuesta del control
+        IndicadorOcupado.FocusAfterBusy = lstProductos.BarraFiltro
+
+        ' Issue #94: Suscribirse a cambios para actualizar navegación del wizard
+        AddHandler vm.PropertyChanged, AddressOf ViewModel_PropertyChanged
+        ' Actualizar NextPage inicial
+        ActualizarNavegacionPaginaProductos()
+    End Sub
+
+    ''' <summary>
+    ''' Issue #94: Actualiza el NextPage de SeleccionProductos según si hay Ganavisiones disponibles.
+    ''' Si no hay Ganavisiones, salta directamente a SeleccionEntrega.
+    ''' </summary>
+    Private Sub ViewModel_PropertyChanged(sender As Object, e As PropertyChangedEventArgs)
+        If e.PropertyName = NameOf(PlantillaVentaViewModel.HayGanavisionesDisponibles) Then
+            ActualizarNavegacionPaginaProductos()
+        End If
+    End Sub
+
+    Private Sub ActualizarNavegacionPaginaProductos()
+        Dim vm As PlantillaVentaViewModel = DataContext
+        If vm IsNot Nothing Then
+            If vm.HayGanavisionesDisponibles Then
+                ' Con Ganavisiones: Productos -> Regalos -> Entrega
+                SeleccionProductos.NextPage = SeleccionRegalos
+                SeleccionEntrega.PreviousPage = SeleccionRegalos
+            Else
+                ' Sin Ganavisiones: Productos -> Entrega (salta Regalos)
+                SeleccionProductos.NextPage = SeleccionEntrega
+                SeleccionEntrega.PreviousPage = SeleccionProductos
+            End If
+        End If
     End Sub
 
     Private Sub OpcionesBusqueda_Click(sender As Object, e As RoutedEventArgs)
@@ -222,4 +178,3 @@ Partial Public Class PlantillaVentaView
     End Sub
 
 End Class
-

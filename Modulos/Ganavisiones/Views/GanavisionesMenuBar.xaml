@@ -1,0 +1,22 @@
+<UserControl x:Class="Nesto.Modulos.Ganavisiones.Views.GanavisionesMenuBar"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="clr-namespace:Nesto.Modulos.Ganavisiones.Views"
+      mc:Ignorable="d"
+      d:DesignHeight="450" d:DesignWidth="800">
+
+    <Ribbon x:Name="MainMenu" x:FieldModifier="protected internal">
+        <RibbonTab x:Name="tabProveedores"
+                        Header="Proveedores">
+            <RibbonGroup x:Name="grpMantenimientos"
+                            Header="Mantenimientos">
+                <RibbonButton Label="Ganavisiones"
+                              LargeImageSource="/Nesto;component/Images/Ganavisiones.png"
+                              Command="{Binding AbrirModuloGanavisionesCommand}"
+                              ToolTip="Gestión de puntos Ganavisiones para bonificaciones (solo grupo COMPRAS)"/>
+            </RibbonGroup>
+        </RibbonTab>
+    </Ribbon>
+</UserControl>

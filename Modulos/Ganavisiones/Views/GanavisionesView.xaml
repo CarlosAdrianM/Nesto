@@ -1,0 +1,227 @@
+<UserControl x:Class="Nesto.Modulos.Ganavisiones.Views.GanavisionesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Nesto.Modulos.Ganavisiones.Views"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="800">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <controles:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
+    </UserControl.Resources>
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaCargando}" BusyContent="Cargando...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Barra superior -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Command="{Binding NuevoCommand}"
+                        Padding="10,5" Margin="0,0,10,0">
+                    Nuevo
+                </Button>
+                <Button Command="{Binding CargarGanavisionesCommand}"
+                        Padding="10,5" Margin="0,0,10,0">
+                    Refrescar
+                </Button>
+                <CheckBox Content="Solo activos"
+                          IsChecked="{Binding SoloActivos}"
+                          VerticalAlignment="Center"
+                          Margin="10,0,0,0"
+                          ToolTip="Mostrar solo registros vigentes (FechaDesde &lt;= hoy y FechaHasta nula o >= hoy)"/>
+                <TextBlock Text="Mantenimiento de Ganavisiones"
+                           VerticalAlignment="Center" FontWeight="Bold" Margin="20,0,0,0"/>
+            </StackPanel>
+
+            <!-- DataGrid principal -->
+            <DataGrid x:Name="dgGanavisiones"
+                      Grid.Row="1"
+                      ItemsSource="{Binding Ganavisiones}"
+                      SelectedItem="{Binding GanavisionSeleccionada}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      SelectionMode="Single"
+                      IsReadOnly="False"
+                      RowHeight="28"
+                      GridLinesVisibility="Horizontal"
+                      AlternatingRowBackground="#F9F9F9">
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DataGridCell_PreviewMouseLeftButtonDown"/>
+                        <Setter Property="VerticalAlignment" Value="Stretch"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    </Style>
+                </DataGrid.CellStyle>
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <!-- Columna Producto con Autocomplete + Validación -->
+                    <DataGridTemplateColumn Header="Producto" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding ProductoId}" VerticalAlignment="Center" Margin="2,0" FontWeight="SemiBold"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding ProductoId, UpdateSourceTrigger=LostFocus}"
+                                         VerticalAlignment="Center"
+                                         VerticalContentAlignment="Center">
+                                    <i:Interaction.Behaviors>
+                                        <!-- Autocomplete para sugerencias mientras escribe -->
+                                        <behaviors:AutocompleteBehavior
+                                            Empresa="{Binding Data.Empresa, Source={StaticResource ViewModelProxy}}"
+                                            TipoBusqueda="Producto"
+                                            SiempreActivo="True"
+                                            MinChars="2"
+                                            DebounceMs="300"
+                                            MaxResults="10"/>
+                                        <!-- ProductoBehavior para validar al perder foco -->
+                                        <behaviors:ProductoBehavior
+                                            Empresa="{Binding Data.Empresa, Source={StaticResource ViewModelProxy}}"
+                                            SiempreActivo="True"
+                                            Texto="{Binding DataContext.ProductoNombre, RelativeSource={RelativeSource AncestorType=DataGridRow}, Mode=TwoWay}"
+                                            Precio="{Binding DataContext.PrecioProducto, RelativeSource={RelativeSource AncestorType=DataGridRow}, Mode=TwoWay}"/>
+                                    </i:Interaction.Behaviors>
+                                </TextBox>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Nombre del producto (solo lectura) -->
+                    <DataGridTextColumn Header="Nombre"
+                                        Binding="{Binding ProductoNombre}"
+                                        Width="250"
+                                        IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="2,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- Ganavisiones (editable) -->
+                    <DataGridTextColumn Header="Ganavisiones"
+                                        Binding="{Binding Ganavisiones}"
+                                        Width="100">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="Margin" Value="2,0,5,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                        <DataGridTextColumn.EditingElementStyle>
+                            <Style TargetType="TextBox">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.EditingElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- Fecha Desde -->
+                    <DataGridTemplateColumn Header="Fecha Desde" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding FechaDesde, StringFormat=d}" VerticalAlignment="Center" Margin="2,0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <DatePicker SelectedDate="{Binding FechaDesde, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Fecha Hasta -->
+                    <DataGridTemplateColumn Header="Fecha Hasta" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding FechaHasta, StringFormat=d}" VerticalAlignment="Center" Margin="2,0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <DatePicker SelectedDate="{Binding FechaHasta, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Columna de acciones -->
+                    <DataGridTemplateColumn Header="Acciones" Width="150">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="Guardar"
+                                            Command="{Binding Data.GuardarCommand, Source={StaticResource ViewModelProxy}}"
+                                            CommandParameter="{Binding}"
+                                            Margin="2" Padding="5,2"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding HaCambiado, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <Button Content="Eliminar"
+                                            Command="{Binding Data.EliminarCommand, Source={StaticResource ViewModelProxy}}"
+                                            CommandParameter="{Binding}"
+                                            Margin="2" Padding="5,2"
+                                            VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!-- Usuario (solo lectura) -->
+                    <DataGridTextColumn Header="Usuario"
+                                        Binding="{Binding Usuario}"
+                                        Width="180"
+                                        IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="2,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- Fecha Modificación (solo lectura) -->
+                    <DataGridTextColumn Header="Modificado"
+                                        Binding="{Binding FechaModificacion, StringFormat=g}"
+                                        Width="130"
+                                        IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="2,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Barra inferior con información -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Text="Total registros: " VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding Ganavisiones.Count}" VerticalAlignment="Center" FontWeight="Bold"/>
+                <TextBlock Text=" | 1 Ganavisión = 10 EUR bonificable"
+                           VerticalAlignment="Center" Margin="20,0,0,0"
+                           Foreground="Gray" FontStyle="Italic"/>
+            </StackPanel>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>
