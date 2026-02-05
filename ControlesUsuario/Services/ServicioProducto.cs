@@ -14,14 +14,17 @@ namespace ControlesUsuario.Services
     public class ServicioProducto : IServicioProducto
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IServicioAutenticacion _servicioAutenticacion;
 
         /// <summary>
         /// Constructor con inyección de dependencias.
         /// </summary>
         /// <param name="configuracion">Configuración con el servidor API.</param>
-        public ServicioProducto(IConfiguracion configuracion)
+        /// <param name="servicioAutenticacion">Servicio de autenticación para obtener tokens.</param>
+        public ServicioProducto(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));
+            _servicioAutenticacion = servicioAutenticacion;
         }
 
         /// <inheritdoc/>
@@ -36,22 +39,45 @@ namespace ControlesUsuario.Services
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
 
+                // Configurar autenticación
+                if (_servicioAutenticacion != null)
+                {
+                    await _servicioAutenticacion.ConfigurarAutorizacion(client);
+                }
+
                 try
                 {
-                    var urlConsulta = $"Productos?empresa={empresa}&id={producto}&cliente={cliente}&contacto={contacto}&cantidad={cantidad}";
+                    // Si no hay cliente/contacto, usar el endpoint simple que solo devuelve nombre y PVP
+                    string urlConsulta;
+                    if (string.IsNullOrWhiteSpace(cliente))
+                    {
+                        urlConsulta = $"Productos?empresa={empresa}&id={producto}";
+                    }
+                    else
+                    {
+                        urlConsulta = $"Productos?empresa={empresa}&id={producto}&cliente={cliente}&contacto={contacto}&cantidad={cantidad}";
+                    }
 
                     client.DefaultRequestHeaders.Accept.Clear();
                     client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
+                    System.Diagnostics.Debug.WriteLine($"[ServicioProducto] URL: {urlConsulta}");
+                    System.Diagnostics.Debug.WriteLine($"[ServicioProducto] Auth configurada: {_servicioAutenticacion != null}");
+
                     var response = await client.GetAsync(urlConsulta);
+
+                    System.Diagnostics.Debug.WriteLine($"[ServicioProducto] HTTP Status: {response.StatusCode}");
 
                     if (response.IsSuccessStatusCode)
                     {
                         var json = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"[ServicioProducto] Respuesta: {json.Substring(0, Math.Min(200, json.Length))}...");
+
                         var productoApi = JsonConvert.DeserializeObject<ProductoApiResponse>(json);
 
                         if (productoApi != null)
                         {
+                            System.Diagnostics.Debug.WriteLine($"[ServicioProducto] Producto deserializado: {productoApi.producto} - {productoApi.nombre}");
                             return new ProductoDTO
                             {
                                 Producto = productoApi.producto,
@@ -65,11 +91,20 @@ namespace ControlesUsuario.Services
                                 CantidadDisponible = productoApi.CantidadDisponible
                             };
                         }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[ServicioProducto] productoApi es null después de deserializar");
+                        }
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        System.Diagnostics.Debug.WriteLine($"[ServicioProducto] Error HTTP: {errorContent}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ServicioProducto] Error buscando producto: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[ServicioProducto] Excepción: {ex.Message}");
                 }
 
                 return null;

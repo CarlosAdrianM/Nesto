@@ -176,6 +176,22 @@ namespace ControlesUsuario.Behaviors
             set => SetValue(TipoBusquedaProperty, value);
         }
 
+        /// <summary>
+        /// Indica si el behavior está activo (ignora TipoLinea y siempre busca).
+        /// </summary>
+        public static readonly DependencyProperty SiempreActivoProperty =
+            DependencyProperty.Register(
+                nameof(SiempreActivo),
+                typeof(bool),
+                typeof(AutocompleteBehavior),
+                new PropertyMetadata(false));
+
+        public bool SiempreActivo
+        {
+            get => (bool)GetValue(SiempreActivoProperty);
+            set => SetValue(SiempreActivoProperty, value);
+        }
+
         #endregion
 
         #region Events
@@ -435,6 +451,11 @@ namespace ControlesUsuario.Behaviors
 
         private bool DebeActivar()
         {
+            if (SiempreActivo)
+            {
+                return true;
+            }
+
             if (!TipoLineaActual.HasValue)
             {
                 return false;

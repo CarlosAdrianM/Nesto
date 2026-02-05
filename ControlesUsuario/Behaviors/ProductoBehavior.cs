@@ -389,8 +389,19 @@ namespace ControlesUsuario.Behaviors
             {
                 System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] ValidarProducto: Producto encontrado - Producto='{producto.Producto}', Nombre='{producto.Nombre}', Precio={producto.Precio}");
 
-                // Actualizar el TextBox con el código del producto
-                AssociatedObject.Text = producto.Producto;
+                // Verificar si el producto realmente cambió (ignorando mayúsculas/minúsculas y espacios)
+                bool productoCambio = !string.Equals(texto, producto.Producto?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+                // Actualizar el TextBox solo si el código del producto es diferente
+                if (productoCambio)
+                {
+                    AssociatedObject.Text = producto.Producto;
+                    System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] ValidarProducto: Producto cambió de '{texto}' a '{producto.Producto}'");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] ValidarProducto: Producto no cambió, no se actualiza TextBox");
+                }
 
                 // Actualizar propiedades directamente en el DataContext capturado
                 var dataContext = _dataContextCapturado ?? AssociatedObject.DataContext;
@@ -398,22 +409,35 @@ namespace ControlesUsuario.Behaviors
                 {
                     System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] ValidarProducto: Usando DataContext tipo={dataContext.GetType().FullName}");
 
-                    SetProperty(dataContext, "Producto", producto.Producto);
-                    SetProperty(dataContext, "texto", producto.Nombre);
-                    SetProperty(dataContext, "PrecioUnitario", producto.Precio);
+                    // Solo actualizar Producto si realmente cambió
+                    if (productoCambio)
+                    {
+                        SetProperty(dataContext, "Producto", producto.Producto);
+                    }
+                    SetPropertyIfChanged(dataContext, "texto", producto.Nombre);
+                    SetPropertyIfChanged(dataContext, "PrecioUnitario", producto.Precio);
                     SetProperty(dataContext, "AplicarDescuento", producto.AplicarDescuento);
-                    SetProperty(dataContext, "DescuentoProducto", producto.Descuento);
-                    SetProperty(dataContext, "iva", producto.Iva);
+                    SetPropertyIfChanged(dataContext, "DescuentoProducto", producto.Descuento);
+                    SetPropertyIfChanged(dataContext, "iva", producto.Iva);
                 }
                 else
                 {
                     System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] ValidarProducto: DataContext es null o es NewItemPlaceholder");
                 }
 
-                // Actualizar las propiedades del behavior
-                Texto = producto.Nombre;
-                Precio = producto.Precio;
-                Iva = producto.Iva;
+                // Actualizar las propiedades del behavior solo si cambiaron
+                if (!string.Equals(Texto, producto.Nombre))
+                {
+                    Texto = producto.Nombre;
+                }
+                if (Precio != producto.Precio)
+                {
+                    Precio = producto.Precio;
+                }
+                if (!string.Equals(Iva, producto.Iva))
+                {
+                    Iva = producto.Iva;
+                }
                 MostrarExito();
                 OnProductoEncontrado(producto);
             }
@@ -436,6 +460,28 @@ namespace ControlesUsuario.Behaviors
             else
             {
                 System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] SetProperty: No se pudo establecer '{propertyName}'");
+            }
+        }
+
+        /// <summary>
+        /// Establece una propiedad solo si el valor es diferente al actual.
+        /// Evita disparar PropertyChanged innecesariamente.
+        /// </summary>
+        private void SetPropertyIfChanged(object target, string propertyName, object value)
+        {
+            var property = target.GetType().GetProperty(propertyName);
+            if (property != null && property.CanWrite)
+            {
+                var currentValue = property.GetValue(target);
+                if (!Equals(currentValue, value))
+                {
+                    property.SetValue(target, value);
+                    System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] SetPropertyIfChanged: {propertyName} cambió de '{currentValue}' a '{value}'");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] SetPropertyIfChanged: {propertyName} sin cambios (valor={value})");
+                }
             }
         }
 
