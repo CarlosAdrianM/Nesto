@@ -93,6 +93,8 @@ Public Class PlantillaVentaViewModel
         CargarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnCargarBorrador)
         EliminarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnEliminarBorrador)
         ActualizarListaBorradoresCommand = New DelegateCommand(AddressOf OnActualizarListaBorradores)
+        ' Cargar lista de borradores inmediatamente
+        OnActualizarListaBorradores()
 
         ListaFiltrableRegalos = New ColeccionFiltrable(New ObservableCollection(Of LineaRegalo)) With {
             .TieneDatosIniciales = True
@@ -2243,14 +2245,62 @@ Public Class PlantillaVentaViewModel
     End Sub
 
     Public Function ConfirmTabClose() As Boolean Implements ITabCloseConfirmation.ConfirmTabClose
-        Dim hayAlgunProducto = listaProductosPedido.Any(Function(p) p.cantidad <> 0 OrElse p.cantidadOferta <> 0)
+        Dim hayAlgunProducto = listaProductosPedido IsNot Nothing AndAlso
+                               listaProductosPedido.Any(Function(p) p.cantidad <> 0 OrElse p.cantidadOferta <> 0)
 
         If hayAlgunProducto Then
-            Dim result = MessageBox.Show("Hay productos en la plantilla. ¿Seguro que desea salir?",
-                                       "Confirmar cierre",
-                                       MessageBoxButton.YesNo,
-                                       MessageBoxImage.Question)
-            Return result = MessageBoxResult.Yes
+            ' Issue #286: Ofrecer guardar borrador antes de salir
+            ' Solo ofrecer guardar si hay un cliente seleccionado (necesario para PrepararPedido)
+            Dim puedeGuardarBorrador = clienteSeleccionado IsNot Nothing AndAlso
+                                        direccionEntregaSeleccionada IsNot Nothing
+
+            Dim mensaje As String
+            Dim botones As MessageBoxButton
+
+            If puedeGuardarBorrador Then
+                mensaje = "Hay productos en la plantilla que no se han enviado." & vbCrLf & vbCrLf &
+                         "¿Desea guardar un borrador para continuar más tarde?" & vbCrLf & vbCrLf &
+                         "• Sí = Guardar borrador y salir" & vbCrLf &
+                         "• No = Salir sin guardar" & vbCrLf &
+                         "• Cancelar = Continuar editando"
+                botones = MessageBoxButton.YesNoCancel
+            Else
+                mensaje = "Hay productos en la plantilla que no se han enviado." & vbCrLf &
+                         "(No se puede guardar borrador porque no hay cliente seleccionado)" & vbCrLf & vbCrLf &
+                         "¿Seguro que desea salir?"
+                botones = MessageBoxButton.YesNo
+            End If
+
+            Dim result = MessageBox.Show(mensaje, "Confirmar cierre", botones, MessageBoxImage.Question)
+
+            Select Case result
+                Case MessageBoxResult.Yes
+                    If puedeGuardarBorrador Then
+                        ' Guardar borrador y salir
+                        Try
+                            Dim pedido As PedidoVentaDTO = PrepararPedido()
+                            servicioBorradores.GuardarBorrador(pedido, clienteSeleccionado?.nombre, "Guardado manualmente al salir")
+                            MessageBox.Show("Borrador guardado correctamente. Podrá recuperarlo la próxima vez que abra la Plantilla de Ventas.",
+                                           "Borrador guardado",
+                                           MessageBoxButton.OK,
+                                           MessageBoxImage.Information)
+                        Catch ex As Exception
+                            MessageBox.Show($"Error al guardar el borrador: {ex.Message}",
+                                           "Error",
+                                           MessageBoxButton.OK,
+                                           MessageBoxImage.Error)
+                        End Try
+                    End If
+                    Return True ' Salir
+
+                Case MessageBoxResult.No
+                    ' Salir sin guardar
+                    Return True
+
+                Case Else ' Cancel
+                    ' Continuar editando
+                    Return False
+            End Select
         End If
 
         Return True ' Cerrar sin confirmación si no hay productos
