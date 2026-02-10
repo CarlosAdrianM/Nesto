@@ -65,6 +65,8 @@ Partial Public Class Application
 
         Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
         Dim unused24 = containerRegistry.Register(GetType(IPlantillaVentaService), GetType(PlantillaVentaService))
+        ' Issue #286: Borradores de PlantillaVenta
+        Dim unusedBorrador = containerRegistry.Register(GetType(IBorradorPlantillaVentaService), GetType(BorradorPlantillaVentaService))
         Dim unused23 = containerRegistry.Register(GetType(IInventario), GetType(Inventario))
         Dim unused22 = containerRegistry.Register(GetType(ICarteraPagosService), GetType(CarteraPagosService))
         Dim unused21 = containerRegistry.Register(GetType(ICarteraPagos), GetType(CarteraPagos))

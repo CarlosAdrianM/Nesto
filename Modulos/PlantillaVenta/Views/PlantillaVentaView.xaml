@@ -41,10 +41,9 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-
-
 
                         <StackPanel Grid.Row="0">
                             <Border HorizontalAlignment="Stretch" BorderThickness="3" BorderBrush="AliceBlue">
@@ -58,7 +57,64 @@
                                 </DockPanel>
                             </Border>
                         </StackPanel>
-                        <ListView Name="listViewClientes" Grid.Row="1" ItemsSource="{Binding listaClientes}" SelectedItem="{Binding clienteSeleccionado}" HorizontalContentAlignment="Stretch">
+
+                        <!-- Issue #286: Panel de Borradores -->
+                        <Expander Grid.Row="1" Header="{Binding NumeroBorradores, StringFormat='Borradores guardados ({0})'}"
+                                  Visibility="{Binding HayBorradores, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                  Margin="0,5,0,5" IsExpanded="False">
+                            <Border BorderBrush="Orange" BorderThickness="1" CornerRadius="3" Padding="5" Background="#FFF9E6">
+                                <StackPanel>
+                                    <TextBlock Text="Seleccione un borrador para recuperar un pedido no enviado:" Margin="0,0,0,5" FontStyle="Italic"/>
+                                    <ItemsControl ItemsSource="{Binding ListaBorradores}" MaxHeight="200">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border BorderBrush="LightGray" BorderThickness="1" Margin="0,2" Padding="5" CornerRadius="3" Background="White">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <StackPanel Grid.Column="0">
+                                                            <TextBlock Text="{Binding Descripcion}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding MensajeError}" Foreground="Red" FontSize="10" TextWrapping="Wrap" MaxWidth="400">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding MensajeError}" Value="{x:Null}">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding MensajeError}" Value="">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                        <Button Grid.Column="1" Content="Cargar" Margin="5,0" Padding="10,3"
+                                                                Command="{Binding DataContext.CargarBorradorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"/>
+                                                        <Button Grid.Column="2" Content="X" Foreground="Red" Padding="5,3"
+                                                                Command="{Binding DataContext.EliminarBorradorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTip="Eliminar borrador"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                        </Expander>
+
+                        <ListView Name="listViewClientes" Grid.Row="2" ItemsSource="{Binding listaClientes}" SelectedItem="{Binding clienteSeleccionado}" HorizontalContentAlignment="Stretch">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <Border BorderThickness="2" BorderBrush="{Binding colorEstado}" CornerRadius="5">

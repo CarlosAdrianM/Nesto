@@ -30,6 +30,7 @@ Public Class PlantillaVentaViewModel
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly servicio As IPlantillaVentaService
     Private ReadOnly servicioPedidosVenta As IPedidoVentaService
+    Private ReadOnly servicioBorradores As IBorradorPlantillaVentaService
     Private ReadOnly eventAggregator As IEventAggregator
     Private ReadOnly dialogService As IDialogService
     Private Const ESTADO_LINEA_CURSO As Integer = 1
@@ -50,7 +51,7 @@ Public Class PlantillaVentaViewModel
     Private formaVentaPedido, delegacionUsuario, almacenRutaUsuario, iva, vendedorUsuario As String
     Private ultimoClienteAbierto As String = ""
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService)
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService)
         Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
@@ -58,6 +59,7 @@ Public Class PlantillaVentaViewModel
         Me.eventAggregator = eventAggregator
         Me.dialogService = dialogService
         Me.servicioPedidosVenta = servicioPedidosVenta
+        Me.servicioBorradores = servicioBorradores
 
         Titulo = "Plantilla Ventas"
 
@@ -85,6 +87,12 @@ Public Class PlantillaVentaViewModel
         cmdCargarProductosBonificables = New DelegateCommand(AddressOf OnCargarProductosBonificables, AddressOf CanCargarProductosBonificables)
         cmdActualizarRegalo = New DelegateCommand(Of LineaRegalo)(AddressOf OnActualizarRegalo)
         cmdValidarServirJunto = New DelegateCommand(AddressOf OnValidarServirJunto)
+
+        ' Issue #286: Borradores de PlantillaVenta
+        GuardarBorradorCommand = New DelegateCommand(AddressOf OnGuardarBorrador, AddressOf CanGuardarBorrador)
+        CargarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnCargarBorrador)
+        EliminarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnEliminarBorrador)
+        ActualizarListaBorradoresCommand = New DelegateCommand(AddressOf OnActualizarListaBorradores)
 
         ListaFiltrableRegalos = New ColeccionFiltrable(New ObservableCollection(Of LineaRegalo)) With {
             .TieneDatosIniciales = True
@@ -1870,6 +1878,10 @@ Public Class PlantillaVentaViewModel
             PedidoVentaViewModel.CargarPedido(clienteSeleccionado.empresa, numPedido, container)
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
+
+            ' Issue #286: Guardar borrador automáticamente en caso de error
+            ' Esto permite recuperar el pedido si hay un error de red o del servidor
+            GuardarBorradorAutomatico(pedido, ex.Message)
         Finally
             estaOcupado = False
         End Try
@@ -2217,6 +2229,9 @@ Public Class PlantillaVentaViewModel
             ' Notificar que HayGanavisionesDisponibles puede haber cambiado ahora que tenemos los IDs
             RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
         End If
+
+        ' Issue #286: Cargar lista de borradores guardados
+        OnActualizarListaBorradores()
     End Sub
 
     Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
@@ -2242,6 +2257,226 @@ Public Class PlantillaVentaViewModel
     End Function
 
 #End Region
+
+#Region "Borradores - Issue #286"
+    ''' <summary>
+    ''' Lista de borradores guardados localmente
+    ''' </summary>
+    Private _listaBorradores As ObservableCollection(Of BorradorPlantillaVenta)
+    Public Property ListaBorradores As ObservableCollection(Of BorradorPlantillaVenta)
+        Get
+            Return _listaBorradores
+        End Get
+        Set(value As ObservableCollection(Of BorradorPlantillaVenta))
+            Dim unused = SetProperty(_listaBorradores, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Indica si hay borradores guardados
+    ''' </summary>
+    Public ReadOnly Property HayBorradores As Boolean
+        Get
+            Return ListaBorradores IsNot Nothing AndAlso ListaBorradores.Count > 0
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Número de borradores guardados
+    ''' </summary>
+    Public ReadOnly Property NumeroBorradores As Integer
+        Get
+            Return If(ListaBorradores IsNot Nothing, ListaBorradores.Count, 0)
+        End Get
+    End Property
+
+    Private _guardarBorradorCommand As DelegateCommand
+    Public Property GuardarBorradorCommand As DelegateCommand
+        Get
+            Return _guardarBorradorCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_guardarBorradorCommand, value)
+        End Set
+    End Property
+
+    Private Function CanGuardarBorrador() As Boolean
+        ' Se puede guardar si hay un cliente seleccionado y al menos una línea con cantidad
+        Return clienteSeleccionado IsNot Nothing AndAlso
+               listaProductosPedido IsNot Nothing AndAlso
+               listaProductosPedido.Any(Function(p) p.cantidad <> 0 OrElse p.cantidadOferta <> 0)
+    End Function
+
+    Private Sub OnGuardarBorrador()
+        Try
+            Dim pedido As PedidoVentaDTO = PrepararPedido()
+            Dim borrador = servicioBorradores.GuardarBorrador(pedido, clienteSeleccionado?.nombre)
+
+            dialogService.ShowNotification($"Borrador guardado correctamente ({borrador.NumeroLineas} líneas)")
+
+            ' Actualizar lista de borradores
+            OnActualizarListaBorradores()
+        Catch ex As Exception
+            dialogService.ShowError($"Error al guardar borrador: {ex.Message}")
+        End Try
+    End Sub
+
+    Private _cargarBorradorCommand As DelegateCommand(Of BorradorPlantillaVenta)
+    Public Property CargarBorradorCommand As DelegateCommand(Of BorradorPlantillaVenta)
+        Get
+            Return _cargarBorradorCommand
+        End Get
+        Private Set(value As DelegateCommand(Of BorradorPlantillaVenta))
+            Dim unused = SetProperty(_cargarBorradorCommand, value)
+        End Set
+    End Property
+
+    Private Async Sub OnCargarBorrador(borradorResumen As BorradorPlantillaVenta)
+        If borradorResumen Is Nothing Then
+            Return
+        End If
+
+        Try
+            estaOcupado = True
+
+            ' Cargar el borrador completo (con el pedido)
+            Dim borrador = servicioBorradores.CargarBorrador(borradorResumen.Id)
+            If borrador Is Nothing OrElse borrador.Pedido Is Nothing Then
+                dialogService.ShowError("No se pudo cargar el borrador")
+                Return
+            End If
+
+            Dim pedido = borrador.Pedido
+
+            ' Buscar y seleccionar el cliente
+            If Not String.IsNullOrEmpty(pedido.cliente) Then
+                ' Cargar clientes del vendedor si no están cargados
+                If listaClientes Is Nothing OrElse Not listaClientes.Any() Then
+                    Await OnCargarClientesVendedorAsync()
+                End If
+
+                ' Buscar el cliente en la lista
+                Dim clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) c.cliente = pedido.cliente AndAlso c.contacto = pedido.contacto)
+                If clienteEncontrado IsNot Nothing Then
+                    clienteSeleccionado = clienteEncontrado
+                    ' Esperar a que se carguen los productos del cliente
+                    Await Task.Delay(500)
+                End If
+            End If
+
+            ' Cargar las líneas del pedido en la plantilla
+            If pedido.Lineas IsNot Nothing AndAlso pedido.Lineas.Any() Then
+                For Each lineaPedido In pedido.Lineas
+                    Dim lineaPlantilla = listaProductosPedido?.FirstOrDefault(Function(p) p.producto = lineaPedido.Producto)
+                    If lineaPlantilla IsNot Nothing Then
+                        lineaPlantilla.cantidad = CInt(lineaPedido.Cantidad)
+                        lineaPlantilla.precio = lineaPedido.PrecioUnitario
+                        lineaPlantilla.descuento = lineaPedido.DescuentoLinea
+                    Else
+                        ' El producto no está en la plantilla del cliente, añadirlo
+                        Dim nuevaLinea As New LineaPlantillaVenta With {
+                            .producto = lineaPedido.Producto,
+                            .texto = lineaPedido.texto,
+                            .cantidad = CInt(lineaPedido.Cantidad),
+                            .precio = lineaPedido.PrecioUnitario,
+                            .descuento = lineaPedido.DescuentoLinea,
+                            .iva = lineaPedido.iva
+                        }
+                        ListaFiltrableProductos?.ListaOriginal?.Add(nuevaLinea)
+                    End If
+                Next
+            End If
+
+            ' Configurar comentarios si los hay
+            If Not String.IsNullOrEmpty(pedido.comentarios) Then
+                ComentarioRuta = pedido.comentarios
+            End If
+
+            dialogService.ShowNotification($"Borrador cargado: {borrador.NumeroLineas} líneas")
+
+            RaisePropertyChanged(NameOf(baseImponiblePedido))
+        Catch ex As Exception
+            dialogService.ShowError($"Error al cargar borrador: {ex.Message}")
+        Finally
+            estaOcupado = False
+        End Try
+    End Sub
+
+    Private _eliminarBorradorCommand As DelegateCommand(Of BorradorPlantillaVenta)
+    Public Property EliminarBorradorCommand As DelegateCommand(Of BorradorPlantillaVenta)
+        Get
+            Return _eliminarBorradorCommand
+        End Get
+        Private Set(value As DelegateCommand(Of BorradorPlantillaVenta))
+            Dim unused = SetProperty(_eliminarBorradorCommand, value)
+        End Set
+    End Property
+
+    Private Sub OnEliminarBorrador(borrador As BorradorPlantillaVenta)
+        If borrador Is Nothing Then
+            Return
+        End If
+
+        Try
+            If servicioBorradores.EliminarBorrador(borrador.Id) Then
+                ListaBorradores?.Remove(borrador)
+                RaisePropertyChanged(NameOf(HayBorradores))
+                RaisePropertyChanged(NameOf(NumeroBorradores))
+                dialogService.ShowNotification("Borrador eliminado")
+            End If
+        Catch ex As Exception
+            dialogService.ShowError($"Error al eliminar borrador: {ex.Message}")
+        End Try
+    End Sub
+
+    Private _actualizarListaBorradoresCommand As DelegateCommand
+    Public Property ActualizarListaBorradoresCommand As DelegateCommand
+        Get
+            Return _actualizarListaBorradoresCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_actualizarListaBorradoresCommand, value)
+        End Set
+    End Property
+
+    Private Sub OnActualizarListaBorradores()
+        Try
+            Dim borradores = servicioBorradores.ObtenerBorradores()
+            ListaBorradores = New ObservableCollection(Of BorradorPlantillaVenta)(borradores)
+            RaisePropertyChanged(NameOf(HayBorradores))
+            RaisePropertyChanged(NameOf(NumeroBorradores))
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"Error al actualizar lista de borradores: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Guarda automáticamente un borrador cuando falla la creación del pedido.
+    ''' </summary>
+    Private Sub GuardarBorradorAutomatico(pedido As PedidoVentaDTO, mensajeError As String)
+        Try
+            Dim borrador = servicioBorradores.GuardarBorrador(pedido, clienteSeleccionado?.nombre, mensajeError)
+            dialogService.ShowNotification($"Se ha guardado un borrador automáticamente en caso de que quiera recuperarlo más tarde.")
+            OnActualizarListaBorradores()
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"Error al guardar borrador automático: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Versión async de OnCargarClientesVendedor para usar con Await
+    ''' </summary>
+    Private Async Function OnCargarClientesVendedorAsync() As Task
+        Try
+            vendedorUsuario = Await leerParametro(Parametros.Claves.Vendedor)
+            Dim clientes = Await servicio.CargarClientesVendedor(filtroCliente, vendedorUsuario, todosLosVendedores)
+            listaClientes = New ObservableCollection(Of ClienteJson)(clientes)
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"Error al cargar clientes: {ex.Message}")
+        End Try
+    End Function
+#End Region
+
     Public Class RespuestaAgencia
         Public Property DireccionFormateada As String ' no se usa para servir en 2h ¿vale para algo?
         Public Property Longitud As Double ' no se usa para servir en 2h ¿vale para algo?
