@@ -2400,24 +2400,41 @@ Public Class PlantillaVentaViewModel
 
             ' Buscar y seleccionar el cliente
             If Not String.IsNullOrEmpty(pedido.cliente) Then
-                ' Cargar clientes del vendedor si no están cargados
-                If listaClientes Is Nothing OrElse Not listaClientes.Any() Then
-                    Await OnCargarClientesVendedorAsync()
-                End If
+                ' Establecer el filtro con el número de cliente para que la búsqueda funcione
+                filtroCliente = pedido.cliente.Trim()
+                RaisePropertyChanged(NameOf(filtroCliente))
 
-                ' Buscar el cliente en la lista
-                Dim clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) c.cliente = pedido.cliente AndAlso c.contacto = pedido.contacto)
+                ' Cargar clientes usando el número de cliente como filtro
+                Try
+                    vendedorUsuario = Await leerParametro(Parametros.Claves.Vendedor)
+                    Dim parametroClientesTodosVendedores As String = Await leerParametro("PermitirVerClientesTodosLosVendedores")
+                    todosLosVendedores = If(parametroClientesTodosVendedores?.Trim() = "1", True, False)
+                    Dim clientes = Await servicio.CargarClientesVendedor(filtroCliente, vendedorUsuario, todosLosVendedores)
+                    listaClientes = New ObservableCollection(Of ClienteJson)(clientes)
+                Catch ex As Exception
+                    dialogService.ShowError($"Error al buscar cliente: {ex.Message}")
+                    Return
+                End Try
+
+                ' Buscar el cliente en la lista cargada
+                Dim clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) c.cliente?.Trim() = pedido.cliente?.Trim() AndAlso c.contacto?.Trim() = pedido.contacto?.Trim())
                 If clienteEncontrado IsNot Nothing Then
                     clienteSeleccionado = clienteEncontrado
-                    ' Esperar a que se carguen los productos del cliente
-                    Await Task.Delay(500)
+                    ' Esperar a que se carguen los productos del cliente (el setter de clienteSeleccionado dispara la carga)
+                    Await Task.Delay(1000)
+                Else
+                    dialogService.ShowError($"No se encontró el cliente {pedido.cliente} en sus clientes asignados")
+                    Return
                 End If
+            Else
+                dialogService.ShowError("El borrador no tiene cliente asociado")
+                Return
             End If
 
             ' Cargar las líneas del pedido en la plantilla
             If pedido.Lineas IsNot Nothing AndAlso pedido.Lineas.Any() Then
                 For Each lineaPedido In pedido.Lineas
-                    Dim lineaPlantilla = listaProductosPedido?.FirstOrDefault(Function(p) p.producto = lineaPedido.Producto)
+                    Dim lineaPlantilla = listaProductosPedido?.FirstOrDefault(Function(p) p.producto?.Trim() = lineaPedido.Producto?.Trim())
                     If lineaPlantilla IsNot Nothing Then
                         lineaPlantilla.cantidad = CInt(lineaPedido.Cantidad)
                         lineaPlantilla.precio = lineaPedido.PrecioUnitario
@@ -2512,19 +2529,6 @@ Public Class PlantillaVentaViewModel
             System.Diagnostics.Debug.WriteLine($"Error al guardar borrador automático: {ex.Message}")
         End Try
     End Sub
-
-    ''' <summary>
-    ''' Versión async de OnCargarClientesVendedor para usar con Await
-    ''' </summary>
-    Private Async Function OnCargarClientesVendedorAsync() As Task
-        Try
-            vendedorUsuario = Await leerParametro(Parametros.Claves.Vendedor)
-            Dim clientes = Await servicio.CargarClientesVendedor(filtroCliente, vendedorUsuario, todosLosVendedores)
-            listaClientes = New ObservableCollection(Of ClienteJson)(clientes)
-        Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine($"Error al cargar clientes: {ex.Message}")
-        End Try
-    End Function
 #End Region
 
     Public Class RespuestaAgencia
