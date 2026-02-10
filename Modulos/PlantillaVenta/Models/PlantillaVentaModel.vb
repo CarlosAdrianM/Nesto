@@ -102,6 +102,11 @@ Public Class ProductoBonificableDTO
     Public Property ProductoNombre As String
     Public Property Ganavisiones As Integer
     Public Property PVP As Decimal
+    ''' <summary>
+    ''' IVA del producto (IVA_Repercutido). Necesario para crear líneas de pedido correctamente.
+    ''' Fix: Clientes con recargo de equivalencia (R52) fallaban porque se usaba el IVA del cliente.
+    ''' </summary>
+    Public Property Iva As String
     Public Property Stocks As List(Of StockAlmacenDTO)
     Public ReadOnly Property StockTotal As Integer
         Get
@@ -153,6 +158,11 @@ Public Class LineaRegalo
     Public Property texto As String
     Public Property precio As Decimal
     Public Property ganavisiones As Integer
+    ''' <summary>
+    ''' IVA del producto (IVA_Repercutido). Necesario para crear líneas de pedido correctamente.
+    ''' Fix: Clientes con recargo de equivalencia (R52) fallaban porque se usaba el IVA del cliente.
+    ''' </summary>
+    Public Property iva As String
     Public Property stocks As List(Of StockAlmacenDTO)
 
     Private _urlImagen As String

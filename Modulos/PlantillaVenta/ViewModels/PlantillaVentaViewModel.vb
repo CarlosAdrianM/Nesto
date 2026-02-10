@@ -374,6 +374,7 @@ Public Class PlantillaVentaViewModel
                         .texto = p.ProductoNombre,
                         .precio = p.PVP,
                         .ganavisiones = p.Ganavisiones,
+                        .iva = p.Iva,
                         .stocks = p.Stocks
                     }))
 
@@ -2021,6 +2022,8 @@ Public Class PlantillaVentaViewModel
                     textoBonificado = textoBonificado.Substring(0, 50)
                 End If
 
+                ' Fix: Usar el IVA del producto (lineaRegalo.iva), no el del cliente (clienteSeleccionado.iva)
+                ' Clientes con recargo de equivalencia (R52) fallaban porque R52 no existe en ParametrosIva del producto
                 Dim lineaPedidoRegalo = New LineaPedidoVentaDTO With {
                     .Pedido = pedido,
                     .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO),
@@ -2036,7 +2039,7 @@ Public Class PlantillaVentaViewModel
                     .vistoBueno = 0,
                     .Usuario = configuracion.usuario,
                     .almacen = almacenRutaUsuario,
-                    .iva = clienteSeleccionado.iva,
+                    .iva = lineaRegalo.iva,
                     .delegacion = delegacionUsuario,
                     .formaVenta = formaVentaPedido,
                     .oferta = Nothing
