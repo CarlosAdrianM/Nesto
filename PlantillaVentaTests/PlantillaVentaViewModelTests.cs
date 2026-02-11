@@ -54,8 +54,9 @@ namespace PlantillaVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
+            IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService);
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -79,8 +80,9 @@ namespace PlantillaVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
+            IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService);
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -106,6 +108,7 @@ namespace PlantillaVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogServiceMock = A.Fake<IDialogService>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
+            IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
 
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
 
@@ -120,7 +123,7 @@ namespace PlantillaVentaTests
             }
             A.CallTo(() => servicioMock.CargarProductosBonificablesIds()).Returns(Task.FromResult(productosBonificablesIds));
 
-            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicioMock, eventAggregator, dialogServiceMock, pedidoVentaService);
+            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicioMock, eventAggregator, dialogServiceMock, pedidoVentaService, servicioBorradores);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
 
             return (vm, dialogServiceMock);
@@ -384,6 +387,89 @@ namespace PlantillaVentaTests
 
             // Assert - NO debe llamar al diálogo si el cache es null
             VerifyConfirmationDialogCalled(dialogServiceMock, 0);
+        }
+
+        #endregion
+
+        #region Estado Synchronization Tests - Issue #287
+
+        [TestMethod]
+        public void FormaVentaSeleccionada_AlCambiar_SincronizaConEstado()
+        {
+            // Arrange
+            var (vm, _) = CrearViewModelConMocks();
+
+            // Act
+            vm.formaVentaSeleccionada = 2; // Teléfono
+
+            // Assert
+            Assert.AreEqual(2, vm.Estado.FormaVenta);
+        }
+
+        [TestMethod]
+        public void EsPresupuesto_AlCambiar_SincronizaConEstado()
+        {
+            // Arrange
+            var (vm, _) = CrearViewModelConMocks();
+
+            // Act
+            vm.EsPresupuesto = true;
+
+            // Assert
+            Assert.IsTrue(vm.Estado.EsPresupuesto);
+        }
+
+        [TestMethod]
+        public void ComentarioRuta_AlCambiar_SincronizaConEstado()
+        {
+            // Arrange
+            var (vm, _) = CrearViewModelConMocks();
+
+            // Act
+            vm.ComentarioRuta = "Test comentario";
+
+            // Assert
+            Assert.AreEqual("Test comentario", vm.Estado.ComentarioRuta);
+        }
+
+        [TestMethod]
+        public void FechaEntrega_AlCambiar_SincronizaConEstado()
+        {
+            // Arrange
+            var (vm, _) = CrearViewModelConMocks();
+            var fechaEsperada = new DateTime(2025, 6, 15);
+
+            // Act
+            vm.fechaEntrega = fechaEsperada;
+
+            // Assert
+            Assert.AreEqual(fechaEsperada, vm.Estado.FechaEntrega);
+        }
+
+        [TestMethod]
+        public void CobroTarjetaCorreo_AlCambiar_SincronizaConEstado()
+        {
+            // Arrange
+            var (vm, _) = CrearViewModelConMocks();
+
+            // Act
+            vm.CobroTarjetaCorreo = "test@example.com";
+
+            // Assert
+            Assert.AreEqual("test@example.com", vm.Estado.CobroTarjetaCorreo);
+        }
+
+        [TestMethod]
+        public void CobroTarjetaMovil_AlCambiar_SincronizaConEstado()
+        {
+            // Arrange
+            var (vm, _) = CrearViewModelConMocks();
+
+            // Act
+            vm.CobroTarjetaMovil = "612345678";
+
+            // Assert
+            Assert.AreEqual("612345678", vm.Estado.CobroTarjetaMovil);
         }
 
         #endregion

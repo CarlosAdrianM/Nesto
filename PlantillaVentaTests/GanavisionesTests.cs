@@ -32,13 +32,14 @@ namespace PlantillaVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
+            IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
 
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
 
             var clienteCreadoEvent = A.Fake<ClienteCreadoEvent>();
             A.CallTo(() => eventAggregator.GetEvent<ClienteCreadoEvent>()).Returns(clienteCreadoEvent);
 
-            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService);
+            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores);
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
 
             // Configurar productos bonificables usando reflexión (campo privado _productosBonificablesIds)

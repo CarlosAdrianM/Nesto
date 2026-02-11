@@ -106,6 +106,7 @@
                                                                     <ColumnDefinition Width="*"/>
                                                                     <ColumnDefinition Width="Auto"/>
                                                                     <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="Auto"/>
                                                                 </Grid.ColumnDefinitions>
                                                                 <StackPanel Grid.Column="0">
                                                                     <TextBlock Text="{Binding Descripcion}" FontWeight="SemiBold" TextWrapping="Wrap"/>
@@ -129,7 +130,11 @@
                                                                         Command="{Binding DataContext.CargarBorradorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                         CommandParameter="{Binding}"
                                                                         ToolTip="Cargar este borrador en la plantilla"/>
-                                                                <Button Grid.Column="2" Content="🗑" Foreground="Red" Padding="5,3"
+                                                                <Button Grid.Column="2" Content="📋" Padding="5,3"
+                                                                        Command="{Binding DataContext.CopiarBorradorJsonCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}"
+                                                                        ToolTip="Copiar JSON del borrador al portapapeles"/>
+                                                                <Button Grid.Column="3" Content="🗑" Foreground="Red" Padding="5,3"
                                                                         Command="{Binding DataContext.EliminarBorradorCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                         CommandParameter="{Binding}"
                                                                         ToolTip="Eliminar borrador"/>
@@ -574,7 +579,7 @@
                             <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
-                        <controlesusuario:SelectorDireccionEntrega Grid.Column="0" x:Name="selectorEntrega" Empresa="{Binding clienteSeleccionado.empresa}" Cliente="{Binding clienteSeleccionado.cliente}" DireccionCompleta="{Binding direccionEntregaSeleccionada, Mode=TwoWay}" TotalPedido="{Binding TotalPedidoPlazosPago}" VerticalContentAlignment="Stretch"></controlesusuario:SelectorDireccionEntrega>
+                        <controlesusuario:SelectorDireccionEntrega Grid.Column="0" x:Name="selectorEntrega" Empresa="{Binding clienteSeleccionado.empresa}" Cliente="{Binding clienteSeleccionado.cliente}" Seleccionada="{Binding ContactoSeleccionado, Mode=TwoWay}" DireccionCompleta="{Binding direccionEntregaSeleccionada, Mode=TwoWay}" TotalPedido="{Binding TotalPedidoPlazosPago}" VerticalContentAlignment="Stretch"></controlesusuario:SelectorDireccionEntrega>
                         <StackPanel Grid.Column="1">
                             <TextBlock TextWrapping="Wrap" Margin="3,0">Este comentario lo leerá la agencia y también el cliente, porque aparecerá en la factura:</TextBlock>
                             <TextBox TextWrapping="Wrap" Text="{Binding ComentarioRuta}" Margin="3,0"/>

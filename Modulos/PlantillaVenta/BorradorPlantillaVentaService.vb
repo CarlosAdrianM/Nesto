@@ -1,6 +1,5 @@
 Imports System.IO
 Imports Nesto.Infrastructure.Contracts
-Imports Nesto.Models
 Imports Newtonsoft.Json
 
 ''' <summary>
@@ -37,19 +36,18 @@ Public Class BorradorPlantillaVentaService
         End If
     End Sub
 
-    Public Function GuardarBorrador(pedido As PedidoVentaDTO, nombreCliente As String, Optional mensajeError As String = Nothing) As BorradorPlantillaVenta Implements IBorradorPlantillaVentaService.GuardarBorrador
+    Public Function GuardarBorrador(borrador As BorradorPlantillaVenta) As BorradorPlantillaVenta Implements IBorradorPlantillaVentaService.GuardarBorrador
         Try
-            Dim borrador As New BorradorPlantillaVenta With {
-                .Id = Guid.NewGuid().ToString(),
-                .FechaCreacion = DateTime.Now,
-                .Cliente = pedido?.cliente,
-                .NombreCliente = nombreCliente,
-                .Total = If(pedido?.Lineas IsNot Nothing, pedido.Lineas.Sum(Function(l) l.Total), 0),
-                .NumeroLineas = If(pedido?.Lineas IsNot Nothing, pedido.Lineas.Count, 0),
-                .Usuario = _configuracion?.usuario,
-                .MensajeError = mensajeError,
-                .Pedido = pedido
-            }
+            ' Asignar ID y metadatos si no los tiene
+            If String.IsNullOrEmpty(borrador.Id) Then
+                borrador.Id = Guid.NewGuid().ToString()
+            End If
+            If borrador.FechaCreacion = DateTime.MinValue Then
+                borrador.FechaCreacion = DateTime.Now
+            End If
+            If String.IsNullOrEmpty(borrador.Usuario) Then
+                borrador.Usuario = _configuracion?.usuario
+            End If
 
             Dim rutaArchivo As String = Path.Combine(_carpetaBorradores, $"{borrador.Id}.json")
             Dim json As String = JsonConvert.SerializeObject(borrador, JsonSettings)
@@ -74,13 +72,19 @@ Public Class BorradorPlantillaVentaService
 
             For Each archivo In Directory.GetFiles(_carpetaBorradores, "*.json")
                 Try
-                    ' Cargar solo metadatos (sin el pedido completo para ahorrar memoria)
                     Dim json As String = File.ReadAllText(archivo)
                     Dim borrador = JsonConvert.DeserializeObject(Of BorradorPlantillaVenta)(json, JsonSettings)
                     If borrador IsNot Nothing Then
-                        ' Limpiar el pedido para ahorrar memoria en la lista
-                        ' Se cargará completo cuando se seleccione
+                        ' Cachear contadores antes de limpiar para que Descripcion los muestre
+                        borrador.NumeroLineasCache = borrador.NumeroLineas
+                        borrador.NumeroRegalosCache = If(borrador.LineasRegalo?.Count, 0)
+                        ' Limpiar las listas para ahorrar memoria en la lista
+                        ' Se cargarán completas cuando se seleccione el borrador
+                        borrador.LineasProducto = Nothing
+                        borrador.LineasRegalo = Nothing
+#Disable Warning BC40000 ' Obsoleto
                         borrador.Pedido = Nothing
+#Enable Warning BC40000
                         borradores.Add(borrador)
                     End If
                 Catch ex As Exception

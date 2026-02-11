@@ -51,6 +51,23 @@ Public Class PlantillaVentaViewModel
     Private formaVentaPedido, delegacionUsuario, almacenRutaUsuario, iva, vendedorUsuario As String
     Private ultimoClienteAbierto As String = ""
 
+    ''' <summary>
+    ''' Estado completo de la plantilla de venta.
+    ''' Issue #287: Modelo unificado para el estado.
+    ''' </summary>
+    Private _estado As PlantillaVentaState
+    Public Property Estado As PlantillaVentaState
+        Get
+            If _estado Is Nothing Then
+                _estado = New PlantillaVentaState()
+            End If
+            Return _estado
+        End Get
+        Set(value As PlantillaVentaState)
+            SetProperty(_estado, value)
+        End Set
+    End Property
+
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService)
         Me.configuracion = configuracion
         Me.container = container
@@ -91,6 +108,7 @@ Public Class PlantillaVentaViewModel
         ' Issue #286: Borradores de PlantillaVenta
         GuardarBorradorCommand = New DelegateCommand(AddressOf OnGuardarBorrador, AddressOf CanGuardarBorrador)
         CargarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnCargarBorrador)
+        CopiarBorradorJsonCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnCopiarBorradorJson)
         EliminarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnEliminarBorrador)
         ActualizarListaBorradoresCommand = New DelegateCommand(AddressOf OnActualizarListaBorradores)
         ' Cargar lista de borradores inmediatamente
@@ -142,6 +160,24 @@ Public Class PlantillaVentaViewModel
     Private vendedor As String
     Private ultimaOferta As Integer = 0
 
+    ''' <summary>
+    ''' Flag que indica que estamos cargando desde un borrador.
+    ''' Issue #286: Se usa para evitar que otros procesos sobrescriban los datos del borrador.
+    ''' </summary>
+    Private _cargandoDesdeBorrador As Boolean = False
+
+    ''' <summary>
+    ''' Borrador que se está restaurando actualmente.
+    ''' Issue #286: Contiene los datos originales para restaurar después de procesos async.
+    ''' </summary>
+    Private _borradorEnRestauracion As BorradorPlantillaVenta
+
+    ''' <summary>
+    ''' Flag que indica si ya se restauraron los valores del borrador en OnCargarFormasVenta.
+    ''' Issue #286: Evita aplicar los valores múltiples veces si el usuario navega varias veces.
+    ''' </summary>
+    Private _borradorRestauradoEnFormasVenta As Boolean = False
+
     Public Property AlmacenAnterior As String
 
     Private _almacenEntregaUrgente As String
@@ -154,6 +190,9 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    ''' <summary>
+    ''' Almacén seleccionado para el pedido. Sincroniza código con Estado.AlmacenCodigo.
+    ''' </summary>
     Private _almacenSeleccionado As Sede
     Public Property almacenSeleccionado As Sede
         Get
@@ -161,6 +200,8 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As Sede)
             Dim unused = SetProperty(_almacenSeleccionado, value)
+            ' Sincronizar código con Estado
+            Estado.AlmacenCodigo = If(value IsNot Nothing, value.Codigo, Nothing)
             If Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) Then
                 Application.Current.Dispatcher.Invoke(New Action(Async Sub()
                                                                      estaOcupado = True
@@ -170,6 +211,12 @@ Public Class PlantillaVentaViewModel
                                                                      Next
                                                                      Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo, Constantes.Almacenes.ALMACENES_STOCK)
                                                                      ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
+                                                                     For Each linea In nuevosStocks
+                                                                         If linea.StockDisponibleTodosLosAlmacenes = 0 AndAlso linea.stocks IsNot Nothing AndAlso linea.stocks.Count > 0 Then
+                                                                             linea.StockDisponibleTodosLosAlmacenes = linea.stocks.Sum(Function(s) s.cantidadDisponible)
+                                                                         End If
+                                                                         linea.stockActualizado = True
+                                                                     Next
                                                                      estaOcupado = False
                                                                      Dim fechaPuente = Await ObtenerFechaMinimaEntregaAsync()
                                                                      fechaMinimaEntrega = fechaPuente
@@ -352,12 +399,26 @@ Public Class PlantillaVentaViewModel
         Return Not IsNothing(clienteSeleccionado)
     End Function
     Private Async Sub OnCargarProductosBonificables()
+        Await CargarProductosBonificablesAsync()
+    End Sub
+
+    ''' <summary>
+    ''' Carga los productos bonificables de forma awaitable.
+    ''' Issue #286: Separado para poder usar desde OnCargarBorrador.
+    ''' </summary>
+    Private Async Function CargarProductosBonificablesAsync() As Task
         Try
             estaOcupado = True
 
             ' Notificar los indicadores al entrar en la página
             RaisePropertyChanged(NameOf(BaseImponibleBonificable))
             RaisePropertyChanged(NameOf(GanavisionesDisponibles))
+
+            ' Issue #286: Guardar los regalos del borrador antes de cargar la lista completa
+            Dim regalosBorrador As List(Of LineaRegalo) = Nothing
+            If _borradorEnRestauracion IsNot Nothing AndAlso _borradorEnRestauracion.LineasRegalo IsNot Nothing Then
+                regalosBorrador = _borradorEnRestauracion.LineasRegalo.ToList()
+            End If
 
             ' Si no hay Ganavisiones disponibles, no cargar productos
             If GanavisionesDisponibles <= 0 Then
@@ -388,6 +449,17 @@ Public Class PlantillaVentaViewModel
                         .stocks = p.Stocks
                     }))
 
+                ' Issue #286: Aplicar cantidades del borrador a los productos cargados
+                If regalosBorrador IsNot Nothing AndAlso regalosBorrador.Any() Then
+                    For Each regaloBorrador In regalosBorrador
+                        Dim regaloExistente = ListaProductosBonificables.FirstOrDefault(
+                            Function(r) r.producto?.Trim() = regaloBorrador.producto?.Trim())
+                        If regaloExistente IsNot Nothing Then
+                            regaloExistente.cantidad = regaloBorrador.cantidad
+                        End If
+                    Next
+                End If
+
                 ' Actualizar la colección filtrable con los productos
                 ListaFiltrableRegalos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(ListaProductosBonificables)
 
@@ -406,7 +478,7 @@ Public Class PlantillaVentaViewModel
         Finally
             estaOcupado = False
         End Try
-    End Sub
+    End Function
 
     Private Sub OnRegaloPropertyChanged(sender As Object, e As PropertyChangedEventArgs)
         If e.PropertyName = NameOf(LineaRegalo.cantidad) Then
@@ -483,8 +555,13 @@ Public Class PlantillaVentaViewModel
     End Property
 
     Private Async Sub OnValidarServirJunto()
+        ' Issue #286: Si direccionEntregaSeleccionada es Nothing (durante restauración de borrador), salir
+        If direccionEntregaSeleccionada Is Nothing Then
+            Return
+        End If
+
         ' Si se está marcando (no desmarcando), no validar
-        If direccionEntregaSeleccionada?.servirJunto Then
+        If direccionEntregaSeleccionada.servirJunto Then
             Return
         End If
 
@@ -547,36 +624,86 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _cobroTarjetaCorreo As String
+    ''' <summary>
+    ''' Email para enviar cobro por tarjeta. Delegado a Estado.
+    ''' </summary>
     Public Property CobroTarjetaCorreo As String
         Get
-            Return _cobroTarjetaCorreo
+            Return Estado.CobroTarjetaCorreo
         End Get
         Set(value As String)
-            Dim unused = SetProperty(_cobroTarjetaCorreo, value)
+            If Estado.CobroTarjetaCorreo <> value Then
+                Estado.CobroTarjetaCorreo = value
+                RaisePropertyChanged()
+            End If
         End Set
     End Property
 
-    Private _cobroTarjetaMovil As String
+    ''' <summary>
+    ''' Móvil para enviar cobro por tarjeta. Delegado a Estado.
+    ''' </summary>
     Public Property CobroTarjetaMovil As String
         Get
-            Return _cobroTarjetaMovil
+            Return Estado.CobroTarjetaMovil
         End Get
         Set(value As String)
-            Dim unused = SetProperty(_cobroTarjetaMovil, value)
+            If Estado.CobroTarjetaMovil <> value Then
+                Estado.CobroTarjetaMovil = value
+                RaisePropertyChanged()
+            End If
         End Set
     End Property
 
-    Private _comentarioRuta As String
+    ''' <summary>
+    ''' Comentario para la ruta de entrega. Delegado a Estado.
+    ''' </summary>
     Public Property ComentarioRuta As String
         Get
-            Return _comentarioRuta
+            Return Estado.ComentarioRuta
         End Get
         Set(value As String)
-            Dim unused = SetProperty(_comentarioRuta, value)
+            If Estado.ComentarioRuta <> value Then
+                Estado.ComentarioRuta = value
+                RaisePropertyChanged()
+            End If
         End Set
     End Property
 
+    ''' <summary>
+    ''' Comentario de picking introducido por el usuario. Delegado a Estado.
+    ''' Diferente de ComentarioPickingCliente que viene del cliente.
+    ''' </summary>
+    Public Property ComentarioPicking As String
+        Get
+            Return Estado.ComentarioPicking
+        End Get
+        Set(value As String)
+            If Estado.ComentarioPicking <> value Then
+                Estado.ComentarioPicking = value
+                RaisePropertyChanged()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Código del contacto/dirección de entrega seleccionado. Delegado a Estado.
+    ''' Usado para binding con SelectorDireccionEntrega.Seleccionada
+    ''' </summary>
+    Public Property ContactoSeleccionado As String
+        Get
+            Return Estado.Contacto
+        End Get
+        Set(value As String)
+            If Estado.Contacto <> value Then
+                Estado.Contacto = value
+                RaisePropertyChanged()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Dirección de entrega seleccionada. Sincroniza datos con Estado.
+    ''' </summary>
     Private _direccionEntregaSeleccionada As DireccionesEntregaCliente
     Public Property direccionEntregaSeleccionada As DireccionesEntregaCliente
         Get
@@ -587,7 +714,26 @@ Public Class PlantillaVentaViewModel
                 ComentarioRuta = String.Empty
             End If
             Dim codigoPostalAnterior = _direccionEntregaSeleccionada?.codigoPostal
+            ' Si estamos restaurando un borrador, aplicar valores ANTES de SetProperty
+            ' para que PropertyChanged notifique los bindings con los valores correctos
+            If value IsNot Nothing AndAlso _borradorEnRestauracion IsNot Nothing Then
+                value.mantenerJunto = _borradorEnRestauracion.MantenerJunto
+                value.servirJunto = _borradorEnRestauracion.ServirJunto
+            End If
             Dim unused = SetProperty(_direccionEntregaSeleccionada, value)
+
+            ' Sincronizar datos de dirección con Estado
+            If value IsNot Nothing Then
+                Estado.Contacto = value.contacto
+                Estado.Vendedor = value.vendedor
+                Estado.PeriodoFacturacion = value.periodoFacturacion
+                Estado.Ruta = value.ruta
+                Estado.Ccc = value.ccc
+                Estado.NoComisiona = value.noComisiona
+                Estado.MantenerJunto = value.mantenerJunto
+                Estado.ServirJunto = value.servirJunto
+            End If
+
             If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
                 PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
             ElseIf _direccionEntregaSeleccionada.codigoPostal <> codigoPostalAnterior Then
@@ -622,18 +768,24 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _enviarPorGlovo As Boolean
+    ''' <summary>
+    ''' Si se envía por Glovo (entrega urgente). Delegado a Estado.
+    ''' El setter cambia el almacén automáticamente.
+    ''' </summary>
     Public Property EnviarPorGlovo As Boolean
         Get
-            Return _enviarPorGlovo
+            Return Estado.EnviarPorGlovo
         End Get
         Set(value As Boolean)
-            Dim unused = SetProperty(_enviarPorGlovo, value)
-            If _enviarPorGlovo Then
-                AlmacenAnterior = almacenSeleccionado.Codigo
-                almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenEntregaUrgente)
-            Else
-                almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenAnterior)
+            If Estado.EnviarPorGlovo <> value Then
+                Estado.EnviarPorGlovo = value
+                RaisePropertyChanged()
+                If Estado.EnviarPorGlovo Then
+                    AlmacenAnterior = almacenSeleccionado.Codigo
+                    almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenEntregaUrgente)
+                Else
+                    almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = AlmacenAnterior)
+                End If
             End If
         End Set
     End Property
@@ -671,14 +823,19 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _esPresupuesto As Boolean
+    ''' <summary>
+    ''' Si es un presupuesto en lugar de un pedido. Delegado a Estado.
+    ''' </summary>
     Public Property EsPresupuesto As Boolean
         Get
-            Return _esPresupuesto
+            Return Estado.EsPresupuesto
         End Get
         Set(value As Boolean)
-            Dim unused = SetProperty(_esPresupuesto, value)
-            RaisePropertyChanged(NameOf(SePuedeFinalizar))
+            If Estado.EsPresupuesto <> value Then
+                Estado.EsPresupuesto = value
+                RaisePropertyChanged()
+                RaisePropertyChanged(NameOf(SePuedeFinalizar))
+            End If
         End Set
     End Property
     Public ReadOnly Property EsTarjetaPrepago As Boolean
@@ -719,13 +876,18 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _fechaEntrega As Date = Date.MinValue
+    ''' <summary>
+    ''' Fecha de entrega solicitada. Delegado a Estado.
+    ''' </summary>
     Public Property fechaEntrega As Date
         Get
-            Return _fechaEntrega
+            Return Estado.FechaEntrega
         End Get
         Set(ByVal value As Date)
-            Dim unused = SetProperty(_fechaEntrega, value)
+            If Estado.FechaEntrega <> value Then
+                Estado.FechaEntrega = value
+                RaisePropertyChanged()
+            End If
         End Set
     End Property
 
@@ -792,6 +954,9 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    ''' <summary>
+    ''' Forma de pago seleccionada. Sincroniza código con Estado.FormaPago.
+    ''' </summary>
     Private _formaPagoSeleccionada As FormaPago
     Public Property FormaPagoSeleccionada() As FormaPago
         Get
@@ -802,6 +967,8 @@ Public Class PlantillaVentaViewModel
                 Return
             End If
             Dim unused = SetProperty(_formaPagoSeleccionada, value)
+            ' Sincronizar código con Estado
+            Estado.FormaPago = If(value IsNot Nothing, value.formaPago, Nothing)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
@@ -839,19 +1006,27 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _formaVentaSeleccionada As Integer
+    ''' <summary>
+    ''' Forma de venta seleccionada (1=Directa, 2=Teléfono, 3+=Otras). Delegado a Estado.
+    ''' </summary>
     Public Property formaVentaSeleccionada() As Integer
         Get
-            Return _formaVentaSeleccionada
+            Return Estado.FormaVenta
         End Get
         Set(ByVal value As Integer)
-            Dim unused = SetProperty(_formaVentaSeleccionada, value)
-            RaisePropertyChanged(NameOf(formaVentaDirecta))
-            RaisePropertyChanged(NameOf(formaVentaTelefono))
-            RaisePropertyChanged(NameOf(formaVentaOtras))
+            If Estado.FormaVenta <> value Then
+                Estado.FormaVenta = value
+                RaisePropertyChanged()
+                RaisePropertyChanged(NameOf(formaVentaDirecta))
+                RaisePropertyChanged(NameOf(formaVentaTelefono))
+                RaisePropertyChanged(NameOf(formaVentaOtras))
+            End If
         End Set
     End Property
 
+    ''' <summary>
+    ''' Forma de venta "Otras" seleccionada. Sincroniza código con Estado.FormaVentaOtrasCodigo.
+    ''' </summary>
     Private _formaVentaOtrasSeleccionada As FormaVentaDTO
     Public Property formaVentaOtrasSeleccionada As FormaVentaDTO
         Get
@@ -859,6 +1034,8 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As FormaVentaDTO)
             Dim unused = SetProperty(_formaVentaOtrasSeleccionada, value)
+            ' Sincronizar código con Estado
+            Estado.FormaVentaOtrasCodigo = If(value IsNot Nothing, value.numero, Nothing)
             RaisePropertyChanged(NameOf(listaFormasVenta))
         End Set
     End Property
@@ -979,15 +1156,21 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _mandarCobroTarjeta As Boolean
+    ''' <summary>
+    ''' Si se debe enviar solicitud de cobro por tarjeta. Delegado a Estado.
+    ''' La lógica del getter solo lo permite si es tarjeta prepago.
+    ''' </summary>
     Public Property MandarCobroTarjeta As Boolean
         Get
-            Return _mandarCobroTarjeta AndAlso EsTarjetaPrepago
+            Return Estado.MandarCobroTarjeta AndAlso EsTarjetaPrepago
         End Get
         Set(value As Boolean)
-            Dim unused = SetProperty(_mandarCobroTarjeta, value)
-            If MandarCobroTarjeta Then
-                CargarCorreoYMovilTarjeta.Execute()
+            If Estado.MandarCobroTarjeta <> value Then
+                Estado.MandarCobroTarjeta = value
+                RaisePropertyChanged()
+                If MandarCobroTarjeta Then
+                    CargarCorreoYMovilTarjeta.Execute()
+                End If
             End If
         End Set
     End Property
@@ -1037,6 +1220,9 @@ Public Class PlantillaVentaViewModel
             cmdCrearPedido.RaiseCanExecuteChanged()
         End Set
     End Property
+    ''' <summary>
+    ''' Plazos de pago seleccionados. Sincroniza código y descuento con Estado.
+    ''' </summary>
     Private _plazoPagoSeleccionado As PlazosPago
     Public Property plazoPagoSeleccionado As PlazosPago
         Get
@@ -1048,6 +1234,9 @@ Public Class PlantillaVentaViewModel
                 Return
             End If
             Dim unused = SetProperty(_plazoPagoSeleccionado, value)
+            ' Sincronizar con Estado
+            Estado.PlazosPago = If(value IsNot Nothing, value.plazoPago, Nothing)
+            Estado.DescuentoPP = If(value IsNot Nothing, value.descuentoPP, 0D)
             cmdCrearPedido.RaiseCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
@@ -1317,7 +1506,7 @@ Public Class PlantillaVentaViewModel
             cmdInsertarProducto.Execute(arg)
         End If
 
-        If (arg.cantidad + arg.cantidadOferta <> 0) AndAlso Not arg.stockActualizado Then
+        If (arg.cantidad + arg.cantidadOferta <> 0) AndAlso (Not arg.stockActualizado OrElse String.IsNullOrEmpty(arg.urlImagen)) Then
             cmdCargarStockProducto.Execute(arg)
         End If
         RaisePropertyChanged(NameOf(hayProductosEnElPedido))
@@ -1382,12 +1571,21 @@ Public Class PlantillaVentaViewModel
                     Dim producto As LineaPlantillaVenta
                     For i = 0 To ListaFiltrableProductos.ListaFijada.Count - 1
                         producto = ListaFiltrableProductos.ListaFijada(i)
+                        ' Calcular StockDisponibleTodosLosAlmacenes si no viene del API
+                        If producto.StockDisponibleTodosLosAlmacenes = 0 AndAlso producto.stocks IsNot Nothing AndAlso producto.stocks.Count > 0 Then
+                            producto.StockDisponibleTodosLosAlmacenes = producto.stocks.Sum(Function(s) s.cantidadDisponible)
+                        End If
+                        producto.stockActualizado = True
                         If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR Then
                             producto.aplicarDescuento = True
                             producto.aplicarDescuentoFicha = True
                         End If
                         productoOriginal = ListaFiltrableProductos.ListaOriginal.Where(Function(p) CType(p, LineaPlantillaVenta).producto = producto.producto).FirstOrDefault
                         If Not IsNothing(productoOriginal) Then
+                            If productoOriginal.StockDisponibleTodosLosAlmacenes = 0 AndAlso productoOriginal.stocks IsNot Nothing AndAlso productoOriginal.stocks.Count > 0 Then
+                                productoOriginal.StockDisponibleTodosLosAlmacenes = productoOriginal.stocks.Sum(Function(s) s.cantidadDisponible)
+                            End If
+                            productoOriginal.stockActualizado = True
                             ListaFiltrableProductos.ListaFijada(i) = productoOriginal
                         End If
                     Next
@@ -1439,12 +1637,21 @@ Public Class PlantillaVentaViewModel
                     Dim producto As LineaPlantillaVenta
                     For i = 0 To ListaFiltrableProductos.ListaFijada.Count - 1
                         producto = ListaFiltrableProductos.ListaFijada(i)
+                        ' Calcular StockDisponibleTodosLosAlmacenes si no viene del API
+                        If producto.StockDisponibleTodosLosAlmacenes = 0 AndAlso producto.stocks IsNot Nothing AndAlso producto.stocks.Count > 0 Then
+                            producto.StockDisponibleTodosLosAlmacenes = producto.stocks.Sum(Function(s) s.cantidadDisponible)
+                        End If
+                        producto.stockActualizado = True
                         If clienteSeleccionado.cliente = Constantes.Clientes.Especiales.EL_EDEN OrElse clienteSeleccionado.estado = Constantes.Clientes.ESTADO_DISTRIBUIDOR Then
                             producto.aplicarDescuento = True
                             producto.aplicarDescuentoFicha = True
                         End If
                         productoOriginal = ListaFiltrableProductos.ListaOriginal.Where(Function(p) CType(p, LineaPlantillaVenta).producto = producto.producto).FirstOrDefault
                         If Not IsNothing(productoOriginal) Then
+                            If productoOriginal.StockDisponibleTodosLosAlmacenes = 0 AndAlso productoOriginal.stocks IsNot Nothing AndAlso productoOriginal.stocks.Count > 0 Then
+                                productoOriginal.StockDisponibleTodosLosAlmacenes = productoOriginal.stocks.Sum(Function(s) s.cantidadDisponible)
+                            End If
+                            productoOriginal.stockActualizado = True
                             ListaFiltrableProductos.ListaFijada(i) = productoOriginal
                         End If
                     Next
@@ -1564,16 +1771,43 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
         RaisePropertyChanged(NameOf(SePuedeFinalizar))
 
+        ' Issue #286: Guardar valores del borrador antes de la lógica automática
+        ' Solo aplicar si hay borrador pendiente Y no se han restaurado ya los valores
+        Dim hayBorradorPendiente As Boolean = _borradorEnRestauracion IsNot Nothing AndAlso Not _borradorRestauradoEnFormasVenta
+        Dim formaVentaBorrador As Integer = 0
+        Dim formaVentaOtrasCodigoBorrador As String = Nothing
+        Dim fechaEntregaBorrador As Date = Date.MinValue
+        Dim contactoBorrador As String = Nothing
+        Dim formaPagoBorrador As String = Nothing
+        Dim plazosPagoBorrador As String = Nothing
+        Dim mantenerJuntoBorrador As Boolean = False
+        Dim servirJuntoBorrador As Boolean = False
+
+        If hayBorradorPendiente Then
+            formaVentaBorrador = _borradorEnRestauracion.FormaVenta
+            formaVentaOtrasCodigoBorrador = _borradorEnRestauracion.FormaVentaOtrasCodigo
+            fechaEntregaBorrador = _borradorEnRestauracion.FechaEntrega
+            contactoBorrador = _borradorEnRestauracion.Contacto
+            formaPagoBorrador = _borradorEnRestauracion.FormaPago
+            plazosPagoBorrador = _borradorEnRestauracion.PlazosPago
+            mantenerJuntoBorrador = _borradorEnRestauracion.MantenerJunto
+            servirJuntoBorrador = _borradorEnRestauracion.ServirJunto
+        End If
+
         Dim esApoyoComercial As Boolean
         vendedorUsuario = Await leerParametro("Vendedor")
         Dim vendedoresEquipo = Await servicio.CargarVendedoresEquipo(vendedorUsuario)
-        If vendedorUsuario = clienteSeleccionado.vendedor Then
-            formaVentaSeleccionada = 1 ' Directa
-        ElseIf Not IsNothing(vendedoresEquipo) AndAlso Not IsNothing(vendedoresEquipo.SingleOrDefault(Function(v) v.Vendedor = clienteSeleccionado.vendedor)) Then
-            formaVentaSeleccionada = 3 ' Otros
-            esApoyoComercial = True
-        Else
-            formaVentaSeleccionada = 2 ' Telefono
+
+        ' Issue #286: Solo aplicar lógica automática si NO hay borrador pendiente
+        If Not hayBorradorPendiente Then
+            If vendedorUsuario = clienteSeleccionado.vendedor Then
+                formaVentaSeleccionada = 1 ' Directa
+            ElseIf Not IsNothing(vendedoresEquipo) AndAlso Not IsNothing(vendedoresEquipo.SingleOrDefault(Function(v) v.Vendedor = clienteSeleccionado.vendedor)) Then
+                formaVentaSeleccionada = 3 ' Otros
+                esApoyoComercial = True
+            Else
+                formaVentaSeleccionada = 2 ' Telefono
+            End If
         End If
 
         Using client As New HttpClient
@@ -1588,7 +1822,17 @@ Public Class PlantillaVentaViewModel
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     listaFormasVenta = JsonConvert.DeserializeObject(Of ObservableCollection(Of FormaVentaDTO))(cadenaJson)
-                    If esApoyoComercial Then
+
+                    ' Issue #286: Restaurar forma de venta del borrador ahora que listaFormasVenta está cargada
+                    If hayBorradorPendiente AndAlso formaVentaBorrador > 0 Then
+                        formaVentaSeleccionada = formaVentaBorrador
+                        If formaVentaBorrador > 2 AndAlso Not String.IsNullOrEmpty(formaVentaOtrasCodigoBorrador) Then
+                            Dim formaOtra = listaFormasVenta?.FirstOrDefault(Function(f) f.numero?.Trim() = formaVentaOtrasCodigoBorrador?.Trim())
+                            If formaOtra IsNot Nothing Then
+                                formaVentaOtrasSeleccionada = formaOtra
+                            End If
+                        End If
+                    ElseIf esApoyoComercial Then
                         formaVentaOtrasSeleccionada = listaFormasVenta.Single(Function(f) f.numero = Constantes.FormasVenta.APOYO_COMERCIAL)
                     End If
                 Else
@@ -1601,6 +1845,79 @@ Public Class PlantillaVentaViewModel
             End Try
 
         End Using
+
+        ' Issue #286: Restaurar valores del borrador después de cargar los selectores
+        ' Esperamos a que los selectores se carguen antes de asignar valores
+        If hayBorradorPendiente Then
+            Await Task.Delay(200)
+
+            ' Restaurar contacto
+            ' Issue #286: El SelectorDireccionEntrega no actualiza la selección si ya hay una dirección seleccionada.
+            ' Necesitamos limpiar direccionEntregaSeleccionada primero para que el control vuelva a buscar.
+            If Not String.IsNullOrEmpty(contactoBorrador) Then
+                ' Primero establecer el contacto deseado
+                ContactoSeleccionado = contactoBorrador
+                Estado.Contacto = contactoBorrador
+
+                ' Luego forzar al control a re-seleccionar limpiando la dirección actual
+                ' Esto hará que el control use Seleccionada para encontrar la dirección correcta
+                If direccionEntregaSeleccionada IsNot Nothing AndAlso direccionEntregaSeleccionada.contacto <> contactoBorrador Then
+                    ' Limpiamos para forzar recarga
+                    _direccionEntregaSeleccionada = Nothing
+                    RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+
+                    ' Esperamos a que el control recargue
+                    Await Task.Delay(100)
+
+                    ' Si aún no se seleccionó la correcta, forzamos
+                    If direccionEntregaSeleccionada Is Nothing OrElse direccionEntregaSeleccionada.contacto <> contactoBorrador Then
+                        ContactoSeleccionado = contactoBorrador
+                        RaisePropertyChanged(NameOf(ContactoSeleccionado))
+                    End If
+                End If
+            End If
+
+            ' Restaurar forma de pago y plazos
+            If Not String.IsNullOrEmpty(formaPagoBorrador) Then
+                FormaPagoCliente = formaPagoBorrador
+            End If
+            If Not String.IsNullOrEmpty(plazosPagoBorrador) Then
+                PlazoPagoCliente = plazosPagoBorrador
+            End If
+
+            ' Restaurar fecha de entrega DESPUÉS de que fechaMinimaEntrega se haya calculado
+            If fechaEntregaBorrador > Date.MinValue Then
+                Estado.FechaEntrega = fechaEntregaBorrador
+                RaisePropertyChanged(NameOf(fechaEntrega))
+            End If
+
+            ' Restaurar MantenerJunto y ServirJunto
+            If direccionEntregaSeleccionada IsNot Nothing Then
+                If mantenerJuntoBorrador Then
+                    direccionEntregaSeleccionada.mantenerJunto = True
+                End If
+                If servirJuntoBorrador Then
+                    direccionEntregaSeleccionada.servirJunto = True
+                End If
+                RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+            End If
+
+            ' Restaurar ComentarioPicking
+            If _borradorEnRestauracion IsNot Nothing AndAlso
+               Not String.IsNullOrEmpty(_borradorEnRestauracion.ComentarioPicking) AndAlso
+               clienteSeleccionado IsNot Nothing Then
+                clienteSeleccionado.comentarioPicking = _borradorEnRestauracion.ComentarioPicking
+                RaisePropertyChanged(NameOf(clienteSeleccionado))
+            End If
+
+            ' Issue #286: Marcar que ya restauramos los valores de esta página
+            ' Evita aplicar los valores múltiples veces si el usuario navega varias veces
+            _borradorRestauradoEnFormasVenta = True
+
+            ' NO resetear _borradorEnRestauracion aquí
+            ' Se mantiene para que CargarProductosBonificablesAsync pueda preservar los regalos
+            ' Se reseteará en OnCrearPedido cuando se cree el pedido exitosamente
+        End If
 
     End Sub
 
@@ -1637,7 +1954,14 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Async Sub OnCargarProductosPlantilla()
+        Await CargarProductosPlantillaAsync()
+    End Sub
 
+    ''' <summary>
+    ''' Carga los productos de la plantilla del cliente de forma awaitable.
+    ''' Issue #286: Separado para poder usar desde OnCargarBorrador.
+    ''' </summary>
+    Private Async Function CargarProductosPlantillaAsync() As Task
         Try
             estaOcupado = True
             ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.CargarProductosPlantilla(clienteSeleccionado))
@@ -1646,14 +1970,22 @@ Public Class PlantillaVentaViewModel
                 listaPlantilla.Add(item)
             Next
             ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList()))
+            ' Issue #286: Marcar stockActualizado=True y calcular StockDisponibleTodosLosAlmacenes si no viene del API
+            For Each item In ListaFiltrableProductos.ListaOriginal
+                Dim linea = DirectCast(item, LineaPlantillaVenta)
+                ' Si el API no devolvió StockDisponibleTodosLosAlmacenes, calcularlo de la lista de stocks
+                If linea.StockDisponibleTodosLosAlmacenes = 0 AndAlso linea.stocks IsNot Nothing AndAlso linea.stocks.Count > 0 Then
+                    linea.StockDisponibleTodosLosAlmacenes = linea.stocks.Sum(Function(s) s.cantidadDisponible)
+                End If
+                linea.stockActualizado = True
+            Next
             estaOcupado = False
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
         Finally
             estaOcupado = False
         End Try
-
-    End Sub
+    End Function
 
     Private _cmdCargarStockProducto As DelegateCommand(Of LineaPlantillaVenta)
     Public Property cmdCargarStockProducto As DelegateCommand(Of LineaPlantillaVenta)
@@ -1869,6 +2201,10 @@ Public Class PlantillaVentaViewModel
                 servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, pedidoCreado.Total, numPedido, clienteSeleccionado.cliente)
             End If
 
+            ' Issue #286: Limpiar borrador en restauración ya que el pedido se creó exitosamente
+            _borradorEnRestauracion = Nothing
+            _borradorRestauradoEnFormasVenta = False
+
             ' Cerramos la ventana
             Dim view = regionManager.Regions("MainRegion").ActiveViews.FirstOrDefault
             If Not IsNothing(view) Then
@@ -1883,7 +2219,7 @@ Public Class PlantillaVentaViewModel
 
             ' Issue #286: Guardar borrador automáticamente en caso de error
             ' Esto permite recuperar el pedido si hay un error de red o del servidor
-            GuardarBorradorAutomatico(pedido, ex.Message)
+            GuardarBorradorAutomatico(ex.Message)
         Finally
             estaOcupado = False
         End Try
@@ -1951,119 +2287,61 @@ Public Class PlantillaVentaViewModel
 
 
 
+    ''' <summary>
+    ''' Issue #287: Refactorizado para usar Estado.ToPedidoVentaDTO().
+    ''' Sincroniza las listas al Estado, llama a ToPedidoVentaDTO, y añade campos de contexto.
+    ''' </summary>
     Private Function PrepararPedido() As PedidoVentaDTO
-
         almacenRutaUsuario = almacenSeleccionado.Codigo
 
-        Dim pedido As New PedidoVentaDTO With {
-                        .empresa = clienteSeleccionado.empresa,
-                        .cliente = clienteSeleccionado.cliente,
-                        .contacto = direccionEntregaSeleccionada.contacto,
-                        .EsPresupuesto = EsPresupuesto,
-                        .fecha = Today,
-                        .formaPago = If(IsNothing(FormaPagoSeleccionada), String.Empty, FormaPagoSeleccionada.formaPago),
-                        .plazosPago = If(IsNothing(plazoPagoSeleccionado), String.Empty, plazoPagoSeleccionado.plazoPago),
-                        .DescuentoPP = If(IsNothing(plazoPagoSeleccionado), 0, plazoPagoSeleccionado.descuentoPP),
-                        .primerVencimiento = Today, 'se calcula en la API
-                        .iva = clienteSeleccionado.iva,
-                        .vendedor = direccionEntregaSeleccionada.vendedor,
-                        .periodoFacturacion = direccionEntregaSeleccionada.periodoFacturacion,
-                        .ruta = IIf(EnviarPorGlovo, "GLV", direccionEntregaSeleccionada.ruta),
-                        .serie = CalcularSerie(),
-                        .ccc = If(Not IsNothing(FormaPagoSeleccionada) AndAlso FormaPagoSeleccionada.cccObligatorio, direccionEntregaSeleccionada.ccc, Nothing),
-                        .origen = clienteSeleccionado.empresa,
-                        .contactoCobro = clienteSeleccionado.contacto, 'calcular
-                        .noComisiona = direccionEntregaSeleccionada.noComisiona,
-                        .mantenerJunto = direccionEntregaSeleccionada.mantenerJunto,
-                        .servirJunto = direccionEntregaSeleccionada.servirJunto,
-                        .comentarioPicking = clienteSeleccionado.comentarioPicking,
-                        .comentarios = ComentarioRuta,
-                        .Usuario = configuracion.usuario
-                    }
+        ' Sincronizar listas de productos y regalos al Estado
+        SincronizarListasAlEstado()
 
-        Dim lineaPedido, lineaPedidoOferta As LineaPedidoVentaDTO
-        Dim ofertaLinea As Integer?
+        ' Usar Estado.ToPedidoVentaDTO() para crear el pedido base
+        Dim pedido = Estado.ToPedidoVentaDTO(
+            formaVentaPedido,
+            AddressOf cogerSiguienteOferta,
+            AddressOf CalcularSerie
+        )
 
-        For Each linea In listaProductosPedido
-            ofertaLinea = If(linea.cantidadOferta <> 0, cogerSiguienteOferta(), DirectCast(Nothing, Integer?))
+        ' Añadir campos de contexto que no están en Estado
+        pedido.Usuario = configuracion.usuario
 
-            'If linea.descuento = linea.descuentoProducto Then
-            '    linea.descuento = 0
-            'Else
-            '    linea.aplicarDescuento = False
-            'End If
-
-            lineaPedido = New LineaPedidoVentaDTO With {
-                .Pedido = pedido,
-                .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO), '¿Pongo 0 para tener que validar?
-                .tipoLinea = 1, ' Producto
-                .Producto = linea.producto,
-                .texto = linea.texto,
-                .Cantidad = linea.cantidad,
-                .fechaEntrega = fechaEntrega,
-                .PrecioUnitario = linea.precio,
-                .DescuentoLinea = IIf(linea.descuento = linea.descuentoProducto, 0, linea.descuento),
-                .DescuentoProducto = IIf(linea.descuento = linea.descuentoProducto, linea.descuentoProducto, 0),
-                .AplicarDescuento = IIf(linea.descuento = linea.descuentoProducto, linea.aplicarDescuento, False),
-                .vistoBueno = 0, 'calcular
-                .Usuario = configuracion.usuario,
-                .almacen = almacenRutaUsuario,
-                .iva = linea.iva,
-                .delegacion = delegacionUsuario, 'pedir al usuario en alguna parte
-                .formaVenta = formaVentaPedido,
-                .oferta = ofertaLinea
-            }
-            If linea.cantidad <> 0 Then
-                pedido.Lineas.Add(lineaPedido)
-            End If
-
-            If linea.cantidadOferta <> 0 Then
-                lineaPedidoOferta = lineaPedido.ShallowCopy
-                lineaPedidoOferta.Cantidad = linea.cantidadOferta
-                lineaPedidoOferta.PrecioUnitario = 0
-                lineaPedidoOferta.oferta = lineaPedido.oferta
-                pedido.Lineas.Add(lineaPedidoOferta)
-            End If
-
-        Next
-
-        ' Issue #94: Sistema Ganavisiones - FASE 8
-        ' Añadir productos de regalo (bonificados con Ganavisiones)
-        If ListaProductosBonificables IsNot Nothing Then
-            For Each lineaRegalo In ListaProductosBonificables.Where(Function(r) r.cantidad > 0)
-                Dim textoBonificado = lineaRegalo.texto & " (BONIFICADO)"
-                If textoBonificado.Length > 50 Then
-                    textoBonificado = textoBonificado.Substring(0, 50)
-                End If
-
-                ' Fix: Usar el IVA del producto (lineaRegalo.iva), no el del cliente (clienteSeleccionado.iva)
-                ' Clientes con recargo de equivalencia (R52) fallaban porque R52 no existe en ParametrosIva del producto
-                Dim lineaPedidoRegalo = New LineaPedidoVentaDTO With {
-                    .Pedido = pedido,
-                    .estado = IIf(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO),
-                    .tipoLinea = 1, ' Producto
-                    .Producto = lineaRegalo.producto,
-                    .texto = textoBonificado,
-                    .Cantidad = lineaRegalo.cantidad,
-                    .fechaEntrega = fechaEntrega,
-                    .PrecioUnitario = lineaRegalo.precio,
-                    .DescuentoLinea = 1, ' 100% descuento
-                    .DescuentoProducto = 0,
-                    .AplicarDescuento = False,
-                    .vistoBueno = 0,
-                    .Usuario = configuracion.usuario,
-                    .almacen = almacenRutaUsuario,
-                    .iva = lineaRegalo.iva,
-                    .delegacion = delegacionUsuario,
-                    .formaVenta = formaVentaPedido,
-                    .oferta = Nothing
-                }
-                pedido.Lineas.Add(lineaPedidoRegalo)
-            Next
+        ' Manejar ccc condicionalmente según forma de pago
+        If IsNothing(FormaPagoSeleccionada) OrElse Not FormaPagoSeleccionada.cccObligatorio Then
+            pedido.ccc = Nothing
         End If
+
+        ' Añadir Usuario y delegacion a cada línea
+        For Each linea In pedido.Lineas
+            linea.Usuario = configuracion.usuario
+            linea.delegacion = delegacionUsuario
+        Next
 
         Return pedido
     End Function
+
+    ''' <summary>
+    ''' Sincroniza las listas de productos y regalos del ViewModel al Estado.
+    ''' Necesario antes de llamar a Estado.ToPedidoVentaDTO() o guardar borrador.
+    ''' </summary>
+    Private Sub SincronizarListasAlEstado()
+        ' Sincronizar productos
+        Estado.LineasProducto = New List(Of LineaPlantillaVenta)
+        If listaProductosPedido IsNot Nothing Then
+            For Each linea In listaProductosPedido.Where(Function(p) p.cantidad <> 0 OrElse p.cantidadOferta <> 0)
+                Estado.LineasProducto.Add(linea)
+            Next
+        End If
+
+        ' Sincronizar regalos (Ganavisiones)
+        Estado.LineasRegalo = New List(Of LineaRegalo)
+        If ListaProductosBonificables IsNot Nothing Then
+            For Each regalo In ListaProductosBonificables.Where(Function(r) r.cantidad > 0)
+                Estado.LineasRegalo.Add(regalo)
+            Next
+        End If
+    End Sub
 
     Private Function CalcularSerie() As String
         Dim estadosValidos = {Constantes.Clientes.ESTADO_DISTRIBUIDOR, Constantes.Clientes.ESTADO_DISTRIBUIDOR_NO_VISITABLE}
@@ -2195,6 +2473,14 @@ Public Class PlantillaVentaViewModel
     Private Sub SeleccionarElCliente(value As ClienteJson)
         Dim unused = SetProperty(_clienteSeleccionado, value)
         RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
+        ' Sincronizar datos del cliente con Estado
+        Estado.Empresa = value.empresa
+        Estado.Cliente = value.cliente
+        Estado.Contacto = value.contacto
+        Estado.NombreCliente = value.nombre
+        Estado.IvaCliente = value.iva
+        Estado.EstadoCliente = value.estado
+        Estado.ComentarioPickingCliente = value.comentarioPicking
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
         cmdCargarProductosPlantilla.Execute()
         cmdComprobarPendientes.Execute()
@@ -2202,6 +2488,29 @@ Public Class PlantillaVentaViewModel
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
         RaisePropertyChanged(NameOf(clienteSeleccionado))
     End Sub
+
+    ''' <summary>
+    ''' Selecciona un cliente de forma awaitable para restaurar borradores.
+    ''' Issue #286: Permite esperar a que los productos se carguen completamente.
+    ''' </summary>
+    Private Async Function SeleccionarClienteParaBorradorAsync(value As ClienteJson) As Task
+        Dim unused = SetProperty(_clienteSeleccionado, value)
+        RaisePropertyChanged(NameOf(hayUnClienteSeleccionado))
+        ' Sincronizar datos del cliente con Estado
+        Estado.Empresa = value.empresa
+        Estado.Cliente = value.cliente
+        Estado.Contacto = value.contacto
+        Estado.NombreCliente = value.nombre
+        Estado.IvaCliente = value.iva
+        Estado.EstadoCliente = value.estado
+        Estado.ComentarioPickingCliente = value.comentarioPicking
+        Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
+        Await CargarProductosPlantillaAsync() ' Awaitable en lugar de fire-and-forget
+        cmdComprobarPendientes.Execute()
+        iva = clienteSeleccionado.iva
+        PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
+        RaisePropertyChanged(NameOf(clienteSeleccionado))
+    End Function
     Private Sub NavegarAClienteCrear(value As ClienteJson)
         Dim parameters As New NavigationParameters From {
             {"empresaParameter", value.empresa},
@@ -2250,57 +2559,34 @@ Public Class PlantillaVentaViewModel
 
         If hayAlgunProducto Then
             ' Issue #286: Ofrecer guardar borrador antes de salir
-            ' Solo ofrecer guardar si hay un cliente seleccionado (necesario para PrepararPedido)
-            Dim puedeGuardarBorrador = clienteSeleccionado IsNot Nothing AndAlso
-                                        direccionEntregaSeleccionada IsNot Nothing
-
-            Dim mensaje As String
-            Dim botones As MessageBoxButton
+            Dim puedeGuardarBorrador = clienteSeleccionado IsNot Nothing
 
             If puedeGuardarBorrador Then
-                mensaje = "Hay productos en la plantilla que no se han enviado." & vbCrLf & vbCrLf &
-                         "¿Desea guardar un borrador para continuar más tarde?" & vbCrLf & vbCrLf &
-                         "• Sí = Guardar borrador y salir" & vbCrLf &
-                         "• No = Salir sin guardar" & vbCrLf &
-                         "• Cancelar = Continuar editando"
-                botones = MessageBoxButton.YesNoCancel
-            Else
-                mensaje = "Hay productos en la plantilla que no se han enviado." & vbCrLf &
-                         "(No se puede guardar borrador porque no hay cliente seleccionado)" & vbCrLf & vbCrLf &
-                         "¿Seguro que desea salir?"
-                botones = MessageBoxButton.YesNo
-            End If
+                Dim deseaGuardar = dialogService.ShowConfirmationAnswer("Confirmar cierre",
+                    "Hay productos en la plantilla que no se han enviado." & vbCrLf & vbCrLf &
+                    "¿Desea guardar un borrador para continuar más tarde?")
 
-            Dim result = MessageBox.Show(mensaje, "Confirmar cierre", botones, MessageBoxImage.Question)
-
-            Select Case result
-                Case MessageBoxResult.Yes
-                    If puedeGuardarBorrador Then
-                        ' Guardar borrador y salir
-                        Try
-                            Dim pedido As PedidoVentaDTO = PrepararPedido()
-                            servicioBorradores.GuardarBorrador(pedido, clienteSeleccionado?.nombre, "Guardado manualmente al salir")
-                            MessageBox.Show("Borrador guardado correctamente. Podrá recuperarlo la próxima vez que abra la Plantilla de Ventas.",
-                                           "Borrador guardado",
-                                           MessageBoxButton.OK,
-                                           MessageBoxImage.Information)
-                        Catch ex As Exception
-                            MessageBox.Show($"Error al guardar el borrador: {ex.Message}",
-                                           "Error",
-                                           MessageBoxButton.OK,
-                                           MessageBoxImage.Error)
-                        End Try
-                    End If
-                    Return True ' Salir
-
-                Case MessageBoxResult.No
-                    ' Salir sin guardar
+                If deseaGuardar Then
+                    Try
+                        Dim borrador = CrearBorradorDesdeEstadoActual("Guardado manualmente al salir")
+                        servicioBorradores.GuardarBorrador(borrador)
+                        dialogService.ShowNotification("Borrador guardado",
+                            "Borrador guardado correctamente. Podrá recuperarlo la próxima vez que abra la Plantilla de Ventas.")
+                    Catch ex As Exception
+                        dialogService.ShowError($"Error al guardar el borrador: {ex.Message}")
+                    End Try
                     Return True
-
-                Case Else ' Cancel
-                    ' Continuar editando
-                    Return False
-            End Select
+                Else
+                    ' No quiere guardar, preguntar si quiere salir sin guardar
+                    Return dialogService.ShowConfirmationAnswer("Confirmar cierre",
+                        "¿Salir sin guardar el borrador?")
+                End If
+            Else
+                Return dialogService.ShowConfirmationAnswer("Confirmar cierre",
+                    "Hay productos en la plantilla que no se han enviado." & vbCrLf &
+                    "(No se puede guardar borrador porque no hay cliente seleccionado)" & vbCrLf & vbCrLf &
+                    "¿Seguro que desea salir?")
+            End If
         End If
 
         Return True ' Cerrar sin confirmación si no hay productos
@@ -2353,14 +2639,58 @@ Public Class PlantillaVentaViewModel
     Private Function CanGuardarBorrador() As Boolean
         ' Se puede guardar si hay un cliente seleccionado y al menos una línea con cantidad
         Return clienteSeleccionado IsNot Nothing AndAlso
+               direccionEntregaSeleccionada IsNot Nothing AndAlso
                listaProductosPedido IsNot Nothing AndAlso
                listaProductosPedido.Any(Function(p) p.cantidad <> 0 OrElse p.cantidadOferta <> 0)
     End Function
 
+    ''' <summary>
+    ''' Crea un borrador desde el estado actual de la PlantillaVenta.
+    ''' Issue #287: Usa SincronizarListasAlEstado() y lee todo desde Estado.
+    ''' </summary>
+    Private Function CrearBorradorDesdeEstadoActual(Optional mensajeError As String = Nothing) As BorradorPlantillaVenta
+        ' Sincronizar listas al Estado primero
+        SincronizarListasAlEstado()
+
+        ' Sincronizar campos que tienen binding directo a otros objetos (no a Estado)
+        If direccionEntregaSeleccionada IsNot Nothing Then
+            Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
+        End If
+        If clienteSeleccionado IsNot Nothing Then
+            Estado.ComentarioPicking = clienteSeleccionado.comentarioPicking
+        End If
+
+        Dim borrador As New BorradorPlantillaVenta With {
+            .FechaCreacion = DateTime.Now,
+            .Usuario = configuracion?.usuario,
+            .MensajeError = mensajeError,
+            .Empresa = Estado.Empresa,
+            .Cliente = Estado.Cliente,
+            .Contacto = Estado.Contacto,
+            .NombreCliente = Estado.NombreCliente,
+            .ComentarioRuta = Estado.ComentarioRuta,
+            .ComentarioPicking = Estado.ComentarioPicking,
+            .EsPresupuesto = Estado.EsPresupuesto,
+            .FormaVenta = Estado.FormaVenta,
+            .FormaVentaOtrasCodigo = Estado.FormaVentaOtrasCodigo,
+            .FormaPago = Estado.FormaPago,
+            .PlazosPago = Estado.PlazosPago,
+            .FechaEntrega = Estado.FechaEntrega,
+            .AlmacenCodigo = Estado.AlmacenCodigo,
+            .MantenerJunto = Estado.MantenerJunto,
+            .ServirJunto = Estado.ServirJunto,
+            .LineasProducto = Estado.LineasProducto,
+            .LineasRegalo = Estado.LineasRegalo,
+            .Total = Estado.BaseImponible
+        }
+
+        Return borrador
+    End Function
+
     Private Sub OnGuardarBorrador()
         Try
-            Dim pedido As PedidoVentaDTO = PrepararPedido()
-            Dim borrador = servicioBorradores.GuardarBorrador(pedido, clienteSeleccionado?.nombre)
+            Dim borrador = CrearBorradorDesdeEstadoActual()
+            borrador = servicioBorradores.GuardarBorrador(borrador)
 
             dialogService.ShowNotification($"Borrador guardado correctamente ({borrador.NumeroLineas} líneas)")
 
@@ -2389,83 +2719,275 @@ Public Class PlantillaVentaViewModel
         Try
             estaOcupado = True
 
-            ' Cargar el borrador completo (con el pedido)
+            ' Cargar el borrador completo (con las líneas)
             Dim borrador = servicioBorradores.CargarBorrador(borradorResumen.Id)
-            If borrador Is Nothing OrElse borrador.Pedido Is Nothing Then
+            If borrador Is Nothing Then
                 dialogService.ShowError("No se pudo cargar el borrador")
                 Return
             End If
 
-            Dim pedido = borrador.Pedido
+            ' Issue #286: Establecer flags para indicar que estamos cargando desde borrador
+            ' Esto evita que otros procesos sobrescriban los datos del borrador
+            _cargandoDesdeBorrador = True
+            _borradorEnRestauracion = borrador
+            _borradorRestauradoEnFormasVenta = False ' Resetear para que se apliquen los nuevos valores
+
+            ' Verificar que tiene datos válidos
+            Dim tieneLineasProducto = borrador.LineasProducto IsNot Nothing AndAlso borrador.LineasProducto.Any()
+            Dim tieneLineasRegalo = borrador.LineasRegalo IsNot Nothing AndAlso borrador.LineasRegalo.Any()
+
+            If Not tieneLineasProducto AndAlso Not tieneLineasRegalo Then
+                dialogService.ShowError("El borrador no tiene líneas de productos")
+                Return
+            End If
 
             ' Buscar y seleccionar el cliente
-            If Not String.IsNullOrEmpty(pedido.cliente) Then
-                ' Establecer el filtro con el número de cliente para que la búsqueda funcione
-                filtroCliente = pedido.cliente.Trim()
-                RaisePropertyChanged(NameOf(filtroCliente))
-
-                ' Cargar clientes usando el número de cliente como filtro
-                Try
-                    vendedorUsuario = Await leerParametro(Parametros.Claves.Vendedor)
-                    Dim parametroClientesTodosVendedores As String = Await leerParametro("PermitirVerClientesTodosLosVendedores")
-                    todosLosVendedores = If(parametroClientesTodosVendedores?.Trim() = "1", True, False)
-                    Dim clientes = Await servicio.CargarClientesVendedor(filtroCliente, vendedorUsuario, todosLosVendedores)
-                    listaClientes = New ObservableCollection(Of ClienteJson)(clientes)
-                Catch ex As Exception
-                    dialogService.ShowError($"Error al buscar cliente: {ex.Message}")
-                    Return
-                End Try
-
-                ' Buscar el cliente en la lista cargada
-                Dim clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) c.cliente?.Trim() = pedido.cliente?.Trim() AndAlso c.contacto?.Trim() = pedido.contacto?.Trim())
-                If clienteEncontrado IsNot Nothing Then
-                    clienteSeleccionado = clienteEncontrado
-                    ' Esperar a que se carguen los productos del cliente (el setter de clienteSeleccionado dispara la carga)
-                    Await Task.Delay(1000)
-                Else
-                    dialogService.ShowError($"No se encontró el cliente {pedido.cliente} en sus clientes asignados")
-                    Return
-                End If
-            Else
+            If String.IsNullOrEmpty(borrador.Cliente) Then
                 dialogService.ShowError("El borrador no tiene cliente asociado")
                 Return
             End If
 
-            ' Cargar las líneas del pedido en la plantilla
-            If pedido.Lineas IsNot Nothing AndAlso pedido.Lineas.Any() Then
-                For Each lineaPedido In pedido.Lineas
-                    Dim lineaPlantilla = listaProductosPedido?.FirstOrDefault(Function(p) p.producto?.Trim() = lineaPedido.Producto?.Trim())
-                    If lineaPlantilla IsNot Nothing Then
-                        lineaPlantilla.cantidad = CInt(lineaPedido.Cantidad)
-                        lineaPlantilla.precio = lineaPedido.PrecioUnitario
-                        lineaPlantilla.descuento = lineaPedido.DescuentoLinea
+            ' Establecer el filtro con el número de cliente para que la búsqueda funcione
+            filtroCliente = borrador.Cliente.Trim()
+            RaisePropertyChanged(NameOf(filtroCliente))
+
+            ' Cargar clientes usando el número de cliente como filtro
+            Try
+                vendedorUsuario = Await leerParametro(Parametros.Claves.Vendedor)
+                Dim parametroClientesTodosVendedores As String = Await leerParametro("PermitirVerClientesTodosLosVendedores")
+                todosLosVendedores = If(parametroClientesTodosVendedores?.Trim() = "1", True, False)
+                Dim clientes = Await servicio.CargarClientesVendedor(filtroCliente, vendedorUsuario, todosLosVendedores)
+                listaClientes = New ObservableCollection(Of ClienteJson)(clientes)
+            Catch ex As Exception
+                dialogService.ShowError($"Error al buscar cliente: {ex.Message}")
+                Return
+            End Try
+
+            ' Buscar el cliente y contacto en la lista cargada
+            Dim clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) _
+                c.cliente?.Trim() = borrador.Cliente?.Trim() AndAlso
+                c.contacto?.Trim() = borrador.Contacto?.Trim())
+
+            ' Si no encuentra con el contacto exacto, buscar solo por cliente
+            If clienteEncontrado Is Nothing Then
+                clienteEncontrado = listaClientes?.FirstOrDefault(Function(c) c.cliente?.Trim() = borrador.Cliente?.Trim())
+            End If
+
+            If clienteEncontrado Is Nothing Then
+                dialogService.ShowError($"No se encontró el cliente {borrador.Cliente} en sus clientes asignados")
+                Return
+            End If
+
+            ' Issue #286: Usar método awaitable para cargar cliente y productos
+            ' Esto espera a que los productos estén completamente cargados antes de aplicar cantidades
+            Await SeleccionarClienteParaBorradorAsync(clienteEncontrado)
+
+            ' Cargar líneas de productos del borrador
+            ' Como guardamos LineaPlantillaVenta completas, tenemos todos los datos
+            Dim lineasCargadas As Integer = 0
+            Dim lineasActualizadas As Integer = 0
+
+            If tieneLineasProducto Then
+                For Each lineaBorrador In borrador.LineasProducto
+                    ' Buscar si el producto ya está en la plantilla del cliente
+                    Dim lineaExistente As LineaPlantillaVenta = Nothing
+                    If ListaFiltrableProductos?.ListaOriginal IsNot Nothing Then
+                        lineaExistente = ListaFiltrableProductos.ListaOriginal.
+                            Cast(Of LineaPlantillaVenta)().
+                            FirstOrDefault(Function(p) p.producto?.Trim() = lineaBorrador.producto?.Trim())
+                    End If
+
+                    If lineaExistente IsNot Nothing Then
+                        ' El producto está en la plantilla - actualizar cantidades (mantiene stock actualizado)
+                        lineaExistente.cantidad = lineaBorrador.cantidad
+                        lineaExistente.cantidadOferta = lineaBorrador.cantidadOferta
+                        lineaExistente.precio = lineaBorrador.precio
+                        lineaExistente.descuento = lineaBorrador.descuento
+                        lineaExistente.aplicarDescuento = lineaBorrador.aplicarDescuento
+                        lineasActualizadas += 1
                     Else
-                        ' El producto no está en la plantilla del cliente, añadirlo
-                        Dim nuevaLinea As New LineaPlantillaVenta With {
-                            .producto = lineaPedido.Producto,
-                            .texto = lineaPedido.texto,
-                            .cantidad = CInt(lineaPedido.Cantidad),
-                            .precio = lineaPedido.PrecioUnitario,
-                            .descuento = lineaPedido.DescuentoLinea,
-                            .iva = lineaPedido.iva
-                        }
-                        ListaFiltrableProductos?.ListaOriginal?.Add(nuevaLinea)
+                        ' El producto NO está en la plantilla - añadirlo directamente del borrador
+                        ' El borrador tiene todos los datos (nombre, foto, subgrupo, etc.)
+                        ' Solo el stock puede estar desactualizado
+                        lineaBorrador.stockActualizado = False ' Marcar que el stock puede no estar actualizado
+                        ListaFiltrableProductos?.ListaOriginal?.Add(lineaBorrador)
+                        lineasCargadas += 1
                     End If
                 Next
             End If
 
-            ' Configurar comentarios si los hay
-            If Not String.IsNullOrEmpty(pedido.comentarios) Then
-                ComentarioRuta = pedido.comentarios
+            ' Issue #286: Los regalos (Ganavisiones) se restaurarán en CargarProductosBonificablesAsync
+            ' cuando el usuario navegue a esa página. Solo guardamos el conteo para el mensaje.
+            Dim regalosCargados As Integer = If(tieneLineasRegalo, borrador.LineasRegalo.Count, 0)
+
+            ' Restaurar forma de venta (también se hará en OnCargarFormasVenta cuando listaFormasVenta esté cargada)
+            If borrador.FormaVenta > 0 Then
+                formaVentaSeleccionada = borrador.FormaVenta
             End If
 
-            dialogService.ShowNotification($"Borrador cargado: {borrador.NumeroLineas} líneas")
+            ' Restaurar comentarios y presupuesto
+            If Not String.IsNullOrEmpty(borrador.ComentarioRuta) Then
+                ComentarioRuta = borrador.ComentarioRuta
+            End If
+            If Not String.IsNullOrEmpty(borrador.ComentarioPicking) Then
+                ComentarioPicking = borrador.ComentarioPicking
+            End If
+            EsPresupuesto = borrador.EsPresupuesto
 
+            ' Restaurar almacén si está guardado y existe en la lista
+            If Not String.IsNullOrEmpty(borrador.AlmacenCodigo) AndAlso listaAlmacenes IsNot Nothing Then
+                Dim almacenBorrador = listaAlmacenes.FirstOrDefault(Function(a) a.Codigo = borrador.AlmacenCodigo)
+                If almacenBorrador IsNot Nothing Then
+                    almacenSeleccionado = almacenBorrador
+                End If
+            End If
+
+            ' Dar tiempo a los selectores para cargar sus datos antes de restaurar
+            ' Los controles SelectorDireccionEntrega, SelectorFormaPago y SelectorPlazosPago necesitan cargar primero
+            ' También esperamos a que OnCargarFormasVenta termine de calcular fechaMinimaEntrega
+            Await Task.Delay(800)
+
+            ' Restaurar contacto/dirección de entrega
+            If Not String.IsNullOrEmpty(borrador.Contacto) Then
+                ContactoSeleccionado = borrador.Contacto
+            End If
+
+            ' Restaurar forma de pago y plazos después del delay
+            If Not String.IsNullOrEmpty(borrador.FormaPago) Then
+                FormaPagoCliente = borrador.FormaPago
+            End If
+            If Not String.IsNullOrEmpty(borrador.PlazosPago) Then
+                PlazoPagoCliente = borrador.PlazosPago
+            End If
+
+            ' Restaurar fecha de entrega DESPUÉS del delay (para que no sea sobrescrita por fechaMinimaEntrega)
+            If borrador.FechaEntrega > Date.MinValue Then
+                Estado.FechaEntrega = borrador.FechaEntrega
+                RaisePropertyChanged(NameOf(fechaEntrega))
+            End If
+
+            ' Restaurar MantenerJunto y ServirJunto si la dirección está cargada
+            If direccionEntregaSeleccionada IsNot Nothing Then
+                If borrador.MantenerJunto Then
+                    direccionEntregaSeleccionada.mantenerJunto = True
+                End If
+                If borrador.ServirJunto Then
+                    direccionEntregaSeleccionada.servirJunto = True
+                End If
+                Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
+                Estado.ServirJunto = direccionEntregaSeleccionada.servirJunto
+                RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+            End If
+
+            ' Restaurar ComentarioPicking en el objeto clienteSeleccionado (el TextBox hace binding ahí)
+            If Not String.IsNullOrEmpty(borrador.ComentarioPicking) AndAlso clienteSeleccionado IsNot Nothing Then
+                clienteSeleccionado.comentarioPicking = borrador.ComentarioPicking
+                RaisePropertyChanged(NameOf(clienteSeleccionado))
+            End If
+
+            ' Solo actualizar stocks de productos que NO estaban en la plantilla (añadidos desde el borrador)
+            ' Los productos que ya estaban en la plantilla ya tienen stocks actualizados de CargarProductosPlantillaAsync
+            Try
+                Dim productosSinStock = ListaFiltrableProductos?.ListaOriginal?.
+                    Cast(Of LineaPlantillaVenta)().
+                    Where(Function(p) (p.cantidad > 0 OrElse p.cantidadOferta > 0) AndAlso Not p.stockActualizado).
+                    ToList()
+
+                If productosSinStock IsNot Nothing AndAlso productosSinStock.Any() Then
+                    Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaVenta)(productosSinStock)
+                    Dim stocksActualizados = Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList())
+
+                    Dim productosActualizados As Integer = 0
+                    ' Actualizar los productos originales con la info de stock
+                    If stocksActualizados IsNot Nothing Then
+                        For Each lineaConStock In stocksActualizados
+                            Dim lineaOriginal = productosSinStock.FirstOrDefault(Function(l) l.producto?.Trim() = lineaConStock.producto?.Trim())
+                            If lineaOriginal IsNot Nothing Then
+                                lineaOriginal.stock = lineaConStock.stock
+                                lineaOriginal.cantidadDisponible = lineaConStock.cantidadDisponible
+                                lineaOriginal.cantidadPendienteRecibir = lineaConStock.cantidadPendienteRecibir
+                                lineaOriginal.stocks = lineaConStock.stocks
+                                ' Calcular StockDisponibleTodosLosAlmacenes si no viene del API
+                                If lineaConStock.StockDisponibleTodosLosAlmacenes > 0 Then
+                                    lineaOriginal.StockDisponibleTodosLosAlmacenes = lineaConStock.StockDisponibleTodosLosAlmacenes
+                                ElseIf lineaConStock.stocks IsNot Nothing AndAlso lineaConStock.stocks.Count > 0 Then
+                                    lineaOriginal.StockDisponibleTodosLosAlmacenes = lineaConStock.stocks.Sum(Function(s) s.cantidadDisponible)
+                                End If
+                                lineaOriginal.urlImagen = lineaConStock.urlImagen
+                                lineaOriginal.stockActualizado = True
+                                productosActualizados += 1
+                            End If
+                        Next
+                    End If
+
+                    System.Diagnostics.Debug.WriteLine($"[Borrador] Stocks: {productosSinStock.Count} productos sin stock, {If(stocksActualizados?.Count, 0)} respuestas, {productosActualizados} actualizados")
+                Else
+                    System.Diagnostics.Debug.WriteLine("[Borrador] Todos los productos ya tienen stock actualizado de la plantilla")
+                End If
+            Catch ex As Exception
+                dialogService.ShowNotification($"No se pudieron actualizar los stocks: {ex.Message}")
+                System.Diagnostics.Debug.WriteLine($"[Borrador] Error actualizando stocks: {ex.Message}")
+            End Try
+
+            ' Notificar cambios a la UI
             RaisePropertyChanged(NameOf(baseImponiblePedido))
+            RaisePropertyChanged(NameOf(hayProductosEnElPedido))
+            RaisePropertyChanged(NameOf(listaProductosPedido))
+            RaisePropertyChanged(NameOf(ListaProductosBonificables))
+
+            ' Construir mensaje de resultado
+            Dim mensaje = $"Borrador cargado: {lineasActualizadas + lineasCargadas} productos"
+            If lineasCargadas > 0 Then
+                mensaje &= $" ({lineasCargadas} añadidos)"
+            End If
+            If regalosCargados > 0 Then
+                mensaje &= $", {regalosCargados} regalos"
+            End If
+            dialogService.ShowNotification(mensaje)
+
         Catch ex As Exception
             dialogService.ShowError($"Error al cargar borrador: {ex.Message}")
+            ' Solo resetear el borrador si hubo error
+            _borradorEnRestauracion = Nothing
         Finally
+            ' Issue #286: NO resetear _borradorEnRestauracion aquí
+            ' Se mantiene para que OnCargarFormasVenta y CargarProductosBonificablesAsync
+            ' puedan usarlo cuando el usuario navegue a esas páginas
+            ' Se reseteará en OnCrearPedido cuando se cree el pedido exitosamente
+            _cargandoDesdeBorrador = False
             estaOcupado = False
+        End Try
+    End Sub
+
+    Private _copiarBorradorJsonCommand As DelegateCommand(Of BorradorPlantillaVenta)
+    Public Property CopiarBorradorJsonCommand As DelegateCommand(Of BorradorPlantillaVenta)
+        Get
+            Return _copiarBorradorJsonCommand
+        End Get
+        Private Set(value As DelegateCommand(Of BorradorPlantillaVenta))
+            Dim unused = SetProperty(_copiarBorradorJsonCommand, value)
+        End Set
+    End Property
+
+    Private Sub OnCopiarBorradorJson(borrador As BorradorPlantillaVenta)
+        If borrador Is Nothing OrElse String.IsNullOrEmpty(borrador.Id) Then
+            Return
+        End If
+
+        Try
+            Dim rutaArchivo = IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Nesto", "Borradores", $"{borrador.Id}.json")
+
+            If IO.File.Exists(rutaArchivo) Then
+                Dim json = IO.File.ReadAllText(rutaArchivo)
+                Clipboard.SetText(json)
+                dialogService.ShowNotification("JSON del borrador copiado al portapapeles")
+            Else
+                dialogService.ShowError("No se encontró el archivo del borrador")
+            End If
+        Catch ex As Exception
+            dialogService.ShowError($"Error al copiar JSON: {ex.Message}")
         End Try
     End Sub
 
@@ -2520,9 +3042,10 @@ Public Class PlantillaVentaViewModel
     ''' <summary>
     ''' Guarda automáticamente un borrador cuando falla la creación del pedido.
     ''' </summary>
-    Private Sub GuardarBorradorAutomatico(pedido As PedidoVentaDTO, mensajeError As String)
+    Private Sub GuardarBorradorAutomatico(mensajeError As String)
         Try
-            Dim borrador = servicioBorradores.GuardarBorrador(pedido, clienteSeleccionado?.nombre, mensajeError)
+            Dim borrador = CrearBorradorDesdeEstadoActual(mensajeError)
+            borrador = servicioBorradores.GuardarBorrador(borrador)
             dialogService.ShowNotification($"Se ha guardado un borrador automáticamente en caso de que quiera recuperarlo más tarde.")
             OnActualizarListaBorradores()
         Catch ex As Exception

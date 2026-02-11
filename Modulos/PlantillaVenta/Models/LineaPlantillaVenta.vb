@@ -88,7 +88,16 @@ Public Class LineaPlantillaVenta
     End Property
     Public Property cantidadPendienteRecibir As Integer
     Public Property StockDisponibleTodosLosAlmacenes As Integer
+    Private _stockActualizado As Boolean
     Public Property stockActualizado As Boolean
+        Get
+            Return _stockActualizado
+        End Get
+        Set(value As Boolean)
+            SetProperty(_stockActualizado, value)
+            RaisePropertyChanged(NameOf(colorStock))
+        End Set
+    End Property
     Public Property fechaInsercion As DateTime = DateTime.MaxValue
     Private _descuento As Decimal
     Public Property descuento As Decimal
