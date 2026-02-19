@@ -59,7 +59,21 @@
                         </StackPanel>
 
                         <!-- Issue #286: Panel de Borradores - Siempre visible para que el usuario conozca la funcionalidad -->
-                        <Expander Grid.Row="1" Margin="0,5,0,5" IsExpanded="{Binding HayBorradores, Mode=OneWay}">
+                        <Expander Grid.Row="1" Margin="0,5,0,5">
+                            <Expander.Style>
+                                <Style TargetType="Expander">
+                                    <Setter Property="IsExpanded" Value="False"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HayBorradores}" Value="True">
+                                            <Setter Property="IsExpanded" Value="True"/>
+                                        </DataTrigger>
+                                        <!-- Issue #288: Expandir también cuando hay JSON válido en el portapapeles -->
+                                        <DataTrigger Binding="{Binding HayJsonEnPortapapeles}" Value="True">
+                                            <Setter Property="IsExpanded" Value="True"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Expander.Style>
                             <Expander.Header>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📋 Borradores guardados" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -87,6 +101,17 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
+
+                                    <!-- Issue #288: Crear borrador desde JSON del portapapeles -->
+                                    <Border BorderBrush="#4CAF50" BorderThickness="1" CornerRadius="3" Padding="8" Margin="0,0,0,5" Background="#E8F5E9"
+                                            Visibility="{Binding HayJsonEnPortapapeles, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Se ha detectado un JSON válido en el portapapeles." VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <Button Content="📋 Crear borrador desde JSON" Padding="10,3"
+                                                    Command="{Binding CrearBorradorDesdeJsonCommand}"
+                                                    ToolTip="Crea un borrador local a partir del JSON del portapapeles (de NestoApp u otra fuente)"/>
+                                        </StackPanel>
+                                    </Border>
 
                                     <!-- Lista de borradores cuando SÍ hay -->
                                     <StackPanel Visibility="{Binding HayBorradores, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -423,7 +448,7 @@
                         </DockPanel>
                         <StackPanel Grid.Row="3" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
                             <TextBlock TextWrapping="Wrap">Este comentario lo verá el compañero de almacén que prepare el pedido. El cliente no ve este comentario.</TextBlock>
-                            <TextBox Text="{Binding clienteSeleccionado.comentarioPicking}"/>
+                            <TextBox Text="{Binding ComentarioPicking}"/>
                         </StackPanel>
                     </Grid>
                 </xctk:WizardPage>

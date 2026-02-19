@@ -111,8 +111,11 @@ Public Class PlantillaVentaViewModel
         CopiarBorradorJsonCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnCopiarBorradorJson)
         EliminarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnEliminarBorrador)
         ActualizarListaBorradoresCommand = New DelegateCommand(AddressOf OnActualizarListaBorradores)
+        CrearBorradorDesdeJsonCommand = New DelegateCommand(AddressOf OnCrearBorradorDesdeJson)
         ' Cargar lista de borradores inmediatamente
         OnActualizarListaBorradores()
+        ' Issue #288: Comprobar si hay JSON válido en el portapapeles
+        ComprobarPortapapeles()
 
         ListaFiltrableRegalos = New ColeccionFiltrable(New ObservableCollection(Of LineaRegalo)) With {
             .TieneDatosIniciales = True
@@ -884,6 +887,9 @@ Public Class PlantillaVentaViewModel
             Return Estado.FechaEntrega
         End Get
         Set(ByVal value As Date)
+            If value < fechaMinimaEntrega AndAlso fechaMinimaEntrega > Date.MinValue Then
+                value = fechaMinimaEntrega
+            End If
             If Estado.FechaEntrega <> value Then
                 Estado.FechaEntrega = value
                 RaisePropertyChanged()
@@ -898,7 +904,12 @@ Public Class PlantillaVentaViewModel
         End Get
         Set
             If _fechaMinimaEntrega < Value Then
-                If fechaEntrega < Value Then
+                ' Issue #288: No sobreescribir la fecha del borrador con la fecha mínima
+                Dim fechaReferencia = fechaEntrega
+                If _borradorEnRestauracion IsNot Nothing AndAlso _borradorEnRestauracion.FechaEntrega > Date.MinValue Then
+                    fechaReferencia = _borradorEnRestauracion.FechaEntrega
+                End If
+                If fechaReferencia < Value Then
                     fechaEntrega = Value
                 End If
                 Dim unused1 = SetProperty(_fechaMinimaEntrega, Value)
@@ -906,7 +917,11 @@ Public Class PlantillaVentaViewModel
 
             If _fechaMinimaEntrega > Value Then
                 Dim unused = SetProperty(_fechaMinimaEntrega, Value)
-                If fechaEntrega < Value Then
+                Dim fechaReferencia2 = fechaEntrega
+                If _borradorEnRestauracion IsNot Nothing AndAlso _borradorEnRestauracion.FechaEntrega > Date.MinValue Then
+                    fechaReferencia2 = _borradorEnRestauracion.FechaEntrega
+                End If
+                If fechaReferencia2 < Value Then
                     fechaEntrega = Value
                 End If
             End If
@@ -1887,6 +1902,9 @@ Public Class PlantillaVentaViewModel
 
             ' Restaurar fecha de entrega DESPUÉS de que fechaMinimaEntrega se haya calculado
             If fechaEntregaBorrador > Date.MinValue Then
+                If fechaEntregaBorrador < fechaMinimaEntrega Then
+                    fechaEntregaBorrador = fechaMinimaEntrega
+                End If
                 Estado.FechaEntrega = fechaEntregaBorrador
                 RaisePropertyChanged(NameOf(fechaEntrega))
             End If
@@ -2481,6 +2499,7 @@ Public Class PlantillaVentaViewModel
         Estado.IvaCliente = value.iva
         Estado.EstadoCliente = value.estado
         Estado.ComentarioPickingCliente = value.comentarioPicking
+        Estado.ComentarioPicking = value.comentarioPicking
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
         cmdCargarProductosPlantilla.Execute()
         cmdComprobarPendientes.Execute()
@@ -2504,6 +2523,7 @@ Public Class PlantillaVentaViewModel
         Estado.IvaCliente = value.iva
         Estado.EstadoCliente = value.estado
         Estado.ComentarioPickingCliente = value.comentarioPicking
+        Estado.ComentarioPicking = value.comentarioPicking
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
         Await CargarProductosPlantillaAsync() ' Awaitable en lugar de fire-and-forget
         cmdComprobarPendientes.Execute()
@@ -2656,9 +2676,6 @@ Public Class PlantillaVentaViewModel
         If direccionEntregaSeleccionada IsNot Nothing Then
             Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
         End If
-        If clienteSeleccionado IsNot Nothing Then
-            Estado.ComentarioPicking = clienteSeleccionado.comentarioPicking
-        End If
 
         Dim borrador As New BorradorPlantillaVenta With {
             .FechaCreacion = DateTime.Now,
@@ -2681,7 +2698,11 @@ Public Class PlantillaVentaViewModel
             .ServirJunto = Estado.ServirJunto,
             .LineasProducto = Estado.LineasProducto,
             .LineasRegalo = Estado.LineasRegalo,
-            .Total = Estado.BaseImponible
+            .Total = Estado.BaseImponible,
+            .ServirPorGlovo = Estado.EnviarPorGlovo,
+            .MandarCobroTarjeta = Estado.MandarCobroTarjeta,
+            .CobroTarjetaCorreo = Estado.CobroTarjetaCorreo,
+            .CobroTarjetaMovil = Estado.CobroTarjetaMovil
         }
 
         Return borrador
@@ -2731,6 +2752,13 @@ Public Class PlantillaVentaViewModel
             _cargandoDesdeBorrador = True
             _borradorEnRestauracion = borrador
             _borradorRestauradoEnFormasVenta = False ' Resetear para que se apliquen los nuevos valores
+
+            ' Issue #288: Establecer FechaEntrega tempranamente para que la lógica de
+            ' fechaMinimaEntrega (que se ejecuta async durante la carga del cliente)
+            ' no la pise con Date.Today
+            If borrador.FechaEntrega > Date.MinValue Then
+                Estado.FechaEntrega = borrador.FechaEntrega
+            End If
 
             ' Verificar que tiene datos válidos
             Dim tieneLineasProducto = borrador.LineasProducto IsNot Nothing AndAlso borrador.LineasProducto.Any()
@@ -2862,7 +2890,11 @@ Public Class PlantillaVentaViewModel
 
             ' Restaurar fecha de entrega DESPUÉS del delay (para que no sea sobrescrita por fechaMinimaEntrega)
             If borrador.FechaEntrega > Date.MinValue Then
-                Estado.FechaEntrega = borrador.FechaEntrega
+                Dim fechaRestaurar = borrador.FechaEntrega
+                If fechaRestaurar < fechaMinimaEntrega Then
+                    fechaRestaurar = fechaMinimaEntrega
+                End If
+                Estado.FechaEntrega = fechaRestaurar
                 RaisePropertyChanged(NameOf(fechaEntrega))
             End If
 
@@ -2883,6 +2915,17 @@ Public Class PlantillaVentaViewModel
             If Not String.IsNullOrEmpty(borrador.ComentarioPicking) AndAlso clienteSeleccionado IsNot Nothing Then
                 clienteSeleccionado.comentarioPicking = borrador.ComentarioPicking
                 RaisePropertyChanged(NameOf(clienteSeleccionado))
+            End If
+
+            ' Issue #288: Restaurar envío por Glovo y cobro por tarjeta
+            EnviarPorGlovo = borrador.ServirPorGlovo
+            Estado.MandarCobroTarjeta = borrador.MandarCobroTarjeta
+            RaisePropertyChanged(NameOf(MandarCobroTarjeta))
+            If Not String.IsNullOrEmpty(borrador.CobroTarjetaCorreo) Then
+                CobroTarjetaCorreo = borrador.CobroTarjetaCorreo
+            End If
+            If Not String.IsNullOrEmpty(borrador.CobroTarjetaMovil) Then
+                CobroTarjetaMovil = borrador.CobroTarjetaMovil
             End If
 
             ' Solo actualizar stocks de productos que NO estaban en la plantilla (añadidos desde el borrador)
@@ -2928,6 +2971,27 @@ Public Class PlantillaVentaViewModel
                 dialogService.ShowNotification($"No se pudieron actualizar los stocks: {ex.Message}")
                 System.Diagnostics.Debug.WriteLine($"[Borrador] Error actualizando stocks: {ex.Message}")
             End Try
+
+            ' Issue #288: Restauración final de FechaEntrega y ServirJunto como red de seguridad.
+            ' Las operaciones async de carga de cliente/dirección/formas de venta pueden
+            ' sobreescribir estos valores por timing. Al final todo está cargado.
+            If _borradorEnRestauracion IsNot Nothing Then
+                If _borradorEnRestauracion.FechaEntrega > Date.MinValue Then
+                    Dim fechaFinal = _borradorEnRestauracion.FechaEntrega
+                    If fechaFinal < fechaMinimaEntrega Then
+                        fechaFinal = fechaMinimaEntrega
+                    End If
+                    Estado.FechaEntrega = fechaFinal
+                    RaisePropertyChanged(NameOf(fechaEntrega))
+                End If
+                If direccionEntregaSeleccionada IsNot Nothing Then
+                    direccionEntregaSeleccionada.mantenerJunto = _borradorEnRestauracion.MantenerJunto
+                    direccionEntregaSeleccionada.servirJunto = _borradorEnRestauracion.ServirJunto
+                    Estado.MantenerJunto = _borradorEnRestauracion.MantenerJunto
+                    Estado.ServirJunto = _borradorEnRestauracion.ServirJunto
+                    RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+                End If
+            End If
 
             ' Notificar cambios a la UI
             RaisePropertyChanged(NameOf(baseImponiblePedido))
@@ -3036,6 +3100,73 @@ Public Class PlantillaVentaViewModel
             RaisePropertyChanged(NameOf(NumeroBorradores))
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine($"Error al actualizar lista de borradores: {ex.Message}")
+        End Try
+    End Sub
+
+    ' Issue #288: Crear borrador desde JSON del portapapeles
+    Private _hayJsonEnPortapapeles As Boolean
+    ''' <summary>
+    ''' Indica si se ha detectado un JSON válido de borrador en el portapapeles.
+    ''' </summary>
+    Public Property HayJsonEnPortapapeles As Boolean
+        Get
+            Return _hayJsonEnPortapapeles
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_hayJsonEnPortapapeles, value)
+        End Set
+    End Property
+
+    Private _textoJsonPortapapeles As String
+
+    Private _crearBorradorDesdeJsonCommand As DelegateCommand
+    Public Property CrearBorradorDesdeJsonCommand As DelegateCommand
+        Get
+            Return _crearBorradorDesdeJsonCommand
+        End Get
+        Private Set(value As DelegateCommand)
+            Dim unused = SetProperty(_crearBorradorDesdeJsonCommand, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Comprueba si el portapapeles contiene un JSON válido de borrador.
+    ''' Se llama al inicializar el módulo y al actualizar la lista de borradores.
+    ''' </summary>
+    Private Sub ComprobarPortapapeles()
+        Try
+            If Clipboard.ContainsText() Then
+                Dim texto = Clipboard.GetText()
+                If servicioBorradores.EsJsonBorradorValido(texto) Then
+                    _textoJsonPortapapeles = texto
+                    HayJsonEnPortapapeles = True
+                    Return
+                End If
+            End If
+        Catch
+            ' Clipboard puede lanzar excepciones si está en uso por otro proceso
+        End Try
+        _textoJsonPortapapeles = Nothing
+        HayJsonEnPortapapeles = False
+    End Sub
+
+    Private Sub OnCrearBorradorDesdeJson()
+        Try
+            If String.IsNullOrEmpty(_textoJsonPortapapeles) Then
+                dialogService.ShowError("No hay JSON válido en el portapapeles")
+                Return
+            End If
+
+            Dim borrador = servicioBorradores.CrearBorradorDesdeJson(_textoJsonPortapapeles)
+            OnActualizarListaBorradores()
+
+            ' Limpiar estado del portapapeles
+            _textoJsonPortapapeles = Nothing
+            HayJsonEnPortapapeles = False
+
+            dialogService.ShowNotification($"Borrador creado desde JSON: {borrador.Cliente} - {borrador.NombreCliente} ({borrador.NumeroLineas} líneas)")
+        Catch ex As Exception
+            dialogService.ShowError($"Error al crear borrador desde JSON: {ex.Message}")
         End Try
     End Sub
 

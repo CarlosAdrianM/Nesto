@@ -98,6 +98,7 @@ namespace Nesto.Modulos.CanalesExternos
                 pedidoSalida.contacto = cliente.Contacto;
                 pedidoSalida.contactoCobro = cliente.ContactoCobro;
                 pedidoSalida.vendedor = cliente.Vendedor;
+                pedidoSalida.comentarioPicking = cliente.ComentarioPicking;
 
                 pedidoSalida.iva = cliente.IVA;
                 string numeroOrderAmazon = order.AmazonOrderId;

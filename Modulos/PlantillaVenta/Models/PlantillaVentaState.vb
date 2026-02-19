@@ -438,7 +438,7 @@ Public Class PlantillaVentaState
             .noComisiona = NoComisiona,
             .mantenerJunto = MantenerJunto,
             .servirJunto = ServirJunto,
-            .comentarioPicking = ComentarioPickingCliente,
+            .comentarioPicking = ComentarioPicking,
             .comentarios = ComentarioRuta
         }
 

@@ -66,6 +66,7 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.contacto = cliente.ContactoDefecto;
             pedidoSalida.contactoCobro = cliente.ContactoCobro;
             pedidoSalida.vendedor = cliente.Vendedor;
+            pedidoSalida.comentarioPicking = cliente.ComentarioPicking;
 
             pedidoSalida.iva = cliente.IVA;
             pedidoSalida.comentarios = pedidoEntrada.Pedido.Element("reference").Value + " \r\n";
