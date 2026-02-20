@@ -1,11 +1,12 @@
-﻿using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Nesto.Modulos.CanalesExternos.Services
@@ -13,89 +14,111 @@ namespace Nesto.Modulos.CanalesExternos.Services
     public class CanalesExternosProductosService : ICanalesExternosProductosService
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IServicioAutenticacion _servicioAutenticacion;
 
-        public CanalesExternosProductosService(IConfiguracion configuracion)
+        public CanalesExternosProductosService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             _configuracion = configuracion;
+            _servicioAutenticacion = servicioAutenticacion;
         }
+
         public async Task<ProductoCanalExterno> AddProductoAsync(string productoId)
         {
-            using (var db = new NestoEntities())
+            using (var client = new HttpClient())
             {
-                var producto = new PrestashopProductos
-                {
-                    Número = productoId,
-                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                    VistoBueno = _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE)
-                };
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                await _servicioAutenticacion.ConfigurarAutorizacion(client);
 
-                db.PrestashopProductos.Add(producto);
-                await db.SaveChangesAsync();
-                return new ProductoCanalExterno
+                var dto = new { ProductoId = productoId, VistoBueno = _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE) };
+                var json = JsonConvert.SerializeObject(dto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync("PrestashopProductos", content);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    ProductoId = producto.Número,
-                    VistoBueno = producto.VistoBueno ?? false
-                };
+                    var error = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Error al añadir producto {productoId}: {error}");
+                }
+
+                var respuesta = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<ProductoCanalExterno>(respuesta);
+                resultado.IsDirty = false;
+                return resultado;
             }
         }
 
         public async Task<ProductoCanalExterno> GetProductoAsync(string productoId)
         {
-            using (var db = new NestoEntities())
+            using (var client = new HttpClient())
             {
-                var producto = await db.PrestashopProductos.FirstOrDefaultAsync(p => p.Empresa == Constantes.Empresas.EMPRESA_DEFECTO && p.Número == productoId);
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                await _servicioAutenticacion.ConfigurarAutorizacion(client);
 
-                if (producto == null) return null;
+                var response = await client.GetAsync($"PrestashopProductos/{productoId}");
 
-                return new ProductoCanalExterno
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
-                    ProductoId = producto.Número,
-                    Nombre = producto.Nombre,
-                    DescripcionBreve = producto.DescripciónBreve,
-                    DescripcionCompleta = producto.Descripción,
-                    PvpIvaIncluido = producto.PVP_IVA_Incluido,
-                    VistoBueno = producto.VistoBueno ?? false,
-                    IsDirty = false
-                };
+                    return null;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Error al obtener producto {productoId}: {error}");
+                }
+
+                var respuesta = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<ProductoCanalExterno>(respuesta);
+                resultado.IsDirty = false;
+                return resultado;
             }
         }
 
         public async Task<IEnumerable<ProductoCanalExterno>> GetProductosSinVistoBuenoNumeroAsync()
         {
-            using (var db = new NestoEntities())
+            using (var client = new HttpClient())
             {
-                return await db.PrestashopProductos
-                    .Where(p => p.VistoBueno == null || p.VistoBueno == false)
-                    .Select(producto => new ProductoCanalExterno
-                    {
-                        ProductoId = producto.Número,
-                        Nombre = producto.Nombre,
-                        DescripcionBreve = producto.DescripciónBreve,
-                        DescripcionCompleta = producto.Descripción,
-                        PvpIvaIncluido = producto.PVP_IVA_Incluido,
-                        VistoBueno = producto.VistoBueno ?? false,
-                        IsDirty = false
-                    })
-                    .ToListAsync();
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                await _servicioAutenticacion.ConfigurarAutorizacion(client);
+
+                var response = await client.GetAsync("PrestashopProductos?sinVistoBueno=true");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Error al obtener productos sin visto bueno: {error}");
+                }
+
+                var respuesta = await response.Content.ReadAsStringAsync();
+                var resultado = JsonConvert.DeserializeObject<List<ProductoCanalExterno>>(respuesta);
+                foreach (var producto in resultado)
+                {
+                    producto.IsDirty = false;
+                }
+                return resultado;
             }
         }
 
         public async Task SaveProductoAsync(ProductoCanalExterno producto)
         {
-            using (var db = new NestoEntities())
+            using (var client = new HttpClient())
             {
-                var productoPrestashopDb = await db.PrestashopProductos.FirstOrDefaultAsync(p => p.Empresa == Constantes.Empresas.EMPRESA_DEFECTO && p.Número == producto.ProductoId);
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                await _servicioAutenticacion.ConfigurarAutorizacion(client);
 
-                if (productoPrestashopDb != null)
+                var json = JsonConvert.SerializeObject(producto);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await client.PutAsync("PrestashopProductos", content);
+
+                if (!response.IsSuccessStatusCode)
                 {
-                    productoPrestashopDb.Nombre = producto.Nombre;
-                    productoPrestashopDb.DescripciónBreve = producto.DescripcionBreve;
-                    productoPrestashopDb.Descripción = producto.DescripcionCompleta;
-                    productoPrestashopDb.PVP_IVA_Incluido = producto.PvpIvaIncluido;
-                    productoPrestashopDb.VistoBueno = producto.VistoBueno;
-                    await db.SaveChangesAsync();
-                    producto.IsDirty = false;
+                    var error = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Error al guardar producto {producto.ProductoId}: {error}");
                 }
+
+                producto.IsDirty = false;
             }
         }
     }

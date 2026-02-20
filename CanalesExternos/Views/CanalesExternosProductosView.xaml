@@ -7,7 +7,9 @@
       xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:prism="http://prismlibrary.com/" 
       xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-      xmlns:viewmodels="clr-namespace:Nesto.Modulos.CanalesExternos.ViewModels" 
+      xmlns:viewmodels="clr-namespace:Nesto.Modulos.CanalesExternos.ViewModels"
+      xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
+      xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
       d:DataContext="{d:DesignInstance Type=viewmodels:CanalesExternosProductosViewModel}"
       prism:ViewModelLocator.AutoWireViewModel="True"        
       mc:Ignorable="d" 
@@ -47,6 +49,18 @@
                         <TextBox.InputBindings>
                             <KeyBinding Command="{Binding Path=BuscarProductoCommand}" Key="Enter" />
                         </TextBox.InputBindings>
+                        <i:Interaction.Behaviors>
+                            <behaviors:AutocompleteBehavior
+                                Empresa="1"
+                                SiempreActivo="True"
+                                TipoBusqueda="Producto"
+                                MinChars="2"
+                                DebounceMs="300"
+                                MaxResults="10"/>
+                            <behaviors:ProductoBehavior
+                                Empresa="1"
+                                SiempreActivo="True"/>
+                        </i:Interaction.Behaviors>
                     </TextBox>
                     
                     <UniformGrid Grid.Column="1" Grid.Row="6" Margin="3" Columns="5">
