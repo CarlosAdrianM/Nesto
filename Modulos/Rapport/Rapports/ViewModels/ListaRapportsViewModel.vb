@@ -42,6 +42,9 @@ Public Class ListaRapportsViewModel
         cmdCargarListaRapportsFiltrada = New DelegateCommand(AddressOf OnCargarListaRapportsFiltrada, AddressOf CanCargarListaRapportsFiltrada)
         cmdCrearRapport = New DelegateCommand(Of ClienteProbabilidadVenta)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
         GenerarResumenCommand = New DelegateCommand(AddressOf OnGenerarResumen, AddressOf CanGenerarResumen)
+        VerDetalleVentasCommand = New DelegateCommand(Of VentaClienteResumenDTO)(AddressOf OnVerDetalleVentas, AddressOf CanVerDetalleVentas)
+        VolverAResumenVentasCommand = New DelegateCommand(AddressOf OnVolverAResumenVentas)
+        AbrirFichaProductoCommand = New DelegateCommand(Of VentaClienteResumenDTO)(AddressOf OnAbrirFichaProducto, AddressOf CanAbrirFichaProducto)
 
         listaTiposRapports = servicio.CargarListaTipos()
         listaEstadosRapport = servicio.CargarListaEstados()
@@ -73,7 +76,9 @@ Public Class ListaRapportsViewModel
             Return _clienteSeleccionado
         End Get
         Set(value As String)
-            Dim unused = SetProperty(_clienteSeleccionado, value)
+            If SetProperty(_clienteSeleccionado, value) Then
+                MostrandoDetalleVentas = False
+            End If
             cmdCargarListaRapports.RaiseCanExecuteChanged()
             If _clienteSeleccionado = String.Empty Then
                 cmdCargarListaRapports.Execute(Nothing) ' Por fecha
@@ -383,6 +388,43 @@ Public Class ListaRapportsViewModel
         End Set
     End Property
 
+    Private _detalleVentasProductos As ResumenVentasClienteResponse
+    Public Property DetalleVentasProductos As ResumenVentasClienteResponse
+        Get
+            Return _detalleVentasProductos
+        End Get
+        Set(value As ResumenVentasClienteResponse)
+            Dim unused = SetProperty(_detalleVentasProductos, value)
+        End Set
+    End Property
+
+    Private _mostrandoDetalleVentas As Boolean = False
+    Public Property MostrandoDetalleVentas As Boolean
+        Get
+            Return _mostrandoDetalleVentas
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_mostrandoDetalleVentas, value)
+            RaisePropertyChanged(NameOf(MostrandoResumenVentas))
+        End Set
+    End Property
+
+    Public ReadOnly Property MostrandoResumenVentas As Boolean
+        Get
+            Return Not MostrandoDetalleVentas
+        End Get
+    End Property
+
+    Private _filtroDetalleVentas As String
+    Public Property FiltroDetalleVentas As String
+        Get
+            Return _filtroDetalleVentas
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_filtroDetalleVentas, value)
+        End Set
+    End Property
+
     Public ReadOnly Property SubtituloResumenVentas As String
         Get
             Return If(ResumenVentasCliente IsNot Nothing,
@@ -437,6 +479,7 @@ Public Class ListaRapportsViewModel
     Public Property CambiarModoComparativaCommand As DelegateCommand(Of String)
     Public Property CambiarAgruparPorCommand As DelegateCommand(Of String)
     Private Async Sub OnCargarResumenVentas()
+        MostrandoDetalleVentas = False
         LlamarApiResumenVentasAsync()
     End Sub
 
@@ -573,6 +616,46 @@ Public Class ListaRapportsViewModel
     End Sub
 
 
+    Public Property VerDetalleVentasCommand As DelegateCommand(Of VentaClienteResumenDTO)
+    Private Function CanVerDetalleVentas(venta As VentaClienteResumenDTO) As Boolean
+        Return venta IsNot Nothing AndAlso venta.Nombre <> "TOTAL"
+    End Function
+    Private Async Sub OnVerDetalleVentas(venta As VentaClienteResumenDTO)
+        If Not CanVerDetalleVentas(venta) Then Exit Sub
+
+        Try
+            EstaOcupado = True
+            FiltroDetalleVentas = venta.Nombre
+            Dim detalle = Await servicio.CargarDetalleVentasProducto(clienteSeleccionado, venta.Nombre, ModoComparativa, AgruparPor)
+            detalle.Datos = detalle.Datos.OrderBy(Function(x) x.Diferencia).ToList()
+            AgregarLineaTotal(detalle.Datos)
+            DetalleVentasProductos = detalle
+            MostrandoDetalleVentas = True
+        Catch ex As Exception
+            _dialogService.ShowError("No se ha podido cargar el detalle de ventas: " & ex.Message)
+        Finally
+            EstaOcupado = False
+        End Try
+    End Sub
+
+    Public Property VolverAResumenVentasCommand As DelegateCommand
+    Private Sub OnVolverAResumenVentas()
+        MostrandoDetalleVentas = False
+    End Sub
+
+    Public Property AbrirFichaProductoCommand As DelegateCommand(Of VentaClienteResumenDTO)
+    Private Function CanAbrirFichaProducto(venta As VentaClienteResumenDTO) As Boolean
+        Return venta IsNot Nothing AndAlso venta.Nombre <> "TOTAL" AndAlso venta.Nombre.Contains(" - ")
+    End Function
+    Private Sub OnAbrirFichaProducto(venta As VentaClienteResumenDTO)
+        If Not CanAbrirFichaProducto(venta) Then Exit Sub
+        Dim productoId = venta.Nombre.Split({" - "}, 2, StringSplitOptions.None)(0).Trim()
+        Dim parameters As New NavigationParameters From {
+            {"numeroProductoParameter", productoId}
+        }
+        regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
+    End Sub
+
     ' Comando para actualizar SelectedAction usando DelegateCommand
     Private _tipoRapportCambiaCommand As DelegateCommand(Of String)
     Public ReadOnly Property TipoRapportCambiaCommand As DelegateCommand(Of String)
@@ -653,7 +736,9 @@ Public Class ListaRapportsViewModel
             Dim total As New VentaClienteResumenDTO With {
             .Nombre = "TOTAL",
             .VentaAnnoActual = datos.Sum(Function(d) d.VentaAnnoActual),
-            .VentaAnnoAnterior = datos.Sum(Function(d) d.VentaAnnoAnterior)
+            .VentaAnnoAnterior = datos.Sum(Function(d) d.VentaAnnoAnterior),
+            .UnidadesAnnoActual = datos.Sum(Function(d) d.UnidadesAnnoActual),
+            .UnidadesAnnoAnterior = datos.Sum(Function(d) d.UnidadesAnnoAnterior)
         }
             datos.Add(total)
         End If

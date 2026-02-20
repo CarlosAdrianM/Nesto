@@ -16,6 +16,7 @@
         <CollectionViewSource x:Key="ListaTipos" Source="{Binding listaTiposRapports}"/>
         <rapports:ProbabilidadToColorConverter x:Key="ProbabilidadToColorConverter"/>
         <rapports:StringEqualityConverter x:Key="StringEqualityConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <!-- Estilo para ToggleButton como botón -->
         <Style TargetType="ToggleButton" x:Key="ToggleButtonAsButtonStyle">
             <Setter Property="Width" Value="100"/>
@@ -270,16 +271,21 @@
                             </StackPanel>
                         </Grid>
 
-                        <!-- Datos del resumen -->
-                        <DataGrid Grid.Row="3" 
-                                  ItemsSource="{Binding ResumenVentasCliente.Datos}" 
-                                  AutoGenerateColumns="False" 
-                                  Margin="0,10,0,0" 
-                                  HeadersVisibility="Column" 
-                                  IsReadOnly="True" 
+                        <!-- Datos del resumen (visible cuando NO se muestra detalle) -->
+                        <DataGrid Grid.Row="3"
+                                  x:Name="dgResumenVentas"
+                                  ItemsSource="{Binding ResumenVentasCliente.Datos}"
+                                  AutoGenerateColumns="False"
+                                  Margin="0,10,0,0"
+                                  HeadersVisibility="Column"
+                                  IsReadOnly="True"
                                   CanUserAddRows="False"
                                   VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Auto">
+                                  HorizontalScrollBarVisibility="Auto"
+                                  MouseDoubleClick="OnResumenVentasDoubleClick"
+                                  Sorting="OnVentasSorting"
+                                  ToolTip="Doble clic en una fila para ver el detalle por productos"
+                                  Visibility="{Binding MostrandoResumenVentas, Converter={StaticResource BoolToVis}}">
                             <DataGrid.RowStyle>
                                 <Style TargetType="DataGridRow">
                                     <Style.Triggers>
@@ -293,12 +299,29 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
 
+                                <DataGridTextColumn Header="Uds. Actual" Binding="{Binding UnidadesAnnoActual, StringFormat=N0}" Width="Auto" SortMemberPath="UnidadesAnnoActual">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextAlignment" Value="Right"/>
+                                            <Setter Property="Padding" Value="0,0,5,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <DataGridTextColumn Header="Uds. Anterior" Binding="{Binding UnidadesAnnoAnterior, StringFormat=N0}" Width="Auto" SortMemberPath="UnidadesAnnoAnterior">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="TextAlignment" Value="Right"/>
+                                            <Setter Property="Padding" Value="0,0,5,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
                                 <DataGridTextColumn Header="Año Actual" Binding="{Binding VentaAnnoActual, StringFormat=c}" Width="Auto">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="TextAlignment" Value="Right"/>
                                             <Setter Property="Padding" Value="0,0,5,0"/>
-                                            <!-- Opcional para algo de espacio a la derecha -->
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
@@ -331,6 +354,95 @@
                                 </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
+
+                        <!-- Detalle por productos (visible cuando se muestra detalle) -->
+                        <DockPanel Grid.Row="3"
+                                   Margin="0,10,0,0"
+                                   Visibility="{Binding MostrandoDetalleVentas, Converter={StaticResource BoolToVis}}">
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,5">
+                                <Button Content="Volver" Command="{Binding VolverAResumenVentasCommand}" Padding="10,3" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding FiltroDetalleVentas, StringFormat='Detalle: {0}'}"
+                                           VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13"/>
+                            </StackPanel>
+                            <DataGrid ItemsSource="{Binding DetalleVentasProductos.Datos}"
+                                      AutoGenerateColumns="False"
+                                      HeadersVisibility="Column"
+                                      IsReadOnly="True"
+                                      CanUserAddRows="False"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      MouseDoubleClick="OnDetalleVentasDoubleClick"
+                                      Sorting="OnVentasSorting"
+                                      ToolTip="Doble clic en un producto para abrir su ficha">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Nombre}" Value="TOTAL">
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                <Setter Property="Background" Value="LightGray"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Producto" Binding="{Binding Nombre}" Width="*"/>
+
+                                    <DataGridTextColumn Header="Uds. Actual" Binding="{Binding UnidadesAnnoActual, StringFormat=N0}" Width="Auto" SortMemberPath="UnidadesAnnoActual">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextAlignment" Value="Right"/>
+                                                <Setter Property="Padding" Value="0,0,5,0"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Header="Uds. Anterior" Binding="{Binding UnidadesAnnoAnterior, StringFormat=N0}" Width="Auto" SortMemberPath="UnidadesAnnoAnterior">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextAlignment" Value="Right"/>
+                                                <Setter Property="Padding" Value="0,0,5,0"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Header="Año Actual" Binding="{Binding VentaAnnoActual, StringFormat=c}" Width="Auto">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextAlignment" Value="Right"/>
+                                                <Setter Property="Padding" Value="0,0,5,0"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Header="Año Anterior" Binding="{Binding VentaAnnoAnterior, StringFormat=c}" Width="Auto">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextAlignment" Value="Right"/>
+                                                <Setter Property="Padding" Value="0,0,5,0"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Header="Diferencia" Binding="{Binding Diferencia, StringFormat=c}" Width="Auto">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextAlignment" Value="Right"/>
+                                                <Setter Property="Padding" Value="0,0,5,0"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Header="Ratio" Binding="{Binding Ratio, StringFormat=P1}" Width="Auto">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="TextAlignment" Value="Right"/>
+                                                <Setter Property="Padding" Value="0,0,5,0"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
                     </Grid>
                 </Border>
             </Grid>

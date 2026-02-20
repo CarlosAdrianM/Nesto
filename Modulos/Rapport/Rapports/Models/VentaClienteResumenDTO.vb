@@ -2,6 +2,8 @@
     Public Property Nombre As String
     Public Property VentaAnnoActual As Decimal
     Public Property VentaAnnoAnterior As Decimal
+    Public Property UnidadesAnnoActual As Integer
+    Public Property UnidadesAnnoAnterior As Integer
     Public ReadOnly Property Diferencia As Decimal
         Get
             Return VentaAnnoActual - VentaAnnoAnterior

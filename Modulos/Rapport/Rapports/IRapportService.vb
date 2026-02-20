@@ -14,4 +14,5 @@ Public Interface IRapportService
     Function CargarClientesProbabilidad(vendedor As String, tipoInteraccion As String, grupoSubgrupo As String) As Task(Of List(Of ClienteProbabilidadVenta))
     Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String)
     Function CargarResumenVentasCliente(clienteId As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
+    Function CargarDetalleVentasProducto(clienteId As String, filtro As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
 End Interface

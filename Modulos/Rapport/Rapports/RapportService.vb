@@ -414,4 +414,22 @@ Public Class RapportService
             Throw New ApplicationException("Error al cargar resumen de ventas: " & ex.Message, ex)
         End Try
     End Function
+
+    Public Async Function CargarDetalleVentasProducto(clienteId As String, filtro As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse) Implements IRapportService.CargarDetalleVentasProducto
+        Dim url = $"ventascliente/resumen/detalle?clienteId={clienteId}&filtro={Uri.EscapeDataString(filtro)}&modoComparativa={modoComparativa}&agruparPor={agruparPor}"
+        Try
+            Using client As New Net.Http.HttpClient()
+                client.BaseAddress = New Uri(configuracion.servidorAPI)
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+                Dim response = Await client.GetAsync(url)
+                Dim unused = response.EnsureSuccessStatusCode()
+                Dim json = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of ResumenVentasClienteResponse)(json)
+            End Using
+        Catch ex As Exception
+            Throw New ApplicationException("Error al cargar detalle de ventas por producto: " & ex.Message, ex)
+        End Try
+    End Function
 End Class
