@@ -170,4 +170,54 @@ Public Class BorradorPlantillaVentaService
             Return 0
         End Try
     End Function
+
+    ''' <summary>
+    ''' Crea un borrador a partir de un JSON (compatible con camelCase de NestoApp).
+    ''' Newtonsoft.Json hace matching case-insensitive por defecto, por lo que
+    ''' "fechaCreacion" mapea a FechaCreacion automáticamente.
+    ''' Issue #288: Crear borrador desde JSON del portapapeles
+    ''' </summary>
+    Public Function CrearBorradorDesdeJson(json As String) As BorradorPlantillaVenta Implements IBorradorPlantillaVentaService.CrearBorradorDesdeJson
+        If String.IsNullOrWhiteSpace(json) Then
+            Throw New ArgumentException("El JSON no puede ser nulo o vacío", NameOf(json))
+        End If
+
+        Dim borrador As BorradorPlantillaVenta
+        Try
+            borrador = JsonConvert.DeserializeObject(Of BorradorPlantillaVenta)(json, JsonSettings)
+        Catch ex As JsonException
+            Throw New ArgumentException("El texto no es un JSON válido", NameOf(json), ex)
+        End Try
+
+        If borrador Is Nothing OrElse String.IsNullOrWhiteSpace(borrador.Cliente) Then
+            Throw New ArgumentException("El JSON no contiene un borrador válido (falta cliente)", NameOf(json))
+        End If
+
+        ' Guardar usando el método estándar (re-serializa en PascalCase)
+        Return GuardarBorrador(borrador)
+    End Function
+
+    ''' <summary>
+    ''' Comprueba si un texto es un JSON válido que puede deserializarse como borrador.
+    ''' Requiere al menos un cliente y alguna línea de producto o regalo.
+    ''' Issue #288: Crear borrador desde JSON del portapapeles
+    ''' </summary>
+    Public Function EsJsonBorradorValido(json As String) As Boolean Implements IBorradorPlantillaVentaService.EsJsonBorradorValido
+        If String.IsNullOrWhiteSpace(json) Then
+            Return False
+        End If
+
+        Try
+            Dim borrador = JsonConvert.DeserializeObject(Of BorradorPlantillaVenta)(json, JsonSettings)
+            If borrador Is Nothing Then Return False
+            If String.IsNullOrWhiteSpace(borrador.Cliente) Then Return False
+
+            Dim tieneProductos = borrador.LineasProducto IsNot Nothing AndAlso borrador.LineasProducto.Count > 0
+            Dim tieneRegalos = borrador.LineasRegalo IsNot Nothing AndAlso borrador.LineasRegalo.Count > 0
+
+            Return tieneProductos OrElse tieneRegalos
+        Catch
+            Return False
+        End Try
+    End Function
 End Class

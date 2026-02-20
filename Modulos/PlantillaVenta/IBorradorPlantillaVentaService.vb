@@ -41,4 +41,22 @@ Public Interface IBorradorPlantillaVentaService
     ''' </summary>
     ''' <returns>Número de borradores</returns>
     Function ContarBorradores() As Integer
+
+    ''' <summary>
+    ''' Crea un borrador a partir de un JSON (compatible con camelCase de NestoApp).
+    ''' Issue #288: Crear borrador desde JSON del portapapeles
+    ''' </summary>
+    ''' <param name="json">JSON del borrador (camelCase o PascalCase)</param>
+    ''' <returns>El borrador creado y guardado</returns>
+    ''' <exception cref="ArgumentException">Si el JSON es inválido o no contiene datos mínimos</exception>
+    Function CrearBorradorDesdeJson(json As String) As BorradorPlantillaVenta
+
+    ''' <summary>
+    ''' Comprueba si un texto es un JSON válido que puede deserializarse como borrador.
+    ''' Requiere al menos un cliente y alguna línea de producto o regalo.
+    ''' Issue #288: Crear borrador desde JSON del portapapeles
+    ''' </summary>
+    ''' <param name="json">Texto a validar</param>
+    ''' <returns>True si es un JSON válido de borrador</returns>
+    Function EsJsonBorradorValido(json As String) As Boolean
 End Interface

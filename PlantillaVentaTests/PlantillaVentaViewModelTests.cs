@@ -473,5 +473,29 @@ namespace PlantillaVentaTests
         }
 
         #endregion
+
+        #region Borrador FechaEntrega Tests
+
+        [TestMethod]
+        public void FechaEntrega_RestaurarBorradorConFechaAnteriorAMinima_AjustaAlMinimo()
+        {
+            // Arrange
+            var (vm, _) = CrearViewModelConMocks();
+            var fechaMinima = DateTime.Today;
+            var fechaBorrador = DateTime.Today.AddDays(-2); // Borrador guardado hace 2 días
+
+            // Simulate: fechaMinimaEntrega se calcula durante la carga del cliente
+            vm.fechaMinimaEntrega = fechaMinima;
+
+            // Act: restaurar fecha del borrador que está en el pasado
+            vm.fechaEntrega = fechaBorrador;
+
+            // Assert: fechaEntrega no debe ser anterior a fechaMinimaEntrega
+            // (el DateTimePicker de WPF lanza ArgumentOutOfRangeException si Value < Minimum)
+            Assert.IsTrue(vm.fechaEntrega >= vm.fechaMinimaEntrega,
+                $"fechaEntrega ({vm.fechaEntrega:d}) no debería ser anterior a fechaMinimaEntrega ({vm.fechaMinimaEntrega:d})");
+        }
+
+        #endregion
     }
 }

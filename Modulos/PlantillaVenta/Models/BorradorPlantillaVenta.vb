@@ -123,6 +123,28 @@ Public Class BorradorPlantillaVenta
     ''' </summary>
     Public Property ComentarioPicking As String
 
+    ' ========== Envío y cobro (Issue #288) ==========
+    ''' <summary>
+    ''' Si se envía por Glovo (entrega urgente).
+    ''' Nota: NestoApp lo llama "servirPorGlovo", PlantillaVentaState lo llama "EnviarPorGlovo".
+    ''' </summary>
+    Public Property ServirPorGlovo As Boolean
+
+    ''' <summary>
+    ''' Si se debe enviar solicitud de cobro por tarjeta
+    ''' </summary>
+    Public Property MandarCobroTarjeta As Boolean
+
+    ''' <summary>
+    ''' Email para enviar el cobro por tarjeta
+    ''' </summary>
+    Public Property CobroTarjetaCorreo As String
+
+    ''' <summary>
+    ''' Teléfono móvil para enviar el cobro por tarjeta
+    ''' </summary>
+    Public Property CobroTarjetaMovil As String
+
     ' ========== Propiedades calculadas para la UI ==========
 
     ' Contadores cacheados para cuando las colecciones se limpian en la lista de borradores

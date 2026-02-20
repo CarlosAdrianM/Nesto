@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.PlantillaVenta;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -548,6 +549,489 @@ namespace PlantillaVentaTests
 
             // Assert
             Assert.AreEqual("REI", cargado.AlmacenCodigo);
+        }
+
+        #endregion
+
+        #region CrearBorradorDesdeJson Tests (Issue #288)
+
+        /// <summary>
+        /// JSON real generado por NestoApp (camelCase).
+        /// Se usa en los tests para verificar compatibilidad real.
+        /// </summary>
+        private const string JSON_REAL_NESTOAPP = @"{
+  ""id"": ""6bd921e3-9371-4c88-92f0-7c9519137073"",
+  ""fechaCreacion"": ""2026-02-12T10:46:00.983Z"",
+  ""usuario"": ""Carlos"",
+  ""empresa"": ""1"",
+  ""cliente"": ""15191"",
+  ""contacto"": ""0"",
+  ""nombreCliente"": ""CENTRO DE ESTÉTICA EL EDÉN, S.L.U."",
+  ""lineasProducto"": [
+    {
+      ""producto"": ""17404"",
+      ""texto"": ""ROLLO PAPEL CAMILLA"",
+      ""cantidad"": 6,
+      ""cantidadOferta"": 1,
+      ""precio"": 7.49,
+      ""descuento"": 0,
+      ""aplicarDescuento"": false,
+      ""iva"": ""G21"",
+      ""grupo"": ""ACC"",
+      ""familia"": ""Productos Genéricos"",
+      ""subGrupo"": ""Desechables"",
+      ""tamanno"": 100,
+      ""unidadMedida"": ""m    "",
+      ""urlImagen"": ""https://www.productosdeesteticaypeluqueriaprofesional.com/1279-home_default/rollo-papel-camilla.jpg"",
+      ""aplicarDescuentoFicha"": true
+    },
+    {
+      ""producto"": ""41828"",
+      ""texto"": ""WHITENING CREMA DESPIGMENTANTE SPF 50"",
+      ""cantidad"": 9,
+      ""cantidadOferta"": 0,
+      ""precio"": 26.26,
+      ""descuento"": 0.45,
+      ""aplicarDescuento"": true,
+      ""iva"": ""G21"",
+      ""grupo"": ""COS"",
+      ""familia"": ""Maystar"",
+      ""subGrupo"": ""Cremas mantenimiento"",
+      ""tamanno"": 50,
+      ""unidadMedida"": ""ml   "",
+      ""urlImagen"": ""https://www.productosdeesteticaypeluqueriaprofesional.com/103013-home_default/crema-whitening-despigmentante-spf-50-50ml.jpg"",
+      ""aplicarDescuentoFicha"": true
+    }
+  ],
+  ""lineasRegalo"": [
+    {
+      ""producto"": ""44702"",
+      ""texto"": ""CARTUCHO CERA TIBIA LAVANDA MIEL C/A.ESENCIAL"",
+      ""precio"": 2.45,
+      ""ganavisiones"": 1,
+      ""iva"": ""G21"",
+      ""cantidad"": 1
+    },
+    {
+      ""producto"": ""43799"",
+      ""texto"": ""QUITAESMALTE ESPECIAL"",
+      ""precio"": 4.54,
+      ""ganavisiones"": 5,
+      ""iva"": ""G21"",
+      ""cantidad"": 1
+    }
+  ],
+  ""comentarioRuta"": ""Contacto 0, fecha entrega 14/02/2026 servir junto true y mantener junto false"",
+  ""esPresupuesto"": false,
+  ""formaPago"": ""PAG"",
+  ""plazosPago"": ""1/30"",
+  ""fechaEntrega"": ""2026-02-14T00:00:00+01:00"",
+  ""almacenCodigo"": ""ALG"",
+  ""mantenerJunto"": false,
+  ""servirJunto"": true,
+  ""comentarioPicking"": ""Comentarios para almacén "",
+  ""total"": 174.92700000000002,
+  ""servirPorGlovo"": false,
+  ""mandarCobroTarjeta"": false,
+  ""cobroTarjetaCorreo"": ""info@esteticaeleden.com"",
+  ""cobroTarjetaMovil"": """"
+}";
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_JsonCamelCaseDeNestoApp_CreaArchivoBorrador()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert
+            Assert.IsNotNull(resultado);
+            var rutaArchivo = Path.Combine(_carpetaTest, $"{resultado.Id}.json");
+            Assert.IsTrue(File.Exists(rutaArchivo), $"El archivo borrador no se creó: {rutaArchivo}");
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_PreservaClienteYNombre()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert
+            Assert.AreEqual("15191", resultado.Cliente);
+            Assert.AreEqual("CENTRO DE ESTÉTICA EL EDÉN, S.L.U.", resultado.NombreCliente);
+            Assert.AreEqual("1", resultado.Empresa);
+            Assert.AreEqual("0", resultado.Contacto);
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_PreservaUsuarioYFechaCreacion()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert
+            Assert.AreEqual("Carlos", resultado.Usuario);
+            // El JSON tiene "2026-02-12T10:46:00.983Z" - comparamos fecha y hora sin milisegundos
+            var fechaUtc = resultado.FechaCreacion.ToUniversalTime();
+            Assert.AreEqual(2026, fechaUtc.Year);
+            Assert.AreEqual(2, fechaUtc.Month);
+            Assert.AreEqual(12, fechaUtc.Day);
+            Assert.AreEqual(10, fechaUtc.Hour);
+            Assert.AreEqual(46, fechaUtc.Minute);
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_PreservaIdOriginal()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert - Mantiene el ID original de NestoApp
+            Assert.AreEqual("6bd921e3-9371-4c88-92f0-7c9519137073", resultado.Id);
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_PreservaLineasProducto()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert
+            Assert.IsNotNull(resultado.LineasProducto);
+            Assert.AreEqual(2, resultado.LineasProducto.Count);
+
+            // Primera línea
+            var linea1 = resultado.LineasProducto[0];
+            Assert.AreEqual("17404", linea1.producto);
+            Assert.AreEqual("ROLLO PAPEL CAMILLA", linea1.texto);
+            Assert.AreEqual(6, linea1.cantidad);
+            Assert.AreEqual(1, linea1.cantidadOferta);
+            Assert.AreEqual(7.49M, linea1.precio);
+            Assert.AreEqual(0M, linea1.descuento);
+            Assert.IsFalse(linea1.aplicarDescuento);
+            Assert.AreEqual("G21", linea1.iva);
+            Assert.AreEqual("ACC", linea1.grupo);
+            Assert.AreEqual("Productos Genéricos", linea1.familia);
+            Assert.AreEqual("Desechables", linea1.subGrupo);
+            Assert.AreEqual(100, linea1.tamanno);
+            Assert.AreEqual(true, linea1.aplicarDescuentoFicha);
+
+            // Segunda línea
+            var linea2 = resultado.LineasProducto[1];
+            Assert.AreEqual("41828", linea2.producto);
+            Assert.AreEqual(9, linea2.cantidad);
+            Assert.AreEqual(26.26M, linea2.precio);
+            Assert.AreEqual(0.45M, linea2.descuento);
+            Assert.IsTrue(linea2.aplicarDescuento);
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_PreservaLineasRegalo()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert
+            Assert.IsNotNull(resultado.LineasRegalo);
+            Assert.AreEqual(2, resultado.LineasRegalo.Count);
+
+            var regalo1 = resultado.LineasRegalo[0];
+            Assert.AreEqual("44702", regalo1.producto);
+            Assert.AreEqual("CARTUCHO CERA TIBIA LAVANDA MIEL C/A.ESENCIAL", regalo1.texto);
+            Assert.AreEqual(2.45M, regalo1.precio);
+            Assert.AreEqual(1, regalo1.ganavisiones);
+            Assert.AreEqual("G21", regalo1.iva);
+            Assert.AreEqual(1, regalo1.cantidad);
+
+            var regalo2 = resultado.LineasRegalo[1];
+            Assert.AreEqual("43799", regalo2.producto);
+            Assert.AreEqual("QUITAESMALTE ESPECIAL", regalo2.texto);
+            Assert.AreEqual(4.54M, regalo2.precio);
+            Assert.AreEqual(5, regalo2.ganavisiones);
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_PreservaConfiguracion()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert
+            Assert.AreEqual("Contacto 0, fecha entrega 14/02/2026 servir junto true y mantener junto false",
+                resultado.ComentarioRuta);
+            Assert.IsFalse(resultado.EsPresupuesto);
+            Assert.AreEqual("PAG", resultado.FormaPago);
+            Assert.AreEqual("1/30", resultado.PlazosPago);
+            Assert.AreEqual(new DateTime(2026, 2, 14), resultado.FechaEntrega.Date);
+            Assert.AreEqual("ALG", resultado.AlmacenCodigo);
+            Assert.IsFalse(resultado.MantenerJunto);
+            Assert.IsTrue(resultado.ServirJunto);
+            Assert.AreEqual("Comentarios para almacén ", resultado.ComentarioPicking);
+            Assert.AreEqual(174.927M, Math.Round(resultado.Total, 3));
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_PreservaCamposEnvioYCobro()
+        {
+            // Arrange - Issue #288: servirPorGlovo, mandarCobroTarjeta, cobroTarjetaCorreo, cobroTarjetaMovil
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert - Las propiedades se preservan correctamente desde el JSON de NestoApp
+            Assert.IsNotNull(resultado);
+            Assert.IsFalse(resultado.ServirPorGlovo);
+            Assert.IsFalse(resultado.MandarCobroTarjeta);
+            Assert.AreEqual("info@esteticaeleden.com", resultado.CobroTarjetaCorreo);
+            Assert.AreEqual("", resultado.CobroTarjetaMovil);
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_ArchivoSePuedeCargarConCargarBorrador()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+            var creado = servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Act - El archivo guardado debe poder leerse con el método estándar
+            var cargado = servicio.CargarBorrador(creado.Id);
+
+            // Assert
+            Assert.IsNotNull(cargado);
+            Assert.AreEqual("15191", cargado.Cliente);
+            Assert.AreEqual("CENTRO DE ESTÉTICA EL EDÉN, S.L.U.", cargado.NombreCliente);
+            Assert.AreEqual(2, cargado.LineasProducto.Count);
+            Assert.AreEqual(2, cargado.LineasRegalo.Count);
+            Assert.AreEqual("PAG", cargado.FormaPago);
+            Assert.IsTrue(cargado.ServirJunto);
+        }
+
+        [TestMethod]
+        public void CrearBorradorDesdeJson_IncrementaContadorBorradores()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+            Assert.AreEqual(0, servicio.ContarBorradores());
+
+            // Act
+            servicio.CrearBorradorDesdeJson(JSON_REAL_NESTOAPP);
+
+            // Assert
+            Assert.AreEqual(1, servicio.ContarBorradores());
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void CrearBorradorDesdeJson_JsonInvalido_LanzaArgumentException()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            servicio.CrearBorradorDesdeJson("esto no es JSON válido");
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void CrearBorradorDesdeJson_JsonSinCliente_LanzaArgumentException()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+            var jsonSinCliente = @"{ ""empresa"": ""1"", ""lineasProducto"": [] }";
+
+            // Act
+            servicio.CrearBorradorDesdeJson(jsonSinCliente);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void CrearBorradorDesdeJson_Null_LanzaArgumentException()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            servicio.CrearBorradorDesdeJson(null);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void CrearBorradorDesdeJson_StringVacio_LanzaArgumentException()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            servicio.CrearBorradorDesdeJson("");
+        }
+
+        #endregion
+
+        #region EsJsonBorradorValido Tests (Issue #288)
+
+        [TestMethod]
+        public void EsJsonBorradorValido_JsonRealNestoApp_DevuelveTrue()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido(JSON_REAL_NESTOAPP);
+
+            // Assert
+            Assert.IsTrue(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_JsonPascalCaseNesto_DevuelveTrue()
+        {
+            // Arrange - JSON serializado por Nesto (PascalCase)
+            var servicio = CrearServicioTest();
+            var jsonPascalCase = @"{
+  ""Id"": ""abc-123"",
+  ""Cliente"": ""10001"",
+  ""NombreCliente"": ""Test"",
+  ""LineasProducto"": [{ ""producto"": ""PROD1"", ""cantidad"": 1 }]
+}";
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido(jsonPascalCase);
+
+            // Assert
+            Assert.IsTrue(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_TextoPlanoNoJson_DevuelveFalse()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido("Hola, este es un correo electrónico normal");
+
+            // Assert
+            Assert.IsFalse(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_Null_DevuelveFalse()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido(null);
+
+            // Assert
+            Assert.IsFalse(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_StringVacio_DevuelveFalse()
+        {
+            // Arrange
+            var servicio = CrearServicioTest();
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido("");
+
+            // Assert
+            Assert.IsFalse(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_JsonSinCliente_DevuelveFalse()
+        {
+            // Arrange - JSON válido pero sin campo cliente
+            var servicio = CrearServicioTest();
+            var json = @"{ ""empresa"": ""1"", ""total"": 100 }";
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido(json);
+
+            // Assert
+            Assert.IsFalse(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_JsonSinLineas_DevuelveFalse()
+        {
+            // Arrange - JSON con cliente pero sin líneas de producto ni regalo
+            var servicio = CrearServicioTest();
+            var json = @"{ ""cliente"": ""15191"", ""nombreCliente"": ""Test"" }";
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido(json);
+
+            // Assert
+            Assert.IsFalse(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_JsonSoloConLineasRegalo_DevuelveTrue()
+        {
+            // Arrange - JSON con solo regalos (sin productos) también es válido
+            var servicio = CrearServicioTest();
+            var json = @"{
+  ""cliente"": ""15191"",
+  ""lineasRegalo"": [{ ""producto"": ""REG1"", ""cantidad"": 1 }]
+}";
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido(json);
+
+            // Assert
+            Assert.IsTrue(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_JsonArrayNoObjeto_DevuelveFalse()
+        {
+            // Arrange - Un array JSON no es un borrador válido
+            var servicio = CrearServicioTest();
+            var json = @"[1, 2, 3]";
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido(json);
+
+            // Assert
+            Assert.IsFalse(resultado);
+        }
+
+        [TestMethod]
+        public void EsJsonBorradorValido_HtmlNoJson_DevuelveFalse()
+        {
+            // Arrange - Contenido HTML del portapapeles
+            var servicio = CrearServicioTest();
+            var html = @"<html><body><p>Hola</p></body></html>";
+
+            // Act
+            var resultado = servicio.EsJsonBorradorValido(html);
+
+            // Assert
+            Assert.IsFalse(resultado);
         }
 
         #endregion
