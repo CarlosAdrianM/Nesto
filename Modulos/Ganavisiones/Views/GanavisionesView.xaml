@@ -58,6 +58,11 @@
                       RowHeight="28"
                       GridLinesVisibility="Horizontal"
                       AlternatingRowBackground="#F9F9F9">
+                <DataGrid.InputBindings>
+                    <MouseBinding MouseAction="LeftDoubleClick"
+                                  Command="{Binding AbrirProductoCommand}"
+                                  CommandParameter="{Binding GanavisionSeleccionada}"/>
+                </DataGrid.InputBindings>
                 <DataGrid.CellStyle>
                     <Style TargetType="DataGridCell">
                         <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DataGridCell_PreviewMouseLeftButtonDown"/>
@@ -164,6 +169,28 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
+
+                    <!-- Stock (solo lectura) -->
+                    <DataGridTextColumn Header="Stock" Binding="{Binding Stock}" Width="80" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="Margin" Value="2,0,5,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- Cantidad Regalada (solo lectura) -->
+                    <DataGridTextColumn Header="Cant. Regalada" Binding="{Binding CantidadRegalada}" Width="100" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="Margin" Value="2,0,5,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
 
                     <!-- Columna de acciones -->
                     <DataGridTemplateColumn Header="Acciones" Width="150">

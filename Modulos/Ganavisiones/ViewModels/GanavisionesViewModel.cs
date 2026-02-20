@@ -6,6 +6,7 @@ using Nesto.Modulos.Ganavisiones.Models;
 using Nesto.Modulos.Ganavisiones.ViewModels;
 using Prism.Commands;
 using Prism.Mvvm;
+using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
@@ -22,12 +23,14 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
         private readonly IGanavisionesService _ganavisionesService;
         private readonly IConfiguracion _configuracion;
         private readonly IDialogService _dialogService;
+        private readonly IRegionManager _regionManager;
 
-        public GanavisionesViewModel(IGanavisionesService ganavisionesService, IConfiguracion configuracion, IDialogService dialogService)
+        public GanavisionesViewModel(IGanavisionesService ganavisionesService, IConfiguracion configuracion, IDialogService dialogService, IRegionManager regionManager)
         {
             _ganavisionesService = ganavisionesService;
             _configuracion = configuracion;
             _dialogService = dialogService;
+            _regionManager = regionManager;
 
             Ganavisiones = new ObservableCollection<GanavisionWrapper>();
 
@@ -36,6 +39,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             // Quitamos CanGuardar - validamos dentro de OnGuardar para evitar problemas de binding
             GuardarCommand = new DelegateCommand<object>(async (g) => await OnGuardar(g as GanavisionWrapper));
             EliminarCommand = new DelegateCommand<object>(async (g) => await OnEliminar(g as GanavisionWrapper), CanEliminar);
+            AbrirProductoCommand = new DelegateCommand<GanavisionWrapper>(OnAbrirProducto);
 
             Titulo = "Ganavisiones";
             Empresa = Constantes.Empresas.EMPRESA_DEFECTO;
@@ -109,6 +113,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
         public ICommand NuevoCommand { get; }
         public ICommand GuardarCommand { get; }
         public ICommand EliminarCommand { get; }
+        public ICommand AbrirProductoCommand { get; }
 
         /// <summary>
         /// Evento que se dispara cuando se crea un nuevo Ganavision para que la View pueda poner el foco en la celda de edición.
@@ -267,6 +272,16 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             }
         }
 
+        private void OnAbrirProducto(GanavisionWrapper ganavision)
+        {
+            if (ganavision == null || string.IsNullOrWhiteSpace(ganavision.ProductoId)) return;
+            var parameters = new NavigationParameters
+            {
+                { "numeroProductoParameter", ganavision.ProductoId.Trim() }
+            };
+            _regionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
+        }
+
         #endregion
     }
 
@@ -296,6 +311,8 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             FechaCreacion = model.FechaCreacion;
             FechaModificacion = model.FechaModificacion;
             Usuario = model.Usuario;
+            Stock = model.Stock;
+            CantidadRegalada = model.CantidadRegalada;
             _rastreandoCambios = true;
             HaCambiado = false;
         }
@@ -316,6 +333,8 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             FechaCreacion = model.FechaCreacion;
             FechaModificacion = model.FechaModificacion;
             Usuario = model.Usuario;
+            Stock = model.Stock;
+            CantidadRegalada = model.CantidadRegalada;
             _rastreandoCambios = true;
             HaCambiado = false;
         }
@@ -437,6 +456,8 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaModificacion { get; set; }
         public string Usuario { get; set; }
+        public int Stock { get; set; }
+        public int CantidadRegalada { get; set; }
 
         private bool _haCambiado;
         public bool HaCambiado

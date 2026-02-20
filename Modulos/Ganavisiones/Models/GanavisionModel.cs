@@ -14,6 +14,8 @@ namespace Nesto.Modulos.Ganavisiones.Models
         public DateTime FechaCreacion { get; set; }
         public DateTime FechaModificacion { get; set; }
         public string Usuario { get; set; }
+        public int Stock { get; set; }
+        public int CantidadRegalada { get; set; }
     }
 
     public class GanavisionCreateModel
