@@ -207,7 +207,7 @@
                         <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" />
                     </DataGrid.Columns>
                 </DataGrid>
-                <DataGrid Grid.Row="1" ItemsSource="{Binding ExtractosProveedorAsientoSeleccionado}" IsReadOnly="True">
+                <DataGrid Grid.Row="1" ItemsSource="{Binding ExtractosProveedorAsientoSeleccionado}" IsReadOnly="True" AutoGenerateColumns="False">
                     <DataGrid.Style>
                         <Style TargetType="DataGrid">
                             <Style.Triggers>
@@ -217,6 +217,33 @@
                             </Style.Triggers>
                         </Style>
                     </DataGrid.Style>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Proveedor" Binding="{Binding Proveedor}" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                        <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
+                        <DataGridTextColumn Header="Doc. Proveedor" Binding="{Binding DocumentoProveedor}" />
+                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=N2}" />
+                        <DataGridTextColumn Header="Pendiente" Binding="{Binding ImportePendiente, StringFormat=N2}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding ExtractosClienteAsientoSeleccionado}" IsReadOnly="True" AutoGenerateColumns="False">
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ExtractosClienteAsientoSeleccionado.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Style>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" />
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
+                        <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
+                        <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=N2}" />
+                        <DataGridTextColumn Header="Pendiente" Binding="{Binding ImportePendiente, StringFormat=N2}" />
+                        <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}" />
+                    </DataGrid.Columns>
                 </DataGrid>
             </Grid>
         </xctk:BusyIndicator>

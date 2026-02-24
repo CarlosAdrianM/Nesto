@@ -53,7 +53,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
             //var importeIngresado = apuntesBancariosAbono.Sum(a => a.ImporteMovimiento);
             var importeIntereses = -importeDescuadre;
-            var importeOriginal = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento);
+            var importeOriginal = -apuntesBancariosCargo.Sum(c => c.ImporteMovimiento) + importeNoFinanciado;
             var tipoInteres = importeIntereses / diasAplazados * 360 / importeOriginal; // Aplazamos 90 días y quiero mostrar el interés anual (Euribor 3M + 1,50%)
             bool confirmado = false;
             bool primeraIteracion = true; // Para controlar si estamos en la primera iteración
@@ -188,7 +188,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea3.FormaVenta = "VAR";
                 linea3.Departamento = "ADM";
                 linea3.CentroCoste = "CA";
-                linea3.Haber = -cargo.ImporteMovimiento + importeNoFinanciado;
+                linea3.Haber = importeOriginal;
                 lineas.Add(linea3);
 
                 var linea4 = BancosViewModel.CrearPrecontabilidadDefecto();
@@ -202,7 +202,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 linea4.FormaVenta = "VAR";
                 linea4.Departamento = "ADM";
                 linea4.CentroCoste = "CA";
-                linea4.Debe = -cargo.ImporteMovimiento + importeNoFinanciado;
+                linea4.Debe = importeOriginal;
                 linea4.Contrapartida = banco.CuentaContable;
                 lineas.Add(linea4);
             }

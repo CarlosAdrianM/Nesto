@@ -30,6 +30,9 @@ namespace Nesto.Modulos.Cajas.Interfaces
         // Cuando exista un servicio de extracto de proveedor hay que mover estos
         Task<List<ExtractoProveedorDTO>> LeerExtractoProveedorAsiento(string empresa, int asiento);
 
+        // Cuando exista un servicio de extracto de cliente hay que mover estos
+        Task<List<ExtractoClienteDTO>> LeerExtractoClienteAsiento(string empresa, int asiento);
+
         // Conciliación bancaria
         Task<ConciliacionEliminadaDTO> DeshacerUltimaConciliacion();
         Task<List<ConciliacionEliminadaDTO>> DeshacerConciliacionPorApunte(int apunteContabilidadId);

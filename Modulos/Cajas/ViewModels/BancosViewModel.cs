@@ -180,6 +180,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (SetProperty(ref _apunteContabilidadSeleccionado, value))
                 {
                     _ = CargarExtractoProveedorAsiento(value);
+                    _ = CargarExtractoClienteAsiento(value);
                     ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
                 }
             }
@@ -269,6 +270,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             get => _extractosProveedorAsientoSeleccionado;
             set => SetProperty(ref _extractosProveedorAsientoSeleccionado, value);
+        }
+        private List<ExtractoClienteDTO> _extractosClienteAsientoSeleccionado;
+        public List<ExtractoClienteDTO>? ExtractosClienteAsientoSeleccionado
+        {
+            get => _extractosClienteAsientoSeleccionado;
+            set => SetProperty(ref _extractosClienteAsientoSeleccionado, value);
         }
         private DateTime _fechaDesde;
         public DateTime FechaDesde
@@ -1158,6 +1165,15 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 return;
             }
             ExtractosProveedorAsientoSeleccionado = await _bancosService.LeerExtractoProveedorAsiento(Constantes.Empresas.EMPRESA_DEFECTO, value.Asiento);
+        }
+        private async Task CargarExtractoClienteAsiento(ContabilidadWrapper value)
+        {
+            if (value is null)
+            {
+                ExtractosClienteAsientoSeleccionado = null;
+                return;
+            }
+            ExtractosClienteAsientoSeleccionado = await _bancosService.LeerExtractoClienteAsiento(Constantes.Empresas.EMPRESA_DEFECTO, value.Asiento);
         }
         private async Task CargarMovimientosRelacionadosTPV(string tipoDatafono, CancellationToken cancellationToken = default)
         {

@@ -405,6 +405,41 @@ namespace Nesto.Modulos.Cajas.Services
             }
         }
 
+        public async Task<List<ExtractoClienteDTO>> LeerExtractoClienteAsiento(string empresa, int asiento)
+        {
+            using HttpClient client = new();
+            client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+            if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+            {
+                throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+            }
+
+            HttpResponseMessage response;
+
+            try
+            {
+                string urlConsulta = $"ExtractosCliente?empresa={empresa}&asiento={asiento}";
+
+                response = await client.GetAsync(urlConsulta);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    List<ExtractoClienteDTO>? movimientos = JsonConvert.DeserializeObject<List<ExtractoClienteDTO>>(resultado);
+                    return movimientos;
+                }
+                else
+                {
+                    throw new Exception("No se han podido cargar los extractos del cliente para el asiento");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("No se han podido cargar los extractos del cliente para el asiento", ex);
+            }
+        }
+
         public async Task<List<MovimientoTPV>> LeerMovimientosTPV(DateTime fechaCaptura, string tipoDatafono)
         {
             using HttpClient client = new();

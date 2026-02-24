@@ -8,6 +8,7 @@ namespace Nesto.Modulos.Cajas.Models
         public int Id { get; set; }
         public string Empresa { get; set; }
         public string Proveedor { get; set; }
+        public string Nombre { get; set; }
         public string Contacto { get; set; }
         public string Documento { get; set; }
         public string DocumentoProveedor { get; set; }

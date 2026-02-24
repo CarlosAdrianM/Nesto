@@ -259,6 +259,96 @@ namespace CajasTests
         }
 
         [TestMethod]
+        public void ReglaFinanciacionLineaRiesgo_SiElInteresEsMayorDel30PorcientoYSeIntroduceImporteManual_ElAsientoEstaCuadrado()
+        {
+            // Issue #302: Cuando el interés > 30% y el usuario introduce un importe manual,
+            // las líneas del asiento usaban -cargo.ImporteMovimiento en vez de importeOriginal,
+            // provocando un descuadre.
+            // Escenario real: banco cargo -40061.25, abono +18386.16, contabilidad -40061.25
+            // El usuario introduce 18546.63 como importe a financiar.
+
+            // Arrange
+            var _dialogService = A.Fake<IDialogService>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+
+            // Mock general de ShowDialog que maneja todos los diálogos
+            A.CallTo(() => _dialogService.ShowDialog(
+                A<string>.Ignored,
+                A<IDialogParameters>.Ignored,
+                A<Action<IDialogResult>>.Ignored
+            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) => {
+                if (name == "NotificationDialog")
+                {
+                    // ShowNotification pasa callback null, no hacer nada
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
+                }
+                else if (name == "InputAmountDialog")
+                {
+                    var dialogParams = new DialogParameters
+                    {
+                        { "amount", 18546.63m }
+                    };
+                    callback?.Invoke(new DialogResult(ButtonResult.OK, dialogParams));
+                }
+                else if (name == "ConfirmationDialog")
+                {
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
+                }
+            });
+
+            var regla = new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService);
+            var apunteBancarioCargo = new ApunteBancarioDTO
+            {
+                ConceptoComun = "00",
+                ConceptoPropio = "000",
+                RegistrosConcepto = new List<RegistroComplementarioConcepto>
+                {
+                    new RegistroComplementarioConcepto
+                    {
+                        Concepto2 = "Cargo por domiciliación"
+                    }
+                },
+                ImporteMovimiento = -40061.25m,
+                FechaOperacion = new DateTime(2026, 2, 20)
+            };
+            var apunteBancarioAbono = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "036",
+                RegistrosConcepto = new List<RegistroComplementarioConcepto>
+                {
+                    new RegistroComplementarioConcepto
+                    {
+                        Concepto2 = "R2F 0627302000063"
+                    }
+                },
+                ImporteMovimiento = 18386.16m,
+                FechaOperacion = new DateTime(2026, 2, 20)
+            };
+            var apuntesBancarios = new List<ApunteBancarioDTO> {
+                apunteBancarioCargo,
+                apunteBancarioAbono,
+            };
+            var apuntesContabilidad = new List<ContabilidadDTO> {
+                new ContabilidadDTO() { Id = 1, Haber = 40061.25m }
+            };
+            var banco = new BancoDTO { CuentaContable = "57200000" };
+
+            // Act
+            var resultado = regla.ApuntesContabilizar(apuntesBancarios, apuntesContabilidad, banco);
+
+            // Assert
+            Assert.IsNotNull(resultado);
+            // El asiento debe estar cuadrado
+            Assert.AreEqual(0, resultado.Lineas.Where(l => l.Asiento != 2).Sum(c => c.Importe),
+                "El asiento 1 debe estar cuadrado (debe = haber)");
+            // La cuenta 52000014 debe tener el importe financiado (18546.63), no el cargo bancario (40061.25)
+            var lineaFinanciacion52 = resultado.Lineas.First(l => l.Cuenta == "52000014" && l.Asiento != 2);
+            Assert.AreEqual(18546.63m, lineaFinanciacion52.Haber,
+                "La cuenta 52000014 debe reflejar el importe a financiar introducido por el usuario");
+        }
+
+        [TestMethod]
         public void ReglaFinanciacionLineaRiesgo_SiSeHaAplazadoElImporteParcialmente_ApuntesContabilizarEstaCuadradoElDebeYElHaber()
         {
             // Por ejemplo: se han aplazado 15000 € de un pago de 20000 €
