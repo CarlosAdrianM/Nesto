@@ -46,6 +46,8 @@ Public Class ListaRapportsViewModel
         VolverAResumenVentasCommand = New DelegateCommand(AddressOf OnVolverAResumenVentas)
         AbrirFichaProductoCommand = New DelegateCommand(Of VentaClienteResumenDTO)(AddressOf OnAbrirFichaProducto, AddressOf CanAbrirFichaProducto)
 
+        CopiarSeguimientosCommand = New DelegateCommand(AddressOf OnCopiarSeguimientos, AddressOf CanCopiarSeguimientos)
+
         listaTiposRapports = servicio.CargarListaTipos()
         listaEstadosRapport = servicio.CargarListaEstados()
 
@@ -80,6 +82,7 @@ Public Class ListaRapportsViewModel
                 MostrandoDetalleVentas = False
             End If
             cmdCargarListaRapports.RaiseCanExecuteChanged()
+            CopiarSeguimientosCommand.RaiseCanExecuteChanged()
             If _clienteSeleccionado = String.Empty Then
                 cmdCargarListaRapports.Execute(Nothing) ' Por fecha
             End If
@@ -433,6 +436,16 @@ Public Class ListaRapportsViewModel
         End Get
     End Property
 
+    Private _puedeCopiarSeguimientos As Boolean = False
+    Public Property PuedeCopiarSeguimientos As Boolean
+        Get
+            Return _puedeCopiarSeguimientos
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_puedeCopiarSeguimientos, value)
+        End Set
+    End Property
+
     Private ReadOnly _syncLock As New Object()
 
     Private _tipoRapportSeleccionado As idDescripcion
@@ -680,6 +693,23 @@ Public Class ListaRapportsViewModel
         Return (Not IsNothing(TipoRapportSeleccionado)) AndAlso TipoRapportSeleccionado.id = itemId
     End Function
 
+    Public Property CopiarSeguimientosCommand As DelegateCommand
+    Private Function CanCopiarSeguimientos() As Boolean
+        Return Not String.IsNullOrWhiteSpace(clienteSeleccionado)
+    End Function
+    Private Sub OnCopiarSeguimientos()
+        Dim parameters As New DialogParameters From {
+            {"empresa", _empresaPorDefecto},
+            {"cliente", clienteSeleccionado},
+            {"contacto", contactoSeleccionado}
+        }
+        _dialogService.ShowDialog("CopiarSeguimientosView", parameters, Sub(result)
+                                                                            If result.Result = ButtonResult.OK Then
+                                                                                cmdCargarListaRapports.Execute(Nothing)
+                                                                            End If
+                                                                        End Sub)
+    End Sub
+
 
 
 
@@ -718,6 +748,9 @@ Public Class ListaRapportsViewModel
         Else
             ActualizarClientesProbabilidad(GrupoSubgrupoSeleccionado)
         End If
+
+        Dim permitirCopiar = Await configuracion.leerParametro(_empresaPorDefecto, Parametros.Claves.PermitirCopiarSeguimientos)
+        PuedeCopiarSeguimientos = permitirCopiar = "1"
     End Sub
 
     Public Overrides Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget

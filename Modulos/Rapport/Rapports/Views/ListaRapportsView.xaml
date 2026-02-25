@@ -59,6 +59,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <controles:SelectorCliente Grid.Row="0" Name="txtSelectorCliente" Empresa="1" Cliente="{Binding Path=DataContext.clienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Contacto="{Binding DataContext.contactoSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Etiqueta=""></controles:SelectorCliente>
             <StackPanel Grid.Row="1">
@@ -80,7 +81,9 @@
             <TextBlock Grid.Row="3"></TextBlock>
             <Button Grid.Row="4" Command="{Binding cmdCargarListaRapports}">Cargar Rapports</Button>
             <TextBlock Grid.Row="5"></TextBlock>
-            <Grid Grid.Row="6">
+            <Button Grid.Row="6" Command="{Binding CopiarSeguimientosCommand}" Margin="0,0,0,5"
+                    Visibility="{Binding PuedeCopiarSeguimientos, Converter={StaticResource BoolToVis}}">Copiar seguimientos a otro cliente</Button>
+            <Grid Grid.Row="7">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>

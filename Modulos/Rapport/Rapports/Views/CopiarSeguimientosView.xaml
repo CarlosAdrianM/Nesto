@@ -1,0 +1,99 @@
+<UserControl x:Class="CopiarSeguimientosView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:prism="http://prismlibrary.com/"
+        xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+        prism:ViewModelLocator.AutoWireViewModel="True"
+        Width="450" MinHeight="350">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <Style TargetType="TextBlock" x:Key="LabelStyle">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid x:Name="rootGrid" Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Titulo -->
+        <TextBlock Grid.Row="0" Text="Copiar seguimientos a otro cliente"
+                   FontSize="18" FontWeight="Bold" Margin="0,0,0,15"/>
+
+        <!-- Cliente origen -->
+        <GroupBox Grid.Row="1" Header="Cliente Origen" Margin="0,0,0,10">
+            <StackPanel Margin="10">
+                <TextBlock Text="Cliente:" Style="{StaticResource LabelStyle}"/>
+                <controles:SelectorCliente
+                    Empresa="{Binding DataContext.Empresa, ElementName=rootGrid, Mode=TwoWay}"
+                    Cliente="{Binding DataContext.ClienteOrigen, ElementName=rootGrid, Mode=TwoWay}"
+                    Contacto="{Binding DataContext.ContactoOrigen, ElementName=rootGrid, Mode=TwoWay}"
+                    ClienteCompleto="{Binding DataContext.ClienteCompletoOrigen, ElementName=rootGrid, Mode=TwoWay}"
+                    Margin="0,5,0,0"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Cliente destino -->
+        <GroupBox Grid.Row="2" Header="Cliente Destino" Margin="0,0,0,10">
+            <StackPanel Margin="10">
+                <TextBlock Text="Cliente:" Style="{StaticResource LabelStyle}"/>
+                <controles:SelectorCliente
+                    Empresa="{Binding DataContext.Empresa, ElementName=rootGrid, Mode=TwoWay}"
+                    Cliente="{Binding DataContext.ClienteDestino, ElementName=rootGrid, Mode=TwoWay}"
+                    Contacto="{Binding DataContext.ContactoDestino, ElementName=rootGrid, Mode=TwoWay}"
+                    ClienteCompleto="{Binding DataContext.ClienteCompletoDestino, ElementName=rootGrid, Mode=TwoWay}"
+                    Margin="0,5,0,0"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Opciones -->
+        <GroupBox Grid.Row="3" Header="Opciones" Margin="0,0,0,10">
+            <StackPanel Margin="10">
+                <CheckBox Content="Mover seguimientos (eliminar del origen tras copiar)"
+                          IsChecked="{Binding EliminarOrigen}"
+                          VerticalContentAlignment="Center"
+                          ToolTip="Si se marca, los seguimientos se eliminan del origen despues de copiarlos al destino"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Resultado -->
+        <GroupBox Grid.Row="4" Header="Resultado" Margin="0,0,0,10">
+            <StackPanel Margin="10">
+                <TextBox Text="{Binding Mensaje, Mode=OneWay}"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         ToolTip="Seleccione el texto y pulse Ctrl+C para copiar"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Progress -->
+        <ProgressBar Grid.Row="5" IsIndeterminate="True" Height="5" Margin="0,10"
+                     Visibility="{Binding EstaProcesando, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+        <!-- Espacio flexible -->
+        <Grid Grid.Row="6"/>
+
+        <!-- Botones -->
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Copiar" Command="{Binding EjecutarCommand}"
+                    Width="100" Height="35" Margin="0,0,10,0"/>
+
+            <Button Content="Cerrar" Command="{Binding CerrarCommand}"
+                    Width="100" Height="35"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

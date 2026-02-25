@@ -28,6 +28,7 @@
             public const string PathNorma43 = "PathNorma43";
             public const string PathNormaFB500 = "PathNormaFB500";
             public const string PedidoVentaPapelMembrete = "PedidoVentaPapelMembrete";
+            public const string PermitirCopiarSeguimientos = "PermitirCopiarSeguimientos";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
             public const string SerieFacturacionDefecto = "SerieFacturaciónDefecto";

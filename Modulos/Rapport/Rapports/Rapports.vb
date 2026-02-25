@@ -10,7 +10,7 @@ Public Class Rapports
     Public Sub RegisterTypes(containerRegistry As IContainerRegistry) Implements IModule.RegisterTypes
         containerRegistry.Register(Of Object, ListaRapportsView)("ListaRapportsView")
         containerRegistry.Register(Of Object, RapportView)("RapportView")
-
+        containerRegistry.RegisterDialog(Of CopiarSeguimientosView, CopiarSeguimientosViewModel)
     End Sub
 
     Public Sub OnInitialized(containerProvider As IContainerProvider) Implements IModule.OnInitialized

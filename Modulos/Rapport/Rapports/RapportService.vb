@@ -415,6 +415,36 @@ Public Class RapportService
         End Try
     End Function
 
+    Public Async Function CopiarSeguimientos(empresa As String, clienteOrigen As String, contactoOrigen As String, clienteDestino As String, contactoDestino As String, eliminarOrigen As Boolean) As Task(Of Integer) Implements IRapportService.CopiarSeguimientos
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+            Dim request = New With {
+                .Empresa = empresa,
+                .ClienteOrigen = clienteOrigen,
+                .ContactoOrigen = contactoOrigen,
+                .ClienteDestino = clienteDestino,
+                .ContactoDestino = contactoDestino,
+                .EliminarOrigen = eliminarOrigen
+            }
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json")
+
+            Dim response = Await client.PostAsync("SeguimientosClientes/Copiar", content)
+
+            If response.IsSuccessStatusCode Then
+                Dim respuesta = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of Integer)(respuesta)
+            Else
+                Dim respuestaError = Await response.Content.ReadAsStringAsync()
+                Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
+                Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
+                Throw New Exception("Error al copiar seguimientos" + vbCr + contenido)
+            End If
+        End Using
+    End Function
+
     Public Async Function CargarDetalleVentasProducto(clienteId As String, filtro As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse) Implements IRapportService.CargarDetalleVentasProducto
         Dim url = $"ventascliente/resumen/detalle?clienteId={clienteId}&filtro={Uri.EscapeDataString(filtro)}&modoComparativa={modoComparativa}&agruparPor={agruparPor}"
         Try

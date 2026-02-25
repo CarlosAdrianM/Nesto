@@ -15,4 +15,5 @@ Public Interface IRapportService
     Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String)
     Function CargarResumenVentasCliente(clienteId As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
     Function CargarDetalleVentasProducto(clienteId As String, filtro As String, modoComparativa As String, agruparPor As String) As Task(Of ResumenVentasClienteResponse)
+    Function CopiarSeguimientos(empresa As String, clienteOrigen As String, contactoOrigen As String, clienteDestino As String, contactoDestino As String, eliminarOrigen As Boolean) As Task(Of Integer)
 End Interface
