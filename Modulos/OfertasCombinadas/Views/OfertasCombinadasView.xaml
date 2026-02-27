@@ -1,0 +1,487 @@
+<UserControl x:Class="Nesto.Modulos.OfertasCombinadas.Views.OfertasCombinadasView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Nesto.Modulos.OfertasCombinadas.Views"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
+             d:DesignHeight="700" d:DesignWidth="1000">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <controles:BindingProxy x:Key="ViewModelProxy" Data="{Binding}" />
+    </UserControl.Resources>
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaCargando}" BusyContent="Cargando...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Barra superior -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                <Button Command="{Binding CargarCommand}"
+                        Padding="10,5" Margin="0,0,10,0">
+                    Refrescar
+                </Button>
+                <CheckBox Content="Solo activas"
+                          IsChecked="{Binding SoloActivas}"
+                          VerticalAlignment="Center"
+                          Margin="10,0,0,0"
+                          ToolTip="Mostrar solo ofertas vigentes (FechaDesde &lt;= hoy y FechaHasta nula o >= hoy)"/>
+                <TextBlock Text="Mantenimiento de Ofertas Combinadas"
+                           VerticalAlignment="Center" FontWeight="Bold" Margin="20,0,0,0"/>
+            </StackPanel>
+
+            <!-- TabControl con dos secciones -->
+            <TabControl Grid.Row="1">
+
+                <!-- Tab 1: Ofertas Combinadas (master/detail) -->
+                <TabItem Header="Ofertas Combinadas">
+                    <Grid Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="200"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Boton nueva oferta -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                            <Button Command="{Binding NuevaOfertaCombinadaCommand}"
+                                    Padding="10,5" Margin="0,0,10,0">
+                                Nueva oferta
+                            </Button>
+                        </StackPanel>
+
+                        <!-- DataGrid maestro: ofertas combinadas -->
+                        <DataGrid x:Name="dgOfertasCombinadas"
+                                  Grid.Row="1"
+                                  ItemsSource="{Binding OfertasCombinadas}"
+                                  SelectedItem="{Binding OfertaCombinadaSeleccionada}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  SelectionMode="Single"
+                                  IsReadOnly="False"
+                                  RowHeight="28"
+                                  GridLinesVisibility="Horizontal"
+                                  AlternatingRowBackground="#F9F9F9">
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DataGridCell_PreviewMouseLeftButtonDown"/>
+                                    <Setter Property="VerticalAlignment" Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                </Style>
+                            </DataGrid.CellStyle>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <!-- Nombre -->
+                                <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre, UpdateSourceTrigger=LostFocus}" Width="350">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Importe Minimo -->
+                                <DataGridTextColumn Header="Importe Min." Binding="{Binding ImporteMinimo, UpdateSourceTrigger=LostFocus, StringFormat=N2}" Width="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="Margin" Value="2,0,5,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.EditingElementStyle>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.EditingElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Fecha Desde -->
+                                <DataGridTemplateColumn Header="Fecha Desde" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding FechaDesde, StringFormat=d}" VerticalAlignment="Center" Margin="2,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <DatePicker SelectedDate="{Binding FechaDesde, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Fecha Hasta -->
+                                <DataGridTemplateColumn Header="Fecha Hasta" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding FechaHasta, StringFormat=d}" VerticalAlignment="Center" Margin="2,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <DatePicker SelectedDate="{Binding FechaHasta, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Acciones -->
+                                <DataGridTemplateColumn Header="Acciones" Width="150">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Content="Guardar"
+                                                        Command="{Binding Data.GuardarOfertaCombinadaCommand, Source={StaticResource ViewModelProxy}}"
+                                                        CommandParameter="{Binding}"
+                                                        Margin="2" Padding="5,2"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{Binding HaCambiado, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <Button Content="Eliminar"
+                                                        Command="{Binding Data.EliminarOfertaCombinadaCommand, Source={StaticResource ViewModelProxy}}"
+                                                        CommandParameter="{Binding}"
+                                                        Margin="2" Padding="5,2"
+                                                        VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Usuario -->
+                                <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="150" IsReadOnly="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Fecha Modificacion -->
+                                <DataGridTextColumn Header="Modificado" Binding="{Binding FechaModificacion, StringFormat=g}" Width="130" IsReadOnly="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Separador y cabecera detalle -->
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,5">
+                            <TextBlock Text="Productos de la oferta seleccionada" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <Button Command="{Binding NuevoDetalleCommand}"
+                                    Padding="10,3" Margin="15,0,0,0">
+                                Nuevo producto
+                            </Button>
+                        </StackPanel>
+
+                        <Separator Grid.Row="3"/>
+
+                        <!-- DataGrid detalle: productos de la oferta -->
+                        <DataGrid x:Name="dgDetalles"
+                                  Grid.Row="4"
+                                  ItemsSource="{Binding DetallesOfertaSeleccionada}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  SelectionMode="Single"
+                                  IsReadOnly="False"
+                                  RowHeight="28"
+                                  GridLinesVisibility="Horizontal"
+                                  AlternatingRowBackground="#F0F8FF">
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DataGridCell_PreviewMouseLeftButtonDown"/>
+                                    <Setter Property="VerticalAlignment" Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                </Style>
+                            </DataGrid.CellStyle>
+                            <DataGrid.Columns>
+                                <!-- Producto con Autocomplete -->
+                                <DataGridTemplateColumn Header="Producto" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Producto}" VerticalAlignment="Center" Margin="2,0" FontWeight="SemiBold"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn.CellEditingTemplate>
+                                        <DataTemplate>
+                                            <TextBox Text="{Binding Producto, UpdateSourceTrigger=LostFocus}"
+                                                     VerticalAlignment="Center"
+                                                     VerticalContentAlignment="Center">
+                                                <i:Interaction.Behaviors>
+                                                    <behaviors:AutocompleteBehavior
+                                                        Empresa="{Binding Data.Empresa, Source={StaticResource ViewModelProxy}}"
+                                                        TipoBusqueda="Producto"
+                                                        SiempreActivo="True"
+                                                        MinChars="2"
+                                                        DebounceMs="300"
+                                                        MaxResults="10"/>
+                                                    <behaviors:ProductoBehavior
+                                                        Empresa="{Binding Data.Empresa, Source={StaticResource ViewModelProxy}}"
+                                                        SiempreActivo="True"
+                                                        Texto="{Binding DataContext.texto, RelativeSource={RelativeSource AncestorType=DataGridRow}, Mode=TwoWay}"/>
+                                                </i:Interaction.Behaviors>
+                                            </TextBox>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellEditingTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Nombre producto (solo lectura) -->
+                                <DataGridTextColumn Header="Nombre" Binding="{Binding ProductoNombre}" Width="250" IsReadOnly="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Cantidad -->
+                                <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad, UpdateSourceTrigger=LostFocus}" Width="80">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="Margin" Value="2,0,5,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.EditingElementStyle>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.EditingElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Precio -->
+                                <DataGridTextColumn Header="Precio" Binding="{Binding Precio, UpdateSourceTrigger=LostFocus, StringFormat=N2}" Width="90">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="Margin" Value="2,0,5,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.EditingElementStyle>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.EditingElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Eliminar detalle -->
+                                <DataGridTemplateColumn Header="" Width="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="Quitar"
+                                                    Command="{Binding Data.EliminarDetalleCommand, Source={StaticResource ViewModelProxy}}"
+                                                    CommandParameter="{Binding}"
+                                                    Margin="2" Padding="5,2"
+                                                    VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Info inferior -->
+                        <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,5,0,0">
+                            <TextBlock Text="Total ofertas: " VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding OfertasCombinadas.Count}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <TextBlock Text=" | Precio=0 significa sin restriccion de precio. Cantidad=0 significa producto opcional."
+                                       VerticalAlignment="Center" Margin="20,0,0,0"
+                                       Foreground="Gray" FontStyle="Italic"/>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
+                <!-- Tab 2: Ofertas por Familia -->
+                <TabItem Header="Ofertas por Familia">
+                    <Grid Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Boton nueva oferta familia -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                            <Button Command="{Binding NuevaOfertaFamiliaCommand}"
+                                    Padding="10,5" Margin="0,0,10,0">
+                                Nueva oferta familia
+                            </Button>
+                        </StackPanel>
+
+                        <!-- DataGrid ofertas por familia -->
+                        <DataGrid x:Name="dgOfertasFamilia"
+                                  Grid.Row="1"
+                                  ItemsSource="{Binding OfertasFamilia}"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  SelectionMode="Single"
+                                  IsReadOnly="False"
+                                  RowHeight="28"
+                                  GridLinesVisibility="Horizontal"
+                                  AlternatingRowBackground="#F9F9F9">
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="DataGridCell_PreviewMouseLeftButtonDown"/>
+                                    <Setter Property="VerticalAlignment" Value="Stretch"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                </Style>
+                            </DataGrid.CellStyle>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <!-- Familia -->
+                                <DataGridTextColumn Header="Familia" Binding="{Binding Familia, UpdateSourceTrigger=LostFocus}" Width="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Descripcion Familia (solo lectura) -->
+                                <DataGridTextColumn Header="Descripcion" Binding="{Binding FamiliaDescripcion}" Width="200" IsReadOnly="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Cantidad con Precio -->
+                                <DataGridTextColumn Header="Cant. con Precio" Binding="{Binding CantidadConPrecio, UpdateSourceTrigger=LostFocus}" Width="110">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="Margin" Value="2,0,5,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.EditingElementStyle>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.EditingElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Cantidad Regalo -->
+                                <DataGridTextColumn Header="Cant. Regalo" Binding="{Binding CantidadRegalo, UpdateSourceTrigger=LostFocus}" Width="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="Margin" Value="2,0,5,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.EditingElementStyle>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.EditingElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Filtro Producto -->
+                                <DataGridTextColumn Header="Filtro Producto" Binding="{Binding FiltroProducto, UpdateSourceTrigger=LostFocus}" Width="300">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Acciones -->
+                                <DataGridTemplateColumn Header="Acciones" Width="150">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Content="Guardar"
+                                                        Command="{Binding Data.GuardarOfertaFamiliaCommand, Source={StaticResource ViewModelProxy}}"
+                                                        CommandParameter="{Binding}"
+                                                        Margin="2" Padding="5,2"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{Binding HaCambiado, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                                <Button Content="Eliminar"
+                                                        Command="{Binding Data.EliminarOfertaFamiliaCommand, Source={StaticResource ViewModelProxy}}"
+                                                        CommandParameter="{Binding}"
+                                                        Margin="2" Padding="5,2"
+                                                        VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <!-- Usuario -->
+                                <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" Width="150" IsReadOnly="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Fecha Modificacion -->
+                                <DataGridTextColumn Header="Modificado" Binding="{Binding FechaModificacion, StringFormat=g}" Width="130" IsReadOnly="True">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Info inferior -->
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,5,0,0">
+                            <TextBlock Text="Total ofertas familia: " VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding OfertasFamilia.Count}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <TextBlock Text=" | El filtro busca productos cuyo nombre empiece por el texto indicado (dentro de la familia)"
+                                       VerticalAlignment="Center" Margin="20,0,0,0"
+                                       Foreground="Gray" FontStyle="Italic"/>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
+
+            </TabControl>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

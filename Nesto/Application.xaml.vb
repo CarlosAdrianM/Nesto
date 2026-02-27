@@ -16,6 +16,9 @@ Imports Nesto.Modulos.Cajas.Services
 Imports Nesto.Modulos.Ganavisiones
 Imports Nesto.Modulos.Ganavisiones.Interfaces
 Imports Nesto.Modulos.Ganavisiones.Services
+Imports Nesto.Modulos.OfertasCombinadas
+Imports Nesto.Modulos.OfertasCombinadas.Interfaces
+Imports Nesto.Modulos.OfertasCombinadas.Services
 Imports Nesto.Modulos.CanalesExternos.Interfaces
 Imports Nesto.Modulos.CanalesExternos.Services
 Imports Nesto.Modulos.CarteraPagos
@@ -90,6 +93,10 @@ Partial Public Class Application
         ' Carlos 04/02/26: Issue #281 - Ganavisiones
         Dim unusedGanavisiones1 = containerRegistry.Register(GetType(IGanavisiones), GetType(Ganavisiones))
         Dim unusedGanavisiones2 = containerRegistry.Register(GetType(IGanavisionesService), GetType(GanavisionesService))
+
+        ' Carlos 27/02/26: Issue #299 - Ofertas Combinadas
+        Dim unusedOfertasCombinadas1 = containerRegistry.Register(GetType(IOfertasCombinadas), GetType(OfertasCombinadas))
+        Dim unusedOfertasCombinadas2 = containerRegistry.Register(GetType(IOfertasCombinadasService), GetType(OfertasCombinadasService))
         Dim unused4 = containerRegistry.Register(GetType(IClientesService), GetType(ClientesService))
         Dim unused3 = containerRegistry.Register(GetType(ISelectorProveedorService), GetType(SelectorProveedorService))
         Dim unused2 = containerRegistry.Register(GetType(IRecursosHumanosService), GetType(RecursosHumanosService))
@@ -170,6 +177,9 @@ Partial Public Class Application
 
         ' Ganavisiones - 04/02/26 (Issue #281)
         Dim unusedGanavisiones = moduleCatalog.AddModule(GetType(IGanavisiones))
+
+        ' Ofertas Combinadas - 27/02/26 (Issue #299)
+        Dim unusedOfertasCombinadas = moduleCatalog.AddModule(GetType(IOfertasCombinadas))
     End Sub
 
     Protected Overrides Sub ConfigureRegionAdapterMappings(regionAdapterMappings As RegionAdapterMappings)

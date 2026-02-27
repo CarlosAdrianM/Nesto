@@ -171,6 +171,7 @@
     <ProjectReference Include="..\Informes\Informes.csproj" />
     <ProjectReference Include="..\Modulos\Cajas\Cajas.csproj" />
     <ProjectReference Include="..\Modulos\Ganavisiones\Ganavisiones.csproj" />
+    <ProjectReference Include="..\Modulos\OfertasCombinadas\OfertasCombinadas.csproj" />
     <ProjectReference Include="..\Modulos\CarteraPagos\CarteraPagos\CarteraPagos.vbproj" />
     <ProjectReference Include="..\Modulos\Cliente\Cliente.csproj" />
     <ProjectReference Include="..\Modulos\Inventario\Inventario\Inventario.vbproj" />
@@ -189,6 +190,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\Ganavisiones.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Images\OfertasCombinadas.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\Prestashop.png" />
