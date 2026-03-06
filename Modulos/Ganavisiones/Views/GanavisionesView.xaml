@@ -123,10 +123,42 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
+                    <!-- Familia del producto (solo lectura) -->
+                    <DataGridTextColumn Header="Familia"
+                                        Binding="{Binding Familia}"
+                                        Width="80"
+                                        IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="2,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
                     <!-- Ganavisiones (editable) -->
                     <DataGridTextColumn Header="Ganavisiones"
                                         Binding="{Binding Ganavisiones}"
                                         Width="100">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="Margin" Value="2,0,5,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                        <DataGridTextColumn.EditingElementStyle>
+                            <Style TargetType="TextBox">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                            </Style>
+                        </DataGridTextColumn.EditingElementStyle>
+                    </DataGridTextColumn>
+
+                    <!-- Importe Mínimo Pedido (editable) -->
+                    <DataGridTextColumn Header="Imp. Mínimo"
+                                        Binding="{Binding ImporteMinimoPedido, StringFormat=N2}"
+                                        Width="90">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="VerticalAlignment" Value="Center"/>
@@ -193,7 +225,7 @@
                     </DataGridTextColumn>
 
                     <!-- Columna de acciones -->
-                    <DataGridTemplateColumn Header="Acciones" Width="150">
+                    <DataGridTemplateColumn Header="Acciones" Width="230">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -208,6 +240,21 @@
                                             CommandParameter="{Binding}"
                                             Margin="2" Padding="5,2"
                                             VerticalAlignment="Center"/>
+                                    <Button Command="{Binding Data.ToggleActivoCommand, Source={StaticResource ViewModelProxy}}"
+                                            CommandParameter="{Binding}"
+                                            Margin="2" Padding="5,2"
+                                            VerticalAlignment="Center">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Content" Value="Desactivar"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding EsActivo}" Value="False">
+                                                        <Setter Property="Content" Value="Activar"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
                                 </StackPanel>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

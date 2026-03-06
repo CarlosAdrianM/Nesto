@@ -40,6 +40,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             GuardarCommand = new DelegateCommand<object>(async (g) => await OnGuardar(g as GanavisionWrapper));
             EliminarCommand = new DelegateCommand<object>(async (g) => await OnEliminar(g as GanavisionWrapper), CanEliminar);
             AbrirProductoCommand = new DelegateCommand<GanavisionWrapper>(OnAbrirProducto);
+            ToggleActivoCommand = new DelegateCommand<object>(async (g) => await OnToggleActivo(g as GanavisionWrapper));
 
             Titulo = "Ganavisiones";
             Empresa = Constantes.Empresas.EMPRESA_DEFECTO;
@@ -114,6 +115,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
         public ICommand GuardarCommand { get; }
         public ICommand EliminarCommand { get; }
         public ICommand AbrirProductoCommand { get; }
+        public ICommand ToggleActivoCommand { get; }
 
         /// <summary>
         /// Evento que se dispara cuando se crea un nuevo Ganavision para que la View pueda poner el foco en la celda de edición.
@@ -209,7 +211,8 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
                     ProductoId = ganavision.ProductoId?.Trim(),
                     Ganavisiones = ganavision.Ganavisiones,
                     FechaDesde = ganavision.FechaDesde,
-                    FechaHasta = ganavision.FechaHasta
+                    FechaHasta = ganavision.FechaHasta,
+                    ImporteMinimoPedido = ganavision.ImporteMinimoPedido
                 };
 
                 GanavisionModel resultado;
@@ -272,6 +275,29 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             }
         }
 
+        private async Task OnToggleActivo(GanavisionWrapper ganavision)
+        {
+            if (ganavision == null || ganavision.Id == 0) return;
+
+            if (ganavision.EsActivo)
+            {
+                ganavision.FechaHasta = DateTime.Today.AddDays(-1);
+            }
+            else
+            {
+                if (ganavision.FechaHasta != null && ganavision.FechaHasta < DateTime.Today)
+                {
+                    ganavision.FechaHasta = null;
+                }
+                if (ganavision.FechaDesde > DateTime.Today)
+                {
+                    ganavision.FechaDesde = DateTime.Today;
+                }
+            }
+
+            await OnGuardar(ganavision);
+        }
+
         private void OnAbrirProducto(GanavisionWrapper ganavision)
         {
             if (ganavision == null || string.IsNullOrWhiteSpace(ganavision.ProductoId)) return;
@@ -313,6 +339,8 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             Usuario = model.Usuario;
             Stock = model.Stock;
             CantidadRegalada = model.CantidadRegalada;
+            ImporteMinimoPedido = model.ImporteMinimoPedido;
+            Familia = model.Familia;
             _rastreandoCambios = true;
             HaCambiado = false;
         }
@@ -335,8 +363,11 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             Usuario = model.Usuario;
             Stock = model.Stock;
             CantidadRegalada = model.CantidadRegalada;
+            ImporteMinimoPedido = model.ImporteMinimoPedido;
+            Familia = model.Familia;
             _rastreandoCambios = true;
             HaCambiado = false;
+            RaisePropertyChanged(nameof(EsActivo));
         }
 
         public int Id { get; set; }
@@ -436,6 +467,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
                 if (SetProperty(ref _fechaDesde, value))
                 {
                     if (_rastreandoCambios) HaCambiado = true;
+                    RaisePropertyChanged(nameof(EsActivo));
                 }
             }
         }
@@ -449,6 +481,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
                 if (SetProperty(ref _fechaHasta, value))
                 {
                     if (_rastreandoCambios) HaCambiado = true;
+                    RaisePropertyChanged(nameof(EsActivo));
                 }
             }
         }
@@ -458,6 +491,23 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
         public string Usuario { get; set; }
         public int Stock { get; set; }
         public int CantidadRegalada { get; set; }
+
+        private decimal _importeMinimoPedido;
+        public decimal ImporteMinimoPedido
+        {
+            get => _importeMinimoPedido;
+            set
+            {
+                if (SetProperty(ref _importeMinimoPedido, value))
+                {
+                    if (_rastreandoCambios) HaCambiado = true;
+                }
+            }
+        }
+
+        public string Familia { get; set; }
+
+        public bool EsActivo => FechaDesde <= DateTime.Today && (FechaHasta == null || FechaHasta >= DateTime.Today);
 
         private bool _haCambiado;
         public bool HaCambiado

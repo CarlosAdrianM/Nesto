@@ -16,6 +16,8 @@ namespace Nesto.Modulos.Ganavisiones.Models
         public string Usuario { get; set; }
         public int Stock { get; set; }
         public int CantidadRegalada { get; set; }
+        public decimal ImporteMinimoPedido { get; set; }
+        public string Familia { get; set; }
     }
 
     public class GanavisionCreateModel
@@ -25,5 +27,6 @@ namespace Nesto.Modulos.Ganavisiones.Models
         public int? Ganavisiones { get; set; }
         public DateTime FechaDesde { get; set; }
         public DateTime? FechaHasta { get; set; }
+        public decimal ImporteMinimoPedido { get; set; }
     }
 }
