@@ -113,7 +113,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 decimal importeComision = apuntesContabilidad.Sum(c => c.Importe) - apuntesBancarios.Sum(a => a.ImporteMovimiento);
                 decimal importeOriginal = importeIngresado + importeComision;
 
-                if ((apunteBancarioVenta.ConceptoComun == "02" || apunteBancarioVenta.ConceptoComun == "03") &&
+                if ((apunteBancarioVenta.ConceptoComun == "02" || apunteBancarioVenta.ConceptoComun == "03" || apunteBancarioVenta.ConceptoComun == "99") &&
                     apunteBancarioVenta.ConceptoPropio == "PPA" &&
                     (VerificarImportesStandard(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0)) ||
                     VerificarImportesInternacional(importeOriginal, importeComision, importeIngresado, apuntesContabilidad.Count(a => a.Importe > 0))))
