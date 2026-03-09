@@ -10,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -105,6 +106,20 @@ namespace ControlesUsuario
                 }
             }
         }
+
+        /// <summary>
+        /// Accion para abrir un pedido (empresa, numeroPedido).
+        /// Se invoca al hacer doble clic en una fila que proviene de lineas de pedido.
+        /// </summary>
+        public Action<string, int> AbrirPedidoAction
+        {
+            get => (Action<string, int>)GetValue(AbrirPedidoActionProperty);
+            set => SetValue(AbrirPedidoActionProperty, value);
+        }
+
+        public static readonly DependencyProperty AbrirPedidoActionProperty =
+            DependencyProperty.Register(nameof(AbrirPedidoAction), typeof(Action<string, int>),
+                typeof(SelectorFacturas));
 
         #endregion
 
@@ -316,16 +331,46 @@ namespace ControlesUsuario
         }
 
         /// <summary>
-        /// Numero de facturas seleccionadas.
+        /// Numero de facturas seleccionadas (documentos unicos).
         /// </summary>
         public int NumeroFacturasSeleccionadas =>
-            TodasLasFacturas?.Count(f => f.Seleccionada) ?? 0;
+            FacturasFiltradas?.Where(f => f.Seleccionada)
+                .Select(f => f.Documento?.Trim())
+                .Where(d => !string.IsNullOrWhiteSpace(d))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count() ?? 0;
 
         /// <summary>
-        /// Total de las facturas seleccionadas.
+        /// Total de las facturas seleccionadas (importe de la factura original, no de lineas individuales).
         /// </summary>
-        public decimal TotalFacturasSeleccionadas =>
-            TodasLasFacturas?.Where(f => f.Seleccionada).Sum(f => f.Importe) ?? 0;
+        public decimal TotalFacturasSeleccionadas
+        {
+            get
+            {
+                var documentosSeleccionados = FacturasFiltradas?.Where(f => f.Seleccionada)
+                    .Select(f => f.Documento?.Trim())
+                    .Where(d => !string.IsNullOrWhiteSpace(d))
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+
+                if (documentosSeleccionados == null || !documentosSeleccionados.Any())
+                {
+                    return 0;
+                }
+
+                // Buscar importes en TodasLasFacturas (tienen el importe total de la factura)
+                if (TodasLasFacturas != null)
+                {
+                    return TodasLasFacturas
+                        .Where(f => documentosSeleccionados.Contains(f.Documento?.Trim(), StringComparer.OrdinalIgnoreCase))
+                        .Sum(f => f.Importe);
+                }
+
+                // Fallback: agrupar por documento y tomar el primer importe
+                return FacturasFiltradas.Where(f => f.Seleccionada)
+                    .GroupBy(f => f.Documento?.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .Sum(g => g.First().Importe);
+            }
+        }
 
         private bool _estaCargando;
         public bool EstaCargando
@@ -434,22 +479,113 @@ namespace ControlesUsuario
             }
         }
 
+        private bool _sincronizandoSeleccion;
+
+        private void LineaPedido_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(FacturaClienteDTO.Seleccionada) || _sincronizandoSeleccion)
+            {
+                return;
+            }
+
+            if (!(sender is FacturaClienteDTO lineaPedido))
+            {
+                return;
+            }
+
+            _sincronizandoSeleccion = true;
+            try
+            {
+                bool seleccionada = lineaPedido.Seleccionada;
+                string doc = lineaPedido.Documento?.Trim();
+                bool tieneDocumento = !string.IsNullOrWhiteSpace(doc);
+
+                bool facturaOriginalEncontrada = false;
+
+                if (tieneDocumento)
+                {
+                    // Seleccionar/deseleccionar la factura original en TodasLasFacturas
+                    // Esto disparara Factura_PropertyChanged -> ActualizarSeleccion
+                    if (TodasLasFacturas != null)
+                    {
+                        var facturaOriginal = TodasLasFacturas.FirstOrDefault(f =>
+                            f.Documento?.Trim().Equals(doc, StringComparison.OrdinalIgnoreCase) ?? false);
+
+                        if (facturaOriginal != null && facturaOriginal.Seleccionada != seleccionada)
+                        {
+                            facturaOriginal.Seleccionada = seleccionada;
+                            facturaOriginalEncontrada = true;
+                        }
+                    }
+
+                    // Seleccionar/deseleccionar todas las lineas del mismo documento en FacturasFiltradas
+                    if (FacturasFiltradas != null)
+                    {
+                        foreach (var otra in FacturasFiltradas)
+                        {
+                            if (otra != lineaPedido
+                                && otra.NumeroPedido != null
+                                && (otra.Documento?.Trim().Equals(doc, StringComparison.OrdinalIgnoreCase) ?? false)
+                                && otra.Seleccionada != seleccionada)
+                            {
+                                otra.Seleccionada = seleccionada;
+                            }
+                        }
+                    }
+                }
+
+                // Si no se encontro la factura original, actualizar conteo manualmente
+                if (!facturaOriginalEncontrada)
+                {
+                    ActualizarSeleccion();
+                }
+            }
+            finally
+            {
+                _sincronizandoSeleccion = false;
+            }
+        }
+
         private void ActualizarSeleccion()
         {
             OnPropertyChanged(nameof(NumeroFacturasSeleccionadas));
             OnPropertyChanged(nameof(TotalFacturasSeleccionadas));
 
-            // Actualizar la propiedad de salida
-            FacturasSeleccionadas = new ObservableCollection<FacturaClienteDTO>(
-                TodasLasFacturas?.Where(f => f.Seleccionada) ?? new List<FacturaClienteDTO>());
+            // Actualizar la propiedad de salida con facturas unicas seleccionadas.
+            // Para cada documento, preferir la factura original (de TodasLasFacturas) sobre las lineas de busqueda.
+            var seleccionadas = new List<FacturaClienteDTO>();
+            var documentosVistos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var f in FacturasFiltradas?.Where(f => f.Seleccionada) ?? Enumerable.Empty<FacturaClienteDTO>())
+            {
+                string doc = f.Documento?.Trim();
+                if (string.IsNullOrWhiteSpace(doc) || documentosVistos.Add(doc))
+                {
+                    // Si es linea de pedido, buscar la factura original en TodasLasFacturas
+                    if (f.NumeroPedido != null && !string.IsNullOrWhiteSpace(doc) && TodasLasFacturas != null)
+                    {
+                        var original = TodasLasFacturas.FirstOrDefault(t =>
+                            t.Documento?.Trim().Equals(doc, StringComparison.OrdinalIgnoreCase) ?? false);
+                        seleccionadas.Add(original ?? f);
+                    }
+                    else
+                    {
+                        seleccionadas.Add(f);
+                    }
+                }
+            }
+
+            FacturasSeleccionadas = new ObservableCollection<FacturaClienteDTO>(seleccionadas);
 
             // Actualizar estado de "todas seleccionadas"
-            if (TodasLasFacturas != null && TodasLasFacturas.Any())
+            if (FacturasFiltradas != null && FacturasFiltradas.Any())
             {
-                _todasSeleccionadas = TodasLasFacturas.All(f => f.Seleccionada);
+                _todasSeleccionadas = FacturasFiltradas.All(f => f.Seleccionada);
                 OnPropertyChanged(nameof(TodasSeleccionadas));
             }
         }
+
+        private CancellationTokenSource _busquedaLineasCts;
 
         private void AplicarFiltro()
         {
@@ -461,6 +597,7 @@ namespace ControlesUsuario
 
             if (string.IsNullOrWhiteSpace(TextoBusqueda))
             {
+                _busquedaLineasCts?.Cancel();
                 FacturasFiltradas = new ObservableCollection<FacturaClienteDTO>(TodasLasFacturas);
             }
             else
@@ -470,6 +607,107 @@ namespace ControlesUsuario
                     (f.Documento?.ToLowerInvariant().Contains(filtro) ?? false) ||
                     (f.Concepto?.ToLowerInvariant().Contains(filtro) ?? false));
                 FacturasFiltradas = new ObservableCollection<FacturaClienteDTO>(filtradas);
+
+                _ = BuscarEnLineasPedidoConDebounceAsync(TextoBusqueda.Trim());
+            }
+        }
+
+        private async Task BuscarEnLineasPedidoConDebounceAsync(string texto)
+        {
+            _busquedaLineasCts?.Cancel();
+
+            if (texto.Length < 3)
+            {
+                return;
+            }
+
+            _busquedaLineasCts = new CancellationTokenSource();
+            var token = _busquedaLineasCts.Token;
+
+            try
+            {
+                await Task.Delay(500, token);
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                await BuscarEnLineasPedidoAsync(texto, token);
+            }
+            catch (TaskCanceledException)
+            {
+                // Debounce cancelado por nueva pulsacion, es normal
+            }
+        }
+
+        private async Task BuscarEnLineasPedidoAsync(string texto, CancellationToken token)
+        {
+            if (Configuracion == null || string.IsNullOrWhiteSpace(Cliente) || string.IsNullOrWhiteSpace(Empresa))
+            {
+                return;
+            }
+
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.BaseAddress = new Uri(Configuracion.servidorAPI);
+
+                    string url = $"PedidosVenta/BuscarLineas?cliente={Cliente}&texto={Uri.EscapeDataString(texto)}";
+                    var response = await client.GetAsync(url, token);
+
+                    if (token.IsCancellationRequested || response == null || !response.IsSuccessStatusCode)
+                    {
+                        return;
+                    }
+
+                    string json = await response.Content.ReadAsStringAsync();
+                    var lineas = JsonConvert.DeserializeObject<List<LineaPedidoVentaBusquedaDTO>>(json);
+
+                    if (token.IsCancellationRequested || lineas == null || !lineas.Any())
+                    {
+                        return;
+                    }
+
+                    // Convertir lineas de pedido a FacturaClienteDTO para mostrar en el mismo DataGrid
+                    var lineasComoFacturas = lineas.Select(l => new FacturaClienteDTO
+                    {
+                        Empresa = l.Empresa?.Trim(),
+                        Cliente = Cliente,
+                        Fecha = l.FechaFactura ?? DateTime.MinValue,
+                        Documento = l.Factura?.Trim(),
+                        Concepto = $"{l.Producto?.Trim()} - {l.Texto?.Trim()} [Pedido {l.Pedido}]",
+                        Importe = l.BaseImponible,
+                        NumeroPedido = l.Pedido
+                    });
+
+                    // Combinar con las facturas filtradas localmente, evitando duplicados por factura
+                    var facturasActuales = FacturasFiltradas?.ToList() ?? new List<FacturaClienteDTO>();
+                    var documentosExistentes = new HashSet<string>(
+                        facturasActuales.Where(f => f.Documento != null).Select(f => f.Documento.Trim()),
+                        StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var linea in lineasComoFacturas)
+                    {
+                        if (!string.IsNullOrWhiteSpace(linea.Documento) && documentosExistentes.Contains(linea.Documento))
+                        {
+                            continue;
+                        }
+                        linea.PropertyChanged += LineaPedido_PropertyChanged;
+                        facturasActuales.Add(linea);
+                    }
+
+                    FacturasFiltradas = new ObservableCollection<FacturaClienteDTO>(
+                        facturasActuales.OrderByDescending(f => f.Fecha));
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Cancelado, es normal
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error al buscar en lineas de pedido: {ex.Message}");
             }
         }
 
@@ -516,16 +754,40 @@ namespace ControlesUsuario
             }
         }
 
+        private void TextBoxBusqueda_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                textBox.SelectAll();
+            }
+        }
+
+        private void TextBoxBusqueda_PreviewMouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                textBox.SelectAll();
+            }
+        }
+
+        private void DataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (FacturaSeleccionadaInterna?.NumeroPedido != null && AbrirPedidoAction != null)
+            {
+                AbrirPedidoAction(FacturaSeleccionadaInterna.Empresa, FacturaSeleccionadaInterna.NumeroPedido.Value);
+            }
+        }
+
         private void CheckBoxSeleccionarTodas_Changed(object sender, RoutedEventArgs e)
         {
-            if (TodasLasFacturas == null)
+            if (FacturasFiltradas == null)
             {
                 return;
             }
 
             bool seleccionar = ((CheckBox)sender).IsChecked ?? false;
 
-            foreach (var factura in TodasLasFacturas)
+            foreach (var factura in FacturasFiltradas)
             {
                 factura.Seleccionada = seleccionar;
             }

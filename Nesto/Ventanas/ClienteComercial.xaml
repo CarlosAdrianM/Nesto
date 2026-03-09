@@ -155,6 +155,7 @@
                                     Cliente="{Binding clienteActivo.Nº_Cliente}"
                                     Configuracion="{Binding configuracion}"
                                     FacturasSeleccionadas="{Binding FacturasSeleccionadas, Mode=TwoWay}"
+                                    AbrirPedidoAction="{Binding AbrirPedidoAction}"
                                     MostrarBusqueda="True"
                                     MostrarResumenSeleccion="True"
                                     MostrarSeleccionarTodas="True"

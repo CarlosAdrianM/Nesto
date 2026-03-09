@@ -20,6 +20,11 @@ namespace ControlesUsuario.Models
         public string CCC { get; set; }
         public string Vendedor { get; set; }
 
+        /// <summary>
+        /// Numero de pedido de origen (solo para resultados de busqueda en lineas de pedido).
+        /// </summary>
+        public int? NumeroPedido { get; set; }
+
         private bool _seleccionada;
         /// <summary>
         /// Indica si la factura esta seleccionada (checkbox marcado).

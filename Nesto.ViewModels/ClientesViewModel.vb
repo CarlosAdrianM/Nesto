@@ -1119,6 +1119,11 @@ Public Class ClientesViewModel
         PedidoVentaViewModel.CargarPedido(empresaActual, param.numero, contenedor)
     End Sub
 
+    Public ReadOnly Property AbrirPedidoAction As Action(Of String, Integer)
+        Get
+            Return Sub(empresa, numeroPedido) PedidoVentaViewModel.CargarPedido(empresa, numeroPedido, contenedor)
+        End Get
+    End Property
 
     Private _imprimirMandatoCommand As ICommand
     Public ReadOnly Property ImprimirMandatoCommand() As ICommand
