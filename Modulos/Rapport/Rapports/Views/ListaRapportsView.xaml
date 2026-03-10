@@ -47,9 +47,13 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="LightGray"/>
+        <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Center" VerticalAlignment="Stretch" Background="LightGray"/>
         <Grid Grid.Column="0" Margin="3">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -193,8 +197,8 @@
             </Grid>
         </Grid>
 
-        <xctk:BusyIndicator Grid.Column="1" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando rapports...">
-            <Grid Grid.Column="1" Margin="3" Background="White">
+        <xctk:BusyIndicator Grid.Column="2" IsBusy="{Binding EstaOcupado}" BusyContent="Cargando rapports...">
+            <Grid Margin="3" Background="White">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="2*" MinHeight="100"/>
                     <RowDefinition Height="Auto"/>
@@ -450,6 +454,6 @@
                 </Border>
             </Grid>
         </xctk:BusyIndicator>
-        <ContentControl Grid.Column="2" prism:RegionManager.RegionName="RapportDetailRegion" Margin="3"></ContentControl>
+        <ContentControl Grid.Column="4" prism:RegionManager.RegionName="RapportDetailRegion" Margin="3"></ContentControl>
     </Grid>
 </UserControl>
