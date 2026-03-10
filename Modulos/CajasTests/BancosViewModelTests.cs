@@ -1279,6 +1279,38 @@ namespace CajasTests
         }
 
         #endregion
+
+        #region BancoSeleccionado
+
+        [TestMethod]
+        public void BancosViewModel_AlCambiarBancoSeleccionado_GuardaElParametroDelBanco()
+        {
+            // Arrange
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            var bancoFake = A.Fake<IBancoConciliacion>();
+            A.CallTo(() => bancoFake.Banco).Returns(new BancoDTO { Codigo = "TEST01" });
+            sut.ListaBancos = new List<IBancoConciliacion> { bancoFake };
+
+            // Act
+            sut.BancoSeleccionado = bancoFake;
+
+            // Assert
+            A.CallTo(() => _configuracion.GuardarParametro(
+                A<string>.Ignored,
+                Nesto.Infrastructure.Shared.Parametros.Claves.ConciliacionBancariaUltimoBanco,
+                "TEST01"))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        #endregion
     }
 
 }

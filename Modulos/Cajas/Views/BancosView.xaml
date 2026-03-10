@@ -226,7 +226,7 @@
                         <DataGridTextColumn Header="Pendiente" Binding="{Binding ImportePendiente, StringFormat=N2}" />
                     </DataGrid.Columns>
                 </DataGrid>
-                <DataGrid Grid.Row="1" ItemsSource="{Binding ExtractosClienteAsientoSeleccionado}" IsReadOnly="True" AutoGenerateColumns="False">
+                <DataGrid Grid.Row="1" ItemsSource="{Binding ExtractosClienteAsientoSeleccionado}" IsReadOnly="True" AutoGenerateColumns="False" MaxHeight="200">
                     <DataGrid.Style>
                         <Style TargetType="DataGrid">
                             <Style.Triggers>

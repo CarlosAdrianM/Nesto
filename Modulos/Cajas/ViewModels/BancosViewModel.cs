@@ -241,6 +241,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     }
                     FechaHasta = DateTime.ParseExact(fechaHastaStr, "dd/MM/yy", null);
                     RaisePropertyChanged(nameof(FechaDesde));
+                    _ = _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.ConciliacionBancariaUltimoBanco, value.Banco.Codigo);
                 }
             }
         }
