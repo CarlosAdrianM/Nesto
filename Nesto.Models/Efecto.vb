@@ -35,7 +35,7 @@ Public Class Efecto
         End Get
         Set(value As String)
             If _formaPago <> value Then
-                _formaPago = value.ToUpper.Trim
+                _formaPago = If(String.IsNullOrEmpty(value), Nothing, value.ToUpper.Trim())
                 RaisePropertyChanged(NameOf(FormaPago))
             End If
         End Set
@@ -47,7 +47,7 @@ Public Class Efecto
         End Get
         Set(value As String)
             If _ccc <> value Then
-                _ccc = value.ToUpper.Trim
+                _ccc = If(String.IsNullOrEmpty(value), Nothing, value.ToUpper.Trim())
                 RaisePropertyChanged(NameOf(CCC))
             End If
         End Set
