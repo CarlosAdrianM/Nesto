@@ -747,6 +747,25 @@ Public Class PlantillaVentaViewModel
             If String.IsNullOrEmpty(ComentarioRuta) AndAlso Not IsNothing(_direccionEntregaSeleccionada) Then
                 ComentarioRuta = _direccionEntregaSeleccionada.comentarioRuta
             End If
+            ' Issue #297: Sincronizar ComentarioPicking al cambiar contacto
+            If value IsNot Nothing AndAlso _borradorEnRestauracion Is Nothing Then
+                Dim nuevoComentario = value.comentarioPicking
+                If Estado.UsuarioHaModificadoComentarioPicking() Then
+                    Dim mantener As Boolean = True
+                    dialogService.ShowConfirmation(
+                        "Comentario de picking personalizado",
+                        $"Has modificado el comentario de picking manualmente.{Environment.NewLine}{Environment.NewLine}" &
+                        $"Tu comentario: ""{Estado.ComentarioPicking}""{Environment.NewLine}" &
+                        $"Comentario del nuevo contacto: ""{nuevoComentario}""{Environment.NewLine}{Environment.NewLine}" &
+                        "¿Deseas mantener tu comentario personalizado?" & Environment.NewLine &
+                        "(OK = mantener el tuyo, Cancelar = usar el del nuevo contacto)",
+                        Sub(r) mantener = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+                    Estado.ActualizarComentarioPickingAlCambiarContacto(nuevoComentario, mantener)
+                Else
+                    Estado.ActualizarComentarioPickingAlCambiarContacto(nuevoComentario, False)
+                End If
+                RaisePropertyChanged(NameOf(ComentarioPicking))
+            End If
             If fechaEntrega < fechaMinimaEntrega Then
                 fechaEntrega = fechaMinimaEntrega
             End If

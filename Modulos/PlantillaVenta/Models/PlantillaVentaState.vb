@@ -352,6 +352,30 @@ Public Class PlantillaVentaState
 
 #Region "Métodos"
     ''' <summary>
+    ''' Indica si el usuario ha modificado manualmente el comentario de picking
+    ''' respecto al valor original del cliente/contacto.
+    ''' </summary>
+    Public Function UsuarioHaModificadoComentarioPicking() As Boolean
+        ' Si ambos son nulos/vacíos, no ha modificado
+        If String.IsNullOrEmpty(ComentarioPicking) AndAlso String.IsNullOrEmpty(ComentarioPickingCliente) Then
+            Return False
+        End If
+        Return Not String.Equals(ComentarioPicking, ComentarioPickingCliente, StringComparison.Ordinal)
+    End Function
+
+    ''' <summary>
+    ''' Actualiza el comentario de picking al cambiar de contacto/dirección de entrega.
+    ''' </summary>
+    ''' <param name="nuevoComentarioContacto">Comentario picking del nuevo contacto</param>
+    ''' <param name="mantenerComentarioUsuario">True si el usuario quiere conservar su texto personalizado</param>
+    Public Sub ActualizarComentarioPickingAlCambiarContacto(nuevoComentarioContacto As String, mantenerComentarioUsuario As Boolean)
+        ComentarioPickingCliente = nuevoComentarioContacto
+        If Not mantenerComentarioUsuario Then
+            ComentarioPicking = nuevoComentarioContacto
+        End If
+    End Sub
+
+    ''' <summary>
     ''' Crea una copia profunda del estado.
     ''' </summary>
     Public Function Clonar() As PlantillaVentaState

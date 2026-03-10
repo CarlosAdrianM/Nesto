@@ -497,5 +497,132 @@ namespace PlantillaVentaTests
         }
 
         #endregion
+
+        #region ComentarioPicking al cambiar contacto - Issue #297
+
+        [TestMethod]
+        public void DireccionEntrega_CambiarContacto_SinModificacionUsuario_ActualizaSilenciosamente()
+        {
+            // Arrange
+            var (vm, dialogServiceMock) = CrearViewModelConMocks();
+            vm.Estado.ComentarioPickingCliente = "Dejar en recepción";
+            vm.Estado.ComentarioPicking = "Dejar en recepción"; // No modificado
+
+            var nuevaDireccion = new ControlesUsuario.Models.DireccionesEntregaCliente
+            {
+                contacto = "1",
+                comentarioPicking = "Portería lateral",
+                codigoPostal = "28001",
+                plazosPago = "CAMBIO"
+            };
+
+            // Act
+            vm.direccionEntregaSeleccionada = nuevaDireccion;
+
+            // Assert - Actualización silenciosa sin diálogo
+            Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPicking);
+            Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPickingCliente);
+            VerifyConfirmationDialogCalled(dialogServiceMock, 0);
+        }
+
+        [TestMethod]
+        public void DireccionEntrega_CambiarContacto_ConModificacionUsuario_MuestraDialogo()
+        {
+            // Arrange
+            var (vm, dialogServiceMock) = CrearViewModelConMocks();
+            vm.Estado.ComentarioPickingCliente = "Dejar en recepción";
+            vm.Estado.ComentarioPicking = "Dejar en recepción - PREGUNTAR POR MARÍA"; // Modificado
+
+            // Configurar diálogo para que usuario acepte mantener su comentario
+            A.CallTo(() => dialogServiceMock.ShowDialog(
+                "ConfirmationDialog",
+                A<IDialogParameters>.Ignored,
+                A<Action<IDialogResult>>.Ignored
+            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) =>
+            {
+                var result = A.Fake<IDialogResult>();
+                A.CallTo(() => result.Result).Returns(ButtonResult.OK);
+                callback(result);
+            });
+
+            var nuevaDireccion = new ControlesUsuario.Models.DireccionesEntregaCliente
+            {
+                contacto = "1",
+                comentarioPicking = "Portería lateral",
+                codigoPostal = "28001",
+                plazosPago = "CAMBIO"
+            };
+
+            // Act
+            vm.direccionEntregaSeleccionada = nuevaDireccion;
+
+            // Assert - Se mostró diálogo y el usuario mantuvo su comentario
+            VerifyConfirmationDialogCalled(dialogServiceMock, 1);
+            Assert.AreEqual("Dejar en recepción - PREGUNTAR POR MARÍA", vm.Estado.ComentarioPicking);
+            Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPickingCliente);
+        }
+
+        [TestMethod]
+        public void DireccionEntrega_CambiarContacto_UsuarioCancela_UsaComentarioNuevoContacto()
+        {
+            // Arrange
+            var (vm, dialogServiceMock) = CrearViewModelConMocks();
+            vm.Estado.ComentarioPickingCliente = "Dejar en recepción";
+            vm.Estado.ComentarioPicking = "Texto personalizado del usuario";
+
+            // Configurar diálogo para que usuario cancele (usar el del nuevo contacto)
+            A.CallTo(() => dialogServiceMock.ShowDialog(
+                "ConfirmationDialog",
+                A<IDialogParameters>.Ignored,
+                A<Action<IDialogResult>>.Ignored
+            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) =>
+            {
+                var result = A.Fake<IDialogResult>();
+                A.CallTo(() => result.Result).Returns(ButtonResult.Cancel);
+                callback(result);
+            });
+
+            var nuevaDireccion = new ControlesUsuario.Models.DireccionesEntregaCliente
+            {
+                contacto = "1",
+                comentarioPicking = "Portería lateral",
+                codigoPostal = "28001",
+                plazosPago = "CAMBIO"
+            };
+
+            // Act
+            vm.direccionEntregaSeleccionada = nuevaDireccion;
+
+            // Assert - Se reemplazó por el del nuevo contacto
+            Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPicking);
+            Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPickingCliente);
+        }
+
+        [TestMethod]
+        public void DireccionEntrega_CambiarContacto_AmbosNulos_NoMuestraDialogo()
+        {
+            // Arrange
+            var (vm, dialogServiceMock) = CrearViewModelConMocks();
+            vm.Estado.ComentarioPickingCliente = null;
+            vm.Estado.ComentarioPicking = null;
+
+            var nuevaDireccion = new ControlesUsuario.Models.DireccionesEntregaCliente
+            {
+                contacto = "1",
+                comentarioPicking = "Nuevo comentario",
+                codigoPostal = "28001",
+                plazosPago = "CAMBIO"
+            };
+
+            // Act
+            vm.direccionEntregaSeleccionada = nuevaDireccion;
+
+            // Assert
+            Assert.AreEqual("Nuevo comentario", vm.Estado.ComentarioPicking);
+            Assert.AreEqual("Nuevo comentario", vm.Estado.ComentarioPickingCliente);
+            VerifyConfirmationDialogCalled(dialogServiceMock, 0);
+        }
+
+        #endregion
     }
 }

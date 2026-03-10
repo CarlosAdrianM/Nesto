@@ -75,5 +75,111 @@ namespace PlantillaVentaTests
             // Assert
             Assert.IsNull(pedido.comentarioPicking);
         }
+        #region UsuarioHaModificadoComentarioPicking (Issue #297)
+
+        [TestMethod]
+        public void UsuarioHaModificadoComentarioPicking_AmbosIguales_RetornaFalse()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = "Dejar en recepción";
+            state.ComentarioPicking = "Dejar en recepción";
+
+            Assert.IsFalse(state.UsuarioHaModificadoComentarioPicking());
+        }
+
+        [TestMethod]
+        public void UsuarioHaModificadoComentarioPicking_AmbosNulos_RetornaFalse()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = null;
+            state.ComentarioPicking = null;
+
+            Assert.IsFalse(state.UsuarioHaModificadoComentarioPicking());
+        }
+
+        [TestMethod]
+        public void UsuarioHaModificadoComentarioPicking_AmbosVacios_RetornaFalse()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = "";
+            state.ComentarioPicking = "";
+
+            Assert.IsFalse(state.UsuarioHaModificadoComentarioPicking());
+        }
+
+        [TestMethod]
+        public void UsuarioHaModificadoComentarioPicking_UnoNuloOtroVacio_RetornaFalse()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = null;
+            state.ComentarioPicking = "";
+
+            Assert.IsFalse(state.UsuarioHaModificadoComentarioPicking());
+        }
+
+        [TestMethod]
+        public void UsuarioHaModificadoComentarioPicking_UsuarioHaEditado_RetornaTrue()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = "Dejar en recepción";
+            state.ComentarioPicking = "Dejar en recepción - PREGUNTAR POR MARÍA";
+
+            Assert.IsTrue(state.UsuarioHaModificadoComentarioPicking());
+        }
+
+        [TestMethod]
+        public void UsuarioHaModificadoComentarioPicking_ClienteNuloUsuarioConTexto_RetornaTrue()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = null;
+            state.ComentarioPicking = "Texto nuevo del usuario";
+
+            Assert.IsTrue(state.UsuarioHaModificadoComentarioPicking());
+        }
+
+        #endregion
+
+        #region ActualizarComentarioPickingAlCambiarContacto (Issue #297)
+
+        [TestMethod]
+        public void ActualizarComentarioPicking_NoMantener_ActualizaAmbos()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = "Original";
+            state.ComentarioPicking = "Original";
+
+            state.ActualizarComentarioPickingAlCambiarContacto("Nuevo contacto", false);
+
+            Assert.AreEqual("Nuevo contacto", state.ComentarioPickingCliente);
+            Assert.AreEqual("Nuevo contacto", state.ComentarioPicking);
+        }
+
+        [TestMethod]
+        public void ActualizarComentarioPicking_Mantener_SoloActualizaCliente()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = "Original";
+            state.ComentarioPicking = "Texto personalizado del usuario";
+
+            state.ActualizarComentarioPickingAlCambiarContacto("Nuevo contacto", true);
+
+            Assert.AreEqual("Nuevo contacto", state.ComentarioPickingCliente);
+            Assert.AreEqual("Texto personalizado del usuario", state.ComentarioPicking);
+        }
+
+        [TestMethod]
+        public void ActualizarComentarioPicking_NuevoContactoSinComentario_LimpiaSiNoMantiene()
+        {
+            var state = new PlantillaVentaState();
+            state.ComentarioPickingCliente = "Original";
+            state.ComentarioPicking = "Original";
+
+            state.ActualizarComentarioPickingAlCambiarContacto(null, false);
+
+            Assert.IsNull(state.ComentarioPickingCliente);
+            Assert.IsNull(state.ComentarioPicking);
+        }
+
+        #endregion
     }
 }
