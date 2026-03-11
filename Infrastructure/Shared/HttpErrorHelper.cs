@@ -106,6 +106,11 @@ namespace Nesto.Infrastructure.Shared
                     }
                 }
             }
+            // Formato BadRequest de Web API: { "Message": "..." }
+            else if (detallesError["Message"] != null)
+            {
+                contenido = detallesError["Message"]?.ToString() ?? "";
+            }
             else
             {
                 // Fallback: usar el JSON raw como string
