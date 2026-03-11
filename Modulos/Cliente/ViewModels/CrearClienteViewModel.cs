@@ -347,7 +347,14 @@ namespace Nesto.Modulos.Cliente
         {
             get
             {
-                return ClienteTieneEstetica || ClienteTienePeluqueria;
+                if (ClienteTieneEstetica || ClienteTienePeluqueria)
+                {
+                    return true;
+                }
+
+                // Issue #315: Permitir avanzar sin marcar ninguna a usuarios de TiendaOnline o Dirección
+                return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE)
+                    || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION);
             }
         }
         #endregion
@@ -378,6 +385,15 @@ namespace Nesto.Modulos.Cliente
         public ICommand CrearClienteCommand { get; private set; }
         private async void OnCrearCliente()
         {
+            // Issue #315: Si no marcó estética ni peluquería, asignar vendedor por defecto
+            string vendedorEstetica = ClienteVendedorEstetica;
+            string vendedorPeluqueria = ClienteVendedorPeluqueria;
+            if (!ClienteTieneEstetica && !ClienteTienePeluqueria)
+            {
+                vendedorEstetica = Constantes.Vendedores.VENDEDOR_POR_DEFECTO;
+                vendedorPeluqueria = Constantes.Vendedores.VENDEDOR_POR_DEFECTO;
+            }
+
             ClienteCrear cliente = new ClienteCrear
             {
                 Cliente = ClienteNumero,
@@ -401,8 +417,8 @@ namespace Nesto.Modulos.Cliente
                 Provincia = ClienteProvincia,
                 Ruta = ClienteRuta,
                 Telefono = ClienteTelefono,
-                VendedorEstetica = ClienteVendedorEstetica,
-                VendedorPeluqueria = ClienteVendedorPeluqueria,
+                VendedorEstetica = vendedorEstetica,
+                VendedorPeluqueria = vendedorPeluqueria,
                 Usuario = Configuracion.usuario
             };
 
