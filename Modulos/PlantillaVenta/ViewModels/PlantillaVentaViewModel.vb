@@ -442,8 +442,18 @@ Public Class PlantillaVentaViewModel
                 clienteSeleccionado.cliente).ConfigureAwait(True)
 
             If Not IsNothing(respuesta) AndAlso Not IsNothing(respuesta.Productos) Then
+                ' Issue #314: Excluir productos que ya están en el pedido con precio
+                Dim productosEnPedido As New HashSet(Of String)(
+                    If(listaProductosPedido, New ObservableCollection(Of LineaPlantillaVenta)) _
+                        .Where(Function(l) l.precio <> 0) _
+                        .Select(Function(l) l.producto?.Trim()) _
+                        .Where(Function(p) Not String.IsNullOrEmpty(p)),
+                    StringComparer.OrdinalIgnoreCase)
+
                 ListaProductosBonificables = New ObservableCollection(Of LineaRegalo)(
-                    respuesta.Productos.Select(Function(p) New LineaRegalo With {
+                    respuesta.Productos _
+                        .Where(Function(p) Not productosEnPedido.Contains(p.ProductoId?.Trim())) _
+                        .Select(Function(p) New LineaRegalo With {
                         .producto = p.ProductoId,
                         .texto = p.ProductoNombre,
                         .precio = p.PVP,
@@ -1514,25 +1524,8 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        ' Issue #94: Notificar si el producto es bonificable (Ganavisiones - FASE 6)
-        ' Solo notificar la primera vez que se añade (fechaInsercion = MaxValue significa que no está en el pedido)
-        Dim esPrimeraVezEnPedido = arg.fechaInsercion = DateTime.MaxValue
-        If esPrimeraVezEnPedido AndAlso (arg.cantidad > 0 OrElse arg.cantidadOferta > 0) Then
-            If _productosBonificablesIds IsNot Nothing AndAlso _productosBonificablesIds.Contains(arg.producto?.Trim()) Then
-                Dim continuar As Boolean = True
-                dialogService.ShowConfirmation(
-                    "Producto bonificable",
-                    $"El producto '{arg.textoNombreProducto}' puede obtenerse como regalo con Ganavisiones.{Environment.NewLine}{Environment.NewLine}¿Desea añadirlo al pedido como compra normal?{Environment.NewLine}{Environment.NewLine}Pulse 'Cancelar' si prefiere seleccionarlo como regalo en la página de Ganavisiones.",
-                    Sub(r)
-                        continuar = r.Result = ButtonResult.OK
-                    End Sub)
-                If Not continuar Then
-                    arg.cantidad = 0
-                    arg.cantidadOferta = 0
-                    Return
-                End If
-            End If
-        End If
+        ' Issue #314: Eliminado diálogo de confirmación de producto bonificable.
+        ' Dejamos que el vendedor añada el producto con precio sin interrupciones.
 
         cmdActualizarPrecioProducto.Execute(arg)
 

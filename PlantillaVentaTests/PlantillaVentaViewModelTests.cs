@@ -152,7 +152,7 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public async Task ActualizarProductosPedido_ProductoBonificable_PrimeraVez_MuestraDialogo()
+        public async Task ActualizarProductosPedido_ProductoBonificable_PrimeraVez_NoMuestraDialogo_Issue314()
         {
             // Arrange
             var productosBonificables = new HashSet<string> { "PROD1" };
@@ -174,8 +174,8 @@ namespace PlantillaVentaTests
             // Act
             vm.cmdActualizarProductosPedido.Execute(linea);
 
-            // Assert - Verificar que se llamó al diálogo de confirmación (ShowDialog con "ConfirmationDialog")
-            VerifyConfirmationDialogCalled(dialogServiceMock, 1);
+            // Assert - Issue #314: Ya no se muestra diálogo de confirmación para productos bonificables
+            VerifyConfirmationDialogCalled(dialogServiceMock, 0);
         }
 
         [TestMethod]
@@ -258,7 +258,7 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public async Task ActualizarProductosPedido_ProductoBonificable_ConCantidadOferta_MuestraDialogo()
+        public async Task ActualizarProductosPedido_ProductoBonificable_ConCantidadOferta_NoMuestraDialogo_Issue314()
         {
             // Arrange
             var productosBonificables = new HashSet<string> { "PROD1" };
@@ -280,29 +280,16 @@ namespace PlantillaVentaTests
             // Act
             vm.cmdActualizarProductosPedido.Execute(linea);
 
-            // Assert - Debe mostrar diálogo si hay cantidadOferta > 0
-            VerifyConfirmationDialogCalled(dialogServiceMock, 1);
+            // Assert - Issue #314: Ya no se muestra diálogo de confirmación para productos bonificables
+            VerifyConfirmationDialogCalled(dialogServiceMock, 0);
         }
 
         [TestMethod]
-        public async Task ActualizarProductosPedido_UsuarioCancela_RevierteCantidades()
+        public async Task ActualizarProductosPedido_ProductoBonificable_NuncaRevierteCantidades_Issue314()
         {
             // Arrange
             var productosBonificables = new HashSet<string> { "PROD1" };
             var (vm, dialogServiceMock) = CrearViewModelConMocks(productosBonificables);
-
-            // Configurar ShowDialog para que simule que el usuario cancela
-            // (ShowConfirmation internamente llama a ShowDialog con "ConfirmationDialog")
-            A.CallTo(() => dialogServiceMock.ShowDialog(
-                "ConfirmationDialog",
-                A<IDialogParameters>.Ignored,
-                A<Action<IDialogResult>>.Ignored
-            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) =>
-            {
-                var result = A.Fake<IDialogResult>();
-                A.CallTo(() => result.Result).Returns(ButtonResult.Cancel);
-                callback(result);
-            });
 
             vm.OnNavigatedTo(null);
             await Task.Delay(100);
@@ -320,9 +307,10 @@ namespace PlantillaVentaTests
             // Act
             vm.cmdActualizarProductosPedido.Execute(linea);
 
-            // Assert - Las cantidades deben haberse revertido a 0
-            Assert.AreEqual(0, linea.cantidad, "La cantidad debería ser 0 tras cancelar");
-            Assert.AreEqual(0, linea.cantidadOferta, "La cantidadOferta debería ser 0 tras cancelar");
+            // Assert - Issue #314: Sin diálogo, las cantidades se mantienen siempre
+            Assert.AreEqual(5, linea.cantidad, "La cantidad debería mantenerse sin diálogo");
+            Assert.AreEqual(2, linea.cantidadOferta, "La cantidadOferta debería mantenerse sin diálogo");
+            VerifyConfirmationDialogCalled(dialogServiceMock, 0);
         }
 
         [TestMethod]
