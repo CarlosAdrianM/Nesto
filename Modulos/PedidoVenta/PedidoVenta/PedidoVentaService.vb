@@ -500,7 +500,7 @@ Public Class PedidoVentaService
         End Using
     End Function
 
-    Public Async Function CargarFactura(empresa As String, numeroFactura As String, Optional papelConMembrete As Boolean = False) As Task(Of Byte()) Implements IPedidoVentaService.CargarFactura
+    Public Async Function CargarFactura(empresa As String, numeroFactura As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte()) Implements IPedidoVentaService.CargarFactura
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -515,6 +515,7 @@ Public Class PedidoVentaService
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroFactura=" + numeroFactura
                 urlConsulta += "&papelConMembrete=" + papelConMembrete.ToString().ToLower()
+                urlConsulta += "&mostrarImagenes=" + mostrarImagenes.ToString().ToLower()
 
 
                 response = Await client.GetAsync(urlConsulta)
@@ -533,14 +534,14 @@ Public Class PedidoVentaService
 
     <DllImport("shell32")>
     Private Shared Function SHGetKnownFolderPath(ByRef rfid As Guid, ByVal dwFlags As UInteger, ByVal hToken As IntPtr, ByRef np As IntPtr) As Integer : End Function
-    Public Async Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String, Optional papelConMembrete As Boolean = False) As Task(Of String) Implements IPedidoVentaService.DescargarFactura
+    Public Async Function DescargarFactura(empresa As String, numeroFactura As String, cliente As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of String) Implements IPedidoVentaService.DescargarFactura
         Dim np As IntPtr
         Dim unused = SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
         Dim path As String = Marshal.PtrToStringUni(np)
         Marshal.FreeCoTaskMem(np)
 
 
-        Dim factura As Byte() = Await CargarFactura(empresa, numeroFactura, papelConMembrete)
+        Dim factura As Byte() = Await CargarFactura(empresa, numeroFactura, papelConMembrete, mostrarImagenes)
         Dim ms As New MemoryStream(factura)
         'write to file
         Dim nombreArchivo As String = path + "\Cliente_" + cliente + "_" + numeroFactura.ToString + ".pdf"
@@ -551,7 +552,7 @@ Public Class PedidoVentaService
         Return nombreArchivo
     End Function
 
-    Public Async Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False) As Task(Of Byte()) Implements IPedidoVentaService.CargarAlbaran
+    Public Async Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte()) Implements IPedidoVentaService.CargarAlbaran
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
@@ -566,6 +567,7 @@ Public Class PedidoVentaService
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroAlbaran=" + numeroAlbaran.ToString
                 urlConsulta += "&papelConMembrete=" + papelConMembrete.ToString().ToLower()
+                urlConsulta += "&mostrarImagenes=" + mostrarImagenes.ToString().ToLower()
 
 
                 response = Await client.GetAsync(urlConsulta)
@@ -587,14 +589,14 @@ Public Class PedidoVentaService
         End Using
     End Function
 
-    Public Async Function DescargarAlbaran(empresa As String, numeroAlbaran As Integer, cliente As String, Optional papelConMembrete As Boolean = False) As Task(Of String) Implements IPedidoVentaService.DescargarAlbaran
+    Public Async Function DescargarAlbaran(empresa As String, numeroAlbaran As Integer, cliente As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of String) Implements IPedidoVentaService.DescargarAlbaran
         Dim np As IntPtr
         Dim unused = SHGetKnownFolderPath(New Guid("374DE290-123F-4565-9164-39C4925E467B"), 0, IntPtr.Zero, np)
         Dim path As String = Marshal.PtrToStringUni(np)
         Marshal.FreeCoTaskMem(np)
 
 
-        Dim albaran As Byte() = Await CargarAlbaran(empresa, numeroAlbaran, papelConMembrete)
+        Dim albaran As Byte() = Await CargarAlbaran(empresa, numeroAlbaran, papelConMembrete, mostrarImagenes)
         Dim ms As New MemoryStream(albaran)
         'write to file
         Dim nombreArchivo As String = path + "\Cliente_" + cliente + "_Albaran_" + numeroAlbaran.ToString + ".pdf"

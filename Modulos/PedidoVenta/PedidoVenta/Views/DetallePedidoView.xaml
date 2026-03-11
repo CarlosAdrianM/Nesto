@@ -192,7 +192,10 @@
                                 <Button Grid.Row="0" Grid.Column="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
                                 <Button Grid.Row="0" Grid.Column="1" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
                                 <Button Grid.Row="0" Grid.Column="2" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
-                                <CheckBox Grid.Row="0" Grid.Column="3" IsChecked="{Binding PapelConMembrete}" VerticalAlignment="Center" HorizontalAlignment="Center">Papel con membrete</CheckBox>
+                                <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <CheckBox IsChecked="{Binding PapelConMembrete}">Membrete</CheckBox>
+                                    <CheckBox IsChecked="{Binding MostrarImagenes}" Margin="8,0,0,0">Imágenes</CheckBox>
+                                </StackPanel>
                                 <!-- Fila 1: Impresión (Issue #269: Impresión directa con selección de bandeja) -->
                                 <!-- Clic izquierdo: Imprime directo a impresora con bandeja según "Papel con membrete" -->
                                 <!-- Clic derecho: Menú para descargar PDF (comportamiento anterior) -->

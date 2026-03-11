@@ -452,6 +452,21 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
+    Private _mostrarImagenes As Boolean = False
+    Public Property MostrarImagenes As Boolean
+        Get
+            Return _mostrarImagenes
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_mostrarImagenes, value) Then
+                configuracion.GuardarParametroSync(
+                    Constantes.Empresas.EMPRESA_DEFECTO,
+                    Parametros.Claves.PedidoVentaMostrarImagenes,
+                    value.ToString())
+            End If
+        End Set
+    End Property
+
     Private _lineaActual As LineaPedidoVentaWrapper
     Public Property lineaActual As LineaPedidoVentaWrapper
         Get
@@ -1383,7 +1398,7 @@ Public Class DetallePedidoViewModel
             Return
         End If
         Try
-            Dim pathFactura = Await servicio.DescargarFactura(pedido.empresa, factura, pedido.cliente, PapelConMembrete)
+            Dim pathFactura = Await servicio.DescargarFactura(pedido.empresa, factura, pedido.cliente, PapelConMembrete, MostrarImagenes)
             Dim unused = Process.Start(New ProcessStartInfo(pathFactura) With {
                 .UseShellExecute = True
             })
@@ -1417,7 +1432,7 @@ Public Class DetallePedidoViewModel
             Return
         End If
         Try
-            Dim pathAlbaran = Await servicio.DescargarAlbaran(pedido.empresa, numeroAlbaran, pedido.cliente, PapelConMembrete)
+            Dim pathAlbaran = Await servicio.DescargarAlbaran(pedido.empresa, numeroAlbaran, pedido.cliente, PapelConMembrete, MostrarImagenes)
             Dim unused = Process.Start(New ProcessStartInfo(pathAlbaran) With {
                 .UseShellExecute = True
             })
@@ -1452,7 +1467,7 @@ Public Class DetallePedidoViewModel
         End If
         Try
             ' Obtener bytes del PDF desde la API
-            Dim bytesPdf = Await servicio.CargarFactura(pedido.empresa, factura, PapelConMembrete)
+            Dim bytesPdf = Await servicio.CargarFactura(pedido.empresa, factura, PapelConMembrete, MostrarImagenes)
 
             If bytesPdf Is Nothing OrElse bytesPdf.Length = 0 Then
                 dialogService.ShowError("No se pudo obtener el PDF de la factura")
@@ -1517,7 +1532,7 @@ Public Class DetallePedidoViewModel
         End If
         Try
             ' Obtener bytes del PDF desde la API
-            Dim bytesPdf = Await servicio.CargarAlbaran(pedido.empresa, numeroAlbaran, PapelConMembrete)
+            Dim bytesPdf = Await servicio.CargarAlbaran(pedido.empresa, numeroAlbaran, PapelConMembrete, MostrarImagenes)
 
             If bytesPdf Is Nothing OrElse bytesPdf.Length = 0 Then
                 dialogService.ShowError("No se pudo obtener el PDF del albarán")
@@ -1748,7 +1763,7 @@ Public Class DetallePedidoViewModel
         estaBloqueado = True
 
         Try
-            Dim path As String = Await servicio.DescargarFactura(pedido.empresa, pedido.numero.ToString, pedido.cliente, PapelConMembrete)
+            Dim path As String = Await servicio.DescargarFactura(pedido.empresa, pedido.numero.ToString, pedido.cliente, PapelConMembrete, MostrarImagenes)
             Dim pathDirectorio As String = path.Substring(0, path.LastIndexOf("\"))
 
             ' Abrimos la carpeta de descargas
@@ -2049,6 +2064,10 @@ Public Class DetallePedidoViewModel
         Dim papelMembrete = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PedidoVentaPapelMembrete)
         _papelConMembrete = papelMembrete?.ToLower() = "true"
         RaisePropertyChanged(NameOf(PapelConMembrete))
+
+        Dim mostrarImg = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.PedidoVentaMostrarImagenes)
+        _mostrarImagenes = mostrarImg?.ToLower() = "true"
+        RaisePropertyChanged(NameOf(MostrarImagenes))
 
         cmdCargarPedido.Execute(resumen)
     End Sub

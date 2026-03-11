@@ -1054,6 +1054,16 @@ Public Class ClientesViewModel
 
     End Sub
 
+    Private _mostrarImagenesFacturas As Boolean = False
+    Public Property MostrarImagenesFacturas As Boolean
+        Get
+            Return _mostrarImagenesFacturas
+        End Get
+        Set(value As Boolean)
+            SetProperty(_mostrarImagenesFacturas, value)
+        End Set
+    End Property
+
     Private _descargarFacturasCommand As ICommand
     Public ReadOnly Property DescargarFacturasCommand() As ICommand
         Get
@@ -1075,7 +1085,7 @@ Public Class ClientesViewModel
             Marshal.FreeCoTaskMem(np)
 
             For Each fra In FacturasSeleccionadas
-                Dim factura As Byte() = Await CargarFactura(fra.Empresa, fra.Documento)
+                Dim factura As Byte() = Await CargarFactura(fra.Empresa, fra.Documento, MostrarImagenesFacturas)
                 If factura IsNot Nothing Then
                     Dim ms As New MemoryStream(factura)
                     'write to file
@@ -1287,7 +1297,7 @@ Public Class ClientesViewModel
     End Sub
 
 
-    Private Async Function CargarFactura(empresa As String, numeroFactura As String) As Task(Of Byte())
+    Private Async Function CargarFactura(empresa As String, numeroFactura As String, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())
         If IsNothing(clienteActivo) Then
             Return Nothing
         End If
@@ -1306,6 +1316,7 @@ Public Class ClientesViewModel
                 Dim urlConsulta As String = "Facturas"
                 urlConsulta += "?empresa=" + empresa
                 urlConsulta += "&numeroFactura=" + numeroFactura
+                urlConsulta += "&mostrarImagenes=" + mostrarImagenes.ToString().ToLower()
 
 
                 response = Await client.GetAsync(urlConsulta)
