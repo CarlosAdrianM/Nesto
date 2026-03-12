@@ -447,6 +447,10 @@
                             </DataGrid>
                         </DockPanel>
                         <StackPanel Grid.Row="3" Grid.Column="1" VerticalAlignment="Bottom" Margin="3,0">
+                            <DockPanel Margin="0,0,0,5">
+                                <TextBlock DockPanel.Dock="Left" Text="Su Pedido / P.O.:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <TextBox Text="{Binding SuPedido, UpdateSourceTrigger=PropertyChanged}"/>
+                            </DockPanel>
                             <TextBlock TextWrapping="Wrap">Este comentario lo verá el compañero de almacén que prepare el pedido. El cliente no ve este comentario.</TextBlock>
                             <TextBox Text="{Binding ComentarioPicking}"/>
                         </StackPanel>

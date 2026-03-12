@@ -171,6 +171,10 @@
                                 </StackPanel>
                                 <DockPanel Grid.Column="1">
                                     <TextBox DockPanel.Dock="Top" Text="{Binding pedido.comentarios}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
+                                    <DockPanel DockPanel.Dock="Top" Margin="3,0">
+                                        <TextBlock DockPanel.Dock="Left" Text="Su Pedido / P.O.:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                        <TextBox Text="{Binding pedido.suPedido, UpdateSourceTrigger=PropertyChanged}" Padding="3"/>
+                                    </DockPanel>
                                     <TextBox DockPanel.Dock="Bottom" Text="{Binding pedido.comentarioPicking}" Background="LightYellow" Padding="3" Margin="3" TextWrapping="Wrap"></TextBox>
                                 </DockPanel>
                             </Grid>

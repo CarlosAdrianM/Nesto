@@ -233,6 +233,21 @@ Public Class PlantillaVentaState
     End Property
 #End Region
 
+#Region "Su Pedido / P.O."
+    Private _suPedido As String
+    ''' <summary>
+    ''' Referencia de compra del cliente (Purchase Order / P.O.)
+    ''' </summary>
+    Public Property SuPedido As String
+        Get
+            Return _suPedido
+        End Get
+        Set(value As String)
+            SetProperty(_suPedido, value)
+        End Set
+    End Property
+#End Region
+
 #Region "Cobro por tarjeta"
     Private _mandarCobroTarjeta As Boolean
     ''' <summary>
@@ -415,6 +430,7 @@ Public Class PlantillaVentaState
         EnviarPorGlovo = False
         ComentarioRuta = Nothing
         ComentarioPicking = Nothing
+        SuPedido = Nothing
         MandarCobroTarjeta = False
         CobroTarjetaCorreo = Nothing
         CobroTarjetaMovil = Nothing
@@ -463,6 +479,7 @@ Public Class PlantillaVentaState
             .mantenerJunto = MantenerJunto,
             .servirJunto = ServirJunto,
             .comentarioPicking = ComentarioPicking,
+            .suPedido = SuPedido,
             .comentarios = ComentarioRuta
         }
 

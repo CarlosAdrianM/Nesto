@@ -150,6 +150,14 @@ Public Class PedidoVentaWrapper
             Model.comentarioPicking = value
         End Set
     End Property
+    Public Property suPedido() As String
+        Get
+            Return Model.suPedido
+        End Get
+        Set(value As String)
+            Model.suPedido = value
+        End Set
+    End Property
     Public Property CrearEfectosManualmente As Boolean
         Get
             Return Model.CrearEfectosManualmente

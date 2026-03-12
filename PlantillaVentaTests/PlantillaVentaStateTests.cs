@@ -139,6 +139,66 @@ namespace PlantillaVentaTests
 
         #endregion
 
+        #region SuPedido / P.O. (Issue #260 / NestoAPI#58)
+
+        [TestMethod]
+        public void ToPedidoVentaDTO_SuPedidoConValor_SeIncluyeEnDTO()
+        {
+            // Arrange
+            var state = new PlantillaVentaState();
+            state.Empresa = "1";
+            state.Cliente = "10001";
+            state.Contacto = "0";
+            state.SuPedido = "PO-2026-001";
+
+            // Act
+            var pedido = state.ToPedidoVentaDTO(
+                "DIR",
+                () => 1,
+                () => "NV"
+            );
+
+            // Assert
+            Assert.AreEqual("PO-2026-001", pedido.suPedido);
+        }
+
+        [TestMethod]
+        public void ToPedidoVentaDTO_SuPedidoNulo_DevuelveNulo()
+        {
+            // Arrange
+            var state = new PlantillaVentaState();
+            state.Empresa = "1";
+            state.Cliente = "10001";
+            state.Contacto = "0";
+            state.SuPedido = null;
+
+            // Act
+            var pedido = state.ToPedidoVentaDTO(
+                "DIR",
+                () => 1,
+                () => "NV"
+            );
+
+            // Assert
+            Assert.IsNull(pedido.suPedido);
+        }
+
+        [TestMethod]
+        public void Limpiar_RestableceSuPedidoANothing()
+        {
+            // Arrange
+            var state = new PlantillaVentaState();
+            state.SuPedido = "PO-123";
+
+            // Act
+            state.Limpiar();
+
+            // Assert
+            Assert.IsNull(state.SuPedido);
+        }
+
+        #endregion
+
         #region ActualizarComentarioPickingAlCambiarContacto (Issue #297)
 
         [TestMethod]

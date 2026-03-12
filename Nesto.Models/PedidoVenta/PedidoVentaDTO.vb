@@ -61,6 +61,7 @@ Public Class PedidoVentaDTO
     Public Property vistoBuenoPlazosPago() As Boolean
     Public Property mantenerJunto() As Boolean
     Public Property servirJunto() As Boolean
+    Public Property suPedido() As String
     Public Property EsPresupuesto() As Boolean = False
     Public Property notaEntrega As Boolean
     Public Property CreadoSinPasarValidacion As Boolean
@@ -144,6 +145,7 @@ Public Class PedidoVentaDTO
         If Not StringsIguales(contactoCobro, other.contactoCobro) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en contactoCobro: '{contactoCobro}' vs '{other.contactoCobro}'")
         If Not StringsIguales(comentarios, other.comentarios) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en comentarios: '{comentarios}' vs '{other.comentarios}'")
         If Not StringsIguales(comentarioPicking, other.comentarioPicking) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en comentarioPicking: '{comentarioPicking}' vs '{other.comentarioPicking}'")
+        If Not StringsIguales(suPedido, other.suPedido) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en suPedido: '{suPedido}' vs '{other.suPedido}'")
         If Not Nullable.Equals(primerVencimiento, other.primerVencimiento) Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en primerVencimiento: '{primerVencimiento}' vs '{other.primerVencimiento}'")
         If noComisiona <> other.noComisiona Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en noComisiona: '{noComisiona}' vs '{other.noComisiona}'")
         If mantenerJunto <> other.mantenerJunto Then Debug.WriteLine($"[PedidoVentaDTO.Equals] Diferencia en mantenerJunto: '{mantenerJunto}' vs '{other.mantenerJunto}'")
@@ -162,6 +164,7 @@ Public Class PedidoVentaDTO
                StringsIguales(contactoCobro, other.contactoCobro) AndAlso
                StringsIguales(comentarios, other.comentarios) AndAlso
                StringsIguales(comentarioPicking, other.comentarioPicking) AndAlso
+               StringsIguales(suPedido, other.suPedido) AndAlso
                Nullable.Equals(primerVencimiento, other.primerVencimiento) AndAlso
                noComisiona = other.noComisiona AndAlso
                mantenerJunto = other.mantenerJunto AndAlso
@@ -218,6 +221,7 @@ Public Class PedidoVentaDTO
             .contactoCobro = Me.contactoCobro,
             .comentarios = Me.comentarios,
             .comentarioPicking = Me.comentarioPicking,
+            .suPedido = Me.suPedido,
             .noComisiona = Me.noComisiona,
             .mantenerJunto = Me.mantenerJunto,
             .servirJunto = Me.servirJunto,
