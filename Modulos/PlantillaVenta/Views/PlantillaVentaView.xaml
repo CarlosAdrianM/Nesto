@@ -324,6 +324,18 @@
                             <StackPanel Grid.Column="2">
                                 <TextBlock Text="Base Imponible para Portes"></TextBlock>
                                 <TextBlock Text="{Binding baseImponibleParaPortes, StringFormat=c}"></TextBlock>
+                                <TextBlock Text="{Binding TextoPortes}" FontWeight="Bold" Margin="0,2">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="Red"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PortesGratis}" Value="True">
+                                                    <Setter Property="Foreground" Value="Green"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                                 <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="Nombre" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
                             </StackPanel>
                         </Grid>
@@ -695,6 +707,7 @@
                         </Grid>
 
                         <StackPanel Grid.Row="4">
+                            <CheckBox IsChecked="{Binding AnadirPortes}" Visibility="{Binding VisibilidadAnadirPortes, Converter={StaticResource BooleanToVisibilityConverter}}">Añadir portes al pedido</CheckBox>
                             <CheckBox IsChecked="{Binding EsPresupuesto}">¿Crear como Presupuesto?</CheckBox>
                             <Grid>
                                 <Grid.RowDefinitions>

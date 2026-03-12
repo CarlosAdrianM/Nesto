@@ -13,6 +13,7 @@ Imports Nesto.Models.Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
+Imports System.Windows
 Imports Prism.Commands
 Imports Prism.Events
 Imports Prism.Mvvm
@@ -127,6 +128,7 @@ Public Class PlantillaVentaViewModel
         listaAlmacenes = New ObservableCollection(Of Sede)(Constantes.Sedes.ListaSedes)
         Dim almacenRuta As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)
         almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = almacenRuta)
+        _visibilidadAnadirPortes = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
 
         ListaFiltrableProductos = New ColeccionFiltrable(New ObservableCollection(Of LineaPlantillaVenta)) With {
             .TieneDatosIniciales = True
@@ -205,6 +207,7 @@ Public Class PlantillaVentaViewModel
             Dim unused = SetProperty(_almacenSeleccionado, value)
             ' Sincronizar código con Estado
             Estado.AlmacenCodigo = If(value IsNot Nothing, value.Codigo, Nothing)
+            ActualizarAnadirPortesPorDefecto()
             If Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Lista) Then
                 Application.Current.Dispatcher.Invoke(New Action(Async Sub()
                                                                      estaOcupado = True
@@ -241,6 +244,8 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    Private _resultadoPortes As ResultadoPortesDTO
+
     Public ReadOnly Property baseImponibleParaPortes As Decimal
         Get
             Dim baseImponible As Decimal = 0
@@ -250,6 +255,77 @@ Public Class PlantillaVentaViewModel
             Return baseImponible
         End Get
     End Property
+
+    Public ReadOnly Property TextoPortes As String
+        Get
+            If IsNothing(_resultadoPortes) Then Return ""
+            Dim importeFalta = _resultadoPortes.ImporteMinimoPedidoSinPortes - baseImponibleParaPortes
+            If importeFalta <= 0 Then
+                Return "Pedido con portes pagados"
+            Else
+                Return $"Faltan {importeFalta:C} para portes pagados"
+            End If
+        End Get
+    End Property
+
+    Public ReadOnly Property PortesGratis As Boolean
+        Get
+            If IsNothing(_resultadoPortes) Then Return False
+            Return baseImponibleParaPortes >= _resultadoPortes.ImporteMinimoPedidoSinPortes
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Actualiza TextoPortes y PortesGratis localmente usando el umbral cacheado.
+    ''' No hace llamada al servidor.
+    ''' </summary>
+    Private Sub ActualizarEtiquetaPortes()
+        If IsNothing(_resultadoPortes) Then Return
+        RaisePropertyChanged(NameOf(TextoPortes))
+        RaisePropertyChanged(NameOf(PortesGratis))
+    End Sub
+
+    ''' <summary>
+    ''' Llama al servidor para recalcular los parámetros de portes (umbral, reembolso, etc.).
+    ''' Solo debe llamarse cuando cambian factores estructurales (IVA, CP, ruta, forma pago...).
+    ''' </summary>
+    Private Sub CargarInfoPortesConDebounce()
+        _timerPortes?.Dispose()
+        _timerPortes = New System.Threading.Timer(
+            Sub(state) Application.Current?.Dispatcher?.InvokeAsync(
+                Async Function() As Task
+                    Await CargarInfoPortes()
+                End Function),
+            Nothing, 500, System.Threading.Timeout.Infinite)
+    End Sub
+
+    Private _timerPortes As System.Threading.Timer
+
+    Private Async Function CargarInfoPortes() As Task
+        Try
+            Dim input = New PedidoPortesInputDTO With {
+                .CodigoPostal = direccionEntregaSeleccionada?.codigoPostal,
+                .Ruta = Estado.Ruta,
+                .FormaPago = Estado.FormaPago,
+                .PlazosPago = Estado.PlazosPago,
+                .CCC = Estado.Ccc,
+                .PeriodoFacturacion = Estado.PeriodoFacturacion,
+                .NotaEntrega = False,
+                .EsTiendaOnline = False,
+                .Iva = Estado.IvaCliente,
+                .BaseImponibleProductos = baseImponibleParaPortes,
+                .AnadirPortes = Estado.AnadirPortes
+            }
+            Dim resultado = Await servicioPedidosVenta.CalcularPortesPost(input)
+            If resultado IsNot Nothing Then
+                _resultadoPortes = resultado
+                RaisePropertyChanged(NameOf(TextoPortes))
+                RaisePropertyChanged(NameOf(PortesGratis))
+            End If
+        Catch ex As Exception
+            ' Silenciar errores de red
+        End Try
+    End Function
 
 #Region "Ganavisiones - FASE 7"
     ''' <summary>
@@ -856,6 +932,52 @@ Public Class PlantillaVentaViewModel
     End Property
 
     ''' <summary>
+    ''' Si se deben añadir portes al pedido. Delegado a Estado.
+    ''' False automáticamente para almacenes REI/ALC.
+    ''' El grupo Almacén puede verlo y modificarlo; para el resto está oculto (siempre True).
+    ''' </summary>
+    Public Property AnadirPortes As Boolean
+        Get
+            Return Estado.AnadirPortes
+        End Get
+        Set(value As Boolean)
+            If Estado.AnadirPortes <> value Then
+                Estado.AnadirPortes = value
+                RaisePropertyChanged()
+                CargarInfoPortesConDebounce()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Visible solo para el grupo de seguridad Almacén.
+    ''' </summary>
+    Private _visibilidadAnadirPortes As Boolean
+    Public ReadOnly Property VisibilidadAnadirPortes As Boolean
+        Get
+            Return _visibilidadAnadirPortes
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Establece el valor por defecto de AnadirPortes según almacén y forma de venta.
+    ''' </summary>
+    Private Sub ActualizarAnadirPortesPorDefecto()
+        Dim codigo = If(almacenSeleccionado?.Codigo, "")
+        If codigo = Constantes.Almacenes.ALMACEN_REINA OrElse
+           codigo = Constantes.Almacenes.ALMACEN_ALCOBENDAS Then
+            AnadirPortes = False
+        ElseIf _visibilidadAnadirPortes AndAlso
+               codigo = Constantes.Almacenes.ALMACEN_ALGETE AndAlso
+               formaVentaOtrasSeleccionada IsNot Nothing AndAlso
+               formaVentaOtrasSeleccionada.numero = "TIE" Then
+            AnadirPortes = False
+        Else
+            AnadirPortes = True
+        End If
+    End Sub
+
+    ''' <summary>
     ''' Si es un presupuesto en lugar de un pedido. Delegado a Estado.
     ''' </summary>
     Public Property EsPresupuesto As Boolean
@@ -1081,6 +1203,7 @@ Public Class PlantillaVentaViewModel
             ' Sincronizar código con Estado
             Estado.FormaVentaOtrasCodigo = If(value IsNot Nothing, value.numero, Nothing)
             RaisePropertyChanged(NameOf(listaFormasVenta))
+            ActualizarAnadirPortesPorDefecto()
         End Set
     End Property
 
@@ -1411,6 +1534,7 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(totalPedido))
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
         RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
+        ActualizarEtiquetaPortes()
     End Sub
 
     'Enum PaginasWizard
@@ -1545,7 +1669,9 @@ Public Class PlantillaVentaViewModel
 
         RaisePropertyChanged(NameOf(listaProductosPedido))
         RaisePropertyChanged(NameOf(baseImponiblePedido))
+        RaisePropertyChanged(NameOf(baseImponibleParaPortes))
         RaisePropertyChanged(NameOf(totalPedido))
+        ActualizarEtiquetaPortes()
     End Sub
 
     Private _soloConStockCommand As DelegateCommand
@@ -1707,9 +1833,11 @@ Public Class PlantillaVentaViewModel
     End Property
     Private Sub OnCambiarIva()
         clienteSeleccionado.iva = IIf(Not String.IsNullOrWhiteSpace(clienteSeleccionado.iva), Nothing, iva)
+        Estado.IvaCliente = clienteSeleccionado.iva
         RaisePropertyChanged(NameOf(clienteSeleccionado))
         RaisePropertyChanged(NameOf(totalPedido))
         RaisePropertyChanged(NameOf(SePuedeFinalizar))
+        CargarInfoPortesConDebounce()
     End Sub
 
     Private _cmdCargarClientesVendedor As DelegateCommand
@@ -2518,6 +2646,7 @@ Public Class PlantillaVentaViewModel
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
         RaisePropertyChanged(NameOf(clienteSeleccionado))
+        CargarInfoPortesConDebounce()
     End Sub
 
     ''' <summary>
@@ -2542,6 +2671,7 @@ Public Class PlantillaVentaViewModel
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
         RaisePropertyChanged(NameOf(clienteSeleccionado))
+        CargarInfoPortesConDebounce()
     End Function
     Private Sub NavegarAClienteCrear(value As ClienteJson)
         Dim parameters As New NavigationParameters From {

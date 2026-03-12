@@ -203,6 +203,20 @@ Public Class PlantillaVentaState
             SetProperty(_enviarPorGlovo, value)
         End Set
     End Property
+
+    Private _anadirPortes As Boolean = True
+    ''' <summary>
+    ''' Si se deben añadir portes al pedido. Por defecto True.
+    ''' False para almacenes REI/ALC (automático) o cuando el grupo Almacén lo desactiva.
+    ''' </summary>
+    Public Property AnadirPortes As Boolean
+        Get
+            Return _anadirPortes
+        End Get
+        Set(value As Boolean)
+            SetProperty(_anadirPortes, value)
+        End Set
+    End Property
 #End Region
 
 #Region "Comentarios"

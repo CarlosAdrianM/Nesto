@@ -834,4 +834,54 @@ Public Class PedidoVentaService
             End Try
         End Using
     End Function
+
+    Public Async Function CalcularPortes(empresa As String, pedido As Integer) As Task(Of ResultadoPortesDTO) Implements IPedidoVentaService.CalcularPortes
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Try
+                Dim urlConsulta As String = $"PedidosVenta/CalcularPortes?empresa={empresa}&pedido={pedido}"
+                Dim response = Await client.GetAsync(urlConsulta)
+
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+
+                Dim respuesta = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of ResultadoPortesDTO)(respuesta)
+
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+    End Function
+
+    Public Async Function CalcularPortesPost(input As PedidoPortesInputDTO) As Task(Of ResultadoPortesDTO) Implements IPedidoVentaService.CalcularPortesPost
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Try
+                Dim content = New StringContent(JsonConvert.SerializeObject(input), Text.Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("PedidosVenta/CalcularPortes", content)
+
+                If Not response.IsSuccessStatusCode Then
+                    Return Nothing
+                End If
+
+                Dim respuesta = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of ResultadoPortesDTO)(respuesta)
+
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End Using
+    End Function
 End Class

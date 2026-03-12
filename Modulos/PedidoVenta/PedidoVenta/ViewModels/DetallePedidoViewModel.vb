@@ -541,6 +541,7 @@ Public Class DetallePedidoViewModel
             RaisePropertyChanged(NameOf(EsSerieCursos))
             RaisePropertyChanged(NameOf(HayLineasEditables))
             RaisePropertyChanged(NameOf(PuedeEditarSelectoresLinea))
+            Dim unused2 = CargarInfoPortes()
             InicializarFormaVentaParaLineas()
             InicializarAlmacenParaLineas() ' Carlos 09/12/25: Issue #253/#52
             AceptarPresupuestoCommand.RaiseCanExecuteChanged()
@@ -784,6 +785,55 @@ Public Class DetallePedidoViewModel
         End Get
     End Property
 
+    Private _resultadoPortes As ResultadoPortesDTO
+
+    Public ReadOnly Property TextoPortes As String
+        Get
+            If IsNothing(_resultadoPortes) Then Return ""
+            Dim importeFalta = _resultadoPortes.ImporteMinimoPedidoSinPortes - pedido.BaseImponible
+            If importeFalta <= 0 Then
+                Return "Pedido con portes pagados"
+            Else
+                Return $"Faltan {importeFalta:C} para portes pagados"
+            End If
+        End Get
+    End Property
+
+    Public ReadOnly Property PortesGratis As Boolean
+        Get
+            If IsNothing(_resultadoPortes) Then Return False
+            Return pedido.BaseImponible >= _resultadoPortes.ImporteMinimoPedidoSinPortes
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Actualiza TextoPortes y PortesGratis localmente usando el umbral cacheado.
+    ''' No hace llamada al servidor.
+    ''' </summary>
+    Private Sub ActualizarEtiquetaPortes()
+        If IsNothing(_resultadoPortes) Then Return
+        RaisePropertyChanged(NameOf(TextoPortes))
+        RaisePropertyChanged(NameOf(PortesGratis))
+    End Sub
+
+    ''' <summary>
+    ''' Llama al servidor para obtener los parámetros de portes (umbral, reembolso, etc.).
+    ''' Solo debe llamarse al cargar el pedido o cuando cambian factores estructurales.
+    ''' </summary>
+    Private Async Function CargarInfoPortes() As Task
+        If IsNothing(pedido) OrElse pedido.numero = 0 Then Return
+        Try
+            Dim resultado = Await servicio.CalcularPortes(pedido.empresa, pedido.numero)
+            If resultado IsNot Nothing Then
+                _resultadoPortes = resultado
+                RaisePropertyChanged(NameOf(TextoPortes))
+                RaisePropertyChanged(NameOf(PortesGratis))
+            End If
+        Catch ex As Exception
+            ' Silenciar errores de red - la etiqueta simplemente no se muestra
+        End Try
+    End Function
+
     Private _textoBusyIndicator As String
     Public Property textoBusyIndicator As String
         Get
@@ -1015,8 +1065,6 @@ Public Class DetallePedidoViewModel
                     If Not IsNothing(pedido) Then
                         ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
                         CobroTarjetaImporte = pedido.Total
-                        ' Carlos 20/11/24: DESHABILITADO - Ahora el SelectorCCC maneja esto automáticamente
-                        ' CargarCCCDisponibles()
                     End If
                 End If
             Else
@@ -2039,6 +2087,12 @@ Public Class DetallePedidoViewModel
             InicializarAlmacenParaLineas()
             ' Issue #51: Activar fechas individuales automáticamente para serie CV
             UsarFechasIndividuales = EsSerieCursos
+        End If
+
+        ' Actualizar etiqueta de portes localmente cuando cambia BaseImponible
+        If e.PropertyName = NameOf(pedido.BaseImponible) OrElse
+           e.PropertyName = String.Empty Then
+            ActualizarEtiquetaPortes()
         End If
     End Sub
 

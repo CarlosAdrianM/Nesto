@@ -62,4 +62,6 @@ Public Interface IPedidoVentaService
     ''' <param name="numeroFactura">Numero de factura</param>
     ''' <returns>ClienteFacturaDTO con empresa y cliente, o Nothing si no se encuentra</returns>
     Function ObtenerClientePorFactura(empresa As String, numeroFactura As String) As Task(Of Models.Rectificativas.ClienteFacturaDTO)
+    Function CalcularPortes(empresa As String, pedido As Integer) As Task(Of ResultadoPortesDTO)
+    Function CalcularPortesPost(input As PedidoPortesInputDTO) As Task(Of ResultadoPortesDTO)
 End Interface
