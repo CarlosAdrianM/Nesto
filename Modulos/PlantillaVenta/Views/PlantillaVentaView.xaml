@@ -311,8 +311,20 @@
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock Text="{Binding clienteSeleccionado.vendedor}"></TextBlock>
-                                <TextBlock Text="{Binding baseImponiblePedido, StringFormat=c}"></TextBlock>
-                                <TextBlock Text="{Binding totalPedido, StringFormat=c}"></TextBlock>
+                                <TextBlock Text="{Binding baseImponiblePedidoConPortes, StringFormat={}{0:N2} €}"></TextBlock>
+                                <TextBlock Text="{Binding ImportePortesMostrar, StringFormat=Portes: {0:N2} €}" Margin="0,2">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PortesGratis}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{Binding totalPedidoConPortes, StringFormat={}{0:N2} €}" FontWeight="Bold"></TextBlock>
                                 <TextBox Text="{Binding clienteSeleccionado.iva}" IsReadOnly="True" Background="Transparent" BorderThickness="0">
                                     <i:Interaction.Triggers>
                                         <i:EventTrigger EventName="MouseDoubleClick" >

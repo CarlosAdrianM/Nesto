@@ -144,6 +144,7 @@ Public Class PlantillaVentaViewModel
                                                              RaisePropertyChanged(NameOf(listaProductosPedido))
                                                              RaisePropertyChanged(NameOf(baseImponiblePedido))
                                                              RaisePropertyChanged(NameOf(totalPedido))
+                                                             RaisePropertyChanged(NameOf(totalPedidoConPortes))
                                                              RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
                                                              SoloConStockCommand.RaiseCanExecuteChanged()
                                                          End Sub
@@ -276,6 +277,38 @@ Public Class PlantillaVentaViewModel
     End Property
 
     ''' <summary>
+    ''' Importe de portes a mostrar (solo informativo, no se envía al servidor).
+    ''' Devuelve 0 si los portes son gratis o no se ha calculado aún.
+    ''' </summary>
+    Public ReadOnly Property ImportePortesMostrar As Decimal
+        Get
+            If IsNothing(_resultadoPortes) OrElse PortesGratis OrElse Not hayProductosEnElPedido Then Return 0
+            Return _resultadoPortes.ImportePortes
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Base imponible del pedido incluyendo portes (solo informativo).
+    ''' </summary>
+    Public ReadOnly Property baseImponiblePedidoConPortes As Decimal
+        Get
+            Return baseImponiblePedido + ImportePortesMostrar
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Total del pedido incluyendo portes (solo informativo).
+    ''' Los portes reales los añade NestoAPI en el POST, esto es solo para mostrar al usuario.
+    ''' </summary>
+    Public ReadOnly Property totalPedidoConPortes As Decimal
+        Get
+            Dim tieneIva = Not IsNothing(clienteSeleccionado) AndAlso Not IsNothing(clienteSeleccionado.iva)
+            Dim portesConIva = If(tieneIva, ImportePortesMostrar * 1.21D, ImportePortesMostrar)
+            Return totalPedido + portesConIva
+        End Get
+    End Property
+
+    ''' <summary>
     ''' Actualiza TextoPortes y PortesGratis localmente usando el umbral cacheado.
     ''' No hace llamada al servidor.
     ''' </summary>
@@ -283,6 +316,9 @@ Public Class PlantillaVentaViewModel
         If IsNothing(_resultadoPortes) Then Return
         RaisePropertyChanged(NameOf(TextoPortes))
         RaisePropertyChanged(NameOf(PortesGratis))
+        RaisePropertyChanged(NameOf(ImportePortesMostrar))
+        RaisePropertyChanged(NameOf(baseImponiblePedidoConPortes))
+        RaisePropertyChanged(NameOf(totalPedidoConPortes))
     End Sub
 
     ''' <summary>
@@ -825,8 +861,11 @@ Public Class PlantillaVentaViewModel
 
             If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
                 PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
-            ElseIf _direccionEntregaSeleccionada.codigoPostal <> codigoPostalAnterior Then
+            End If
+
+            If _direccionEntregaSeleccionada?.codigoPostal <> codigoPostalAnterior Then
                 cmdCalcularSePuedeServirPorGlovo.Execute()
+                CargarInfoPortesConDebounce()
             End If
 
             FormaPagoCliente = _direccionEntregaSeleccionada?.formaPago
@@ -1532,6 +1571,7 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(baseImponiblePedido))
         RaisePropertyChanged(NameOf(baseImponibleParaPortes))
         RaisePropertyChanged(NameOf(totalPedido))
+        RaisePropertyChanged(NameOf(totalPedidoConPortes))
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
         RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
         ActualizarEtiquetaPortes()
@@ -1621,6 +1661,7 @@ Public Class PlantillaVentaViewModel
                 RaisePropertyChanged(NameOf(listaProductosPedido))
                 RaisePropertyChanged(NameOf(baseImponiblePedido))
                 RaisePropertyChanged(NameOf(totalPedido))
+                RaisePropertyChanged(NameOf(totalPedidoConPortes))
             Catch ex As Exception
                 dialogService.ShowError(ex.Message)
             Finally
@@ -1671,6 +1712,7 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(baseImponiblePedido))
         RaisePropertyChanged(NameOf(baseImponibleParaPortes))
         RaisePropertyChanged(NameOf(totalPedido))
+        RaisePropertyChanged(NameOf(totalPedidoConPortes))
         ActualizarEtiquetaPortes()
     End Sub
 
@@ -1836,6 +1878,7 @@ Public Class PlantillaVentaViewModel
         Estado.IvaCliente = clienteSeleccionado.iva
         RaisePropertyChanged(NameOf(clienteSeleccionado))
         RaisePropertyChanged(NameOf(totalPedido))
+        RaisePropertyChanged(NameOf(totalPedidoConPortes))
         RaisePropertyChanged(NameOf(SePuedeFinalizar))
         CargarInfoPortesConDebounce()
     End Sub
