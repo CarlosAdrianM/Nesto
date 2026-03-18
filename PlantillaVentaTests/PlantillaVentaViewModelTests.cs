@@ -11,6 +11,7 @@ using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Unity;
@@ -609,6 +610,331 @@ namespace PlantillaVentaTests
             Assert.AreEqual("Nuevo comentario", vm.Estado.ComentarioPicking);
             Assert.AreEqual("Nuevo comentario", vm.Estado.ComentarioPickingCliente);
             VerifyConfirmationDialogCalled(dialogServiceMock, 0);
+        }
+
+        #endregion
+
+        #region Etiquetas Portes - Bug orden de actualización
+
+        private PlantillaVentaViewModel CrearViewModelConPortes(
+            decimal importePortes = 7M,
+            decimal importeMinimoPedidoSinPortes = 100M)
+        {
+            var (vm, _) = CrearViewModelConMocks();
+            vm._clienteSeleccionado = new ClienteJson
+            {
+                empresa = "1",
+                cliente = "00000",
+                contacto = "0",
+                iva = "G21",
+                cifNif = "12345678A"
+            };
+            vm._resultadoPortes = new ResultadoPortesDTO
+            {
+                ImportePortes = importePortes,
+                ImporteMinimoPedidoSinPortes = importeMinimoPedidoSinPortes
+            };
+            return vm;
+        }
+
+        [TestMethod]
+        public void Portes_SinProductos_TotalPedidoConPortesEsCero()
+        {
+            // Arrange: cliente fuera de Madrid, sin productos
+            var vm = CrearViewModelConPortes();
+
+            // Act
+            var total = vm.totalPedidoConPortes;
+
+            // Assert: sin productos, el total debe ser 0
+            Assert.AreEqual(0M, total,
+                "Sin productos, totalPedidoConPortes debe ser 0 (no 8,47€)");
+        }
+
+        [TestMethod]
+        public void Portes_SinProductos_ImportePortesMostrarEsCero()
+        {
+            // Arrange: sin productos
+            var vm = CrearViewModelConPortes();
+
+            // Act
+            var portes = vm.ImportePortesMostrar;
+
+            // Assert
+            Assert.AreEqual(0M, portes,
+                "Sin productos, ImportePortesMostrar debe ser 0");
+        }
+
+        [TestMethod]
+        public void Portes_SinProductos_BaseImponiblePedidoConPortesEsCero()
+        {
+            // Arrange: sin productos
+            var vm = CrearViewModelConPortes();
+
+            // Act
+            var baseConPortes = vm.baseImponiblePedidoConPortes;
+
+            // Assert
+            Assert.AreEqual(0M, baseConPortes,
+                "Sin productos, baseImponiblePedidoConPortes debe ser 0");
+        }
+
+        [TestMethod]
+        public void Portes_SinProductos_BaseImponibleParaPortesEsCero()
+        {
+            // Arrange: sin productos
+            var vm = CrearViewModelConPortes();
+
+            // Act
+            var baseParaPortes = vm.baseImponibleParaPortes;
+
+            // Assert
+            Assert.AreEqual(0M, baseParaPortes,
+                "Sin productos, baseImponibleParaPortes debe ser 0");
+        }
+
+        [TestMethod]
+        public void Portes_SinProductos_TextoPortesFaltan100()
+        {
+            // Arrange: sin productos, umbral 100€
+            var vm = CrearViewModelConPortes();
+
+            // Act
+            var texto = vm.TextoPortes;
+
+            // Assert
+            Assert.IsTrue(texto.Contains("100"),
+                $"Sin productos, debería faltar 100€ para portes. TextoPortes: '{texto}'");
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_BaseImponiblePedidoAplicaDescuento()
+        {
+            // Arrange: 24 uds x 4,95€ con 50% descuento
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var baseImponible = vm.baseImponiblePedido;
+
+            // Assert: 24 * 4.95 = 118.80 bruto, - 59.40 dto = 59.40
+            Assert.AreEqual(59.40M, baseImponible,
+                "baseImponiblePedido debe aplicar el descuento (59,40€, no 118,80€)");
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_BaseImponibleParaPortesCorrecta()
+        {
+            // Arrange: 24 uds x 4,95€ con 50% descuento
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var baseParaPortes = vm.baseImponibleParaPortes;
+
+            // Assert
+            Assert.AreEqual(59.40M, baseParaPortes,
+                "baseImponibleParaPortes debe ser 59,40€");
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_ImportePortesMostrarDevuelveSieteEuros()
+        {
+            // Arrange: base 59.40 < umbral 100, hay que cobrar portes
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var portes = vm.ImportePortesMostrar;
+
+            // Assert
+            Assert.AreEqual(7M, portes,
+                "Con base 59,40€ < umbral 100€, ImportePortesMostrar debe ser 7€");
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_BaseImponiblePedidoConPortesIncluyePortes()
+        {
+            // Arrange
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var baseConPortes = vm.baseImponiblePedidoConPortes;
+
+            // Assert: 59.40 + 7 = 66.40
+            Assert.AreEqual(66.40M, baseConPortes,
+                "baseImponiblePedidoConPortes debe ser 66,40€ (59,40 + 7 portes), no 118,80€");
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_TotalPedidoConPortesIncluyeIVA()
+        {
+            // Arrange: 24 x 4.95 con 50% dto, cliente con IVA 21%
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var total = vm.totalPedidoConPortes;
+
+            // Assert: (59.40 + 7) * 1.21 = 66.40 * 1.21 = 80.344
+            // totalPedido = 59.40 * 1.21 = 71.874, portesConIva = 7 * 1.21 = 8.47
+            // total = 71.874 + 8.47 = 80.344
+            Assert.AreEqual(80.344M, total,
+                "totalPedidoConPortes debe ser 80,344€ (base 59,40 + portes 7, todo con IVA 21%)");
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_TextoPortesFaltanParaPagados()
+        {
+            // Arrange: base 59.40 < umbral 100
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var texto = vm.TextoPortes;
+
+            // Assert: falta 100 - 59.40 = 40.60
+            Assert.IsFalse(texto.Contains("pagados") && !texto.Contains("Faltan"),
+                $"Con base 59,40€ < umbral 100€, no debería decir 'Pedido con portes pagados'. TextoPortes: '{texto}'");
+            Assert.IsTrue(texto.Contains("40,60") || texto.Contains("40.60"),
+                $"Debería indicar que faltan 40,60€. TextoPortes: '{texto}'");
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_PortesGratisEsFalse()
+        {
+            // Arrange: base 59.40 < umbral 100
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act & Assert
+            Assert.IsFalse(vm.PortesGratis,
+                "Con base 59,40€ < umbral 100€, PortesGratis debe ser false");
+        }
+
+        [TestMethod]
+        public void Portes_SinProductos_ListaConPortesEsNull()
+        {
+            // Arrange: sin productos
+            var vm = CrearViewModelConPortes();
+
+            // Act
+            var lista = vm.listaProductosPedidoConPortes;
+
+            // Assert: sin productos, la lista está vacía (no hay línea de portes)
+            Assert.IsTrue(lista == null || lista.Count == 0,
+                "Sin productos no debe haber línea de portes");
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_ListaConPortesIncluyeLineaPortes()
+        {
+            // Arrange: base 59.40 < umbral 100, hay que cobrar portes
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var lista = vm.listaProductosPedidoConPortes;
+
+            // Assert: debe incluir el producto + la línea de portes simulada
+            Assert.AreEqual(2, lista.Count, "Debe haber 1 producto + 1 línea de portes");
+            var lineaPortes = lista.Last();
+            Assert.IsTrue(lineaPortes.esLineaPortes, "La última línea debe ser la de portes");
+            Assert.AreEqual("Portes", lineaPortes.texto);
+            Assert.AreEqual(7M, lineaPortes.precio);
+            Assert.AreEqual(1, lineaPortes.cantidad);
+        }
+
+        [TestMethod]
+        public void Portes_ConProductos_PortesPagados_ListaSinLineaPortes()
+        {
+            // Arrange: base > umbral, portes gratis
+            var vm = CrearViewModelConPortes(importePortes: 7M, importeMinimoPedidoSinPortes: 50M);
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var lista = vm.listaProductosPedidoConPortes;
+
+            // Assert: base 59.40 >= umbral 50, portes gratis, no debe haber línea de portes
+            Assert.AreEqual(1, lista.Count, "Solo debe haber 1 producto, sin línea de portes");
+            Assert.IsFalse(lista[0].esLineaPortes);
+        }
+
+        [TestMethod]
+        public void Portes_PropiedadesIdempotentes_MismoResultadoEnMultiplesLecturas()
+        {
+            // Arrange
+            var vm = CrearViewModelConPortes();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act: leer en distintos órdenes
+            var total1 = vm.totalPedidoConPortes;
+            var base1 = vm.baseImponiblePedido;
+            var basePortes1 = vm.baseImponiblePedidoConPortes;
+            var portes1 = vm.ImportePortesMostrar;
+
+            // Segunda lectura en orden inverso
+            var portes2 = vm.ImportePortesMostrar;
+            var basePortes2 = vm.baseImponiblePedidoConPortes;
+            var base2 = vm.baseImponiblePedido;
+            var total2 = vm.totalPedidoConPortes;
+
+            // Assert: las lecturas deben ser idempotentes
+            Assert.AreEqual(total1, total2, "totalPedidoConPortes no es idempotente");
+            Assert.AreEqual(base1, base2, "baseImponiblePedido no es idempotente");
+            Assert.AreEqual(basePortes1, basePortes2, "baseImponiblePedidoConPortes no es idempotente");
+            Assert.AreEqual(portes1, portes2, "ImportePortesMostrar no es idempotente");
         }
 
         #endregion

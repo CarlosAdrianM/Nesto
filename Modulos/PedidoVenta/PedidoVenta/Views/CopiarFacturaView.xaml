@@ -134,6 +134,11 @@
                           IsChecked="{Binding MantenerCondicionesOriginales}"
                           Style="{StaticResource CheckBoxStyle}"/>
 
+                <CheckBox Content="Usar vendedor de la factura original"
+                          IsChecked="{Binding UsarVendedorFacturaOriginal}"
+                          Style="{StaticResource CheckBoxStyle}"
+                          ToolTip="Si se desmarca, cada documento usará el vendedor de la ficha del cliente correspondiente"/>
+
                 <TextBlock Text="Comentarios:" Style="{StaticResource LabelStyle}" Margin="0,10,0,0"/>
                 <TextBox Text="{Binding Comentarios, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource InputStyle}"

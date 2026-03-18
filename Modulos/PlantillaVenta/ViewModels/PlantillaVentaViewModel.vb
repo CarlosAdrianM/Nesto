@@ -141,11 +141,7 @@ Public Class PlantillaVentaViewModel
                                                                   cmdBuscarEnTodosLosProductos.Execute(ListaFiltrableProductos.Filtro)
                                                               End Sub
         AddHandler ListaFiltrableProductos.ListaChanged, Sub()
-                                                             RaisePropertyChanged(NameOf(listaProductosPedido))
-                                                             RaisePropertyChanged(NameOf(baseImponiblePedido))
-                                                             RaisePropertyChanged(NameOf(totalPedido))
-                                                             RaisePropertyChanged(NameOf(totalPedidoConPortes))
-                                                             RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
+                                                             ActualizarTotales()
                                                              SoloConStockCommand.RaiseCanExecuteChanged()
                                                          End Sub
         AddHandler ListaFiltrableProductos.ElementoSeleccionadoChanged, Sub(sender As Object, args As EventArgs)
@@ -240,12 +236,11 @@ Public Class PlantillaVentaViewModel
             If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
                 baseImponible = listaProductosPedido.Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
             End If
-            RaisePropertyChanged(NameOf(baseImponibleParaPortes))
             Return baseImponible
         End Get
     End Property
 
-    Private _resultadoPortes As ResultadoPortesDTO
+    Friend _resultadoPortes As ResultadoPortesDTO
 
     Public ReadOnly Property baseImponibleParaPortes As Decimal
         Get
@@ -319,6 +314,7 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(ImportePortesMostrar))
         RaisePropertyChanged(NameOf(baseImponiblePedidoConPortes))
         RaisePropertyChanged(NameOf(totalPedidoConPortes))
+        RaisePropertyChanged(NameOf(listaProductosPedidoConPortes))
     End Sub
 
     ''' <summary>
@@ -716,7 +712,7 @@ Public Class PlantillaVentaViewModel
     End Sub
 #End Region
 
-    Private _clienteSeleccionado As ClienteJson
+    Friend _clienteSeleccionado As ClienteJson
     Public Property clienteSeleccionado As ClienteJson
         Get
             Return _clienteSeleccionado
@@ -1352,6 +1348,22 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    Public ReadOnly Property listaProductosPedidoConPortes() As ObservableCollection(Of LineaPlantillaVenta)
+        Get
+            Dim lista = listaProductosPedido
+            If lista Is Nothing Then Return Nothing
+            If Not PortesGratis AndAlso hayProductosEnElPedido AndAlso ImportePortesMostrar > 0 Then
+                lista.Add(New LineaPlantillaVenta With {
+                    .esLineaPortes = True,
+                    .texto = "Portes",
+                    .cantidad = 1,
+                    .precio = ImportePortesMostrar
+                })
+            End If
+            Return lista
+        End Get
+    End Property
+
     Private _listaUltimasVentas As ObservableCollection(Of UltimasVentasProductoClienteDTO)
     Public Property listaUltimasVentas As ObservableCollection(Of UltimasVentasProductoClienteDTO)
         Get
@@ -1575,6 +1587,7 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(TotalPedidoPlazosPago))
         RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
         ActualizarEtiquetaPortes()
+        RaisePropertyChanged(NameOf(listaProductosPedidoConPortes))
     End Sub
 
     'Enum PaginasWizard
@@ -1650,7 +1663,6 @@ Public Class PlantillaVentaViewModel
                     If arg.descuento < arg.descuentoProducto OrElse Not arg.aplicarDescuento Then
                         arg.descuento = IIf(arg.aplicarDescuento, arg.descuentoProducto, 0)
                     End If
-                    RaisePropertyChanged(NameOf(baseImponiblePedido))
                 Else
                     dialogService.ShowError("Se ha producido un error al cargar el precio y los descuentos especiales")
                 End If
@@ -1658,10 +1670,7 @@ Public Class PlantillaVentaViewModel
                 'Carlos 04/07/18: desactivo porque lo controlamos con las ofertas permitidas
                 'Await cmdComprobarCondicionesPrecio.Execute(arg)
 
-                RaisePropertyChanged(NameOf(listaProductosPedido))
-                RaisePropertyChanged(NameOf(baseImponiblePedido))
-                RaisePropertyChanged(NameOf(totalPedido))
-                RaisePropertyChanged(NameOf(totalPedidoConPortes))
+                ActualizarTotales()
             Catch ex As Exception
                 dialogService.ShowError(ex.Message)
             Finally
@@ -2225,8 +2234,7 @@ Public Class PlantillaVentaViewModel
                     linea.urlImagen = datosStock.urlImagen
                     linea.stockActualizado = True
                     linea.fechaInsercion = Now
-                    RaisePropertyChanged(NameOf(listaProductosPedido))
-                    RaisePropertyChanged(NameOf(baseImponiblePedido))
+                    ActualizarTotales()
                 Else
                     dialogService.ShowError("Se ha producido un error al cargar el stock del producto")
                 End If
@@ -2573,7 +2581,7 @@ Public Class PlantillaVentaViewModel
         End If
         'arg.cantidadVendida = arg.cantidad + arg.cantidadOferta
         ListaFiltrableProductos.ListaOriginal.Add(arg)
-        RaisePropertyChanged(NameOf(baseImponiblePedido))
+        ActualizarTotales()
     End Sub
 
     Private _cmdCalcularSePuedeServirPorGlovo As DelegateCommand
@@ -3179,9 +3187,8 @@ Public Class PlantillaVentaViewModel
             End If
 
             ' Notificar cambios a la UI
-            RaisePropertyChanged(NameOf(baseImponiblePedido))
+            ActualizarTotales()
             RaisePropertyChanged(NameOf(hayProductosEnElPedido))
-            RaisePropertyChanged(NameOf(listaProductosPedido))
             RaisePropertyChanged(NameOf(ListaProductosBonificables))
 
             ' Construir mensaje de resultado

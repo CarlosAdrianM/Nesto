@@ -820,6 +820,22 @@ Public Class ClientesViewModel
     End Property
 
 
+    Private _motorPagosSeleccionado As String = "Paygold"
+    Public Property MotorPagosSeleccionado As String
+        Get
+            Return _motorPagosSeleccionado
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_motorPagosSeleccionado, value)
+        End Set
+    End Property
+
+    Public ReadOnly Property PuedeElegirMotorPagos As Boolean
+        Get
+            Return EsUsuarioAdministracion
+        End Get
+    End Property
+
     Private _enlaceReclamarDeuda As String
     Public Property EnlaceReclamarDeuda As String
         Get
@@ -1199,40 +1215,87 @@ Public Class ClientesViewModel
     Private Async Sub OnReclamarDeuda()
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
-            Dim respuesta As String = String.Empty
 
-            Dim reclamacion As New ReclamacionDeuda With {
+            If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            ' Siempre crear PagoTPV con efectos (auditoría + URL propia)
+            Dim efectosSeleccionados = ListaDeudas?.Where(Function(l) l.Seleccionada).ToList()
+
+            Dim efectos As New List(Of Object)
+            If efectosSeleccionados IsNot Nothing Then
+                For Each efecto In efectosSeleccionados
+                    efectos.Add(New With {
+                        .ExtractoClienteId = efecto.Id,
+                        .Importe = efecto.ImportePendiente,
+                        .Documento = efecto.Documento?.Trim(),
+                        .Efecto = efecto.Efecto?.Trim(),
+                        .Contacto = efecto.Contacto?.Trim(),
+                        .Vendedor = efecto.Vendedor?.Trim(),
+                        .FormaVenta = "VIS",
+                        .Delegacion = "ALG",
+                        .TipoApunte = efecto.Tipo?.Trim()
+                    })
+                Next
+            End If
+
+            Dim solicitud = New With {
+                .Empresa = clienteActivo?.Empresa.Trim(),
                 .Cliente = clienteActivo?.Nº_Cliente.Trim(),
-                .Asunto = AsuntoReclamarDeuda,
-                .Correo = CorreoReclamarDeuda,
+                .Contacto = clienteActivo?.Contacto?.Trim(),
                 .Importe = ImporteReclamarDeuda,
+                .Descripcion = AsuntoReclamarDeuda,
+                .Correo = CorreoReclamarDeuda,
                 .Movil = MovilReclamarDeuda,
-                .Nombre = NombreReclamarDeuda,
-                .Direccion = clienteActivo.Dirección,
-                .TextoSMS = "Este es un mensaje de @COMERCIO@. Puede pagar el importe pendiente de @IMPORTE@ @MONEDA@ aquí: @URL@"
+                .Efectos = efectos
             }
 
             Try
-                Dim urlConsulta As String = "ReclamacionDeuda"
-                Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
-                Dim content As New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
-                response = Await client.PostAsync(urlConsulta, content)
+                Dim solicitudJson As String = JsonConvert.SerializeObject(solicitud)
+                Dim content As New StringContent(solicitudJson, Encoding.UTF8, "application/json")
+                Dim response = Await client.PostAsync("Pagos", content)
 
                 If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsStringAsync()
-                    reclamacion = JsonConvert.DeserializeObject(Of ReclamacionDeuda)(respuesta)
-                    If reclamacion.TramitadoOK Then
-                        EnlaceReclamarDeuda = reclamacion.Enlace
+                    Dim respuesta = Await response.Content.ReadAsStringAsync()
+                    Dim resultado = JsonConvert.DeserializeObject(Of Dictionary(Of String, Object))(respuesta)
+
+                    If MotorPagosSeleccionado = "NestoPago" Then
+                        ' Mostrar URL de la página propia
+                        If resultado.ContainsKey("UrlPaginaPago") Then
+                            EnlaceReclamarDeuda = resultado("UrlPaginaPago").ToString()
+                        End If
+                    Else
+                        ' Motor Paygold: enviar también por P2F para que el cliente reciba SMS/correo
+                        Dim reclamacion As New ReclamacionDeuda With {
+                            .Cliente = clienteActivo?.Nº_Cliente.Trim(),
+                            .Asunto = AsuntoReclamarDeuda,
+                            .Correo = CorreoReclamarDeuda,
+                            .Importe = ImporteReclamarDeuda,
+                            .Movil = MovilReclamarDeuda,
+                            .Nombre = NombreReclamarDeuda,
+                            .Direccion = clienteActivo.Dirección,
+                            .TextoSMS = "Este es un mensaje de @COMERCIO@. Puede pagar el importe pendiente de @IMPORTE@ @MONEDA@ aquí: @URL@"
+                        }
+                        Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
+                        Dim contentP2F As New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
+                        Dim responseP2F = Await client.PostAsync("ReclamacionDeuda", contentP2F)
+
+                        If responseP2F.IsSuccessStatusCode Then
+                            Dim respuestaP2F = Await responseP2F.Content.ReadAsStringAsync()
+                            reclamacion = JsonConvert.DeserializeObject(Of ReclamacionDeuda)(respuestaP2F)
+                            If reclamacion.TramitadoOK Then
+                                EnlaceReclamarDeuda = reclamacion.Enlace
+                            End If
+                        End If
                     End If
                 Else
-                    respuesta = String.Empty
+                    Dim errorMsg = Await response.Content.ReadAsStringAsync()
+                    Throw New Exception($"Error al crear enlace de pago: {errorMsg}")
                 End If
 
             Catch ex As Exception
-                Throw New Exception("No se ha podido procesar la reclamación de deuda")
-            Finally
-
+                Throw New Exception("No se ha podido procesar el enlace de pago: " & ex.Message)
             End Try
         End Using
     End Sub
@@ -1575,6 +1638,12 @@ Public Class ClientesViewModel
         vendedor = Await mainViewModel.leerParametro(empresaDefecto, "Vendedor")
         If Not IsNothing(configuracion) Then
             EsUsuarioAdministracion = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
+            RaisePropertyChanged(NameOf(PuedeElegirMotorPagos))
+        End If
+
+        Dim motorPagosParametro As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, "MotorPagos")
+        If Not String.IsNullOrWhiteSpace(motorPagosParametro) Then
+            MotorPagosSeleccionado = motorPagosParametro.Trim()
         End If
 
         clienteActual = clienteDefecto

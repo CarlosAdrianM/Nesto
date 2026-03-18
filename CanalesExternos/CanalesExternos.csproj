@@ -66,4 +66,7 @@
       <HintPath>..\..\..\..\Desktop\IopSdk.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="CanalesExternosTests" />
+  </ItemGroup>
 </Project>

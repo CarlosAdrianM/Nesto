@@ -374,7 +374,7 @@
                                     </DataGridTextColumn>
                                 </DataGrid.Columns>
                             </DataGrid>
-                            <DataGrid Name="grdListaProductos" DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedido}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsSynchronizedWithCurrentItem="True" SelectedItem="{Binding productoPedidoSeleccionado}">
+                            <DataGrid Name="grdListaProductos" DockPanel.Dock="Top" ItemsSource="{Binding listaProductosPedidoConPortes}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsSynchronizedWithCurrentItem="True" SelectedItem="{Binding productoPedidoSeleccionado}">
                                 <i:Interaction.Triggers>
                                     <i:EventTrigger EventName="MouseDoubleClick">
                                         <i:InvokeCommandAction Command="{Binding Path=DataContext.CargarProductoCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
@@ -466,6 +466,14 @@
                                     <Style TargetType="DataGridRow">
                                         <Setter Property="TextElement.Foreground" Value="{Binding colorStock}"/>
                                         <Setter Property="Background" Value="{Binding colorSobrePedido}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding esLineaPortes}" Value="True">
+                                                <Setter Property="Background" Value="#F0F0F0"/>
+                                                <Setter Property="TextElement.FontStyle" Value="Italic"/>
+                                                <Setter Property="TextElement.Foreground" Value="Gray"/>
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
                                     </Style>
                                 </DataGrid.RowStyle>
                             </DataGrid>

@@ -122,4 +122,7 @@
   <ItemGroup>
     <Folder Include="AgenciasUrgentes\" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="PlantillaVentaTests" />
+  </ItemGroup>
 </Project>

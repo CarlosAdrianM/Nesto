@@ -295,6 +295,8 @@ Public Class LineaPlantillaVenta
         End Get
     End Property
 
+    Public Property esLineaPortes As Boolean = False
+
     Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
         Return (Not IsNothing(producto) AndAlso producto.ToLower.Contains(filtro)) OrElse
                 (Not IsNothing(texto) AndAlso texto.ToLower.Contains(filtro)) OrElse

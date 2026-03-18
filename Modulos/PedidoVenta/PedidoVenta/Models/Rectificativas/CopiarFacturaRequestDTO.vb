@@ -74,4 +74,11 @@ Public Class CopiarFacturaRequestDTO
     ''' Se concatenan con el comentario automatico de trazabilidad.
     ''' </summary>
     Public Property Comentarios As String
+
+    ''' <summary>
+    ''' Si true, usa el vendedor de la factura original en ambos documentos.
+    ''' Si false, usa el vendedor de la ficha del cliente de cada documento.
+    ''' Por defecto true.
+    ''' </summary>
+    Public Property UsarVendedorFacturaOriginal As Boolean = True
 End Class

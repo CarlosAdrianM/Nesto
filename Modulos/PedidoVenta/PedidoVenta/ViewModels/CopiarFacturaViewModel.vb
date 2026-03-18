@@ -146,6 +146,16 @@ Public Class CopiarFacturaViewModel
         End Set
     End Property
 
+    Private _usarVendedorFacturaOriginal As Boolean = True
+    Public Property UsarVendedorFacturaOriginal As Boolean
+        Get
+            Return _usarVendedorFacturaOriginal
+        End Get
+        Set(value As Boolean)
+            SetProperty(_usarVendedorFacturaOriginal, value)
+        End Set
+    End Property
+
     Private _clienteDestino As String
     Public Property ClienteDestino As String
         Get
@@ -440,7 +450,8 @@ Public Class CopiarFacturaViewModel
                 .CrearAbonoYCargo = CrearAbonoYCargo,
                 .Comentarios = Comentarios,
                 .ClienteDestino = If(EsCambioCliente OrElse CrearAbonoYCargo, ClienteDestino, Nothing),
-                .ContactoDestino = If(EsCambioCliente OrElse CrearAbonoYCargo, ContactoDestino, Nothing)
+                .ContactoDestino = If(EsCambioCliente OrElse CrearAbonoYCargo, ContactoDestino, Nothing),
+                .UsarVendedorFacturaOriginal = UsarVendedorFacturaOriginal
             }
 
             Resultado = Await _servicio.CopiarFactura(request)
