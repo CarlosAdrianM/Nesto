@@ -24,6 +24,7 @@ Public Interface IPlantillaVentaService
     ''' <summary>
     ''' Valida si se puede desmarcar ServirJunto cuando hay productos bonificados.
     ''' Issue #94: Sistema Ganavisiones - FASE 9
+    ''' Issue #141: Envía cantidades reales para validar disponibilidad suficiente.
     ''' </summary>
-    Function ValidarServirJunto(almacen As String, productosBonificados As List(Of String)) As Task(Of ValidarServirJuntoResponse)
+    Function ValidarServirJunto(almacen As String, productosBonificados As List(Of ProductoBonificadoConCantidadRequest)) As Task(Of ValidarServirJuntoResponse)
 End Interface

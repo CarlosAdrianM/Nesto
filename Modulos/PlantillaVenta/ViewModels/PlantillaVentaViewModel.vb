@@ -686,17 +686,20 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        ' Si no hay regalos seleccionados, no validar
-        Dim regalosSeleccionados = ListaRegalosSeleccionados
-        If regalosSeleccionados Is Nothing OrElse Not regalosSeleccionados.Any() Then
-            Return
-        End If
-
+        ' Issue #141: No saltar validación si no hay regalos - dejar que el servidor decida
         Try
             Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
-            Dim productosIds = regalosSeleccionados.Select(Function(r) r.producto).ToList()
+            Dim regalosSeleccionados = ListaRegalosSeleccionados
+            Dim productosConCantidad = If(
+                regalosSeleccionados IsNot Nothing AndAlso regalosSeleccionados.Any(),
+                regalosSeleccionados.Select(Function(r) New ProductoBonificadoConCantidadRequest With {
+                    .ProductoId = r.producto,
+                    .Cantidad = r.cantidad
+                }).ToList(),
+                New List(Of ProductoBonificadoConCantidadRequest)()
+            )
 
-            Dim respuesta = Await servicio.ValidarServirJunto(almacen, productosIds).ConfigureAwait(True)
+            Dim respuesta = Await servicio.ValidarServirJunto(almacen, productosConCantidad).ConfigureAwait(True)
 
             If Not respuesta.PuedeDesmarcar Then
                 ' Revertir el cambio - volver a marcar ServirJunto

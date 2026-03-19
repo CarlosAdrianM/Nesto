@@ -119,10 +119,21 @@ End Class
 ''' <summary>
 ''' Request para validar si se puede desmarcar ServirJunto.
 ''' Issue #94: Sistema Ganavisiones - FASE 9
+''' Issue #141: Retrocompatible - ProductosBonificados (NestoApp) y ProductosBonificadosConCantidad (Nesto).
 ''' </summary>
 Public Class ValidarServirJuntoRequest
     Public Property Almacen As String
     Public Property ProductosBonificados As List(Of String)
+    Public Property ProductosBonificadosConCantidad As List(Of ProductoBonificadoConCantidadRequest)
+End Class
+
+''' <summary>
+''' Producto bonificado con cantidad solicitada.
+''' Issue #141: Permite validar disponibilidad vs cantidad real.
+''' </summary>
+Public Class ProductoBonificadoConCantidadRequest
+    Public Property ProductoId As String
+    Public Property Cantidad As Integer
 End Class
 
 ''' <summary>
