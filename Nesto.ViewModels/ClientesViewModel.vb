@@ -847,6 +847,30 @@ Public Class ClientesViewModel
         End Set
     End Property
 
+    ''' <summary>
+    ''' Histórico de enlaces de pago NestoPago emitidos al cliente.
+    ''' Issue Nesto#322.
+    ''' </summary>
+    Private _historialPagos As ObservableCollection(Of PagoTPVDTO)
+    Public Property HistorialPagos As ObservableCollection(Of PagoTPVDTO)
+        Get
+            Return _historialPagos
+        End Get
+        Set(value As ObservableCollection(Of PagoTPVDTO))
+            Dim unused = SetProperty(_historialPagos, value)
+        End Set
+    End Property
+
+    Private _pagoSeleccionado As PagoTPVDTO
+    Public Property PagoSeleccionado As PagoTPVDTO
+        Get
+            Return _pagoSeleccionado
+        End Get
+        Set(value As PagoTPVDTO)
+            Dim unused = SetProperty(_pagoSeleccionado, value)
+        End Set
+    End Property
+
 #End Region
 #Region "Comandos"
     Private _cmdGuardar As ICommand
@@ -1562,6 +1586,39 @@ Public Class ClientesViewModel
         Dim telefono As New Telefono(clienteActivo.Teléfono)
         MovilReclamarDeuda = telefono.MovilUnico
 
+        CargarHistorialPagos()
+
+    End Sub
+
+    ''' <summary>
+    ''' Carga el histórico de enlaces de pago NestoPago del cliente actual.
+    ''' Issue Nesto#322.
+    ''' </summary>
+    Private Async Sub CargarHistorialPagos()
+        If IsNothing(clienteActivo) Then
+            Return
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Try
+                If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Return
+                End If
+
+                Dim empresa = clienteActivo.Empresa?.Trim()
+                Dim cliente = clienteActivo.Nº_Cliente?.Trim()
+                Dim response = Await client.GetAsync($"Pagos/Cliente/{empresa}/{cliente}")
+
+                If response.IsSuccessStatusCode Then
+                    Dim respuesta = Await response.Content.ReadAsStringAsync()
+                    Dim pagos = JsonConvert.DeserializeObject(Of List(Of PagoTPVDTO))(respuesta)
+                    HistorialPagos = New ObservableCollection(Of PagoTPVDTO)(pagos)
+                End If
+            Catch
+                ' Fail-safe: no bloquear la carga de deudas si falla el historial
+            End Try
+        End Using
     End Sub
 
     Private Sub LineaDeudaPropertyChangedEventHandler(sender As Object, e As PropertyChangedEventArgs)
@@ -1766,4 +1823,36 @@ Public Class ExtractoClienteDTO
         End Set
     End Property
 
+End Class
+
+''' <summary>
+''' DTO para pagos TPV (enlaces de pago NestoPago).
+''' Issue Nesto#322: Histórico de enlaces de pago en ventana de Clientes.
+''' </summary>
+Public Class PagoTPVDTO
+    Public Property Id As Integer
+    Public Property NumeroOrden As String
+    Public Property Tipo As String
+    Public Property Empresa As String
+    Public Property Cliente As String
+    Public Property Contacto As String
+    Public Property Importe As Decimal
+    Public Property Descripcion As String
+    Public Property Correo As String
+    Public Property Movil As String
+    Public Property Estado As String
+    Public Property CodigoRespuesta As String
+    Public Property CodigoAutorizacion As String
+    Public Property FechaCreacion As DateTime
+    Public Property FechaActualizacion As DateTime?
+    Public Property Usuario As String
+    Public Property Efectos As List(Of EfectoTPVDTO)
+End Class
+
+Public Class EfectoTPVDTO
+    Public Property Id As Integer
+    Public Property ExtractoClienteId As Integer
+    Public Property Importe As Decimal
+    Public Property Documento As String
+    Public Property Efecto As String
 End Class

@@ -282,6 +282,41 @@
                                                 </Hyperlink>
                                             </TextBlock>
                                         </Grid>
+                                        <Expander Grid.Row="1" Header="Histórico de enlaces de pago" IsExpanded="False" Margin="3">
+                                            <DataGrid ItemsSource="{Binding HistorialPagos}" AutoGenerateColumns="False" IsReadOnly="True"
+                                                      MaxHeight="200" SelectedItem="{Binding PagoSeleccionado}"
+                                                      RowDetailsVisibilityMode="VisibleWhenSelected" FontSize="11">
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Fecha" Binding="{Binding FechaCreacion, StringFormat=g}" />
+                                                    <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}">
+                                                        <DataGridTextColumn.CellStyle>
+                                                            <Style>
+                                                                <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                            </Style>
+                                                        </DataGridTextColumn.CellStyle>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
+                                                    <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" />
+                                                </DataGrid.Columns>
+                                                <DataGrid.RowDetailsTemplate>
+                                                    <DataTemplate>
+                                                        <DataGrid ItemsSource="{Binding Efectos}" AutoGenerateColumns="False" IsReadOnly="True" Margin="20,2,0,5" FontSize="10">
+                                                            <DataGrid.Columns>
+                                                                <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" />
+                                                                <DataGridTextColumn Header="Efecto" Binding="{Binding Efecto}" />
+                                                                <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}">
+                                                                    <DataGridTextColumn.CellStyle>
+                                                                        <Style>
+                                                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                                                        </Style>
+                                                                    </DataGridTextColumn.CellStyle>
+                                                                </DataGridTextColumn>
+                                                            </DataGrid.Columns>
+                                                        </DataGrid>
+                                                    </DataTemplate>
+                                                </DataGrid.RowDetailsTemplate>
+                                            </DataGrid>
+                                        </Expander>
                                         <Grid Grid.Row="2">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
