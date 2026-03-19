@@ -1329,7 +1329,10 @@ Public Class ClientesViewModel
         Return Not String.IsNullOrEmpty(EnlaceReclamarDeuda)
     End Function
     Private Sub OnAbrirEnlaceReclamacion()
-        Dim unused = System.Diagnostics.Process.Start(EnlaceReclamarDeuda)
+        Dim psi As New System.Diagnostics.ProcessStartInfo(EnlaceReclamarDeuda) With {
+            .UseShellExecute = True
+        }
+        Dim unused = System.Diagnostics.Process.Start(psi)
     End Sub
 
     Public Property ConfirmarReclamarDeudaCommand As DelegateCommand
