@@ -492,6 +492,21 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
+    Private _recogerProducto As Boolean
+    Public Property RecogerProducto As Boolean
+        Get
+            Return _recogerProducto
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_recogerProducto, value)
+        End Set
+    End Property
+
+    Public Shared Function TieneEtiquetaRecogida(envios As List(Of EnvioAgenciaDTO)) As Boolean
+        If envios Is Nothing Then Return False
+        Return envios.Any(Function(e) e.Retorno > 0)
+    End Function
+
     Public ReadOnly Property mostrarAceptarPresupuesto()
         Get
             Return (Not IsNothing(pedido)) AndAlso pedido.EsPresupuesto
@@ -1049,6 +1064,7 @@ Public Class DetallePedidoViewModel
                     pedido = Await CrearPedidoVentaWrapperNuevo(resumen.empresa)
                     fechaEntrega = Date.Today
                     ListaEnlacesSeguimiento = New List(Of EnvioAgenciaDTO)()
+                    RecogerProducto = False
                     If Not IsNothing(pedido) Then
                         ivaOriginal = IVA_POR_DEFECTO
                         CobroTarjetaImporte = 0
@@ -1062,6 +1078,7 @@ Public Class DetallePedidoViewModel
                     ' Carlos 04/12/25: Guardar snapshot para detectar cambios sin guardar (Issue #254)
                     _snapshotPedidoGuardado = pedidoDTO.CrearSnapshot()
                     ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(resumen.empresa, resumen.numero)
+                    RecogerProducto = TieneEtiquetaRecogida(ListaEnlacesSeguimiento)
                     If Not IsNothing(pedido) Then
                         ivaOriginal = IIf(IsNothing(pedido.iva), IVA_POR_DEFECTO, pedido.iva)
                         CobroTarjetaImporte = pedido.Total
@@ -1983,6 +2000,9 @@ Public Class DetallePedidoViewModel
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
                 eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
             End If
+
+            ' Issue #135: Gestionar etiqueta de recogida
+            Await GestionarEtiquetaRecogida()
         Catch ex As ValidationException
             dialogService.ShowError("Error de validación:" + vbCrLf + ex.Message)
         Catch ex As Exception
@@ -1994,6 +2014,31 @@ Public Class DetallePedidoViewModel
             CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
         End Try
     End Sub
+
+    Private Async Function GestionarEtiquetaRecogida() As Task
+        Dim etiquetaExistente = ListaEnlacesSeguimiento?.FirstOrDefault(Function(e) e.Retorno > 0)
+        Dim teniaRecogida = etiquetaExistente IsNot Nothing
+
+        If RecogerProducto AndAlso Not teniaRecogida Then
+            ' Crear etiqueta pendiente de recogida
+            Dim agenciaId = If(ListaEnlacesSeguimiento?.FirstOrDefault()?.AgenciaId, 1)
+            Try
+                Await servicio.CrearEtiquetaPendiente(pedido.empresa, pedido.numero, agenciaId, 1)
+            Catch ex As Exception
+                dialogService.ShowError("Error al crear etiqueta de recogida: " & ex.Message)
+            End Try
+        ElseIf Not RecogerProducto AndAlso teniaRecogida AndAlso etiquetaExistente.Estado < 0 Then
+            ' Eliminar etiqueta pendiente de recogida
+            Try
+                Await servicio.EliminarEtiquetaPendiente(etiquetaExistente.Numero)
+            Catch ex As Exception
+                dialogService.ShowError("Error al eliminar etiqueta de recogida: " & ex.Message)
+            End Try
+        End If
+
+        ' Recargar enlaces de seguimiento
+        ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(pedido.empresa, pedido.numero)
+    End Function
 
     Private _cmdPonerDescuentoPedido As DelegateCommand
     Public Property cmdPonerDescuentoPedido As DelegateCommand

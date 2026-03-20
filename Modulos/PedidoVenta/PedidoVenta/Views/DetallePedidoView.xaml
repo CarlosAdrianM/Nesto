@@ -297,6 +297,7 @@
                             <DatePicker SelectedDate="{Binding fechaEntrega}" Visibility="{Binding MostrarFechaEntregaGlobal, Converter={StaticResource BooleanToVisibilityConverter}}"></DatePicker>
                             <CheckBox IsChecked="{Binding pedido.servirJunto}">Servir Junto</CheckBox>
                             <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
+                            <CheckBox IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al guardar el pedido">Recoger Producto</CheckBox>
                             <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>

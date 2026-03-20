@@ -652,6 +652,7 @@
                                 </i:Interaction.Triggers>
                             </CheckBox>
                             <CheckBox Content="Mantener Junto" IsChecked="{Binding direccionEntregaSeleccionada.mantenerJunto}" Margin="3,0"/>
+                            <CheckBox Content="Recoger Producto" IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al crear el pedido" Margin="3,0"/>
                             <TextBlock Margin="3,0">
                                 <Run Text="Periodo de Facturación:"></Run>
                                 <Run Text="{Binding direccionEntregaSeleccionada.periodoFacturacion}"></Run>

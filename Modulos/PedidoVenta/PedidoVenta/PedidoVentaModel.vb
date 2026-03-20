@@ -240,10 +240,13 @@ Public Class PedidoVentaModel
     End Class
 
     Public Class EnvioAgenciaDTO
+        Public Property Numero As Integer
+        Public Property AgenciaId As Integer
         Public Property Fecha As Date
         Public Property AgenciaNombre As String
         Public Property EnlaceSeguimiento As String
         Public Property Estado As Short
+        Public Property Retorno As Short
     End Class
 
     Public Class ParametroStringIntInt

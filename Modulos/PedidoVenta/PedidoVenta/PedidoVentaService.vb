@@ -884,4 +884,45 @@ Public Class PedidoVentaService
             End Try
         End Using
     End Function
+
+    Public Async Function CrearEtiquetaPendiente(empresa As String, pedido As Integer, agencia As Integer, retorno As Short) As Task Implements IPedidoVentaService.CrearEtiquetaPendiente
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim request = New With {
+                .Empresa = empresa,
+                .Pedido = pedido,
+                .Agencia = agencia,
+                .Retorno = retorno
+            }
+            Dim content As New StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("EnviosAgencias/CrearEtiquetaPendiente", content)
+
+            If Not response.IsSuccessStatusCode Then
+                Dim respuesta = Await response.Content.ReadAsStringAsync()
+                Throw New Exception("No se pudo crear la etiqueta pendiente: " & respuesta)
+            End If
+        End Using
+    End Function
+
+    Public Async Function EliminarEtiquetaPendiente(numeroEnvio As Integer) As Task Implements IPedidoVentaService.EliminarEtiquetaPendiente
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim response = Await client.DeleteAsync("EnviosAgencias/" & numeroEnvio.ToString)
+
+            If Not response.IsSuccessStatusCode Then
+                Dim respuesta = Await response.Content.ReadAsStringAsync()
+                Throw New Exception("No se pudo eliminar la etiqueta pendiente: " & respuesta)
+            End If
+        End Using
+    End Function
 End Class

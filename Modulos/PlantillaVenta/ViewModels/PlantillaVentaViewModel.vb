@@ -1396,6 +1396,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    Private _recogerProducto As Boolean
+    Public Property RecogerProducto As Boolean
+        Get
+            Return _recogerProducto
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_recogerProducto, value)
+        End Set
+    End Property
+
     Public ReadOnly Property NoHayProductosEnElPedido
         Get
             Return Not hayProductosEnElPedido
@@ -2411,6 +2421,15 @@ Public Class PlantillaVentaViewModel
             If MandarCobroTarjeta Then
                 Dim pedidoCreado As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(pedido.empresa, numPedido)
                 servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, pedidoCreado.Total, numPedido, clienteSeleccionado.cliente)
+            End If
+
+            ' Issue #135: Crear etiqueta de recogida si se marcó
+            If RecogerProducto Then
+                Try
+                    Await servicioPedidosVenta.CrearEtiquetaPendiente(clienteSeleccionado.empresa, CInt(numPedido), 1, 1)
+                Catch ex As Exception
+                    dialogService.ShowError("El pedido se creó correctamente, pero no se pudo crear la etiqueta de recogida: " & ex.Message)
+                End Try
             End If
 
             ' Issue #286: Limpiar borrador en restauración ya que el pedido se creó exitosamente

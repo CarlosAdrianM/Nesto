@@ -64,4 +64,6 @@ Public Interface IPedidoVentaService
     Function ObtenerClientePorFactura(empresa As String, numeroFactura As String) As Task(Of Models.Rectificativas.ClienteFacturaDTO)
     Function CalcularPortes(empresa As String, pedido As Integer) As Task(Of ResultadoPortesDTO)
     Function CalcularPortesPost(input As PedidoPortesInputDTO) As Task(Of ResultadoPortesDTO)
+    Function CrearEtiquetaPendiente(empresa As String, pedido As Integer, agencia As Integer, retorno As Short) As Task
+    Function EliminarEtiquetaPendiente(numeroEnvio As Integer) As Task
 End Interface
