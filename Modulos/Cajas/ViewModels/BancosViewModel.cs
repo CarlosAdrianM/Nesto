@@ -1,4 +1,5 @@
-﻿using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Behaviors;
+using ControlesUsuario.Dialogs;
 using Microsoft.Win32;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
@@ -925,8 +926,26 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
             if (apunteGasto is null)
             {
-                _dialogService.ShowNotification("No se ha encontrado la cuenta de gasto");
-                return;
+                string cuentaIntroducida = _dialogService.GetText(
+                    "Seleccionar cuenta",
+                    "No se ha encontrado cuenta de gasto ni ingreso.\nIntroduzca la cuenta contable (ej: 629., 572.13):");
+                if (string.IsNullOrWhiteSpace(cuentaIntroducida))
+                {
+                    return;
+                }
+                if (!CuentaContableHelper.TryExpandirCuenta(cuentaIntroducida, out string cuentaExpandida)
+                    || !CuentaContableHelper.EsCuentaValida(cuentaExpandida))
+                {
+                    _dialogService.ShowNotification($"La cuenta '{cuentaIntroducida}' no tiene un formato válido");
+                    return;
+                }
+                apunteGasto = primerApunte ?? new ContabilidadDTO
+                {
+                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                    CentroCoste = Constantes.Empresas.CENTRO_COSTE_DEFECTO,
+                    Departamento = Constantes.Empresas.DEPARTAMENTO_DEFECTO
+                };
+                apunteGasto.Cuenta = cuentaExpandida;
             }
             try
             {
