@@ -90,6 +90,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             RaisePropertyChanged(nameof(PedidoSeleccionadoObservaciones));
             RaisePropertyChanged(nameof(PedidoSeleccionadoUltimoSeguimiento));
             RaisePropertyChanged(nameof(PedidoSeleccionadoLineas));
+            RaisePropertyChanged(nameof(PedidoSeleccionadoTotalLineas));
             RaisePropertyChanged(nameof(PedidoSeleccionadoCliente));
             RaisePropertyChanged(nameof(PedidoSeleccionadoContacto));            
             CrearPedidoCommand.RaiseCanExecuteChanged();
@@ -263,6 +264,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 }
             }
         }
+        public decimal PedidoSeleccionadoTotalLineas => PedidoSeleccionadoLineas?.Sum(l => l.Total) ?? 0;
+
         public ICollection<LineaPedidoVentaDTO> PedidoSeleccionadoLineas
         {
             get { return (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido.Lineas; }

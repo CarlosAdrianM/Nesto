@@ -423,7 +423,58 @@ namespace Nesto.Modulos.CanalesExternos
             // Añadir cupones de descuento
             if (Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl").Value) != 0)
             {
-                decimal totalDescuentos = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
+                decimal totalDescuentosSinIva = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_excl")?.Value) / 1000000, 4);
+                decimal totalDescuentosConIva = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_discounts_tax_incl")?.Value) / 1000000, 4);
+                decimal totalProductosSinIva = Math.Round(Convert.ToDecimal(pedidoEntrada.Pedido.Element("total_products")?.Value) / 1000000, 4);
+                AplicarDescuentoCupon(pedidoSalida.Lineas, totalDescuentosSinIva, totalProductosSinIva, totalDescuentosConIva, formaVenta, pedidoSalida.iva, configuracion.usuario);
+            }
+
+            return pedidoSalida.Lineas;
+
+        }
+
+        private static readonly int[] PORCENTAJES_CONOCIDOS = { 5, 10, 15, 20, 25, 30 };
+
+        internal static decimal DetectarPorcentajeConocido(decimal totalDescuentosSinIva, decimal totalProductosSinIva)
+        {
+            if (totalProductosSinIva == 0)
+            {
+                return 0;
+            }
+
+            foreach (int porcentaje in PORCENTAJES_CONOCIDOS)
+            {
+                decimal descuentoEsperado = Math.Round(totalProductosSinIva * porcentaje / 100, 2, MidpointRounding.AwayFromZero);
+                if (descuentoEsperado == totalDescuentosSinIva)
+                {
+                    return porcentaje;
+                }
+            }
+
+            return 0;
+        }
+
+        internal static void AplicarDescuentoCupon(
+            ICollection<LineaPedidoVentaDTO> lineas,
+            decimal totalDescuentosSinIva,
+            decimal totalProductosSinIva,
+            decimal totalDescuentosConIva,
+            string formaVenta,
+            string iva,
+            string usuario)
+        {
+            decimal porcentajeDetectado = DetectarPorcentajeConocido(totalDescuentosSinIva, totalProductosSinIva);
+
+            if (porcentajeDetectado > 0)
+            {
+                foreach (var lineaProducto in lineas.Where(l => l.tipoLinea == 1))
+                {
+                    lineaProducto.DescuentoLinea = porcentajeDetectado / 100;
+                }
+            }
+            else
+            {
+                // Descuento fijo: mantener como línea TICKET
                 LineaPedidoVentaDTO lineaCupon = new()
                 {
                     almacen = "ALG",
@@ -434,24 +485,21 @@ namespace Nesto.Modulos.CanalesExternos
                     estado = 1,
                     fechaEntrega = DateTime.Today,
                     iva = "G21",
-                    PrecioUnitario = totalDescuentos,
+                    PrecioUnitario = totalDescuentosConIva,
                     Producto = "TiCKET",
                     texto = "CUPÓN DE DESCUENTO",
                     tipoLinea = 1, // producto
-                    Usuario = configuracion.usuario
+                    Usuario = usuario
                 };
 
-                if (pedidoSalida.iva != null)
+                if (iva != null)
                 {
                     lineaCupon.PrecioUnitario /= (decimal)1.21;
                     lineaCupon.PorcentajeIva = .21M;
                 }
 
-                pedidoSalida.Lineas.Add(lineaCupon);
+                lineas.Add(lineaCupon);
             }
-
-            return pedidoSalida.Lineas;
-
         }
 
         private class DatosEnvioConfirmarPrestashop

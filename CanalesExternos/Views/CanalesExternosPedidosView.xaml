@@ -61,7 +61,12 @@
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <xctk:BusyIndicator Grid.Column="0" IsBusy="{Binding EstaOcupadoLineas}" BusyContent="Cargando líneas desde el servidor...">
-                <DataGrid Grid.Column="0" ItemsSource="{Binding PedidoSeleccionadoLineas}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+                <DockPanel>
+                <TextBlock DockPanel.Dock="Bottom" HorizontalAlignment="Right" Margin="5,3" FontWeight="Bold">
+                    <Run Text="Total pedido: "/>
+                    <Run Text="{Binding PedidoSeleccionadoTotalLineas, StringFormat='{}{0:N2} €', Mode=OneWay}"/>
+                </TextBlock>
+                <DataGrid ItemsSource="{Binding PedidoSeleccionadoLineas}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Producto" Binding="{Binding Producto}"/>
                         <DataGridTextColumn Header="Texto" Binding="{Binding texto}" Width="*"/>
@@ -80,9 +85,31 @@
                                 </Style>
                             </DataGridTextColumn.CellStyle>
                         </DataGridTextColumn>
+                        <DataGridTextColumn Header="Dto." Binding="{Binding SumaDescuentos, StringFormat=p2}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Base Imp." Binding="{Binding BaseImponible, StringFormat=c}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Total" Binding="{Binding Total, StringFormat=c}">
+                            <DataGridTextColumn.CellStyle>
+                                <Style>
+                                    <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
                         <DataGridTextColumn Header="Picking" Binding="{Binding picking}"/>
                     </DataGrid.Columns>
                 </DataGrid>
+                </DockPanel>
             </xctk:BusyIndicator>
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions>
