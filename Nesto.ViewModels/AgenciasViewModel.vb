@@ -2153,17 +2153,8 @@ Public Class AgenciasViewModel
             EnvioPendienteSeleccionado = EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)
             EnvioPendienteSeleccionado.TieneCambios = False
             listaPendientes.Add(EnvioPendienteSeleccionado)
-        Catch ex As DbEntityValidationException
-            Dim mensajeError As String = String.Empty
-            For Each eve In ex.EntityValidationErrors
-                For Each ve In eve.ValidationErrors
-                    mensajeError += ve.ErrorMessage + vbCr
-                Next
-            Next
-            _dialogService.ShowError("Error al modificar envío:" + vbCr + mensajeError)
         Catch ex As Exception
-            'validatonerrors
-            _dialogService.ShowError("Error al modificar envío:" + vbCr + ex.Message)
+            _dialogService.ShowError("Error al modificar envío:" + vbCr + DbValidationErrorHelper.ExtraerMensajeError(ex))
         End Try
     End Sub
 
@@ -2372,7 +2363,9 @@ Public Class AgenciasViewModel
                     End With
                 End If
                 agenciaEspecifica.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
-
+                If Not String.IsNullOrEmpty(envioActual.TelefonoPlaza) AndAlso envioActual.TelefonoPlaza.Length > 27 Then
+                    envioActual.TelefonoPlaza = Left(envioActual.TelefonoPlaza, 27)
+                End If
 
 
 
@@ -2427,7 +2420,7 @@ Public Class AgenciasViewModel
 
             Catch ex As Exception
                 transaction.Dispose()
-                _dialogService.ShowError("Se ha producido un error y no se han grabado los datos: " + vbCr + ex.Message)
+                _dialogService.ShowError("Se ha producido un error y no se han grabado los datos: " + vbCr + DbValidationErrorHelper.ExtraerMensajeError(ex))
             End Try
 
             If Not success Then
