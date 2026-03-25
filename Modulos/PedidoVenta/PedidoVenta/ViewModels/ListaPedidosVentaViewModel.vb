@@ -32,6 +32,7 @@ Public Class ListaPedidosVentaViewModel
         cmdCargarListaPedidos = New DelegateCommand(AddressOf OnCargarListaPedidos)
         CrearPedidoCommand = New DelegateCommand(AddressOf OnCrearPedido)
         CancelarCreacionCommand = New DelegateCommand(AddressOf OnCancelarCreacion)
+        RecalcularTotalesCommand = New DelegateCommand(AddressOf RecalcularTotalesSeleccionados)
 
         Dim unused3 = eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
         Dim unused2 = eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
@@ -211,9 +212,59 @@ Public Class ListaPedidosVentaViewModel
     End Property
 
 
+    ' Issue #324: Totales de pedidos seleccionados
+    Public ReadOnly Property TotalBaseImponibleSeleccionados As Decimal
+        Get
+            Return PedidosSeleccionados.Sum(Function(p) p.baseImponible)
+        End Get
+    End Property
+
+    Public ReadOnly Property TotalSeleccionados As Decimal
+        Get
+            Return PedidosSeleccionados.Sum(Function(p) p.total)
+        End Get
+    End Property
+
+    Public ReadOnly Property TotalIvaSeleccionados As Decimal
+        Get
+            Return TotalSeleccionados - TotalBaseImponibleSeleccionados
+        End Get
+    End Property
+
+    Public ReadOnly Property NumeroSeleccionados As Integer
+        Get
+            Return PedidosSeleccionados.Count
+        End Get
+    End Property
+
+    Public ReadOnly Property HayPedidosSeleccionados As Boolean
+        Get
+            Return NumeroSeleccionados > 0
+        End Get
+    End Property
+
+    Private ReadOnly Property PedidosSeleccionados As List(Of ResumenPedido)
+        Get
+            If IsNothing(ListaPedidos) OrElse IsNothing(ListaPedidos.Lista) Then
+                Return New List(Of ResumenPedido)
+            End If
+            Return ListaPedidos.Lista.OfType(Of ResumenPedido).Where(Function(p) p.estaSeleccionado).ToList()
+        End Get
+    End Property
+
+    Public Sub RecalcularTotalesSeleccionados()
+        RaisePropertyChanged(NameOf(TotalBaseImponibleSeleccionados))
+        RaisePropertyChanged(NameOf(TotalSeleccionados))
+        RaisePropertyChanged(NameOf(TotalIvaSeleccionados))
+        RaisePropertyChanged(NameOf(NumeroSeleccionados))
+        RaisePropertyChanged(NameOf(HayPedidosSeleccionados))
+    End Sub
+
 #End Region
 
 #Region "Comandos"
+
+    Public Property RecalcularTotalesCommand As DelegateCommand
 
     Private _cancelarCreacionCommand As DelegateCommand
     Public Property CancelarCreacionCommand As DelegateCommand

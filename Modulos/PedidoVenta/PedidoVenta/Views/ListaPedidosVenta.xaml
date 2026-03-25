@@ -32,6 +32,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <controles:SelectorEmpresa Grid.Row="0" Configuracion="{Binding configuracion}" Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}" Etiqueta="Empresa:"></controles:SelectorEmpresa>
             <controles:BarraFiltro Name="txtFiltro" Grid.Row="1" ListaItems="{Binding ListaPedidos}"></controles:BarraFiltro>
@@ -41,11 +42,19 @@
                         <Border BorderBrush="BlanchedAlmond" BorderThickness="3" CornerRadius="10" Margin="3" Padding="3">
                             <Grid>
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                            
-                                <StackPanel Grid.Column="0">
+
+                                <CheckBox Grid.Column="0" IsChecked="{Binding estaSeleccionado}" VerticalAlignment="Center" Margin="5,0">
+                                    <i:Interaction.Triggers>
+                                        <i:EventTrigger EventName="Click">
+                                            <i:InvokeCommandAction Command="{Binding DataContext.RecalcularTotalesCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"/>
+                                        </i:EventTrigger>
+                                    </i:Interaction.Triggers>
+                                </CheckBox>
+                                <StackPanel Grid.Column="1">
                                     <TextBlock Text="{Binding nombre}"></TextBlock>
                                     <TextBlock Text="{Binding direccion}"></TextBlock>
                                     <StackPanel Orientation="Horizontal">
@@ -65,7 +74,7 @@
                                         <TextBlock Background="BlueViolet" Foreground="White" Margin="0,0,5,5" Padding="3,0" Visibility="{Binding Path=tieneSeguimiento, Converter={StaticResource BooleanToVisibilityConverter} }" Text="{Binding ultimoSeguimiento}"></TextBlock>
                                     </StackPanel>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
                                     <StackPanel.Style>
                                         <Style TargetType="{x:Type StackPanel}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -102,15 +111,40 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-            <CheckBox Grid.Row="3" IsChecked="{Binding mostrarPresupuestos}">Mostrar Presupuestos</CheckBox>
-            <CheckBox Grid.Row="4" IsChecked="{Binding mostrarSoloPendientes}">Mostrar Sólo Pendientes</CheckBox>
-            <CheckBox Grid.Row="5" IsChecked="{Binding mostrarSoloPicking}">Mostrar Sólo Picking</CheckBox>
+            <!-- Issue #324: Panel de totales de pedidos seleccionados -->
+            <Border Grid.Row="3" Background="#EEF5FF" BorderBrush="#B0C4DE" BorderThickness="1" CornerRadius="5" Padding="8" Margin="3"
+                    Visibility="{Binding HayPedidosSeleccionados, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Seleccionados:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                    <TextBlock Grid.Column="1" Text="{Binding NumeroSeleccionados}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Grid.Column="2" Text="BI:" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                    <TextBlock Grid.Column="3" Text="{Binding TotalBaseImponibleSeleccionados, StringFormat=c}" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,10,0"/>
+                    <TextBlock Grid.Column="4" Text="IVA:" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                    <TextBlock Grid.Column="5" Text="{Binding TotalIvaSeleccionados, StringFormat=c}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Grid.Column="6" Text="Total:" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                    <TextBlock Grid.Column="7" Text="{Binding TotalSeleccionados, StringFormat=c}" VerticalAlignment="Center" FontWeight="Bold" Foreground="#27ae60"/>
+                </Grid>
+            </Border>
 
-            <Button Grid.Row="6" Content="Iniciar Pedido Nuevo" 
+            <CheckBox Grid.Row="4" IsChecked="{Binding mostrarPresupuestos}">Mostrar Presupuestos</CheckBox>
+            <CheckBox Grid.Row="5" IsChecked="{Binding mostrarSoloPendientes}">Mostrar Sólo Pendientes</CheckBox>
+            <CheckBox Grid.Row="6" IsChecked="{Binding mostrarSoloPicking}">Mostrar Sólo Picking</CheckBox>
+
+            <Button Grid.Row="7" Content="Iniciar Pedido Nuevo"
                     Command="{Binding CrearPedidoCommand}"
                     Visibility="{Binding EstaCreandoPedidoInvertida, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-            <Button Grid.Row="6" Content="Cancelar pedido sin crear" 
+            <Button Grid.Row="7" Content="Cancelar pedido sin crear"
                     Command="{Binding CancelarCreacionCommand}"
                     Visibility="{Binding EstaCreandoPedido, Converter={StaticResource BooleanToVisibilityConverter}}"/> 
         </Grid>

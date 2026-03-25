@@ -203,6 +203,16 @@ Public Class PedidoVentaModel
             End Set
         End Property
 
+        Private _estaSeleccionado As Boolean = False
+        Public Property estaSeleccionado As Boolean
+            Get
+                Return _estaSeleccionado
+            End Get
+            Set(value As Boolean)
+                Dim unused = SetProperty(_estaSeleccionado, value)
+            End Set
+        End Property
+
         Private _esNuevo As Boolean = False
         Public Property esNuevo As Boolean
             Get
