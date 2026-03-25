@@ -238,7 +238,10 @@
                         <TextBlock Grid.Column="2" Grid.Row="6" Text="Teléfono Móvil:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="2" Grid.Row="7" Text="Atención:" Style="{StaticResource etiquetaTexto}"/>
                         <TextBlock Grid.Column="5" Grid.Row="0" Text="Email:" Style="{StaticResource etiquetaTexto}"/>
-                        <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso/Seguro:" Style="{StaticResource etiquetaTexto}"/>
+                        <TextBlock Grid.Column="5" Grid.Row="1" Text="Reembolso:" Style="{StaticResource etiquetaTexto}"
+                                   ToolTip="Importe contra reembolso que debe pagar el destinatario a la agencia.&#x0a;Marcar 'Cobrar' para cobrar reembolso (se calcula automáticamente; escribir importe para fijarlo).&#x0a;Desmarcar 'Cobrar' para forzar que no se cobre reembolso."/>
+                        <TextBlock Grid.Column="5" Grid.Row="2" Text="Seguro:" Style="{StaticResource etiquetaTexto}"
+                                   ToolTip="Importe asegurado del envío."/>
 
                         <TextBox Name="EnvioPendientePedidoTextBox" Grid.Column="1" Grid.Row="0" Text="{Binding EnvioPendienteSeleccionado.Pedido, UpdateSourceTrigger=LostFocus}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}" IsReadOnly="{Binding NoEstaInsertandoPendiente}"/>
                         <TextBox Grid.Column="1" Grid.Row="1" Text="{Binding EnvioPendienteSeleccionado.Cliente, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" IsReadOnly="True" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
@@ -260,12 +263,16 @@
                         <TextBox Grid.Column="6" Grid.Row="0" Text="{Binding EnvioPendienteSeleccionado.Email, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
                         <Grid Grid.Column="6" Grid.Row="1">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition/>
-                                <ColumnDefinition/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" Text="{Binding EnvioPendienteSeleccionado.Reembolso, StringFormat=c, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
-                            <TextBox Grid.Column="1" Text="{Binding EnvioPendienteSeleccionado.ImporteAsegurado, StringFormat=c, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"/>
+                            <CheckBox Grid.Column="0" Content="Cobrar" IsChecked="{Binding EnvioPendienteSeleccionado.CobrarReembolso, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}" VerticalAlignment="Center" Margin="3,0"
+                                      ToolTip="Marcado: se cobra reembolso (se calcula con el total del pedido; escribir importe para fijarlo manualmente).&#x0a;Desmarcado: no se cobra reembolso, independientemente del importe del pedido."/>
+                            <TextBox Grid.Column="1" Text="{Binding EnvioPendienteSeleccionado.Reembolso, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right" IsEnabled="{Binding EnvioPendienteSeleccionado.CobrarReembolso}"
+                                     ToolTip="Importe del reembolso.&#x0a;Dejar a 0 para que se calcule automáticamente con el total del pedido al tramitar.&#x0a;Escribir un importe para fijarlo manualmente."/>
                         </Grid>
+                        <TextBox Grid.Column="6" Grid.Row="2" Text="{Binding EnvioPendienteSeleccionado.ImporteAsegurado, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource campoTexto}" HorizontalContentAlignment="Right" IsEnabled="{Binding HayUnEnvioPendienteSeleccionado}"
+                                 ToolTip="Importe asegurado del envío."/>
                         
 
                         <Button Grid.Column="5" Grid.Row="6" MinWidth="80" Margin="3" Content="Borrar Envío" Command = "{Binding BorrarEnvioPendienteCommand}"/>

@@ -12,6 +12,7 @@ namespace Nesto.Infrastructure.Shared
             public const int ESTADO_INICIAL_ENVIO = 0;
             public const int ESTADO_TRAMITADO_ENVIO = 1;
             public const short ESTADO_PENDIENTE_ENVIO = -1; // Etiqueta pendiente de envío
+            public const decimal REEMBOLSO_NO_COBRAR = -1M; // Sentinel: no cobrar reembolso
         }
         public class Almacenes
         {

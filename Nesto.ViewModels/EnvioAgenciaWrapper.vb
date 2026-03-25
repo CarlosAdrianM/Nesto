@@ -1,5 +1,6 @@
 ﻿Imports Prism.Mvvm
 Imports Nesto.Models.Nesto.Models
+Imports Nesto.Infrastructure.Shared
 
 Public Class EnvioAgenciaWrapper
     Inherits BindableBase
@@ -226,6 +227,16 @@ Public Class EnvioAgenciaWrapper
         End Set
     End Property
 
+    Private _cobrarReembolso As Boolean = True
+    Public Property CobrarReembolso As Boolean
+        Get
+            Return _cobrarReembolso
+        End Get
+        Set(value As Boolean)
+            SetProperty(_cobrarReembolso, value)
+        End Set
+    End Property
+
     Private _reembolso As Decimal
     Public Property Reembolso As Decimal
         Get
@@ -318,7 +329,7 @@ Public Class EnvioAgenciaWrapper
             .Pedido = Pedido,
             .Poblacion = Poblacion,
             .Provincia = Provincia,
-            .Reembolso = Reembolso,
+            .Reembolso = If(CobrarReembolso, Reembolso, Constantes.Agencias.REEMBOLSO_NO_COBRAR),
             .Retorno = Retorno,
             .Servicio = Servicio,
             .Telefono = Telefono,
@@ -352,7 +363,8 @@ Public Class EnvioAgenciaWrapper
             .Pedido = envio.Pedido,
             .Poblacion = envio.Poblacion,
             .Provincia = envio.Provincia,
-            .Reembolso = envio.Reembolso,
+            .Reembolso = If(envio.Reembolso >= 0, envio.Reembolso, 0D),
+            .CobrarReembolso = envio.Reembolso >= 0,
             .Retorno = envio.Retorno,
             .Servicio = envio.Servicio,
             .Telefono = envio.Telefono,

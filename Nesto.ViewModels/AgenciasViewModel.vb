@@ -1390,6 +1390,11 @@ Public Class AgenciasViewModel
 
         Dim envioATramitar = envioActual ' Capturar referencia
 
+        ' Issue #135: Convertir sentinel de reembolso antes de enviar a la agencia
+        If envioATramitar.Reembolso < 0 Then
+            envioATramitar.Reembolso = 0
+        End If
+
         Try
             Dim respuesta = Await agenciaEspecifica.LlamadaWebService(envioATramitar, _servicio)
             Await _servicio.GuardarLlamadaAgencia(respuesta)

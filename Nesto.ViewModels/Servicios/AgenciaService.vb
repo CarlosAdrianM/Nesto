@@ -315,12 +315,17 @@ Public Class AgenciaService
 
                 Dim envioEncontrado = DbContext.EnviosAgencia.Where(Function(e) e.Numero = envio.Numero).Single
 
+                ' Issue #135: Convertir sentinel de reembolso antes de tramitar
+                If envioEncontrado.Reembolso < 0 Then
+                    envioEncontrado.Reembolso = 0
+                End If
+
                 envioEncontrado.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO 'Enviado
                 envioEncontrado.Fecha = Today
                 envioEncontrado.FechaEntrega = Today.AddDays(1) 'Se entrega al día siguiente
                 success = DbContext.SaveChanges()
 
-                If success AndAlso envio.Reembolso <> 0 Then
+                If success AndAlso envioEncontrado.Reembolso <> 0 Then
                     asiento = ContabilizarReembolso(envioEncontrado)
                     If asiento <= 0 Then
                         success = False
