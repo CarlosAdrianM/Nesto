@@ -263,5 +263,120 @@ namespace CanalesExternosTests
         }
 
         #endregion
+
+        #region Issue #328: Casos reales con comisión contrarreembolso y muestras
+
+        private static void AñadirLineaComisionReembolso(List<LineaPedidoVentaDTO> lineas, decimal importe = 3M)
+        {
+            lineas.Add(new LineaPedidoVentaDTO
+            {
+                tipoLinea = 2, // Cuenta contable (EsCuentaContable lo detecta en GetLineas)
+                PrecioUnitario = importe,
+                Cantidad = 1,
+                Producto = "62400003",
+                texto = "COMISIÓN POR CONTRARREEMBOLSO",
+                AplicarDescuento = false,
+                almacen = "ALG",
+                delegacion = "ALG",
+                formaVenta = "WEB",
+                estado = 1,
+                fechaEntrega = DateTime.Today,
+                iva = "G21",
+                Usuario = "test"
+            });
+        }
+
+        // Caso real: 80,73€ en productos + 3€ comisión reembolso + descuento 12,11€ (15% de 80,73)
+        // Prestashop reporta total_products = 83,73 (incluye comisión)
+        // 15% de 83,73 = 12,56 ≠ 12,11 → DetectarPorcentajeConocido falla
+        [TestMethod]
+        public void AplicarDescuentoCupon_ConComisionReembolso_Detecta15Porciento()
+        {
+            var lineas = CrearLineasProducto(
+                (27.55M, 1), (6.21M, 1), (3.95M, 1),
+                (5.60M, 1), (2.42M, 1), (35.00M, 1));
+            AñadirLineaComisionReembolso(lineas, 3.00M);
+
+            // total_products de Prestashop = 83,73 (incluye comisión)
+            // pero el descuento real es 15% de 80,73 = 12,11
+            Aplicar(lineas, totalDescuentosSinIva: 12.11M, totalProductosSinIva: 83.73M,
+                totalDescuentosConIva: 14.65M);
+
+            var lineasProducto = lineas.Where(l => l.tipoLinea == 1 && l.Producto != "62400003").ToList();
+            foreach (var linea in lineasProducto)
+            {
+                Assert.AreEqual(0.15M, linea.DescuentoLinea,
+                    $"Producto {linea.Producto} debería tener 15% de descuento");
+            }
+
+            // La comisión no debe tener descuento
+            var lineaComision = lineas.Single(l => l.Producto == "62400003");
+            Assert.AreEqual(0M, lineaComision.DescuentoLinea,
+                "La comisión por contrarreembolso no debe tener descuento");
+
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"),
+                "No debe crear línea TICKET cuando es un porcentaje conocido");
+        }
+
+        // Caso real: 222,30€ con muestras (precio 0) + descuento 33,35€ (15%)
+        [TestMethod]
+        public void AplicarDescuentoCupon_ConMuestrasPrecioCero_Detecta15Porciento()
+        {
+            var lineas = CrearLineasProducto(
+                (4.50M, 1), (9.90M, 1), (42.15M, 1), (18.65M, 1),
+                (32.95M, 1), (72.35M, 1), (37.30M, 1), (4.50M, 1));
+            // Muestras con precio 0
+            lineas.AddRange(CrearLineasProducto((0M, 1), (0M, 1), (0M, 1)));
+
+            // 15% de 222,30 = 33,345 → redondeado = 33,35
+            Aplicar(lineas, totalDescuentosSinIva: 33.35M, totalProductosSinIva: 222.30M,
+                totalDescuentosConIva: 40.35M);
+
+            var lineasConPrecio = lineas.Where(l => l.tipoLinea == 1 && l.PrecioUnitario > 0).ToList();
+            foreach (var linea in lineasConPrecio)
+            {
+                Assert.AreEqual(0.15M, linea.DescuentoLinea,
+                    $"Producto con precio {linea.PrecioUnitario} debería tener 15% de descuento");
+            }
+
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"),
+                "No debe crear línea TICKET");
+        }
+
+        // Caso real: 47,52€ producto único + descuento 7,13€ (15%)
+        [TestMethod]
+        public void AplicarDescuentoCupon_ProductoUnico_Detecta15Porciento()
+        {
+            var lineas = CrearLineasProducto((47.52M, 1));
+
+            // 15% de 47,52 = 7,128 → redondeado = 7,13
+            Aplicar(lineas, totalDescuentosSinIva: 7.13M, totalProductosSinIva: 47.52M,
+                totalDescuentosConIva: 8.63M);
+
+            Assert.AreEqual(0.15M, lineas[0].DescuentoLinea);
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"));
+        }
+
+        // La detección debe funcionar calculando sobre líneas descontables,
+        // no sobre total_products de Prestashop
+        [TestMethod]
+        public void DetectarPorcentaje_ConComisionInflandoTotal_DebeDetectar15()
+        {
+            // total_products de Prestashop = 83,73 (incluye 3€ de comisión)
+            // Descuento real = 12,11 = 15% de 80,73 (sin comisión)
+            // Con el total inflado: 15% de 83,73 = 12,56 ≠ 12,11
+            // El método debe ser capaz de detectar que es 15% de los productos reales
+
+            // Este test verifica que necesitamos calcular sobre las líneas, no sobre total_products
+            decimal resultado = CanalExternoPedidosPrestashopNuevaVision.DetectarPorcentajeConocido(12.11M, 80.73M);
+            Assert.AreEqual(15M, resultado, "15% de 80,73 = 12,11 debe detectarse");
+
+            // Y que con el total inflado NO detecta (situación actual, documentamos el bug)
+            decimal resultadoInflado = CanalExternoPedidosPrestashopNuevaVision.DetectarPorcentajeConocido(12.11M, 83.73M);
+            Assert.AreEqual(0M, resultadoInflado, "Con total inflado no detecta el porcentaje");
+        }
+
+        #endregion
     }
 }
+

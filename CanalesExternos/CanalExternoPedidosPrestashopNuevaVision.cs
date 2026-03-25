@@ -331,6 +331,9 @@ namespace Nesto.Modulos.CanalesExternos
                 {
                     throw new ArgumentException(string.Format("Tipo de IVA {0} no definido", porcentajeIva.ToString("p")));
                 }
+                string productoRef = linea.Element("product_reference").Value;
+                byte tipoLineaProducto = EsCuentaContable(productoRef) ? (byte)2 : (byte)1;
+
                 LineaPedidoVentaDTO lineaNesto = new()
                 {
                     Pedido = pedidoSalida,
@@ -343,9 +346,9 @@ namespace Nesto.Modulos.CanalesExternos
                     fechaEntrega = DateTime.Today,
                     iva = tipoIva,
                     PrecioUnitario = Math.Round(Convert.ToDecimal(linea.Element("unit_price_tax_incl").Value) / 1000000, 4),
-                    Producto = linea.Element("product_reference").Value,
+                    Producto = productoRef,
                     texto = linea.Element("product_name").Value.ToUpper(),
-                    tipoLinea = 1, // producto
+                    tipoLinea = tipoLineaProducto,
                     vistoBueno = true,
                     Usuario = configuracion.usuario
                 };
@@ -433,6 +436,14 @@ namespace Nesto.Modulos.CanalesExternos
 
         }
 
+        // Cuentas contables que Prestashop envía como producto en order_rows
+        private static readonly HashSet<string> CUENTAS_CONTABLES_PRESTASHOP = new() { "62400003", "62700020" };
+
+        internal static bool EsCuentaContable(string productoRef)
+        {
+            return !string.IsNullOrEmpty(productoRef) && CUENTAS_CONTABLES_PRESTASHOP.Contains(productoRef);
+        }
+
         private static readonly int[] PORCENTAJES_CONOCIDOS = { 5, 10, 15, 20, 25, 30 };
 
         internal static decimal DetectarPorcentajeConocido(decimal totalDescuentosSinIva, decimal totalProductosSinIva)
@@ -463,7 +474,20 @@ namespace Nesto.Modulos.CanalesExternos
             string iva,
             string usuario)
         {
-            decimal porcentajeDetectado = DetectarPorcentajeConocido(totalDescuentosSinIva, totalProductosSinIva);
+            // Issue #328: Calcular total descontable desde las líneas (tipoLinea == 1),
+            // excluyendo cuentas contables como la comisión contrarreembolso que
+            // Prestashop incluye en total_products pero no deben recibir descuento
+            decimal totalDescontable = lineas
+                .Where(l => l.tipoLinea == 1)
+                .Sum(l => Math.Round(l.PrecioUnitario * l.Cantidad, 2, MidpointRounding.AwayFromZero));
+
+            decimal porcentajeDetectado = DetectarPorcentajeConocido(totalDescuentosSinIva, totalDescontable);
+
+            // Fallback: intentar con el total de Prestashop (por si coincide)
+            if (porcentajeDetectado == 0 && totalDescontable != totalProductosSinIva)
+            {
+                porcentajeDetectado = DetectarPorcentajeConocido(totalDescuentosSinIva, totalProductosSinIva);
+            }
 
             if (porcentajeDetectado > 0)
             {
