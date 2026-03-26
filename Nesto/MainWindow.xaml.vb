@@ -45,7 +45,11 @@ Partial Class MainWindow
         Me.regionManager = regionManager
         Me._servicioAutenticacion = servicioAutenticacion
 
-        tituloVentana = "Nesto (" + GetType(MainWindow).Assembly.GetName().Version.ToString + ")"
+        Dim clickOnceVersion As String = Environment.GetEnvironmentVariable("ClickOnce_CurrentVersion")
+        Dim version As String = If(String.IsNullOrEmpty(clickOnceVersion),
+            GetType(MainWindow).Assembly.GetName().Version.ToString,
+            clickOnceVersion)
+        tituloVentana = "Nesto (" + version + ")"
         Title = tituloVentana
 
         Maquina = Environment.GetEnvironmentVariable("CLIENTNAME")
