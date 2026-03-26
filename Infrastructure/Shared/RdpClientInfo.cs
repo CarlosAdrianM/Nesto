@@ -46,7 +46,7 @@ namespace Nesto.Infrastructure.Shared
                     return Environment.GetEnvironmentVariable("CLIENTNAME");
                 }
 
-                string clientName = Marshal.PtrToStringAuto(buffer);
+                string clientName = Marshal.PtrToStringAnsi(buffer);
                 return string.IsNullOrEmpty(clientName)
                     ? Environment.GetEnvironmentVariable("CLIENTNAME")
                     : clientName;
