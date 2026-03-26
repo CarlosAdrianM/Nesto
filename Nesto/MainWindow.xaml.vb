@@ -3,6 +3,7 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports System.ComponentModel
 Imports System.Windows.Threading
+Imports Microsoft.Win32
 
 Partial Class MainWindow
     Implements IMainWindow
@@ -12,10 +13,11 @@ Partial Class MainWindow
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
     Private ReadOnly tituloVentana As String
     Private _timerVerificacion As DispatcherTimer
-    Public ReadOnly Property Maquina As String
-    Public ReadOnly Property Delegacion As String
+    Private _configuracion As IConfiguracion
+    Public Property Maquina As String
+    Public Property Delegacion As String
     Public ReadOnly Property Usuario As String
-    Public ReadOnly Property TextoAdvertencia As String
+    Public Property TextoAdvertencia As String
 
     Private _estaAutenticado As Boolean = False
     ''' <summary>
@@ -44,6 +46,7 @@ Partial Class MainWindow
         ' Agregue cualquier inicialización después de la llamada a InitializeComponent().
         Me.regionManager = regionManager
         Me._servicioAutenticacion = servicioAutenticacion
+        Me._configuracion = configuracion
 
         Dim clickOnceVersion As String = Environment.GetEnvironmentVariable("ClickOnce_CurrentVersion")
         Dim version As String = If(String.IsNullOrEmpty(clickOnceVersion),
@@ -52,24 +55,39 @@ Partial Class MainWindow
         tituloVentana = "Nesto (" + version + ")"
         Title = tituloVentana
 
-        Maquina = Environment.GetEnvironmentVariable("CLIENTNAME")
-        Delegacion = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto)
         Usuario = Environment.UserName
+        ActualizarMaquinaYDelegacion()
+
+        AddHandler SystemEvents.SessionSwitch, AddressOf OnSessionSwitch
+
+        ' Inicializar verificación de autenticación
+        InicializarVerificacionAutenticacion()
+    End Sub
+
+    Private Sub ActualizarMaquinaYDelegacion()
+        Maquina = RdpClientInfo.GetCurrentClientName()
+        Delegacion = _configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto)
         Dim delegacionDeMaquina As String = Strings.Left(Maquina, 3)
         If Constantes.Sedes.ListaSedes.Select(Function(s) s.Codigo).Contains(delegacionDeMaquina) Then
             TextoAdvertencia = String.Empty
             If delegacionDeMaquina <> Delegacion Then
                 Delegacion = delegacionDeMaquina
-                configuracion.GuardarParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto, delegacionDeMaquina)
-                configuracion.GuardarParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta, delegacionDeMaquina)
-                configuracion.GuardarParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenInventario, delegacionDeMaquina)
+                _configuracion.GuardarParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto, delegacionDeMaquina)
+                _configuracion.GuardarParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta, delegacionDeMaquina)
+                _configuracion.GuardarParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenInventario, delegacionDeMaquina)
             End If
         Else
             TextoAdvertencia = "¡Nombre de equipo no válido para parámetros automáticos!"
         End If
+        RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(NameOf(Maquina)))
+        RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(NameOf(Delegacion)))
+        RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(NameOf(TextoAdvertencia)))
+    End Sub
 
-        ' Inicializar verificación de autenticación
-        InicializarVerificacionAutenticacion()
+    Private Sub OnSessionSwitch(sender As Object, e As SessionSwitchEventArgs)
+        If e.Reason = SessionSwitchReason.RemoteConnect Then
+            ActualizarMaquinaYDelegacion()
+        End If
     End Sub
 
     ''' <summary>
