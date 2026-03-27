@@ -130,6 +130,10 @@ Public Class PedidoVentaService
             End If
 
             Dim urlConsulta As String = "PedidosVenta"
+            If pedido.CrearEfectosManualmente AndAlso pedido.Efectos IsNot Nothing Then
+                pedido.Efectos.ImporteTotal = pedido.Total
+                pedido.Efectos.CuadrarEfectos()
+            End If
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
             Try
@@ -614,6 +618,10 @@ Public Class PedidoVentaService
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
 
+            If pedido.CrearEfectosManualmente AndAlso pedido.Efectos IsNot Nothing Then
+                pedido.Efectos.ImporteTotal = pedido.Total
+                pedido.Efectos.CuadrarEfectos()
+            End If
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
 
             Try

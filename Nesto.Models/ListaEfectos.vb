@@ -75,6 +75,16 @@ Public Class ListaEfectos
         RaisePropertyChanged(NameOf(DiasFinanciacion))
     End Sub
 
+    Public Sub CuadrarEfectos()
+        If Not Me.Any() OrElse ImporteTotal = 0 Then
+            Return
+        End If
+        Dim sumaEfectos As Decimal = Me.Sum(Function(e) e.Importe)
+        If sumaEfectos <> ImporteTotal Then
+            Me.Last().Importe += ImporteTotal - sumaEfectos
+        End If
+    End Sub
+
     Private _cccCliente As String
     Public Property CccCliente As String
         Get
