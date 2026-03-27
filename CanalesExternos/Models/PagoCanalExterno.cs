@@ -21,6 +21,8 @@ namespace Nesto.Modulos.CanalesExternos.Models
         public decimal ImporteOriginal { get; set; }
         public string MonedaOriginal { get; set; }
         public decimal CambioDivisas { get; set; }
+        public decimal ImporteRecibidoBanco { get; set; }
+        public decimal DiferenciaCambioDivisas => ImporteRecibidoBanco != 0 ? ImporteRecibidoBanco - Importe : 0;
         public ObservableCollection<DetallePagoCanalExterno> DetallesPago { get; set; }
         public decimal TotalDetallePagos => DetallesPago != null ? DetallesPago.Sum(p => p.Importe) : 0;
         public decimal TotalDetalleComisiones => DetallesPago != null ? DetallesPago.Sum(p => p.Comisiones) : 0;

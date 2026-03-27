@@ -116,9 +116,36 @@
                     <Run Text="{Binding PagoSeleccionado.TotalDetalle, StringFormat=c, Mode=OneWay}"></Run>
                     </TextBlock>
                     <TextBlock>
-                    Descuadre: 
+                    Descuadre:
                     <Run Text="{Binding PagoSeleccionado.Descuadre, StringFormat=c, Mode=OneWay}"></Run>
                     </TextBlock>
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding PagoSeleccionado.MonedaOriginal}" Value="GBP">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding PagoSeleccionado.MonedaOriginal}" Value="SEK">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding PagoSeleccionado.MonedaOriginal}" Value="PLN">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding PagoSeleccionado.MonedaOriginal}" Value="TRY">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock VerticalAlignment="Center">Importe recibido en banco (EUR): </TextBlock>
+                        <TextBox Width="100" Margin="5,0" Text="{Binding PagoSeleccionado.ImporteRecibidoBanco, StringFormat=N2, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock VerticalAlignment="Center">
+                        Diferencia cambio:
+                        <Run Text="{Binding PagoSeleccionado.DiferenciaCambioDivisas, StringFormat=c, Mode=OneWay}"></Run>
+                        </TextBlock>
+                    </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Column="1" Grid.Row="2">
                     <Button Command="{Binding ContabilizarPagoCommand}">Contabilizar Pago Seleccionado</Button>

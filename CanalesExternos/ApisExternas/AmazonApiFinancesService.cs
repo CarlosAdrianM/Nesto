@@ -42,9 +42,21 @@ public class AmazonApiFinancesService {
                         FechaInicio = grupo.FinancialEventGroupStart,
                         FechaFinal = grupo.FinancialEventGroupEnd
                     };
-                    if (pago.MonedaOriginal != Constantes.Empresas.MONEDA_CONTABILIDAD && grupo.ConvertedTotal != null)
+                    if (pago.MonedaOriginal != Constantes.Empresas.MONEDA_CONTABILIDAD && grupo.ConvertedTotal != null
+                        && grupo.OriginalTotal?.CurrencyAmount != null && grupo.OriginalTotal.CurrencyAmount != 0)
                     {
-                        pago.CambioDivisas = (decimal)(grupo.ConvertedTotal.CurrencyAmount / grupo.OriginalTotal?.CurrencyAmount);
+                        double cambio = (double)(grupo.ConvertedTotal.CurrencyAmount / grupo.OriginalTotal.CurrencyAmount);
+                        pago.CambioDivisas = double.IsInfinity(cambio) || double.IsNaN(cambio) ? 1M : (decimal)cambio;
+                    } else if (pago.MonedaOriginal != Constantes.Empresas.MONEDA_CONTABILIDAD)
+                    {
+                        try
+                        {
+                            pago.CambioDivisas = AmazonApiOrdersService.CalculaDivisa(pago.MonedaOriginal, Constantes.Empresas.MONEDA_CONTABILIDAD);
+                        }
+                        catch
+                        {
+                            pago.CambioDivisas = 1M;
+                        }
                     } else
                     {
                         pago.CambioDivisas = 1M;
