@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -160,6 +161,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
 
             string[] scopes = new string[] { "Mail.Send", "Mail.ReadWrite" };
             GraphServiceClient graphClient = new GraphServiceClient(InteractiveBrowserCredential, scopes);
+            CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
             string cuerpoCorreo;
             if (!string.IsNullOrEmpty(pedido.Model.Comentarios))
             {
@@ -214,9 +216,16 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 await graphClient.Me
                 .SendMail(message, saveToSentItems)
                 .Request()
-                .PostAsync();
+                .PostAsync(cts.Token);
                 DialogService.ShowNotification("Pedido enviado con éxito");
-            } catch
+            }
+            catch (Exception ex) when (ex is OperationCanceledException || ex is Azure.Identity.AuthenticationFailedException)
+            {
+                DialogService.ShowError("No se han concedido los permisos de Office o se ha agotado el tiempo de espera");
+                EstaOcupado = false;
+                return;
+            }
+            catch
             {
                 DialogService.ShowError("No se ha podido enviar el correo");
                 EstaOcupado = false;

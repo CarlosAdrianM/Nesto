@@ -463,9 +463,17 @@ Public Class RemesasViewModel
         Dim planId = Constantes.Planner.GestionCobro.PLAN_ID
         Dim bucketId = Constantes.Planner.GestionCobro.BUCKET_PENDIENTES
         Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}
-        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes) 'you can pass the TokenCredential directly To the GraphServiceClient
+        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes)
 
-        Dim users = Await graphClient.Users.Request().GetAsync()
+        Dim cts As New System.Threading.CancellationTokenSource(TimeSpan.FromMinutes(2))
+        Dim users As Microsoft.Graph.IGraphServiceUsersCollectionPage
+        Try
+            users = Await graphClient.Users.Request().GetAsync(cts.Token)
+        Catch ex As Exception When TypeOf ex Is OperationCanceledException OrElse
+                                    TypeOf ex Is Azure.Identity.AuthenticationFailedException
+            mensajeError = "No se han concedido los permisos de Office o se ha agotado el tiempo de espera"
+            Return
+        End Try
 
         Dim usuarios As String() = usuarioTareas.Split(New Char() {";"c})
         Dim usuariosAsignar As New List(Of String)
@@ -476,7 +484,7 @@ Public Class RemesasViewModel
             End If
         Next
 
-        Dim tareasBucket = Await graphClient.Planner.Buckets(bucketId).Tasks.Request().GetAsync()
+        Dim tareasBucket = Await graphClient.Planner.Buckets(bucketId).Tasks.Request().GetAsync(cts.Token)
 
         Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
 

@@ -100,7 +100,7 @@ Public Class RapportService
 
     Public Async Function CrearCita(rapport As SeguimientoClienteDTO, fechaAviso As Date) As Task(Of String) Implements IRapportService.CrearCita
         Dim scopes = {"Calendars.ReadWrite"}
-        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes) 'you can pass the TokenCredential directly To the GraphServiceClient
+        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes)
 
         If IsNothing(rapport.Cliente) OrElse IsNothing(rapport.Contacto) Then
             Return "No se puede crear el aviso si no se especifica un cliente y un contacto"
@@ -127,8 +127,14 @@ Public Class RapportService
 
         nuevaCita.IsReminderOn = True
         nuevaCita.ReminderMinutesBeforeStart = 0
-        Dim unused = Await graphClient.Me.Calendar.Events.Request().AddAsync(nuevaCita)
-        Return "Cita creada correctamente"
+        Try
+            Dim cts As New System.Threading.CancellationTokenSource(TimeSpan.FromMinutes(2))
+            Dim unused = Await graphClient.Me.Calendar.Events.Request().AddAsync(nuevaCita, cts.Token)
+            Return "Cita creada correctamente"
+        Catch ex As Exception When TypeOf ex Is OperationCanceledException OrElse
+                                    TypeOf ex Is Azure.Identity.AuthenticationFailedException
+            Return "No se han concedido los permisos de Office o se ha agotado el tiempo de espera"
+        End Try
     End Function
 
     Public Async Function cargarListaRapportsFiltrada(vendedor As String, filtro As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapportsFiltrada
@@ -232,11 +238,18 @@ Public Class RapportService
         Dim planId = Constantes.Planner.GestionCobro.PLAN_ID
         Dim bucketId = Constantes.Planner.GestionCobro.BUCKET_PENDIENTES
         Dim scopes = {"User.Read.All", "Group.ReadWrite.All"}
-        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes) 'you can pass the TokenCredential directly To the GraphServiceClient
+        Dim graphClient As New GraphServiceClient(InteractiveBrowserCredential, scopes)
 
-        Dim users = Await graphClient.Users.Request().GetAsync()
+        Dim cts As New System.Threading.CancellationTokenSource(TimeSpan.FromMinutes(2))
+        Dim users As Microsoft.Graph.IGraphServiceUsersCollectionPage
+        Try
+            users = Await graphClient.Users.Request().GetAsync(cts.Token)
+        Catch ex As Exception When TypeOf ex Is OperationCanceledException OrElse
+                                    TypeOf ex Is Azure.Identity.AuthenticationFailedException
+            Return "No se han concedido los permisos de Office o se ha agotado el tiempo de espera"
+        End Try
 
-        Dim tareasBucket = Await graphClient.Planner.Buckets(bucketId).Tasks.Request().GetAsync()
+        Dim tareasBucket = Await graphClient.Planner.Buckets(bucketId).Tasks.Request().GetAsync(cts.Token)
         Dim plannerTask As PlannerTask
 
         Try
