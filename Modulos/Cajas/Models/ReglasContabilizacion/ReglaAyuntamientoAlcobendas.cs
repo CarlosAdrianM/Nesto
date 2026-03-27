@@ -7,7 +7,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 {
     internal class ReglaAyuntamientoAlcobendas : IReglaContabilizacion
     {
-        public string Nombre => "Ayuntamiento Alcobendas";
+        public string Nombre { get; private set; } = "Ayuntamiento Alcobendas";
 
         public ReglaContabilizacionResponse ApuntesContabilizar(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad, BancoDTO banco)
         {
@@ -23,7 +23,6 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             PreContabilidadDTO linea1 = BancosViewModel.CrearPrecontabilidadDefecto();
             linea1.Diario = "_ConcBanco";
             linea1.Cuenta = apunteBancario.RegistrosConcepto[0].ConceptoCompleto.Contains("I B I") ? "63100000" : "63100003";
-
             linea1.Concepto = apunteBancario.RegistrosConcepto[0]?.ConceptoCompleto?.Trim()[4..];
             linea1.Concepto = FuncionesAuxiliaresReglas.FormatearConcepto(linea1.Concepto);
 
@@ -65,6 +64,10 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 return false;
             }
             ApunteBancarioDTO apunteBancario = apuntesBancarios.First();
+            if (apunteBancario.RegistrosConcepto[0].ConceptoCompleto.Contains("I B I"))
+            {
+                Nombre = "Ayuntamiento Alcobendas (IBI)";
+            }
 
             return apunteBancario.ConceptoComun == "17" &&
                 apunteBancario.ConceptoPropio == "016" &&
