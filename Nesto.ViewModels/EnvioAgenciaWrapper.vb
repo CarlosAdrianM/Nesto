@@ -352,7 +352,7 @@ Public Class EnvioAgenciaWrapper
             .Empresa = envio.Empresa,
             .Estado = envio.Estado,
             .Fecha = envio.Fecha,
-            .FechaEntrega = envio.FechaEntrega,
+            .FechaEntrega = If(envio.FechaEntrega, DateTime.MinValue),
             .Horario = envio.Horario,
             .ImporteAsegurado = envio.ImporteAsegurado,
             .Movil = envio.Movil,
