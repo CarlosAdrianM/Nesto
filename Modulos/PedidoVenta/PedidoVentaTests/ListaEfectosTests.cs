@@ -156,5 +156,57 @@ namespace PedidoVentaTests
         }
 
 
+        [TestMethod]
+        public void CuadrarEfectos_SumaExcedePorRedondeo_AjustaUltimoEfecto()
+        {
+            // Simular efectos deserializados (sin handlers reactivos)
+            var lista = new ListaEfectos();
+            lista.Add(new Efecto { Importe = 50.01M });
+            lista.Add(new Efecto { Importe = 50.01M });
+            lista.ImporteTotal = 100.01M;
+
+            lista.CuadrarEfectos();
+
+            Assert.AreEqual(100.01M, lista.Sum(e => e.Importe));
+            Assert.AreEqual(50.00M, lista.Last().Importe);
+        }
+
+        [TestMethod]
+        public void CuadrarEfectos_SumaInferior_AjustaUltimoEfectoArriba()
+        {
+            var lista = new ListaEfectos();
+            lista.Add(new Efecto { Importe = 33.33M });
+            lista.Add(new Efecto { Importe = 33.33M });
+            lista.Add(new Efecto { Importe = 33.33M });
+            lista.ImporteTotal = 100M;
+
+            lista.CuadrarEfectos();
+
+            Assert.AreEqual(100M, lista.Sum(e => e.Importe));
+            Assert.AreEqual(33.34M, lista.Last().Importe);
+        }
+
+        [TestMethod]
+        public void CuadrarEfectos_YaCuadrados_NoModifica()
+        {
+            var lista = new ListaEfectos(100M);
+            lista.AnnadirEfectoCommand.Execute();
+
+            lista.CuadrarEfectos();
+
+            Assert.AreEqual(50M, lista.First().Importe);
+            Assert.AreEqual(50M, lista.Last().Importe);
+        }
+
+        [TestMethod]
+        public void CuadrarEfectos_ImporteTotalCero_NoFalla()
+        {
+            var lista = new ListaEfectos();
+            lista.Add(new Efecto { Importe = 50M });
+
+            lista.CuadrarEfectos();
+
+            Assert.AreEqual(50M, lista.First().Importe);
+        }
     }
 }
