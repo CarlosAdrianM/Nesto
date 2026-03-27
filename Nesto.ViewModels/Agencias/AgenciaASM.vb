@@ -223,6 +223,9 @@ Public Class AgenciaASM
                 nombrePlaza = elementoXML.Element("Nombre").Value
                 telefonoPlaza = elementoXML.Element("Telefono").Value
                 telefonoPlaza = Regex.Replace(telefonoPlaza, "([^0-9])", "")
+                If (telefonoPlaza.Length > 27) Then
+                    telefonoPlaza = Left(telefonoPlaza, 27)
+                End If
                 'telefonoPlaza = elementoXML.Element("Telefono").Value.Replace(" "c, String.Empty)
                 emailPlaza = elementoXML.Element("Mail").Value
             End If
