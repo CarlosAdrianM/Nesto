@@ -1857,11 +1857,21 @@ Public Class DetallePedidoViewModel
         Return (Not String.IsNullOrEmpty(CobroTarjetaCorreo) OrElse Not String.IsNullOrEmpty(CobroTarjetaMovil)) AndAlso CobroTarjetaImporte > 0
     End Function
 
-    Private Sub OnEnviarCobroTarjeta()
+    Private Async Sub OnEnviarCobroTarjeta()
         If Not dialogService.ShowConfirmationAnswer("Cobro tarjeta", "¿Desea enviar el enlace de cobro con tarjeta?") Then
             Return
         End If
-        servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, CobroTarjetaImporte, pedido.numero.ToString, pedido.cliente)
+        Try
+            Dim enlace = Await servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, CobroTarjetaImporte, pedido.numero.ToString, pedido.empresa, pedido.cliente)
+            If Not String.IsNullOrEmpty(enlace) Then
+                Clipboard.SetText(enlace)
+                dialogService.ShowNotification("Cobro tarjeta", "Enlace de pago copiado al portapapeles:" & vbCrLf & enlace)
+            Else
+                dialogService.ShowNotification("Cobro tarjeta", "Enlace de pago creado correctamente.")
+            End If
+        Catch ex As Exception
+            dialogService.ShowError("No se ha podido crear el enlace de pago: " & ex.Message)
+        End Try
     End Sub
 
     Private _cmdModificarPedido As DelegateCommand

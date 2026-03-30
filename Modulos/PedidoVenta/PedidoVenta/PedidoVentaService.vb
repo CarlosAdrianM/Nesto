@@ -320,37 +320,42 @@ Public Class PedidoVentaService
         End Using
     End Function
 
-    Public Async Sub EnviarCobroTarjeta(correo As String, movil As String, totalPedido As Decimal, pedido As String, cliente As String) Implements IPedidoVentaService.EnviarCobroTarjeta
+    Public Async Function EnviarCobroTarjeta(correo As String, movil As String, totalPedido As Decimal, pedido As String, empresa As String, cliente As String) As Task(Of String) Implements IPedidoVentaService.EnviarCobroTarjeta
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
-            Dim respuesta As String = String.Empty
 
-            Dim reclamacion As New ReclamacionDeuda With {
-                .Cliente = cliente,
-                .Asunto = String.Format("Pago pedido {0} de Nueva Visión", pedido),
-                .Correo = correo,
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim solicitud = New With {
+                .Empresa = empresa?.Trim(),
+                .Cliente = cliente?.Trim(),
                 .Importe = totalPedido,
-                .Movil = movil,
-                .TextoSMS = "Este es un mensaje de @COMERCIO@. Puede pagar el pedido " + pedido + " de @IMPORTE@ @MONEDA@ aquí: @URL@"
+                .Descripcion = String.Format("Pago pedido {0} de Nueva Visión", pedido),
+                .Correo = correo,
+                .Movil = movil
             }
 
-            Try
-                Dim urlConsulta As String = "ReclamacionDeuda"
-                Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
-                Dim content As New StringContent(reclamacionJson, Encoding.UTF8, "application/json")
-                response = Await client.PostAsync(urlConsulta, content)
+            Dim solicitudJson As String = JsonConvert.SerializeObject(solicitud)
+            Dim content As New StringContent(solicitudJson, Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("Pagos", content)
 
-                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), String.Empty)
+            If Not response.IsSuccessStatusCode Then
+                Dim errorMsg = Await response.Content.ReadAsStringAsync()
+                Throw New Exception($"Error al crear enlace de pago: {errorMsg}")
+            End If
 
-            Catch ex As Exception
-                Throw New Exception("No se ha podido procesar la reclamación de deuda")
-            Finally
+            Dim respuesta = Await response.Content.ReadAsStringAsync()
+            Dim resultado = JsonConvert.DeserializeObject(Of Dictionary(Of String, Object))(respuesta)
 
-            End Try
+            If resultado.ContainsKey("UrlPaginaPago") Then
+                Return resultado("UrlPaginaPago").ToString()
+            End If
+
+            Return String.Empty
         End Using
-
-    End Sub
+    End Function
 
     Public Async Function CargarPedidosPendientes(empresa As String, cliente As String) As Task(Of ObservableCollection(Of Integer)) Implements IPedidoVentaService.CargarPedidosPendientes
 

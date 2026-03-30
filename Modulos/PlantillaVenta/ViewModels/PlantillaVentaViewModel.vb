@@ -2420,7 +2420,11 @@ Public Class PlantillaVentaViewModel
 
             If MandarCobroTarjeta Then
                 Dim pedidoCreado As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(pedido.empresa, numPedido)
-                servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, pedidoCreado.Total, numPedido, clienteSeleccionado.cliente)
+                Dim enlace = Await servicio.EnviarCobroTarjeta(CobroTarjetaCorreo, CobroTarjetaMovil, pedidoCreado.Total, numPedido, pedido.empresa, clienteSeleccionado.cliente)
+                If Not String.IsNullOrEmpty(enlace) Then
+                    Clipboard.SetText(enlace)
+                    dialogService.ShowNotification("Cobro tarjeta", "Enlace de pago copiado al portapapeles:" & vbCrLf & enlace)
+                End If
             End If
 
             ' Issue #135: Crear etiqueta de recogida si se marcó
