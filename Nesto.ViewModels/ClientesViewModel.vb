@@ -1257,8 +1257,8 @@ Public Class ClientesViewModel
                         .Efecto = efecto.Efecto?.Trim(),
                         .Contacto = efecto.Contacto?.Trim(),
                         .Vendedor = efecto.Vendedor?.Trim(),
-                        .FormaVenta = "VIS",
-                        .Delegacion = "ALG",
+                        .FormaVenta = efecto.FormaVenta?.Trim(),
+                        .Delegacion = efecto.Delegacion?.Trim(),
                         .TipoApunte = efecto.Tipo?.Trim()
                     })
                 Next
@@ -1814,6 +1814,8 @@ Public Class ExtractoClienteDTO
     Public Property CCC As String
     Public Property Ruta As String
     Public Property Estado As String
+    Public Property FormaVenta As String
+    Public Property Delegacion As String
     Public Property FormaPago As String
     Public Property Usuario As String
     Private _seleccionada As Boolean
