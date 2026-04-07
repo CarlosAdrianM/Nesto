@@ -1,4 +1,5 @@
 ﻿using ControlesUsuario.Dialogs;
+using ControlesUsuario.Models;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -935,6 +936,74 @@ namespace PlantillaVentaTests
             Assert.AreEqual(base1, base2, "baseImponiblePedido no es idempotente");
             Assert.AreEqual(basePortes1, basePortes2, "baseImponiblePedidoConPortes no es idempotente");
             Assert.AreEqual(portes1, portes2, "ImportePortesMostrar no es idempotente");
+        }
+
+        [TestMethod]
+        public void Portes_ProductoEstado4_ConServirJunto_StockGlobalSuficiente_CuentaParaPortes()
+        {
+            // Bug: producto estado 4, 2 uds pedidas, stock almacén 1, stock global 4
+            // Con servirJunto=true, la línea debe contar para baseImponibleParaPortes
+            var vm = CrearViewModelConPortes();
+            vm._direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = true };
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                estado = 0, cantidad = 1, precio = 80.96M, descuento = 0,
+                stockActualizado = true, cantidadDisponible = 10, StockDisponibleTodosLosAlmacenes = 10
+            });
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                estado = 4, cantidad = 2, precio = 38M, descuento = 0,
+                stockActualizado = true, cantidadDisponible = 1, StockDisponibleTodosLosAlmacenes = 4
+            });
+
+            var baseParaPortes = vm.baseImponibleParaPortes;
+
+            // 80.96 + (2 * 38) = 156.96 — ambas líneas deben contar
+            Assert.AreEqual(156.96M, baseParaPortes,
+                "Con servirJunto y stock global suficiente, la línea de estado 4 debe contar para portes");
+        }
+
+        [TestMethod]
+        public void Portes_ProductoEstado4_SinServirJunto_StockAlmacenInsuficiente_NoCuentaParaPortes()
+        {
+            // Sin servirJunto, stock almacén insuficiente → la línea NO cuenta para portes
+            var vm = CrearViewModelConPortes();
+            vm._direccionEntregaSeleccionada = new DireccionesEntregaCliente { servirJunto = false };
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                estado = 0, cantidad = 1, precio = 80.96M, descuento = 0,
+                stockActualizado = true, cantidadDisponible = 10, StockDisponibleTodosLosAlmacenes = 10
+            });
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                estado = 4, cantidad = 2, precio = 38M, descuento = 0,
+                stockActualizado = true, cantidadDisponible = 1, StockDisponibleTodosLosAlmacenes = 4
+            });
+
+            var baseParaPortes = vm.baseImponibleParaPortes;
+
+            // Solo 80.96 — la línea de estado 4 no cuenta porque sin servirJunto
+            // solo se mira stock del almacén (1 < 2)
+            Assert.AreEqual(80.96M, baseParaPortes,
+                "Sin servirJunto y stock almacén insuficiente, la línea de estado 4 NO debe contar para portes");
+        }
+
+        [TestMethod]
+        public void Portes_DireccionNull_ServirJuntoPorDefectoTrue_UsaStockGlobal()
+        {
+            // Sin dirección seleccionada, servirJunto por defecto true
+            var vm = CrearViewModelConPortes();
+            // No asignar dirección — simula carga inicial
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                estado = 4, cantidad = 2, precio = 38M, descuento = 0,
+                stockActualizado = true, cantidadDisponible = 1, StockDisponibleTodosLosAlmacenes = 4
+            });
+
+            var baseParaPortes = vm.baseImponibleParaPortes;
+
+            Assert.AreEqual(76M, baseParaPortes,
+                "Sin dirección (servirJunto por defecto true), debe usar stock global");
         }
 
         #endregion

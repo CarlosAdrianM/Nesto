@@ -246,11 +246,31 @@ Public Class PlantillaVentaViewModel
         Get
             Dim baseImponible As Decimal = 0
             If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
-                baseImponible = listaProductosPedido.Where(Function(l) l.esSobrePedido = False).Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero))
+                Dim servirJunto As Boolean = If(direccionEntregaSeleccionada?.servirJunto, True)
+                baseImponible = listaProductosPedido.
+                    Where(Function(l) Not EsSobrePedidoParaPortes(l, servirJunto)).
+                    Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero))
             End If
             Return baseImponible
         End Get
     End Property
+
+    ''' <summary>
+    ''' Réplica de GestorPortes.EsSobrePedidoParaPortes de NestoAPI.
+    ''' Estado 0 nunca es sobre pedido. Para otros estados:
+    ''' - Con servirJunto: mira stock de todos los almacenes
+    ''' - Sin servirJunto: mira solo stock del almacén del pedido
+    ''' </summary>
+    Private Shared Function EsSobrePedidoParaPortes(linea As LineaPlantillaVenta, servirJunto As Boolean) As Boolean
+        If linea.estado = 0 Then
+            Return False
+        End If
+        If Not linea.stockActualizado Then
+            Return True
+        End If
+        Dim stockRelevante As Integer = If(servirJunto, linea.StockDisponibleTodosLosAlmacenes, linea.cantidadDisponible)
+        Return stockRelevante < linea.cantidad + linea.cantidadOferta
+    End Function
 
     Public ReadOnly Property TextoPortes As String
         Get
@@ -828,7 +848,7 @@ Public Class PlantillaVentaViewModel
     ''' <summary>
     ''' Dirección de entrega seleccionada. Sincroniza datos con Estado.
     ''' </summary>
-    Private _direccionEntregaSeleccionada As DireccionesEntregaCliente
+    Friend _direccionEntregaSeleccionada As DireccionesEntregaCliente
     Public Property direccionEntregaSeleccionada As DireccionesEntregaCliente
         Get
             Return _direccionEntregaSeleccionada
