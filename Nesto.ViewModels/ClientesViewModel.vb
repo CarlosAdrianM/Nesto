@@ -1852,6 +1852,16 @@ Public Class PagoTPVDTO
     Public Property FechaActualizacion As DateTime?
     Public Property Usuario As String
     Public Property Efectos As List(Of EfectoTPVDTO)
+    Public Property PagoOriginalId As Integer?
+
+    Public ReadOnly Property EstadoDescriptivo As String
+        Get
+            If PagoOriginalId.HasValue Then
+                Return Estado & " (reintento)"
+            End If
+            Return Estado
+        End Get
+    End Property
 End Class
 
 Public Class EfectoTPVDTO

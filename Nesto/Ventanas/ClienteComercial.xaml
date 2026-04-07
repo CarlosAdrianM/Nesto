@@ -286,6 +286,20 @@
                                             <DataGrid ItemsSource="{Binding HistorialPagos}" AutoGenerateColumns="False" IsReadOnly="True"
                                                       MaxHeight="200" SelectedItem="{Binding PagoSeleccionado}"
                                                       RowDetailsVisibilityMode="VisibleWhenSelected" FontSize="11">
+                                                <DataGrid.RowStyle>
+                                                    <Style TargetType="DataGridRow">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Estado}" Value="Denegado">
+                                                                <Setter Property="Background" Value="#FFEBEE" />
+                                                                <Setter Property="Foreground" Value="#C62828" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Estado}" Value="Autorizado">
+                                                                <Setter Property="Background" Value="#E8F5E9" />
+                                                                <Setter Property="Foreground" Value="#2E7D32" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </DataGrid.RowStyle>
                                                 <DataGrid.Columns>
                                                     <DataGridTextColumn Header="Fecha" Binding="{Binding FechaCreacion, StringFormat=g}" />
                                                     <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}">
@@ -295,7 +309,7 @@
                                                             </Style>
                                                         </DataGridTextColumn.CellStyle>
                                                     </DataGridTextColumn>
-                                                    <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
+                                                    <DataGridTextColumn Header="Estado" Binding="{Binding EstadoDescriptivo}" />
                                                     <DataGridTextColumn Header="Usuario" Binding="{Binding Usuario}" />
                                                 </DataGrid.Columns>
                                                 <DataGrid.RowDetailsTemplate>
