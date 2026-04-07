@@ -153,3 +153,14 @@ Recent work includes:
 1. **MSB4803 Error**: Requires MSBuild, not dotnet CLI
 2. **Mixed Framework References**: .NET 8 test projects referencing .NET Framework 4.8 projects may show warnings
 3. **VB.NET nullable warnings**: Legacy code may have BC42105 warnings - these are acceptable for legacy code
+
+## Versionado y publicación (ClickOnce)
+
+**REVISAR SIEMPRE antes de hacer push a Nesto.**
+
+- Versión actual en producción: **1.9.4.x** (la última cifra la incrementa ClickOnce automáticamente al publicar)
+- La cuarta cifra (ej: 191 → 192) se incrementa sola con cada publicación. No hay que hacer nada.
+- La tercera cifra (ej: 1.9.4 → 1.9.5) es un cambio **manual y conceptual** que debemos decidir nosotros:
+  - **No incrementar** si son solo bugs corregidos o cambios menores (dejar que ClickOnce incremente la cuarta)
+  - **Incrementar a 1.9.5.0** si hay funcionalidad nueva visible para el usuario o cambios significativos
+- Al hacer push, evaluar si los commits incluidos justifican subir la tercera cifra y, si es así, actualizar la versión en las propiedades del proyecto antes de publicar
