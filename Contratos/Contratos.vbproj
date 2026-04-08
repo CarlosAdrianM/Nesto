@@ -3,7 +3,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>Nesto.Contratos</RootNamespace>
     <MyType>Empty</MyType>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
   </PropertyGroup>
   <PropertyGroup>
     <OptionExplicit>On</OptionExplicit>
