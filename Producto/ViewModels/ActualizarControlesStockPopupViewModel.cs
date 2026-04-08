@@ -72,6 +72,13 @@ namespace Nesto.Modules.Producto.ViewModels
 
         #region Propiedades
 
+        private bool _actualizarMuestras;
+        public bool ActualizarMuestras
+        {
+            get => _actualizarMuestras;
+            set => SetProperty(ref _actualizarMuestras, value);
+        }
+
         private string _almacenSeleccionado;
         public string AlmacenSeleccionado
         {
@@ -199,6 +206,13 @@ namespace Nesto.Modules.Producto.ViewModels
                 var productos = await _productoService.LeerProductosProveedorControlStock(
                     ProveedorSeleccionado.Proveedor,
                     AlmacenSeleccionado);
+
+                if (!ActualizarMuestras)
+                {
+                    productos = productos
+                        .Where(p => p.SubGrupo?.Trim() != Constantes.Productos.Grupos.MUESTRAS)
+                        .ToList();
+                }
 
                 foreach (var producto in productos)
                 {
@@ -350,7 +364,12 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        private ProveedorDTO ProveedorSeleccionado => _selectorProveedor?.ProveedorCompleto;
+        internal ProveedorDTO ProveedorSeleccionado
+        {
+            get => _proveedorSeleccionado ?? _selectorProveedor?.ProveedorCompleto;
+            set => _proveedorSeleccionado = value;
+        }
+        private ProveedorDTO _proveedorSeleccionado;
 
         #endregion
     }

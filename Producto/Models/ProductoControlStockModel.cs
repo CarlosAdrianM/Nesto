@@ -14,6 +14,7 @@ namespace Nesto.Modules.Producto.Models
         public string Categoria { get; set; }
         public string Estacionalidad { get; set; }
         public int Multiplos { get; set; }
+        public string SubGrupo { get; set; }
 
         private bool _tieneError;
         public bool TieneError

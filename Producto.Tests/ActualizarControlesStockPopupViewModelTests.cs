@@ -1,9 +1,12 @@
+using ControlesUsuario.Models;
 using FakeItEasy;
 using Nesto.Infrastructure.Contracts;
+using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modules.Producto.ViewModels;
 using Prism.Services.Dialogs;
+using static ControlesUsuario.Models.SelectorProveedorModel;
 
 namespace Producto.Tests
 {
@@ -187,6 +190,13 @@ namespace Producto.Tests
             Assert.IsTrue(_sut.PuedeInteractuar);
         }
 
+        [TestMethod]
+        public void ActualizarMuestras_PorDefecto_EsFalse()
+        {
+            // Assert
+            Assert.IsFalse(_sut.ActualizarMuestras);
+        }
+
         #endregion
 
         #region ProductoControlStockModel Tests
@@ -279,6 +289,119 @@ namespace Producto.Tests
 
             // Assert
             Assert.IsFalse(model.TieneCambios);
+        }
+
+        #endregion
+
+        #region Filtrado de Muestras Tests
+
+        [TestMethod]
+        public async Task BuscarProductos_ActualizarMuestrasFalse_ExcluyeProductosConSubGrupoMuestras()
+        {
+            // Arrange
+            var productosDelServicio = new List<ProductoControlStockModel>
+            {
+                new ProductoControlStockModel { ProductoId = "NORMAL1", SubGrupo = "ABC" },
+                new ProductoControlStockModel { ProductoId = "MUESTRA1", SubGrupo = Constantes.Productos.Grupos.MUESTRAS },
+                new ProductoControlStockModel { ProductoId = "NORMAL2", SubGrupo = "XYZ" }
+            };
+
+            A.CallTo(() => _productoService.LeerProductosProveedorControlStock(A<string>._, A<string>._))
+                .Returns(Task.FromResult(productosDelServicio));
+
+            _sut.AlmacenSeleccionado = Constantes.Almacenes.ALMACEN_CENTRAL;
+            _sut.ProveedorSeleccionado = new ProveedorDTO { Proveedor = "PROV1" };
+            _sut.ActualizarMuestras = false;
+
+            // Act
+            _sut.BuscarProductosCommand.Execute();
+            await Task.Delay(100); // Esperar a que termine la tarea async
+
+            // Assert
+            Assert.AreEqual(2, _sut.Productos.Count);
+            Assert.IsTrue(_sut.Productos.Any(p => p.ProductoId == "NORMAL1"));
+            Assert.IsTrue(_sut.Productos.Any(p => p.ProductoId == "NORMAL2"));
+            Assert.IsFalse(_sut.Productos.Any(p => p.ProductoId == "MUESTRA1"));
+        }
+
+        [TestMethod]
+        public async Task BuscarProductos_ActualizarMuestrasTrue_IncluyeProductosConSubGrupoMuestras()
+        {
+            // Arrange
+            var productosDelServicio = new List<ProductoControlStockModel>
+            {
+                new ProductoControlStockModel { ProductoId = "NORMAL1", SubGrupo = "ABC" },
+                new ProductoControlStockModel { ProductoId = "MUESTRA1", SubGrupo = Constantes.Productos.Grupos.MUESTRAS },
+                new ProductoControlStockModel { ProductoId = "NORMAL2", SubGrupo = "XYZ" }
+            };
+
+            A.CallTo(() => _productoService.LeerProductosProveedorControlStock(A<string>._, A<string>._))
+                .Returns(Task.FromResult(productosDelServicio));
+
+            _sut.AlmacenSeleccionado = Constantes.Almacenes.ALMACEN_CENTRAL;
+            _sut.ProveedorSeleccionado = new ProveedorDTO { Proveedor = "PROV1" };
+            _sut.ActualizarMuestras = true;
+
+            // Act
+            _sut.BuscarProductosCommand.Execute();
+            await Task.Delay(100);
+
+            // Assert
+            Assert.AreEqual(3, _sut.Productos.Count);
+            Assert.IsTrue(_sut.Productos.Any(p => p.ProductoId == "MUESTRA1"));
+        }
+
+        [TestMethod]
+        public async Task BuscarProductos_ActualizarMuestrasFalse_ProductosNoMuestrasSiempreIncluidos()
+        {
+            // Arrange
+            var productosDelServicio = new List<ProductoControlStockModel>
+            {
+                new ProductoControlStockModel { ProductoId = "PROD1", SubGrupo = "GRP1" },
+                new ProductoControlStockModel { ProductoId = "PROD2", SubGrupo = "GRP2" },
+                new ProductoControlStockModel { ProductoId = "PROD3", SubGrupo = null },
+                new ProductoControlStockModel { ProductoId = "PROD4", SubGrupo = "" }
+            };
+
+            A.CallTo(() => _productoService.LeerProductosProveedorControlStock(A<string>._, A<string>._))
+                .Returns(Task.FromResult(productosDelServicio));
+
+            _sut.AlmacenSeleccionado = Constantes.Almacenes.ALMACEN_CENTRAL;
+            _sut.ProveedorSeleccionado = new ProveedorDTO { Proveedor = "PROV1" };
+            _sut.ActualizarMuestras = false;
+
+            // Act
+            _sut.BuscarProductosCommand.Execute();
+            await Task.Delay(100);
+
+            // Assert
+            Assert.AreEqual(4, _sut.Productos.Count);
+        }
+
+        [TestMethod]
+        public async Task BuscarProductos_ActualizarMuestrasFalse_SubGrupoConEspacios_TambienExcluye()
+        {
+            // Arrange - SubGrupo con espacios al final (legacy DB padding)
+            var productosDelServicio = new List<ProductoControlStockModel>
+            {
+                new ProductoControlStockModel { ProductoId = "NORMAL1", SubGrupo = "ABC" },
+                new ProductoControlStockModel { ProductoId = "MUESTRA_ESPACIOS", SubGrupo = Constantes.Productos.Grupos.MUESTRAS + "   " }
+            };
+
+            A.CallTo(() => _productoService.LeerProductosProveedorControlStock(A<string>._, A<string>._))
+                .Returns(Task.FromResult(productosDelServicio));
+
+            _sut.AlmacenSeleccionado = Constantes.Almacenes.ALMACEN_CENTRAL;
+            _sut.ProveedorSeleccionado = new ProveedorDTO { Proveedor = "PROV1" };
+            _sut.ActualizarMuestras = false;
+
+            // Act
+            _sut.BuscarProductosCommand.Execute();
+            await Task.Delay(100);
+
+            // Assert - Debe excluir "MMP   " gracias al Trim()
+            Assert.AreEqual(1, _sut.Productos.Count);
+            Assert.AreEqual("NORMAL1", _sut.Productos[0].ProductoId);
         }
 
         #endregion

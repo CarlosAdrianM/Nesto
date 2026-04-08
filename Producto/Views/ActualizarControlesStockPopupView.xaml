@@ -48,6 +48,9 @@
                                                AlmacenSeleccionado="{Binding AlmacenSeleccionado, Mode=TwoWay}"
                                                Width="120" HorizontalAlignment="Left"/>
 
+            <CheckBox Grid.Column="2" Grid.Row="1" Content="Incluir muestras y material promocional"
+                      IsChecked="{Binding ActualizarMuestras}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+
             <Button Grid.Column="3" Grid.Row="1" Content="Buscar"
                     Command="{Binding BuscarProductosCommand}"
                     Padding="15,5" Margin="10,0,0,0"/>

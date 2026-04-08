@@ -21,6 +21,9 @@
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Producto.Tests" />
+  </ItemGroup>
   <PropertyGroup>
     <TargetZone>LocalIntranet</TargetZone>
   </PropertyGroup>
