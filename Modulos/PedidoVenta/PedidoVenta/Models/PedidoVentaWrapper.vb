@@ -276,6 +276,14 @@ Public Class PedidoVentaWrapper
             Model.notaEntrega = value
         End Set
     End Property
+    Public Property Agrupada As Boolean
+        Get
+            Return Model.Agrupada
+        End Get
+        Set(value As Boolean)
+            Model.Agrupada = value
+        End Set
+    End Property
     Public ReadOnly Property BaseImponible As Decimal
         Get
             Return Model.BaseImponible

@@ -64,6 +64,7 @@ Public Class PedidoVentaDTO
     Public Property suPedido() As String
     Public Property EsPresupuesto() As Boolean = False
     Public Property notaEntrega As Boolean
+    Public Property Agrupada As Boolean
     Public Property CreadoSinPasarValidacion As Boolean
 
     Public ReadOnly Property Bruto As Decimal

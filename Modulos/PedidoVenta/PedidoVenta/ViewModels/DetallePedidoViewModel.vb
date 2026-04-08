@@ -1651,7 +1651,7 @@ Public Class DetallePedidoViewModel
         ' Y que el pedido sea facturable (no FIN_DE_MES y usuario con permisos)
         Return CanCrearAlbaranVenta() AndAlso
                Not IsNothing(pedido) AndAlso
-               pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES AndAlso
+               (pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES OrElse pedido.Agrupada) AndAlso
                EsGrupoQuePuedeFacturar
     End Function
 
