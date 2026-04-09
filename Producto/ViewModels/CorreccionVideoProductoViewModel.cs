@@ -216,6 +216,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
             // Inicializar con valores originales
             _referencia = productoOriginal.Referencia;
+            _nombreProducto = productoOriginal.NombreProducto;
             _enlaceTienda = productoOriginal.EnlaceTienda;
             _tiempoAparicion = productoOriginal.TiempoAparicion;
 
@@ -228,8 +229,16 @@ namespace Nesto.Modules.Producto.ViewModels
         public DelegateCommand AbrirEnlaceVideoCommand { get; }
         public DelegateCommand AbrirEnlaceTiendaCommand { get; }
 
-        // Propiedades de solo lectura del producto original
-        public string NombreProducto => ProductoOriginal.NombreProducto;
+        // NombreProducto mutable: se actualiza cuando el behaviour resuelve la referencia
+        // contra la API, para dar feedback visual al usuario del producto asociado (Issue #342).
+        // El nombre original se conserva en ProductoOriginal.NombreProducto.
+        private string _nombreProducto;
+        public string NombreProducto
+        {
+            get => _nombreProducto;
+            set => SetProperty(ref _nombreProducto, value);
+        }
+
         public string EnlaceVideoOriginal => ProductoOriginal.EnlaceVideo;
 
         // Propiedades editables
