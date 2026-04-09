@@ -19,6 +19,7 @@ Public Class MenuBarViewModel
     Private ReadOnly _regionManager As IRegionManager
     Private ReadOnly _configuracion As IConfiguracion
     Private ReadOnly _servicioComisiones As ComisionesService
+    Private ReadOnly _servicioInformes As InformesService
     Private _listaVendedoresEquipo As List(Of VendedorDTO)
     Private ReadOnly _viewTypes As New Dictionary(Of String, Type)
 
@@ -27,6 +28,7 @@ Public Class MenuBarViewModel
         _regionManager = regionManager
         _configuracion = configuracion
         _servicioComisiones = New ComisionesService(configuracion, servicioAutenticacion)
+        _servicioInformes = New InformesService(configuracion, servicioAutenticacion)
 
         VentasEmpresasCommand = New DelegateCommand(AddressOf OnVentasEmpresas)
         RapportCommand = New DelegateCommand(AddressOf OnRapport)
@@ -342,7 +344,7 @@ Public Class MenuBarViewModel
 
     Private Async Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SoloFacturas As Boolean)
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ResumenVentas.rdlc")
-        Dim dataSource As List(Of Informes.ResumenVentasModel) = Await Informes.ResumenVentasModel.CargarDatos(FechaDesde, FechaHasta, SoloFacturas)
+        Dim dataSource As List(Of Informes.ResumenVentasModel) = Await _servicioInformes.LeerResumenVentas(FechaDesde, FechaHasta, SoloFacturas)
         Dim report As New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("ResumenVentasDataSet", dataSource))
