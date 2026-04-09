@@ -179,12 +179,19 @@
                     <TextBlock Grid.Column="0" Grid.Row="0" Text="Filtro Nombre:" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="0" Grid.Row="1" Text="Filtro Familia:" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="0" Grid.Row="2" Text="Filtro Subgrupo:" VerticalAlignment="Center" Margin="0,0,3,0"/>
-                    <TextBox Name="txtFiltroNombre" Grid.Column="1" Grid.Row="0" Text="{Binding FiltroNombre}" KeyUp="txtFiltroNombre_KeyUp"/>
+                    <TextBox Name="txtFiltroNombre" Grid.Column="1" Grid.Row="0" Text="{Binding FiltroNombre, UpdateSourceTrigger=PropertyChanged}" KeyUp="txtFiltroNombre_KeyUp"/>
                     <TextBox Name="txtFiltroFamilia" Grid.Column="1" Grid.Row="1" Text="{Binding FiltroFamilia}" KeyUp="txtFiltroFamilia_KeyUp"/>
                     <TextBox Name="txtFiltroSubgrupo" Grid.Column="1" Grid.Row="2" Text="{Binding FiltroSubgrupo}" KeyUp="txtFiltroSubgrupo_KeyUp"/>
 
                     <Button Grid.Column="2" Grid.RowSpan="3" Command="{Binding BuscarProductoCommand}" >
                         <Image MaxHeight="64" Source="pack://application:,,,/Producto;component/Images/BuscarProducto.png"></Image>
+                    </Button>
+
+                    <!-- Issue #341: Búsqueda contextual Lucene (Alt+C), complementaria a los filtros -->
+                    <Button Grid.Column="1" Grid.Row="3" Margin="0,3,0,0" HorizontalAlignment="Left" Padding="10,3"
+                            Command="{Binding BuscarContextualCommand}"
+                            CommandParameter="{Binding FiltroNombre}">
+                        <AccessText>Búsqueda _contextual</AccessText>
                     </Button>
 
                     <Button Grid.Column="3" Grid.RowSpan="3" Command="{Binding ImprimirEtiquetasProductoCommand}" Visibility="{Binding EsDeGrupoPermitido, Converter={StaticResource BooleanToVisibilityConverter}}">

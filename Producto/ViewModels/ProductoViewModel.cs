@@ -62,6 +62,7 @@ namespace Nesto.Modules.Producto.ViewModels
             AbrirProductoCommand = new DelegateCommand<string>(OnAbrirProducto);
             AbrirProductoWebCommand = new DelegateCommand(OnAbrirProductoWeb, CanAbrirProductoWeb);
             BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
+            BuscarContextualCommand = new DelegateCommand<string>(OnBuscarContextual, CanBuscarContextual);
             BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
             CorrigeVideoProductoCommand = new DelegateCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
             GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
@@ -187,6 +188,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 _ = SetProperty(ref _filtroNombre, value);
                 BuscarProductoCommand.RaiseCanExecuteChanged();
+                BuscarContextualCommand.RaiseCanExecuteChanged();
             }
         }
 
@@ -461,6 +463,47 @@ namespace Nesto.Modules.Producto.ViewModels
                 EstaCargandoProductos = false;
             }
 
+        }
+
+        /// <summary>
+        /// Issue #341: búsqueda contextual (Lucene) complementaria a la búsqueda por filtros.
+        /// Usa el filtro como texto libre y llama al motor de búsqueda contextual ya existente
+        /// (mismo que PlantillaVenta). El filtro que se pasa como CommandParameter suele ser
+        /// FiltroNombre, pero lo recibimos como parámetro para poder atajar con Alt+C aunque
+        /// el foco esté en otro textbox.
+        /// </summary>
+        public DelegateCommand<string> BuscarContextualCommand { get; private set; }
+        private bool CanBuscarContextual(string filtro)
+        {
+            return !string.IsNullOrWhiteSpace(filtro);
+        }
+        private async void OnBuscarContextual(string filtro)
+        {
+            EstaCargandoProductos = true;
+            try
+            {
+                ICollection<ProductoModel> resultadoBusqueda = await _servicio.BuscarProductosContextual(filtro, usarBusquedaConAND: false);
+                ObservableCollection<ProductoModel> listaResultadoBusqueda = [.. resultadoBusqueda];
+                ProductosResultadoBusqueda = new ColeccionFiltrable(listaResultadoBusqueda)
+                {
+                    TieneDatosIniciales = true
+                };
+                ProductosResultadoBusqueda.FijarFiltroCommand.Execute("-stock:0");
+                if (!ProductosResultadoBusqueda.Lista.Any())
+                {
+                    ProductosResultadoBusqueda.QuitarFiltroCommand.Execute("-stock:0");
+                }
+                RaisePropertyChanged(nameof(MostrarBarraBusqueda));
+                ImprimirEtiquetasProductoCommand.RaiseCanExecuteChanged();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError($"Se ha producido un error al buscar productos:\n{ex.Message}");
+            }
+            finally
+            {
+                EstaCargandoProductos = false;
+            }
         }
 
 

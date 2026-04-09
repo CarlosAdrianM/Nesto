@@ -9,6 +9,7 @@ namespace Nesto.Modules.Producto
     {
         Task<ProductoModel> LeerProducto(string producto);
         Task<ICollection<ProductoModel>> BuscarProductos(string filtroNombre, string filtroFamilia, string filtroSubgrupo);
+        Task<ICollection<ProductoModel>> BuscarProductosContextual(string filtro, bool usarBusquedaConAND);
         Task<ICollection<ProductoClienteModel>> BuscarClientes(string producto);
         Task<ControlStockProductoModel> LeerControlStock(string producto);
         Task<List<DiarioProductoModel>> LeerDiariosProducto();

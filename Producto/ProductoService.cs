@@ -96,6 +96,112 @@ namespace Nesto.Modules.Producto
             return productos;
         }
 
+        /// <summary>
+        /// Issue #341: búsqueda contextual de productos (Lucene) estilo PlantillaVenta.
+        /// Reutiliza el endpoint PlantillaVentas/Buscar ya existente y el PonerStock para
+        /// obtener el stock por almacén, y mapea el resultado a ProductoModel para que la
+        /// ficha de Producto pueda mostrarlo en la misma lista que la búsqueda por filtros.
+        /// La ficha completa (UrlFoto, PrecioPublicoFinal, kits, etc.) se carga al seleccionar
+        /// un resultado vía LeerProducto, igual que con la búsqueda por filtros.
+        /// </summary>
+        public async Task<ICollection<ProductoModel>> BuscarProductosContextual(string filtro, bool usarBusquedaConAND)
+        {
+            if (string.IsNullOrWhiteSpace(filtro))
+            {
+                return new List<ProductoModel>();
+            }
+
+            var almacen = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
+
+            using (HttpClient client = new())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+
+                // 1. Búsqueda Lucene
+                string urlBuscar = $"PlantillaVentas/Buscar?q={Uri.EscapeDataString(filtro)}&usarBusquedaConAND={usarBusquedaConAND.ToString().ToLower()}";
+                HttpResponseMessage responseBuscar = await client.GetAsync(urlBuscar);
+                if (!responseBuscar.IsSuccessStatusCode)
+                {
+                    throw new Exception("No se han podido buscar los productos por texto contextual");
+                }
+                string jsonBuscar = await responseBuscar.Content.ReadAsStringAsync();
+                var lineas = JsonConvert.DeserializeObject<List<LineaPlantillaVentaLite>>(jsonBuscar) ?? new List<LineaPlantillaVentaLite>();
+
+                if (lineas.Count == 0)
+                {
+                    return new List<ProductoModel>();
+                }
+
+                // 2. Enriquecer con stocks (mismo patrón que PlantillaVentaService.PonerStocks)
+                var paramStocks = new PonerStockParamLite
+                {
+                    Lineas = lineas,
+                    Almacen = almacen,
+                    Almacenes = Constantes.Almacenes.ALMACENES_STOCK.ToList()
+                };
+                var contentStocks = new StringContent(JsonConvert.SerializeObject(paramStocks), Encoding.UTF8, "application/json");
+                HttpResponseMessage responseStock = await client.PostAsync("PlantillaVentas/PonerStock", contentStocks);
+                if (responseStock.IsSuccessStatusCode)
+                {
+                    string jsonStock = await responseStock.Content.ReadAsStringAsync();
+                    lineas = JsonConvert.DeserializeObject<List<LineaPlantillaVentaLite>>(jsonStock) ?? lineas;
+                }
+                // Si falla PonerStock, seguimos sin stocks antes que fallar toda la búsqueda.
+
+                // 3. Mapear a ProductoModel (solo los campos que muestra el ListView; la ficha
+                //    completa se carga después al seleccionar el producto).
+                return lineas.Select(l => new ProductoModel
+                {
+                    Producto = l.producto,
+                    Nombre = l.texto,
+                    Tamanno = (short?)l.tamanno,
+                    UnidadMedida = l.unidadMedida,
+                    Familia = l.familia,
+                    Subgrupo = l.subGrupo,
+                    Estado = (short)l.estado,
+                    PrecioProfesional = l.precio,
+                    CodigoBarras = l.codigoBarras,
+                    Stocks = l.stocks?.Select(s => new ProductoModel.StockProducto
+                    {
+                        Almacen = s.almacen,
+                        Stock = s.stock,
+                        CantidadDisponible = s.cantidadDisponible
+                    }).ToList() ?? new List<ProductoModel.StockProducto>()
+                }).ToList();
+            }
+        }
+
+        // DTOs "lite" para comunicarnos con el endpoint PlantillaVentas sin acoplar Producto a PlantillaVenta.
+        // Los nombres de propiedades coinciden con LineaPlantillaVenta / PonerStockParam / StockAlmacenDTO
+        // para que Newtonsoft.Json serialice/deserialice correctamente.
+        private class LineaPlantillaVentaLite
+        {
+            public string producto { get; set; }
+            public string texto { get; set; }
+            public int? tamanno { get; set; }
+            public string unidadMedida { get; set; }
+            public string familia { get; set; }
+            public string subGrupo { get; set; }
+            public int estado { get; set; }
+            public decimal precio { get; set; }
+            public string codigoBarras { get; set; }
+            public List<StockAlmacenLite> stocks { get; set; }
+        }
+
+        private class StockAlmacenLite
+        {
+            public string almacen { get; set; }
+            public int stock { get; set; }
+            public int cantidadDisponible { get; set; }
+        }
+
+        private class PonerStockParamLite
+        {
+            public List<LineaPlantillaVentaLite> Lineas { get; set; }
+            public string Almacen { get; set; }
+            public List<string> Almacenes { get; set; }
+        }
+
         public async Task<List<VideoLookupModel>> BuscarVideosRelacionados(string producto)
         {
             List<VideoLookupModel> videos;
