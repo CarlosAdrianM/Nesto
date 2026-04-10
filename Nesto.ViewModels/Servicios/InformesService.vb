@@ -31,4 +31,24 @@ Public Class InformesService
             Return JsonConvert.DeserializeObject(Of List(Of ResumenVentasModel))(respuesta)
         End Using
     End Function
+
+    Public Async Function LeerControlPedidos() As Task(Of List(Of ControlPedidosModel))
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(_configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim urlConsulta As String = "Informes/ControlPedidos"
+
+            Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener el control de pedidos: {response.StatusCode}")
+            End If
+
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of ControlPedidosModel))(respuesta)
+        End Using
+    End Function
 End Class

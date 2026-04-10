@@ -223,7 +223,7 @@ Public Class MenuBarViewModel
 
     Private Async Sub OnControlPedidos()
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ControlPedidos.rdlc")
-        Dim dataSource As List(Of Informes.ControlPedidosModel) = Await Informes.ControlPedidosModel.CargarDatos()
+        Dim dataSource As List(Of Informes.ControlPedidosModel) = Await _servicioInformes.LeerControlPedidos()
         Dim report As New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("ControlPedidosDataSet", dataSource))
