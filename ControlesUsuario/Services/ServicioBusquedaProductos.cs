@@ -68,7 +68,7 @@ namespace ControlesUsuario.Services
                         {
                             Id = r.Id,
                             Texto = r.Nombre,
-                            TextoSecundario = null
+                            TextoSecundario = r.Familia
                         })
                         .ToList();
                 }
@@ -93,6 +93,7 @@ namespace ControlesUsuario.Services
             public string Tipo { get; set; }
             public string Id { get; set; }
             public string Nombre { get; set; }
+            public string Familia { get; set; }
         }
     }
 }
