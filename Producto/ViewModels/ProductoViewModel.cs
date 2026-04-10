@@ -483,6 +483,25 @@ namespace Nesto.Modules.Producto.ViewModels
             try
             {
                 ICollection<ProductoModel> resultadoBusqueda = await _servicio.BuscarProductosContextual(filtro, usarBusquedaConAND: false);
+
+                // Issue #341: si el usuario tiene filtros de familia/subgrupo activos en el panel
+                // de búsqueda por filtros, los aplicamos también al resultado contextual para que
+                // ambos modos de búsqueda sean coherentes.
+                if (!string.IsNullOrWhiteSpace(FiltroFamilia))
+                {
+                    resultadoBusqueda = resultadoBusqueda
+                        .Where(p => !string.IsNullOrEmpty(p.Familia) &&
+                                    p.Familia.IndexOf(FiltroFamilia.Trim(), StringComparison.OrdinalIgnoreCase) >= 0)
+                        .ToList();
+                }
+                if (!string.IsNullOrWhiteSpace(FiltroSubgrupo))
+                {
+                    resultadoBusqueda = resultadoBusqueda
+                        .Where(p => !string.IsNullOrEmpty(p.Subgrupo) &&
+                                    p.Subgrupo.IndexOf(FiltroSubgrupo.Trim(), StringComparison.OrdinalIgnoreCase) >= 0)
+                        .ToList();
+                }
+
                 ObservableCollection<ProductoModel> listaResultadoBusqueda = [.. resultadoBusqueda];
                 ProductosResultadoBusqueda = new ColeccionFiltrable(listaResultadoBusqueda)
                 {

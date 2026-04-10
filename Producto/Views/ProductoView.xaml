@@ -183,16 +183,18 @@
                     <TextBox Name="txtFiltroFamilia" Grid.Column="1" Grid.Row="1" Text="{Binding FiltroFamilia}" KeyUp="txtFiltroFamilia_KeyUp"/>
                     <TextBox Name="txtFiltroSubgrupo" Grid.Column="1" Grid.Row="2" Text="{Binding FiltroSubgrupo}" KeyUp="txtFiltroSubgrupo_KeyUp"/>
 
-                    <Button Grid.Column="2" Grid.RowSpan="3" Command="{Binding BuscarProductoCommand}" >
-                        <Image MaxHeight="64" Source="pack://application:,,,/Producto;component/Images/BuscarProducto.png"></Image>
-                    </Button>
+                    <StackPanel Grid.Column="2" Grid.RowSpan="3" Orientation="Horizontal">
+                        <Button Command="{Binding BuscarProductoCommand}">
+                            <Image MaxHeight="64" Source="pack://application:,,,/Producto;component/Images/BuscarProducto.png"></Image>
+                        </Button>
 
-                    <!-- Issue #341: Búsqueda contextual Lucene (Alt+C), complementaria a los filtros -->
-                    <Button Grid.Column="1" Grid.Row="3" Margin="0,3,0,0" HorizontalAlignment="Left" Padding="10,3"
-                            Command="{Binding BuscarContextualCommand}"
-                            CommandParameter="{Binding FiltroNombre}">
-                        <AccessText>Búsqueda _contextual</AccessText>
-                    </Button>
+                        <!-- Issue #341: Búsqueda contextual Lucene (Alt+C), complementaria a los filtros -->
+                        <Button Margin="3,0,0,0" Padding="10,3"
+                                Command="{Binding BuscarContextualCommand}"
+                                CommandParameter="{Binding FiltroNombre}">
+                            <AccessText>Búsqueda _contextual</AccessText>
+                        </Button>
+                    </StackPanel>
 
                     <Button Grid.Column="3" Grid.RowSpan="3" Command="{Binding ImprimirEtiquetasProductoCommand}" Visibility="{Binding EsDeGrupoPermitido, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <Image MaxHeight="64" Source="pack://application:,,,/Producto;component/Images/Imprimir.png"></Image>
