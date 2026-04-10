@@ -51,4 +51,24 @@ Public Class InformesService
             Return JsonConvert.DeserializeObject(Of List(Of ControlPedidosModel))(respuesta)
         End Using
     End Function
+
+    Public Async Function LeerDetalleRapports(fechaDesde As Date, fechaHasta As Date, listaVendedores As String) As Task(Of List(Of DetalleRapportsModel))
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(_configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim urlConsulta As String = $"Informes/DetalleRapports?fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}&listaVendedores={Uri.EscapeDataString(If(listaVendedores, String.Empty))}"
+
+            Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener el detalle de rapports: {response.StatusCode}")
+            End If
+
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of DetalleRapportsModel))(respuesta)
+        End Using
+    End Function
 End Class

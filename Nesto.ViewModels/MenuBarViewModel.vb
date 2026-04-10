@@ -371,7 +371,7 @@ Public Class MenuBarViewModel
         End If
 
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.DetalleRapports.rdlc")
-        Dim dataSource As List(Of Informes.DetalleRapportsModel) = Await Informes.DetalleRapportsModel.CargarDatos(FechaDesde, FechaHasta, cadenaVendedores)
+        Dim dataSource As List(Of Informes.DetalleRapportsModel) = Await _servicioInformes.LeerDetalleRapports(FechaDesde, FechaHasta, cadenaVendedores)
         Dim report As New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("DetalleRapportsDataSet", dataSource))
