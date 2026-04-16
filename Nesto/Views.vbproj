@@ -219,7 +219,7 @@
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CSharpAmazonSpAPI" Version="1.8.1" />
+    <PackageReference Include="CSharpAmazonSpAPI" Version="1.9.23" />
     <PackageReference Include="EntityFramework">
       <Version>6.5.1</Version>
     </PackageReference>

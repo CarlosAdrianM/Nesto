@@ -18,7 +18,29 @@ namespace Nesto.Modulos.CanalesExternos
             AbrirModuloPedidosCommand = new DelegateCommand(OnAbrirPedidosModulo, CanAbrirModuloPedidos);
             AbrirModuloPagosCommand = new DelegateCommand(OnAbrirModuloPagos, CanAbrirModuloPagos);
             AbrirModuloProductosCommand = new DelegateCommand(OnAbrirModuloProductos, CanAbrirModuloProductos);
+            AbrirModuloFacturasCommand = new DelegateCommand(OnAbrirModuloFacturas, CanAbrirModuloFacturas);
+            AbrirModuloCuadreFacturasCommand = new DelegateCommand(OnAbrirModuloCuadreFacturas, CanAbrirModuloCuadreFacturas);
             AbrirModuloPoisonPillsCommand = new DelegateCommand(OnAbrirModuloPoisonPills, CanAbrirModuloPoisonPills);
+        }
+
+        public ICommand AbrirModuloFacturasCommand { get; private set; }
+        private bool CanAbrirModuloFacturas()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
+        }
+        private void OnAbrirModuloFacturas()
+        {
+            RegionManager.RequestNavigate("MainRegion", "CanalesExternosFacturasView");
+        }
+
+        public ICommand AbrirModuloCuadreFacturasCommand { get; private set; }
+        private bool CanAbrirModuloCuadreFacturas()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
+        }
+        private void OnAbrirModuloCuadreFacturas()
+        {
+            RegionManager.RequestNavigate("MainRegion", "CanalesExternosCuadreFacturasView");
         }
 
         public ICommand AbrirModuloPedidosCommand { get; private set; }
