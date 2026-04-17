@@ -109,7 +109,9 @@ namespace CanalesExternosTests
                 new FacturaCanalExterno { InvoiceId = "A", FechaFactura = new DateTime(2026, 2, 10) },
                 new FacturaCanalExterno { InvoiceId = "B", FechaFactura = new DateTime(2026, 2, 20) }
             };
-            var resultado = CanalExternoFacturasAmazon.MarcarEstados(facturas, new[] { "A" });
+            var resultado = CanalExternoFacturasAmazon.MarcarEstados(
+                facturas,
+                new Dictionary<string, int> { ["A"] = 1001 });
 
             Assert.AreEqual(EstadoFacturaCanalExterno.YaContabilizada, resultado.First(f => f.InvoiceId == "A").Estado);
             Assert.AreEqual(EstadoFacturaCanalExterno.PendienteContabilizar, resultado.First(f => f.InvoiceId == "B").Estado);
@@ -124,7 +126,9 @@ namespace CanalesExternosTests
                 new FacturaCanalExterno { InvoiceId = "B", FechaFactura = new DateTime(2026, 2, 20) },
                 new FacturaCanalExterno { InvoiceId = "C", FechaFactura = new DateTime(2026, 2, 25) }
             };
-            var resultado = CanalExternoFacturasAmazon.MarcarEstados(facturas, new[] { "B" });
+            var resultado = CanalExternoFacturasAmazon.MarcarEstados(
+                facturas,
+                new Dictionary<string, int> { ["B"] = 1002 });
 
             Assert.AreEqual(EstadoFacturaCanalExterno.Hueco, resultado.First(f => f.InvoiceId == "A").Estado);
             Assert.AreEqual(EstadoFacturaCanalExterno.YaContabilizada, resultado.First(f => f.InvoiceId == "B").Estado);

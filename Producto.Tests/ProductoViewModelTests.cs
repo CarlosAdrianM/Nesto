@@ -38,7 +38,8 @@ namespace Producto.Tests
             {
                 Producto = "NO_KIT"
             });
-            var sut = new ProductoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
+            var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
+            var sut = new ProductoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, servicioAutenticacion);
             sut.ReferenciaBuscar = "KIT";
             sut.PestannaSeleccionada = Pestannas.Kits;
 
@@ -133,7 +134,8 @@ namespace Producto.Tests
             servicio = A.Fake<IProductoService>();
             var eventAggregator = A.Fake<IEventAggregator>();
             var dialogService = A.Fake<IDialogService>();
-            return new ProductoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService);
+            var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
+            return new ProductoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, servicioAutenticacion);
         }
 
         private static ProductoModel CrearProductoConStock(string id, string familia, string subgrupo)

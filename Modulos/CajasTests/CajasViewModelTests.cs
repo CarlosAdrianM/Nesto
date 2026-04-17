@@ -19,7 +19,8 @@ namespace CajasTests
             var configuracion = A.Fake<IConfiguracion>();
             var dialogService = A.Fake<IDialogService>();
             var servicioClientes = A.Fake<IClientesService>();
-            var sut = new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes);
+            var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
+            var sut = new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes, servicioAutenticacion);
             CuentaContableDTO cuenta = new CuentaContableDTO
             {
                 Cuenta = "570"
@@ -42,7 +43,8 @@ namespace CajasTests
             var configuracion = A.Fake<IConfiguracion>();
             var dialogService = A.Fake<IDialogService>();
             var servicioClientes = A.Fake<IClientesService>();
-            var sut = new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes);
+            var servicioAutenticacion = A.Fake<IServicioAutenticacion>();
+            var sut = new CajasViewModel(servicioContabilidad, configuracion, dialogService, servicioClientes, servicioAutenticacion);
             CuentaContableDTO cuentaOrigen = new CuentaContableDTO { Cuenta = "570" };
             CuentaContableDTO cuentaDestino = new CuentaContableDTO { Cuenta = "571" };
             sut.CuentaOrigen = cuentaOrigen;
