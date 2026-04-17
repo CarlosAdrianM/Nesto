@@ -279,6 +279,71 @@ namespace Nesto.Modulos.CanalesExternos
             return resultado;
         }
 
+        /// <inheritdoc />
+        public async Task<ResultadoCuadre<string>> CuadrarLiquidacionesAsync(int año, int mes)
+        {
+            DateTime inicio = new DateTime(año, mes, 1);
+            DateTime fin = inicio.AddMonths(1).AddDays(-1);
+
+            var apuntesExtracto = await GetExtractoProveedorAsync(inicio, fin);
+            var liquidacionesAmazon = AmazonApiFinancesService.LeerFinancialEventGroups(inicio, 100)
+                .Where(l => l.FechaPago >= inicio && l.FechaPago <= fin);
+
+            var resultado = ConstruirCuadreLiquidaciones(apuntesExtracto, liquidacionesAmazon);
+            resultado.Nombre = $"Liquidaciones Amazon {mes:D2}/{año}";
+            return resultado;
+        }
+
+        /// <summary>
+        /// Construye el cuadre de liquidaciones a partir de los dos lados ya cargados. Puro, sin IO:
+        /// extraído para permitir tests unitarios sin HTTP ni SDK de Amazon.
+        /// </summary>
+        internal static ResultadoCuadre<string> ConstruirCuadreLiquidaciones(
+            IEnumerable<ApunteExtractoProveedorDto> apuntesExtracto,
+            IEnumerable<PagoCanalExterno> liquidacionesAmazon)
+        {
+            // Lado Nesto: solo apuntes de pago (importe negativo en extracto proveedor =
+            // DEBE, lo que equivale a un pago recibido/compensación). Ignoramos apuntes de
+            // factura (positivos) — esos ya se cuadran en el cuadre de facturas.
+            var pagosNesto = apuntesExtracto
+                .Where(a => a.Importe < 0 && !string.IsNullOrWhiteSpace(a.DocumentoProveedor));
+
+            // Comparamos por FinancialEventGroupId (guardado en DocumentoProveedor cuando se
+            // contabiliza el pago de Amazon) y comparamos importes absolutos.
+            return MotorCuadre.Conciliar(
+                nesto: pagosNesto,
+                amazon: liquidacionesAmazon,
+                claveNesto: a => a.DocumentoProveedor,
+                claveAmazon: l => l.PagoExternalId,
+                importeNesto: a => Math.Abs(a.Importe),
+                importeAmazon: l => l.Importe);
+        }
+
+        /// <summary>
+        /// Cliente REST para <c>GET api/Informes/ExtractoProveedor?empresa=1&amp;proveedor=999&amp;...</c>.
+        /// </summary>
+        public async Task<List<ApunteExtractoProveedorDto>> GetExtractoProveedorAsync(DateTime desde, DateTime hasta)
+        {
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+                string url = $"Informes/ExtractoProveedor?empresa={EMPRESA_DEFECTO}&proveedor={PROVEEDOR_AMAZON}" +
+                    $"&fechaDesde={desde:yyyy-MM-dd}&fechaHasta={hasta:yyyy-MM-dd}";
+                var response = await client.GetAsync(url);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception($"Error consultando extracto proveedor: {response.StatusCode}");
+                }
+                string json = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<List<ApunteExtractoProveedorDto>>(json)
+                    ?? new List<ApunteExtractoProveedorDto>();
+            }
+        }
+
         /// Web API devuelve un JSON anidado: { Message, ExceptionMessage, InnerException: {...} }.
         /// Recorremos la cadena y concatenamos los mensajes para que Aida vea el error real.
         internal static string ExtraerMensajeError(string body)

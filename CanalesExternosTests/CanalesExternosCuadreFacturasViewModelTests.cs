@@ -84,5 +84,38 @@ namespace CanalesExternosTests
 
             Assert.AreEqual("Cuadre Canales Externos", vm.Titulo);
         }
+
+        [TestMethod]
+        public async Task CalcularCuadre_PopulaCuadreLiquidacionesDesdeElCanal()
+        {
+            var canal = A.Fake<ICanalExternoFacturas>();
+            A.CallTo(() => canal.SoportaCuadreLiquidacion).Returns(true);
+            A.CallTo(() => canal.CuadrarConLiquidacionAsync(A<int>._, A<int>._))
+                .Returns(Task.FromResult(new Nesto.Modulos.CanalesExternos.Models.CuadreLiquidacionCanalExterno()));
+            A.CallTo(() => canal.CuadrarFacturasAsync(A<int>._, A<int>._))
+                .Returns(Task.FromResult(new ResultadoCuadre<string>()));
+            var cuadreLiqFake = new ResultadoCuadre<string> { Nombre = "liq test" };
+            cuadreLiqFake.Cuadrados.Add(new ElementoCuadre<string>
+            {
+                Clave = "FEG-1", ExisteEnNesto = true, ExisteEnAmazon = true,
+                ImporteNesto = 100M, ImporteAmazon = 100M
+            });
+            cuadreLiqFake.ImportesDistintos.Add(new ElementoCuadre<string>
+            {
+                Clave = "FEG-2", ExisteEnNesto = true, ExisteEnAmazon = true,
+                ImporteNesto = 50M, ImporteAmazon = 52M
+            });
+            A.CallTo(() => canal.CuadrarLiquidacionesAsync(A<int>._, A<int>._))
+                .Returns(Task.FromResult(cuadreLiqFake));
+
+            var vm = CrearVm(canal);
+            var metodo = typeof(CanalesExternosCuadreFacturasViewModel).GetMethod(
+                "OnCalcularCuadreAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+            await (Task)metodo.Invoke(vm, null);
+
+            Assert.IsNotNull(vm.CuadreLiquidaciones);
+            Assert.AreEqual(1, vm.LiquidacionesCuadradas.Count);
+            Assert.AreEqual(1, vm.LiquidacionesImportesDistintos.Count);
+        }
     }
 }

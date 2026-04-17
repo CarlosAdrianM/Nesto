@@ -36,6 +36,12 @@ namespace Nesto.Modulos.CanalesExternos
         /// Los importes quedan sin comparar: solo detecta facturas presentes en un lado y no en el otro.
         Task<ResultadoCuadre<string>> CuadrarFacturasAsync(int año, int mes);
 
+        /// Issue #349 Fase 2: cuadre de liquidaciones Nesto ↔ Amazon por FinancialEventGroupId.
+        /// Empareja los pagos/liquidaciones que Amazon reporta (LeerFinancialEventGroups) con los
+        /// apuntes de pago del extracto del proveedor 999 en Nesto (GET api/Informes/ExtractoProveedor).
+        /// Compara importes cuando ambos lados están presentes.
+        Task<ResultadoCuadre<string>> CuadrarLiquidacionesAsync(int año, int mes);
+
         /// Parsea un listado copiado de la web del canal (TSV) y asigna el InvoiceId a cada factura
         /// reconstruida que empareje por (marketplace, tipo). Para documentos sin equivalente en la API
         /// (AGL, Buy Shipping Label, o duplicados) añade facturas sintéticas con Base=0 para que el
