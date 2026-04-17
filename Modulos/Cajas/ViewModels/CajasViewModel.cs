@@ -39,7 +39,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
         private decimal _saldoCuentaOrigen;
 
         public IContabilidadService Servicio { get; }
-        public CajasViewModel(IContabilidadService servicio, IConfiguracion configuracion, IDialogService dialogService, IClientesService clientesService)
+
+        private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
+
+        public CajasViewModel(IContabilidadService servicio, IConfiguracion configuracion, IDialogService dialogService, IClientesService clientesService, IServicioAutenticacion servicioAutenticacion)
         {
             Titulo = "Cajas";
             Servicio = servicio;
@@ -47,6 +50,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             _dialogService = dialogService;
             _clientesService = clientesService;
             _fechaCobro = _fechaHasta;
+            _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
 
             ArqueoFondo = new();
             DeudasSeleccionadas = [];
@@ -890,7 +894,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             foreach (var empresa in MovimientosEfectivoDia.Select(e => e.Empresa).Distinct())
             {
-                LocalReport report = await CrearInformeExtractoContable(empresa, CuentaOrigen, FechaDesde, _fechaHasta);
+                LocalReport report = await CrearInformeExtractoContable(empresa, CuentaOrigen, FechaDesde, _fechaHasta, _servicioInformes);
                 var pdf = report.Render("PDF");
                 string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}_{empresa}.pdf";
                 System.IO.File.WriteAllBytes(fileName, pdf);
@@ -1041,10 +1045,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
         }
 
-        private static async Task<LocalReport> CrearInformeExtractoContable(string empresa, CuentaContableDTO cuenta, DateTime fechaDesde, DateTime fechaHasta)
+        private static async Task<LocalReport> CrearInformeExtractoContable(string empresa, CuentaContableDTO cuenta, DateTime fechaDesde, DateTime fechaHasta, Nesto.Infrastructure.Services.InformesService servicioInformes)
         {
             Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ExtractoContable.rdlc");
-            List<ExtractoContableModel> dataSource = await ExtractoContableModel.CargarDatos(empresa, cuenta.Cuenta, fechaDesde, fechaHasta);
+            List<ExtractoContableModel> dataSource = await servicioInformes.LeerExtractoContable(empresa, cuenta.Cuenta, fechaDesde, fechaHasta);
             LocalReport report = new();
             report.LoadReportDefinition(reportDefinition);
             List<ReportParameter> listaParametros =

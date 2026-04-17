@@ -16,6 +16,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Nesto.Models\Models.vbproj" />
+    <ProjectReference Include="..\Informes\Informes.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>

@@ -4,6 +4,7 @@ Imports System.Windows
 Imports System.Windows.Input
 Imports Microsoft.Reporting.NETCore
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
@@ -237,7 +238,7 @@ Public Class MenuBarViewModel
 
     Private Async Sub OnInventario()
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.UbicacionesInventario.rdlc")
-        Dim dataSource As List(Of Informes.UbicacionesInventarioModel) = Await Informes.UbicacionesInventarioModel.CargarDatos()
+        Dim dataSource As List(Of Informes.UbicacionesInventarioModel) = Await _servicioInformes.LeerUbicacionesInventario()
         Dim report As New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("UbicacionesInventarioDataSet", dataSource))

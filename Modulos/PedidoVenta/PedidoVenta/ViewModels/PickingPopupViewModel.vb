@@ -5,6 +5,7 @@ Imports Microsoft.Reporting.NETCore
 Imports Nesto.Contratos
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.LineaPedidoVentaDTO
@@ -17,17 +18,21 @@ Public Class PickingPopupViewModel
     Inherits BindableBase
     Implements IDialogAware
 
+    Private Const FILTRO_RUTAS_DEFECTO As String = "(ruta='AT ' or ruta='OT ' or ruta='16 ' or ruta='FW ' or ruta='00 ')"
+
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly eventAggregator As IEventAggregator
     Private ReadOnly dialogService As IDialogService
     Private ReadOnly configuracion As IConfiguracion
+    Private ReadOnly _servicioInformes As InformesService
 
 
-    Public Sub New(servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, configuracion As IConfiguracion)
+    Public Sub New(servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
         Me.dialogService = dialogService
         Me.configuracion = configuracion
+        _servicioInformes = New InformesService(configuracion, servicioAutenticacion)
 
         cmdInformeKits = New DelegateCommand(AddressOf OnInformeKits)
         cmdInformePicking = New DelegateCommand(AddressOf OnInformePicking)
@@ -158,7 +163,11 @@ Public Class PickingPopupViewModel
         Try
             estaSacandoPicking = True
             Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.KitsQueSePuedenMontar.rdlc")
-            Dim dataSource As List(Of Informes.KitsQueSePuedenMontarModel) = Await Informes.KitsQueSePuedenMontarModel.CargarDatos()
+            Dim dataSource As List(Of Informes.KitsQueSePuedenMontarModel) = Await _servicioInformes.LeerKitsQueSePuedenMontar(
+                empresa:="1",
+                fecha:=DateTime.Today.AddDays(4).ToString("dd/MM/yy"),
+                almacen:="ALG",
+                filtroRutas:=FILTRO_RUTAS_DEFECTO)
             Dim report As LocalReport = New LocalReport()
             report.LoadReportDefinition(reportDefinition)
             report.DataSources.Add(New ReportDataSource("KitsQueSePuedenMontarDataSet", dataSource))

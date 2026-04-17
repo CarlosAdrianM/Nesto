@@ -32,7 +32,9 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
         public IConfiguracion Configuracion { get; }
         private IEventAggregator EventAggregator { get; }
 
-        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IEventAggregator eventAggregator)
+        private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
+
+        public DetallePedidoCompraViewModel(IPedidoCompraService servicio, IDialogService dialogService, IRegionManager regionManager, InteractiveBrowserCredential interactiveBrowserCredential, IConfiguracion configuracion, IEventAggregator eventAggregator, IServicioAutenticacion servicioAutenticacion)
         {
             Servicio = servicio;
             DialogService = dialogService;
@@ -40,6 +42,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             InteractiveBrowserCredential = interactiveBrowserCredential;
             Configuracion = configuracion;
             EventAggregator = eventAggregator;
+            _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
 
             AmpliarHastaStockMaximoCommand = new DelegateCommand(OnAmpliarHastaStockMaximo);
             CargarPedidoCommand = new DelegateCommand<PedidoCompraLookup>(OnCargarPedido);
@@ -303,10 +306,10 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
         }
 
-        private static async Task<LocalReport> CrearInforme(PedidoCompraWrapper pedido)
+        private async Task<LocalReport> CrearInforme(PedidoCompraWrapper pedido)
         {
             Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.PedidoCompra.rdlc");
-            PedidoCompraModel dataSource = await PedidoCompraModel.CargarDatos(pedido.Model.Empresa, pedido.Id);
+            PedidoCompraModel dataSource = await _servicioInformes.LeerPedidoCompra(pedido.Model.Empresa, pedido.Id);
             List<PedidoCompraModel> listaDataSource = new();
             listaDataSource.Add(dataSource);
             LocalReport report = new();
