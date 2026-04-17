@@ -35,24 +35,28 @@ namespace CanalesExternosTests
         {
             // Fee negativo Amazon = cargo = "operaciones" (positivo tras invertir signo)
             // Fee positivo Amazon = abono  = "tarifas reembolsadas" (negativo tras invertir signo)
+            // Los fees llegan con IVA incluido, así que BaseImponible = importe / 1.21 (Amazon.es).
             var fees = new[] { F(-100M), F(5M, "Refund:ItemFeeAdj:Commission") };
             var resultado = AmazonApiInvoicesService.AgruparEnFacturas(fees);
 
             Assert.AreEqual(2, resultado.Count);
-            Assert.IsTrue(resultado.Any(f => f.Concepto == "operaciones" && f.BaseImponible == 100M));
-            Assert.IsTrue(resultado.Any(f => f.Concepto == "tarifas reembolsadas" && f.BaseImponible == -5M));
+            // 100 / 1.21 = 82,6446... → redondeado a 82,64 (AwayFromZero)
+            Assert.IsTrue(resultado.Any(f => f.Concepto == "comisiones" && f.BaseImponible == 82.64M));
+            // -5 / 1.21 = -4,1322... → -4,13
+            Assert.IsTrue(resultado.Any(f => f.Concepto == "abono" && f.BaseImponible == -4.13M));
         }
 
         [TestMethod]
         public void AgruparEnFacturas_UnaFactura_IvaCalculadoAutomaticamente()
         {
+            // Amazon envía el fee con IVA incluido; la base imponible se extrae dividiendo entre 1+IVA.
             var fees = new[] { F(-100M, mp: "Amazon.es") };
             var f = AmazonApiInvoicesService.AgruparEnFacturas(fees).Single();
 
-            Assert.AreEqual(100M, f.BaseImponible);
+            Assert.AreEqual(82.64M, f.BaseImponible);
             Assert.AreEqual("G21", f.CodigoIva);
-            Assert.AreEqual(21M, f.ImporteIva);
-            Assert.AreEqual(121M, f.Total);
+            Assert.AreEqual(17.35M, f.ImporteIva);
+            Assert.AreEqual(99.99M, f.Total);
         }
 
         [TestMethod]

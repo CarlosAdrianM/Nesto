@@ -93,12 +93,33 @@ namespace CanalesExternosTests
         }
 
         [TestMethod]
-        public void ConstruirRequest_NoCreaPagoYPropagaDocumento()
+        public void ConstruirRequest_SinMarketplace_NoCreaPagoYPropagaDocumento()
         {
+            // Caso AGL Multiple y similares: sin MarketplaceId no se puede liquidar
+            // automáticamente, así que CrearPago debe ser false.
             var factura = CrearFactura(invoiceId: "INV-XYZ");
+            factura.MarketplaceId = null;
+            factura.NombreMarket = null;
+
             var request = AJson(CrearCanal().ConstruirRequest(factura));
+
             Assert.AreEqual(false, (bool)request["CrearPago"]);
             Assert.AreEqual("INV-XYZ", (string)request["Documento"]);
+        }
+
+        [TestMethod]
+        public void ConstruirRequest_ConMarketplaceConCuentaComision_CreaPagoAutomatico()
+        {
+            // Amazon.es tiene CuentaContableComision configurada en DatosMarkets,
+            // así que se crea el pago automáticamente para liquidar el extracto del proveedor 999.
+            var factura = CrearFactura(invoiceId: "INV-ES");
+
+            var request = AJson(CrearCanal().ConstruirRequest(factura));
+
+            Assert.AreEqual(true, (bool)request["CrearPago"]);
+            Assert.AreEqual("INV-ES", (string)request["Documento"]);
+            Assert.IsFalse(string.IsNullOrEmpty((string)request["ContraPartidaPago"]),
+                "Con marketplace liquidable debe propagarse la cuenta de contrapartida");
         }
 
         [TestMethod]
