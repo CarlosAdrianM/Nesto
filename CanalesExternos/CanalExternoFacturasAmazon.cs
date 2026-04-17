@@ -1,7 +1,9 @@
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.CanalesExternos.ApisExternas;
+using Nesto.Modulos.CanalesExternos.Cuadres;
 using Nesto.Modulos.CanalesExternos.Models;
+using Nesto.Modulos.CanalesExternos.Models.Cuadres;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -254,6 +256,27 @@ namespace Nesto.Modulos.CanalesExternos
             cuadre.Detalle.AddRange(agrupadoFacturas);
 
             return cuadre;
+        }
+
+        /// <inheritdoc />
+        public async Task<ResultadoCuadre<string>> CuadrarFacturasAsync(int año, int mes)
+        {
+            DateTime inicio = new DateTime(año, mes, 1);
+            DateTime fin = inicio.AddMonths(1).AddDays(-1);
+
+            var facturasAmazon = await AmazonApiInvoicesService.LeerFacturasAsync(inicio, fin);
+            var yaContabilizadas = await GetFacturasYaContabilizadasAsync(inicio, fin);
+
+            // Cuadre por presencia de InvoiceId: el endpoint actual de Nesto solo devuelve
+            // mapeo InvoiceId → NúmeroFactura, así que los importes no se comparan en Fase 1.
+            var resultado = MotorCuadre.ConciliarPorPresencia(
+                nesto: yaContabilizadas,
+                amazon: facturasAmazon.Where(f => !string.IsNullOrWhiteSpace(f.InvoiceId)),
+                claveNesto: kvp => kvp.Key,
+                claveAmazon: f => f.InvoiceId);
+            resultado.Nombre = $"Facturas Amazon {mes:D2}/{año}";
+
+            return resultado;
         }
 
         /// Web API devuelve un JSON anidado: { Message, ExceptionMessage, InnerException: {...} }.

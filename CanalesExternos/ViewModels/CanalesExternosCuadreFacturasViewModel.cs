@@ -1,6 +1,7 @@
 using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Models;
+using Nesto.Modulos.CanalesExternos.Models.Cuadres;
 using Prism.Commands;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
@@ -20,7 +21,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         public CanalesExternosCuadreFacturasViewModel(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IDialogService dialogService)
         {
-            Titulo = "Cuadre facturas canales externos";
+            Titulo = "Cuadre Canales Externos";
             _configuracion = configuracion;
             _servicioAutenticacion = servicioAutenticacion;
             _dialogService = dialogService;
@@ -90,6 +91,32 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             => _cuadre == null ? new ObservableCollection<CuadreLiquidacionDetalle>()
                                : new ObservableCollection<CuadreLiquidacionDetalle>(_cuadre.Detalle);
 
+        // Issue #349 Fase 1: cuadre Amazon ↔ Nesto por InvoiceId
+        private ResultadoCuadre<string> _cuadreFacturas;
+        public ResultadoCuadre<string> CuadreFacturas
+        {
+            get => _cuadreFacturas;
+            set
+            {
+                SetProperty(ref _cuadreFacturas, value);
+                RaisePropertyChanged(nameof(FacturasCuadradas));
+                RaisePropertyChanged(nameof(FacturasSoloEnNesto));
+                RaisePropertyChanged(nameof(FacturasSoloEnAmazon));
+            }
+        }
+
+        public ObservableCollection<ElementoCuadre<string>> FacturasCuadradas
+            => _cuadreFacturas == null ? new ObservableCollection<ElementoCuadre<string>>()
+                                       : new ObservableCollection<ElementoCuadre<string>>(_cuadreFacturas.Cuadrados);
+
+        public ObservableCollection<ElementoCuadre<string>> FacturasSoloEnNesto
+            => _cuadreFacturas == null ? new ObservableCollection<ElementoCuadre<string>>()
+                                       : new ObservableCollection<ElementoCuadre<string>>(_cuadreFacturas.SoloEnNesto);
+
+        public ObservableCollection<ElementoCuadre<string>> FacturasSoloEnAmazon
+            => _cuadreFacturas == null ? new ObservableCollection<ElementoCuadre<string>>()
+                                       : new ObservableCollection<ElementoCuadre<string>>(_cuadreFacturas.SoloEnAmazon);
+
         public ICommand CalcularCuadreCommand { get; }
 
         private bool PuedeCalcular() => !EstaOcupado && CanalSeleccionado != null && CanalSeleccionado.SoportaCuadreLiquidacion;
@@ -100,6 +127,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 EstaOcupado = true;
                 Cuadre = await CanalSeleccionado.CuadrarConLiquidacionAsync(Año, Mes);
+                CuadreFacturas = await CanalSeleccionado.CuadrarFacturasAsync(Año, Mes);
             }
             catch (Exception ex)
             {

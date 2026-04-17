@@ -1,4 +1,5 @@
 using Nesto.Modulos.CanalesExternos.Models;
+using Nesto.Modulos.CanalesExternos.Models.Cuadres;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -28,6 +29,12 @@ namespace Nesto.Modulos.CanalesExternos
 
         /// Cuadra las facturas del mes contra las liquidaciones del canal. Null si no aplica.
         Task<CuadreLiquidacionCanalExterno> CuadrarConLiquidacionAsync(int año, int mes);
+
+        /// Issue #349 Fase 1: cuadre de facturas Nesto ↔ Amazon por presencia de InvoiceId.
+        /// Empareja las facturas que Amazon reporta (LeerFacturasAsync) con las que tenemos
+        /// contabilizadas en Nesto bajo proveedor 999 (FacturasContabilizadasProveedor).
+        /// Los importes quedan sin comparar: solo detecta facturas presentes en un lado y no en el otro.
+        Task<ResultadoCuadre<string>> CuadrarFacturasAsync(int año, int mes);
 
         /// Parsea un listado copiado de la web del canal (TSV) y asigna el InvoiceId a cada factura
         /// reconstruida que empareje por (marketplace, tipo). Para documentos sin equivalente en la API

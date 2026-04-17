@@ -7,11 +7,10 @@
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d"
-             d:DesignHeight="500" d:DesignWidth="800" Language="es-ES">
+             d:DesignHeight="600" d:DesignWidth="900" Language="es-ES">
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Calculando cuadre...">
         <Grid Background="White">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
@@ -26,31 +25,124 @@
                 <Button Content="Calcular cuadre" Command="{Binding CalcularCuadreCommand}" Margin="10,0" Padding="10,3"/>
             </StackPanel>
 
-            <Border Grid.Row="1" Background="#FFF8F8F8" BorderBrush="LightGray" BorderThickness="1" Padding="8" Margin="5">
-                <StackPanel>
-                    <TextBlock FontSize="14" FontWeight="Bold">
-                        <Run Text="Total facturas:"/>
-                        <Run Text="{Binding Cuadre.TotalFacturasContabilizadas, StringFormat=c, FallbackValue='-'}"/>
-                    </TextBlock>
-                    <TextBlock FontSize="14" FontWeight="Bold">
-                        <Run Text="Total liquidaciones:"/>
-                        <Run Text="{Binding Cuadre.TotalComisionesLiquidaciones, StringFormat=c, FallbackValue='-'}"/>
-                    </TextBlock>
-                    <TextBlock FontSize="14" FontWeight="Bold">
-                        <Run Text="Diferencia:"/>
-                        <Run Text="{Binding Cuadre.Diferencia, Mode=OneWay, StringFormat=c, FallbackValue='-'}"/>
-                    </TextBlock>
-                </StackPanel>
-            </Border>
+            <TabControl Grid.Row="1" Margin="5">
+                <!-- Cuadre de facturas: Amazon ↔ Nesto por InvoiceId (Issue #349 Fase 1) -->
+                <TabItem Header="Facturas">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-            <DataGrid Grid.Row="2" ItemsSource="{Binding DetalleCuadre}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" Margin="5">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Marketplace" Binding="{Binding NombreMarket}" Width="180"/>
-                    <DataGridTextColumn Header="Total facturas" Binding="{Binding TotalFacturas, StringFormat=c}"/>
-                    <DataGridTextColumn Header="Total liquidaciones" Binding="{Binding TotalLiquidaciones, StringFormat=c}"/>
-                    <DataGridTextColumn Header="Diferencia" Binding="{Binding Diferencia, Mode=OneWay, StringFormat=c}" Width="*"/>
-                </DataGrid.Columns>
-            </DataGrid>
+                        <Border Grid.Row="0" Background="#FFF8F8F8" BorderBrush="LightGray" BorderThickness="1" Padding="8" Margin="0,0,0,8">
+                            <StackPanel>
+                                <TextBlock FontSize="14" FontWeight="Bold" Text="{Binding CuadreFacturas.Nombre, FallbackValue='Cuadre facturas (sin datos)'}"/>
+                                <TextBlock FontSize="12" Foreground="#555">
+                                    <Run Text="Cuadradas:"/>
+                                    <Run Text="{Binding CuadreFacturas.Cuadrados.Count, Mode=OneWay, FallbackValue=0}" FontWeight="Bold"/>
+                                    <Run Text=" | Solo en Nesto:"/>
+                                    <Run Text="{Binding CuadreFacturas.SoloEnNesto.Count, Mode=OneWay, FallbackValue=0}" FontWeight="Bold" Foreground="#C06000"/>
+                                    <Run Text=" | Solo en Amazon:"/>
+                                    <Run Text="{Binding CuadreFacturas.SoloEnAmazon.Count, Mode=OneWay, FallbackValue=0}" FontWeight="Bold" Foreground="#B00020"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Bloque 1: cuadradas -->
+                            <Border Grid.Column="0" Margin="0,0,4,0" BorderBrush="#D0D0D0" BorderThickness="1">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Top" Background="#E6F4EA" Padding="6">
+                                        <TextBlock FontWeight="Bold" Foreground="#1B5E20">
+                                            <Run Text="&#x2713; Cuadradas"/>
+                                        </TextBlock>
+                                    </Border>
+                                    <DataGrid ItemsSource="{Binding FacturasCuadradas}" AutoGenerateColumns="False"
+                                              IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="InvoiceId" Binding="{Binding Clave}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- Bloque 2: solo en Nesto (Amazon no la reporta) -->
+                            <Border Grid.Column="1" Margin="2,0" BorderBrush="#D0D0D0" BorderThickness="1">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Top" Background="#FFF4E5" Padding="6">
+                                        <TextBlock FontWeight="Bold" Foreground="#C06000">
+                                            <Run Text="&#x26A0; Solo en Nesto"/>
+                                        </TextBlock>
+                                    </Border>
+                                    <DataGrid ItemsSource="{Binding FacturasSoloEnNesto}" AutoGenerateColumns="False"
+                                              IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="InvoiceId" Binding="{Binding Clave}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+
+                            <!-- Bloque 3: solo en Amazon (falta contabilizar) -->
+                            <Border Grid.Column="2" Margin="4,0,0,0" BorderBrush="#D0D0D0" BorderThickness="1">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Top" Background="#FDECEA" Padding="6">
+                                        <TextBlock FontWeight="Bold" Foreground="#B00020">
+                                            <Run Text="&#x26A0; Solo en Amazon"/>
+                                        </TextBlock>
+                                    </Border>
+                                    <DataGrid ItemsSource="{Binding FacturasSoloEnAmazon}" AutoGenerateColumns="False"
+                                              IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="InvoiceId" Binding="{Binding Clave}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+
+                <!-- Cuadre de liquidaciones (totales internos de Amazon) -->
+                <TabItem Header="Liquidaciones">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Background="#FFF8F8F8" BorderBrush="LightGray" BorderThickness="1" Padding="8" Margin="0,0,0,5">
+                            <StackPanel>
+                                <TextBlock FontSize="14" FontWeight="Bold">
+                                    <Run Text="Total facturas:"/>
+                                    <Run Text="{Binding Cuadre.TotalFacturasContabilizadas, StringFormat=c, FallbackValue='-'}"/>
+                                </TextBlock>
+                                <TextBlock FontSize="14" FontWeight="Bold">
+                                    <Run Text="Total liquidaciones:"/>
+                                    <Run Text="{Binding Cuadre.TotalComisionesLiquidaciones, StringFormat=c, FallbackValue='-'}"/>
+                                </TextBlock>
+                                <TextBlock FontSize="14" FontWeight="Bold">
+                                    <Run Text="Diferencia:"/>
+                                    <Run Text="{Binding Cuadre.Diferencia, Mode=OneWay, StringFormat=c, FallbackValue='-'}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding DetalleCuadre}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Marketplace" Binding="{Binding NombreMarket}" Width="180"/>
+                                <DataGridTextColumn Header="Total facturas" Binding="{Binding TotalFacturas, StringFormat=c}"/>
+                                <DataGridTextColumn Header="Total liquidaciones" Binding="{Binding TotalLiquidaciones, StringFormat=c}"/>
+                                <DataGridTextColumn Header="Diferencia" Binding="{Binding Diferencia, Mode=OneWay, StringFormat=c}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
         </Grid>
     </xctk:BusyIndicator>
 </UserControl>
