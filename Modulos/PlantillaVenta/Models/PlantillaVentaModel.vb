@@ -329,7 +329,7 @@ Public Class LineaRegalo
             If stocks Is Nothing OrElse stocks.Count = 0 Then
                 Return String.Empty
             End If
-            Return String.Join(" | ", stocks.Select(Function(s) $"{s.almacen}:{s.stock}"))
+            Return String.Join(" | ", stocks.Select(Function(s) $"{s.almacen}:{s.cantidadDisponible}"))
         End Get
     End Property
 

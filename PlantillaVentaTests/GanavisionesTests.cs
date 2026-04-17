@@ -703,5 +703,50 @@ namespace PlantillaVentaTests
          *    - Crear pedido con regalos dentro del límite -> se crea OK
          *    - Crear pedido excediendo Ganavisiones -> validador rechaza
          */
+
+        #region Issue #345 - textoStocksPorAlmacen debe usar cantidadDisponible, no stock real
+
+        [TestMethod]
+        public void LineaRegalo_TextoStocksPorAlmacen_UsaCantidadDisponibleNoStockReal()
+        {
+            // Caso del issue #345: producto con stock real > 0 pero todo reservado (disponible = 0).
+            // La lista de Ganavisiones debe mostrar lo disponible, igual que hace Selección de Productos,
+            // para que el vendedor no ofrezca un regalo que en realidad no puede entregar.
+            var regalo = new LineaRegalo
+            {
+                stocks = new List<StockAlmacenDTO>
+                {
+                    new StockAlmacenDTO { almacen = "ALG", stock = 6, cantidadDisponible = 0 },
+                    new StockAlmacenDTO { almacen = "REI", stock = 0, cantidadDisponible = 0 },
+                    new StockAlmacenDTO { almacen = "ALC", stock = 1, cantidadDisponible = 1 }
+                }
+            };
+
+            Assert.AreEqual("ALG:0 | REI:0 | ALC:1", regalo.textoStocksPorAlmacen);
+        }
+
+        [TestMethod]
+        public void LineaRegalo_TextoStocksPorAlmacen_SinStocks_DevuelveVacio()
+        {
+            var regalo = new LineaRegalo
+            {
+                stocks = new List<StockAlmacenDTO>()
+            };
+
+            Assert.AreEqual(string.Empty, regalo.textoStocksPorAlmacen);
+        }
+
+        [TestMethod]
+        public void LineaRegalo_TextoStocksPorAlmacen_StocksNull_DevuelveVacio()
+        {
+            var regalo = new LineaRegalo
+            {
+                stocks = null
+            };
+
+            Assert.AreEqual(string.Empty, regalo.textoStocksPorAlmacen);
+        }
+
+        #endregion
     }
 }
