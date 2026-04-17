@@ -1,6 +1,7 @@
 ﻿using Nesto.Modules.Producto.Models;
 using Prism.Commands;
 using Prism.Mvvm;
+using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -13,14 +14,17 @@ namespace Nesto.Modules.Producto.ViewModels
     public class CorreccionVideoProductoViewModel : BindableBase, IDialogAware
     {
         private readonly IProductoService _productoService;
+        private readonly IRegionManager _regionManager;
         private Action<IDialogResult> _requestClose;
 
-        public CorreccionVideoProductoViewModel(IProductoService productoService)
+        public CorreccionVideoProductoViewModel(IProductoService productoService, IRegionManager regionManager)
         {
             _productoService = productoService;
+            _regionManager = regionManager;
             ProductosEditables = [];
 
             GuardarCommand = new DelegateCommand(OnGuardar, CanGuardar);
+            AbrirProductosConBusquedaCommand = new DelegateCommand<string>(OnAbrirProductosConBusqueda, CanAbrirProductosConBusqueda);
         }
 
         // Implementación correcta del evento RequestClose
@@ -50,6 +54,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         // Comandos
         public DelegateCommand GuardarCommand { get; }
+        public DelegateCommand<string> AbrirProductosConBusquedaCommand { get; }
 
         // Resumen de cambios
         public string ResumenCambios
@@ -104,9 +109,32 @@ namespace Nesto.Modules.Producto.ViewModels
                     };
                     ProductosEditables.Add(editable);
                 }
+
+                _ = CargarNombresProductoAsociadoAsync();
             }
 
             GuardarCommand.RaiseCanExecuteChanged();
+        }
+
+        internal async System.Threading.Tasks.Task CargarNombresProductoAsociadoAsync()
+        {
+            foreach (var editable in ProductosEditables.ToList())
+            {
+                if (string.IsNullOrWhiteSpace(editable.Referencia))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    var producto = await _productoService.LeerProducto(editable.Referencia);
+                    editable.NombreProductoAsociado = producto?.Nombre;
+                }
+                catch
+                {
+                    // Si la referencia no existe o falla la API, dejamos NombreProductoAsociado vacío
+                }
+            }
         }
 
         private async void OnGuardar()
@@ -163,6 +191,28 @@ namespace Nesto.Modules.Producto.ViewModels
         private bool CanGuardar()
         {
             return ProductosEditables?.Any(p => p.TieneCambios) == true;
+        }
+
+        private bool CanAbrirProductosConBusqueda(string nombre) => !string.IsNullOrWhiteSpace(nombre);
+
+        private void OnAbrirProductosConBusqueda(string nombre)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                return;
+            }
+
+            // Issue #343: navegar a Productos con búsqueda contextual del nombre del VideoProducto.
+            // Cerramos el diálogo primero: navegar con el diálogo modal encima genera
+            // experiencia confusa y no tenemos cambios sin guardar (los cambios se registran
+            // vía ResumenCambios y el CanGuardar lo advertiría si los hubiese).
+            var parameters = new NavigationParameters
+            {
+                { "busquedaContextualParameter", nombre }
+            };
+
+            _requestClose?.Invoke(new DialogResult(ButtonResult.Cancel));
+            _regionManager.RequestNavigate("MainRegion", "ProductoView", parameters);
         }
 
         private void OnAbrirVideo()
@@ -229,14 +279,25 @@ namespace Nesto.Modules.Producto.ViewModels
         public DelegateCommand AbrirEnlaceVideoCommand { get; }
         public DelegateCommand AbrirEnlaceTiendaCommand { get; }
 
-        // NombreProducto mutable: se actualiza cuando el behaviour resuelve la referencia
-        // contra la API, para dar feedback visual al usuario del producto asociado (Issue #342).
-        // El nombre original se conserva en ProductoOriginal.NombreProducto.
+        // Nombre del VideoProducto tal como lo nombra el vídeo (ej. "Alta Frecuencia").
+        // Se inicializa desde ProductoOriginal.NombreProducto y NO se sobrescribe al resolver
+        // la Referencia: el nombre del producto asociado a la Referencia va en NombreProductoAsociado.
         private string _nombreProducto;
         public string NombreProducto
         {
             get => _nombreProducto;
             set => SetProperty(ref _nombreProducto, value);
+        }
+
+        // Nombre del producto real que apunta la Referencia (solo lectura desde la UI).
+        // Se rellena al cargar el diálogo y se actualiza cuando el behaviour resuelve la
+        // referencia contra la API. Sirve para detectar errores tipo "el vídeo habla de un
+        // Alta Frecuencia pero la referencia apunta a una Crema anticelulítica" (Issue #347).
+        private string _nombreProductoAsociado;
+        public string NombreProductoAsociado
+        {
+            get => _nombreProductoAsociado;
+            set => SetProperty(ref _nombreProductoAsociado, value);
         }
 
         public string EnlaceVideoOriginal => ProductoOriginal.EnlaceVideo;

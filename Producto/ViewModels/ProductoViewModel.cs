@@ -49,13 +49,16 @@ namespace Nesto.Modules.Producto.ViewModels
         public string AlmacenDefecto { get; set; }
 
 
-        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IEventAggregator eventAggregator, IDialogService dialogService)
+        private readonly Nesto.Infrastructure.Services.InformesService _servicioInformes;
+
+        public ProductoViewModel(IRegionManager regionManager, IConfiguracion configuracion, IProductoService servicio, IEventAggregator eventAggregator, IDialogService dialogService, IServicioAutenticacion servicioAutenticacion)
         {
             _regionManager = regionManager;
             _configuracion = configuracion;
             _servicio = servicio;
             _eventAggregator = eventAggregator;
             _dialogService = dialogService;
+            _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
 
             AbrirActualizarControlesStockCommand = new DelegateCommand(OnAbrirActualizarControlesStock);
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
@@ -636,7 +639,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     _dialogService.ShowNotification($"Creado el kit con nº de traspaso {traspaso}");
                     if (almacen == Constantes.Almacenes.ALMACEN_CENTRAL)
                     {
-                        await AbrirInformeMontarKitProductos(traspaso);
+                        await AbrirInformeMontarKitProductos(traspaso, _servicioInformes);
                     }
                 }
                 else
@@ -650,10 +653,10 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        private static async Task AbrirInformeMontarKitProductos(int traspaso)
+        private static async Task AbrirInformeMontarKitProductos(int traspaso, Nesto.Infrastructure.Services.InformesService servicioInformes)
         {
             Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.MontarKitProductos.rdlc");
-            List<Informes.MontarKitProductosModel> dataSource = await Informes.MontarKitProductosModel.CargarDatos(traspaso);
+            List<Informes.MontarKitProductosModel> dataSource = await servicioInformes.LeerMontarKitProductos(traspaso);
             LocalReport report = new();
             report.LoadReportDefinition(reportDefinition);
             report.DataSources.Add(new ReportDataSource("MontarKitProductosDataSet", dataSource));
@@ -714,11 +717,26 @@ namespace Nesto.Modules.Producto.ViewModels
 
         public new async void OnNavigatedTo(NavigationContext navigationContext)
         {
+            AlmacenDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
+
+            // Issue #343: permitir llegar con un texto de búsqueda contextual (p. ej. desde
+            // el diálogo "Reportar Error" de Videos) para lanzar directamente la búsqueda por
+            // nombre, igual que un Alt+C.
+            string busquedaContextual = navigationContext.Parameters["busquedaContextualParameter"] as string;
+            if (!string.IsNullOrWhiteSpace(busquedaContextual))
+            {
+                FiltroNombre = busquedaContextual;
+                if (BuscarContextualCommand.CanExecute(busquedaContextual))
+                {
+                    BuscarContextualCommand.Execute(busquedaContextual);
+                }
+                return;
+            }
+
             object parametro = navigationContext.Parameters["numeroProductoParameter"];
             ReferenciaBuscar = parametro != null
                 ? parametro.ToString()
                 : await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltNumProducto);
-            AlmacenDefecto = await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenPedidoVta);
         }
 
         public bool IsNavigationTarget(NavigationContext navigationContext)

@@ -37,15 +37,12 @@ namespace Nesto.Modulos.Producto.Views
         }
 
         /// <summary>
-        /// Issue #342: engancha los eventos de los behaviours del TextBox de Referencia
-        /// para actualizar NombreProducto en el ProductoEditable cuando el usuario
+        /// Issues #342/#347: engancha los eventos de los behaviours del TextBox de Referencia
+        /// para actualizar NombreProductoAsociado en el ProductoEditable cuando el usuario
         /// selecciona una sugerencia del autocomplete o cuando la validación LostFocus
-        /// resuelve un producto contra la API.
-        ///
-        /// ProductoBehavior actualiza el TextBox.Text (y por tanto Referencia vía binding),
-        /// pero sus SetProperty por reflexión apuntan a nombres de PedidoVenta (Producto,
-        /// texto, PrecioUnitario...) que no existen en ProductoEditable, así que son no-ops.
-        /// Por eso necesitamos actualizar NombreProducto manualmente desde aquí.
+        /// resuelve un producto contra la API. NombreProducto (el nombre del VideoProducto
+        /// tal como aparece en el vídeo) no se toca, para que ambos nombres queden visibles
+        /// y el usuario pueda detectar referencias equivocadas.
         /// </summary>
         private void TextBoxReferencia_Loaded(object sender, RoutedEventArgs e)
         {
@@ -70,7 +67,7 @@ namespace Nesto.Modulos.Producto.Views
                     {
                         if (textBox.DataContext is ProductoEditable item && !string.IsNullOrEmpty(args.Nombre))
                         {
-                            item.NombreProducto = args.Nombre;
+                            item.NombreProductoAsociado = args.Nombre;
                         }
                     };
                 }
@@ -80,7 +77,7 @@ namespace Nesto.Modulos.Producto.Views
                     {
                         if (textBox.DataContext is ProductoEditable item && !string.IsNullOrEmpty(args.Item?.Texto))
                         {
-                            item.NombreProducto = args.Item.Texto;
+                            item.NombreProductoAsociado = args.Item.Texto;
                         }
                     };
                 }

@@ -11,6 +11,16 @@
              prism:ViewModelLocator.AutoWireViewModel="True"
              d:DesignHeight="600" d:DesignWidth="800">
 
+    <prism:Dialog.WindowStyle>
+        <Style TargetType="Window">
+            <Setter Property="SizeToContent" Value="WidthAndHeight"/>
+            <Setter Property="MaxHeight" Value="700"/>
+            <Setter Property="MaxWidth" Value="900"/>
+            <Setter Property="WindowStartupLocation" Value="CenterOwner"/>
+            <Setter Property="ResizeMode" Value="CanResize"/>
+        </Style>
+    </prism:Dialog.WindowStyle>
+
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
@@ -50,19 +60,30 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <!-- Nombre del producto -->
-                                <TextBlock Grid.Row="0" 
-                                           Grid.ColumnSpan="2"
-                                           Text="{Binding NombreProducto}" 
-                                           FontWeight="SemiBold"
-                                           FontSize="14"
-                                           Margin="0,0,0,10"/>
+                                <!-- Nombre del VideoProducto + botón búsqueda contextual (Issue #343) -->
+                                <StackPanel Grid.Row="0"
+                                            Grid.ColumnSpan="2"
+                                            Orientation="Horizontal"
+                                            Margin="0,0,0,10">
+                                    <TextBlock Text="{Binding NombreProducto}"
+                                               FontWeight="SemiBold"
+                                               FontSize="14"
+                                               VerticalAlignment="Center"/>
+                                    <Button Content="Buscar en Productos"
+                                            Command="{Binding DataContext.AbrirProductosConBusquedaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding NombreProducto}"
+                                            Padding="6,2"
+                                            Margin="10,0,0,0"
+                                            VerticalAlignment="Center"
+                                            ToolTip="Abrir Productos con búsqueda contextual de este nombre"/>
+                                </StackPanel>
 
                                 <!-- Referencia -->
                                 <TextBlock Grid.Row="1" 
@@ -93,59 +114,75 @@
                                     </i:Interaction.Behaviors>
                                 </TextBox>
 
-                                <!-- Enlace tienda -->
-                                <TextBlock Grid.Row="2" 
+                                <!-- Producto asociado a la Referencia (solo lectura, Issue #347) -->
+                                <TextBlock Grid.Row="2"
                                            Grid.Column="0"
-                                           Text="Enlace tienda:" 
+                                           Text="Producto:"
                                            VerticalAlignment="Center"
                                            Margin="0,0,5,5"/>
-                                <TextBox Grid.Row="2" 
+                                <TextBlock Grid.Row="2"
+                                           Grid.Column="1"
+                                           Text="{Binding NombreProductoAsociado, FallbackValue='', TargetNullValue=''}"
+                                           FontStyle="Italic"
+                                           Foreground="#555"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding NombreProductoAsociado}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,0,5"/>
+
+                                <!-- Enlace tienda -->
+                                <TextBlock Grid.Row="3"
+                                           Grid.Column="0"
+                                           Text="Enlace tienda:"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,5,5"/>
+                                <TextBox Grid.Row="3"
                                          Grid.Column="1"
-                                         Text="{Binding EnlaceTienda, UpdateSourceTrigger=PropertyChanged}" 
+                                         Text="{Binding EnlaceTienda, UpdateSourceTrigger=PropertyChanged}"
                                          Height="25"
                                          Margin="0,0,0,5"/>
 
                                 <!-- Tiempo aparición -->
-                                <TextBlock Grid.Row="3" 
+                                <TextBlock Grid.Row="4"
                                            Grid.Column="0"
-                                           Text="Tiempo (seg):" 
+                                           Text="Tiempo (seg):"
                                            VerticalAlignment="Center"
                                            Margin="0,0,5,5"/>
-                                <TextBox Grid.Row="3" 
+                                <TextBox Grid.Row="4"
                                          Grid.Column="1"
-                                         Text="{Binding TiempoAparicion, UpdateSourceTrigger=PropertyChanged}" 
+                                         Text="{Binding TiempoAparicion, UpdateSourceTrigger=PropertyChanged}"
                                          Height="25"
                                          Margin="0,0,0,5"/>
 
                                 <!-- Enlaces -->
-                                <StackPanel Grid.Row="4" 
+                                <StackPanel Grid.Row="5"
                                            Grid.ColumnSpan="2"
                                            Orientation="Horizontal"
                                            Margin="0,5,0,5">
-                                    <Button Content="Ver en vídeo" 
+                                    <Button Content="Ver en vídeo"
                                             Command="{Binding AbrirEnlaceVideoCommand}"
                                             Padding="5,2"
                                             Margin="0,0,10,0"
                                             ToolTip="{Binding ProductoOriginal.EnlaceVideo}"/>
-                                    <Button Content="Ver en tienda" 
+                                    <Button Content="Ver en tienda"
                                             Command="{Binding AbrirEnlaceTiendaCommand}"
                                             Padding="5,2"
                                             ToolTip="{Binding EnlaceTienda}"/>
                                 </StackPanel>
 
                                 <!-- Checkbox eliminar -->
-                                <CheckBox Grid.Row="5" 
+                                <CheckBox Grid.Row="6"
                                           Grid.ColumnSpan="2"
-                                          Content="Este producto no aparece en el vídeo (eliminar)" 
+                                          Content="Este producto no aparece en el vídeo (eliminar)"
                                           IsChecked="{Binding MarcarParaEliminar, UpdateSourceTrigger=PropertyChanged}"
                                           Foreground="Red"
                                           Margin="0,10,0,5"/>
 
                                 <!-- Indicador visual de cambios -->
-                                <Border Grid.Row="0" 
-                                        Grid.RowSpan="5"
+                                <Border Grid.Row="0"
+                                        Grid.RowSpan="6"
                                         Grid.ColumnSpan="2"
-                                        BorderBrush="Orange" 
+                                        BorderBrush="Orange"
                                         BorderThickness="2"
                                         Visibility="{Binding TieneCambios, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         CornerRadius="3"
