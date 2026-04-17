@@ -38,7 +38,7 @@
                     </TextBlock>
                     <TextBlock FontSize="14" FontWeight="Bold">
                         <Run Text="Diferencia:"/>
-                        <Run Text="{Binding Cuadre.Diferencia, StringFormat=c, FallbackValue='-'}"/>
+                        <Run Text="{Binding Cuadre.Diferencia, Mode=OneWay, StringFormat=c, FallbackValue='-'}"/>
                     </TextBlock>
                 </StackPanel>
             </Border>
@@ -48,7 +48,7 @@
                     <DataGridTextColumn Header="Marketplace" Binding="{Binding NombreMarket}" Width="180"/>
                     <DataGridTextColumn Header="Total facturas" Binding="{Binding TotalFacturas, StringFormat=c}"/>
                     <DataGridTextColumn Header="Total liquidaciones" Binding="{Binding TotalLiquidaciones, StringFormat=c}"/>
-                    <DataGridTextColumn Header="Diferencia" Binding="{Binding Diferencia, StringFormat=c}" Width="*"/>
+                    <DataGridTextColumn Header="Diferencia" Binding="{Binding Diferencia, Mode=OneWay, StringFormat=c}" Width="*"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
