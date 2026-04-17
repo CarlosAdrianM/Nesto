@@ -344,6 +344,90 @@ namespace Nesto.Modulos.CanalesExternos
             }
         }
 
+        /// <inheritdoc />
+        public async Task<ResultadoCuadre<string>> CuadrarPedidosAsync(int año, int mes)
+        {
+            DateTime inicio = new DateTime(año, mes, 1);
+            DateTime fin = inicio.AddMonths(1).AddDays(-1);
+
+            var pedidosAmazon = await AmazonApiOrdersService.Ejecutar(inicio, 1000);
+            var pedidosNesto = await GetPedidosCanalAsync("Amazon", inicio, fin);
+
+            var resultado = ConstruirCuadrePedidos(pedidosNesto, pedidosAmazon, inicio, fin);
+            resultado.Nombre = $"Pedidos Amazon {mes:D2}/{año}";
+            return resultado;
+        }
+
+        /// <summary>
+        /// Construye el cuadre de pedidos a partir de los dos lados ya cargados. Puro, sin IO.
+        /// Filtra los pedidos Amazon por <c>PurchaseDate</c> dentro del rango para asegurar
+        /// que solo entran los del período (la Orders API puede devolver pedidos anteriores).
+        /// </summary>
+        internal static ResultadoCuadre<string> ConstruirCuadrePedidos(
+            IEnumerable<ResumenPedidoVentaCanalExternoDto> pedidosNesto,
+            IEnumerable<FikaAmazonAPI.AmazonSpApiSDK.Models.Orders.Order> pedidosAmazon,
+            DateTime inicio,
+            DateTime fin)
+        {
+            // Lado Nesto: solo pedidos con CanalOrderId resuelto. Sin identificador no hay
+            // clave para emparejar.
+            var nestoConOrderId = pedidosNesto
+                .Where(p => !string.IsNullOrWhiteSpace(p.CanalOrderId));
+
+            var amazonEnRango = (pedidosAmazon ?? Enumerable.Empty<FikaAmazonAPI.AmazonSpApiSDK.Models.Orders.Order>())
+                .Where(o => !string.IsNullOrWhiteSpace(o?.AmazonOrderId))
+                .Where(o =>
+                {
+                    if (!DateTimeOffset.TryParse(o.PurchaseDate, out var purchase)) return false;
+                    var fecha = purchase.UtcDateTime;
+                    return fecha >= inicio && fecha <= fin;
+                });
+
+            return MotorCuadre.ConciliarPorPresencia(
+                nesto: nestoConOrderId,
+                amazon: amazonEnRango,
+                claveNesto: p => NormalizarOrderId(p.CanalOrderId),
+                claveAmazon: o => NormalizarOrderId(o.AmazonOrderId));
+        }
+
+        /// <summary>
+        /// Normaliza el OrderId eliminando el prefijo "FBA " para que los pedidos FBA y los
+        /// MFN con el mismo AmazonOrderId se consideren el mismo.
+        /// </summary>
+        private static string NormalizarOrderId(string orderId)
+        {
+            if (string.IsNullOrWhiteSpace(orderId)) return orderId;
+            string trimmed = orderId.Trim();
+            return trimmed.StartsWith("FBA ", StringComparison.OrdinalIgnoreCase)
+                ? trimmed.Substring(4).Trim()
+                : trimmed;
+        }
+
+        /// <summary>
+        /// Cliente REST para <c>GET api/PedidosVenta/PorCanalExterno</c>.
+        /// </summary>
+        public async Task<List<ResumenPedidoVentaCanalExternoDto>> GetPedidosCanalAsync(string canal, DateTime desde, DateTime hasta)
+        {
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+                string url = $"PedidosVenta/PorCanalExterno?empresa={EMPRESA_DEFECTO}&canal={canal}" +
+                    $"&desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+                var response = await client.GetAsync(url);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception($"Error consultando pedidos por canal: {response.StatusCode}");
+                }
+                string json = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<List<ResumenPedidoVentaCanalExternoDto>>(json)
+                    ?? new List<ResumenPedidoVentaCanalExternoDto>();
+            }
+        }
+
         /// Web API devuelve un JSON anidado: { Message, ExceptionMessage, InnerException: {...} }.
         /// Recorremos la cadena y concatenamos los mensajes para que Aida vea el error real.
         internal static string ExtraerMensajeError(string body)

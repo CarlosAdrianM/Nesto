@@ -86,6 +86,36 @@ namespace CanalesExternosTests
         }
 
         [TestMethod]
+        public async Task CalcularCuadre_PopulaCuadrePedidosDesdeElCanal()
+        {
+            var canal = A.Fake<ICanalExternoFacturas>();
+            A.CallTo(() => canal.SoportaCuadreLiquidacion).Returns(true);
+            A.CallTo(() => canal.CuadrarConLiquidacionAsync(A<int>._, A<int>._))
+                .Returns(Task.FromResult(new Nesto.Modulos.CanalesExternos.Models.CuadreLiquidacionCanalExterno()));
+            A.CallTo(() => canal.CuadrarFacturasAsync(A<int>._, A<int>._))
+                .Returns(Task.FromResult(new ResultadoCuadre<string>()));
+            A.CallTo(() => canal.CuadrarLiquidacionesAsync(A<int>._, A<int>._))
+                .Returns(Task.FromResult(new ResultadoCuadre<string>()));
+
+            var cuadrePedidosFake = new ResultadoCuadre<string> { Nombre = "pedidos test" };
+            cuadrePedidosFake.SoloEnAmazon.Add(new ElementoCuadre<string>
+            {
+                Clave = "111-1111111-1111111", ExisteEnAmazon = true
+            });
+            A.CallTo(() => canal.CuadrarPedidosAsync(A<int>._, A<int>._))
+                .Returns(Task.FromResult(cuadrePedidosFake));
+
+            var vm = CrearVm(canal);
+            var metodo = typeof(CanalesExternosCuadreFacturasViewModel).GetMethod(
+                "OnCalcularCuadreAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+            await (Task)metodo.Invoke(vm, null);
+
+            Assert.IsNotNull(vm.CuadrePedidos);
+            Assert.AreEqual(1, vm.PedidosSoloEnAmazon.Count);
+            Assert.AreEqual("111-1111111-1111111", vm.PedidosSoloEnAmazon[0].Clave);
+        }
+
+        [TestMethod]
         public async Task CalcularCuadre_PopulaCuadreLiquidacionesDesdeElCanal()
         {
             var canal = A.Fake<ICanalExternoFacturas>();

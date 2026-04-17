@@ -42,6 +42,11 @@ namespace Nesto.Modulos.CanalesExternos
         /// Compara importes cuando ambos lados están presentes.
         Task<ResultadoCuadre<string>> CuadrarLiquidacionesAsync(int año, int mes);
 
+        /// Issue #349 Fase 3: cuadre de pedidos de venta Nesto ↔ Amazon por AmazonOrderId.
+        /// Empareja pedidos que Amazon reporta (Orders API) con los pedidos que tenemos bajados
+        /// a Nesto (GET api/PedidosVenta/PorCanalExterno), por presencia del OrderId.
+        Task<ResultadoCuadre<string>> CuadrarPedidosAsync(int año, int mes);
+
         /// Parsea un listado copiado de la web del canal (TSV) y asigna el InvoiceId a cada factura
         /// reconstruida que empareje por (marketplace, tipo). Para documentos sin equivalente en la API
         /// (AGL, Buy Shipping Label, o duplicados) añade facturas sintéticas con Base=0 para que el

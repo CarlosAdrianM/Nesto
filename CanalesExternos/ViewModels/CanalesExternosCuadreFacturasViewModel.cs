@@ -148,6 +148,32 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             => _cuadreLiquidaciones == null ? new ObservableCollection<ElementoCuadre<string>>()
                                             : new ObservableCollection<ElementoCuadre<string>>(_cuadreLiquidaciones.ImportesDistintos);
 
+        // Issue #349 Fase 3: cuadre Amazon ↔ Nesto por AmazonOrderId (pedidos)
+        private ResultadoCuadre<string> _cuadrePedidos;
+        public ResultadoCuadre<string> CuadrePedidos
+        {
+            get => _cuadrePedidos;
+            set
+            {
+                SetProperty(ref _cuadrePedidos, value);
+                RaisePropertyChanged(nameof(PedidosCuadrados));
+                RaisePropertyChanged(nameof(PedidosSoloEnNesto));
+                RaisePropertyChanged(nameof(PedidosSoloEnAmazon));
+            }
+        }
+
+        public ObservableCollection<ElementoCuadre<string>> PedidosCuadrados
+            => _cuadrePedidos == null ? new ObservableCollection<ElementoCuadre<string>>()
+                                      : new ObservableCollection<ElementoCuadre<string>>(_cuadrePedidos.Cuadrados);
+
+        public ObservableCollection<ElementoCuadre<string>> PedidosSoloEnNesto
+            => _cuadrePedidos == null ? new ObservableCollection<ElementoCuadre<string>>()
+                                      : new ObservableCollection<ElementoCuadre<string>>(_cuadrePedidos.SoloEnNesto);
+
+        public ObservableCollection<ElementoCuadre<string>> PedidosSoloEnAmazon
+            => _cuadrePedidos == null ? new ObservableCollection<ElementoCuadre<string>>()
+                                      : new ObservableCollection<ElementoCuadre<string>>(_cuadrePedidos.SoloEnAmazon);
+
         public ICommand CalcularCuadreCommand { get; }
 
         private bool PuedeCalcular() => !EstaOcupado && CanalSeleccionado != null && CanalSeleccionado.SoportaCuadreLiquidacion;
@@ -160,6 +186,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 Cuadre = await CanalSeleccionado.CuadrarConLiquidacionAsync(Año, Mes);
                 CuadreFacturas = await CanalSeleccionado.CuadrarFacturasAsync(Año, Mes);
                 CuadreLiquidaciones = await CanalSeleccionado.CuadrarLiquidacionesAsync(Año, Mes);
+                CuadrePedidos = await CanalSeleccionado.CuadrarPedidosAsync(Año, Mes);
             }
             catch (Exception ex)
             {

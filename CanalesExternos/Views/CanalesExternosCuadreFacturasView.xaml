@@ -109,6 +109,86 @@
                     </Grid>
                 </TabItem>
 
+                <!-- Cuadre de pedidos Amazon ↔ Nesto (Issue #349 Fase 3) -->
+                <TabItem Header="Pedidos">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" Background="#FFF8F8F8" BorderBrush="LightGray" BorderThickness="1" Padding="8" Margin="0,0,0,8">
+                            <StackPanel>
+                                <TextBlock FontSize="14" FontWeight="Bold" Text="{Binding CuadrePedidos.Nombre, FallbackValue='Cuadre pedidos (sin datos)'}"/>
+                                <TextBlock FontSize="12" Foreground="#555">
+                                    <Run Text="Cuadrados:"/>
+                                    <Run Text="{Binding CuadrePedidos.Cuadrados.Count, Mode=OneWay, FallbackValue=0}" FontWeight="Bold"/>
+                                    <Run Text=" | Solo en Nesto:"/>
+                                    <Run Text="{Binding CuadrePedidos.SoloEnNesto.Count, Mode=OneWay, FallbackValue=0}" FontWeight="Bold" Foreground="#C06000"/>
+                                    <Run Text=" | Solo en Amazon:"/>
+                                    <Run Text="{Binding CuadrePedidos.SoloEnAmazon.Count, Mode=OneWay, FallbackValue=0}" FontWeight="Bold" Foreground="#B00020"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Margin="0,0,4,0" BorderBrush="#D0D0D0" BorderThickness="1">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Top" Background="#E6F4EA" Padding="6">
+                                        <TextBlock FontWeight="Bold" Foreground="#1B5E20">
+                                            <Run Text="&#x2713; Cuadrados"/>
+                                        </TextBlock>
+                                    </Border>
+                                    <DataGrid ItemsSource="{Binding PedidosCuadrados}" AutoGenerateColumns="False"
+                                              IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="AmazonOrderId" Binding="{Binding Clave}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Margin="2,0" BorderBrush="#D0D0D0" BorderThickness="1">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Top" Background="#FFF4E5" Padding="6">
+                                        <TextBlock FontWeight="Bold" Foreground="#C06000">
+                                            <Run Text="&#x26A0; Solo en Nesto"/>
+                                        </TextBlock>
+                                    </Border>
+                                    <DataGrid ItemsSource="{Binding PedidosSoloEnNesto}" AutoGenerateColumns="False"
+                                              IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="AmazonOrderId" Binding="{Binding Clave}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" Margin="4,0,0,0" BorderBrush="#D0D0D0" BorderThickness="1">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Top" Background="#FDECEA" Padding="6">
+                                        <TextBlock FontWeight="Bold" Foreground="#B00020">
+                                            <Run Text="&#x26A0; Solo en Amazon"/>
+                                        </TextBlock>
+                                    </Border>
+                                    <DataGrid ItemsSource="{Binding PedidosSoloEnAmazon}" AutoGenerateColumns="False"
+                                              IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="AmazonOrderId" Binding="{Binding Clave}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </TabItem>
+
                 <!-- Cuadre de liquidaciones Amazon ↔ Nesto (Issue #349 Fase 2) -->
                 <TabItem Header="Liquidaciones">
                     <Grid>
