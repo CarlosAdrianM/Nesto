@@ -15,6 +15,7 @@ Imports ControlesUsuario.Dialogs
 Imports Microsoft.Reporting.NETCore
 Imports Microsoft.Win32
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
@@ -55,7 +56,9 @@ Public Class AgenciasViewModel
     Private EstaInsertandoEnvio As Boolean
     Private _estaCambiandoDePedido As Boolean
 
-    Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IDialogService, servicioPedidos As IPedidoVentaService)
+    Private ReadOnly _servicioInformes As InformesService
+
+    Public Sub New(regionManager As IRegionManager, servicio As IAgenciaService, configuracion As IConfiguracion, dialogService As IDialogService, servicioPedidos As IPedidoVentaService, servicioAutenticacion As IServicioAutenticacion)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
@@ -65,6 +68,7 @@ Public Class AgenciasViewModel
         _configuracion = configuracion
         _dialogService = dialogService
         _servicioPedidos = servicioPedidos
+        _servicioInformes = New InformesService(configuracion, servicioAutenticacion)
 
         Titulo = "Agencias"
 
@@ -114,7 +118,7 @@ Public Class AgenciasViewModel
 
     Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
         Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
-        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion))
+        Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion), servicioAutenticacion)
         'Dim agenciasVM = container.Resolve(Of AgenciasViewModel)()
         agenciasVM.InsertarEnvioPendienteCommand.Execute()
         If etiqueta.Agencia = 0 Then
@@ -2001,7 +2005,7 @@ Public Class AgenciasViewModel
     End Function
     Private Async Sub OnImprimirManifiesto(arg As Object)
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ManifiestoAgencia.rdlc")
-        Dim dataSource As List(Of Informes.ManifiestoAgenciaModel) = Await Informes.ManifiestoAgenciaModel.CargarDatos(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+        Dim dataSource As List(Of Informes.ManifiestoAgenciaModel) = Await _servicioInformes.LeerManifiestoAgencia(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
         Dim report As New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("ManifiestoAgenciaDataSet", dataSource))
