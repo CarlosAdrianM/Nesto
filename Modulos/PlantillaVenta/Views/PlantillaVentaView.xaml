@@ -348,18 +348,6 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                                <!-- Issue #159: casilla para no cobrar la comisión contra reembolso (la línea aparece
-                                     ya en el DataGrid de productos junto con los portes) -->
-                                <StackPanel Orientation="Vertical" Margin="0,4"
-                                            Visibility="{Binding EsContraReembolso, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <CheckBox Content="No cobrar comisión por contra reembolso en este pedido"
-                                              IsChecked="{Binding NoCobrarComisionReembolso}"
-                                              IsEnabled="{Binding PermitirNoCobrarComisionReembolso}"/>
-                                    <TextBlock Text="{Binding AvisoFinFlagNoCobrarComisionReembolso}"
-                                               FontStyle="Italic" FontSize="11" Foreground="#666"
-                                               TextWrapping="Wrap" Margin="20,0,0,0"
-                                               Visibility="{Binding PermitirNoCobrarComisionReembolso, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                </StackPanel>
                                 <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="Nombre" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
                             </StackPanel>
                         </Grid>
@@ -747,6 +735,18 @@
 
                         <StackPanel Grid.Row="4">
                             <CheckBox IsChecked="{Binding AnadirPortes}" Visibility="{Binding VisibilidadAnadirPortes, Converter={StaticResource BooleanToVisibilityConverter}}">Añadir portes al pedido</CheckBox>
+                            <!-- Issue #159: casilla para no cobrar la comisión contra reembolso.
+                                 La línea aparece en el DataGrid de productos junto con los portes. -->
+                            <StackPanel Orientation="Vertical"
+                                        Visibility="{Binding EsContraReembolso, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <CheckBox Content="No cobrar comisión por contra reembolso en este pedido"
+                                          IsChecked="{Binding NoCobrarComisionReembolso}"
+                                          IsEnabled="{Binding PermitirNoCobrarComisionReembolso}"/>
+                                <TextBlock Text="{Binding AvisoFinFlagNoCobrarComisionReembolso}"
+                                           FontStyle="Italic" FontSize="11" Foreground="#666"
+                                           TextWrapping="Wrap" Margin="20,0,0,0"
+                                           Visibility="{Binding PermitirNoCobrarComisionReembolso, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            </StackPanel>
                             <CheckBox IsChecked="{Binding EsPresupuesto}">¿Crear como Presupuesto?</CheckBox>
                             <Grid>
                                 <Grid.RowDefinitions>
