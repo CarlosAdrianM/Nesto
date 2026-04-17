@@ -23,4 +23,7 @@ Public Class PedidoPortesInputDTO
     Public Property Iva As String
     Public Property BaseImponibleProductos As Decimal
     Public Property AnadirPortes As Boolean = True
+    ' Issue #159: flag para que el vendedor marque pedidos sin comisión reembolso.
+    ' Se ignora en backend a partir de 2026-09-01.
+    Public Property NoCobrarComisionReembolso As Boolean
 End Class

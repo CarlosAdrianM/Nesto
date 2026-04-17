@@ -348,6 +348,18 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
+                                <!-- Issue #159: casilla para no cobrar la comisión contra reembolso (la línea aparece
+                                     ya en el DataGrid de productos junto con los portes) -->
+                                <StackPanel Orientation="Vertical" Margin="0,4"
+                                            Visibility="{Binding EsContraReembolso, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <CheckBox Content="No cobrar comisión por contra reembolso en este pedido"
+                                              IsChecked="{Binding NoCobrarComisionReembolso}"
+                                              IsEnabled="{Binding PermitirNoCobrarComisionReembolso}"/>
+                                    <TextBlock Text="{Binding AvisoFinFlagNoCobrarComisionReembolso}"
+                                               FontStyle="Italic" FontSize="11" Foreground="#666"
+                                               TextWrapping="Wrap" Margin="20,0,0,0"
+                                               Visibility="{Binding PermitirNoCobrarComisionReembolso, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                </StackPanel>
                                 <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="Nombre" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
                             </StackPanel>
                         </Grid>
@@ -468,6 +480,12 @@
                                         <Setter Property="Background" Value="{Binding colorSobrePedido}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding esLineaPortes}" Value="True">
+                                                <Setter Property="Background" Value="#F0F0F0"/>
+                                                <Setter Property="TextElement.FontStyle" Value="Italic"/>
+                                                <Setter Property="TextElement.Foreground" Value="Gray"/>
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding esLineaReembolso}" Value="True">
                                                 <Setter Property="Background" Value="#F0F0F0"/>
                                                 <Setter Property="TextElement.FontStyle" Value="Italic"/>
                                                 <Setter Property="TextElement.Foreground" Value="Gray"/>

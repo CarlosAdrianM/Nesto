@@ -260,6 +260,14 @@ Public Class PedidoVentaWrapper
             Model.servirJunto = value
         End Set
     End Property
+    Public Property NoCobrarComisionReembolso() As Boolean
+        Get
+            Return Model.NoCobrarComisionReembolso
+        End Get
+        Set(value As Boolean)
+            Model.NoCobrarComisionReembolso = value
+        End Set
+    End Property
     Public Property EsPresupuesto() As Boolean
         Get
             Return Model.EsPresupuesto

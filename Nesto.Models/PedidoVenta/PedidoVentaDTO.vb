@@ -66,6 +66,9 @@ Public Class PedidoVentaDTO
     Public Property notaEntrega As Boolean
     Public Property Agrupada As Boolean
     Public Property CreadoSinPasarValidacion As Boolean
+    ' Issue #159: el vendedor puede marcar que no se cobre la comisión por contra reembolso.
+    ' El backend ignora este flag a partir de 2026-09-01.
+    Public Property NoCobrarComisionReembolso As Boolean
 
     Public ReadOnly Property Bruto As Decimal
         Get

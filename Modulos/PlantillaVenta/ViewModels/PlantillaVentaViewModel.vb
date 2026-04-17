@@ -302,24 +302,73 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
+    ' Issue #159: visibilidad de la comisión por contra reembolso
+    Public ReadOnly Property EsContraReembolso As Boolean
+        Get
+            Return _resultadoPortes IsNot Nothing AndAlso _resultadoPortes.EsContraReembolso
+        End Get
+    End Property
+
+    Public ReadOnly Property ImporteReembolsoMostrar As Decimal
+        Get
+            If IsNothing(_resultadoPortes) OrElse Not hayProductosEnElPedido Then Return 0
+            Return _resultadoPortes.ComisionReembolso
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoReembolso As String
+        Get
+            If Not EsContraReembolso Then Return ""
+            If ImporteReembolsoMostrar <= 0 Then
+                Return "Sin comisión por contra reembolso"
+            End If
+            Return $"Comisión contra reembolso: {ImporteReembolsoMostrar:C}"
+        End Get
+    End Property
+
+    Private _noCobrarComisionReembolso As Boolean
+    Public Property NoCobrarComisionReembolso As Boolean
+        Get
+            Return _noCobrarComisionReembolso
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_noCobrarComisionReembolso, value) Then
+                CargarInfoPortesConDebounce()
+            End If
+        End Set
+    End Property
+
+    Public ReadOnly Property PermitirNoCobrarComisionReembolso As Boolean
+        Get
+            Return DateTime.Now < New DateTime(2026, 9, 1)
+        End Get
+    End Property
+
+    Public ReadOnly Property AvisoFinFlagNoCobrarComisionReembolso As String
+        Get
+            Return "A partir del 1 de septiembre de 2026 esta casilla ya no estará disponible y la comisión se aplicará siempre."
+        End Get
+    End Property
+
     ''' <summary>
     ''' Base imponible del pedido incluyendo portes (solo informativo).
     ''' </summary>
     Public ReadOnly Property baseImponiblePedidoConPortes As Decimal
         Get
-            Return baseImponiblePedido + ImportePortesMostrar
+            Return baseImponiblePedido + ImportePortesMostrar + ImporteReembolsoMostrar
         End Get
     End Property
 
     ''' <summary>
-    ''' Total del pedido incluyendo portes (solo informativo).
-    ''' Los portes reales los añade NestoAPI en el POST, esto es solo para mostrar al usuario.
+    ''' Total del pedido incluyendo portes y comisión reembolso (solo informativo).
+    ''' Los portes y la comisión reales los añade NestoAPI en el POST, esto es solo para mostrar al usuario.
     ''' </summary>
     Public ReadOnly Property totalPedidoConPortes As Decimal
         Get
             Dim tieneIva = Not IsNothing(clienteSeleccionado) AndAlso Not IsNothing(clienteSeleccionado.iva)
             Dim portesConIva = If(tieneIva, ImportePortesMostrar * 1.21D, ImportePortesMostrar)
-            Return totalPedido + portesConIva
+            Dim reembolsoConIva = If(tieneIva, ImporteReembolsoMostrar * 1.21D, ImporteReembolsoMostrar)
+            Return totalPedido + portesConIva + reembolsoConIva
         End Get
     End Property
 
@@ -335,6 +384,9 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(baseImponiblePedidoConPortes))
         RaisePropertyChanged(NameOf(totalPedidoConPortes))
         RaisePropertyChanged(NameOf(listaProductosPedidoConPortes))
+        RaisePropertyChanged(NameOf(EsContraReembolso))
+        RaisePropertyChanged(NameOf(ImporteReembolsoMostrar))
+        RaisePropertyChanged(NameOf(TextoReembolso))
     End Sub
 
     ''' <summary>
@@ -366,13 +418,13 @@ Public Class PlantillaVentaViewModel
                 .EsTiendaOnline = False,
                 .Iva = Estado.IvaCliente,
                 .BaseImponibleProductos = baseImponibleParaPortes,
-                .AnadirPortes = Estado.AnadirPortes
+                .AnadirPortes = Estado.AnadirPortes,
+                .NoCobrarComisionReembolso = _noCobrarComisionReembolso
             }
             Dim resultado = Await servicioPedidosVenta.CalcularPortesPost(input)
             If resultado IsNot Nothing Then
                 _resultadoPortes = resultado
-                RaisePropertyChanged(NameOf(TextoPortes))
-                RaisePropertyChanged(NameOf(PortesGratis))
+                ActualizarEtiquetaPortes()
             End If
         Catch ex As Exception
             ' Silenciar errores de red
@@ -1197,6 +1249,9 @@ Public Class PlantillaVentaViewModel
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
             RaisePropertyChanged(NameOf(MandarCobroTarjeta))
+            ' Issue #159: al cambiar forma de pago puede activar/desactivar EsContraReembolso,
+            ' lo que cambia el importe de comisión y la visibilidad de la casilla.
+            CargarInfoPortesConDebounce()
         End Set
     End Property
 
@@ -1381,6 +1436,15 @@ Public Class PlantillaVentaViewModel
                     .texto = "Portes",
                     .cantidad = 1,
                     .precio = ImportePortesMostrar
+                })
+            End If
+            ' Issue #159: línea de comisión contra reembolso, análoga a la de portes.
+            If EsContraReembolso AndAlso hayProductosEnElPedido AndAlso ImporteReembolsoMostrar > 0 Then
+                lista.Add(New LineaPlantillaVenta With {
+                    .esLineaReembolso = True,
+                    .texto = "Comisión contra reembolso",
+                    .cantidad = 1,
+                    .precio = ImporteReembolsoMostrar
                 })
             End If
             Return lista
@@ -2561,6 +2625,9 @@ Public Class PlantillaVentaViewModel
 
         ' Añadir campos de contexto que no están en Estado
         pedido.Usuario = configuracion.usuario
+
+        ' Issue #159: propagar flag elegido por el vendedor para no cobrar la comisión de reembolso
+        pedido.NoCobrarComisionReembolso = _noCobrarComisionReembolso
 
         ' Manejar ccc condicionalmente según forma de pago
         If IsNothing(FormaPagoSeleccionada) OrElse Not FormaPagoSeleccionada.cccObligatorio Then

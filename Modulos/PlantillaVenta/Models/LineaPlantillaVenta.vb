@@ -297,6 +297,9 @@ Public Class LineaPlantillaVenta
 
     Public Property esLineaPortes As Boolean = False
 
+    ' Issue #159: marca la línea "virtual" de comisión contra reembolso (análoga a esLineaPortes).
+    Public Property esLineaReembolso As Boolean = False
+
     Public Function Contains(filtro As String) As Boolean Implements IFiltrableItem.Contains
         Return (Not IsNothing(producto) AndAlso producto.ToLower.Contains(filtro)) OrElse
                 (Not IsNothing(texto) AndAlso texto.ToLower.Contains(filtro)) OrElse

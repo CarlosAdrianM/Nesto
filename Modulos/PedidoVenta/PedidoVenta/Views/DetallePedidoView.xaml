@@ -698,6 +698,19 @@
                         </Style>
                     </TextBlock.Style>
                 </TextBlock>
+                <!-- Issue #159: casilla para no cobrar la comisión contra reembolso.
+                     La línea de reembolso aparece ya en el DataGrid de líneas (la añade el backend
+                     al guardar vía GestorPortes.GestionarLineasPortes). -->
+                <StackPanel Orientation="Vertical" Margin="5,2"
+                            Visibility="{Binding EsContraReembolso, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <CheckBox Content="No cobrar comisión por contra reembolso en este pedido"
+                              IsChecked="{Binding pedido.NoCobrarComisionReembolso}"
+                              IsEnabled="{Binding PermitirNoCobrarComisionReembolso}"/>
+                    <TextBlock Text="{Binding AvisoFinFlagNoCobrarComisionReembolso}"
+                               FontStyle="Italic" FontSize="11" Foreground="#666"
+                               TextWrapping="Wrap" Margin="20,0,0,0"
+                               Visibility="{Binding PermitirNoCobrarComisionReembolso, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </xctk:BusyIndicator>

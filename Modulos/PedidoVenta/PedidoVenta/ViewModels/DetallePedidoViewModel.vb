@@ -821,6 +821,43 @@ Public Class DetallePedidoViewModel
         End Get
     End Property
 
+    ' Issue #159: visibilidad del importe de comisión contra reembolso
+    Public ReadOnly Property EsContraReembolso As Boolean
+        Get
+            Return _resultadoPortes IsNot Nothing AndAlso _resultadoPortes.EsContraReembolso
+        End Get
+    End Property
+
+    Public ReadOnly Property ImporteReembolsoMostrar As Decimal
+        Get
+            If IsNothing(_resultadoPortes) Then Return 0
+            Return _resultadoPortes.ComisionReembolso
+        End Get
+    End Property
+
+    Public ReadOnly Property TextoReembolso As String
+        Get
+            If Not EsContraReembolso Then Return ""
+            If ImporteReembolsoMostrar <= 0 Then
+                Return "Sin comisión por contra reembolso"
+            End If
+            Return $"Comisión contra reembolso: {ImporteReembolsoMostrar:C}"
+        End Get
+    End Property
+
+    ' Aviso en UI de que la casilla dejará de estar disponible a partir de 2026-09-01.
+    Public ReadOnly Property PermitirNoCobrarComisionReembolso As Boolean
+        Get
+            Return DateTime.Now < New DateTime(2026, 9, 1)
+        End Get
+    End Property
+
+    Public ReadOnly Property AvisoFinFlagNoCobrarComisionReembolso As String
+        Get
+            Return "A partir del 1 de septiembre de 2026 esta casilla ya no estará disponible y la comisión se aplicará siempre."
+        End Get
+    End Property
+
     ''' <summary>
     ''' Actualiza TextoPortes y PortesGratis localmente usando el umbral cacheado.
     ''' No hace llamada al servidor.
@@ -829,6 +866,9 @@ Public Class DetallePedidoViewModel
         If IsNothing(_resultadoPortes) Then Return
         RaisePropertyChanged(NameOf(TextoPortes))
         RaisePropertyChanged(NameOf(PortesGratis))
+        RaisePropertyChanged(NameOf(EsContraReembolso))
+        RaisePropertyChanged(NameOf(ImporteReembolsoMostrar))
+        RaisePropertyChanged(NameOf(TextoReembolso))
     End Sub
 
     ''' <summary>
@@ -841,8 +881,7 @@ Public Class DetallePedidoViewModel
             Dim resultado = Await servicio.CalcularPortes(pedido.empresa, pedido.numero)
             If resultado IsNot Nothing Then
                 _resultadoPortes = resultado
-                RaisePropertyChanged(NameOf(TextoPortes))
-                RaisePropertyChanged(NameOf(PortesGratis))
+                ActualizarEtiquetaPortes()
             End If
         Catch ex As Exception
             ' Silenciar errores de red - la etiqueta simplemente no se muestra

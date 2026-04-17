@@ -619,7 +619,9 @@ namespace PlantillaVentaTests
 
         private PlantillaVentaViewModel CrearViewModelConPortes(
             decimal importePortes = 7M,
-            decimal importeMinimoPedidoSinPortes = 100M)
+            decimal importeMinimoPedidoSinPortes = 100M,
+            decimal comisionReembolso = 0M,
+            bool esContraReembolso = false)
         {
             var (vm, _) = CrearViewModelConMocks();
             vm._clienteSeleccionado = new ClienteJson
@@ -633,7 +635,9 @@ namespace PlantillaVentaTests
             vm._resultadoPortes = new ResultadoPortesDTO
             {
                 ImportePortes = importePortes,
-                ImporteMinimoPedidoSinPortes = importeMinimoPedidoSinPortes
+                ImporteMinimoPedidoSinPortes = importeMinimoPedidoSinPortes,
+                ComisionReembolso = comisionReembolso,
+                EsContraReembolso = esContraReembolso
             };
             return vm;
         }
@@ -1004,6 +1008,103 @@ namespace PlantillaVentaTests
 
             Assert.AreEqual(76M, baseParaPortes,
                 "Sin dirección (servirJunto por defecto true), debe usar stock global");
+        }
+
+        #endregion
+
+        #region Issue #159 - Línea virtual de comisión contra reembolso
+
+        [TestMethod]
+        public void Reembolso_ConProductosYContraReembolso_ListaIncluyeLineaReembolso()
+        {
+            // Arrange: contra reembolso con comisión 3€
+            var vm = CrearViewModelConPortes(
+                importePortes: 7M,
+                importeMinimoPedidoSinPortes: 50M,
+                comisionReembolso: 3M,
+                esContraReembolso: true);
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 24,
+                precio = 4.95M,
+                descuento = 0.5M
+            });
+
+            // Act
+            var lista = vm.listaProductosPedidoConPortes;
+
+            // Assert: producto + portes + reembolso. Base=59.40 < umbral 50? no, es >= 50
+            // Con umbral 50 base >= umbral → portes gratis, pero reembolso sí.
+            var lineaReembolso = lista.FirstOrDefault(l => l.esLineaReembolso);
+            Assert.IsNotNull(lineaReembolso, "Debe existir la línea de comisión reembolso");
+            Assert.AreEqual("Comisión contra reembolso", lineaReembolso.texto);
+            Assert.AreEqual(3M, lineaReembolso.precio);
+            Assert.AreEqual(1, lineaReembolso.cantidad);
+        }
+
+        [TestMethod]
+        public void Reembolso_NoEsContraReembolso_ListaSinLineaReembolso()
+        {
+            var vm = CrearViewModelConPortes(
+                comisionReembolso: 3M,
+                esContraReembolso: false);
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 1, precio = 100M
+            });
+
+            var lista = vm.listaProductosPedidoConPortes;
+
+            Assert.IsFalse(lista.Any(l => l.esLineaReembolso),
+                "Si no es contra reembolso no debe haber línea de comisión");
+        }
+
+        [TestMethod]
+        public void Reembolso_SinProductos_ListaSinLineaReembolso()
+        {
+            // Sin productos la línea de reembolso no debe añadirse.
+            var vm = CrearViewModelConPortes(
+                comisionReembolso: 3M,
+                esContraReembolso: true);
+
+            var lista = vm.listaProductosPedidoConPortes;
+
+            Assert.IsTrue(lista == null || !lista.Any(l => l.esLineaReembolso),
+                "Sin productos no debe añadirse línea de reembolso");
+        }
+
+        [TestMethod]
+        public void Reembolso_ComisionCero_ListaSinLineaReembolso()
+        {
+            // Aunque sea contra reembolso, si la comisión es 0 no añadimos línea.
+            var vm = CrearViewModelConPortes(
+                comisionReembolso: 0M,
+                esContraReembolso: true);
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 1, precio = 100M
+            });
+
+            var lista = vm.listaProductosPedidoConPortes;
+
+            Assert.IsFalse(lista.Any(l => l.esLineaReembolso));
+        }
+
+        [TestMethod]
+        public void Reembolso_BaseImponibleConPortes_IncluyeElImporteDeReembolso()
+        {
+            var vm = CrearViewModelConPortes(
+                importePortes: 7M,
+                importeMinimoPedidoSinPortes: 1M, // portes siempre gratis con este umbral
+                comisionReembolso: 3M,
+                esContraReembolso: true);
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
+            {
+                cantidad = 1, precio = 100M
+            });
+
+            // Base productos 100 + reembolso 3 = 103 (portes gratis con umbral 1)
+            Assert.AreEqual(103M, vm.baseImponiblePedidoConPortes);
         }
 
         #endregion

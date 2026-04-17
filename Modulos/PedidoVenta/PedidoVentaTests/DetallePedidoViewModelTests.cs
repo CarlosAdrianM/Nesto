@@ -620,5 +620,55 @@ namespace PedidoVentaTests
         }
 
         #endregion
+
+        #region Issue #159 - Comisión contra reembolso
+
+        private static DetallePedidoViewModel CrearDetallePedidoVMBasico()
+        {
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            return new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+        }
+
+        [TestMethod]
+        public void DetallePedidoViewModel_SinResultadoPortes_EsContraReembolsoEsFalse()
+        {
+            var vm = CrearDetallePedidoVMBasico();
+
+            Assert.IsFalse(vm.EsContraReembolso);
+            Assert.AreEqual(0, vm.ImporteReembolsoMostrar);
+            Assert.AreEqual("", vm.TextoReembolso);
+        }
+
+        [TestMethod]
+        public void DetallePedidoViewModel_PermitirNoCobrarComisionReembolso_DependeDeFechaCorte()
+        {
+            // Con fecha actual < 2026-09-01 debería permitir (a la fecha de escritura del test
+            // estamos claramente antes). Este test documenta el comportamiento esperado.
+            var vm = CrearDetallePedidoVMBasico();
+
+            if (System.DateTime.Now < new System.DateTime(2026, 9, 1))
+            {
+                Assert.IsTrue(vm.PermitirNoCobrarComisionReembolso);
+            }
+            else
+            {
+                Assert.IsFalse(vm.PermitirNoCobrarComisionReembolso);
+            }
+        }
+
+        [TestMethod]
+        public void DetallePedidoViewModel_AvisoFinFlag_MencionaSeptiembre2026()
+        {
+            var vm = CrearDetallePedidoVMBasico();
+
+            StringAssert.Contains(vm.AvisoFinFlagNoCobrarComisionReembolso, "septiembre de 2026");
+        }
+
+        #endregion
     }
 }
