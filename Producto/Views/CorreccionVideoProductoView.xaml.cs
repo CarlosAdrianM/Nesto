@@ -16,6 +16,23 @@ namespace Nesto.Modulos.Producto.Views
         public CorreccionVideoProductoView()
         {
             InitializeComponent();
+            Loaded += OnLoaded;
+        }
+
+        /// <summary>
+        /// Issue #347 problema 2: con muchos VideoProducto la ventana se salía de pantalla
+        /// (MaxHeight fijo a 700 px no cabe en portátiles de 13" a 1366×768). Al cargar
+        /// ajustamos el MaxHeight de la Window contenedora al 90% del WorkArea para que
+        /// los botones inferiores siempre queden accesibles y el ScrollViewer interno
+        /// gestione el overflow.
+        /// </summary>
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            var window = Window.GetWindow(this);
+            if (window != null)
+            {
+                window.MaxHeight = SystemParameters.WorkArea.Height * 0.9;
+            }
         }
 
         private void Hyperlink_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

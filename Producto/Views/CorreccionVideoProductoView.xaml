@@ -14,7 +14,9 @@
     <prism:Dialog.WindowStyle>
         <Style TargetType="Window">
             <Setter Property="SizeToContent" Value="WidthAndHeight"/>
-            <Setter Property="MaxHeight" Value="700"/>
+            <!-- MaxHeight se ajusta dinámicamente a 90% del WorkArea de la pantalla
+                 en el code-behind (OnLoaded), para que con muchos VideoProducto la
+                 ventana no se salga de los límites de la pantalla (Issue #347). -->
             <Setter Property="MaxWidth" Value="900"/>
             <Setter Property="WindowStartupLocation" Value="CenterOwner"/>
             <Setter Property="ResizeMode" Value="CanResize"/>
