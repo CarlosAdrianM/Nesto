@@ -22,16 +22,23 @@ namespace Nesto.Modulos.Producto.Views
         /// <summary>
         /// Issue #347 problema 2: con muchos VideoProducto la ventana se salía de pantalla
         /// (MaxHeight fijo a 700 px no cabe en portátiles de 13" a 1366×768). Al cargar
-        /// ajustamos el MaxHeight de la Window contenedora al 90% del WorkArea para que
-        /// los botones inferiores siempre queden accesibles y el ScrollViewer interno
-        /// gestione el overflow.
+        /// ajustamos el MaxHeight al 90% del WorkArea.
+        ///
+        /// Además, centramos manualmente sobre el Owner: WindowStartupLocation no es
+        /// DependencyProperty y no se puede fijar en un Setter del Style.
         /// </summary>
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             var window = Window.GetWindow(this);
-            if (window != null)
+            if (window == null) return;
+
+            window.MaxHeight = SystemParameters.WorkArea.Height * 0.9;
+
+            var owner = window.Owner;
+            if (owner != null && owner.WindowState != WindowState.Minimized)
             {
-                window.MaxHeight = SystemParameters.WorkArea.Height * 0.9;
+                window.Left = owner.Left + (owner.ActualWidth - window.ActualWidth) / 2;
+                window.Top = owner.Top + (owner.ActualHeight - window.ActualHeight) / 2;
             }
         }
 
