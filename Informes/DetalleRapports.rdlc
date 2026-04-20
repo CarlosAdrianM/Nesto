@@ -561,7 +561,7 @@
                             <Paragraph>
                               <TextRuns>
                                 <TextRun>
-                                  <Value>=IIf(Fields!Pedido.Value = True, Chr(82), Chr(163))</Value>
+                                  <Value>=IIf(Fields!Pedido.Value = True, "R", "£")</Value>
                                   <Style>
                                     <FontStyle>=Iif(Fields!EstadoRapport.Value = 1, "Italic", "Normal")</FontStyle>
                                     <FontFamily>Wingdings 2</FontFamily>
