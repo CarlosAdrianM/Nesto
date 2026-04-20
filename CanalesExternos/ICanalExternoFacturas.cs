@@ -1,5 +1,6 @@
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres;
+using Nesto.Modulos.CanalesExternos.Models.Cuadres.Saldo555;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -46,6 +47,13 @@ namespace Nesto.Modulos.CanalesExternos
         /// Empareja pedidos que Amazon reporta (Orders API) con los pedidos que tenemos bajados
         /// a Nesto (GET api/PedidosVenta/PorCanalExterno), por presencia del OrderId.
         Task<ResultadoCuadre<string>> CuadrarPedidosAsync(int año, int mes);
+
+        /// Issue #349 Fase 4 / NestoAPI#164: para cada cuenta 555 del canal pide el saldo
+        /// al corte y los grupos de movimientos abiertos (motor de matching en 3 pasadas
+        /// del lado servidor). Una fila por cuenta + concepto (Pago / Comisión).
+        /// El parámetro <paramref name="progreso"/> recibe un mensaje antes de llamar a
+        /// cada cuenta para que la UI pueda mostrar en qué cuenta está trabajando.
+        Task<List<ResumenSaldoCuentaDto>> CalcularSaldos555Async(DateTime fechaCorte, IProgress<string> progreso = null);
 
         /// Parsea un listado copiado de la web del canal (TSV) y asigna el InvoiceId a cada factura
         /// reconstruida que empareje por (marketplace, tipo). Para documentos sin equivalente en la API

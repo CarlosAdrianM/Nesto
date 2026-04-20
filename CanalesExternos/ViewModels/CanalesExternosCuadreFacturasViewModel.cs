@@ -2,6 +2,7 @@ using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres;
+using Nesto.Modulos.CanalesExternos.Models.Cuadres.Saldo555;
 using Prism.Commands;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
@@ -74,6 +75,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 SetProperty(ref _estaOcupado, value);
                 ((DelegateCommand)CalcularCuadreCommand).RaiseCanExecuteChanged();
             }
+        }
+
+        private string _mensajeProceso = "Calculando cuadre...";
+        public string MensajeProceso
+        {
+            get => _mensajeProceso;
+            set => SetProperty(ref _mensajeProceso, value);
         }
 
         private CuadreLiquidacionCanalExterno _cuadre;
@@ -176,6 +184,34 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         public ICommand CalcularCuadreCommand { get; }
 
+        // Issue #349 Fase 4 / NestoAPI#164: saldo de cuentas 555 al corte (último día del mes seleccionado).
+        private ObservableCollection<ResumenSaldoCuentaDto> _saldosCuentas555;
+        public ObservableCollection<ResumenSaldoCuentaDto> SaldosCuentas555
+        {
+            get => _saldosCuentas555;
+            set
+            {
+                SetProperty(ref _saldosCuentas555, value);
+                RaisePropertyChanged(nameof(GruposCuentaSeleccionada));
+            }
+        }
+
+        private ResumenSaldoCuentaDto _cuentaSaldo555Seleccionada;
+        public ResumenSaldoCuentaDto CuentaSaldo555Seleccionada
+        {
+            get => _cuentaSaldo555Seleccionada;
+            set
+            {
+                SetProperty(ref _cuentaSaldo555Seleccionada, value);
+                RaisePropertyChanged(nameof(GruposCuentaSeleccionada));
+            }
+        }
+
+        public ObservableCollection<GrupoAbiertoDto> GruposCuentaSeleccionada
+            => _cuentaSaldo555Seleccionada?.Resultado?.GruposAbiertos == null
+                ? new ObservableCollection<GrupoAbiertoDto>()
+                : new ObservableCollection<GrupoAbiertoDto>(_cuentaSaldo555Seleccionada.Resultado.GruposAbiertos);
+
         private bool PuedeCalcular() => !EstaOcupado && CanalSeleccionado != null && CanalSeleccionado.SoportaCuadreLiquidacion;
 
         private async Task OnCalcularCuadreAsync()
@@ -183,10 +219,19 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             try
             {
                 EstaOcupado = true;
+                MensajeProceso = "Cuadrando totales del mes...";
                 Cuadre = await CanalSeleccionado.CuadrarConLiquidacionAsync(Año, Mes);
+                MensajeProceso = "Cuadrando facturas (Amazon ↔ Nesto)...";
                 CuadreFacturas = await CanalSeleccionado.CuadrarFacturasAsync(Año, Mes);
+                MensajeProceso = "Cuadrando liquidaciones...";
                 CuadreLiquidaciones = await CanalSeleccionado.CuadrarLiquidacionesAsync(Año, Mes);
+                MensajeProceso = "Cuadrando pedidos (Amazon ↔ Nesto)...";
                 CuadrePedidos = await CanalSeleccionado.CuadrarPedidosAsync(Año, Mes);
+
+                DateTime fechaCorte = new DateTime(Año, Mes, DateTime.DaysInMonth(Año, Mes));
+                var progreso = new Progress<string>(msg => MensajeProceso = msg);
+                var saldos = await CanalSeleccionado.CalcularSaldos555Async(fechaCorte, progreso);
+                SaldosCuentas555 = new ObservableCollection<ResumenSaldoCuentaDto>(saldos);
             }
             catch (Exception ex)
             {
@@ -194,6 +239,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
             finally
             {
+                MensajeProceso = "Calculando cuadre...";
                 EstaOcupado = false;
             }
         }

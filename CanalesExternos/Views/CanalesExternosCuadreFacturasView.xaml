@@ -8,7 +8,7 @@
              prism:ViewModelLocator.AutoWireViewModel="True"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="900" Language="es-ES">
-    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Calculando cuadre...">
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="{Binding MensajeProceso}">
         <Grid Background="White">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -301,6 +301,107 @@
                                 </DockPanel>
                             </Border>
                         </Grid>
+                    </Grid>
+                </TabItem>
+
+                <!-- Saldo 555 por marketplace (Issue #349 Fase 4 / NestoAPI#164) -->
+                <TabItem Header="Saldo 555">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="380"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Tabla resumen 22 cuentas -->
+                        <Border Grid.Column="0" Margin="0,0,4,0" BorderBrush="#D0D0D0" BorderThickness="1">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Top" Background="#E8EAF6" Padding="6">
+                                    <TextBlock FontWeight="Bold" Foreground="#1A237E" Text="Cuentas 555"/>
+                                </Border>
+                                <DataGrid ItemsSource="{Binding SaldosCuentas555}"
+                                          SelectedItem="{Binding CuentaSaldo555Seleccionada, Mode=TwoWay}"
+                                          AutoGenerateColumns="False" IsReadOnly="True"
+                                          CanUserAddRows="False" HeadersVisibility="Column"
+                                          SelectionMode="Single">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Cuenta" Binding="{Binding Cuenta}" Width="60"/>
+                                        <DataGridTextColumn Header="Market" Binding="{Binding NombreMarket}" Width="100"/>
+                                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="60"/>
+                                        <DataGridTextColumn Header="Saldo" Binding="{Binding Saldo, StringFormat=c}" Width="80">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="#" Binding="{Binding NumeroAbiertos}" Width="30"/>
+                                        <DataGridTextColumn Header="Días" Binding="{Binding DiasMasAntiguo}" Width="40"/>
+                                    </DataGrid.Columns>
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Saldo}" Value="0">
+                                                    <Setter Property="Foreground" Value="#888"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Detalle: grupos abiertos de la cuenta seleccionada -->
+                        <Border Grid.Column="1" Margin="4,0,0,0" BorderBrush="#D0D0D0" BorderThickness="1">
+                            <DockPanel>
+                                <Border DockPanel.Dock="Top" Background="#FFF4E5" Padding="6">
+                                    <TextBlock FontWeight="Bold" Foreground="#C06000">
+                                        <Run Text="Movimientos abiertos"/>
+                                        <Run Text="{Binding CuentaSaldo555Seleccionada.Cuenta, Mode=OneWay, FallbackValue=''}"/>
+                                        <Run Text="—"/>
+                                        <Run Text="{Binding CuentaSaldo555Seleccionada.NombreMarket, Mode=OneWay, FallbackValue=''}"/>
+                                        <Run Text="{Binding CuentaSaldo555Seleccionada.Concepto, Mode=OneWay, FallbackValue=''}"/>
+                                    </TextBlock>
+                                </Border>
+                                <DataGrid ItemsSource="{Binding GruposCuentaSeleccionada}"
+                                          AutoGenerateColumns="False" IsReadOnly="True"
+                                          CanUserAddRows="False" HeadersVisibility="Column"
+                                          RowDetailsVisibilityMode="VisibleWhenSelected">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Tipo" Binding="{Binding TipoClave}" Width="100"/>
+                                        <DataGridTextColumn Header="Clave" Binding="{Binding Clave}" Width="200"/>
+                                        <DataGridTextColumn Header="Saldo" Binding="{Binding Saldo, StringFormat=c}" Width="80">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Header="1ª fecha" Binding="{Binding FechaPrimerApunte, StringFormat=d}" Width="80"/>
+                                        <DataGridTextColumn Header="Días" Binding="{Binding DiasAntiguedad}" Width="50"/>
+                                        <DataGridTextColumn Header="# apuntes" Binding="{Binding Apuntes.Count}" Width="70"/>
+                                    </DataGrid.Columns>
+                                    <DataGrid.RowDetailsTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#FAFAFA" Padding="4" Margin="20,2,2,2">
+                                                <DataGrid ItemsSource="{Binding Apuntes}" AutoGenerateColumns="False"
+                                                          IsReadOnly="True" CanUserAddRows="False"
+                                                          HeadersVisibility="Column" GridLinesVisibility="Horizontal">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Nº Orden" Binding="{Binding NumeroOrden}" Width="80"/>
+                                                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="80"/>
+                                                        <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="*"/>
+                                                        <DataGridTextColumn Header="Debe" Binding="{Binding Debe, StringFormat=c}" Width="80"/>
+                                                        <DataGridTextColumn Header="Haber" Binding="{Binding Haber, StringFormat=c}" Width="80"/>
+                                                        <DataGridTextColumn Header="Doc" Binding="{Binding NumeroDocumento}" Width="100"/>
+                                                        <DataGridTextColumn Header="Diario" Binding="{Binding Diario}" Width="80"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGrid.RowDetailsTemplate>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
                     </Grid>
                 </TabItem>
 

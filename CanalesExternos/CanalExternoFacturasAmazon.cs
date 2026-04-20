@@ -4,6 +4,7 @@ using Nesto.Modulos.CanalesExternos.ApisExternas;
 using Nesto.Modulos.CanalesExternos.Cuadres;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres;
+using Nesto.Modulos.CanalesExternos.Models.Cuadres.Saldo555;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -401,6 +402,92 @@ namespace Nesto.Modulos.CanalesExternos
             return trimmed.StartsWith("FBA ", StringComparison.OrdinalIgnoreCase)
                 ? trimmed.Substring(4).Trim()
                 : trimmed;
+        }
+
+        /// <summary>
+        /// Issue NestoAPI#164 (Nesto#349 Fase 4): para cada cuenta 555 de cada marketplace
+        /// (Pago + Comisión), pide al endpoint el saldo al corte y devuelve una lista
+        /// resumen ordenada por antigüedad de la partida más vieja descendente.
+        /// </summary>
+        public async Task<List<ResumenSaldoCuentaDto>> CalcularSaldos555Async(DateTime fechaCorte, IProgress<string> progreso = null)
+        {
+            var cuentas = ConstruirListaCuentas555();
+            var resultado = new List<ResumenSaldoCuentaDto>();
+
+            using (var client = new HttpClient())
+            {
+                // Timeout más largo: en cuentas con muchos apuntes el endpoint carga todos
+                // los movimientos del año y corre FIFO, puede tardar.
+                client.Timeout = TimeSpan.FromMinutes(5);
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
+                int idx = 0;
+                int total = cuentas.Count;
+                foreach (var fila in cuentas)
+                {
+                    idx++;
+                    progreso?.Report($"Saldo 555 [{idx}/{total}] — {fila.Cuenta} {fila.NombreMarket} ({fila.Concepto})...");
+                    try
+                    {
+                        string url = $"Informes/SaldoCuenta555?empresa={EMPRESA_DEFECTO}" +
+                            $"&cuenta={fila.Cuenta}&fechaCorte={fechaCorte:yyyy-MM-dd}";
+                        var response = await client.GetAsync(url);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            fila.Error = $"HTTP {(int)response.StatusCode}";
+                        }
+                        else
+                        {
+                            string json = await response.Content.ReadAsStringAsync();
+                            fila.Resultado = JsonConvert.DeserializeObject<SaldoCuenta555ResultadoDto>(json);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        fila.Error = ex.Message;
+                    }
+                    resultado.Add(fila);
+                }
+            }
+
+            return resultado
+                .OrderByDescending(r => r.DiasMasAntiguo)
+                .ThenByDescending(r => Math.Abs(r.Saldo))
+                .ToList();
+        }
+
+        /// <summary>
+        /// 22 cuentas 555 = 11 marketplaces × 2 (Pago + Comisión). Miravia (572) queda fuera.
+        /// </summary>
+        internal static List<ResumenSaldoCuentaDto> ConstruirListaCuentas555()
+        {
+            var lista = new List<ResumenSaldoCuentaDto>();
+            foreach (var m in DatosMarkets.Mercados)
+            {
+                if (!string.IsNullOrEmpty(m.CuentaContablePago) && m.CuentaContablePago.StartsWith("555"))
+                {
+                    lista.Add(new ResumenSaldoCuentaDto
+                    {
+                        Cuenta = m.CuentaContablePago,
+                        NombreMarket = m.NombreMarket,
+                        Concepto = "Pago"
+                    });
+                }
+                if (!string.IsNullOrEmpty(m.CuentaContableComision) && m.CuentaContableComision.StartsWith("555"))
+                {
+                    lista.Add(new ResumenSaldoCuentaDto
+                    {
+                        Cuenta = m.CuentaContableComision,
+                        NombreMarket = m.NombreMarket,
+                        Concepto = "Comisión"
+                    });
+                }
+            }
+            return lista;
         }
 
         /// <summary>
