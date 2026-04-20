@@ -24,7 +24,7 @@ public class AmazonApiOrdersService
         try 
         {
             List<Order> response = await InvokeListOrders(fechaDesde, numeroMaxPedidos).ConfigureAwait(false);
-            // Añadimos los FBA
+            // Aï¿½adimos los FBA
             List<Order> responseFBA = await InvokeListOrdersFBA(fechaDesde, numeroMaxPedidos).ConfigureAwait(false);
             response.AddRange(responseFBA);
             return response;
@@ -44,7 +44,7 @@ public class AmazonApiOrdersService
         }
         catch (Exception ex)
         {
-            throw new Exception("No se han podido cargar las líneas del pedido de Amazon", ex);
+            throw new Exception("No se han podido cargar las lï¿½neas del pedido de Amazon", ex);
         }
     }
 
@@ -103,8 +103,8 @@ public class AmazonApiOrdersService
         }
         catch (Exception ex)
         {
-            throw new Exception("No se pueden descargar los pedidos de Amazon", ex);
-        }        
+            throw new Exception("No se pueden descargar los pedidos de Amazon. " + DescribirCadenaError(ex), ex);
+        }
     }
 
     public static async Task<List<Order>> InvokeListOrdersFBA(DateTime fechaDesde, int numeroMaxPedidos)
@@ -157,8 +157,23 @@ public class AmazonApiOrdersService
         }
         catch (Exception ex)
         {
-            throw new Exception("No se pueden descargar los pedidos FBA de Amazon", ex);
+            throw new Exception("No se pueden descargar los pedidos FBA de Amazon. " + DescribirCadenaError(ex), ex);
         }
+    }
+
+    private static string DescribirCadenaError(Exception ex)
+    {
+        var mensajes = new List<string>();
+        var actual = ex;
+        int profundidad = 0;
+        while (actual != null && profundidad < 6)
+        {
+            if (!string.IsNullOrWhiteSpace(actual.Message) && !mensajes.Contains(actual.Message))
+                mensajes.Add(actual.Message);
+            actual = actual.InnerException;
+            profundidad++;
+        }
+        return string.Join(" â–¸ ", mensajes);
     }
 
     public static async Task<bool> ActualizarSellerOrderId(string amazonOrderId, int sellerOrderId)
@@ -252,7 +267,7 @@ public class AmazonApiOrdersService
             }
             else
             {
-                throw new Exception("No se ha podido calcular el cambio del día");
+                throw new Exception("No se ha podido calcular el cambio del dï¿½a");
             }
         }
         catch (Exception ex)
