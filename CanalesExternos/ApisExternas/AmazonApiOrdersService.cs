@@ -126,7 +126,9 @@ public class AmazonApiOrdersService
             FulfillmentChannels.AFN
         };
         searchOrderList.FulfillmentChannels = fulfillmentChannel;
-        searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
+        // Amazon limita MaxResultsPerPage a 100. El SDK pagina automáticamente,
+        // así que lo dejamos sin fijar para que traiga todos los pedidos del rango.
+        //searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
         searchOrderList.IsNeedRestrictedDataToken = false;
         searchOrderList.RestrictedDataTokenRequest = new CreateRestrictedDataTokenRequest
         {
