@@ -58,7 +58,7 @@ namespace PlantillaVentaTests
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores);
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -84,7 +84,7 @@ namespace PlantillaVentaTests
             IPedidoVentaService pedidoVentaService = A.Fake<IPedidoVentaService>();
             IBorradorPlantillaVentaService servicioBorradores = A.Fake<IBorradorPlantillaVentaService>();
             A.CallTo(() => configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)).Returns("ALG");
-            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores);
+            PlantillaVentaViewModel vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
@@ -125,7 +125,7 @@ namespace PlantillaVentaTests
             }
             A.CallTo(() => servicioMock.CargarProductosBonificablesIds()).Returns(Task.FromResult(productosBonificablesIds));
 
-            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicioMock, eventAggregator, dialogServiceMock, pedidoVentaService, servicioBorradores);
+            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicioMock, eventAggregator, dialogServiceMock, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
 
             return (vm, dialogServiceMock);

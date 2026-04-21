@@ -116,45 +116,10 @@ Public Class ProductoBonificableDTO
     End Property
 End Class
 
-''' <summary>
-''' Request para validar si se puede desmarcar ServirJunto.
-''' Issue #94: Sistema Ganavisiones - FASE 9
-''' Issue #141: Retrocompatible - ProductosBonificados (NestoApp) y ProductosBonificadosConCantidad (Nesto).
-''' </summary>
-Public Class ValidarServirJuntoRequest
-    Public Property Almacen As String
-    Public Property ProductosBonificados As List(Of String)
-    Public Property ProductosBonificadosConCantidad As List(Of ProductoBonificadoConCantidadRequest)
-End Class
-
-''' <summary>
-''' Producto bonificado con cantidad solicitada.
-''' Issue #141: Permite validar disponibilidad vs cantidad real.
-''' </summary>
-Public Class ProductoBonificadoConCantidadRequest
-    Public Property ProductoId As String
-    Public Property Cantidad As Integer
-End Class
-
-''' <summary>
-''' Respuesta de la validacion de ServirJunto.
-''' Issue #94: Sistema Ganavisiones - FASE 9
-''' </summary>
-Public Class ValidarServirJuntoResponse
-    Public Property PuedeDesmarcar As Boolean
-    Public Property ProductosProblematicos As List(Of ProductoSinStockDTO)
-    Public Property Mensaje As String
-End Class
-
-''' <summary>
-''' Producto bonificado que no tiene stock en el almacen del pedido.
-''' Issue #94: Sistema Ganavisiones - FASE 9
-''' </summary>
-Public Class ProductoSinStockDTO
-    Public Property ProductoId As String
-    Public Property ProductoNombre As String
-    Public Property AlmacenConStock As String
-End Class
+' Los DTOs ValidarServirJuntoRequest/Response, ProductoBonificadoConCantidadRequest y
+' ProductoSinStockDTO se movieron a Nesto.Infrastructure.Services.ServirJunto
+' (NestoAPI#161) para que los compartan PlantillaVenta y DetallePedido sin
+' acoplamiento cruzado entre módulos.
 
 ''' <summary>
 ''' Linea de regalo para seleccion en el wizard.

@@ -295,7 +295,14 @@
                             <CheckBox IsChecked="{Binding UsarFechasIndividuales}" ToolTip="Cuando está activo, cada línea tiene su propia fecha de entrega (editable en la pestaña Líneas)">Fechas individuales por línea</CheckBox>
                             <TextBlock Text="Fecha de Entrega:" Visibility="{Binding MostrarFechaEntregaGlobal, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
                             <DatePicker SelectedDate="{Binding fechaEntrega}" Visibility="{Binding MostrarFechaEntregaGlobal, Converter={StaticResource BooleanToVisibilityConverter}}"></DatePicker>
-                            <CheckBox IsChecked="{Binding pedido.servirJunto}">Servir Junto</CheckBox>
+                            <CheckBox IsChecked="{Binding pedido.servirJunto}">
+                                <CheckBox.Content>Servir Junto</CheckBox.Content>
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="Unchecked">
+                                        <i:InvokeCommandAction Command="{Binding cmdValidarServirJunto}"/>
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </CheckBox>
                             <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
                             <CheckBox IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al guardar el pedido">Recoger Producto</CheckBox>
                             <DataGrid ItemsSource="{Binding ListaEnlacesSeguimiento}" AutoGenerateColumns="False" IsReadOnly="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*">

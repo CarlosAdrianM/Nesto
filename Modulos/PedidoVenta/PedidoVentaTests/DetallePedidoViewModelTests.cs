@@ -25,7 +25,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
             PedidoVentaDTO pedido = new PedidoVentaDTO();
             LineaPedidoVentaDTO lineaFake = new LineaPedidoVentaDTO() { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
@@ -51,7 +51,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
             PedidoVentaDTO pedido = new PedidoVentaDTO();
             LineaPedidoVentaDTO lineaFake = new LineaPedidoVentaDTO { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
@@ -78,7 +78,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
             PedidoVentaWrapper pedido = new PedidoVentaWrapper(new PedidoVentaDTO());
             LineaPedidoVentaWrapper lineaFake = new LineaPedidoVentaWrapper { id = 1 };
             lineaFake.DescuentoProducto = (decimal).4;
@@ -107,7 +107,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Simular que ya existe un pedido
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
@@ -138,7 +138,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Simular que ya existe un pedido
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
@@ -174,7 +174,7 @@ namespace PedidoVentaTests
             A.CallTo(() => configuracion.leerParametro("1", A<string>._)).Returns(System.Threading.Tasks.Task.FromResult("VEN01"));
             A.CallTo(() => configuracion.usuario).Returns("TEST_USER");
 
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Crear un ResumenPedido para un pedido nuevo (numero = 0)
             var resumenPedido = new PedidoVentaModel.ResumenPedido { empresa = "1", numero = 0 };
@@ -214,7 +214,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Simular pedido NUEVO (numero = 0)
             PedidoVentaDTO pedido = new PedidoVentaDTO
@@ -258,7 +258,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Simular pedido EXISTENTE (numero > 0) con CCC ya establecido
             PedidoVentaDTO pedido = new PedidoVentaDTO
@@ -302,7 +302,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Test 1: Pedido nuevo (numero = 0)
             PedidoVentaDTO pedidoNuevo = new PedidoVentaDTO { empresa = "1", numero = 0 };
@@ -339,7 +339,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Simular pedido NUEVO
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 0 };
@@ -384,7 +384,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel detallePedidoViewModel = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Simular pedido EXISTENTE con datos originales
             PedidoVentaDTO pedido = new PedidoVentaDTO
@@ -442,7 +442,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Pedido NO es presupuesto, con línea en estado -1 (pendiente) y sin picking
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -471,7 +471,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Pedido NO es presupuesto, con línea en estado 1 (en curso) y sin picking
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -500,7 +500,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Pedido YA es presupuesto (todas las líneas en estado -3)
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -529,7 +529,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Pedido con líneas pendientes pero CON picking asignado
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -560,7 +560,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Pedido con líneas en estado albarán (2) - no se pueden pasar a presupuesto
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -589,7 +589,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
 
             // Pedido con mezcla de líneas: una válida y una albaraneada
             PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
@@ -631,7 +631,7 @@ namespace PedidoVentaTests
             IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
             IDialogService dialogService = A.Fake<IDialogService>();
             IUnityContainer container = A.Fake<IUnityContainer>();
-            return new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container);
+            return new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
         }
 
         [TestMethod]

@@ -21,10 +21,7 @@ Public Interface IPlantillaVentaService
     Function CargarProductosBonificablesParaPedido(empresa As String, baseImponibleBonificable As Decimal, almacen As String, servirJunto As Boolean, cliente As String) As Task(Of ProductosBonificablesResponse)
     Function CalcularFechaEntrega(fecha As DateTime, ruta As String, almacen As String) As Task(Of DateTime)
     Function CargarVendedoresEquipo(jefeEquipo As String) As Task(Of List(Of VendedorDTO))
-    ''' <summary>
-    ''' Valida si se puede desmarcar ServirJunto cuando hay productos bonificados.
-    ''' Issue #94: Sistema Ganavisiones - FASE 9
-    ''' Issue #141: Envía cantidades reales para validar disponibilidad suficiente.
-    ''' </summary>
-    Function ValidarServirJunto(almacen As String, productosBonificados As List(Of ProductoBonificadoConCantidadRequest)) As Task(Of ValidarServirJuntoResponse)
+    ' ValidarServirJunto se eliminó de aquí (NestoAPI#161): ahora lo expone
+    ' Nesto.Infrastructure.Services.ServirJunto.IServirJuntoService, compartido por
+    ' PlantillaVenta y DetallePedido.
 End Interface

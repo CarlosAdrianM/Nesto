@@ -7,6 +7,7 @@ Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Services.ServirJunto
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
@@ -69,7 +70,9 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService)
+    Private ReadOnly _servicioServirJunto As IServirJuntoService
+
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         Me.container = container
         Me.regionManager = regionManager
@@ -78,6 +81,7 @@ Public Class PlantillaVentaViewModel
         Me.dialogService = dialogService
         Me.servicioPedidosVenta = servicioPedidosVenta
         Me.servicioBorradores = servicioBorradores
+        _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
 
         Titulo = "Plantilla Ventas"
 
@@ -759,6 +763,8 @@ Public Class PlantillaVentaViewModel
         End If
 
         ' Issue #141: No saltar validación si no hay regalos - dejar que el servidor decida
+        ' Issue NestoAPI#161: se envían también las líneas del pedido para que el backend
+        ' pueda detectar muestras (subgrupo MMP) que se quedarían pendientes.
         Try
             Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
             Dim regalosSeleccionados = ListaRegalosSeleccionados
@@ -770,8 +776,17 @@ Public Class PlantillaVentaViewModel
                 }).ToList(),
                 New List(Of ProductoBonificadoConCantidadRequest)()
             )
+            Dim lineasDelPedido = If(
+                listaProductosPedido IsNot Nothing,
+                listaProductosPedido.Where(Function(l) Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.cantidad > 0) _
+                    .Select(Function(l) New ProductoBonificadoConCantidadRequest With {
+                        .ProductoId = l.producto,
+                        .Cantidad = l.cantidad
+                    }).ToList(),
+                New List(Of ProductoBonificadoConCantidadRequest)()
+            )
 
-            Dim respuesta = Await servicio.ValidarServirJunto(almacen, productosConCantidad).ConfigureAwait(True)
+            Dim respuesta = Await _servicioServirJunto.Validar(almacen, productosConCantidad, lineasDelPedido).ConfigureAwait(True)
 
             If Not respuesta.PuedeDesmarcar Then
                 ' Revertir el cambio - volver a marcar ServirJunto

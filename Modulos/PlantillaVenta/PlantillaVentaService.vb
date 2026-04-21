@@ -400,41 +400,7 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
-    ''' <summary>
-    ''' Valida si se puede desmarcar ServirJunto cuando hay productos bonificados.
-    ''' Issue #94: Sistema Ganavisiones - FASE 9
-    ''' Issue #141: Envía cantidades reales para validar disponibilidad suficiente.
-    ''' </summary>
-    Public Async Function ValidarServirJunto(almacen As String, productosBonificados As List(Of ProductoBonificadoConCantidadRequest)) As Task(Of ValidarServirJuntoResponse) Implements IPlantillaVentaService.ValidarServirJunto
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Try
-                Dim request = New ValidarServirJuntoRequest With {
-                    .Almacen = almacen,
-                    .ProductosBonificadosConCantidad = productosBonificados
-                }
-                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(request), Text.Encoding.UTF8, "application/json")
-                Dim response = Await client.PostAsync("Ganavisiones/ValidarServirJunto", content).ConfigureAwait(False)
-
-                If response.IsSuccessStatusCode Then
-                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
-                    Return JsonConvert.DeserializeObject(Of ValidarServirJuntoResponse)(cadenaJson)
-                Else
-                    ' Si hay error, permitir desmarcar (fail-safe)
-                    Return New ValidarServirJuntoResponse With {
-                        .PuedeDesmarcar = True,
-                        .ProductosProblematicos = New List(Of ProductoSinStockDTO)(),
-                        .Mensaje = Nothing
-                    }
-                End If
-            Catch ex As Exception
-                ' Si hay error, permitir desmarcar (fail-safe)
-                Return New ValidarServirJuntoResponse With {
-                    .PuedeDesmarcar = True,
-                    .ProductosProblematicos = New List(Of ProductoSinStockDTO)(),
-                    .Mensaje = Nothing
-                }
-            End Try
-        End Using
-    End Function
+    ' ValidarServirJunto se eliminó de aquí (NestoAPI#161): ahora lo expone
+    ' Nesto.Infrastructure.Services.ServirJunto.ServirJuntoService, compartido por
+    ' PlantillaVenta y DetallePedido.
 End Class

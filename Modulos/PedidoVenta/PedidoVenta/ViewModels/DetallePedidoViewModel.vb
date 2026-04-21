@@ -6,6 +6,7 @@ Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Models
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
+Imports Nesto.Infrastructure.Services.ServirJunto
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
@@ -68,13 +69,17 @@ Public Class DetallePedidoViewModel
     }
 #End Region
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, container As IUnityContainer)
+    Private ReadOnly _servicioServirJunto As IServirJuntoService
+
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
         Me.dialogService = dialogService
         Me.container = container
+        _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
+        cmdValidarServirJunto = New DelegateCommand(AddressOf OnValidarServirJunto)
 
         cmdAbrirPicking = New DelegateCommand(AddressOf OnAbrirPicking)
         AceptarPresupuestoCommand = New DelegateCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
@@ -2113,6 +2118,41 @@ Public Class DetallePedidoViewModel
         Dim unused = Process.Start(New ProcessStartInfo(enlace) With {
             .UseShellExecute = True
         })
+    End Sub
+
+    ' Issue NestoAPI#161: Validar si se puede desmarcar "Servir junto".
+    ' El checkbox del XAML dispara este comando en su evento Unchecked.
+    ' Si el backend devuelve PuedeDesmarcar=false, se revierte la marca y se
+    ' muestra el mensaje al usuario.
+    Public Property cmdValidarServirJunto As DelegateCommand
+
+    Private Async Sub OnValidarServirJunto()
+        If pedido Is Nothing OrElse pedido.Lineas Is Nothing Then Return
+        If pedido.servirJunto Then Return  ' Se está marcando, no desmarcando
+
+        Try
+            Dim almacenPedido As String = If(pedido.Lineas.FirstOrDefault()?.Almacen, "ALG")
+            Dim lineasDelPedido = pedido.Lineas _
+                .Where(Function(l) l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.Cantidad > 0) _
+                .Select(Function(l) New ProductoBonificadoConCantidadRequest With {
+                    .ProductoId = l.producto,
+                    .Cantidad = CInt(l.Cantidad)
+                }) _
+                .ToList()
+
+            Dim respuesta = Await _servicioServirJunto.Validar(
+                almacenPedido,
+                New List(Of ProductoBonificadoConCantidadRequest)(),
+                lineasDelPedido).ConfigureAwait(True)
+
+            If Not respuesta.PuedeDesmarcar Then
+                pedido.servirJunto = True
+                RaisePropertyChanged(NameOf(pedido))
+                dialogService.ShowError(respuesta.Mensaje)
+            End If
+        Catch ex As Exception
+            ' Fail-safe: si la validación falla por red o error inesperado, dejamos pasar.
+        End Try
     End Sub
 
 #End Region

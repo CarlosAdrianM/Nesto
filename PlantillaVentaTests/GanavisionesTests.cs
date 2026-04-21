@@ -2,6 +2,7 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
+using Nesto.Infrastructure.Services.ServirJunto;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoVenta;
 using Nesto.Modulos.PlantillaVenta;
@@ -39,7 +40,7 @@ namespace PlantillaVentaTests
             var clienteCreadoEvent = A.Fake<ClienteCreadoEvent>();
             A.CallTo(() => eventAggregator.GetEvent<ClienteCreadoEvent>()).Returns(clienteCreadoEvent);
 
-            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores);
+            var vm = new PlantillaVentaViewModel(container, regionManager, configuracion, servicio, eventAggregator, dialogService, pedidoVentaService, servicioBorradores, A.Fake<IServicioAutenticacion>());
             vm.ListaFiltrableProductos.ListaOriginal = new ObservableCollection<IFiltrableItem>();
 
             // Configurar productos bonificables usando reflexión (campo privado _productosBonificablesIds)
