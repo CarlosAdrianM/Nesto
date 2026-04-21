@@ -24,15 +24,20 @@ Public Class PickingPopupViewModel
     Private ReadOnly eventAggregator As IEventAggregator
     Private ReadOnly dialogService As IDialogService
     Private ReadOnly configuracion As IConfiguracion
-    Private ReadOnly _servicioInformes As InformesService
+    Private ReadOnly _servicioInformes As IInformesService
 
 
     Public Sub New(servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
+        Me.New(servicio, eventAggregator, dialogService, configuracion, New InformesService(configuracion, servicioAutenticacion))
+    End Sub
+
+    ' Constructor para tests: permite inyectar un IInformesService mockeado.
+    Public Sub New(servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, configuracion As IConfiguracion, servicioInformes As IInformesService)
         Me.servicio = servicio
         Me.eventAggregator = eventAggregator
         Me.dialogService = dialogService
         Me.configuracion = configuracion
-        _servicioInformes = New InformesService(configuracion, servicioAutenticacion)
+        _servicioInformes = servicioInformes
 
         cmdInformeKits = New DelegateCommand(AddressOf OnInformeKits)
         cmdInformePicking = New DelegateCommand(AddressOf OnInformePicking)
@@ -196,14 +201,26 @@ Public Class PickingPopupViewModel
             SetProperty(_cmdInformePacking, value)
         End Set
     End Property
+    ' Extraído para poder testear la interacción con IInformesService sin tocar el render RDLC.
+    Public Async Function ObtenerDatosPickingAsync() As Task(Of List(Of Informes.PickingModel))
+        If numeroPicking <= 0 Then
+            numeroPicking = Await _servicioInformes.LeerUltimoPicking()
+        End If
+        Return Await _servicioInformes.LeerPicking(numeroPicking)
+    End Function
+
+    Public Async Function ObtenerDatosPackingAsync() As Task(Of List(Of Informes.PackingModel))
+        If numeroPicking <= 0 Then
+            numeroPicking = Await _servicioInformes.LeerUltimoPicking()
+        End If
+        Return Await _servicioInformes.LeerPacking(numeroPicking)
+    End Function
+
     Private Async Sub OnInformePacking()
         Try
             estaSacandoPicking = True
-            If IsNothing(numeroPicking) OrElse numeroPicking <= 0 Then
-                numeroPicking = Await Informes.PickingModel.UltimoPicking
-            End If
             Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Packing.rdlc")
-            Dim dataSource As List(Of Informes.PackingModel) = Await Informes.PackingModel.CargarDatos(numeroPicking)
+            Dim dataSource As List(Of Informes.PackingModel) = Await ObtenerDatosPackingAsync()
             Dim report As LocalReport = New LocalReport()
             report.LoadReportDefinition(reportDefinition)
             report.DataSources.Add(New ReportDataSource("PackingDataSet", dataSource))
@@ -239,10 +256,7 @@ Public Class PickingPopupViewModel
         Try
             estaSacandoPicking = True
             Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Picking.rdlc")
-            If IsNothing(numeroPicking) OrElse numeroPicking <= 0 Then
-                numeroPicking = Await Informes.PickingModel.UltimoPicking
-            End If
-            Dim dataSource As List(Of Informes.PickingModel) = Await Informes.PickingModel.CargarDatos(numeroPicking)
+            Dim dataSource As List(Of Informes.PickingModel) = Await ObtenerDatosPickingAsync()
             Dim report As LocalReport = New LocalReport()
             report.LoadReportDefinition(reportDefinition)
             report.DataSources.Add(New ReportDataSource("PickingDataSet", dataSource))
@@ -307,7 +321,7 @@ Public Class PickingPopupViewModel
                 Throw New Exception("Tiene que haber algún tipo de picking seleccionado")
             End If
             dialogService.ShowNotification("Picking", textoMensaje)
-            numeroPicking = Await Informes.PickingModel.UltimoPicking
+            numeroPicking = Await _servicioInformes.LeerUltimoPicking()
             eventAggregator.GetEvent(Of SacarPickingEvent).Publish(1)
         Catch ex As Exception
             Dim tituloError As String

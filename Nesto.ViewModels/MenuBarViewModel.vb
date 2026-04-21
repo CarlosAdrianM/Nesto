@@ -20,16 +20,21 @@ Public Class MenuBarViewModel
     Private ReadOnly _regionManager As IRegionManager
     Private ReadOnly _configuracion As IConfiguracion
     Private ReadOnly _servicioComisiones As ComisionesService
-    Private ReadOnly _servicioInformes As InformesService
+    Private ReadOnly _servicioInformes As IInformesService
     Private _listaVendedoresEquipo As List(Of VendedorDTO)
     Private ReadOnly _viewTypes As New Dictionary(Of String, Type)
 
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
+        Me.New(container, regionManager, configuracion, servicioAutenticacion, New InformesService(configuracion, servicioAutenticacion))
+    End Sub
+
+    ' Constructor para tests: permite inyectar un IInformesService mockeado.
+    Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion, servicioInformes As IInformesService)
         _container = container
         _regionManager = regionManager
         _configuracion = configuracion
         _servicioComisiones = New ComisionesService(configuracion, servicioAutenticacion)
-        _servicioInformes = New InformesService(configuracion, servicioAutenticacion)
+        _servicioInformes = servicioInformes
 
         VentasEmpresasCommand = New DelegateCommand(AddressOf OnVentasEmpresas)
         RapportCommand = New DelegateCommand(AddressOf OnRapport)
@@ -250,10 +255,24 @@ Public Class MenuBarViewModel
         })
     End Sub
 
+    ' Extraído para poder testear la interacción con IInformesService sin tocar el render RDLC.
+    Public Async Function ObtenerDatosPickingAsync() As Task(Of (NumeroPicking As Integer, Datos As List(Of Informes.PickingModel)))
+        Dim numero As Integer = Await _servicioInformes.LeerUltimoPicking()
+        Dim datos As List(Of Informes.PickingModel) = Await _servicioInformes.LeerPicking(numero)
+        Return (numero, datos)
+    End Function
+
+    Public Async Function ObtenerDatosPackingAsync() As Task(Of (NumeroPicking As Integer, Datos As List(Of Informes.PackingModel)))
+        Dim numero As Integer = Await _servicioInformes.LeerUltimoPicking()
+        Dim datos As List(Of Informes.PackingModel) = Await _servicioInformes.LeerPacking(numero)
+        Return (numero, datos)
+    End Function
+
     Private Async Sub OnPicking()
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Picking.rdlc")
-        Dim numeroPicking As Integer = Await Informes.PickingModel.UltimoPicking
-        Dim dataSource As List(Of Informes.PickingModel) = Await Informes.PickingModel.CargarDatos(numeroPicking)
+        Dim datos = Await ObtenerDatosPickingAsync()
+        Dim numeroPicking As Integer = datos.NumeroPicking
+        Dim dataSource As List(Of Informes.PickingModel) = datos.Datos
         Dim report As New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("PickingDataSet", dataSource))
@@ -271,8 +290,9 @@ Public Class MenuBarViewModel
 
     Private Async Sub OnPacking()
         Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Packing.rdlc")
-        Dim numeroPicking As Integer = Await Informes.PickingModel.UltimoPicking
-        Dim dataSource As List(Of Informes.PackingModel) = Await Informes.PackingModel.CargarDatos(numeroPicking)
+        Dim datos = Await ObtenerDatosPackingAsync()
+        Dim numeroPicking As Integer = datos.NumeroPicking
+        Dim dataSource As List(Of Informes.PackingModel) = datos.Datos
         Dim report As New LocalReport()
         report.LoadReportDefinition(reportDefinition)
         report.DataSources.Add(New ReportDataSource("PackingDataSet", dataSource))

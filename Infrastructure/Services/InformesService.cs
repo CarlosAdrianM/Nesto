@@ -11,7 +11,7 @@ namespace Nesto.Infrastructure.Services
 {
     /// Cliente de los endpoints api/Informes/* de NestoAPI. Todos los informes se consumen
     /// a través de esta clase para centralizar autenticación, URL base y serialización JSON.
-    public class InformesService
+    public class InformesService : IInformesService
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
@@ -59,6 +59,19 @@ namespace Nesto.Infrastructure.Services
             => await GetAsync<List<ManifiestoAgenciaModel>>(
                 $"Informes/ManifiestoAgencia?empresa={Uri.EscapeDataString(empresa)}&agencia={agencia}&fecha={fecha:yyyy-MM-dd}",
                 "el manifiesto de la agencia").ConfigureAwait(false);
+
+        public async Task<List<PickingModel>> LeerPicking(int picking, string empresa = "1", int personas = 1)
+            => await GetAsync<List<PickingModel>>(
+                $"Informes/Picking?picking={picking}&empresa={Uri.EscapeDataString(empresa)}&personas={personas}",
+                "el picking").ConfigureAwait(false);
+
+        public async Task<int> LeerUltimoPicking()
+            => await GetAsync<int>("Informes/UltimoPicking", "el último picking").ConfigureAwait(false);
+
+        public async Task<List<PackingModel>> LeerPacking(int picking, int personas = 1)
+            => await GetAsync<List<PackingModel>>(
+                $"Informes/Packing?picking={picking}&personas={personas}",
+                "el packing").ConfigureAwait(false);
 
         public async Task<PedidoCompraModel> LeerPedidoCompra(string empresa, int pedido)
         {

@@ -1,5 +1,7 @@
 Imports FakeItEasy
+Imports Nesto.Informes
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.ViewModels
 Imports Prism.Regions
@@ -329,6 +331,78 @@ Public Class MenuBarViewModelTests
         vm.FechaInformeFinal = nuevaFecha
         Assert.AreEqual(nuevaFecha, vm.FechaInformeFinal)
     End Sub
+
+#End Region
+
+#Region "Carga de datos Picking / Packing (1A.4 / 1A.5)"
+
+    Private Function CrearViewModelConInformes(servicioInformes As IInformesService) As MenuBarViewModel
+        Return New MenuBarViewModel(_container, _regionManager, _configuracion, _servicioAutenticacion, servicioInformes)
+    End Function
+
+    <TestMethod()>
+    Public Async Function MenuBarViewModel_ObtenerDatosPicking_LlamaAUltimoPickingYLuegoAPicking() As Task
+        Dim servicioInformes = A.Fake(Of IInformesService)()
+        A.CallTo(Function() servicioInformes.LeerUltimoPicking()).Returns(Task.FromResult(98765))
+        A.CallTo(Function() servicioInformes.LeerPicking(A(Of Integer).Ignored, A(Of String).Ignored, A(Of Integer).Ignored)) _
+            .Returns(Task.FromResult(New List(Of PickingModel)()))
+        Dim vm = CrearViewModelConInformes(servicioInformes)
+
+        Await vm.ObtenerDatosPickingAsync()
+
+        A.CallTo(Function() servicioInformes.LeerUltimoPicking()).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() servicioInformes.LeerPicking(98765, "1", 1)).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function MenuBarViewModel_ObtenerDatosPicking_DevuelveDatosDelServicio() As Task
+        Dim servicioInformes = A.Fake(Of IInformesService)()
+        Dim datosFake As New List(Of PickingModel) From {
+            New PickingModel With {.Producto = "12345", .Cantidad = 3}
+        }
+        A.CallTo(Function() servicioInformes.LeerUltimoPicking()).Returns(Task.FromResult(11111))
+        A.CallTo(Function() servicioInformes.LeerPicking(A(Of Integer).Ignored, A(Of String).Ignored, A(Of Integer).Ignored)) _
+            .Returns(Task.FromResult(datosFake))
+        Dim vm = CrearViewModelConInformes(servicioInformes)
+
+        Dim resultado = Await vm.ObtenerDatosPickingAsync()
+
+        Assert.AreEqual(11111, resultado.NumeroPicking)
+        Assert.AreEqual(1, resultado.Datos.Count)
+        Assert.AreEqual("12345", resultado.Datos(0).Producto)
+    End Function
+
+    <TestMethod()>
+    Public Async Function MenuBarViewModel_ObtenerDatosPacking_LlamaAUltimoPickingYLuegoAPacking() As Task
+        Dim servicioInformes = A.Fake(Of IInformesService)()
+        A.CallTo(Function() servicioInformes.LeerUltimoPicking()).Returns(Task.FromResult(22222))
+        A.CallTo(Function() servicioInformes.LeerPacking(A(Of Integer).Ignored, A(Of Integer).Ignored)) _
+            .Returns(Task.FromResult(New List(Of PackingModel)()))
+        Dim vm = CrearViewModelConInformes(servicioInformes)
+
+        Await vm.ObtenerDatosPackingAsync()
+
+        A.CallTo(Function() servicioInformes.LeerUltimoPicking()).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() servicioInformes.LeerPacking(22222, 1)).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function MenuBarViewModel_ObtenerDatosPacking_DevuelveDatosDelServicio() As Task
+        Dim servicioInformes = A.Fake(Of IInformesService)()
+        Dim datosFake As New List(Of PackingModel) From {
+            New PackingModel With {.Número = 555555, .NºProducto = "12345"}
+        }
+        A.CallTo(Function() servicioInformes.LeerUltimoPicking()).Returns(Task.FromResult(22222))
+        A.CallTo(Function() servicioInformes.LeerPacking(A(Of Integer).Ignored, A(Of Integer).Ignored)) _
+            .Returns(Task.FromResult(datosFake))
+        Dim vm = CrearViewModelConInformes(servicioInformes)
+
+        Dim resultado = Await vm.ObtenerDatosPackingAsync()
+
+        Assert.AreEqual(22222, resultado.NumeroPicking)
+        Assert.AreEqual(1, resultado.Datos.Count)
+        Assert.AreEqual(555555, resultado.Datos(0).Número)
+    End Function
 
 #End Region
 

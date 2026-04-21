@@ -1,13 +1,3 @@
-﻿using Nesto.Models.Nesto.Models;
-using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Nesto.Informes
 {
     public class PackingModel
@@ -25,7 +15,6 @@ namespace Nesto.Informes
         public string Usuario { get; set; }
         public string Ruta { get; set; }
 
-
         // Líneas
         public string ProveedorProducto { get; set; }
         public string NºProducto { get; set; }
@@ -41,42 +30,5 @@ namespace Nesto.Informes
         public string Fila { get; set; }
         public string Columna { get; set; }
         public string Tipo { get; set; }
-        public static async Task<List<PackingModel>> CargarDatos(int numeroPicking)
-        {
-            List<PackingModel> lista = new List<PackingModel>();
-            using (NestoEntities db = new NestoEntities())
-            {
-                try
-                {
-                    lista = await db.Database.SqlQuery<PackingModel>("prdInformePicking @Picking, @Personas",
-                    new SqlParameter("picking", numeroPicking),
-                    new SqlParameter("personas", 1)
-                    ).ToListAsync();
-                    foreach (var item in lista)
-                    {
-                        item.ProveedorProducto = item.ProveedorProducto?.Trim();
-                        item.NºProducto = item.NºProducto?.Trim();
-                        item.CodBarras = item.CodBarras?.Trim();
-                        item.UnidadMedida = item.UnidadMedida?.Trim();
-                        item.Ampliacion = item.Ampliacion?.Trim();
-                        item.Aviso = item.Aviso?.Trim();
-                        item.ComentarioPicking = item.ComentarioPicking?.Trim();
-                        item.CodPostal = item.CodPostal?.Trim();
-                        item.Descripcion = item.Descripcion?.Trim();
-                        item.Direccion = item.Direccion?.Trim();
-                        item.NombreSubGrupo = item.NombreSubGrupo?.Trim();
-                        item.NºCliente = item.NºCliente?.Trim();
-                        item.Poblacion = item.Poblacion?.Trim();
-                        item.Telefono = item.Telefono?.Trim();
-                        item.Tipo = item.Tipo;
-                    }
-                }
-                catch (Exception e)
-                {
-                    throw;
-                }
-            };
-            return lista;
-        }
     }
 }
