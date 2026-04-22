@@ -1,8 +1,6 @@
-﻿using Nesto.Models.Nesto.Models;
 using QRCoder;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -34,44 +32,35 @@ namespace Nesto.Informes
         public string CodigoQR2 { get; set; }
         public string CodigoQR3 { get; set; }
 
-
-
-        public static async Task<List<FilaEtiquetasModel>> CargarDatos(List<string> productos, int etiquetaPrimera)
+        /// <summary>
+        /// Recibe la lista de etiquetas ya cargada (vía API) y la transforma en filas de
+        /// 3 columnas resolviendo la URL pública de cada producto y generando el QR.
+        /// La carga de datos vive en InformesService; aquí sólo hay lógica de formato.
+        /// </summary>
+        public static async Task<List<FilaEtiquetasModel>> ComponerAsync(
+            List<EtiquetasTiendaModel> etiquetas, int etiquetaPrimera)
         {
-            List<EtiquetasTiendaModel> lista;
-            using (NestoEntities db = new NestoEntities())
+            var lista = etiquetas != null
+                ? new List<EtiquetasTiendaModel>(etiquetas)
+                : new List<EtiquetasTiendaModel>();
+
+            int offset = etiquetaPrimera > 0 ? etiquetaPrimera - 1 : 0;
+            for (int i = 0; i < lista.Count; i++)
             {
-                // Crear una lista de parámetros para los productos
-                var parametrosProductos = string.Join(",", productos.Select((_, index) => $"@producto{index}"));
+                lista[i].NumeroEtiqueta = i + 1 + offset;
+            }
 
-                // Construir la consulta SQL con parámetros dinámicos
-                string consulta = $"select CONVERT(INT, ROW_NUMBER() OVER (ORDER BY p.Número)) +{etiquetaPrimera - 1} AS NumeroEtiqueta," +
-                    $"rtrim(p.Número) ProductoId, rtrim(Nombre) Nombre, isnull(Tamaño,0) Tamanno, rtrim(isnull(UnidadMedida,'')) UnidadMedida, PVP PrecioProfesional, rtrim(f.Descripción) Familia " +
-                    $"from Productos p inner join Familias f " +
-                    $"on p.Empresa = f.Empresa and p.Familia = f.Número " +
-                    $"where p.Empresa = '1' and p.Número in ({parametrosProductos})";
-
-                // Crear parámetros para los productos y asignar valores
-                var parametros = productos.Select((producto, index) => new SqlParameter($"@producto{index}", producto)).ToArray();
-
-                // Ejecutar la consulta con los parámetros
-                lista = await db.Database.SqlQuery<EtiquetasTiendaModel>(consulta, parametros).ToListAsync();
-            };
-
-            if (etiquetaPrimera > 1)
+            if (offset > 0)
             {
-                for (int i = 0; i < etiquetaPrimera - 1; i++)
+                for (int i = 0; i < offset; i++)
                 {
-                    EtiquetasTiendaModel nuevaEtiqueta = new EtiquetasTiendaModel {
-                        NumeroEtiqueta = etiquetaPrimera - 1 - i
-                    }; // Crea una nueva instancia en blanco
-                    lista.Insert(0, nuevaEtiqueta); // Inserta la nueva instancia al principio de la lista
+                    lista.Insert(0, new EtiquetasTiendaModel { NumeroEtiqueta = offset - i });
                 }
             }
 
-            List<FilaEtiquetasModel> listaFilas = new List<FilaEtiquetasModel>();
+            var listaFilas = new List<FilaEtiquetasModel>();
             int ultimaFila = 0;
-            FilaEtiquetasModel fila = new FilaEtiquetasModel();
+            var fila = new FilaEtiquetasModel();
             foreach (var etiqueta in lista.OrderBy(l => l.Fila))
             {
                 if (etiqueta.Fila != ultimaFila && ultimaFila != 0)
@@ -80,44 +69,41 @@ namespace Nesto.Informes
                     fila = new FilaEtiquetasModel();
                 }
 
-                string urlProducto = await CalcularUrlProducto(etiqueta.ProductoId);
-                etiqueta.UrlProducto = urlProducto;
-                // Generar el código QR
-                QRCodeGenerator qrGenerator = new QRCodeGenerator();
-                QRCodeData qrCodeData = qrGenerator.CreateQrCode(urlProducto, QRCodeGenerator.ECCLevel.Q);
-                QRCode qrCode = new QRCode(qrCodeData);
-                Bitmap qrCodeImage = qrCode.GetGraphic(20);
-
-                // Convertir la imagen a base64
-                string base64Image = ImageToBase64(qrCodeImage);
-
-
-                string precioEnString = PasarDecimalAString(etiqueta.PrecioProfesional);
-                if (etiqueta.Columna == 1)
+                if (!string.IsNullOrEmpty(etiqueta.ProductoId))
                 {
-                    fila.NombreConTamanno1 = etiqueta.NombreConTamanno;
-                    fila.Familia1 = etiqueta.Familia;
-                    fila.PrecioPublico1 = CalcularPrecioPublico(etiqueta.PrecioProfesional);
-                    fila.ReferenciaProfesional1 = $"{etiqueta.ProductoId}{precioEnString}";
-                    fila.Url1 = etiqueta.UrlProducto;
-                    fila.CodigoQR1 = base64Image;
-                }else if (etiqueta.Columna == 2)
-                {
-                    fila.NombreConTamanno2 = etiqueta.NombreConTamanno;
-                    fila.Familia2 = etiqueta.Familia;
-                    fila.PrecioPublico2 = CalcularPrecioPublico(etiqueta.PrecioProfesional);
-                    fila.ReferenciaProfesional2 = $"{etiqueta.ProductoId}{precioEnString}";
-                    fila.Url2 = etiqueta.UrlProducto;
-                    fila.CodigoQR2 = base64Image;
-                }
-                else
-                {
-                    fila.NombreConTamanno3 = etiqueta.NombreConTamanno;
-                    fila.Familia3 = etiqueta.Familia;
-                    fila.PrecioPublico3 = CalcularPrecioPublico(etiqueta.PrecioProfesional);
-                    fila.ReferenciaProfesional3 = $"{etiqueta.ProductoId}{precioEnString}";
-                    fila.Url3 = etiqueta.UrlProducto;
-                    fila.CodigoQR3 = base64Image;
+                    etiqueta.UrlProducto = await CalcularUrlProducto(etiqueta.ProductoId);
+                    string codigoQr = GenerarQrBase64(etiqueta.UrlProducto);
+                    string precioFormato = PasarDecimalAString(etiqueta.PrecioProfesional);
+                    decimal precioPublico = CalcularPrecioPublico(etiqueta.PrecioProfesional);
+                    string referencia = $"{etiqueta.ProductoId}{precioFormato}";
+
+                    if (etiqueta.Columna == 1)
+                    {
+                        fila.NombreConTamanno1 = etiqueta.NombreConTamanno;
+                        fila.Familia1 = etiqueta.Familia;
+                        fila.PrecioPublico1 = precioPublico;
+                        fila.ReferenciaProfesional1 = referencia;
+                        fila.Url1 = etiqueta.UrlProducto;
+                        fila.CodigoQR1 = codigoQr;
+                    }
+                    else if (etiqueta.Columna == 2)
+                    {
+                        fila.NombreConTamanno2 = etiqueta.NombreConTamanno;
+                        fila.Familia2 = etiqueta.Familia;
+                        fila.PrecioPublico2 = precioPublico;
+                        fila.ReferenciaProfesional2 = referencia;
+                        fila.Url2 = etiqueta.UrlProducto;
+                        fila.CodigoQR2 = codigoQr;
+                    }
+                    else
+                    {
+                        fila.NombreConTamanno3 = etiqueta.NombreConTamanno;
+                        fila.Familia3 = etiqueta.Familia;
+                        fila.PrecioPublico3 = precioPublico;
+                        fila.ReferenciaProfesional3 = referencia;
+                        fila.Url3 = etiqueta.UrlProducto;
+                        fila.CodigoQR3 = codigoQr;
+                    }
                 }
                 ultimaFila = etiqueta.Fila;
             }
@@ -129,66 +115,51 @@ namespace Nesto.Informes
         private static decimal CalcularPrecioPublico(decimal precioProfesional)
         {
             return Math.Round(precioProfesional * 2 * .65M * 1.21M, 2, MidpointRounding.AwayFromZero);
-            //return precioProfesional / .7M * 1.21M;
         }
 
         private static string PasarDecimalAString(decimal numeroDecimal)
         {
-            // Convertir a string con formato personalizado y redondeo a dos decimales
             string cadena = Math.Round(numeroDecimal, 2).ToString("0.00");
-
-            // Eliminar puntos y comas
             cadena = cadena.Replace(".", "").Replace(",", "");
-
-            // Asegurarse de que la cadena tenga al menos 7 caracteres
             while (cadena.Length < 7)
             {
                 cadena = "0" + cadena;
             }
-
-            // Obtener los últimos dos caracteres (parte decimal)
             string parteDecimal = cadena.Substring(cadena.Length - 2);
-
-            // Obtener los primeros cinco caracteres (parte entera)
             string parteEntera = cadena.Substring(0, 5);
-
-            // La cadena final que buscas
-            string resultadoFinal = parteEntera + parteDecimal;
-
-            return resultadoFinal; 
+            return parteEntera + parteDecimal;
         }
 
-        public static string ImageToBase64(Bitmap image)
+        private static string GenerarQrBase64(string contenido)
         {
-            using (MemoryStream memoryStream = new MemoryStream())
+            if (string.IsNullOrEmpty(contenido)) return null;
+            var qrGenerator = new QRCodeGenerator();
+            QRCodeData qrCodeData = qrGenerator.CreateQrCode(contenido, QRCodeGenerator.ECCLevel.Q);
+            using (var qrCode = new QRCode(qrCodeData))
+            using (Bitmap bitmap = qrCode.GetGraphic(20))
+            using (var memoryStream = new MemoryStream())
             {
-                image.Save(memoryStream, ImageFormat.Png); // Puedes cambiar el formato si lo necesitas
-                byte[] byteImage = memoryStream.ToArray();
-                return Convert.ToBase64String(byteImage);
+                bitmap.Save(memoryStream, ImageFormat.Png);
+                return Convert.ToBase64String(memoryStream.ToArray());
             }
         }
 
-        public static async Task<string> CalcularUrlProducto(string producto)
+        private static async Task<string> CalcularUrlProducto(string producto)
         {
+            // Chapuza heredada: PHP custom de la tienda online que resuelve la URL pública
+            // desde la referencia. Dejar por ahora; sustituir por API nativa de Prestashop
+            // cuando se consolide el servicio Prestashop.
             using (var client = new HttpClient())
             {
-                System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
                 client.BaseAddress = new Uri("http://www.productosdeesteticaypeluqueriaprofesional.com/enlacePorReferencia.php");
                 client.DefaultRequestHeaders.Accept.Clear();
                 try
                 {
-                    string parametros = "?producto=" + producto;
-                    HttpResponseMessage response = await client.GetAsync(parametros).ConfigureAwait(false);
-
-
-                    string rutaEnlace = string.Empty;
-                    if (response.IsSuccessStatusCode)
-                    {
-                        rutaEnlace = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        rutaEnlace += "?utm_source=nuevavision&utm_campaign=tienda_alcobendas";
-                    }
-
-                    return rutaEnlace;
+                    HttpResponseMessage response = await client.GetAsync("?producto=" + producto).ConfigureAwait(false);
+                    if (!response.IsSuccessStatusCode) return string.Empty;
+                    string rutaEnlace = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    return rutaEnlace + "?utm_source=nuevavision&utm_campaign=tienda_alcobendas";
                 }
                 catch (Exception)
                 {
@@ -196,21 +167,21 @@ namespace Nesto.Informes
                 }
             }
         }
-
     }
+
     public class EtiquetasTiendaModel
     {
         private const int NUMERO_COLUMNAS = 3;
         public int NumeroEtiqueta { get; set; }
         public int Fila => (NumeroEtiqueta - 1) / NUMERO_COLUMNAS + 1;
-        public int Columna => (NumeroEtiqueta  - 1) % NUMERO_COLUMNAS + 1;
+        public int Columna => (NumeroEtiqueta - 1) % NUMERO_COLUMNAS + 1;
         public string ProductoId { get; set; }
         public string Nombre { get; set; }
         public short Tamanno { get; set; }
         public string UnidadMedida { get; set; }
         public decimal PrecioProfesional { get; set; }
         public string Familia { get; set; }
-        public string NombreConTamanno => Tamanno == 0 ? Nombre : $"{Nombre} {Tamanno} {UnidadMedida}";        
+        public string NombreConTamanno => Tamanno == 0 ? Nombre : $"{Nombre} {Tamanno} {UnidadMedida}";
         public string UrlProducto { get; set; }
     }
 }

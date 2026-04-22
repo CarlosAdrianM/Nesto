@@ -594,7 +594,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.EtiquetasTienda.rdlc");
                 List<string> listaDeProductos = ProductosResultadoBusqueda.Lista.Select(item => (item as ProductoModel).Producto).ToList();
-                List<Informes.FilaEtiquetasModel> dataSource = await Informes.FilaEtiquetasModel.CargarDatos(listaDeProductos, EtiquetaPrimera);
+                List<Informes.FilaEtiquetasModel> dataSource = await _servicioInformes.LeerEtiquetasTienda(listaDeProductos, EtiquetaPrimera);
                 LocalReport report = new();
                 report.LoadReportDefinition(reportDefinition);
                 report.DataSources.Add(new ReportDataSource("FilaEtiquetasDataSet", dataSource));

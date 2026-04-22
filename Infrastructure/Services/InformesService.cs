@@ -73,6 +73,21 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/Packing?picking={picking}&personas={personas}",
                 "el packing").ConfigureAwait(false);
 
+        public async Task<List<FilaEtiquetasModel>> LeerEtiquetasTienda(List<string> productos, int etiquetaPrimera)
+        {
+            if (productos == null || productos.Count == 0)
+            {
+                return await FilaEtiquetasModel.ComponerAsync(new List<EtiquetasTiendaModel>(), etiquetaPrimera).ConfigureAwait(false);
+            }
+
+            string csv = Uri.EscapeDataString(string.Join(",", productos));
+            var etiquetas = await GetAsync<List<EtiquetasTiendaModel>>(
+                $"Informes/EtiquetasTienda?productos={csv}",
+                "las etiquetas de tienda").ConfigureAwait(false);
+
+            return await FilaEtiquetasModel.ComponerAsync(etiquetas, etiquetaPrimera).ConfigureAwait(false);
+        }
+
         public async Task<PedidoCompraModel> LeerPedidoCompra(string empresa, int pedido)
         {
             using (var client = new HttpClient())

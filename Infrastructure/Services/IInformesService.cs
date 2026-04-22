@@ -21,5 +21,6 @@ namespace Nesto.Infrastructure.Services
         Task<int> LeerUltimoPicking();
         Task<List<PackingModel>> LeerPacking(int picking, int personas = 1);
         Task<PedidoCompraModel> LeerPedidoCompra(string empresa, int pedido);
+        Task<List<FilaEtiquetasModel>> LeerEtiquetasTienda(List<string> productos, int etiquetaPrimera);
     }
 }
