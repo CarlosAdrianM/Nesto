@@ -6,12 +6,12 @@ Imports Prism.Commands
 Imports Nesto.Modulos.PedidoVenta
 Imports System.Net.Http
 Imports Newtonsoft.Json
-Imports Nesto.Models.Nesto.Models
 Imports Unity
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models.Comisiones
 Imports Nesto.Models
 Imports Application = System.Windows.Application
 
@@ -21,7 +21,12 @@ Public Class ComisionesViewModel
     'Private Shared DbContext As NestoEntities = New NestoEntities
     Private container As IUnityContainer
     Private configuracion As IConfiguracion
+    Private ReadOnly _dialogService As IDialogService
     Public ReadOnly Property DialogService As IDialogService
+        Get
+            Return _dialogService
+        End Get
+    End Property
 
     Private vendedor As String
     Private datosCargados As Boolean = False
@@ -35,7 +40,7 @@ Public Class ComisionesViewModel
         End If
         Me.container = container
         Me.configuracion = configuracion
-        dialogService = dialogService
+        _dialogService = dialogService
         Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _servicio = New ComisionesService(configuracion, servicioAutenticacion)
 
@@ -103,39 +108,37 @@ Public Class ComisionesViewModel
                 Return
             End If
 
-            If MostrarPanelAntiguo Then
-                'Task.Run(Sub()
-
-                Try
-                    EstaOcupado = True
-                    comisionesActual = _servicio.LeerComisionesAntiguas(fechaDesde, fechaHasta, vendedorActual.Vendedor, 0)
-                Catch ex As Exception
-                    DialogService.ShowError(ex.Message)
-                Finally
-                    EstaOcupado = False
-                End Try
-
-
-                '         End Sub)
-            Else
-                Try
-                    CalcularComisionAsync()
-                Catch ex As Exception
-                    DialogService.ShowError(ex.Message)
-                End Try
-            End If
-
-            listaPedidos = _servicio.LeerListaPedidosVendedor(vendedorActual.Vendedor)
-            ActualizarListadosAgrupados()
+            CargarDatosVendedorAsync()
         End Set
     End Property
 
-    Private _comisionesActual As Comisiones_Result
-    Public Property comisionesActual As Comisiones_Result
+    Private Async Sub CargarDatosVendedorAsync()
+        Try
+            If MostrarPanelAntiguo Then
+                EstaOcupado = True
+                Try
+                    comisionesActual = Await _servicio.LeerComisionesAntiguas(fechaDesde, fechaHasta, vendedorActual.Vendedor)
+                Finally
+                    EstaOcupado = False
+                End Try
+            Else
+                Await CalcularComisionAsync()
+            End If
+
+            listaPedidos = New ObservableCollection(Of PedidoVendedorComisionModel)(
+                Await _servicio.LeerPedidosVendedor(vendedorActual.Vendedor))
+            Await ActualizarListadosAgrupadosAsync()
+        Catch ex As Exception
+            DialogService.ShowError(ex.Message)
+        End Try
+    End Sub
+
+    Private _comisionesActual As ComisionesAntiguasModel
+    Public Property comisionesActual As ComisionesAntiguasModel
         Get
             Return _comisionesActual
         End Get
-        Set(value As Comisiones_Result)
+        Set(value As ComisionesAntiguasModel)
             _comisionesActual = value
             RaisePropertyChanged("comisionesActual")
         End Set
@@ -188,27 +191,35 @@ Public Class ComisionesViewModel
             IncluirPicking = IncluirPicking AndAlso EsMesEnCurso
 
             If vendedorActual IsNot Nothing Then
-                If MostrarPanelAntiguo Then
-                    comisionesActual = _servicio.LeerComisionesAntiguas(fechaDesde, fechaHasta, vendedorActual.Vendedor, 0)
-                Else
-                    CalcularComisionAsync()
-                End If
-
-                ActualizarListadosAgrupados()
+                RecargarTrasCambioMesAsync()
             End If
         End Set
     End Property
 
-    Private Sub ActualizarListadosAgrupados()
+    Private Async Sub RecargarTrasCambioMesAsync()
+        Try
+            If MostrarPanelAntiguo Then
+                comisionesActual = Await _servicio.LeerComisionesAntiguas(fechaDesde, fechaHasta, vendedorActual.Vendedor)
+            Else
+                Await CalcularComisionAsync()
+            End If
+            Await ActualizarListadosAgrupadosAsync()
+        Catch ex As Exception
+            DialogService.ShowError(ex.Message)
+        End Try
+    End Sub
+
+    Private Async Function ActualizarListadosAgrupadosAsync() As Task
         If fechaDesde >= New Date(2017, 3, 1) Then
-            Dim consulta = _servicio.LeerVentasVendedor(fechaDesde, fechaHasta, vendedorActual.Vendedor)
-            listaVentasComision = New ObservableCollection(Of vstLinPedidoVtaComisiones)(consulta.OrderBy(Function(g) g.Grupo).ThenBy(Function(d) d.Dirección))
-            listaVentasFamilia = New ObservableCollection(Of vstLinPedidoVtaComisiones)(consulta.OrderBy(Function(g) g.Familia))
-            Dim preListaVentasFecha = New ObservableCollection(Of vstLinPedidoVtaComisiones)(consulta.OrderBy(Function(g) g.Fecha_Albarán))
+            Dim consulta = Await _servicio.LeerVentasVendedor(fechaDesde, fechaHasta, vendedorActual.Vendedor)
+            listaVentasComision = New ObservableCollection(Of VentaVendedorComisionModel)(consulta.OrderBy(Function(g) g.Grupo).ThenBy(Function(d) d.Direccion))
+            listaVentasFamilia = New ObservableCollection(Of VentaVendedorComisionModel)(consulta.OrderBy(Function(g) g.Familia))
+            Dim preListaVentasFecha = New ObservableCollection(Of VentaVendedorComisionModel)(consulta.OrderBy(Function(g) g.FechaAlbaran))
 
             For Each l In preListaVentasFecha
-                Dim fecha As Date = l.Fecha_Albarán
-                l.Fecha_Albarán = fecha.Date
+                If l.FechaAlbaran.HasValue Then
+                    l.FechaAlbaran = l.FechaAlbaran.Value.Date
+                End If
             Next
             listaVentasFecha = preListaVentasFecha
         Else
@@ -216,7 +227,7 @@ Public Class ComisionesViewModel
             listaVentasFamilia = Nothing
             listaVentasFecha = Nothing
         End If
-    End Sub
+    End Function
 
     Public Property Titulo As String
     Private _fechaDesde As Date
@@ -240,45 +251,45 @@ Public Class ComisionesViewModel
         End Set
     End Property
 
-    Private _listaPedidos As ObservableCollection(Of vstLinPedidoVtaConVendedor)
-    Public Property listaPedidos As ObservableCollection(Of vstLinPedidoVtaConVendedor)
+    Private _listaPedidos As ObservableCollection(Of PedidoVendedorComisionModel)
+    Public Property listaPedidos As ObservableCollection(Of PedidoVendedorComisionModel)
         Get
             Return _listaPedidos
         End Get
-        Set(value As ObservableCollection(Of vstLinPedidoVtaConVendedor))
+        Set(value As ObservableCollection(Of PedidoVendedorComisionModel))
             _listaPedidos = value
             RaisePropertyChanged("listaPedidos")
         End Set
     End Property
 
-    Private _listaVentasComision As ObservableCollection(Of vstLinPedidoVtaComisiones)
-    Public Property listaVentasComision As ObservableCollection(Of vstLinPedidoVtaComisiones)
+    Private _listaVentasComision As ObservableCollection(Of VentaVendedorComisionModel)
+    Public Property listaVentasComision As ObservableCollection(Of VentaVendedorComisionModel)
         Get
             Return _listaVentasComision
         End Get
-        Set(value As ObservableCollection(Of vstLinPedidoVtaComisiones))
+        Set(value As ObservableCollection(Of VentaVendedorComisionModel))
             _listaVentasComision = value
             RaisePropertyChanged("listaVentasComision")
         End Set
     End Property
 
-    Private _listaVentasFamilia As ObservableCollection(Of vstLinPedidoVtaComisiones)
-    Public Property listaVentasFamilia As ObservableCollection(Of vstLinPedidoVtaComisiones)
+    Private _listaVentasFamilia As ObservableCollection(Of VentaVendedorComisionModel)
+    Public Property listaVentasFamilia As ObservableCollection(Of VentaVendedorComisionModel)
         Get
             Return _listaVentasFamilia
         End Get
-        Set(value As ObservableCollection(Of vstLinPedidoVtaComisiones))
+        Set(value As ObservableCollection(Of VentaVendedorComisionModel))
             _listaVentasFamilia = value
             RaisePropertyChanged(NameOf(listaVentasFamilia))
         End Set
     End Property
 
-    Private _listaVentasFecha As ObservableCollection(Of vstLinPedidoVtaComisiones)
-    Public Property listaVentasFecha As ObservableCollection(Of vstLinPedidoVtaComisiones)
+    Private _listaVentasFecha As ObservableCollection(Of VentaVendedorComisionModel)
+    Public Property listaVentasFecha As ObservableCollection(Of VentaVendedorComisionModel)
         Get
             Return _listaVentasFecha
         End Get
-        Set(value As ObservableCollection(Of vstLinPedidoVtaComisiones))
+        Set(value As ObservableCollection(Of VentaVendedorComisionModel))
             _listaVentasFecha = value
             RaisePropertyChanged(NameOf(listaVentasFecha))
         End Set
@@ -381,7 +392,7 @@ Public Class ComisionesViewModel
         If IsNothing(arg) Then
             Return
         End If
-        PedidoVentaViewModel.CargarPedido(arg.Empresa, arg.Número, container)
+        PedidoVentaViewModel.CargarPedido(arg.Empresa, arg.Numero, container)
     End Sub
 
 #End Region

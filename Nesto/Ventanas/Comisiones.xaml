@@ -173,15 +173,15 @@
                 -->
                 <CollectionViewSource x:Key="cvs_listaPedidos" Source="{Binding Path=listaPedidos}" >
                     <CollectionViewSource.GroupDescriptions>
-                        <PropertyGroupDescription PropertyName="Dirección"/>
-                        <PropertyGroupDescription PropertyName="Número"/>
+                        <PropertyGroupDescription PropertyName="Direccion"/>
+                        <PropertyGroupDescription PropertyName="Numero"/>
                     </CollectionViewSource.GroupDescriptions>
                 </CollectionViewSource>
 
                 <CollectionViewSource x:Key="cvs_listaVentasComision" Source="{Binding Path=listaVentasComision}" >
                     <CollectionViewSource.GroupDescriptions>
                         <PropertyGroupDescription PropertyName="Grupo"/>
-                        <PropertyGroupDescription PropertyName="Dirección"/>
+                        <PropertyGroupDescription PropertyName="Direccion"/>
                     </CollectionViewSource.GroupDescriptions>
                 </CollectionViewSource>
 
@@ -193,8 +193,8 @@
 
                 <CollectionViewSource x:Key="cvs_listaVentasFecha" Source="{Binding Path=listaVentasFecha}" >
                     <CollectionViewSource.GroupDescriptions>
-                        <PropertyGroupDescription PropertyName="Fecha_Albarán"/>
-                        <PropertyGroupDescription PropertyName="Número"/>
+                        <PropertyGroupDescription PropertyName="FechaAlbaran"/>
+                        <PropertyGroupDescription PropertyName="Numero"/>
                     </CollectionViewSource.GroupDescriptions>
                 </CollectionViewSource>
 
@@ -546,13 +546,13 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Pedido" Binding="{Binding Número}" />
-                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding Nº_Cliente}" />
-                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Dirección}" />
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Numero}" />
+                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding NumeroCliente}" />
+                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Direccion}" />
                                 <DataGridTextColumn Header="Producto" Width="*" Binding="{Binding Producto}" />
                                 <DataGridTextColumn Header="Texto" Width="3*" Binding="{Binding Texto}" />
                                 <DataGridTextColumn Header="Familia" Width="*" Binding="{Binding Familia}" />
-                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding FechaEntrega, StringFormat=d}" />
                                 <DataGridTextColumn Header="Cantidad" Width="*" Binding="{Binding Cantidad}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
@@ -560,7 +560,7 @@
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding Base_Imponible, StringFormat=c}">
+                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding BaseImponible, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -657,13 +657,13 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Pedido" Binding="{Binding Número}" />
-                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding Nº_Cliente}" />
-                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Dirección}" />
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Numero}" />
+                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding NumeroCliente}" />
+                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Direccion}" />
                                 <DataGridTextColumn Header="Producto" Width="*" Binding="{Binding Producto}" />
                                 <DataGridTextColumn Header="Texto" Width="3*" Binding="{Binding Texto}" />
                                 <DataGridTextColumn Header="Familia" Width="*" Binding="{Binding Familia}" />
-                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding FechaEntrega, StringFormat=d}" />
                                 <DataGridTextColumn Header="Cantidad" Width="*" Binding="{Binding Cantidad}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
@@ -671,7 +671,7 @@
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding Base_Imponible, StringFormat=c}">
+                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding BaseImponible, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -756,13 +756,13 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Pedido" Binding="{Binding Número}" />
-                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding Nº_Cliente}" />
-                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Dirección}" />
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Numero}" />
+                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding NumeroCliente}" />
+                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Direccion}" />
                                 <DataGridTextColumn Header="Producto" Width="*" Binding="{Binding Producto}" />
                                 <DataGridTextColumn Header="Texto" Width="3*" Binding="{Binding Texto}" />
                                 <DataGridTextColumn Header="Familia" Width="*" Binding="{Binding Familia}" />
-                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding FechaEntrega, StringFormat=d}" />
                                 <DataGridTextColumn Header="Cantidad" Width="*" Binding="{Binding Cantidad}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
@@ -770,7 +770,7 @@
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding Base_Imponible, StringFormat=c}">
+                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding BaseImponible, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
@@ -850,7 +850,7 @@
                                                                     </TextBlock>
                                                                     <TextBlock Foreground="Blue" Margin="25,0,0,0" Width="400">
                                                                         <Run Text="Dirección:" />
-                                                                        <Run Text="{Binding Path=Items[0].Dirección, Mode=OneWay}"/>
+                                                                        <Run Text="{Binding Path=Items[0].Direccion, Mode=OneWay}"/>
                                                                     </TextBlock>
                                                                     <TextBlock Foreground="Blue" Margin="25,0,0,0" Width="200">
                                                                         <Run Text="Base Imponible:" />
@@ -896,13 +896,13 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="Pedido" Binding="{Binding Número}" />
-                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding Nº_Cliente}" />
-                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Dirección}" />
+                                <DataGridTextColumn Header="Pedido" Binding="{Binding Numero}" />
+                                <DataGridTextColumn Header="Cliente" Width="*" Binding="{Binding NumeroCliente}" />
+                                <DataGridTextColumn Header="Dirección" Width="3*" Binding="{Binding Direccion}" />
                                 <DataGridTextColumn Header="Producto" Width="*" Binding="{Binding Producto}" />
                                 <DataGridTextColumn Header="Texto" Width="3*" Binding="{Binding Texto}" />
                                 <DataGridTextColumn Header="Familia" Width="*" Binding="{Binding Familia}" />
-                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding Fecha_Entrega, StringFormat=d}" />
+                                <DataGridTextColumn Header="Fecha Entrega" Width="*" Binding="{Binding FechaEntrega, StringFormat=d}" />
                                 <DataGridTextColumn Header="Cantidad" Width="*" Binding="{Binding Cantidad}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
@@ -910,7 +910,7 @@
                                         </Style>
                                     </DataGridTextColumn.CellStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding Base_Imponible, StringFormat=c}">
+                                <DataGridTextColumn Header="Base Imponible" Width="*" Binding="{Binding BaseImponible, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
                                         <Style>
                                             <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />

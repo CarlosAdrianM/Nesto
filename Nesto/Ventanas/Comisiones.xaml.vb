@@ -74,7 +74,7 @@ Public Class GroupsToTotalConverter
             Dim total As Decimal = 0
 
             For Each gi In items
-                total += gi.Base_Imponible
+                total += gi.BaseImponible
             Next
 
             Return total.ToString("c")
@@ -98,7 +98,7 @@ Public Class GroupsToTotalConverterTwoLevels
 
             For Each gi In items
                 For Each item In gi.Items
-                    total += item.Base_Imponible
+                    total += item.BaseImponible
                 Next
             Next
 
