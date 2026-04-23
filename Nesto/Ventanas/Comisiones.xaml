@@ -163,6 +163,7 @@
                 <BooleanToVisibilityConverter x:Key="BoolToVis"/>
                 <local:GroupsToTotalConverter x:Key="groupsConverter" />
                 <local:GroupsToTotalConverterTwoLevels x:Key="groupsConverterTwoLevels" />
+                <local:ImporteOTextoConverter x:Key="importeOTexto" />
                 <!--
                 <DataTemplate x:Key="currency_celltemplate">
                     <TextBlock Text="{Binding Converter={StaticResource currencyConverter}}"/>
@@ -248,11 +249,11 @@
                     Foreground="White">  
                 </TextBlock>
 
-                <TextBlock Grid.Column="4" 
-                    Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}" 
-                    Text="{Binding ComisionAnualResumenActual.EtiquetaGeneral.FinalTramo, StringFormat=c}" 
-                    HorizontalAlignment="Right" 
-                    VerticalAlignment="Center" 
+                <TextBlock Grid.Column="4"
+                    Visibility="{Binding MostrarPanelComisionAnual, Converter={StaticResource BoolToVis}}"
+                    Text="{Binding ComisionAnualResumenActual.EtiquetaGeneral.FinalTramo, Converter={StaticResource importeOTexto}, ConverterParameter='Sin importe final'}"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
                     Margin="5,5">
                 </TextBlock>
             </Grid>
@@ -464,7 +465,7 @@
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" FontWeight="ExtraBold" Margin="3" FontSize="14">Totales Mes</TextBlock>
                                 <Label Grid.Row="1" Grid.Column="0" Content="Falta para salto:" ToolTip="Importe para dar el siguiente salto"/>
-                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding Path=ComisionAnualResumenActual.EtiquetaGeneral.FaltaParaSalto, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
+                                <TextBox Grid.Row="1" Grid.Column="1" Margin="3" Text="{Binding Path=ComisionAnualResumenActual.EtiquetaGeneral.FaltaParaSalto, Mode=OneWay, Converter={StaticResource importeOTexto}, ConverterParameter='No hay más saltos'}" HorizontalContentAlignment="Right"/>
                                 <Label Grid.Row="2" Grid.Column="0" Content="Proyección Año:"/>
                                 <TextBox Grid.Row="2" Grid.Column="1" Margin="3" Text="{Binding Path=ComisionAnualResumenActual.EtiquetaGeneral.Proyeccion, Mode=OneWay, StringFormat=c}" HorizontalContentAlignment="Right"/>
                                 <Label Grid.Row="3" FontWeight="Bold" Grid.Column="0" Content="TOTAL COMISIÓN:"/>

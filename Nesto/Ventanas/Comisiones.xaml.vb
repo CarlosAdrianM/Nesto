@@ -112,3 +112,31 @@ Public Class GroupsToTotalConverterTwoLevels
         Return value
     End Function
 End Class
+
+' NestoAPI#185 / Nesto#353: formatea importes decimales como moneda salvo cuando
+' valen -1 (centinela "sin límite de tramo"), en cuyo caso devuelve el texto
+' pasado por ConverterParameter. Uso típico:
+'   Text="{Binding FaltaParaSalto,
+'          Converter={StaticResource ImporteOTextoConverter},
+'          ConverterParameter='No hay más saltos'}"
+Public Class ImporteOTextoConverter
+    Implements IValueConverter
+
+    Public Const CENTINELA_SIN_LIMITE As Decimal = -1D
+
+    Private Function IValueConverter_Convert(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.Convert
+        If TypeOf value Is Decimal AndAlso CDec(value) = CENTINELA_SIN_LIMITE Then
+            Return If(parameter?.ToString(), String.Empty)
+        End If
+
+        If TypeOf value Is Decimal Then
+            Return CDec(value).ToString("C", culture)
+        End If
+
+        Return value
+    End Function
+
+    Private Function IValueConverter_ConvertBack(value As Object, targetType As Type, parameter As Object, culture As CultureInfo) As Object Implements IValueConverter.ConvertBack
+        Return value
+    End Function
+End Class
