@@ -28,7 +28,12 @@ namespace Nesto.Infrastructure.Services.ServirJunto
         public async Task<ValidarServirJuntoResponse> Validar(
             string almacen,
             List<ProductoBonificadoConCantidadRequest> productosBonificados,
-            List<ProductoBonificadoConCantidadRequest> lineasPedido)
+            List<ProductoBonificadoConCantidadRequest> lineasPedido,
+            string formaPago = null,
+            string plazosPago = null,
+            string ccc = null,
+            string periodoFacturacion = null,
+            bool? notaEntrega = null)
         {
             using (var client = new HttpClient())
             {
@@ -44,7 +49,12 @@ namespace Nesto.Infrastructure.Services.ServirJunto
                     {
                         Almacen = almacen,
                         ProductosBonificadosConCantidad = productosBonificados,
-                        LineasPedido = lineasPedido
+                        LineasPedido = lineasPedido,
+                        FormaPago = formaPago,
+                        PlazosPago = plazosPago,
+                        CCC = ccc,
+                        PeriodoFacturacion = periodoFacturacion,
+                        NotaEntrega = notaEntrega
                     };
 
                     var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");

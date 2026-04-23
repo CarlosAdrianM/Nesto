@@ -2144,15 +2144,32 @@ Public Class DetallePedidoViewModel
                 }) _
                 .ToList()
 
+            ' NestoAPI#187: pasamos los datos del pedido para que el backend evalúe si
+            ' aplica comisión contra reembolso y nos devuelva el aviso correspondiente.
             Dim respuesta = Await _servicioServirJunto.Validar(
                 almacenPedido,
                 New List(Of ProductoBonificadoConCantidadRequest)(),
-                lineasDelPedido).ConfigureAwait(True)
+                lineasDelPedido,
+                pedido.formaPago,
+                pedido.plazosPago,
+                pedido.ccc,
+                pedido.periodoFacturacion,
+                pedido.notaEntrega).ConfigureAwait(True)
 
             If Not respuesta.PuedeDesmarcar Then
                 pedido.servirJunto = True
                 RaisePropertyChanged(NameOf(pedido))
                 dialogService.ShowError(respuesta.Mensaje)
+                Return
+            End If
+
+            ' NestoAPI#187: aviso no-bloqueante (típicamente comisión por envío). Si el
+            ' usuario cancela, revertimos el desmarcado; si acepta, lo dejamos tal cual.
+            If Not String.IsNullOrEmpty(respuesta.Aviso) Then
+                If Not dialogService.ShowConfirmationAnswer("Servir Junto", respuesta.Aviso) Then
+                    pedido.servirJunto = True
+                    RaisePropertyChanged(NameOf(pedido))
+                End If
             End If
         Catch ex As Exception
             ' Fail-safe: si la validación falla por red o error inesperado, dejamos pasar.

@@ -790,7 +790,18 @@ Public Class PlantillaVentaViewModel
                 New List(Of ProductoBonificadoConCantidadRequest)()
             )
 
-            Dim respuesta = Await _servicioServirJunto.Validar(almacen, productosConCantidad, lineasDelPedido).ConfigureAwait(True)
+            ' NestoAPI#187: pasamos los datos del pedido para que el backend evalúe si
+            ' aplica comisión contra reembolso y nos devuelva el aviso correspondiente.
+            ' NotaEntrega no aplica en PlantillaVenta (pedidos nuevos desde cliente).
+            Dim respuesta = Await _servicioServirJunto.Validar(
+                almacen,
+                productosConCantidad,
+                lineasDelPedido,
+                Estado?.FormaPago,
+                Estado?.PlazosPago,
+                Estado?.Ccc,
+                Estado?.PeriodoFacturacion,
+                False).ConfigureAwait(True)
 
             If Not respuesta.PuedeDesmarcar Then
                 ' Revertir el cambio - volver a marcar ServirJunto
@@ -799,6 +810,16 @@ Public Class PlantillaVentaViewModel
 
                 ' Mostrar mensaje al usuario
                 dialogService.ShowError(respuesta.Mensaje)
+                Return
+            End If
+
+            ' NestoAPI#187: aviso no-bloqueante (comisión por envío). Si el usuario
+            ' cancela, revertimos el desmarcado; si acepta, lo dejamos tal cual.
+            If Not String.IsNullOrEmpty(respuesta.Aviso) Then
+                If Not dialogService.ShowConfirmationAnswer("Servir Junto", respuesta.Aviso) Then
+                    direccionEntregaSeleccionada.servirJunto = True
+                    RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+                End If
             End If
         Catch ex As Exception
             ' Si hay error, permitir desmarcar (fail-safe)

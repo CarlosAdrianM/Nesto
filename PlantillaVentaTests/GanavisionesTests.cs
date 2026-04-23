@@ -686,6 +686,77 @@ namespace PlantillaVentaTests
             Assert.IsNull(producto.AlmacenConStock);
         }
 
+        // NestoAPI#187 / Nesto#354: el request gana 5 campos del pedido para que el
+        // backend pueda calcular si aplica comisión contra reembolso. El response
+        // gana Aviso (string) con el texto a mostrar como confirmación al usuario.
+
+        [TestMethod]
+        public void ValidarServirJuntoRequest_DatosPedido_SeSerializan()
+        {
+            var request = new ValidarServirJuntoRequest
+            {
+                Almacen = "ALG",
+                FormaPago = "EFC",
+                PlazosPago = "30",
+                CCC = "ES0012345678901234567890",
+                PeriodoFacturacion = "NOR",
+                NotaEntrega = false
+            };
+
+            Assert.AreEqual("EFC", request.FormaPago);
+            Assert.AreEqual("30", request.PlazosPago);
+            Assert.AreEqual("ES0012345678901234567890", request.CCC);
+            Assert.AreEqual("NOR", request.PeriodoFacturacion);
+            Assert.IsFalse(request.NotaEntrega.Value);
+        }
+
+        [TestMethod]
+        public void ValidarServirJuntoRequest_SinDatosPedido_CamposSonNull()
+        {
+            // Retrocompat: los 5 campos son opcionales. Si el cliente no los rellena,
+            // llegan null al backend y el aviso no se genera.
+            var request = new ValidarServirJuntoRequest
+            {
+                Almacen = "ALG"
+            };
+
+            Assert.IsNull(request.FormaPago);
+            Assert.IsNull(request.PlazosPago);
+            Assert.IsNull(request.CCC);
+            Assert.IsNull(request.PeriodoFacturacion);
+            Assert.IsFalse(request.NotaEntrega.HasValue);
+        }
+
+        [TestMethod]
+        public void ValidarServirJuntoResponse_ConAviso_SePropaga()
+        {
+            var response = new ValidarServirJuntoResponse
+            {
+                PuedeDesmarcar = true,
+                ProductosProblematicos = new System.Collections.Generic.List<ProductoSinStockDTO>(),
+                Mensaje = null,
+                Aviso = "Si desmarcas Servir Junto, se aplicará una comisión de contra reembolso por cada envío"
+            };
+
+            Assert.IsTrue(response.PuedeDesmarcar);
+            Assert.IsNotNull(response.Aviso);
+            Assert.IsTrue(response.Aviso.Contains("comisión"));
+        }
+
+        [TestMethod]
+        public void ValidarServirJuntoResponse_SinAviso_EsNull()
+        {
+            // Pedido que no es contra reembolso: el servidor no pone Aviso.
+            var response = new ValidarServirJuntoResponse
+            {
+                PuedeDesmarcar = true,
+                ProductosProblematicos = new System.Collections.Generic.List<ProductoSinStockDTO>(),
+                Mensaje = null
+            };
+
+            Assert.IsNull(response.Aviso);
+        }
+
         #endregion
 
         /*
