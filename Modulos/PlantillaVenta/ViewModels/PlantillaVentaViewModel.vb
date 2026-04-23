@@ -776,12 +776,16 @@ Public Class PlantillaVentaViewModel
                 }).ToList(),
                 New List(Of ProductoBonificadoConCantidadRequest)()
             )
+            ' NestoAPI#175: marcamos como candidato a bonificado Ganavisiones toda línea
+            ' a 0 EUR (descuento 100%). El servidor confirma contra la tabla Ganavision
+            ' y descarta los falsos positivos (MMP, regalos por importe, etc.).
             Dim lineasDelPedido = If(
                 listaProductosPedido IsNot Nothing,
                 listaProductosPedido.Where(Function(l) Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.cantidad > 0) _
                     .Select(Function(l) New ProductoBonificadoConCantidadRequest With {
                         .ProductoId = l.producto,
-                        .Cantidad = l.cantidad
+                        .Cantidad = l.cantidad,
+                        .EsBonificadoGanavisiones = l.baseImponible = 0
                     }).ToList(),
                 New List(Of ProductoBonificadoConCantidadRequest)()
             )

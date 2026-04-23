@@ -2132,11 +2132,15 @@ Public Class DetallePedidoViewModel
 
         Try
             Dim almacenPedido As String = If(pedido.Lineas.FirstOrDefault()?.Almacen, "ALG")
+            ' NestoAPI#175: marcamos como candidato a bonificado Ganavisiones toda línea
+            ' a 0 EUR sin oferta. El servidor confirma contra la tabla Ganavision y
+            ' descarta los falsos positivos (MMP, regalos por importe, etc.).
             Dim lineasDelPedido = pedido.Lineas _
                 .Where(Function(l) l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.Cantidad > 0) _
                 .Select(Function(l) New ProductoBonificadoConCantidadRequest With {
                     .ProductoId = l.producto,
-                    .Cantidad = CInt(l.Cantidad)
+                    .Cantidad = CInt(l.Cantidad),
+                    .EsBonificadoGanavisiones = l.BaseImponible = 0 AndAlso (Not l.oferta.HasValue OrElse l.oferta.Value = 0)
                 }) _
                 .ToList()
 
