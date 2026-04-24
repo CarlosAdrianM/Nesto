@@ -97,11 +97,6 @@
 
         <RibbonTab x:Name="tabHerramientas"
                               Header="Herramientas">
-            <RibbonGroup x:Name="grpPrestashop"
-                                    Header="Mantenimiento">
-
-                <RibbonButton Label="Prestashop" LargeImageSource="/Images/Prestashop.png" Command="{Binding PrestashopCommand}" />
-            </RibbonGroup>
             <RibbonGroup x:Name="grpVideos"
                                     Header="Contenido" Visibility="{Binding VideosVisible}">
                 <RibbonButton Label="Videos" LargeImageSource="/Images/Prestashop.png" Command="{Binding VideosCommand}" />

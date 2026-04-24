@@ -47,7 +47,6 @@ Public Class MenuBarViewModel
         ClientesRemesasCommand = New DelegateCommand(AddressOf OnClientesRemesas)
         ClientesAgenciasCommand = New DelegateCommand(AddressOf OnClientesAgencias)
         RatioDeudaCommand = New DelegateCommand(AddressOf OnRatioDeuda)
-        PrestashopCommand = New DelegateCommand(AddressOf OnPrestashop)
         VideosCommand = New DelegateCommand(AddressOf OnVideos)
         VendedoresComisionesCommand = New DelegateCommand(AddressOf OnVendedoresComisiones)
         VendedoresClientesCommand = New DelegateCommand(AddressOf OnVendedoresClientes)
@@ -164,7 +163,6 @@ Public Class MenuBarViewModel
     Public Property ClientesRemesasCommand As ICommand
     Public Property ClientesAgenciasCommand As ICommand
     Public Property RatioDeudaCommand As ICommand
-    Public Property PrestashopCommand As ICommand
     Public Property VideosCommand As ICommand
     Public Property VendedoresComisionesCommand As ICommand
     Public Property VendedoresClientesCommand As ICommand
@@ -324,10 +322,6 @@ Public Class MenuBarViewModel
         NavegarAVista("Deuda")
     End Sub
 
-    Private Sub OnPrestashop()
-        NavegarAVista("Prestashop")
-    End Sub
-
     Private Sub OnVideos()
         _regionManager.RequestNavigate("MainRegion", "VideosView")
     End Sub
@@ -416,12 +410,6 @@ Public Class MenuBarViewModel
     Private Sub NavegarAVista(nombreVista As String)
         Dim viewType As Type = Nothing
         If Not _viewTypes.TryGetValue(nombreVista, viewType) Then
-            Return
-        End If
-
-        If nombreVista = "Prestashop" Then
-            Dim ventana = CType(_container.Resolve(viewType), Window)
-            ventana.Show()
             Return
         End If
 
