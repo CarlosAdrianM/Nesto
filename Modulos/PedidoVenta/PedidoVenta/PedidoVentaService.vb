@@ -483,6 +483,10 @@ Public Class PedidoVentaService
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
 
             Try
+                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+                End If
+
                 response = Await client.PostAsync("Facturas/CrearFactura", content)
 
                 If response.IsSuccessStatusCode Then
