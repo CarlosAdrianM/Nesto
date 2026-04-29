@@ -10,8 +10,9 @@
     
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition />
-            <ColumnDefinition Width="4*"/>
+            <ColumnDefinition Width="*" MinWidth="200"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="4*" MinWidth="400"/>
         </Grid.ColumnDefinitions>
 
         <DockPanel>
@@ -19,9 +20,17 @@
             <ContentControl DockPanel.Dock="Bottom" prism:RegionManager.RegionName="ListaPedidosRegion"></ContentControl>
         </DockPanel>
 
-        <Grid Grid.Column="1">
+        <GridSplitter Grid.Column="1"
+                      Width="5"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      ShowsPreview="False"
+                      ResizeBehavior="PreviousAndNext"
+                      Background="LightGray"/>
+
+        <Grid Grid.Column="2">
             <ContentControl prism:RegionManager.RegionName="DetallePedidoRegion"></ContentControl>
         </Grid>
-        
+
     </Grid>
 </UserControl>
