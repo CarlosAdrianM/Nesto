@@ -4,7 +4,7 @@ namespace Nesto.Informes
     {
         public string Producto { get; set; }
         public string Nombre { get; set; }
-        public int Tamanno { get; set; }
+        public short? Tamanno { get; set; }
         public string UnidadMedida { get; set; }
         public string Familia { get; set; }
         public int Cantidad { get; set; }
