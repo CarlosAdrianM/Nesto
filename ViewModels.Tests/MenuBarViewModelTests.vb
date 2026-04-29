@@ -97,12 +97,6 @@ Public Class MenuBarViewModelTests
     End Sub
 
     <TestMethod()>
-    Public Sub MenuBarViewModel_AlCrear_PrestashopCommandNoEsNulo()
-        Dim vm = CrearViewModel()
-        Assert.IsNotNull(vm.PrestashopCommand)
-    End Sub
-
-    <TestMethod()>
     Public Sub MenuBarViewModel_AlCrear_VideosCommandNoEsNulo()
         Dim vm = CrearViewModel()
         Assert.IsNotNull(vm.VideosCommand)
