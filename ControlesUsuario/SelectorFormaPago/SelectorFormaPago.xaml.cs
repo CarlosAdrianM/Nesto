@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -336,6 +337,7 @@ namespace ControlesUsuario
             // Issue #274: Verificar que Configuracion no sea null antes de cargar datos
             if (Configuracion == null)
             {
+                Debug.WriteLine("[SelectorFormaPago] Configuracion=null, no se carga la lista");
                 return;
             }
 
@@ -343,10 +345,11 @@ namespace ControlesUsuario
             {
                 client.BaseAddress = new Uri(Configuracion.servidorAPI);
                 HttpResponseMessage response;
+                string urlConsulta = null;
 
                 try
                 {
-                    string urlConsulta = "FormasPago?empresa=" + Empresa;
+                    urlConsulta = "FormasPago?empresa=" + Empresa;
                     if (!string.IsNullOrEmpty(Cliente))
                     {
                         urlConsulta += "&cliente=" + Cliente;
@@ -355,23 +358,34 @@ namespace ControlesUsuario
                             urlConsulta += $"&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}&tipoIva={TipoIva}";
                         }
                     }
+                    Debug.WriteLine($"[SelectorFormaPago] GET {Configuracion.servidorAPI}{urlConsulta}");
 
                     response = await client.GetAsync(urlConsulta);
-                    
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine($"[SelectorFormaPago] Status={(int)response.StatusCode} {response.StatusCode} | Body={Truncar(resultado, 800)}");
+
                     if (response.IsSuccessStatusCode)
                     {
-                        string resultado = await response.Content.ReadAsStringAsync();
                         listaFormasPago = JsonConvert.DeserializeObject<ObservableCollection<FormaPago>>(resultado);
+                        Debug.WriteLine($"[SelectorFormaPago] Items={listaFormasPago?.Count ?? 0} | Seleccionada={Seleccionada ?? "(null)"}");
                         if (formaPagoSeleccionada?.formaPago != Seleccionada) {
                             formaPagoSeleccionada = listaFormasPago.Where(l => l.formaPago == Seleccionada).SingleOrDefault();
                         }
-                    }                    
-                } catch
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"[SelectorFormaPago] Respuesta NO exitosa, lista NO actualizada");
+                    }
+                } catch (Exception ex)
                 {
+                    Debug.WriteLine($"[SelectorFormaPago] EXCEPCIÓN al cargar (url={urlConsulta}): {ex}");
                     MessageBox.Show("No se pudieron leer las formas de pago");
                 }
             }
         }
+
+        private static string Truncar(string texto, int max)
+            => texto == null ? "(null)" : (texto.Length <= max ? texto : texto.Substring(0, max) + $"... [+{texto.Length - max} chars]");
 
         protected void OnPropertyChanged(string name)
         {

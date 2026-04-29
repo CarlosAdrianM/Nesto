@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Net.Http;
@@ -337,53 +338,72 @@ namespace ControlesUsuario
             using HttpClient client = new();
             client.BaseAddress = new Uri(Configuracion.servidorAPI);
             HttpResponseMessage response;
+            string urlConsulta = null;
 
             try
             {
                 // Si hay cliente especificado, usar el nuevo endpoint con info de deuda
                 if (!string.IsNullOrEmpty(Cliente))
                 {
-                    string urlConsulta = $"PlazosPago/ConInfoDeuda?empresa={Empresa}&cliente={Cliente}";
+                    urlConsulta = $"PlazosPago/ConInfoDeuda?empresa={Empresa}&cliente={Cliente}";
+                    Debug.WriteLine($"[SelectorPlazosPago] GET {Configuracion.servidorAPI}{urlConsulta}");
 
                     response = await client.GetAsync(urlConsulta);
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine($"[SelectorPlazosPago] Status={(int)response.StatusCode} {response.StatusCode} | Body={Truncar(resultado, 800)}");
 
                     if (response.IsSuccessStatusCode)
                     {
-                        string resultado = await response.Content.ReadAsStringAsync();
                         var respuesta = JsonConvert.DeserializeObject<PlazosPagoResponse>(resultado);
 
                         listaPlazosPago = new ObservableCollection<PlazosPago>(respuesta.PlazosPago);
                         InfoDeuda = respuesta.InfoDeuda;
+                        Debug.WriteLine($"[SelectorPlazosPago] Items={listaPlazosPago.Count} | InfoDeuda={(InfoDeuda == null ? "null" : "presente")}");
 
                         ValidarYAjustarPlazoSeleccionado();
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"[SelectorPlazosPago] Respuesta NO exitosa, lista NO actualizada");
                     }
                 }
                 else
                 {
                     // Sin cliente, usar el endpoint original
-                    string urlConsulta = "PlazosPago?empresa=" + Empresa;
+                    urlConsulta = "PlazosPago?empresa=" + Empresa;
                     if (!string.IsNullOrEmpty(FormaPago) && TotalPedido != 0)
                     {
                         urlConsulta += $"&formaPago={FormaPago}&totalPedido={TotalPedido.ToString(CultureInfo.GetCultureInfo("en-US"))}";
                     }
+                    Debug.WriteLine($"[SelectorPlazosPago] GET {Configuracion.servidorAPI}{urlConsulta}");
 
                     response = await client.GetAsync(urlConsulta);
+                    string resultado = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine($"[SelectorPlazosPago] Status={(int)response.StatusCode} {response.StatusCode} | Body={Truncar(resultado, 800)}");
 
                     if (response.IsSuccessStatusCode)
                     {
-                        string resultado = await response.Content.ReadAsStringAsync();
                         listaPlazosPago = JsonConvert.DeserializeObject<ObservableCollection<PlazosPago>>(resultado);
                         InfoDeuda = null; // Sin cliente no hay info de deuda
+                        Debug.WriteLine($"[SelectorPlazosPago] Items={listaPlazosPago.Count}");
 
                         ValidarYAjustarPlazoSeleccionado();
                     }
+                    else
+                    {
+                        Debug.WriteLine($"[SelectorPlazosPago] Respuesta NO exitosa, lista NO actualizada");
+                    }
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[SelectorPlazosPago] EXCEPCIÓN al cargar (url={urlConsulta}): {ex}");
                 _ = MessageBox.Show("No se pudieron leer los plazos de pago");
             }
         }
+
+        private static string Truncar(string texto, int max)
+            => texto == null ? "(null)" : (texto.Length <= max ? texto : texto.Substring(0, max) + $"... [+{texto.Length - max} chars]");
 
         /// <summary>
         /// Valida que el plazo seleccionado esté en la lista disponible.
