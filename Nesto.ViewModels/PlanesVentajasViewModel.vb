@@ -11,6 +11,8 @@ Imports Nesto.Models.Nesto.Models
 Imports Prism.Mvvm
 Imports System.IO
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models.PlanesVentajas
+Imports Unity
 
 Public Class PlanesVentajasViewModel
     Inherits BindableBase
@@ -18,16 +20,19 @@ Public Class PlanesVentajasViewModel
     Private Shared DbContext As NestoEntities
     Public Property Titulo As String
     Dim configuracion As IConfiguracion
+    Private ReadOnly _servicio As PlanesVentajasService
     Private ruta As String
     Private Const ESTADO_PLAN_CANCELADO = 6
 
-    Public Sub New(configuracion As IConfiguracion)
+    Public Sub New(configuracion As IConfiguracion, container As IUnityContainer)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
         Me.configuracion = configuracion
         DbContext = New NestoEntities
         Titulo = "Planes de Ventajas"
+        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
+        _servicio = New PlanesVentajasService(configuracion, servicioAutenticacion)
     End Sub
 
     Async Function CargarDatos() As Task
@@ -35,7 +40,7 @@ Public Class PlanesVentajasViewModel
         ruta = Await configuracion.leerParametro(empresaDefecto, "RutaPlanVentajas")
         vendedor = Await configuracion.leerParametro(empresaDefecto, "Vendedor")
         listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
-        listaEstados = New ObservableCollection(Of EstadosPlanVentajas)(From c In DbContext.EstadosPlanVentajas)
+        listaEstados = New ObservableCollection(Of EstadoPlanVentajasModel)(Await _servicio.LeerEstados())
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
         barrasGrafico = New ObservableCollection(Of datosGrafico)
         gaugeGrafico = New ObservableCollection(Of datosGrafico)
@@ -292,12 +297,12 @@ Public Class PlanesVentajasViewModel
         End Set
     End Property
 
-    Private Property _listaEstados As ObservableCollection(Of EstadosPlanVentajas)
-    Public Property listaEstados As ObservableCollection(Of EstadosPlanVentajas)
+    Private Property _listaEstados As ObservableCollection(Of EstadoPlanVentajasModel)
+    Public Property listaEstados As ObservableCollection(Of EstadoPlanVentajasModel)
         Get
             Return _listaEstados
         End Get
-        Set(value As ObservableCollection(Of EstadosPlanVentajas))
+        Set(value As ObservableCollection(Of EstadoPlanVentajasModel))
             _listaEstados = value
             RaisePropertyChanged("listaEstados")
         End Set
