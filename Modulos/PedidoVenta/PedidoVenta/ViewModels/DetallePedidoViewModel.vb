@@ -1016,12 +1016,7 @@ Public Class DetallePedidoViewModel
             Return
         End If
 
-        ' Cambiar estado de las líneas que están en -1 (pendiente) o 1 (en curso) y sin picking
-        For Each linea In pedido.Lineas.Where(Function(l) (l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE OrElse
-                                                           l.estado = Constantes.LineasPedido.ESTADO_LINEA_EN_CURSO) AndAlso
-                                                           l.picking = 0)
-            linea.estado = Constantes.LineasPedido.ESTADO_LINEA_PRESUPUESTO
-        Next
+        AplicarPasarAPresupuestoEstado()
 
         ' Guardar los cambios
         cmdModificarPedido.Execute()
@@ -1031,6 +1026,22 @@ Public Class DetallePedidoViewModel
         AceptarPresupuestoCommand.RaiseCanExecuteChanged()
         PasarAPresupuestoCommand.RaiseCanExecuteChanged()
         CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
+    End Sub
+
+    ''' <summary>
+    ''' Pone las líneas pendientes/en curso sin picking en estado presupuesto (-3) y marca
+    ''' la cabecera como EsPresupuesto=True. Issue #356: el flag de cabecera es lo que permite
+    ''' a NestoAPI#193 distinguir "pasar a presupuesto" de "aceptar presupuesto"; sin él, el
+    ''' PUT vuelve a poner las líneas en EN_CURSO.
+    ''' Público para que los tests puedan verificar el efecto sin disparar cmdModificarPedido.
+    ''' </summary>
+    Public Sub AplicarPasarAPresupuestoEstado()
+        For Each linea In pedido.Lineas.Where(Function(l) (l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE OrElse
+                                                           l.estado = Constantes.LineasPedido.ESTADO_LINEA_EN_CURSO) AndAlso
+                                                           l.picking = 0)
+            linea.estado = Constantes.LineasPedido.ESTADO_LINEA_PRESUPUESTO
+        Next
+        pedido.EsPresupuesto = True
     End Sub
 
     Private _cmdActualizarTotales As DelegateCommand

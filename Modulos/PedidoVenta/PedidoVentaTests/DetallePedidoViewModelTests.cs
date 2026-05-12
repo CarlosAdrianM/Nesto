@@ -619,6 +619,78 @@ namespace PedidoVentaTests
                 "CanExecute debe ser TRUE cuando al menos una línea es válida para pasar a presupuesto");
         }
 
+        [TestMethod]
+        [TestCategory("PasarAPresupuesto")]
+        public void AplicarPasarAPresupuestoEstado_MarcaPedidoComoPresupuestoYCambiaEstadoDeLineas()
+        {
+            // Issue #356: tras pulsar "Pasar a presupuesto" el flag EsPresupuesto del wrapper
+            // debe quedar a True (para que NestoAPI#193 lo trate como "pasar a presupuesto"
+            // y no como "aceptar presupuesto", que volvería a poner las líneas en EN_CURSO).
+            // Además, las líneas elegibles deben quedar en estado -3 (PRESUPUESTO).
+
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
+
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
+            pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 1, estado = -1 });
+            pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 2, estado = 1 });
+            pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 3, estado = -1 });
+            pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 4, estado = 2 });
+            vm.pedido = new PedidoVentaWrapper(pedido);
+            // picking es propiedad del wrapper, no se lee del DTO: hay que asignarla aquí.
+            vm.pedido.Lineas[0].picking = 0;    // pendiente sin picking → -3
+            vm.pedido.Lineas[1].picking = 0;    // en curso sin picking → -3
+            vm.pedido.Lineas[2].picking = 100;  // con picking → no se toca
+            vm.pedido.Lineas[3].picking = 0;    // albaraneada → no se toca
+
+            Assert.IsFalse(vm.pedido.EsPresupuesto, "Precondición: el pedido no es presupuesto antes del cambio");
+
+            // Act
+            vm.AplicarPasarAPresupuestoEstado();
+
+            // Assert
+            Assert.IsTrue(vm.pedido.EsPresupuesto,
+                "EsPresupuesto debe quedar a True para que NestoAPI lo trate como 'pasar a presupuesto'");
+            Assert.AreEqual(-3, vm.pedido.Lineas[0].estado, "Línea pendiente sin picking debe quedar en -3");
+            Assert.AreEqual(-3, vm.pedido.Lineas[1].estado, "Línea en curso sin picking debe quedar en -3");
+            Assert.AreEqual(-1, vm.pedido.Lineas[2].estado, "Línea con picking no debe tocarse");
+            Assert.AreEqual(2,  vm.pedido.Lineas[3].estado, "Línea albaraneada no debe tocarse");
+        }
+
+        [TestMethod]
+        [TestCategory("PasarAPresupuesto")]
+        public void AplicarPasarAPresupuestoEstado_SinLineasElegibles_SoloMarcaEsPresupuesto()
+        {
+            // Si todas las líneas tienen picking o están albaraneadas, no se modifica ningún
+            // estado de línea, pero EsPresupuesto sí debe quedar a True (es la cabecera).
+
+            // Arrange
+            IRegionManager regionManager = A.Fake<IRegionManager>();
+            IConfiguracion configuracion = A.Fake<IConfiguracion>();
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            IEventAggregator eventAggregator = A.Fake<IEventAggregator>();
+            IDialogService dialogService = A.Fake<IDialogService>();
+            IUnityContainer container = A.Fake<IUnityContainer>();
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(regionManager, configuracion, servicio, eventAggregator, dialogService, container, A.Fake<IServicioAutenticacion>());
+
+            PedidoVentaDTO pedido = new PedidoVentaDTO { empresa = "1", numero = 12345 };
+            pedido.Lineas.Add(new LineaPedidoVentaDTO { id = 1, estado = 2, picking = 0 });
+            vm.pedido = new PedidoVentaWrapper(pedido);
+
+            // Act
+            vm.AplicarPasarAPresupuestoEstado();
+
+            // Assert
+            Assert.IsTrue(vm.pedido.EsPresupuesto, "EsPresupuesto siempre se pone a True");
+            Assert.AreEqual(2, vm.pedido.Lineas[0].estado, "La línea albaraneada no se toca");
+        }
+
         #endregion
 
         #region Issue #159 - Comisión contra reembolso
