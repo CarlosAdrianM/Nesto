@@ -73,14 +73,14 @@
                                         <Border VerticalAlignment="Top" BorderBrush="Black" BorderThickness="2" Width="Auto" Padding="3">
                                             <StackPanel>
                                                 <TextBlock Text="{Binding Path=Nombre}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                                <TextBlock Text="{Binding Path=Dirección}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Path=Direccion}" TextTrimming="CharacterEllipsis"/>
                                                 <WrapPanel>
                                                     <TextBlock Text="{Binding Path=CodPostal}" TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Text=" "/>
-                                                    <TextBlock Text="{Binding Path=Población}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Path=Poblacion}" TextTrimming="CharacterEllipsis"/>
                                                 </WrapPanel>
                                                 <WrapPanel>
-                                                    <TextBlock Text="{Binding Path=Nº_Cliente}" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Path=NumeroCliente}" TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Text="Contacto "/>
                                                     <TextBlock Text="{Binding Path=Contacto}" TextTrimming="CharacterEllipsis"/>
                                                     <TextBlock Text="{Binding Path=Vendedor}" TextTrimming="CharacterEllipsis"/>
@@ -102,7 +102,7 @@
                             <DataGrid DockPanel.Dock="Bottom" ItemsSource="{Binding listaPlanes}" SelectedItem="{Binding planActual}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" VerticalScrollBarVisibility="Visible">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
-                                    <DataGridTextColumn Header="Empresa" Binding="{Binding Empresas.Nombre}" />
+                                    <DataGridTextColumn Header="Empresa" Binding="{Binding EmpresaNombre}" />
                                     <DataGridTextColumn Header="Fecha Inicio" Binding="{Binding FechaInicio, StringFormat=d}" />
                                     <DataGridTextColumn Header="Fecha Final" Binding="{Binding FechaFin, StringFormat=d}" />
                                     <DataGridTextColumn Header="Importe Compromiso" Binding="{Binding Importe, StringFormat=c}" >
@@ -113,7 +113,7 @@
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
                                     <DataGridTextColumn Header="Familia" Binding="{Binding Familia}" />
-                                    <DataGridTextColumn Header="Estado" Binding="{Binding EstadosPlanVentajas.Descripcion}" />
+                                    <DataGridTextColumn Header="Estado" Binding="{Binding EstadoDescripcion}" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
@@ -139,7 +139,7 @@
                         <Label Grid.Row="0" Grid.Column="0" Content="Número:"/>
                         <TextBox Grid.Row="0" Grid.Column="1" Margin="3" Text="{Binding Path=planActual.Numero, Mode=OneWay}" HorizontalContentAlignment="Right"/>
                         <Label Grid.Row="0" Grid.Column="2" Content="Empresa:"/>
-                        <ComboBox Grid.Row="0" Grid.Column="3" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Número" SelectedValue="{Binding planActual.Empresa, Mode=TwoWay}" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="0" Grid.Column="3" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Numero" SelectedValue="{Binding planActual.Empresa, Mode=TwoWay}" VerticalAlignment="Center"/>
                         <Label Grid.Row="1" Grid.Column="0" Content="Fecha Inicio:"/>
                         <DatePicker Grid.Row="1" Grid.Column="1" Text="{Binding planActual.FechaInicio, Mode=TwoWay}" Margin="3"/>
                         <Label Grid.Row="1" Grid.Column="2" Content="Fecha Final:"/>
@@ -167,18 +167,18 @@
 
             <DataGrid Grid.Row="1" ItemsSource="{Binding lineasVenta}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Nº Pedido" Binding="{Binding Número}" />
+                    <DataGridTextColumn Header="Nº Pedido" Binding="{Binding NumeroPedido}" />
                     <DataGridTextColumn Header="Producto" Binding="{Binding Producto}" />
                     <DataGridTextColumn Header="Texto" Binding="{Binding Texto}" Width="4*"/>
                     <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad}" />
-                    <DataGridTextColumn Header="Base Imponible" Binding="{Binding Base_Imponible, StringFormat=c}">
+                    <DataGridTextColumn Header="Base Imponible" Binding="{Binding BaseImponible, StringFormat=c}">
                         <DataGridTextColumn.CellStyle>
                             <Style>
                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                             </Style>
                         </DataGridTextColumn.CellStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Fecha Factura" Binding="{Binding Fecha_Factura, StringFormat=d}" />
+                    <DataGridTextColumn Header="Fecha Factura" Binding="{Binding FechaFactura, StringFormat=d}" />
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
