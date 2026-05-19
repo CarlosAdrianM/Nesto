@@ -10,7 +10,9 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http;
 using System.Xml;
+using Newtonsoft.Json.Linq;
 using static FikaAmazonAPI.Utils.Constants;
 using System.Threading.Tasks;
 using FikaAmazonAPI.AmazonSpApiSDK.Models.Token;
@@ -18,15 +20,59 @@ using FikaAmazonAPI.AmazonSpApiSDK.Services;
 
 public class AmazonApiOrdersService
 {
+    // Marketplace ID de amazon.ae (Emiratos �rabes Unidos).
+    internal const string MARKETPLACE_AE = "A2VIGQ35RCS4UG";
+
+    // Construye la lista de MarketplaceIds para las consultas de pedidos.
+    private static List<string> ConstruirMarketplaceIds()
+    {
+        return DatosMarkets.Mercados.Select(m => m.Id).ToList();
+    }
+
+    // Logging de diagn�stico: sale por la ventana de salida (Output) tanto en
+    // Debug como en Release. Prefijo greppable [AmazonDiag].
+    internal static void LogDiag(string mensaje)
+    {
+        System.Diagnostics.Trace.WriteLine("[AmazonDiag] " + mensaje);
+    }
+
+    private static void LogResultadoConsulta(string consulta, ParameterOrderList parametros, List<Order> orders)
+    {
+        LogDiag($"{consulta}: CreatedAfter={parametros.CreatedAfter:yyyy-MM-dd HH:mm} | " +
+                $"MarketplaceIds=[{string.Join(",", parametros.MarketplaceIds ?? new List<string>())}] | " +
+                $"total devueltos={orders?.Count ?? 0}");
+        if (orders == null)
+        {
+            return;
+        }
+        foreach (var grupo in orders.GroupBy(o => o.MarketplaceId))
+        {
+            LogDiag($"{consulta}:   marketplace {grupo.Key} -> {grupo.Count()} pedido(s)");
+        }
+        var ae = orders.Where(o => o.MarketplaceId == MARKETPLACE_AE).ToList();
+        if (!ae.Any())
+        {
+            LogDiag($"{consulta}:   *** NING�N pedido de Amazon.ae ({MARKETPLACE_AE}) en esta consulta ***");
+        }
+        foreach (var o in ae)
+        {
+            LogDiag($"{consulta}:   Amazon.ae -> {o.AmazonOrderId} | estado={o.OrderStatus} | " +
+                    $"canal={o.FulfillmentChannel} | moneda={o.OrderTotal?.CurrencyCode} | " +
+                    $"importe={o.OrderTotal?.Amount} | compra={o.PurchaseDate}");
+        }
+    }
+
     public static async Task<List<Order>> Ejecutar(DateTime fechaDesde, int numeroMaxPedidos)
     {
 
-        try 
+        try
         {
             List<Order> response = await InvokeListOrders(fechaDesde, numeroMaxPedidos).ConfigureAwait(false);
             // A�adimos los FBA
             List<Order> responseFBA = await InvokeListOrdersFBA(fechaDesde, numeroMaxPedidos).ConfigureAwait(false);
             response.AddRange(responseFBA);
+            LogDiag($"Ejecutar: MFN={response.Count - responseFBA.Count} + FBA={responseFBA.Count} = {response.Count} pedidos totales. " +
+                    $"De Amazon.ae: {response.Count(o => o.MarketplaceId == MARKETPLACE_AE)}");
             return response;
         }
         catch (Exception ex)
@@ -68,12 +114,7 @@ public class AmazonApiOrdersService
             OrderStatuses.Unshipped,
             OrderStatuses.PartiallyShipped
         };
-        List<string> marketplaceId = new List<string>();
-        foreach (var market in DatosMarkets.Mercados)
-        {
-            marketplaceId.Add(market.Id);
-        }
-        searchOrderList.MarketplaceIds = marketplaceId;
+        searchOrderList.MarketplaceIds = ConstruirMarketplaceIds();
         //searchOrderList.MaxResultsPerPage = numeroMaxPedidos;
         searchOrderList.IsNeedRestrictedDataToken = false;
         searchOrderList.RestrictedDataTokenRequest = new CreateRestrictedDataTokenRequest
@@ -94,6 +135,7 @@ public class AmazonApiOrdersService
         {
             var conexion = AmazonApiOrdersService.ConexionAmazon();
             var orders = await conexion.Orders.GetOrdersAsync(searchOrderList).ConfigureAwait(false);
+            LogResultadoConsulta("MFN (Unshipped/PartiallyShipped)", searchOrderList, orders);
             foreach (var orderAdresss in orders)
             {
                 var address = await conexion.Orders.GetOrderAddressAsync(orderAdresss.AmazonOrderId).ConfigureAwait(false);
@@ -115,12 +157,7 @@ public class AmazonApiOrdersService
         {
             OrderStatuses.Shipped
         };
-        List<string> marketplaceId = new List<string>();
-        foreach (var market in DatosMarkets.Mercados)
-        {
-            marketplaceId.Add(market.Id);
-        }
-        searchOrderList.MarketplaceIds = marketplaceId;
+        searchOrderList.MarketplaceIds = ConstruirMarketplaceIds();
         List<FulfillmentChannels> fulfillmentChannel = new List<FulfillmentChannels>
         {
             FulfillmentChannels.AFN
@@ -150,6 +187,7 @@ public class AmazonApiOrdersService
         {
             var conexion = AmazonApiOrdersService.ConexionAmazon();
             var orders = await conexion.Orders.GetOrdersAsync(searchOrderList).ConfigureAwait(false);
+            LogResultadoConsulta("FBA (Shipped/AFN)", searchOrderList, orders);
             foreach (var orderAdresss in orders)
             {
                 var address = await conexion.Orders.GetOrderAddressAsync(orderAdresss.AmazonOrderId).ConfigureAwait(false);
@@ -241,46 +279,97 @@ public class AmazonApiOrdersService
         {
             throw new Exception("No se puede convertir a monedas distintas al Euro");
         }
+
+        // El valor que manejamos es "unidades de la divisa por 1 EUR" (igual que el atributo
+        // rate del BCE). Para pasar un importe en esa divisa a EUR se multiplica por 1/valor.
+
+        // 1ª fuente: tipos de referencia del BCE. No cotiza divisas como AED (amazon.ae),
+        // SAR o EGP, as� que para esos marketplaces devuelve null y usamos el fallback.
+        decimal? unidadesPorEuro = ObtenerTasaBancoCentralEuropeo(monedaOrigen);
+
+        // 2� fuente (fallback): API p�blica que s� cotiza divisas fuera del BCE.
+        if (unidadesPorEuro == null || unidadesPorEuro <= 0)
+        {
+            unidadesPorEuro = ObtenerTasaFuenteAlternativa(monedaOrigen);
+        }
+
+        if (unidadesPorEuro == null || unidadesPorEuro <= 0)
+        {
+            throw new Exception($"No se ha podido calcular el cambio de {monedaOrigen} a EUR en ninguna fuente (BCE ni fallback)");
+        }
+
+        return 1M / unidadesPorEuro.Value;
+    }
+
+    private static decimal? ObtenerTasaBancoCentralEuropeo(string monedaOrigen)
+    {
         try
         {
-            List<Rate> rates = new List<Rate>();
-
             var doc = new XmlDocument();
             doc.Load(@"http://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml");
 
             XmlNodeList nodes = doc.SelectNodes("//*[@currency]");
-
-            if (nodes != null)
+            if (nodes == null)
             {
-                foreach (XmlNode node in nodes)
+                return null;
+            }
+            foreach (XmlNode node in nodes)
+            {
+                if (string.Equals(node.Attributes["currency"].Value, monedaOrigen, StringComparison.OrdinalIgnoreCase))
                 {
-                    var rate = new Rate()
-                    {
-                        Currency = node.Attributes["currency"].Value,
-                        Value = Decimal.Parse(node.Attributes["rate"].Value, NumberStyles.Any, new CultureInfo("en-Us"))
-                    };
-                    rates.Add(rate);
+                    return Decimal.Parse(node.Attributes["rate"].Value, NumberStyles.Any, new CultureInfo("en-US"));
                 }
             }
-            Rate destino = rates.Single(r => r.Currency == monedaOrigen);
-            if (destino != null)
-            {
-                return 1M / destino.Value;
-            }
-            else
-            {
-                throw new Exception("No se ha podido calcular el cambio del d�a");
-            }
+            return null;
         }
-        catch (Exception ex)
+        catch
         {
-            throw ex;
+            return null;
         }
     }
-    class Rate
+
+    private static decimal? ObtenerTasaFuenteAlternativa(string monedaOrigen)
     {
-        public string Currency { get; set; }
-        public decimal Value { get; set; }
+        try
+        {
+            using (var client = new HttpClient())
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
+                // open.er-api.com: gratuita, sin API key, base EUR, incluye AED/SAR/EGP.
+                string json = client.GetStringAsync("https://open.er-api.com/v6/latest/EUR").GetAwaiter().GetResult();
+                return ExtraerTasaFuenteAlternativa(json, monedaOrigen);
+            }
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Parsea la respuesta de open.er-api.com y devuelve las unidades de
+    /// <paramref name="monedaOrigen"/> por 1 EUR, o null si no est� disponible.
+    /// P�blico para poder testear el parseo sin depender de la red.
+    /// </summary>
+    public static decimal? ExtraerTasaFuenteAlternativa(string json, string monedaOrigen)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+        var raiz = JObject.Parse(json);
+        if ((string)raiz["result"] != "success")
+        {
+            return null;
+        }
+        var rates = raiz["rates"] as JObject;
+        var token = rates?[monedaOrigen.ToUpperInvariant()];
+        if (token == null)
+        {
+            return null;
+        }
+        decimal valor = token.Value<decimal>();
+        return valor > 0 ? valor : (decimal?)null;
     }
 
     public static AmazonConnection ConexionAmazon()

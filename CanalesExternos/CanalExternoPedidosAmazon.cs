@@ -41,6 +41,8 @@ namespace Nesto.Modulos.CanalesExternos
         public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
         {
             List<Order> listaAmazon = await AmazonApiOrdersService.Ejecutar(fechaDesde, numeroMaxPedidos);
+            AmazonApiOrdersService.LogDiag($"GetAllPedidosAsync: recibidos {listaAmazon.Count} pedidos de Ejecutar, " +
+                $"de los cuales {listaAmazon.Count(o => o.MarketplaceId == AmazonApiOrdersService.MARKETPLACE_AE)} de Amazon.ae");
 
 
             ObservableCollection<PedidoCanalExterno> listaNesto = new ObservableCollection<PedidoCanalExterno>();
@@ -48,14 +50,23 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 foreach (Order order in listaAmazon)
                 {
+                    bool esAe = order.MarketplaceId == AmazonApiOrdersService.MARKETPLACE_AE;
                     if (order.OrderTotal != null && order.OrderTotal.CurrencyCode != Constantes.Empresas.MONEDA_CONTABILIDAD)
                     {
                         try
                         {
                             CambioDivisas = AmazonApiOrdersService.CalculaDivisa(order.OrderTotal.CurrencyCode, Constantes.Empresas.MONEDA_CONTABILIDAD);
+                            if (esAe)
+                            {
+                                AmazonApiOrdersService.LogDiag($"GetAllPedidosAsync: Amazon.ae {order.AmazonOrderId} " +
+                                    $"cambio {order.OrderTotal.CurrencyCode}->EUR = {CambioDivisas}");
+                            }
                         }
-                        catch
+                        catch (Exception exDivisa)
                         {
+                            AmazonApiOrdersService.LogDiag($"GetAllPedidosAsync: DESCARTADO {order.AmazonOrderId} " +
+                                $"(marketplace={order.MarketplaceId}, moneda={order.OrderTotal.CurrencyCode}) " +
+                                $"por fallo de conversi�n de divisa: {exDivisa.Message}");
                             continue;
                         }
                     }
