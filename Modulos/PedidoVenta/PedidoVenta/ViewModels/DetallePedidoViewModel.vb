@@ -1745,6 +1745,15 @@ Public Class DetallePedidoViewModel
         End If
 
         ' Hay cambios sin guardar
+        ' Carlos 19/05/26: diagnóstico de UNA sola vez (Issue #254). Loguea qué
+        ' campos difieren respecto al snapshot, para saber qué setter los toca
+        ' en la carga sin que el usuario cambie nada. Prefijo greppable [PedidoDiff].
+        If Not EstaCreandoPedido AndAlso Not IsNothing(pedido) AndAlso Not IsNothing(_snapshotPedidoGuardado) Then
+            Dim difs = pedido.Model.ObtenerCamposDiferentes(_snapshotPedidoGuardado)
+            System.Diagnostics.Trace.WriteLine($"[PedidoDiff] Pedido {pedido.numero}: " &
+                If(difs.Any(), String.Join(" | ", difs), "(sin diferencias detectadas)"))
+        End If
+
         Dim mensaje As String
         If EstaCreandoPedido Then
             mensaje = "El pedido aún no ha sido guardado. Debe guardar el pedido antes de crear albarán o factura." & vbCrLf & vbCrLf &

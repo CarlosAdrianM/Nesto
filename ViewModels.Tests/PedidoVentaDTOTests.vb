@@ -626,4 +626,126 @@ Public Class PedidoVentaDTOTests
 
 #End Region
 
+#Region "ObtenerCamposDiferentes - diagnóstico (Issue #254)"
+
+    ''' <summary>
+    ''' Caso real pedido 917517: el snapshot guardó ccc='1  ' (char de BD con
+    ''' espacios) y SelectorCCC reseteó pedido.Model.ccc a Nothing al cargar.
+    ''' Debe detectarse como diferencia real y reportar el campo y los valores.
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerCamposDiferentes_CccPadConEspaciosVsNothing_LoReporta()
+        ' Arrange
+        Dim snapshot As New PedidoVentaDTO() With {.ccc = "1  "}
+        Dim actual As New PedidoVentaDTO() With {.ccc = Nothing}
+
+        ' Act
+        Dim difs = actual.ObtenerCamposDiferentes(snapshot)
+
+        ' Assert
+        Assert.AreEqual(1, difs.Count)
+        Assert.IsTrue(difs(0).StartsWith("ccc:"), $"Esperado que empiece por 'ccc:', fue: {difs(0)}")
+        Assert.IsTrue(difs(0).Contains("'1  '"), $"Debe mostrar el valor del snapshot '1  ', fue: {difs(0)}")
+        Assert.IsTrue(difs(0).Contains("<Nothing>"), $"Debe mostrar <Nothing> como valor actual, fue: {difs(0)}")
+    End Sub
+
+    ''' <summary>
+    ''' Diferencia solo de espacios ('1  ' vs '1'): NO debe reportarse, en sync
+    ''' con Equals/StringsIguales (los char de BD vienen con padding).
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerCamposDiferentes_CccSoloEspacios_NoLoReporta()
+        ' Arrange
+        Dim snapshot As New PedidoVentaDTO() With {.ccc = "1  "}
+        Dim actual As New PedidoVentaDTO() With {.ccc = "1"}
+
+        ' Act
+        Dim difs = actual.ObtenerCamposDiferentes(snapshot)
+
+        ' Assert
+        Assert.AreEqual(0, difs.Count, $"No debía reportar nada; reportó: {String.Join(" | ", difs)}")
+    End Sub
+
+    <TestMethod()>
+    Public Sub ObtenerCamposDiferentes_PedidosIguales_ListaVacia()
+        ' Arrange
+        Dim p As New PedidoVentaDTO() With {.formaPago = "TRN", .ccc = "ES123", .iva = "G21"}
+        Dim snapshot = p.CrearSnapshot()
+
+        ' Act
+        Dim difs = p.ObtenerCamposDiferentes(snapshot)
+
+        ' Assert
+        Assert.AreEqual(0, difs.Count)
+    End Sub
+
+    <TestMethod()>
+    Public Sub ObtenerCamposDiferentes_SnapshotNothing_DevuelveMarcador()
+        ' Arrange
+        Dim actual As New PedidoVentaDTO() With {.ccc = "1"}
+
+        ' Act
+        Dim difs = actual.ObtenerCamposDiferentes(Nothing)
+
+        ' Assert
+        Assert.AreEqual(1, difs.Count)
+        Assert.IsTrue(difs(0).Contains("snapshot es Nothing"), $"Fue: {difs(0)}")
+    End Sub
+
+    <TestMethod()>
+    Public Sub ObtenerCamposDiferentes_CampoNoString_SeReporta()
+        ' Arrange
+        Dim snapshot As New PedidoVentaDTO() With {.servirJunto = True}
+        Dim actual As New PedidoVentaDTO() With {.servirJunto = False}
+
+        ' Act
+        Dim difs = actual.ObtenerCamposDiferentes(snapshot)
+
+        ' Assert
+        Assert.AreEqual(1, difs.Count)
+        Assert.IsTrue(difs(0).StartsWith("servirJunto:"), $"Fue: {difs(0)}")
+    End Sub
+
+    ''' <summary>
+    ''' Comentarios multilínea: se escapan los saltos de línea para que la
+    ''' traza quepa en una sola línea de la ventana de salida.
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerCamposDiferentes_ComentariosMultilinea_EscapaSaltos()
+        ' Arrange
+        Dim snapshot As New PedidoVentaDTO() With {.comentarios = "antiguo"}
+        Dim actual As New PedidoVentaDTO() With {.comentarios = "linea1" & vbCrLf & "linea2"}
+
+        ' Act
+        Dim difs = actual.ObtenerCamposDiferentes(snapshot)
+
+        ' Assert
+        Assert.AreEqual(1, difs.Count)
+        Assert.IsTrue(difs(0).StartsWith("comentarios:"), $"Fue: {difs(0)}")
+        Assert.IsFalse(difs(0).Contains(vbLf), "No debe contener saltos de línea reales")
+        Assert.IsTrue(difs(0).Contains("\r") OrElse difs(0).Contains("\n"), $"Debe escapar los saltos, fue: {difs(0)}")
+    End Sub
+
+    ''' <summary>
+    ''' Consistencia: ObtenerCamposDiferentes está vacío si y solo si Equals
+    ''' devuelve True. Garantiza que no se desincronice del Equals.
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerCamposDiferentes_ConsistenteConEquals()
+        ' Arrange - varios campos distintos
+        Dim a As New PedidoVentaDTO() With {.formaPago = "TRN", .ccc = "1  ", .iva = "G21", .servirJunto = True}
+        Dim b As New PedidoVentaDTO() With {.formaPago = "EFC", .ccc = Nothing, .iva = "G21", .servirJunto = False}
+
+        ' Act & Assert - distintos
+        Assert.IsFalse(a.Equals(b))
+        Assert.IsTrue(a.ObtenerCamposDiferentes(b).Count > 0)
+
+        ' Act & Assert - iguales (snapshot de sí mismo)
+        Dim snap = a.CrearSnapshot()
+        Assert.IsTrue(a.Equals(snap))
+        Assert.AreEqual(0, a.ObtenerCamposDiferentes(snap).Count)
+    End Sub
+
+#End Region
+
 End Class

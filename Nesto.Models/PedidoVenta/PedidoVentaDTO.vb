@@ -160,6 +160,65 @@ Public Class PedidoVentaDTO
     End Function
 
     ''' <summary>
+    ''' Diagnóstico (Issue #254): devuelve los campos que difieren respecto a
+    ''' 'other' (el snapshot), con formato "campo: 'snapshot' -> 'actual'".
+    ''' DEBE mantenerse en sync con Equals. Pensado para llamarse UNA sola vez
+    ''' al detectar cambios (no en el hot path de Equals).
+    ''' </summary>
+    Public Function ObtenerCamposDiferentes(other As PedidoVentaDTO) As List(Of String)
+        Dim difs As New List(Of String)
+        If other Is Nothing Then
+            difs.Add("(el snapshot es Nothing)")
+            Return difs
+        End If
+        If ReferenceEquals(Me, other) Then Return difs
+
+        AnadirSiTextoDistinto(difs, "formaPago", formaPago, other.formaPago)
+        AnadirSiTextoDistinto(difs, "plazosPago", plazosPago, other.plazosPago)
+        AnadirSiTextoDistinto(difs, "ccc", ccc, other.ccc)
+        AnadirSiTextoDistinto(difs, "iva", iva, other.iva)
+        AnadirSiTextoDistinto(difs, "vendedor", vendedor, other.vendedor)
+        AnadirSiTextoDistinto(difs, "periodoFacturacion", periodoFacturacion, other.periodoFacturacion)
+        AnadirSiTextoDistinto(difs, "ruta", ruta, other.ruta)
+        AnadirSiTextoDistinto(difs, "serie", serie, other.serie)
+        AnadirSiTextoDistinto(difs, "contacto", contacto, other.contacto)
+        AnadirSiTextoDistinto(difs, "contactoCobro", contactoCobro, other.contactoCobro)
+        AnadirSiTextoDistinto(difs, "comentarios", comentarios, other.comentarios)
+        AnadirSiTextoDistinto(difs, "comentarioPicking", comentarioPicking, other.comentarioPicking)
+        AnadirSiTextoDistinto(difs, "suPedido", suPedido, other.suPedido)
+        If Not Nullable.Equals(primerVencimiento, other.primerVencimiento) Then
+            difs.Add($"primerVencimiento: '{other.primerVencimiento}' -> '{primerVencimiento}'")
+        End If
+        If noComisiona <> other.noComisiona Then
+            difs.Add($"noComisiona: '{other.noComisiona}' -> '{noComisiona}'")
+        End If
+        If mantenerJunto <> other.mantenerJunto Then
+            difs.Add($"mantenerJunto: '{other.mantenerJunto}' -> '{mantenerJunto}'")
+        End If
+        If servirJunto <> other.servirJunto Then
+            difs.Add($"servirJunto: '{other.servirJunto}' -> '{servirJunto}'")
+        End If
+        If notaEntrega <> other.notaEntrega Then
+            difs.Add($"notaEntrega: '{other.notaEntrega}' -> '{notaEntrega}'")
+        End If
+        Return difs
+    End Function
+
+    Private Shared Sub AnadirSiTextoDistinto(difs As List(Of String), campo As String, valorActual As String, valorSnapshot As String)
+        If Not StringsIguales(valorActual, valorSnapshot) Then
+            difs.Add($"{campo}: '{TruncarDiagnostico(valorSnapshot)}' -> '{TruncarDiagnostico(valorActual)}'")
+        End If
+    End Sub
+
+    Private Shared Function TruncarDiagnostico(valor As String) As String
+        If valor Is Nothing Then Return "<Nothing>"
+        Dim v = valor.Replace(vbCr, "\r").Replace(vbLf, "\n")
+        Const maxLong As Integer = 200
+        If v.Length > maxLong Then Return v.Substring(0, maxLong) & "…(+" & (v.Length - maxLong) & ")"
+        Return v
+    End Function
+
+    ''' <summary>
     ''' Compara dos strings tratando Nothing y "" como iguales, y aplicando Trim().
     ''' Esto es necesario porque:
     ''' - La API puede devolver Nothing y el DTO puede tener ""
