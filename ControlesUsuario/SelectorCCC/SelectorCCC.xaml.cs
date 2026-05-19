@@ -332,7 +332,12 @@ namespace ControlesUsuario
             // Si ya hay una selección válida en la lista, respetarla
             if (!string.IsNullOrEmpty(CCCSeleccionado))
             {
-                var existe = lista.Any(c => c.numero == CCCSeleccionado);
+                // Comparar con Trim(): el ccc del pedido viene de un char de BD
+                // relleno con espacios ('1  ') y c.numero del API viene recortado
+                // ('1'). Sin Trim, "1" != "1  " => se cree que no existe y resetea
+                // ccc a null, mutando pedido.Model.ccc y disparando un falso
+                // "el pedido ha cambiado" al facturar (Issue #254).
+                var existe = lista.Any(c => string.Equals(c.numero?.Trim(), CCCSeleccionado?.Trim(), StringComparison.Ordinal));
                 Debug.WriteLine($"[SelectorCCC] AutoSeleccionarCCC - CCC '{CCCSeleccionado}' existe en lista: {existe}");
                 if (existe)
                     return; // Mantener selección actual
