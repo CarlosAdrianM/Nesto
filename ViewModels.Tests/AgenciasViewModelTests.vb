@@ -1099,5 +1099,45 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual("5208522919307544", codigoBarrasRetorno)
     End Sub
 
+    ' Nesto#359: tests mínimos de AgenciaCanteras. La factory de AgenciasViewModel la invoca
+    ' al seleccionar la agencia, así que como mínimo debe construirse sin crashear, devolver
+    ' "OK" en la llamada al "web service" (sin integración real) y no admitir retorno/cobro
+    ' (Canteras solo entrega; reembolso lo bloquea NestoAPI).
+
+    <TestMethod>
+    Public Sub AgenciaCanteras_Constructor_NoLanzaExcepcion()
+        Dim canteras = New AgenciaCanteras()
+
+        Assert.IsNotNull(canteras.ListaPaises)
+        Assert.IsNotNull(canteras.ListaTiposRetorno)
+        Assert.IsNotNull(canteras.ListaServicios)
+        Assert.IsNotNull(canteras.ListaHorarios)
+    End Sub
+
+    <TestMethod>
+    Public Async Function AgenciaCanteras_LlamadaWebService_DevuelveOkSinIntegracion() As Task
+        Dim canteras = New AgenciaCanteras()
+        Dim respuesta = Await canteras.LlamadaWebService(New EnviosAgencia(), Nothing)
+
+        Assert.IsTrue(respuesta.Exito, "Canteras no integra; debe responder OK para que la máquina de estados avance.")
+        Assert.AreEqual("OK", respuesta.TextoRespuestaError)
+    End Function
+
+    <TestMethod>
+    Public Sub AgenciaCanteras_NoAdmiteRetorno()
+        Dim canteras = New AgenciaCanteras()
+
+        Assert.AreEqual(CByte(0), canteras.retornoObligatorio,
+            "Canteras nunca pide retorno (operativa manual).")
+        Assert.AreEqual(CByte(0), canteras.retornoSinRetorno)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaCanteras_PaisDefecto_EsEspanna()
+        Dim canteras = New AgenciaCanteras()
+
+        Assert.AreEqual(34, canteras.paisDefecto, "Canarias es territorio español; país por defecto = 34.")
+    End Sub
+
 End Class
 
