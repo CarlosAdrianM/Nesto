@@ -517,14 +517,21 @@
                                 <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="Auto"/>
                                 <DataGridTextColumn Header="Móvil" Binding="{Binding Movil}" Width="Auto"/>
                                 <DataGridTextColumn Header="C.P." Binding="{Binding CodPostal}" Width="Auto"/>
+                                <DataGridTextColumn Header="Nº Envío" Binding="{Binding CodigoBarras}" Width="Auto"/>
                                 <DataGridTextColumn Header="Fecha Pago" Binding="{Binding FechaPagoReembolso, StringFormat=d}" Width="Auto"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
                     </DockPanel>
-                    <StackPanel Grid.Row="2">
-                        <TextBlock Text="{Binding etiquetaBultosTramitados}" HorizontalAlignment="Right"/>
-                    </StackPanel>
+                    <DockPanel Grid.Row="2" LastChildFill="False">
+                        <!-- Nesto#359: visible solo si la agencia del envío seleccionado permite edición manual
+                             (hoy solo Canteras) y CodigoBarras está vacío. CanExecute del comando hace el filtrado. -->
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Pegar nº envío"
+                                Command="{Binding cmdPegarCodigoBarras}"
+                                ToolTip="Pegar el nº de envío que la agencia ha devuelto por correo (Canteras y similares)."/>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding etiquetaBultosTramitados}" HorizontalAlignment="Right"/>
+                    </DockPanel>
                 </Grid>
             </TabItem>
             <TabItem Name="tabReembolsos" Header="Reembolsos">

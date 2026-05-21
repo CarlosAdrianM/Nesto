@@ -206,4 +206,10 @@ Public Class AgenciaOnTime
         End Get
     End Property
 
+    Public ReadOnly Property PermiteEditarCodigoBarras As Boolean Implements IAgencia.PermiteEditarCodigoBarras
+        Get
+            Return False
+        End Get
+    End Property
+
 End Class

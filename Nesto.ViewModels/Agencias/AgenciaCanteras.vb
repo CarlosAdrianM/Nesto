@@ -156,4 +156,11 @@ Public Class AgenciaCanteras
         End Get
     End Property
 
+    Public ReadOnly Property PermiteEditarCodigoBarras As Boolean Implements IAgencia.PermiteEditarCodigoBarras
+        Get
+            ' Canteras devuelve el nº de envío por correo; el usuario lo pega a mano.
+            Return True
+        End Get
+    End Property
+
 End Class

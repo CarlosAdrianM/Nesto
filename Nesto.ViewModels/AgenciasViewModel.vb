@@ -93,6 +93,7 @@ Public Class AgenciasViewModel
         BorrarEnvioPendienteCommand = New DelegateCommand(AddressOf OnBorrarEnvioPendiente, AddressOf CanBorrarEnvioPendiente)
         GuardarEnvioPendienteCommand = New DelegateCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
+        cmdPegarCodigoBarras = New DelegateCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
 
         factory.Add("ASM", Function() New AgenciaASM(Me))
         'factory.Add("OnTime", Function() New AgenciaOnTime(Me))
@@ -227,6 +228,7 @@ Public Class AgenciasViewModel
                 If Not IsNothing(value) Then
                     agenciaEspecifica = factory(value.Nombre).Invoke
                     numClienteContabilizar = agenciaEspecifica.NumeroCliente
+                    cmdPegarCodigoBarras?.RaiseCanExecuteChanged()
                     If String.IsNullOrEmpty(PestannaNombre) Then
                         Return
                     End If
@@ -753,6 +755,7 @@ Public Class AgenciasViewModel
                 Return
             End Try
             cmdModificar.RaiseCanExecuteChanged()
+            cmdPegarCodigoBarras?.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -1587,6 +1590,37 @@ Public Class AgenciasViewModel
         Dim unused = listaEnvios.Remove(copiaEnvio)
         envioActual = listaEnvios.LastOrDefault
         RaisePropertyChanged(NameOf(listaEnvios))
+    End Sub
+
+    ' Nesto#359: para agencias sin integración (Canteras) el usuario pega manualmente el
+    ' nº de envío que la agencia devuelve por correo. Solo se permite si la agencia lo
+    ' declara con IAgencia.PermiteEditarCodigoBarras y el CodigoBarras está vacío (para
+    ' no pisar números ya asignados, propios o de tramitados previos).
+    Private _cmdPegarCodigoBarras As DelegateCommand
+    Public Property cmdPegarCodigoBarras As DelegateCommand
+        Get
+            Return _cmdPegarCodigoBarras
+        End Get
+        Private Set(value As DelegateCommand)
+            _cmdPegarCodigoBarras = value
+        End Set
+    End Property
+    Private Function CanPegarCodigoBarras() As Boolean
+        Return envioActual IsNot Nothing AndAlso
+               agenciaEspecifica IsNot Nothing AndAlso
+               agenciaEspecifica.PermiteEditarCodigoBarras AndAlso
+               String.IsNullOrEmpty(envioActual.CodigoBarras)
+    End Function
+    Friend Sub OnPegarCodigoBarras()
+        Dim mensaje = $"Introduce el nº de envío para el pedido {envioActual.Pedido}:"
+        Dim numeroEnvio = _dialogService.GetText("Pegar nº envío", mensaje)
+        If String.IsNullOrWhiteSpace(numeroEnvio) Then
+            Return
+        End If
+        envioActual.CodigoBarras = numeroEnvio.Trim()
+        _servicio.Modificar(envioActual)
+        cmdPegarCodigoBarras.RaiseCanExecuteChanged()
+        RaisePropertyChanged(NameOf(envioActual))
     End Sub
 
     Private _cmdInsertar As DelegateCommand(Of Object)

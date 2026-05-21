@@ -31,4 +31,10 @@ Public Interface IAgencia
     Function RespuestaYaTramitada(respuesta As String) As Boolean
     ReadOnly Property NumeroCliente As String
 
+    ' Nesto#359: Canteras devuelve el nº de envío por correo y el usuario lo pega a mano
+    ' en CodigoBarras. Para no hardcodear la agencia en la UI, cada IAgencia declara si
+    ' acepta edición manual del CodigoBarras. Por defecto False (CEX, ASM, etc. lo
+    ' calculan automáticamente al tramitar y no se debe pisar).
+    ReadOnly Property PermiteEditarCodigoBarras As Boolean
+
 End Interface

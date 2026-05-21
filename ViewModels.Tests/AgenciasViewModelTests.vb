@@ -1139,5 +1139,101 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(34, canteras.paisDefecto, "Canarias es territorio español; país por defecto = 34.")
     End Sub
 
+    ' Nesto#359: flag PermiteEditarCodigoBarras. Canteras lo declara True para que el
+    ' usuario pueda pegar el nº de envío que llega por correo. El resto de agencias
+    ' debe heredar el default False (calculan el código automáticamente y pisarlo
+    ' rompería el seguimiento). Comprobamos al menos una para detectar despistes.
+
+    <TestMethod>
+    Public Sub AgenciaCanteras_PermiteEditarCodigoBarras_DevuelveTrue()
+        Dim canteras = New AgenciaCanteras()
+
+        Assert.IsTrue(canteras.PermiteEditarCodigoBarras,
+            "Canteras debe permitir edición manual del nº de envío (llega por correo después de tramitar).")
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaCorreosExpress_PermiteEditarCodigoBarras_DevuelveFalse()
+        Dim cex = New AgenciaCorreosExpress()
+
+        Assert.IsFalse(cex.PermiteEditarCodigoBarras,
+            "CEX calcula el CodigoBarras automáticamente al tramitar; pisarlo a mano rompería el tracking.")
+    End Sub
+
+    ' Nesto#359: cmdPegarCodigoBarras. Solo habilitado si la agencia lo permite Y el
+    ' CodigoBarras está vacío (para no sobreescribir tramitados/asignados). Ejecutarlo
+    ' debe asignar el texto introducido y llamar a _servicio.Modificar.
+
+    <TestMethod>
+    Public Sub cmdPegarCodigoBarras_SinEnvioActual_CanExecuteFalse()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
+        viewModel.envioActual = Nothing
+
+        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute())
+    End Sub
+
+    <TestMethod>
+    Public Sub cmdPegarCodigoBarras_AgenciaNoPermite_CanExecuteFalse()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Correos Express"}
+        viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = Nothing}
+
+        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute())
+    End Sub
+
+    <TestMethod>
+    Public Sub cmdPegarCodigoBarras_CodigoBarrasYaAsignado_CanExecuteFalse()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
+        viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = "ENV-ABC-001"}
+
+        Assert.IsFalse(viewModel.cmdPegarCodigoBarras.CanExecute(),
+            "Si CodigoBarras ya está asignado no se debe permitir editar para no perder el original.")
+    End Sub
+
+    <TestMethod>
+    Public Sub cmdPegarCodigoBarras_CanterasYCodigoVacio_CanExecuteTrue()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
+        viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = Nothing}
+
+        Assert.IsTrue(viewModel.cmdPegarCodigoBarras.CanExecute())
+    End Sub
+
+    <TestMethod>
+    Public Sub cmdPegarCodigoBarras_DialogCancelado_NoLlamaAModificar()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
+        viewModel.envioActual = New EnviosAgencia With {.CodigoBarras = Nothing}
+        ' Sin mock de ShowDialog → callback no se invoca → GetText devuelve Nothing → Return temprano.
+
+        viewModel.cmdPegarCodigoBarras.Execute()
+
+        Assert.IsTrue(String.IsNullOrEmpty(viewModel.envioActual.CodigoBarras))
+        A.CallTo(Sub() servicio.Modificar(A(Of EnviosAgencia).Ignored)).MustNotHaveHappened()
+    End Sub
+
+    <TestMethod>
+    Public Sub cmdPegarCodigoBarras_DialogConTexto_AsignaCodigoYLlamaAModificar()
+        Dim fakeResult = A.Fake(Of IDialogResult)
+        A.CallTo(Function() fakeResult.Result).Returns(ButtonResult.OK)
+        Dim params = New DialogParameters From {{"text", "ENVIO-12345"}}
+        A.CallTo(Function() fakeResult.Parameters).Returns(params)
+        A.CallTo(Sub() dialogService.
+                     ShowDialog("InputTextDialog", A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
+                     Invokes(Of String, IDialogParameters, Action(Of IDialogResult))(Sub(n, p, c) c(fakeResult))
+
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras"}
+        Dim envio = New EnviosAgencia With {.CodigoBarras = Nothing, .Pedido = "12345"}
+        viewModel.envioActual = envio
+
+        viewModel.cmdPegarCodigoBarras.Execute()
+
+        Assert.AreEqual("ENVIO-12345", envio.CodigoBarras)
+        A.CallTo(Sub() servicio.Modificar(envio)).MustHaveHappenedOnceExactly()
+    End Sub
+
 End Class
 

@@ -118,6 +118,12 @@ Public Class AgenciaCorreosExpress
         End Get
     End Property
 
+    Public ReadOnly Property PermiteEditarCodigoBarras As Boolean Implements IAgencia.PermiteEditarCodigoBarras
+        Get
+            Return False
+        End Get
+    End Property
+
 
     Public Sub calcularPlaza(codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         nemonico = "CE"

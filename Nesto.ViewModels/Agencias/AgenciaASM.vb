@@ -712,6 +712,12 @@ Public Class AgenciaASM
         End Get
     End Property
 
+    Public ReadOnly Property PermiteEditarCodigoBarras As Boolean Implements IAgencia.PermiteEditarCodigoBarras
+        Get
+            Return False
+        End Get
+    End Property
+
     Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
         Get
             Return "20244"
