@@ -239,9 +239,18 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 return;
             }
 
-            if (oferta.Detalles.Count < 2)
+            if (oferta.Detalles.Count == 0)
             {
-                _dialogService.ShowError("Una oferta combinada debe tener al menos 2 productos.");
+                _dialogService.ShowError("Una oferta combinada debe tener al menos un producto.");
+                return;
+            }
+
+            // Se admiten ofertas de un solo producto (p. ej. 2ª unidad al 50 %): varias
+            // líneas con precio, o una sola línea con el precio total en el importe mínimo.
+            // Una sola línea sin importe mínimo no la podría autorizar el validador de precios.
+            if (oferta.Detalles.Count == 1 && oferta.ImporteMinimo <= 0)
+            {
+                _dialogService.ShowError("Una oferta combinada de una sola línea debe tener un importe mínimo mayor que cero.");
                 return;
             }
 
