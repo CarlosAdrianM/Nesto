@@ -269,6 +269,58 @@ namespace ControlesUsuario.Tests
                 "Debe respetar la selección previa 'ES2222222222', NO auto-seleccionar el primero");
         }
 
+        [TestMethod]
+        [TestCategory("SelectorCCC")]
+        [TestCategory("AutoSeleccion")]
+        public async Task SelectorCCC_ConSeleccionPreviaConEspaciosDePadding_DebeMantenerSeleccion()
+        {
+            // Regresión Issue #254 (commit 92a2c06): el ccc del pedido viene de un
+            // char de BD relleno con espacios ('1  ') y el numero de la lista del API
+            // viene recortado ('1'). Si la comprobación de pertenencia no usa Trim(),
+            // cree que el CCC no existe y, al no ser RCB, lo resetea a null mutando
+            // pedido.Model.ccc sin que el usuario toque nada → falso "el pedido ha
+            // cambiado" al facturar (caso real pedidos 917517 y 917826).
+            // Arrange
+            var servicioCCC = A.Fake<IServicioCCC>();
+
+            var cccsEsperados = new List<CCCItem>
+            {
+                new CCCItem { numero = "1", estado = 1 } // El API devuelve el numero recortado
+            };
+
+            A.CallTo(() => servicioCCC.ObtenerCCCs("1", "10", "0"))
+                .Returns(Task.FromResult<IEnumerable<CCCItem>>(cccsEsperados));
+
+            SelectorCCC sut = null;
+            string cccSeleccionado = "valorInicial"; // Para detectar si se resetea a null
+
+            // Act
+            Thread thread = new Thread(() =>
+            {
+                sut = new SelectorCCC(servicioCCC);
+                sut.CCCSeleccionado = "1  "; // Como viene del char de BD del pedido (con padding)
+                sut.FormaPago = "EFC";       // NO es RCB: si no encuentra el CCC, lo resetearía a null
+                sut.Contacto = "0";
+                sut.Cliente = "10";
+                sut.Empresa = "1";
+
+                System.Threading.Thread.Sleep(300);
+                cccSeleccionado = sut.CCCSeleccionado;
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            await Task.Delay(200);
+
+            // Assert
+            Assert.IsNotNull(cccSeleccionado,
+                "El CCC '1  ' (con padding del char de BD) debe reconocerse como existente " +
+                "en la lista (numero '1' recortado del API) y NO resetearse a null.");
+            Assert.AreEqual("1  ", cccSeleccionado,
+                "Debe mantener la selección previa tal cual, sin mutarla");
+        }
+
         #endregion
 
         #region Test: Opción "(Sin CCC)"
