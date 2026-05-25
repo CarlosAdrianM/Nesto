@@ -1,16 +1,23 @@
 Imports System.Collections.ObjectModel
+Imports System.Globalization
+Imports System.Text
 Imports System.Windows
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 
 ' Nesto#359: Canteras es la agencia que hace los envíos a Canarias. No tiene integración
 ' (ni web service, ni impresión de etiquetas): el flujo es 100% manual — se les manda un
-' correo con los datos del envío y nos contestan con el nº de envío, que el usuario tiene
-' que pegar en el campo CodigoBarras desde la pestaña de envíos. La validación de mínimos
-' (400€ pedido o 100€ portes) y la prohibición de contra reembolso se hacen en NestoAPI
-' al crear la etiqueta (NestoAPI#204).
+' correo con los datos del envío y la factura adjunta (la necesitan para el DUA), y nos
+' contestan con el nº de envío, que el usuario tiene que pegar en el campo CodigoBarras
+' desde la pestaña de envíos. La validación de mínimos (400€ pedido o 100€ portes) y la
+' prohibición de contra reembolso se hacen en NestoAPI al crear la etiqueta (NestoAPI#204).
 Public Class AgenciaCanteras
     Implements IAgencia
+
+    ' Hardcoded a propósito: es responsabilidad del cliente saber a qué buzón notificar.
+    ' Si Canteras lo cambia, se toca aquí y se republica. NO debe filtrarse a NestoAPI:
+    ' el endpoint de correo es genérico y no conoce "Canteras".
+    Public Const CORREO_CANTERAS As String = "recogidas.mad@canteras.com"
 
     Public Sub New()
         ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
@@ -50,19 +57,77 @@ Public Class AgenciaCanteras
         emailPlaza = String.Empty
     End Sub
 
-    Public Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
-        ' Sin integración. Mismo patrón que OnTime: devolvemos "OK" para que la máquina de
-        ' estados de Agencias avance, pero el tramitado real lo hace el usuario por correo.
-        Dim respuesta As New RespuestaAgencia With {
+    Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
+        ' Tramitar = mandar el correo a Canteras con la factura adjunta. La respuesta del
+        ' servicio determina Exito; AgenciasViewModel ya muestra TextoRespuestaError al
+        ' usuario (vía dialogService) cuando Exito=False, así que basta con propagarlo.
+        If Not envio.Pedido.HasValue Then
+            Return New RespuestaAgencia With {
+                .Agencia = "Canteras",
+                .Fecha = Date.Now,
+                .UrlLlamada = String.Empty,
+                .Exito = False,
+                .CuerpoLlamada = String.Empty,
+                .CuerpoRespuesta = String.Empty,
+                .TextoRespuestaError = "El envío no tiene pedido asociado."
+            }
+        End If
+
+        Dim asunto As String = $"Solicitud de recogida — Pedido {envio.Pedido.Value} ({envio.Nombre?.Trim()})"
+        Dim cuerpo As String = ComponerCuerpoCorreo(envio)
+
+        Dim respuestaCorreo = Await servicio.EnviarCorreoConFacturaDelPedido(envio.Empresa, envio.Pedido.Value, CORREO_CANTERAS, asunto, cuerpo).ConfigureAwait(False)
+
+        Return New RespuestaAgencia With {
             .Agencia = "Canteras",
             .Fecha = Date.Now,
             .UrlLlamada = String.Empty,
-            .Exito = True,
-            .CuerpoLlamada = String.Empty,
+            .Exito = respuestaCorreo.Exito,
+            .CuerpoLlamada = cuerpo,
             .CuerpoRespuesta = String.Empty,
-            .TextoRespuestaError = "OK"
+            .TextoRespuestaError = respuestaCorreo.Mensaje
         }
-        Return Task.FromResult(Of RespuestaAgencia)(respuesta)
+    End Function
+
+    Public Shared Function ComponerCuerpoCorreo(envio As EnviosAgencia) As String
+        ' Réplica del correo manual que se mandaba antes de automatizar (Nesto#359):
+        ' identificador cliente, nombre, dirección, CP+población+provincia, teléfono,
+        ' bultos y peso, y mención del adjunto. Sin medidas (no las tenemos en EnviosAgencia).
+        Dim sb As New StringBuilder()
+        sb.AppendLine("Buenas tardes,")
+        sb.AppendLine()
+        sb.AppendLine("Necesitamos recogida de un envío a:")
+
+        Dim identificador As String = $"{envio.Cliente?.Trim()}/{envio.Contacto?.Trim()}".Trim("/"c)
+        If Not String.IsNullOrWhiteSpace(identificador) Then
+            sb.AppendLine(identificador)
+        End If
+        If Not String.IsNullOrWhiteSpace(envio.Nombre) Then sb.AppendLine(envio.Nombre.Trim())
+        If Not String.IsNullOrWhiteSpace(envio.Direccion) Then sb.AppendLine(envio.Direccion.Trim())
+
+        Dim ubicacion As String = String.Join(" ", New String() {envio.CodPostal?.Trim(), envio.Poblacion?.Trim()}.Where(Function(s) Not String.IsNullOrWhiteSpace(s)))
+        If Not String.IsNullOrWhiteSpace(envio.Provincia) Then
+            ubicacion = $"{ubicacion} ({envio.Provincia.Trim()})"
+        End If
+        If Not String.IsNullOrWhiteSpace(ubicacion) Then sb.AppendLine(ubicacion.Trim())
+
+        Dim telefono As String = If(Not String.IsNullOrWhiteSpace(envio.Telefono), envio.Telefono?.Trim(), envio.Movil?.Trim())
+        If Not String.IsNullOrWhiteSpace(telefono) Then sb.AppendLine(telefono)
+
+        sb.AppendLine()
+        Dim bultos As Integer = envio.Bultos
+        Dim pesoTexto As String = envio.Peso.ToString("0.##", CultureInfo.InvariantCulture)
+        If bultos = 1 Then
+            sb.AppendLine($"Es un bulto y unos {pesoTexto} kgs.")
+        Else
+            sb.AppendLine($"Son {bultos} bultos y unos {pesoTexto} kgs en total.")
+        End If
+
+        sb.AppendLine()
+        sb.AppendLine("Adjuntamos factura.")
+        sb.AppendLine()
+        sb.AppendLine("Gracias.")
+        Return sb.ToString()
     End Function
 
     Public Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta

@@ -1115,13 +1115,95 @@ Public Class AgenciaViewModelTests
     End Sub
 
     <TestMethod>
-    Public Async Function AgenciaCanteras_LlamadaWebService_DevuelveOkSinIntegracion() As Task
+    Public Async Function AgenciaCanteras_LlamadaWebService_ConPedido_DelegaEnElServicioYPropagaExito() As Task
         Dim canteras = New AgenciaCanteras()
-        Dim respuesta = Await canteras.LlamadaWebService(New EnviosAgencia(), Nothing)
+        Dim envio = New EnviosAgencia With {
+            .Empresa = "1",
+            .Pedido = 12345,
+            .Nombre = "Cliente Tinerfeño S.L."
+        }
+        A.CallTo(Function() servicio.EnviarCorreoConFacturaDelPedido(
+            A(Of String).Ignored, A(Of Integer).Ignored, A(Of String).Ignored,
+            A(Of String).Ignored, A(Of String).Ignored)) _
+            .Returns(Task.FromResult(Of (Exito As Boolean, Mensaje As String))((True, "Correo enviado correctamente a recogidas.mad@canteras.com.")))
 
-        Assert.IsTrue(respuesta.Exito, "Canteras no integra; debe responder OK para que la máquina de estados avance.")
-        Assert.AreEqual("OK", respuesta.TextoRespuestaError)
+        Dim respuesta = Await canteras.LlamadaWebService(envio, servicio)
+
+        Assert.IsTrue(respuesta.Exito)
+        Assert.AreEqual("Canteras", respuesta.Agencia)
+        Assert.IsTrue(respuesta.TextoRespuestaError.Contains("recogidas.mad@canteras.com"))
+        A.CallTo(Function() servicio.EnviarCorreoConFacturaDelPedido(
+            "1", 12345, AgenciaCanteras.CORREO_CANTERAS,
+            A(Of String).That.Matches(Function(s) s.Contains("Pedido 12345") AndAlso s.Contains("Cliente Tinerfeño")),
+            A(Of String).Ignored)).MustHaveHappenedOnceExactly()
     End Function
+
+    <TestMethod>
+    Public Async Function AgenciaCanteras_LlamadaWebService_ServicioDevuelveError_PropagaExitoFalso() As Task
+        Dim canteras = New AgenciaCanteras()
+        Dim envio = New EnviosAgencia With {.Empresa = "1", .Pedido = 99, .Nombre = "X"}
+        A.CallTo(Function() servicio.EnviarCorreoConFacturaDelPedido(
+            A(Of String).Ignored, A(Of Integer).Ignored, A(Of String).Ignored,
+            A(Of String).Ignored, A(Of String).Ignored)) _
+            .Returns(Task.FromResult(Of (Exito As Boolean, Mensaje As String))((False, "El pedido 99 no tiene factura asociada todavía.")))
+
+        Dim respuesta = Await canteras.LlamadaWebService(envio, servicio)
+
+        Assert.IsFalse(respuesta.Exito,
+            "Si el servicio reporta error (típicamente: pedido sin facturar), AgenciaCanteras debe propagarlo para que AgenciasViewModel lo muestre al usuario.")
+        Assert.IsTrue(respuesta.TextoRespuestaError.Contains("no tiene factura"))
+    End Function
+
+    <TestMethod>
+    Public Async Function AgenciaCanteras_LlamadaWebService_SinPedido_NoLlamaAlServicio() As Task
+        Dim canteras = New AgenciaCanteras()
+        Dim envio = New EnviosAgencia With {.Empresa = "1", .Pedido = Nothing}
+
+        Dim respuesta = Await canteras.LlamadaWebService(envio, servicio)
+
+        Assert.IsFalse(respuesta.Exito)
+        Assert.IsTrue(respuesta.TextoRespuestaError.Contains("pedido"),
+            "Sin pedido no podemos buscar factura ni mandar correo; debe abortar con mensaje claro.")
+        A.CallTo(Function() servicio.EnviarCorreoConFacturaDelPedido(
+            A(Of String).Ignored, A(Of Integer).Ignored, A(Of String).Ignored,
+            A(Of String).Ignored, A(Of String).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod>
+    Public Sub AgenciaCanteras_ComponerCuerpoCorreo_IncluyeDatosClaveDelEnvio()
+        Dim envio = New EnviosAgencia With {
+            .Cliente = "41221",
+            .Contacto = "0",
+            .Nombre = "ALVAREZ MORALES MARIA JOSE",
+            .Direccion = "C/ SAN CRISTOBAL VEREDA ROMERO, 169 CASA",
+            .CodPostal = "38359",
+            .Poblacion = "RAVELO",
+            .Provincia = "SANTA CRUZ DE TENERIFE",
+            .Telefono = "651018584",
+            .Bultos = CByte(1),
+            .Peso = 6D
+        }
+
+        Dim cuerpo = AgenciaCanteras.ComponerCuerpoCorreo(envio)
+
+        Assert.IsTrue(cuerpo.Contains("ALVAREZ MORALES"), "Debe incluir el nombre del destinatario.")
+        Assert.IsTrue(cuerpo.Contains("38359"), "Debe incluir el CP para que Canteras vea el destino.")
+        Assert.IsTrue(cuerpo.Contains("RAVELO"), "Debe incluir la población.")
+        Assert.IsTrue(cuerpo.Contains("SANTA CRUZ"), "Debe incluir la provincia.")
+        Assert.IsTrue(cuerpo.Contains("651018584"), "Debe incluir el teléfono de contacto.")
+        Assert.IsTrue(cuerpo.Contains("41221/0"), "Debe incluir cliente/contacto como identificador.")
+        Assert.IsTrue(cuerpo.Contains("Adjuntamos factura"), "Debe mencionar la factura adjunta.")
+        Assert.IsTrue(cuerpo.Contains("6 kgs"), "Debe incluir el peso del envío.")
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaCanteras_ComponerCuerpoCorreo_VariosBultos_LoIndicaEnPlural()
+        Dim envio = New EnviosAgencia With {.Bultos = CByte(3), .Peso = 18.5D}
+
+        Dim cuerpo = AgenciaCanteras.ComponerCuerpoCorreo(envio)
+
+        Assert.IsTrue(cuerpo.Contains("3 bultos"), "Con varios bultos debe indicarlo (no 'un bulto').")
+    End Sub
 
     <TestMethod>
     Public Sub AgenciaCanteras_NoAdmiteRetorno()

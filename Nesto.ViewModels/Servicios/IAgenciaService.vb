@@ -48,4 +48,10 @@ Public Interface IAgenciaService
     Function EsTodoElPedidoOnline(empresa As String, pedido As Integer) As Boolean
     Function GuardarLlamadaAgencia(respuesta As RespuestaAgencia) As Task
     Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal)
+
+    ' Nesto#359: envía un correo (vía /api/Correos/Enviar) con el PDF de la factura del
+    ' pedido adjunto. Lo usa AgenciaCanteras.LlamadaWebService para notificar recogidas a
+    ' Canteras (que necesitan la factura para el DUA), pero es genérico: cualquier flujo
+    ' puede llamarlo. Si el pedido aún no tiene factura, devuelve Exito=False.
+    Function EnviarCorreoConFacturaDelPedido(empresa As String, numeroPedido As Integer, destinatario As String, asunto As String, cuerpo As String) As Task(Of (Exito As Boolean, Mensaje As String))
 End Interface

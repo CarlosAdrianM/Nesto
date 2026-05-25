@@ -534,4 +534,58 @@ Public Class AgenciaService
         End Using
     End Function
 
+    Public Async Function EnviarCorreoConFacturaDelPedido(empresa As String, numeroPedido As Integer, destinatario As String, asunto As String, cuerpo As String) As Task(Of (Exito As Boolean, Mensaje As String)) Implements IAgenciaService.EnviarCorreoConFacturaDelPedido
+        ' Nesto#359: Canteras necesita la factura adjunta para el DUA. Buscamos la primera
+        ' línea del pedido con Nº_Factura informado (en pedidos parciales puede haber líneas
+        ' sin facturar todavía); si no hay ninguna, abortamos sin enviar.
+        Dim numeroFactura As String = Nothing
+        Using contexto = New NestoEntities
+            numeroFactura = (From l In contexto.LinPedidoVta
+                             Where l.Empresa = empresa AndAlso l.Número = numeroPedido AndAlso l.Nº_Factura <> Nothing AndAlso l.Nº_Factura <> ""
+                             Select l.Nº_Factura).FirstOrDefault()
+        End Using
+
+        If String.IsNullOrWhiteSpace(numeroFactura) Then
+            Return (False, $"El pedido {numeroPedido} no tiene factura asociada todavía. Factura primero el pedido y vuelve a tramitar el envío.")
+        End If
+
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Return (False, "No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            Dim urlFactura As String = $"Facturas?empresa={empresa.Trim()}&numeroFactura={numeroFactura.Trim()}"
+            Dim respuestaPdf As HttpResponseMessage = Await client.GetAsync(urlFactura)
+            If Not respuestaPdf.IsSuccessStatusCode Then
+                Return (False, $"No se pudo descargar la factura {numeroFactura.Trim()}: {CInt(respuestaPdf.StatusCode)} {respuestaPdf.ReasonPhrase}")
+            End If
+            Dim bytesPdf As Byte() = Await respuestaPdf.Content.ReadAsByteArrayAsync()
+
+            Dim payload = New With {
+                Key .Destinatarios = New String() {destinatario},
+                Key .Asunto = asunto,
+                Key .Cuerpo = cuerpo,
+                Key .EsHtml = False,
+                Key .Adjuntos = {
+                    New With {
+                        Key .Nombre = $"Factura_{numeroFactura.Trim()}.pdf",
+                        Key .ContenidoBase64 = Convert.ToBase64String(bytesPdf),
+                        Key .TipoMime = "application/pdf"
+                    }
+                }
+            }
+
+            Dim json As String = JsonConvert.SerializeObject(payload)
+            Dim content As HttpContent = New StringContent(json, Encoding.UTF8, "application/json")
+            Dim respuesta As HttpResponseMessage = Await client.PostAsync("Correos/Enviar", content)
+            If respuesta.IsSuccessStatusCode Then
+                Return (True, $"Correo enviado correctamente a {destinatario}.")
+            End If
+
+            Dim cuerpoError As String = Await respuesta.Content.ReadAsStringAsync()
+            Return (False, $"NestoAPI rechazó el correo: {CInt(respuesta.StatusCode)} {respuesta.ReasonPhrase}. {cuerpoError}")
+        End Using
+    End Function
+
 End Class
