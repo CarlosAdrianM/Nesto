@@ -165,15 +165,30 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         public DelegateCommand AnnadirProductoCommand { get; private set; }
         public bool CanAnnadirProducto() => !string.IsNullOrEmpty(ProductoBuscar);
-        private async void OnAnnadirProducto()
+        private async void OnAnnadirProducto() => await OnAnnadirProductoAsync();
+
+        internal async Task OnAnnadirProductoAsync()
         {
-            var productoNuevo = await _servicio.AddProductoAsync(ProductoBuscar);
-            if (ProductosSinVistoBueno == null)
+            // Nesto#363: el handler del comando es `async void`, así que cualquier
+            // excepción no capturada termina la aplicación WPF. Antes pasaba con
+            // `.First(...)` cuando el ProductoId devuelto por la API no coincidía
+            // exactamente con el input (por trim de la API). El producto devuelto
+            // YA es el que acabamos de añadir; no hace falta volver a buscarlo.
+            try
             {
-                ProductosSinVistoBueno = new ObservableCollection<ProductoCanalExterno>();
+                var productoNuevo = await _servicio.AddProductoAsync(ProductoBuscar);
+                if (ProductosSinVistoBueno == null)
+                {
+                    ProductosSinVistoBueno = new ObservableCollection<ProductoCanalExterno>();
+                }
+                ProductosSinVistoBueno.Add(productoNuevo);
+                ProductoSeleccionado = productoNuevo;
+                ProductoBuscar = string.Empty;
             }
-            ProductosSinVistoBueno.Add(productoNuevo);
-            ProductoSeleccionado = ProductosSinVistoBueno.First(p => p.ProductoId == ProductoBuscar);
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
         }
 
         public DelegateCommand BuscarProductoCommand { get; private set; }
