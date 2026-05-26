@@ -333,7 +333,22 @@
                         </StackPanel>
                     </Grid>
                 </TabItem>
-                <TabItem Header="Pago">
+                <TabItem>
+                    <TabItem.Header>
+                        <TextBlock x:Name="HeaderPago" Text="Pago">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding PlazoNoPermitido}" Value="True">
+                                            <Setter Property="Foreground" Value="Red"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="ToolTip" Value="El plazo de pago guardado ya no está permitido para este cliente"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </TabItem.Header>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/>
@@ -341,7 +356,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Margin="3">
                             <controles:SelectorFormaPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.formaPago, Mode=TwoWay}"></controles:SelectorFormaPago>
-                            <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}" Descuento="{Binding pedido.DescuentoPP, Mode=TwoWay}" TotalPedido="{Binding pedido.Total}" PlazoPagoCompleto="{Binding PlazoPagoCompleto, Mode=TwoWay}" ></controles:SelectorPlazosPago>
+                            <controles:SelectorPlazosPago Configuracion="{Binding configuracion}" Empresa="{Binding pedido.empresa}" Cliente="{Binding pedido.cliente}" Seleccionada="{Binding pedido.plazosPago, Mode=TwoWay}" Descuento="{Binding pedido.DescuentoPP, Mode=TwoWay}" TotalPedido="{Binding pedido.Total}" PlazoPagoCompleto="{Binding PlazoPagoCompleto, Mode=TwoWay}" PlazoNoPermitido="{Binding PlazoNoPermitido, Mode=TwoWay}" ></controles:SelectorPlazosPago>
                             <TextBlock Text="Fecha vencimiento:"></TextBlock>
                             <DatePicker SelectedDate="{Binding pedido.primerVencimiento}"></DatePicker>
                             <!-- Issue #274: Ocultar SelectorCCC superior cuando CrearEfectosManualmente=true -->

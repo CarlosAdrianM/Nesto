@@ -213,6 +213,22 @@ namespace ControlesUsuario
             DependencyProperty.Register(nameof(VisibilidadEtiqueta), typeof(Visibility),
               typeof(SelectorPlazosPago));
 
+        /// <summary>
+        /// True cuando el plazo del pedido ('Seleccionada') no está en la lista de
+        /// plazos permitidos al cliente (ej: cliente con cartera vencida que ya no
+        /// puede ir a CONTADO). El parent la usa para resaltar la pestaña Pago y
+        /// para pedir confirmación antes de facturar (Issue #254).
+        /// </summary>
+        public bool PlazoNoPermitido
+        {
+            get => (bool)GetValue(PlazoNoPermitidoProperty); set => SetValue(PlazoNoPermitidoProperty, value);
+        }
+
+        public static readonly DependencyProperty PlazoNoPermitidoProperty =
+            DependencyProperty.Register(nameof(PlazoNoPermitido), typeof(bool),
+              typeof(SelectorPlazosPago),
+              new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
 
         #endregion
 
@@ -241,6 +257,7 @@ namespace ControlesUsuario
                 _mensajePlazoNoPermitido = value;
                 OnPropertyChanged(nameof(MensajePlazoNoPermitido));
                 OnPropertyChanged(nameof(VisibilidadMensajePlazoNoPermitido));
+                PlazoNoPermitido = !string.IsNullOrEmpty(value);
             }
         }
 

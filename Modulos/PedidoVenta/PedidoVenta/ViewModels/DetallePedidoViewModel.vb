@@ -573,6 +573,22 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
 
+    Private _plazoNoPermitido As Boolean
+    ''' <summary>
+    ''' True cuando el plazo guardado del pedido ya no está permitido al cliente
+    ''' (cartera vencida, impagados, etc.). Bindeado al SelectorPlazosPago. Se usa
+    ''' para resaltar la pestaña Pago y pedir confirmación antes de facturar
+    ''' (Issue #254 - caso real pedido 917768).
+    ''' </summary>
+    Public Property PlazoNoPermitido As Boolean
+        Get
+            Return _plazoNoPermitido
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_plazoNoPermitido, value)
+        End Set
+    End Property
+
     Private _plazoPagoCompleto As PlazosPago
     Public Property PlazoPagoCompleto As PlazosPago
         Get
@@ -1431,6 +1447,10 @@ Public Class DetallePedidoViewModel
             Return
         End If
 
+        If Not ConfirmarSiPlazoNoPermitido() Then
+            Return
+        End If
+
         If Not dialogService.ShowConfirmationAnswer("Crear albarán", "¿Desea crear el albarán del pedido?") Then
             Return
         End If
@@ -1470,6 +1490,10 @@ Public Class DetallePedidoViewModel
     Private Async Sub OnCrearFacturaVenta()
         ' Carlos 04/12/25: Verificar cambios sin guardar antes de crear factura (Issue #254)
         If Not Await VerificarYGuardarCambiosPendientes() Then
+            Return
+        End If
+
+        If Not ConfirmarSiPlazoNoPermitido() Then
             Return
         End If
 
@@ -1716,6 +1740,10 @@ Public Class DetallePedidoViewModel
             Return
         End If
 
+        If Not ConfirmarSiPlazoNoPermitido() Then
+            Return
+        End If
+
         If Not dialogService.ShowConfirmationAnswer("Crear albarán y factura", "¿Desea crear la factura del pedido directamente?") Then
             Return
         End If
@@ -1733,6 +1761,22 @@ Public Class DetallePedidoViewModel
             dialogService.ShowError($"No se ha podido crear el albarán o la factura: {ex.Message}")
         End Try
     End Sub
+
+    ''' <summary>
+    ''' Si el plazo del pedido ya no está permitido al cliente (ej: cartera vencida),
+    ''' avisa al usuario y pide confirmación antes de seguir con albarán/factura.
+    ''' Retorna True si se puede continuar (no había problema, o el usuario confirmó).
+    ''' Issue #254 (caso real pedido 917768).
+    ''' </summary>
+    Friend Function ConfirmarSiPlazoNoPermitido() As Boolean
+        If Not PlazoNoPermitido Then
+            Return True
+        End If
+
+        Dim plazo = If(pedido?.plazosPago, "(desconocido)")
+        Dim mensaje = $"El plazo '{plazo}' ya no está permitido para este cliente. ¿Seguro que quieres seguir facturando con él?"
+        Return dialogService.ShowConfirmationAnswer("Plazo de pago no permitido", mensaje)
+    End Function
 
     ''' <summary>
     ''' Carlos 04/12/25: Verifica si hay cambios sin guardar y pregunta al usuario si desea guardarlos (Issue #254).

@@ -4,6 +4,11 @@
     <RootNamespace>Nesto.Modulos.PedidoVenta</RootNamespace>
     <TargetFramework>net8.0-windows</TargetFramework>
 	<UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ViewModels.Tests" />
+  </ItemGroup>
+  <PropertyGroup>
     <MyType>Empty</MyType>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <IsWebBootstrapper>false</IsWebBootstrapper>

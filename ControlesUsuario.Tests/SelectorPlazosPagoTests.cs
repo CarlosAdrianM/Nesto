@@ -26,6 +26,7 @@ namespace ControlesUsuario.Tests
         {
             string seleccionadaFinal = "valor-no-inicializado";
             string mensajeAviso = null;
+            bool plazoNoPermitido = false;
 
             Thread thread = new Thread(() =>
             {
@@ -43,6 +44,7 @@ namespace ControlesUsuario.Tests
 
                 seleccionadaFinal = sut.Seleccionada;
                 mensajeAviso = sut.MensajePlazoNoPermitido;
+                plazoNoPermitido = sut.PlazoNoPermitido;
             });
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
@@ -55,6 +57,9 @@ namespace ControlesUsuario.Tests
             Assert.IsFalse(string.IsNullOrEmpty(mensajeAviso),
                 "Debe avisar al usuario con MensajePlazoNoPermitido cuando el plazo " +
                 "guardado ya no esta permitido, en lugar de cambiarlo silenciosamente.");
+            Assert.IsTrue(plazoNoPermitido,
+                "PlazoNoPermitido debe ser True para que el ViewModel pueda resaltar la pestana Pago " +
+                "y pedir confirmacion al facturar.");
         }
 
         // Caso "feliz": cuando el plazo SI esta en la lista, el selector lo selecciona
@@ -68,6 +73,7 @@ namespace ControlesUsuario.Tests
             string seleccionadaFinal = null;
             string mensajeAviso = "valor-no-inicializado";
             PlazosPago plazoCompleto = null;
+            bool plazoNoPermitido = true;
 
             Thread thread = new Thread(() =>
             {
@@ -86,6 +92,7 @@ namespace ControlesUsuario.Tests
                 seleccionadaFinal = sut.Seleccionada;
                 mensajeAviso = sut.MensajePlazoNoPermitido;
                 plazoCompleto = sut.PlazoPagoCompleto;
+                plazoNoPermitido = sut.PlazoNoPermitido;
             });
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
@@ -95,6 +102,7 @@ namespace ControlesUsuario.Tests
             Assert.IsTrue(string.IsNullOrEmpty(mensajeAviso), "Si el plazo existe en la lista, no hay aviso de plazo no permitido.");
             Assert.IsNotNull(plazoCompleto, "Si el plazo existe en la lista, PlazoPagoCompleto debe quedar establecido.");
             Assert.AreEqual("CONTADO", plazoCompleto.plazoPago);
+            Assert.IsFalse(plazoNoPermitido, "Si el plazo existe en la lista, PlazoNoPermitido debe ser False.");
         }
     }
 }
