@@ -17,7 +17,8 @@ Imports Nesto.Infrastructure.Contracts
 Public Class AlquileresViewModel
     Inherits BindableBase
 
-    Private Shared DbContext As NestoEntities
+    ' Nesto#340: ya no es Shared (ver RemesasViewModel para la justificación).
+    Private DbContext As NestoEntities
     Private ReadOnly dialogService As IDialogService
     Private ReadOnly configuracion As IConfiguracion
 

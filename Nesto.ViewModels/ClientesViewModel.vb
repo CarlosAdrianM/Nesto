@@ -35,7 +35,8 @@ Public Class ClientesViewModel
     Inherits BindableBase
     '    Implements IActiveAware
 
-    Private Shared DbContext As NestoEntities
+    ' Nesto#340: ya no es Shared (ver RemesasViewModel para la justificación).
+    Private DbContext As NestoEntities
     Public Property configuracion As IConfiguracion
     Private ReadOnly Property contenedor As IUnityContainer
     Private ReadOnly Property dialogService As IDialogService

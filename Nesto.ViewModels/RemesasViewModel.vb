@@ -21,7 +21,13 @@ Public Class RemesasViewModel
 
     Const numRemesas = 100
 
-    Private Shared DbContext As NestoEntities
+    ' Nesto#340: ya no es Shared. El Shared hacía que el DbContext fuera un singleton
+    ' para toda la vida del proceso, con tres problemas: (1) ChangeTracker acumula
+    ' entidades indefinidamente (memory leak); (2) los datos quedan stale frente a
+    ' cambios externos a este cliente; (3) no es thread-safe. Pasar a instancia limita
+    ' esos riesgos a la vida del ViewModel. Eliminar EF de este VM por completo queda
+    ' como paso pendiente del roadmap.
+    Private DbContext As NestoEntities
     Dim empresaDefecto As String = "1" 'mainModel.leerParametro("1", "EmpresaPorDefecto")
     Dim blnPuedeVerTodasLasRemesas As Boolean = True
 
