@@ -407,9 +407,10 @@ namespace ControlesUsuario
 
         /// <summary>
         /// Valida que el plazo seleccionado esté en la lista disponible.
-        /// Si no está (ej: pedido antiguo con plazo ya no permitido), auto-selecciona contado y muestra advertencia.
+        /// Si no está (ej: pedido antiguo con plazo ya no permitido), muestra advertencia
+        /// pero NO muta la selección: el usuario decide si la cambia.
         /// </summary>
-        private void ValidarYAjustarPlazoSeleccionado()
+        internal void ValidarYAjustarPlazoSeleccionado()
         {
             // Limpiar mensaje previo
             MensajePlazoNoPermitido = null;
@@ -419,39 +420,23 @@ namespace ControlesUsuario
                 return;
             }
 
-            // Buscar el plazo seleccionado en la lista
             var plazoEncontrado = listaPlazosPago.FirstOrDefault(l => l.plazoPago == Seleccionada);
 
             if (plazoEncontrado != null)
             {
-                // El plazo existe, todo bien
                 plazosPagoSeleccionado = plazoEncontrado;
+                return;
             }
-            else
-            {
-                // El plazo NO existe (ej: pedido con "30 días" pero cliente tiene impagados)
-                // Auto-seleccionar primer plazo de contado
-                var plazoContado = listaPlazosPago.FirstOrDefault(p =>
-                    p.numeroPlazos == 1 &&
-                    p.diasPrimerPlazo == 0 &&
-                    p.mesesPrimerPlazo == 0);
 
-                if (plazoContado != null)
-                {
-                    string plazoAnterior = Seleccionada;
-                    plazosPagoSeleccionado = plazoContado;
-
-                    // Generar mensaje de advertencia
-                    string motivoRestriccion = InfoDeuda?.MotivoRestriccion ?? "restricciones del cliente";
-                    MensajePlazoNoPermitido = $"⚠️ Se cambió de '{plazoAnterior}' a '{plazoContado.descripcion}' debido a: {motivoRestriccion}";
-                }
-                else
-                {
-                    // No hay plazos de contado disponibles (caso raro)
-                    plazosPagoSeleccionado = null;
-                    MensajePlazoNoPermitido = $"⚠️ El plazo '{Seleccionada}' ya no está permitido y no hay plazos al contado disponibles";
-                }
-            }
+            // El plazo del pedido ya no está permitido para este cliente (ej: cliente
+            // con cartera vencida que perdió 'CONTADO' y solo tiene [CR, PRE]).
+            // Issue #254: NO mutar pedido.plazosPago en la carga — al hacerlo, el
+            // snapshot quedaba con 'CONTADO' y el modelo se ponía a 'CR' vía TwoWay,
+            // disparando un falso "el pedido ha cambiado" al facturar (pedido 917768).
+            // Avisamos al usuario y respetamos el plazo guardado; que el usuario
+            // decida si lo cambia manualmente.
+            string motivoRestriccion = InfoDeuda?.MotivoRestriccion ?? "restricciones del cliente";
+            MensajePlazoNoPermitido = $"⚠️ El plazo '{Seleccionada}' ya no está permitido para este cliente ({motivoRestriccion}). Seleccione uno de los plazos disponibles.";
         }
 
         protected void OnPropertyChanged(string name)
