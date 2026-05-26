@@ -515,26 +515,18 @@ namespace PlantillaVentaTests
             VerifyConfirmationDialogCalled(dialogServiceMock, 0);
         }
 
+        // Nesto#362: tras eliminar el diálogo del setter, si el usuario tiene
+        // un comentario personalizado se respeta y solo se actualiza el
+        // comentario por defecto (ComentarioPickingCliente). Sustituye al test
+        // antiguo de #297 que validaba el diálogo (eliminado por causar spam).
         [TestMethod]
-        public void DireccionEntrega_CambiarContacto_ConModificacionUsuario_MuestraDialogo()
+        public void DireccionEntrega_CambiarContacto_ConModificacionUsuario_RespetaComentarioUsuarioSinDialogo()
         {
             // Arrange
             var (vm, dialogServiceMock) = CrearViewModelConMocks();
             vm.Estado.ComentarioPickingCliente = "Dejar en recepción";
             vm.Estado.ComentarioPicking = "Dejar en recepción - PREGUNTAR POR MARÍA"; // Modificado
 
-            // Configurar diálogo para que usuario acepte mantener su comentario
-            A.CallTo(() => dialogServiceMock.ShowDialog(
-                "ConfirmationDialog",
-                A<IDialogParameters>.Ignored,
-                A<Action<IDialogResult>>.Ignored
-            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) =>
-            {
-                var result = A.Fake<IDialogResult>();
-                A.CallTo(() => result.Result).Returns(ButtonResult.OK);
-                callback(result);
-            });
-
             var nuevaDireccion = new ControlesUsuario.Models.DireccionesEntregaCliente
             {
                 contacto = "1",
@@ -546,31 +538,27 @@ namespace PlantillaVentaTests
             // Act
             vm.direccionEntregaSeleccionada = nuevaDireccion;
 
-            // Assert - Se mostró diálogo y el usuario mantuvo su comentario
-            VerifyConfirmationDialogCalled(dialogServiceMock, 1);
+            // Assert: sin diálogo, comentario del usuario intacto y default actualizado.
+            VerifyConfirmationDialogCalled(dialogServiceMock, 0);
             Assert.AreEqual("Dejar en recepción - PREGUNTAR POR MARÍA", vm.Estado.ComentarioPicking);
             Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPickingCliente);
         }
 
+        // Regresión Nesto#362: el setter de direccionEntregaSeleccionada se invoca
+        // varias veces al añadir líneas en la pantalla de productos, y cada
+        // reasignación disparaba el diálogo "Comentario de picking personalizado"
+        // si el usuario había modificado el comentario. El aviso se repetía línea
+        // por línea, dejando inoperativa la plantilla. La protección correcta es
+        // que el setter NUNCA muestre el diálogo: si el usuario tiene un
+        // comentario propio, se respeta tal cual y solo se actualiza
+        // ComentarioPickingCliente (el por defecto del nuevo contacto).
         [TestMethod]
-        public void DireccionEntrega_CambiarContacto_UsuarioCancela_UsaComentarioNuevoContacto()
+        public void DireccionEntrega_ReasignacionConComentarioModificado_NoMuestraDialogo()
         {
             // Arrange
             var (vm, dialogServiceMock) = CrearViewModelConMocks();
             vm.Estado.ComentarioPickingCliente = "Dejar en recepción";
-            vm.Estado.ComentarioPicking = "Texto personalizado del usuario";
-
-            // Configurar diálogo para que usuario cancele (usar el del nuevo contacto)
-            A.CallTo(() => dialogServiceMock.ShowDialog(
-                "ConfirmationDialog",
-                A<IDialogParameters>.Ignored,
-                A<Action<IDialogResult>>.Ignored
-            )).Invokes((string name, IDialogParameters parameters, Action<IDialogResult> callback) =>
-            {
-                var result = A.Fake<IDialogResult>();
-                A.CallTo(() => result.Result).Returns(ButtonResult.Cancel);
-                callback(result);
-            });
+            vm.Estado.ComentarioPicking = "Dejar en recepción - PREGUNTAR POR MARÍA";
 
             var nuevaDireccion = new ControlesUsuario.Models.DireccionesEntregaCliente
             {
@@ -580,12 +568,19 @@ namespace PlantillaVentaTests
                 plazosPago = "CAMBIO"
             };
 
-            // Act
+            // Act: asignar varias veces (simula lo que pasa al añadir líneas
+            // sucesivas en la pantalla de productos).
+            vm.direccionEntregaSeleccionada = nuevaDireccion;
+            vm.direccionEntregaSeleccionada = nuevaDireccion;
             vm.direccionEntregaSeleccionada = nuevaDireccion;
 
-            // Assert - Se reemplazó por el del nuevo contacto
-            Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPicking);
-            Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPickingCliente);
+            // Assert: ningún diálogo se ha mostrado, ni la primera vez ni las
+            // siguientes. Y el comentario del usuario se respeta.
+            VerifyConfirmationDialogCalled(dialogServiceMock, 0);
+            Assert.AreEqual("Dejar en recepción - PREGUNTAR POR MARÍA", vm.Estado.ComentarioPicking,
+                "El comentario personalizado del usuario debe respetarse, no pisarse al cambiar de contacto.");
+            Assert.AreEqual("Portería lateral", vm.Estado.ComentarioPickingCliente,
+                "ComentarioPickingCliente (el por defecto del contacto) sí debe actualizarse silenciosamente.");
         }
 
         [TestMethod]

@@ -983,23 +983,17 @@ Public Class PlantillaVentaViewModel
             If String.IsNullOrEmpty(ComentarioRuta) AndAlso Not IsNothing(_direccionEntregaSeleccionada) Then
                 ComentarioRuta = _direccionEntregaSeleccionada.comentarioRuta
             End If
-            ' Issue #297: Sincronizar ComentarioPicking al cambiar contacto
+            ' Nesto#362 (regresión #297): aquí NO se debe mostrar un diálogo
+            ' "Comentario de picking personalizado" porque este setter se reasigna
+            ' varias veces al añadir líneas en la pantalla de productos y el aviso
+            ' saltaba por cada línea, dejando la plantilla inoperativa. La
+            ' actualización del comentario por defecto del contacto se hace
+            ' silenciosamente; el comentario personalizado del usuario (si lo
+            ' tiene) se respeta y no se pisa.
             If value IsNot Nothing AndAlso _borradorEnRestauracion Is Nothing Then
                 Dim nuevoComentario = value.comentarioPicking
-                If Estado.UsuarioHaModificadoComentarioPicking() Then
-                    Dim mantener As Boolean = True
-                    dialogService.ShowConfirmation(
-                        "Comentario de picking personalizado",
-                        $"Has modificado el comentario de picking manualmente.{Environment.NewLine}{Environment.NewLine}" &
-                        $"Tu comentario: ""{Estado.ComentarioPicking}""{Environment.NewLine}" &
-                        $"Comentario del nuevo contacto: ""{nuevoComentario}""{Environment.NewLine}{Environment.NewLine}" &
-                        "¿Deseas mantener tu comentario personalizado?" & Environment.NewLine &
-                        "(OK = mantener el tuyo, Cancelar = usar el del nuevo contacto)",
-                        Sub(r) mantener = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
-                    Estado.ActualizarComentarioPickingAlCambiarContacto(nuevoComentario, mantener)
-                Else
-                    Estado.ActualizarComentarioPickingAlCambiarContacto(nuevoComentario, False)
-                End If
+                Dim respetarComentarioUsuario = Estado.UsuarioHaModificadoComentarioPicking()
+                Estado.ActualizarComentarioPickingAlCambiarContacto(nuevoComentario, respetarComentarioUsuario)
                 RaisePropertyChanged(NameOf(ComentarioPicking))
             End If
             If fechaEntrega < fechaMinimaEntrega Then
@@ -2748,7 +2742,7 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Async Sub OnCalcularSePuedeServirPorGlovo()
-        If PaginaActual.Name <> PAGINA_FINALIZAR Then
+        If PaginaActual?.Name <> PAGINA_FINALIZAR Then
             Return
         End If
         Using client As New HttpClient
