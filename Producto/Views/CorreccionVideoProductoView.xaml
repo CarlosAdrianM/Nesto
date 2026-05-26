@@ -70,14 +70,19 @@
                                 </Grid.ColumnDefinitions>
 
                                 <!-- Nombre del VideoProducto + botón búsqueda contextual (Issue #343) -->
+                                <!-- Nesto#360: nombre editable para corregir errores tipográficos -->
                                 <StackPanel Grid.Row="0"
                                             Grid.ColumnSpan="2"
                                             Orientation="Horizontal"
                                             Margin="0,0,0,10">
-                                    <TextBlock Text="{Binding NombreProducto}"
-                                               FontWeight="SemiBold"
-                                               FontSize="14"
-                                               VerticalAlignment="Center"/>
+                                    <TextBox Text="{Binding NombreProducto, UpdateSourceTrigger=PropertyChanged}"
+                                             FontWeight="SemiBold"
+                                             FontSize="14"
+                                             MinWidth="300"
+                                             VerticalAlignment="Center"
+                                             VerticalContentAlignment="Center"
+                                             Padding="3,2"
+                                             ToolTip="Nombre que aparece en el vídeo. Editable para corregir errores."/>
                                     <Button Content="Buscar en Productos"
                                             Command="{Binding DataContext.AbrirProductosConBusquedaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding NombreProducto}"

@@ -160,5 +160,57 @@ namespace Producto.Tests
 
             Assert.IsNull(resultadoCierre);
         }
+
+        // Nesto#360: el NombreProducto debe ser editable. Cambiarlo dispara
+        // TieneCambios para habilitar Guardar, y al guardar se envia al API.
+        [TestMethod]
+        public void NombreProducto_AlCambiarValor_TieneCambiosEsTrue()
+        {
+            AnadirEditable("AB01", nombreVideo: "Alta Frecuancia");
+            var editable = _sut.ProductosEditables[0];
+
+            Assert.IsFalse(editable.TieneCambios, "Sin tocar, no hay cambios");
+
+            editable.NombreProducto = "Alta Frecuencia";
+
+            Assert.IsTrue(editable.TieneCambios,
+                "Modificar NombreProducto debe marcar el editable como con cambios.");
+        }
+
+        [TestMethod]
+        public void NombreProducto_AlVolverAlOriginal_TieneCambiosVuelveAFalse()
+        {
+            AnadirEditable("AB01", nombreVideo: "Alta Frecuencia");
+            var editable = _sut.ProductosEditables[0];
+
+            editable.NombreProducto = "Alta Frequency";
+            Assert.IsTrue(editable.TieneCambios);
+
+            editable.NombreProducto = "Alta Frecuencia";
+            Assert.IsFalse(editable.TieneCambios,
+                "Volver al valor original debe limpiar el flag de cambios.");
+        }
+
+        [TestMethod]
+        public async Task OnGuardar_ConNombreProductoModificado_EnviaDtoConNuevoNombre()
+        {
+            AnadirEditable("AB01", nombreVideo: "Alta Frecuancia");
+            _sut.ProductosEditables[0].NombreProducto = "Alta Frecuencia";
+
+            ActualizacionVideoProductoDto dtoEnviado = null;
+            A.CallTo(() => _productoService.ActualizarVideoProducto(
+                A<int>._, A<ActualizacionVideoProductoDto>._))
+                .Invokes((int _, ActualizacionVideoProductoDto dto) => dtoEnviado = dto)
+                .Returns(Task.CompletedTask);
+
+            _sut.GuardarCommand.Execute();
+
+            // El comando guarda async; esperar un tick.
+            await Task.Delay(50);
+
+            Assert.IsNotNull(dtoEnviado, "GuardarCommand debe llamar a ActualizarVideoProducto.");
+            Assert.AreEqual("Alta Frecuencia", dtoEnviado.NombreProducto,
+                "El DTO enviado al API debe incluir el NombreProducto corregido.");
+        }
     }
 }

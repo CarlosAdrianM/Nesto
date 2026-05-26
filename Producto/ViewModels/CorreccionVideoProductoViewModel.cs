@@ -166,6 +166,7 @@ namespace Nesto.Modules.Producto.ViewModels
                         var dto = new ActualizacionVideoProductoDto
                         {
                             Referencia = productoEditable.Referencia,
+                            NombreProducto = productoEditable.NombreProducto,
                             EnlaceTienda = productoEditable.EnlaceTienda,
                             TiempoAparicion = productoEditable.TiempoAparicion,
                             Observaciones = "Corrección desde interfaz de video"
@@ -282,11 +283,17 @@ namespace Nesto.Modules.Producto.ViewModels
         // Nombre del VideoProducto tal como lo nombra el vídeo (ej. "Alta Frecuencia").
         // Se inicializa desde ProductoOriginal.NombreProducto y NO se sobrescribe al resolver
         // la Referencia: el nombre del producto asociado a la Referencia va en NombreProductoAsociado.
+        // Nesto#360: editable desde la pantalla "Reportar error" para corregir nombres
+        // mal escritos. El setter raisea TieneCambios para habilitar el botón Guardar.
         private string _nombreProducto;
         public string NombreProducto
         {
             get => _nombreProducto;
-            set => SetProperty(ref _nombreProducto, value);
+            set
+            {
+                _ = SetProperty(ref _nombreProducto, value);
+                RaisePropertyChanged(nameof(TieneCambios));
+            }
         }
 
         // Nombre del producto real que apunta la Referencia (solo lectura desde la UI).
@@ -351,6 +358,7 @@ namespace Nesto.Modules.Producto.ViewModels
         public bool TieneCambios =>
             MarcarParaEliminar ||
             Referencia != ProductoOriginal.Referencia ||
+            NombreProducto != ProductoOriginal.NombreProducto ||
             EnlaceTienda != ProductoOriginal.EnlaceTienda ||
             TiempoAparicion != ProductoOriginal.TiempoAparicion;
 
@@ -386,6 +394,7 @@ namespace Nesto.Modules.Producto.ViewModels
     public class ActualizacionVideoProductoDto
     {
         public string Referencia { get; set; }
+        public string NombreProducto { get; set; }
         public string EnlaceTienda { get; set; }
         public string TiempoAparicion { get; set; }
         public string Observaciones { get; set; }
