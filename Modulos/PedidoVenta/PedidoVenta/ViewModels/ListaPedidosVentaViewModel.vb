@@ -371,6 +371,14 @@ Public Class ListaPedidosVentaViewModel
         Dim parameters As New NavigationParameters From {
             {"resumenPedidoParameter", CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)}
         }
+        ' SingleActiveRegion + IsNavigationTarget=>False acumulaba la vista detalle anterior en
+        ' region.Views al navegar a otro pedido (solo desactivada, no eliminada). Cada pedido
+        ' abierto dejaba su DataGrid + bindings + handlers vivos. Quitamos las vistas previas
+        ' antes de la navegación nueva.
+        Dim regionDetalle = scopedRegionManager.Regions("DetallePedidoRegion")
+        For Each vistaAnterior In regionDetalle.Views.ToList()
+            regionDetalle.Remove(vistaAnterior)
+        Next
         scopedRegionManager.RequestNavigate("DetallePedidoRegion", "DetallePedidoView", parameters)
         If Not IsNothing(ListaPedidos.ElementoSeleccionado) Then
             Dim resumenSeleccionado = CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)
