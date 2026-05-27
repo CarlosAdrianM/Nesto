@@ -362,6 +362,13 @@ Public Class ListaRapportsViewModel
                                                               Dim parameters As New NavigationParameters From {
                                                                   {"rapportParameter", rapportSeleccionado}
                                                               }
+                                                              ' SingleActiveRegion + IsNavigationTarget=>False acumulaba la vista de rapport
+                                                              ' anterior en region.Views al cambiar de rapport seleccionado (solo
+                                                              ' desactivada, no eliminada). Quitamos las previas antes de navegar.
+                                                              Dim regionDetalle = regionManager.Regions("RapportDetailRegion")
+                                                              For Each vistaAnterior In regionDetalle.Views.ToList()
+                                                                  regionDetalle.Remove(vistaAnterior)
+                                                              Next
                                                               regionManager.RequestNavigate("RapportDetailRegion", "RapportView", parameters)
                                                           End Sub)
                 End SyncLock
