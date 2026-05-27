@@ -278,7 +278,10 @@ Public Class AgenciasViewModel
                     RaisePropertyChanged("") ' para que actualice todos los enlaces
                 End If
             Catch ex As Exception
-                _dialogService.ShowError("No se encuentra la implementación de la agencia " + value.Nombre)
+                ' Incluimos ex.Message porque el catch tapa cualquier fallo del setter, no solo
+                ' los de factory desconocida. Sin él, bugs como una .Single sobre lista vacía
+                ' se confunden con "agencia no implementada" (publicación 1.10.5.1 con Canteras).
+                _dialogService.ShowError("Error al seleccionar la agencia " + value.Nombre + ": " + ex.Message)
                 RaisePropertyChanged(NameOf(agenciaSeleccionada))
             End Try
 
