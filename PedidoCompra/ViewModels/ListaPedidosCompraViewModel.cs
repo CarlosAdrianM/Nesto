@@ -221,6 +221,15 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                     { "PedidoLookupParameter", ListaPedidos.ElementoSeleccionado }
                 };
             }
+            // SingleActiveRegion + IsNavigationTarget=>false acumulaba la vista detalle anterior
+            // en region.Views al navegar a un pedido distinto (solo desactivada, no eliminada).
+            // Cada pedido abierto dejaba su DataGrid + bindings + handlers vivos. Quitamos
+            // explícitamente las vistas previas antes de pedir la navegación nueva.
+            var regionDetalle = ScopedRegionManager.Regions["DetallePedidoCompraRegion"];
+            foreach (var vistaAnterior in regionDetalle.Views.ToList())
+            {
+                regionDetalle.Remove(vistaAnterior);
+            }
             ScopedRegionManager.RequestNavigate("DetallePedidoCompraRegion", "DetallePedidoCompraView", parameters);
         }
     }
