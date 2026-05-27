@@ -1221,6 +1221,31 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(34, canteras.paisDefecto, "Canarias es territorio español; país por defecto = 34.")
     End Sub
 
+    ' Regresión publicación 1.10.5.1: al seleccionar Canteras desde la pestaña EN_CURSO
+    ' (o PEDIDOS / ETIQUETAS) el setter de agenciaSeleccionada ejecuta
+    ' listaServicios.Single(s => s.ServicioId = ServicioDefecto). Canteras inicializaba
+    ' ListaServicios vacía → InvalidOperationException ("Sequence contains no elements")
+    ' → el Catch genérico mostraba el engañoso "No se encuentra la implementación de la
+    ' agencia Canteras" vía dialogService.ShowError, aunque la factory SÍ la registra.
+    ' El fix correcto es que AgenciaCanteras exponga al menos un ITarifaAgencia con
+    ' ServicioId = ServicioDefecto para que el .Single tenga una correspondencia.
+
+    <TestMethod>
+    Public Sub AgenciaCanteras_SeleccionadaEnPestannaEnCurso_NoMuestraErrorDeImplementacionInexistente()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.PestannaNombre = Pestannas.EN_CURSO
+
+        viewModel.agenciaSeleccionada = New AgenciasTransporte With {.Nombre = "Canteras", .Numero = 11, .Empresa = "1"}
+
+        ' DialogServiceExtensions.ShowError envuelve un ShowDialog("NotificationDialog", {title:"¡Error!", message:...}, null).
+        ' Si la asignación de Canteras lanza por dentro, el catch del setter muestra ese diálogo.
+        A.CallTo(Sub() dialogService.
+                     ShowDialog("NotificationDialog",
+                                A(Of IDialogParameters).That.Matches(Function(p) p.GetValue(Of String)("title") = "¡Error!"),
+                                A(Of Action(Of IDialogResult)).Ignored)) _
+            .MustNotHaveHappened()
+    End Sub
+
     ' Nesto#359: flag PermiteEditarCodigoBarras. Canteras lo declara True para que el
     ' usuario pueda pegar el nº de envío que llega por correo. El resto de agencias
     ' debe heredar el default False (calculan el código automáticamente y pisarlo

@@ -23,7 +23,15 @@ Public Class AgenciaCanteras
         ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(0, "NO")
         }
-        ListaServicios = New ObservableCollection(Of ITarifaAgencia)
+        ' AgenciasViewModel.agenciaSeleccionada hace listaServicios.Single(s => s.ServicioId = ServicioDefecto)
+        ' al seleccionar la agencia desde las pestañas PEDIDOS / EN_CURSO / ETIQUETAS. Si la lista
+        ' está vacía la excepción la traga el Catch genérico mostrando un "No se encuentra la
+        ' implementación..." engañoso. Exponemos una tarifa placeholder con ServicioId=0 (el
+        ' ServicioDefecto de Canteras) y CosteEnvio vacío: CalcularCostoEnvio devuelve MaxValue
+        ' para listas vacías, así que esta tarifa nunca gana la auto-tarificación.
+        ListaServicios = New ObservableCollection(Of ITarifaAgencia) From {
+            New TarifaCanterasPlaceholder()
+        }
         ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(0, "")
         }
@@ -227,5 +235,49 @@ Public Class AgenciaCanteras
             Return True
         End Get
     End Property
+
+    Private Class TarifaCanterasPlaceholder
+        Implements ITarifaAgencia
+
+        Public ReadOnly Property AgenciaId As Integer Implements ITarifaAgencia.AgenciaId
+            Get
+                Return 11
+            End Get
+        End Property
+
+        Public ReadOnly Property ServicioId As Byte Implements ITarifaAgencia.ServicioId
+            Get
+                Return 0
+            End Get
+        End Property
+
+        Public ReadOnly Property NombreServicio As String Implements ITarifaAgencia.NombreServicio
+            Get
+                Return "Canteras"
+            End Get
+        End Property
+
+        Public ReadOnly Property HorarioDefectoId As Byte Implements ITarifaAgencia.HorarioDefectoId
+            Get
+                Return 0
+            End Get
+        End Property
+
+        ' CosteEnvio vacío → CalcularCostoEnvio devuelve Decimal.MaxValue y Canteras nunca
+        ' gana la auto-tarificación (la entrega a Canarias se decide manualmente).
+        Public ReadOnly Property CosteEnvio As List(Of (Decimal, ZonasEnvioAgencia, Decimal)) Implements ITarifaAgencia.CosteEnvio
+            Get
+                Return New List(Of (Decimal, ZonasEnvioAgencia, Decimal))
+            End Get
+        End Property
+
+        Public Function CosteKiloAdicional(zona As ZonasEnvioAgencia) As Decimal Implements ITarifaAgencia.CosteKiloAdicional
+            Return 0D
+        End Function
+
+        Public Function CosteReembolso(reembolso As Decimal) As Decimal Implements ITarifaAgencia.CosteReembolso
+            Return 0D
+        End Function
+    End Class
 
 End Class
