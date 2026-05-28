@@ -167,16 +167,13 @@ Public Class PickingPopupViewModel
     Private Async Sub OnInformeKits()
         Try
             estaSacandoPicking = True
-            Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.KitsQueSePuedenMontar.rdlc")
             Dim dataSource As List(Of Informes.KitsQueSePuedenMontarModel) = Await _servicioInformes.LeerKitsQueSePuedenMontar(
                 empresa:="1",
                 fecha:=DateTime.Today.AddDays(4).ToString("dd/MM/yy"),
                 almacen:="ALG",
                 filtroRutas:=FILTRO_RUTAS_DEFECTO)
-            Dim report As LocalReport = New LocalReport()
-            report.LoadReportDefinition(reportDefinition)
-            report.DataSources.Add(New ReportDataSource("KitsQueSePuedenMontarDataSet", dataSource))
-            Dim pdf As Byte() = report.Render("PDF")
+            Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+                "Nesto.Informes.KitsQueSePuedenMontar.rdlc", "KitsQueSePuedenMontarDataSet", dataSource)
             Dim fileName As String = Path.GetTempPath + "InformeKitsQueSePuedenMontar.pdf"
             File.WriteAllBytes(fileName, pdf)
             Process.Start(New ProcessStartInfo(fileName) With {
@@ -219,16 +216,12 @@ Public Class PickingPopupViewModel
     Private Async Sub OnInformePacking()
         Try
             estaSacandoPicking = True
-            Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Packing.rdlc")
             Dim dataSource As List(Of Informes.PackingModel) = Await ObtenerDatosPackingAsync()
-            Dim report As LocalReport = New LocalReport()
-            report.LoadReportDefinition(reportDefinition)
-            report.DataSources.Add(New ReportDataSource("PackingDataSet", dataSource))
             Dim listaParametros As New List(Of ReportParameter) From {
                 New ReportParameter("NumeroPicking", numeroPicking)
             }
-            report.SetParameters(listaParametros)
-            Dim pdf As Byte() = report.Render("PDF")
+            Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+                "Nesto.Informes.Packing.rdlc", "PackingDataSet", dataSource, listaParametros)
             Dim fileName As String = Path.GetTempPath + "InformePacking.pdf"
             File.WriteAllBytes(fileName, pdf)
             Process.Start(New ProcessStartInfo(fileName) With {
@@ -255,16 +248,12 @@ Public Class PickingPopupViewModel
     Private Async Sub OnInformePicking()
         Try
             estaSacandoPicking = True
-            Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Picking.rdlc")
             Dim dataSource As List(Of Informes.PickingModel) = Await ObtenerDatosPickingAsync()
-            Dim report As LocalReport = New LocalReport()
-            report.LoadReportDefinition(reportDefinition)
-            report.DataSources.Add(New ReportDataSource("PickingDataSet", dataSource))
             Dim listaParametros As New List(Of ReportParameter) From {
                 New ReportParameter("NumeroPicking", numeroPicking)
             }
-            report.SetParameters(listaParametros)
-            Dim pdf As Byte() = report.Render("PDF")
+            Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+                "Nesto.Informes.Picking.rdlc", "PickingDataSet", dataSource, listaParametros)
             Dim fileName As String = Path.GetTempPath + "InformePicking.pdf"
             File.WriteAllBytes(fileName, pdf)
             Process.Start(New ProcessStartInfo(fileName) With {

@@ -592,21 +592,10 @@ namespace Nesto.Modules.Producto.ViewModels
             EstaCargandoProductos = true;
             try
             {
-                Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.EtiquetasTienda.rdlc");
                 List<string> listaDeProductos = ProductosResultadoBusqueda.Lista.Select(item => (item as ProductoModel).Producto).ToList();
                 List<Informes.FilaEtiquetasModel> dataSource = await _servicioInformes.LeerEtiquetasTienda(listaDeProductos, EtiquetaPrimera);
-                LocalReport report = new();
-                report.LoadReportDefinition(reportDefinition);
-                report.DataSources.Add(new ReportDataSource("FilaEtiquetasDataSet", dataSource));
-                /*
-                List<ReportParameter> listaParametros = new List<ReportParameter>
-                {
-                    new ReportParameter("Fecha", "21/09/23"),
-                    new ReportParameter("NombreAgencia", "Agencia Prueba")
-                };
-                report.SetParameters(listaParametros);
-                */
-                byte[] pdf = report.Render("PDF");
+                byte[] pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+                    "Nesto.Informes.EtiquetasTienda.rdlc", "FilaEtiquetasDataSet", dataSource);
                 string fileName = Path.GetTempPath() + "InformeEtiquetasTienda.pdf";
                 File.WriteAllBytes(fileName, pdf);
                 _ = Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
@@ -655,17 +644,13 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private static async Task AbrirInformeMontarKitProductos(int traspaso, Nesto.Infrastructure.Services.InformesService servicioInformes)
         {
-            Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.MontarKitProductos.rdlc");
             List<Informes.MontarKitProductosModel> dataSource = await servicioInformes.LeerMontarKitProductos(traspaso);
-            LocalReport report = new();
-            report.LoadReportDefinition(reportDefinition);
-            report.DataSources.Add(new ReportDataSource("MontarKitProductosDataSet", dataSource));
             List<ReportParameter> listaParametros =
                     [
                         new ReportParameter("Traspaso", traspaso.ToString()),
                     ];
-            report.SetParameters(listaParametros);
-            byte[] pdf = report.Render("PDF");
+            byte[] pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+                "Nesto.Informes.MontarKitProductos.rdlc", "MontarKitProductosDataSet", dataSource, listaParametros);
             string fileName = Path.GetTempPath() + "InformeMontarKitProductos.pdf";
             File.WriteAllBytes(fileName, pdf);
             _ = Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });

@@ -894,8 +894,15 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             foreach (var empresa in MovimientosEfectivoDia.Select(e => e.Empresa).Distinct())
             {
-                LocalReport report = await CrearInformeExtractoContable(empresa, CuentaOrigen, FechaDesde, _fechaHasta, _servicioInformes);
-                var pdf = report.Render("PDF");
+                List<ExtractoContableModel> dataSource = await _servicioInformes.LeerExtractoContable(empresa, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta);
+                List<ReportParameter> listaParametros =
+                [
+                    new ReportParameter("Cuenta", CuentaOrigen.Cuenta),
+                    new ReportParameter("FechaDesde", FechaDesde.ToString("d")),
+                    new ReportParameter("FechaHasta", _fechaHasta.ToString("d"))
+                ];
+                byte[] pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+                    "Nesto.Informes.ExtractoContable.rdlc", "ExtractoContableDataSet", dataSource, listaParametros);
                 string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}_{empresa}.pdf";
                 System.IO.File.WriteAllBytes(fileName, pdf);
                 _ = System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
@@ -1045,23 +1052,6 @@ namespace Nesto.Modulos.Cajas.ViewModels
             ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
         }
 
-        private static async Task<LocalReport> CrearInformeExtractoContable(string empresa, CuentaContableDTO cuenta, DateTime fechaDesde, DateTime fechaHasta, Nesto.Infrastructure.Services.InformesService servicioInformes)
-        {
-            Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ExtractoContable.rdlc");
-            List<ExtractoContableModel> dataSource = await servicioInformes.LeerExtractoContable(empresa, cuenta.Cuenta, fechaDesde, fechaHasta);
-            LocalReport report = new();
-            report.LoadReportDefinition(reportDefinition);
-            List<ReportParameter> listaParametros =
-            [
-                new ReportParameter("Cuenta", cuenta.Cuenta),
-                new ReportParameter("FechaDesde", fechaDesde.ToString("d")),
-                new ReportParameter("FechaHasta", fechaHasta.ToString("d"))
-            ];
-            report.SetParameters(listaParametros);
-
-            report.DataSources.Add(new ReportDataSource("ExtractoContableDataSet", dataSource));
-            return report;
-        }
         private bool HayCajasPendientesDeRecibirSeleccionadas()
         {
             return MovimientosCajaPendientesRecibirSeleccionados != null && MovimientosCajaPendientesRecibirSeleccionados.Any();

@@ -2042,17 +2042,13 @@ Public Class AgenciasViewModel
         Return Not IsNothing(listaEnviosTramitados) AndAlso listaEnviosTramitados.Any
     End Function
     Private Async Sub OnImprimirManifiesto(arg As Object)
-        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ManifiestoAgencia.rdlc")
         Dim dataSource As List(Of Informes.ManifiestoAgenciaModel) = Await _servicioInformes.LeerManifiestoAgencia(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
-        Dim report As New LocalReport()
-        report.LoadReportDefinition(reportDefinition)
-        report.DataSources.Add(New ReportDataSource("ManifiestoAgenciaDataSet", dataSource))
         Dim listaParametros As New List(Of ReportParameter) From {
             New ReportParameter("Fecha", fechaFiltro),
             New ReportParameter("NombreAgencia", agenciaSeleccionada.Nombre)
         }
-        report.SetParameters(listaParametros)
-        Dim pdf As Byte() = report.Render("PDF")
+        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+            "Nesto.Informes.ManifiestoAgencia.rdlc", "ManifiestoAgenciaDataSet", dataSource, listaParametros)
         Dim fileName As String = Path.GetTempPath + "InformeManifiestoAgencia.pdf"
         File.WriteAllBytes(fileName, pdf)
         Dim unused = Process.Start(New ProcessStartInfo(fileName) With {

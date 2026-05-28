@@ -226,12 +226,9 @@ Public Class MenuBarViewModel
     End Sub
 
     Private Async Sub OnControlPedidos()
-        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ControlPedidos.rdlc")
         Dim dataSource As List(Of Informes.ControlPedidosModel) = Await _servicioInformes.LeerControlPedidos()
-        Dim report As New LocalReport()
-        report.LoadReportDefinition(reportDefinition)
-        report.DataSources.Add(New ReportDataSource("ControlPedidosDataSet", dataSource))
-        Dim pdf As Byte() = report.Render("PDF")
+        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+            "Nesto.Informes.ControlPedidos.rdlc", "ControlPedidosDataSet", dataSource)
         Dim fileName As String = Path.GetTempPath + "InformeControlPedidos.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
@@ -240,12 +237,9 @@ Public Class MenuBarViewModel
     End Sub
 
     Private Async Sub OnInventario()
-        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.UbicacionesInventario.rdlc")
         Dim dataSource As List(Of Informes.UbicacionesInventarioModel) = Await _servicioInformes.LeerUbicacionesInventario()
-        Dim report As New LocalReport()
-        report.LoadReportDefinition(reportDefinition)
-        report.DataSources.Add(New ReportDataSource("UbicacionesInventarioDataSet", dataSource))
-        Dim pdf As Byte() = report.Render("PDF")
+        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+            "Nesto.Informes.UbicacionesInventario.rdlc", "UbicacionesInventarioDataSet", dataSource)
         Dim fileName As String = Path.GetTempPath + "InformeUbicacionesInventario.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
@@ -267,18 +261,14 @@ Public Class MenuBarViewModel
     End Function
 
     Private Async Sub OnPicking()
-        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Picking.rdlc")
         Dim datos = Await ObtenerDatosPickingAsync()
         Dim numeroPicking As Integer = datos.NumeroPicking
         Dim dataSource As List(Of Informes.PickingModel) = datos.Datos
-        Dim report As New LocalReport()
-        report.LoadReportDefinition(reportDefinition)
-        report.DataSources.Add(New ReportDataSource("PickingDataSet", dataSource))
         Dim listaParametros As New List(Of ReportParameter) From {
             New ReportParameter("NumeroPicking", numeroPicking)
         }
-        report.SetParameters(listaParametros)
-        Dim pdf As Byte() = report.Render("PDF")
+        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+            "Nesto.Informes.Picking.rdlc", "PickingDataSet", dataSource, listaParametros)
         Dim fileName As String = Path.GetTempPath + "InformePicking.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
@@ -287,18 +277,14 @@ Public Class MenuBarViewModel
     End Sub
 
     Private Async Sub OnPacking()
-        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.Packing.rdlc")
         Dim datos = Await ObtenerDatosPackingAsync()
         Dim numeroPicking As Integer = datos.NumeroPicking
         Dim dataSource As List(Of Informes.PackingModel) = datos.Datos
-        Dim report As New LocalReport()
-        report.LoadReportDefinition(reportDefinition)
-        report.DataSources.Add(New ReportDataSource("PackingDataSet", dataSource))
         Dim listaParametros As New List(Of ReportParameter) From {
             New ReportParameter("NumeroPicking", numeroPicking)
         }
-        report.SetParameters(listaParametros)
-        Dim pdf As Byte() = report.Render("PDF")
+        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+            "Nesto.Informes.Packing.rdlc", "PackingDataSet", dataSource, listaParametros)
         Dim fileName As String = Path.GetTempPath + "InformePacking.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
@@ -358,18 +344,14 @@ Public Class MenuBarViewModel
 #Region "Métodos de informes"
 
     Private Async Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SoloFacturas As Boolean)
-        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.ResumenVentas.rdlc")
         Dim dataSource As List(Of Informes.ResumenVentasModel) = Await _servicioInformes.LeerResumenVentas(FechaDesde, FechaHasta, SoloFacturas)
-        Dim report As New LocalReport()
-        report.LoadReportDefinition(reportDefinition)
-        report.DataSources.Add(New ReportDataSource("ResumenVentasDataSet", dataSource))
         Dim listaParametros As New List(Of ReportParameter) From {
             New ReportParameter("FechaDesde", FechaDesde),
             New ReportParameter("FechaHasta", FechaHasta),
             New ReportParameter("SoloFacturas", SoloFacturas)
         }
-        report.SetParameters(listaParametros)
-        Dim pdf As Byte() = report.Render("PDF")
+        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+            "Nesto.Informes.ResumenVentas.rdlc", "ResumenVentasDataSet", dataSource, listaParametros)
         Dim fileName As String = Path.GetTempPath + "InformeVentas.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
@@ -385,17 +367,13 @@ Public Class MenuBarViewModel
             cadenaVendedores = String.Join(",", _listaVendedoresEquipo.Select(Function(v) v.Vendedor))
         End If
 
-        Dim reportDefinition As Stream = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.DetalleRapports.rdlc")
         Dim dataSource As List(Of Informes.DetalleRapportsModel) = Await _servicioInformes.LeerDetalleRapports(FechaDesde, FechaHasta, cadenaVendedores)
-        Dim report As New LocalReport()
-        report.LoadReportDefinition(reportDefinition)
-        report.DataSources.Add(New ReportDataSource("DetalleRapportsDataSet", dataSource))
         Dim listaParametros As New List(Of ReportParameter) From {
             New ReportParameter("FechaDesde", FechaDesde),
             New ReportParameter("FechaHasta", FechaHasta)
         }
-        report.SetParameters(listaParametros)
-        Dim pdf As Byte() = report.Render("PDF")
+        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+            "Nesto.Informes.DetalleRapports.rdlc", "DetalleRapportsDataSet", dataSource, listaParametros)
         Dim fileName As String = Path.GetTempPath + "InformeRapports.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {

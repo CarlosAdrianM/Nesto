@@ -158,9 +158,9 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 return;
             }
             EstaOcupado = true;
-            LocalReport report = await CrearInforme(pedido);
-            var pdf = report.Render("PDF");
-            var xlsx = report.Render("EXCELOPENXML");
+            List<ReportDataSource> dataSources = await ObtenerDataSourcesInforme(pedido);
+            var pdf = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "PDF", dataSources);
+            var xlsx = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "EXCELOPENXML", dataSources);
 
             string[] scopes = new string[] { "Mail.Send", "Mail.ReadWrite" };
             GraphServiceClient graphClient = new GraphServiceClient(InteractiveBrowserCredential, scopes);
@@ -299,24 +299,21 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             {
                 return;
             }
-            LocalReport report = await CrearInforme(pedido);
-            var pdf = report.Render("PDF");
+            List<ReportDataSource> dataSources = await ObtenerDataSourcesInforme(pedido);
+            var pdf = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "PDF", dataSources);
             string fileName = Path.GetTempPath() + $"PedidoCompra{pedido.Id}.pdf";
             System.IO.File.WriteAllBytes(fileName, pdf);
             System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
         }
 
-        private async Task<LocalReport> CrearInforme(PedidoCompraWrapper pedido)
+        private async Task<List<ReportDataSource>> ObtenerDataSourcesInforme(PedidoCompraWrapper pedido)
         {
-            Stream reportDefinition = Assembly.LoadFrom("Informes").GetManifestResourceStream("Nesto.Informes.PedidoCompra.rdlc");
             PedidoCompraModel dataSource = await _servicioInformes.LeerPedidoCompra(pedido.Model.Empresa, pedido.Id);
-            List<PedidoCompraModel> listaDataSource = new();
-            listaDataSource.Add(dataSource);
-            LocalReport report = new();
-            report.LoadReportDefinition(reportDefinition);
-            report.DataSources.Add(new ReportDataSource("PedidoCompraDataSet", listaDataSource));
-            report.DataSources.Add(new ReportDataSource("PedidoCompraLineasDataSet", dataSource.Lineas));
-            return report;
+            return new List<ReportDataSource>
+            {
+                new ReportDataSource("PedidoCompraDataSet", new List<PedidoCompraModel> { dataSource }),
+                new ReportDataSource("PedidoCompraLineasDataSet", dataSource.Lineas)
+            };
         }
 
         public ICommand InsertarLineaCommand { get; private set; }
