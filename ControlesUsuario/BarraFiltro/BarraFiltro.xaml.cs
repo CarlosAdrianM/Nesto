@@ -161,7 +161,9 @@ namespace ControlesUsuario
             {
                 return;
             }
-            if (barra.ListaItems.ElementoSeleccionado is null && barra.ItemSeleccionado is not null)
+            // Al cerrar la ventana, el teardown de la región limpia el DataContext y ListaItems
+            // puede pasar a null. Hay que ser null-safe para no lanzar NullReferenceException.
+            if (barra.ListaItems is not null && barra.ListaItems.ElementoSeleccionado is null && barra.ItemSeleccionado is not null)
             {
 
             }

@@ -187,6 +187,14 @@ Partial Public Class Application
         regionAdapterMappings.RegisterMapping(GetType(RibbonRegionAdapter), Container.Resolve(Of RibbonRegionAdapter)())
     End Sub
 
+    ' Memory leak: al quitar una vista de cualquier región, limpiamos su DataContext para
+    ' que WPF desmonte los BindingExpression que, si no, la mantienen viva (junto con su VM).
+    ' Behavior global → aplica a todas las ventanas. Ver LimpiarVistaAlQuitarRegionBehavior.
+    Protected Overrides Sub ConfigureDefaultRegionBehaviors(regionBehaviors As IRegionBehaviorFactory)
+        MyBase.ConfigureDefaultRegionBehaviors(regionBehaviors)
+        regionBehaviors.AddIfMissing(LimpiarVistaAlQuitarRegionBehavior.BehaviorKey, GetType(LimpiarVistaAlQuitarRegionBehavior))
+    End Sub
+
     Protected Overrides Sub ConfigureViewModelLocator()
         MyBase.ConfigureViewModelLocator()
         ViewModelLocationProvider.Register(GetType(Remesas).ToString, GetType(RemesasViewModel))
