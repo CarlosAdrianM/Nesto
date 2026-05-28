@@ -158,6 +158,20 @@ namespace PlantillaVentaTests
 
         #endregion
 
+        #region colorEstado Tests
+
+        // Issue #357: en la plantilla, 'estado' es el estado del PRODUCTO; estado=4 = a extinguir.
+        // Debe mostrarse en púrpura, prevaleciendo sobre el color por histórico de ventas.
+        [TestMethod]
+        public void ColorEstado_ProductoAExtinguir_Estado4_DevuelvePurpura()
+        {
+            var linea = new LineaPlantillaVenta { estado = 4 };
+
+            Assert.AreEqual(Brushes.Purple, linea.colorEstado);
+        }
+
+        #endregion
+
         #region stockActualizado PropertyChanged Tests
 
         [TestMethod]

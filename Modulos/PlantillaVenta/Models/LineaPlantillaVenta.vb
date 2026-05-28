@@ -142,6 +142,12 @@ Public Class LineaPlantillaVenta
             If color IsNot Brushes.Green AndAlso estado = 0 Then
                 color = Brushes.DarkGreen
             End If
+            ' Issue #357: productos a extinguir (estado de producto = 4) en púrpura. Prevalece sobre
+            ' el histórico de ventas para que el vendedor no los meta sin ver que van a desaparecer.
+            ' Aquí 'estado' es el estado del PRODUCTO (no la línea); 4 = a extinguir.
+            If estado = 4 Then
+                color = Brushes.Purple
+            End If
             Return color
         End Get
     End Property
