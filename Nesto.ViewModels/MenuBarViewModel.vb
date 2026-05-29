@@ -226,9 +226,9 @@ Public Class MenuBarViewModel
     End Sub
 
     Private Async Sub OnControlPedidos()
-        Dim dataSource As List(Of Informes.ControlPedidosModel) = Await _servicioInformes.LeerControlPedidos()
-        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-            "Nesto.Informes.ControlPedidos.rdlc", "ControlPedidosDataSet", dataSource)
+        ' El PDF lo genera NestoAPI con QuestPDF (api/Informes/ControlPedidos/Pdf); ya no se
+        ' renderiza el RDLC en local (roadmap: mover el render de informes al backend).
+        Dim pdf As Byte() = Await _servicioInformes.DescargarControlPedidosPdf()
         Dim fileName As String = Path.GetTempPath + "InformeControlPedidos.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {

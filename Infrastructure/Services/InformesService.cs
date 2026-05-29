@@ -30,6 +30,9 @@ namespace Nesto.Infrastructure.Services
         public async Task<List<ControlPedidosModel>> LeerControlPedidos()
             => await GetAsync<List<ControlPedidosModel>>("Informes/ControlPedidos", "el control de pedidos").ConfigureAwait(false);
 
+        public async Task<byte[]> DescargarControlPedidosPdf()
+            => await GetBytesAsync("Informes/ControlPedidos/Pdf", "el PDF del control de pedidos").ConfigureAwait(false);
+
         public async Task<List<DetalleRapportsModel>> LeerDetalleRapports(DateTime fechaDesde, DateTime fechaHasta, string listaVendedores)
             => await GetAsync<List<DetalleRapportsModel>>(
                 $"Informes/DetalleRapports?fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}&listaVendedores={Uri.EscapeDataString(listaVendedores ?? string.Empty)}",
@@ -121,6 +124,23 @@ namespace Nesto.Infrastructure.Services
 
                 string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 return JsonConvert.DeserializeObject<T>(body);
+            }
+        }
+
+        // Para endpoints que devuelven binario (p.ej. PDFs generados con QuestPDF) en vez de JSON.
+        private async Task<byte[]> GetBytesAsync(string urlRelativa, string descripcion)
+        {
+            using (var client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(_configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client).ConfigureAwait(false))
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+
+                var response = await client.GetAsync(urlRelativa).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception($"Error al obtener {descripcion}: {response.StatusCode}");
+
+                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
         }
     }
