@@ -2532,6 +2532,21 @@ Public Class PlantillaVentaViewModel
                     End If
                 End If
             Else
+                ' Issue #366: avisar si la ampliación lleva fechas de entrega que no coinciden con
+                ' las del pedido existente, para que el usuario no mezcle fechas sin darse cuenta.
+                Dim pedidoExistente As PedidoVentaDTO = Await servicioPedidosVenta.cargarPedido(clienteSeleccionado.empresa, PedidoPendienteSeleccionado)
+                Dim fechasExistente = pedidoExistente.Lineas.Where(Function(l) l.tipoLinea = 1).Select(Function(l) l.fechaEntrega)
+                Dim fechasAmpliacion = pedido.Lineas.Where(Function(l) l.tipoLinea = 1).Select(Function(l) l.fechaEntrega)
+                Dim conflicto = DetectarConflictoFechasUnion(PedidoPendienteSeleccionado, fechasExistente, fechasAmpliacion)
+                If conflicto.HayConflicto Then
+                    Dim unificar As Boolean = Await dialogService.ShowConfirmationAsync("Fechas de entrega distintas", conflicto.Mensaje)
+                    If unificar Then
+                        For Each linea In pedido.Lineas
+                            linea.fechaEntrega = conflicto.FechaDestino
+                        Next
+                    End If
+                End If
+
                 Dim pedidoUnido As PedidoVentaDTO = Await servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido)
                 numPedido = pedidoUnido.numero.ToString
             End If
@@ -2580,6 +2595,52 @@ Public Class PlantillaVentaViewModel
 
 
     End Sub
+
+    ''' <summary>
+    ''' Issue #366: comprueba si la ampliación lleva fechas de entrega que no coinciden con ninguna
+    ''' del pedido existente al que se va a unir. Función pura (sin estado del VM) para poder testearla.
+    ''' </summary>
+    ''' <param name="numeroPedidoExistente">Número del pedido pendiente al que se ampliará.</param>
+    ''' <param name="fechasExistente">Fechas de entrega de las líneas del pedido existente.</param>
+    ''' <param name="fechasAmpliacion">Fechas de entrega de las líneas de la ampliación.</param>
+    Public Shared Function DetectarConflictoFechasUnion(
+            numeroPedidoExistente As Integer,
+            fechasExistente As IEnumerable(Of Date),
+            fechasAmpliacion As IEnumerable(Of Date)) As ConflictoFechasUnionResultado
+
+        Dim existentes = If(fechasExistente, Enumerable.Empty(Of Date)()).Distinct().OrderBy(Function(f) f).ToList()
+        Dim ampliacion = If(fechasAmpliacion, Enumerable.Empty(Of Date)()).Distinct().OrderBy(Function(f) f).ToList()
+
+        ' Sin fechas en el pedido existente no hay nada con qué comparar.
+        If existentes.Count = 0 Then
+            Return New ConflictoFechasUnionResultado With {.HayConflicto = False}
+        End If
+
+        Dim noCoinciden = ampliacion.Where(Function(f) Not existentes.Contains(f)).ToList()
+        If noCoinciden.Count = 0 Then
+            Return New ConflictoFechasUnionResultado With {.HayConflicto = False}
+        End If
+
+        ' Al unificar, alineamos a la fecha más temprana del pedido existente.
+        Dim fechaDestino = existentes.First()
+        Dim fechaDestinoTxt = fechaDestino.ToString("d")
+        Dim noCoincidenTxt = String.Join(", ", noCoinciden.Select(Function(f) f.ToString("d")))
+        Dim opciones = vbCrLf & $"(Sí: poner todas las líneas para el {fechaDestinoTxt} / No: dejar cada línea con su fecha)"
+
+        Dim mensaje As String
+        If existentes.Count = 1 Then
+            mensaje = $"Todas las líneas del pedido {numeroPedidoExistente} tienen fecha de entrega para el {fechaDestinoTxt}, pero hay líneas para el {noCoincidenTxt} en la ampliación. ¿Desea poner todas para el {fechaDestinoTxt}?" & opciones
+        Else
+            Dim existentesTxt = String.Join(", ", existentes.Select(Function(f) f.ToString("d")))
+            mensaje = $"El pedido {numeroPedidoExistente} tiene líneas con fechas de entrega {existentesTxt} y la ampliación añade líneas para el {noCoincidenTxt}, que no coinciden. ¿Desea poner las líneas de la ampliación para el {fechaDestinoTxt}?" & opciones
+        End If
+
+        Return New ConflictoFechasUnionResultado With {
+            .HayConflicto = True,
+            .FechaDestino = fechaDestino,
+            .Mensaje = mensaje
+        }
+    End Function
 
     Private _noAmpliarPedidoCommand As DelegateCommand
     Public Property NoAmpliarPedidoCommand As DelegateCommand
@@ -3531,6 +3592,16 @@ Public Class PlantillaVentaViewModel
         Public Property Coste As Decimal
         Public Property Almacen As String
         Public Property CondicionesPagoValidas As Boolean
+    End Class
+
+    ''' <summary>
+    ''' Issue #366: resultado de comprobar si las fechas de entrega de la ampliación coinciden
+    ''' con las del pedido existente al unirlos.
+    ''' </summary>
+    Public Class ConflictoFechasUnionResultado
+        Public Property HayConflicto As Boolean
+        Public Property FechaDestino As Date
+        Public Property Mensaje As String
     End Class
 End Class
 

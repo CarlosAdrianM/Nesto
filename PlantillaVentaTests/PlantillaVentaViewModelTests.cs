@@ -1103,5 +1103,72 @@ namespace PlantillaVentaTests
         }
 
         #endregion
+
+        #region "Issue #366: aviso de fechas distintas al unir pedido"
+
+        [TestMethod]
+        public void DetectarConflictoFechasUnion_FechasCoinciden_NoHayConflicto()
+        {
+            var fecha = new DateTime(2026, 5, 29);
+
+            var resultado = PlantillaVentaViewModel.DetectarConflictoFechasUnion(
+                123456, new[] { fecha }, new[] { fecha });
+
+            Assert.IsFalse(resultado.HayConflicto);
+        }
+
+        [TestMethod]
+        public void DetectarConflictoFechasUnion_AmpliacionConFechaDistinta_HayConflictoYAlineaAExistente()
+        {
+            var fechaExistente = new DateTime(2026, 5, 29);
+            var fechaAmpliacion = new DateTime(2026, 5, 30);
+
+            var resultado = PlantillaVentaViewModel.DetectarConflictoFechasUnion(
+                123456, new[] { fechaExistente }, new[] { fechaAmpliacion });
+
+            Assert.IsTrue(resultado.HayConflicto);
+            Assert.AreEqual(fechaExistente, resultado.FechaDestino);
+            StringAssert.Contains(resultado.Mensaje, "123456");
+            StringAssert.Contains(resultado.Mensaje, fechaAmpliacion.ToString("d"));
+            StringAssert.Contains(resultado.Mensaje, fechaExistente.ToString("d"));
+        }
+
+        [TestMethod]
+        public void DetectarConflictoFechasUnion_PedidoExistenteSinFechas_NoHayConflicto()
+        {
+            var resultado = PlantillaVentaViewModel.DetectarConflictoFechasUnion(
+                123456, new DateTime[0], new[] { new DateTime(2026, 5, 30) });
+
+            Assert.IsFalse(resultado.HayConflicto);
+        }
+
+        [TestMethod]
+        public void DetectarConflictoFechasUnion_ExistenteConVariasFechas_AlineaAlaMasTemprana()
+        {
+            var temprana = new DateTime(2026, 5, 29);
+            var tardia = new DateTime(2026, 5, 30);
+
+            var resultado = PlantillaVentaViewModel.DetectarConflictoFechasUnion(
+                777, new[] { tardia, temprana }, new[] { new DateTime(2026, 6, 1) });
+
+            Assert.IsTrue(resultado.HayConflicto);
+            Assert.AreEqual(temprana, resultado.FechaDestino);
+        }
+
+        [TestMethod]
+        public void DetectarConflictoFechasUnion_CoincidenciaParcial_HayConflicto()
+        {
+            var fechaComun = new DateTime(2026, 5, 29);
+            var fechaExtra = new DateTime(2026, 5, 30);
+
+            var resultado = PlantillaVentaViewModel.DetectarConflictoFechasUnion(
+                999, new[] { fechaComun }, new[] { fechaComun, fechaExtra });
+
+            Assert.IsTrue(resultado.HayConflicto);
+            Assert.AreEqual(fechaComun, resultado.FechaDestino);
+            StringAssert.Contains(resultado.Mensaje, fechaExtra.ToString("d"));
+        }
+
+        #endregion
     }
 }
