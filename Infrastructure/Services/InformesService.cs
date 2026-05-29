@@ -27,6 +27,11 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/ResumenVentas?fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}&soloFacturas={soloFacturas.ToString().ToLower()}",
                 "el resumen de ventas").ConfigureAwait(false);
 
+        public async Task<byte[]> DescargarResumenVentasPdf(DateTime fechaDesde, DateTime fechaHasta, bool soloFacturas)
+            => await GetBytesAsync(
+                $"Informes/ResumenVentas/Pdf?fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}&soloFacturas={soloFacturas.ToString().ToLower()}",
+                "el PDF del resumen de ventas").ConfigureAwait(false);
+
         public async Task<List<ControlPedidosModel>> LeerControlPedidos()
             => await GetAsync<List<ControlPedidosModel>>("Informes/ControlPedidos", "el control de pedidos").ConfigureAwait(false);
 

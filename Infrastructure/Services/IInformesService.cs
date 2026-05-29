@@ -10,6 +10,7 @@ namespace Nesto.Infrastructure.Services
     public interface IInformesService
     {
         Task<List<ResumenVentasModel>> LeerResumenVentas(DateTime fechaDesde, DateTime fechaHasta, bool soloFacturas);
+        Task<byte[]> DescargarResumenVentasPdf(DateTime fechaDesde, DateTime fechaHasta, bool soloFacturas);
         Task<List<ControlPedidosModel>> LeerControlPedidos();
         Task<byte[]> DescargarControlPedidosPdf();
         Task<List<DetalleRapportsModel>> LeerDetalleRapports(DateTime fechaDesde, DateTime fechaHasta, string listaVendedores);

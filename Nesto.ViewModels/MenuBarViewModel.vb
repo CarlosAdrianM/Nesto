@@ -344,14 +344,9 @@ Public Class MenuBarViewModel
 #Region "Métodos de informes"
 
     Private Async Sub GenerarInformeVentasGrupo(FechaDesde As Date, FechaHasta As Date, SoloFacturas As Boolean)
-        Dim dataSource As List(Of Informes.ResumenVentasModel) = Await _servicioInformes.LeerResumenVentas(FechaDesde, FechaHasta, SoloFacturas)
-        Dim listaParametros As New List(Of ReportParameter) From {
-            New ReportParameter("FechaDesde", FechaDesde),
-            New ReportParameter("FechaHasta", FechaHasta),
-            New ReportParameter("SoloFacturas", SoloFacturas)
-        }
-        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-            "Nesto.Informes.ResumenVentas.rdlc", "ResumenVentasDataSet", dataSource, listaParametros)
+        ' El PDF lo genera NestoAPI con QuestPDF (api/Informes/ResumenVentas/Pdf) en vista comparativa
+        ' Año Actual vs. Año Anterior; ya no se renderiza el RDLC en local.
+        Dim pdf As Byte() = Await _servicioInformes.DescargarResumenVentasPdf(FechaDesde, FechaHasta, SoloFacturas)
         Dim fileName As String = Path.GetTempPath + "InformeVentas.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
