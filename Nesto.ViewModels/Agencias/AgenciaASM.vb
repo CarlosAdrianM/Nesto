@@ -718,6 +718,12 @@ Public Class AgenciaASM
         End Get
     End Property
 
+    Public ReadOnly Property DimensionesBultosObligatorias As Boolean Implements IAgencia.DimensionesBultosObligatorias
+        Get
+            Return False
+        End Get
+    End Property
+
     Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
         Get
             Return "20244"

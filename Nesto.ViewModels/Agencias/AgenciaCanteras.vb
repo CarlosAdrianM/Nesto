@@ -100,7 +100,8 @@ Public Class AgenciaCanteras
     Public Shared Function ComponerCuerpoCorreo(envio As EnviosAgencia) As String
         ' Réplica del correo manual que se mandaba antes de automatizar (Nesto#359):
         ' identificador cliente, nombre, dirección, CP+población+provincia, teléfono,
-        ' bultos y peso, y mención del adjunto. Sin medidas (no las tenemos en EnviosAgencia).
+        ' bultos, peso y medidas (Nesto#367: el usuario las indica al tramitar y se guardan en
+        ' Observaciones), y mención del adjunto.
         Dim sb As New StringBuilder()
         sb.AppendLine("Buenas tardes,")
         sb.AppendLine()
@@ -131,6 +132,11 @@ Public Class AgenciaCanteras
             sb.AppendLine($"Son {bultos} bultos y unos {pesoTexto} kgs en total.")
         End If
 
+        ' Nesto#367: las medidas de los bultos las indica el usuario al tramitar y quedan en Observaciones.
+        If Not String.IsNullOrWhiteSpace(envio.Observaciones) Then
+            sb.AppendLine($"Medidas de los bultos: {envio.Observaciones.Trim()}")
+        End If
+
         sb.AppendLine()
         sb.AppendLine("Adjuntamos factura.")
         sb.AppendLine()
@@ -139,8 +145,10 @@ Public Class AgenciaCanteras
     End Function
 
     Public Sub imprimirEtiqueta(envio As EnviosAgencia) Implements IAgencia.imprimirEtiqueta
-        ' Canteras no imprime etiquetas en local — la etiqueta viaja con el correo a Canteras.
-        Throw New Exception("Canteras no genera etiqueta desde Nesto. El envío se notifica por correo.")
+        ' Canteras no imprime etiquetas en local — el aviso viaja con el correo a Canteras al
+        ' tramitar. No-op a propósito (Nesto#367): al "imprimir etiqueta" el operario solo indica
+        ' las dimensiones de los bultos (lo gestiona AgenciasViewModel antes de llamar aquí); no hay
+        ' nada que imprimir, pero tampoco debe lanzar error ni cortar el flujo.
     End Sub
 
     Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir
@@ -232,6 +240,13 @@ Public Class AgenciaCanteras
     Public ReadOnly Property PermiteEditarCodigoBarras As Boolean Implements IAgencia.PermiteEditarCodigoBarras
         Get
             ' Canteras devuelve el nº de envío por correo; el usuario lo pega a mano.
+            Return True
+        End Get
+    End Property
+
+    Public ReadOnly Property DimensionesBultosObligatorias As Boolean Implements IAgencia.DimensionesBultosObligatorias
+        Get
+            ' Canteras necesita las medidas de los bultos en el aviso de recogida (Nesto#367).
             Return True
         End Get
     End Property

@@ -1440,6 +1440,24 @@ Public Class AgenciasViewModel
         RaisePropertyChanged(NameOf(mensajeError))
     End Sub
 
+    ' Nesto#367: añade las dimensiones a las observaciones existentes sin pisarlas.
+    Public Shared Function CombinarObservaciones(observacionesActuales As String, dimensiones As String) As String
+        If String.IsNullOrWhiteSpace(observacionesActuales) Then
+            Return dimensiones
+        End If
+        Return $"{observacionesActuales.Trim()} - {dimensiones}"
+    End Function
+
+    ' Nesto#367: exige que el texto contenga unas dimensiones reales con formato número x número x
+    ' número (ej. 30x20x15, admite decimales, espacios y unidad detrás). Así no se cuela un "3",
+    ' un punto o una letra sueltos.
+    Public Shared Function EsFormatoDimensionesValido(texto As String) As Boolean
+        If String.IsNullOrWhiteSpace(texto) Then
+            Return False
+        End If
+        Return Regex.IsMatch(texto, "\d+([.,]\d+)?\s*[xX×]\s*\d+([.,]\d+)?\s*[xX×]\s*\d+([.,]\d+)?")
+    End Function
+
     Private _cmdTramitarTodos As ICommand
     Public ReadOnly Property cmdTramitarTodos() As ICommand
         Get
@@ -1478,6 +1496,22 @@ Public Class AgenciasViewModel
     End Function
     Private Async Sub ImprimirEtiquetaPedido(ByVal param As Object)
         Try
+            ' Nesto#367: las agencias que lo exigen (Canteras) necesitan las dimensiones de los
+            ' bultos en el aviso de recogida. Las pide aquí, al imprimir la etiqueta, el operario que
+            ' ha preparado el pedido (es quien mejor las conoce) y se guardan en el envío, de donde
+            ' las leerá el correo de tramitación (que puede tramitar otra persona que no vio los bultos).
+            If agenciaEspecifica.DimensionesBultosObligatorias Then
+                Dim dimensiones As String = _dialogService.GetText(
+                    "Dimensiones de los bultos",
+                    "Indica las dimensiones de los bultos en formato AnchoxAltoxLargo (ej. 30x20x15):")
+                If Not EsFormatoDimensionesValido(dimensiones) Then
+                    _dialogService.ShowError("Las dimensiones deben tener el formato número x número x número (ej. 30x20x15). No se ha guardado nada.")
+                    Return
+                End If
+                envioActual.Observaciones = Left(CombinarObservaciones(envioActual.Observaciones, dimensiones.Trim()), 80)
+                _servicio.Modificar(envioActual)
+            End If
+
             agenciaEspecifica.imprimirEtiqueta(envioActual)
             If Not _facturarAlImprimirEtiqueta Then
                 ' Issue #282: Mostrar notificación y poner foco en número de pedido

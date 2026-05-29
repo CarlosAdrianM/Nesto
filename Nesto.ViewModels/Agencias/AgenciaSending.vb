@@ -577,6 +577,12 @@ Public Class AgenciaSending
         End Get
     End Property
 
+    Public ReadOnly Property DimensionesBultosObligatorias As Boolean Implements IAgencia.DimensionesBultosObligatorias
+        Get
+            Return False
+        End Get
+    End Property
+
 
 End Class
 

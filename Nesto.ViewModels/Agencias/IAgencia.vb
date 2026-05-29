@@ -37,4 +37,9 @@ Public Interface IAgencia
     ' calculan automáticamente al tramitar y no se debe pisar).
     ReadOnly Property PermiteEditarCodigoBarras As Boolean
 
+    ' Nesto#367: si es True, al tramitar el envío hay que pedir al usuario las dimensiones de los
+    ' bultos (un texto libre) y guardarlas en EnviosAgencia.Observaciones, porque la agencia las
+    ' necesita en el aviso de recogida (hoy solo Canteras).
+    ReadOnly Property DimensionesBultosObligatorias As Boolean
+
 End Interface

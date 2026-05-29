@@ -562,8 +562,13 @@ Public Class AgenciaService
             End If
             Dim bytesPdf As Byte() = Await respuestaPdf.Content.ReadAsByteArrayAsync()
 
+            ' Nesto#367: los correos a agencias salen de Logística, con copia oculta a la propia
+            ' Logística para que el equipo tenga constancia en su buzón de qué se ha enviado.
             Dim payload = New With {
+                Key .Remitente = "logistica@nuevavision.es",
+                Key .NombreRemitente = "Logística Nueva Visión",
                 Key .Destinatarios = New String() {destinatario},
+                Key .CopiaOculta = New String() {"logistica@nuevavision.es"},
                 Key .Asunto = asunto,
                 Key .Cuerpo = cuerpo,
                 Key .EsHtml = False,
