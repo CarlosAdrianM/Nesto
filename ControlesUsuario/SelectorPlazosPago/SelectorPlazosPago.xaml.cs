@@ -352,6 +352,14 @@ namespace ControlesUsuario
 
         private async void cargarDatos()
         {
+            // Al quitar la vista de la región se anula su DataContext y las dependency properties
+            // (Configuracion, Cliente, FormaPago...) revierten a null disparando este callback
+            // async void durante el teardown; sin el guard, el NRE de Configuracion.servidorAPI se
+            // reposta al Dispatcher como excepción no controlada y tumba la app al cerrar la ventana.
+            if (Configuracion == null)
+            {
+                return;
+            }
             using HttpClient client = new();
             client.BaseAddress = new Uri(Configuracion.servidorAPI);
             HttpResponseMessage response;

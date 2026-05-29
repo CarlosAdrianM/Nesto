@@ -166,7 +166,12 @@ Public Class Agencias
     End Sub
 
     Private Sub Agencias_Unloaded(sender As Object, e As RoutedEventArgs) Handles MyBase.Unloaded
-        Dim viewModel As AgenciasViewModel = CType(Me.DataContext, AgenciasViewModel)
-        RemoveHandler viewModel.SolicitarFocoNumeroPedido, AddressOf OnSolicitarFocoNumeroPedido
+        ' El RegionBehavior LimpiarVistaAlQuitar anula el DataContext al quitar la vista de la
+        ' región, así que aquí el VM puede ser Nothing; sin el guard, RemoveHandler lanzaría
+        ' NullReferenceException y tumbaría la app al cerrar la ventana de Agencias.
+        Dim viewModel As AgenciasViewModel = TryCast(Me.DataContext, AgenciasViewModel)
+        If viewModel IsNot Nothing Then
+            RemoveHandler viewModel.SolicitarFocoNumeroPedido, AddressOf OnSolicitarFocoNumeroPedido
+        End If
     End Sub
 End Class
