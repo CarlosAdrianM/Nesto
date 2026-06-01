@@ -33,7 +33,8 @@ namespace Nesto.Infrastructure.Services.ServirJunto
             string plazosPago = null,
             string ccc = null,
             string periodoFacturacion = null,
-            bool? notaEntrega = null)
+            bool? notaEntrega = null,
+            List<LineaPortesServirJuntoDTO> lineasParaPortes = null)
         {
             using (var client = new HttpClient())
             {
@@ -54,7 +55,8 @@ namespace Nesto.Infrastructure.Services.ServirJunto
                         PlazosPago = plazosPago,
                         CCC = ccc,
                         PeriodoFacturacion = periodoFacturacion,
-                        NotaEntrega = notaEntrega
+                        NotaEntrega = notaEntrega,
+                        LineasParaPortes = lineasParaPortes
                     };
 
                     var content = new StringContent(JsonConvert.SerializeObject(request), Encoding.UTF8, "application/json");

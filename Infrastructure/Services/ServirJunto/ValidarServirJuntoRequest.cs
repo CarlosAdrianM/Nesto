@@ -16,5 +16,9 @@ namespace Nesto.Infrastructure.Services.ServirJunto
         public string CCC { get; set; }
         public string PeriodoFacturacion { get; set; }
         public bool? NotaEntrega { get; set; }
+
+        // NestoAPI#211 / Nesto#365: líneas de producto para que el backend calcule la base de portes
+        // que quedaría al desmarcar "servir junto".
+        public List<LineaPortesServirJuntoDTO> LineasParaPortes { get; set; }
     }
 }

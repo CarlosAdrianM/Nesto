@@ -2208,6 +2208,19 @@ Public Class DetallePedidoViewModel
                 }) _
                 .ToList()
 
+            ' NestoAPI#211/Nesto#365: líneas de producto para que el backend calcule la base de
+            ' portes que quedaría al desmarcar servir junto (excluyendo las líneas sobre pedido).
+            Dim lineasParaPortes = pedido.Lineas _
+                .Where(Function(l) l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.producto)) _
+                .Select(Function(l) New LineaPortesServirJuntoDTO With {
+                    .ProductoId = l.producto,
+                    .Almacen = l.Almacen,
+                    .Estado = l.estado,
+                    .Cantidad = CInt(l.Cantidad),
+                    .BaseImponible = l.BaseImponible
+                }) _
+                .ToList()
+
             ' NestoAPI#187: pasamos los datos del pedido para que el backend evalúe si
             ' aplica comisión contra reembolso y nos devuelva el aviso correspondiente.
             Dim respuesta = Await _servicioServirJunto.Validar(
@@ -2218,7 +2231,8 @@ Public Class DetallePedidoViewModel
                 pedido.plazosPago,
                 pedido.ccc,
                 pedido.periodoFacturacion,
-                pedido.notaEntrega).ConfigureAwait(True)
+                pedido.notaEntrega,
+                lineasParaPortes).ConfigureAwait(True)
 
             If Not respuesta.PuedeDesmarcar Then
                 pedido.servirJunto = True
@@ -2227,10 +2241,21 @@ Public Class DetallePedidoViewModel
                 Return
             End If
 
-            ' NestoAPI#187: aviso no-bloqueante (típicamente comisión por envío). Si el
-            ' usuario cancela, revertimos el desmarcado; si acepta, lo dejamos tal cual.
+            ' Avisos no-bloqueantes al desmarcar: comisión contra reembolso (NestoAPI#187) y
+            ' aparición de portes por líneas sobre pedido (NestoAPI#211/Nesto#365). Se muestran
+            ' juntos en una confirmación; si el usuario cancela, revertimos el desmarcado.
+            Dim avisos As New List(Of String)
             If Not String.IsNullOrEmpty(respuesta.Aviso) Then
-                If Not dialogService.ShowConfirmationAnswer("Servir Junto", respuesta.Aviso) Then
+                avisos.Add(respuesta.Aviso)
+            End If
+            Dim avisoPortes = ConstruirAvisoPortesAlDesmarcar(respuesta.BaseImponibleSinServirJunto)
+            If Not String.IsNullOrEmpty(avisoPortes) Then
+                avisos.Add(avisoPortes)
+            End If
+
+            If avisos.Any() Then
+                Dim mensaje = String.Join(Environment.NewLine & Environment.NewLine, avisos)
+                If Not dialogService.ShowConfirmationAnswer("Servir Junto", mensaje) Then
                     pedido.servirJunto = True
                     RaisePropertyChanged(NameOf(pedido))
                 End If
@@ -2239,6 +2264,32 @@ Public Class DetallePedidoViewModel
             ' Fail-safe: si la validación falla por red o error inesperado, dejamos pasar.
         End Try
     End Sub
+
+    ''' <summary>
+    ''' NestoAPI#211/Nesto#365: devuelve el aviso si al desmarcar "servir junto" el pedido pasa de
+    ''' "portes pagados" a llevar gastos de envío, porque las líneas sobre pedido dejan de contar
+    ''' para la base de portes. Compara la base sin servir junto (calculada por el backend con stock)
+    ''' con el umbral cacheado en _resultadoPortes. Cadena vacía si no hay que avisar.
+    ''' </summary>
+    Private Function ConstruirAvisoPortesAlDesmarcar(baseSinServirJunto As Decimal?) As String
+        If _resultadoPortes Is Nothing Then
+            Return String.Empty
+        End If
+        Return ConstruirAvisoPortesAlDesmarcar(baseSinServirJunto, pedido.BaseImponible, _resultadoPortes.ImporteMinimoPedidoSinPortes)
+    End Function
+
+    ''' <summary>Lógica pura del aviso (testeable). Avisa si con servir junto se llega al umbral pero sin él no.</summary>
+    Friend Shared Function ConstruirAvisoPortesAlDesmarcar(baseSinServirJunto As Decimal?, baseConServirJunto As Decimal, umbral As Decimal) As String
+        If Not baseSinServirJunto.HasValue Then
+            Return String.Empty
+        End If
+
+        If baseConServirJunto >= umbral AndAlso baseSinServirJunto.Value < umbral Then
+            Return $"Al desmarcar 'Servir junto', las líneas sobre pedido dejan de contar para portes y el pedido pasaría a llevar gastos de envío (base {baseSinServirJunto.Value:C} de {umbral:C} necesarios para portes pagados). ¿Quieres continuar?"
+        End If
+
+        Return String.Empty
+    End Function
 
 #End Region
 
