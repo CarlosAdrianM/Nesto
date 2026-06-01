@@ -13,6 +13,8 @@ Imports System.IO
 Imports System.Text
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models.Alquileres
+Imports Unity
 
 Public Class AlquileresViewModel
     Inherits BindableBase
@@ -21,13 +23,30 @@ Public Class AlquileresViewModel
     Private DbContext As NestoEntities
     Private ReadOnly dialogService As IDialogService
     Private ReadOnly configuracion As IConfiguracion
+    ' Nesto#340 Fase 1C.1: la lista de productos en alquiler ya no se lee con EF, sino del API.
+    Private ReadOnly _productosAlquilerService As IProductosAlquilerService
 
-    Public Sub New(dialogService As IDialogService, configuracion As IConfiguracion)
+    Public Sub New(dialogService As IDialogService, configuracion As IConfiguracion, container As IUnityContainer)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
+        Me.dialogService = dialogService
+        Me.configuracion = configuracion
+        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
+        _productosAlquilerService = New ProductosAlquilerService(configuracion, servicioAutenticacion)
+        Inicializar()
+    End Sub
+
+    ' Constructor para tests: permite inyectar un IProductosAlquilerService fake.
+    Public Sub New(dialogService As IDialogService, configuracion As IConfiguracion, productosAlquilerService As IProductosAlquilerService)
+        Me.dialogService = dialogService
+        Me.configuracion = configuracion
+        _productosAlquilerService = productosAlquilerService
+        Inicializar()
+    End Sub
+
+    Private Sub Inicializar()
         DbContext = New NestoEntities
-        colProductosAlquilerLista = New ObservableCollection(Of prdProductosAlquiler)(From c In DbContext.prdProductosAlquilerLista)
         bultos = 2
 
         ' Comandos Prism
@@ -36,9 +55,24 @@ Public Class AlquileresViewModel
 
         Titulo = "Alquileres"
 
-        Me.dialogService = dialogService
-        Me.configuracion = configuracion
+        ' La lectura es asíncrona (API); se lanza fire-and-forget desde el constructor.
+        CargarProductosAlquilerAsync(seleccionarUltimo:=False)
     End Sub
+
+    ' Nesto#340 Fase 1C.1: sustituye la lectura EF DbContext.prdProductosAlquilerLista.
+    ' Es Function As Task (no Sub) para que los tests puedan await; los call sites de
+    ' fire-and-forget la invocan como sentencia y la excepción queda capturada aquí dentro.
+    Public Async Function CargarProductosAlquilerAsync(seleccionarUltimo As Boolean) As Task
+        Try
+            Dim productos = Await _productosAlquilerService.LeerProductosAlquiler()
+            colProductosAlquilerLista = New ObservableCollection(Of ProductoAlquilerModel)(productos)
+            If seleccionarUltimo Then
+                ProductoSeleccionado = colProductosAlquilerLista.LastOrDefault
+            End If
+        Catch ex As Exception
+            mensajeError = If(ex.InnerException IsNot Nothing, ex.InnerException.Message, ex.Message)
+        End Try
+    End Function
 
 
 #Region "Datos Publicados"
@@ -114,25 +148,25 @@ Public Class AlquileresViewModel
         End Set
     End Property
 
-    Private _colProductosAlquilerLista As ObservableCollection(Of prdProductosAlquiler)
-    Public Property colProductosAlquilerLista As ObservableCollection(Of prdProductosAlquiler)
+    Private _colProductosAlquilerLista As ObservableCollection(Of ProductoAlquilerModel)
+    Public Property colProductosAlquilerLista As ObservableCollection(Of ProductoAlquilerModel)
         Get
             Return _colProductosAlquilerLista
         End Get
-        Set(value As ObservableCollection(Of prdProductosAlquiler))
+        Set(value As ObservableCollection(Of ProductoAlquilerModel))
             SetProperty(_colProductosAlquilerLista, value)
         End Set
     End Property
 
-    Private _ProductoSeleccionado As prdProductosAlquiler
-    Public Property ProductoSeleccionado As prdProductosAlquiler
+    Private _ProductoSeleccionado As ProductoAlquilerModel
+    Public Property ProductoSeleccionado As ProductoAlquilerModel
         Get
             Return _ProductoSeleccionado
         End Get
-        Set(value As prdProductosAlquiler)
+        Set(value As ProductoAlquilerModel)
             SetProperty(_ProductoSeleccionado, value)
             If Not IsNothing(ProductoSeleccionado) Then
-                AlquileresCollection = New ObservableCollection(Of CabAlquileres)(From c In DbContext.CabAlquileres Where c.Producto = ProductoSeleccionado.Número Order By c.NumeroSerie)
+                AlquileresCollection = New ObservableCollection(Of CabAlquileres)(From c In DbContext.CabAlquileres Where c.Producto = ProductoSeleccionado.Numero Order By c.NumeroSerie)
             End If
 
             colExtractoInmovilizado = Nothing
@@ -200,8 +234,8 @@ Public Class AlquileresViewModel
     Private Sub Guardar(ByVal param As Object)
         Try
             DbContext.SaveChanges()
-            colProductosAlquilerLista = New ObservableCollection(Of prdProductosAlquiler)(From c In DbContext.prdProductosAlquilerLista)
-            ProductoSeleccionado = colProductosAlquilerLista.LastOrDefault
+            ' Nesto#340 Fase 1C.1: la lista se recarga desde el API (selecciona el último al volver).
+            CargarProductosAlquilerAsync(seleccionarUltimo:=True)
             mensajeError = ""
         Catch ex As Exception
             If Not IsNothing(ex.InnerException) Then
@@ -228,7 +262,7 @@ Public Class AlquileresViewModel
         Dim alqui As New CabAlquileres
         alqui.Empresa = "1"
         If ProductoSeleccionado IsNot Nothing Then
-            alqui.Producto = ProductoSeleccionado.Número
+            alqui.Producto = ProductoSeleccionado.Numero
         ElseIf LineaSeleccionada IsNot Nothing Then
             alqui.Producto = LineaSeleccionada.Producto
         End If

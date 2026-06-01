@@ -1,0 +1,51 @@
+Imports System.Collections.Generic
+Imports System.Linq
+Imports System.Threading.Tasks
+Imports FakeItEasy
+Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models.Alquileres
+Imports Nesto.ViewModels
+Imports Prism.Services.Dialogs
+
+<TestClass()>
+Public Class AlquileresViewModelTests
+
+    Private _dialogService As IDialogService
+    Private _configuracion As IConfiguracion
+    Private _servicio As IProductosAlquilerService
+
+    <TestInitialize()>
+    Public Sub Initialize()
+        _dialogService = A.Fake(Of IDialogService)()
+        _configuracion = A.Fake(Of IConfiguracion)()
+        _servicio = A.Fake(Of IProductosAlquilerService)()
+
+        ' Por defecto el servicio devuelve lista vacía para que el constructor no explote.
+        A.CallTo(Function() _servicio.LeerProductosAlquiler()) _
+            .Returns(Task.FromResult(New List(Of ProductoAlquilerModel)))
+    End Sub
+
+    Private Function CrearViewModel() As AlquileresViewModel
+        Return New AlquileresViewModel(_dialogService, _configuracion, _servicio)
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarProductosAlquiler_PoblaLaColeccionDesdeElServicio() As Task
+        ' Nesto#340 Fase 1C.1: la lista se lee del API, no de EF.
+        Dim productos = New List(Of ProductoAlquilerModel) From {
+            New ProductoAlquilerModel With {.Empresa = "1", .Numero = "26780", .Nombre = "Aparato X", .Stock = 10, .StockAlquileres = 3, .Diferencia = 7},
+            New ProductoAlquilerModel With {.Empresa = "1", .Numero = "26781", .Nombre = "Aparato Y", .Stock = 5, .StockAlquileres = 5, .Diferencia = 0}
+        }
+        A.CallTo(Function() _servicio.LeerProductosAlquiler()).Returns(Task.FromResult(productos))
+
+        Dim vm = CrearViewModel()
+        ' seleccionarUltimo:=False evita disparar la query EF de CabAlquileres del setter ProductoSeleccionado.
+        Await vm.CargarProductosAlquilerAsync(seleccionarUltimo:=False)
+
+        Assert.AreEqual(2, vm.colProductosAlquilerLista.Count)
+        Assert.AreEqual("26780", vm.colProductosAlquilerLista.First().Numero)
+        Assert.AreEqual(7, vm.colProductosAlquilerLista.First().Diferencia)
+        A.CallTo(Function() _servicio.LeerProductosAlquiler()).MustHaveHappened()
+    End Function
+
+End Class
