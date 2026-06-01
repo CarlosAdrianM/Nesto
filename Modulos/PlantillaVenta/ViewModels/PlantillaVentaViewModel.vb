@@ -260,20 +260,23 @@ Public Class PlantillaVentaViewModel
     End Property
 
     ''' <summary>
-    ''' Réplica de GestorPortes.EsSobrePedidoParaPortes de NestoAPI.
-    ''' Estado 0 nunca es sobre pedido. Para otros estados:
-    ''' - Con servirJunto: mira stock de todos los almacenes
-    ''' - Sin servirJunto: mira solo stock del almacén del pedido
+    ''' Réplica de GestorPortes.CalcularBaseImponibleProductos de NestoAPI (NestoAPI#211).
+    ''' - Servir junto MARCADO: es una única entrega, así que NINGUNA línea es sobre pedido
+    '''   (todas cuentan para la base de portes, incondicionalmente, sin exigir stock).
+    ''' - Servir junto DESMARCADO: estado 0 nunca es sobre pedido; las demás son sobre pedido si no
+    '''   hay stock suficiente en el almacén del pedido (irán en otra entrega).
     ''' </summary>
-    Private Shared Function EsSobrePedidoParaPortes(linea As LineaPlantillaVenta, servirJunto As Boolean) As Boolean
+    Friend Shared Function EsSobrePedidoParaPortes(linea As LineaPlantillaVenta, servirJunto As Boolean) As Boolean
+        If servirJunto Then
+            Return False
+        End If
         If linea.estado = 0 Then
             Return False
         End If
         If Not linea.stockActualizado Then
             Return True
         End If
-        Dim stockRelevante As Integer = If(servirJunto, linea.StockDisponibleTodosLosAlmacenes, linea.cantidadDisponible)
-        Return stockRelevante < linea.cantidad + linea.cantidadOferta
+        Return linea.cantidadDisponible < linea.cantidad + linea.cantidadOferta
     End Function
 
     Public ReadOnly Property TextoPortes As String
