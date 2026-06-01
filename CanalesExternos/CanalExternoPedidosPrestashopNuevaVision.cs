@@ -444,7 +444,7 @@ namespace Nesto.Modulos.CanalesExternos
             return !string.IsNullOrEmpty(productoRef) && CUENTAS_CONTABLES_PRESTASHOP.Contains(productoRef);
         }
 
-        private static readonly int[] PORCENTAJES_CONOCIDOS = { 5, 10, 15, 20, 25, 30 };
+        private static readonly int[] PORCENTAJES_CONOCIDOS = { 5, 10, 15, 20, 25, 30, 100 };
 
         internal static decimal DetectarPorcentajeConocido(decimal totalDescuentosSinIva, decimal totalProductosSinIva)
         {
@@ -496,6 +496,11 @@ namespace Nesto.Modulos.CanalesExternos
                     lineaProducto.DescuentoLinea = porcentajeDetectado / 100;
                 }
             }
+            else if (AplicarRegaloLineaCompleta(lineas, totalDescuentosSinIva))
+            {
+                // Issue #350: el cupón coincide con el importe exacto de una línea → ese producto va
+                // gratis (100% en esa línea), en vez de añadir una línea TiCKET que distorsiona stats.
+            }
             else
             {
                 // Descuento fijo: mantener como línea TICKET
@@ -524,6 +529,33 @@ namespace Nesto.Modulos.CanalesExternos
 
                 lineas.Add(lineaCupon);
             }
+        }
+
+        /// <summary>
+        /// Issue #350: si el importe del cupón (sin IVA) coincide exactamente con el importe de una
+        /// ÚNICA línea de producto, ese producto es un regalo → 100% de descuento en esa línea.
+        /// Si coinciden varias líneas el caso es ambiguo (no sabemos cuál es el regalo) y se deja
+        /// como cupón/TiCKET. Devuelve true si aplicó el descuento.
+        /// </summary>
+        internal static bool AplicarRegaloLineaCompleta(ICollection<LineaPedidoVentaDTO> lineas, decimal totalDescuentosSinIva)
+        {
+            if (totalDescuentosSinIva <= 0)
+            {
+                return false;
+            }
+
+            var lineasQueCoinciden = lineas
+                .Where(l => l.tipoLinea == 1 &&
+                            Math.Round(l.PrecioUnitario * l.Cantidad, 2, MidpointRounding.AwayFromZero) == totalDescuentosSinIva)
+                .ToList();
+
+            if (lineasQueCoinciden.Count != 1)
+            {
+                return false;
+            }
+
+            lineasQueCoinciden[0].DescuentoLinea = 1m;
+            return true;
         }
 
         private class DatosEnvioConfirmarPrestashop

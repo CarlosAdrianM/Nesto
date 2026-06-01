@@ -377,6 +377,80 @@ namespace CanalesExternosTests
         }
 
         #endregion
+
+        #region Issue #350: cupón = importe exacto de una línea (producto regalo)
+
+        // Caso real pedido 915207: el cupón coincide exactamente con el precio de un producto
+        // (PACK PROTOCOLO 846,43 €), que va gratis junto con el MULTITERAPIA (1.645 €).
+        [TestMethod]
+        public void AplicarDescuentoCupon_CasoReal_Pedido915207_RegaloEnLineaCoincidente()
+        {
+            var lineas = CrearLineasProducto((1645M, 1), (846.43M, 1));
+
+            // 846,43 sobre 2.491,43 ≈ 33,97% → no es porcentaje conocido → detección por línea
+            Aplicar(lineas, totalDescuentosSinIva: 846.43M, totalProductosSinIva: 2491.43M,
+                totalDescuentosConIva: 1024.18M);
+
+            Assert.AreEqual(2, lineas.Count, "No debe añadir línea TICKET");
+            Assert.AreEqual(0M, lineas[0].DescuentoLinea, "El producto comprado no lleva descuento");
+            Assert.AreEqual(1M, lineas[1].DescuentoLinea, "El producto regalo lleva 100% de descuento");
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"));
+        }
+
+        [TestMethod]
+        public void AplicarDescuentoCupon_CuponCoincideConVariasLineas_DejaTicket()
+        {
+            // Dos líneas con el mismo importe que el cupón: ambiguo (no sabemos cuál es el regalo) →
+            // se mantiene como TICKET, sin tocar descuentos.
+            var lineas = CrearLineasProducto((50M, 1), (50M, 1));
+
+            Aplicar(lineas, totalDescuentosSinIva: 50M, totalProductosSinIva: 100M,
+                totalDescuentosConIva: 60.50M);
+
+            Assert.IsTrue(lineas.Any(l => l.Producto == "TiCKET"), "Caso ambiguo → línea TICKET");
+            Assert.IsFalse(lineas.Where(l => l.tipoLinea == 1 && l.Producto != "TiCKET").Any(l => l.DescuentoLinea == 1M),
+                "Ninguna línea debe quedar con 100% en el caso ambiguo");
+        }
+
+        [TestMethod]
+        public void AplicarDescuentoCupon_PedidoEnteroGratis_Detecta100Porciento()
+        {
+            // 100 ya está en PORCENTAJES_CONOCIDOS: un cupón igual al total del pedido → todo gratis.
+            var lineas = CrearLineasProducto((100M, 1), (40M, 2));
+
+            Aplicar(lineas, totalDescuentosSinIva: 180M, totalProductosSinIva: 180M,
+                totalDescuentosConIva: 217.80M);
+
+            Assert.IsTrue(lineas.All(l => l.DescuentoLinea == 1M), "Todas las líneas al 100%");
+            Assert.IsFalse(lineas.Any(l => l.Producto == "TiCKET"));
+        }
+
+        [TestMethod]
+        public void AplicarRegaloLineaCompleta_UnaLineaCoincide_Aplica100YDevuelveTrue()
+        {
+            var lineas = CrearLineasProducto((1645M, 1), (846.43M, 1));
+
+            bool aplicado = CanalExternoPedidosPrestashopNuevaVision.AplicarRegaloLineaCompleta(lineas, 846.43M);
+
+            Assert.IsTrue(aplicado);
+            Assert.AreEqual(1M, lineas[1].DescuentoLinea);
+        }
+
+        [TestMethod]
+        public void AplicarRegaloLineaCompleta_CuponCero_DevuelveFalse()
+        {
+            var lineas = CrearLineasProducto((100M, 1));
+            Assert.IsFalse(CanalExternoPedidosPrestashopNuevaVision.AplicarRegaloLineaCompleta(lineas, 0M));
+        }
+
+        [TestMethod]
+        public void AplicarRegaloLineaCompleta_NingunaCoincide_DevuelveFalse()
+        {
+            var lineas = CrearLineasProducto((100M, 1), (50M, 1));
+            Assert.IsFalse(CanalExternoPedidosPrestashopNuevaVision.AplicarRegaloLineaCompleta(lineas, 33.33M));
+        }
+
+        #endregion
     }
 }
 
