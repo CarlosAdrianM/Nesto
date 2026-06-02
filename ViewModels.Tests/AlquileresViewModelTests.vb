@@ -48,4 +48,21 @@ Public Class AlquileresViewModelTests
         A.CallTo(Function() _servicio.LeerProductosAlquiler()).MustHaveHappened()
     End Function
 
+    <TestMethod()>
+    Public Async Function CargarMovimientos_PoblaLaColeccionDesdeElServicio() As Task
+        ' Nesto#340 Fase 1C.2: los movimientos se leen del API, no de EF.
+        Dim movimientos = New List(Of MovimientoAlquilerModel) From {
+            New MovimientoAlquilerModel With {.NumeroOrden = 1, .Producto = "26780", .Texto = "Alquiler enero", .Cantidad = 1, .Precio = 50D, .Total = 50D, .Estado = 4},
+            New MovimientoAlquilerModel With {.NumeroOrden = 2, .Producto = "26780", .Texto = "Alquiler febrero", .Cantidad = 1, .Precio = 50D, .Total = 50D, .Estado = 1}
+        }
+        A.CallTo(Function() _servicio.LeerMovimientosAlquiler("1", 12345)).Returns(Task.FromResult(movimientos))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarMovimientosAsync("1", 12345)
+
+        Assert.AreEqual(2, vm.colMovimientos.Count)
+        Assert.AreEqual(2, vm.colMovimientos.Last().NumeroOrden)
+        A.CallTo(Function() _servicio.LeerMovimientosAlquiler("1", 12345)).MustHaveHappened()
+    End Function
+
 End Class

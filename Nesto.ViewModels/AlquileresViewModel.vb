@@ -74,6 +74,17 @@ Public Class AlquileresViewModel
         End Try
     End Function
 
+    ' Nesto#340 Fase 1C.2: carga los movimientos del alquiler desde el API (pestaña Movimientos).
+    ' Fire-and-forget desde el setter de PestañaSeleccionada; la excepción se captura aquí.
+    Public Async Function CargarMovimientosAsync(empresa As String, pedido As Integer) As Task
+        Try
+            Dim movimientos = Await _productosAlquilerService.LeerMovimientosAlquiler(empresa, pedido)
+            colMovimientos = New ObservableCollection(Of MovimientoAlquilerModel)(movimientos)
+        Catch ex As Exception
+            mensajeError = If(ex.InnerException IsNot Nothing, ex.InnerException.Message, ex.Message)
+        End Try
+    End Function
+
 
 #Region "Datos Publicados"
 
@@ -129,7 +140,12 @@ Public Class AlquileresViewModel
                 If value.Name = "tabInmovilizados" Then
                     colExtractoInmovilizado = New ObservableCollection(Of ExtractoInmovilizado)(From x In DbContext.ExtractoInmovilizado Where x.Empresa = LineaSeleccionada.Empresa And x.Número = LineaSeleccionada.Inmovilizado Order By x.Fecha)
                 ElseIf value.Name = "tabMovimientos" Then
-                    colMovimientos = New ObservableCollection(Of LinPedidoVta)(From x In DbContext.LinPedidoVta Where x.Empresa = LineaSeleccionada.Empresa And x.Número = LineaSeleccionada.CabPedidoVta Order By x.Nº_Orden)
+                    ' Nesto#340 Fase 1C.2: la lectura EF se sustituye por el API (carga asíncrona).
+                    If LineaSeleccionada.CabPedidoVta.HasValue Then
+                        CargarMovimientosAsync(LineaSeleccionada.Empresa, LineaSeleccionada.CabPedidoVta.Value)
+                    Else
+                        colMovimientos = New ObservableCollection(Of MovimientoAlquilerModel)
+                    End If
                 ElseIf value.Name = "tabCompra" Then
                     colCompra = New ObservableCollection(Of LinPedidoCmp)(From x In DbContext.LinPedidoCmp Where x.Producto = LineaSeleccionada.Producto And x.NumSerie = LineaSeleccionada.NumeroSerie Order By x.NºOrden)
                 End If
@@ -138,12 +154,13 @@ Public Class AlquileresViewModel
         End Set
     End Property
 
-    Private _colMovimientos As ObservableCollection(Of LinPedidoVta)
-    Public Property colMovimientos As ObservableCollection(Of LinPedidoVta)
+    ' Nesto#340 Fase 1C.2: los movimientos se leen del API (POCO), ya no de la entidad EF LinPedidoVta.
+    Private _colMovimientos As ObservableCollection(Of MovimientoAlquilerModel)
+    Public Property colMovimientos As ObservableCollection(Of MovimientoAlquilerModel)
         Get
             Return _colMovimientos
         End Get
-        Set(value As ObservableCollection(Of LinPedidoVta))
+        Set(value As ObservableCollection(Of MovimientoAlquilerModel))
             SetProperty(_colMovimientos, value)
         End Set
     End Property
