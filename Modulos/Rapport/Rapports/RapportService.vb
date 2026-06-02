@@ -17,20 +17,21 @@ Public Class RapportService
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
     Private Property InteractiveBrowserCredential As InteractiveBrowserCredential
 
 
-    Public Sub New(configuracion As IConfiguracion, interactiveBrowserCredential As InteractiveBrowserCredential, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(configuracion As IConfiguracion, interactiveBrowserCredential As InteractiveBrowserCredential, servicioAutenticacion As IServicioAutenticacion, clienteApiFactory As IClienteApiFactory)
         Me.configuracion = configuracion
         Me.InteractiveBrowserCredential = interactiveBrowserCredential
         _servicioAutenticacion = servicioAutenticacion
+        _clienteApiFactory = clienteApiFactory
     End Sub
 
 
 
     Public Async Function cargarListaRapports(vendedor As String, fecha As Date) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -62,10 +63,7 @@ Public Class RapportService
     End Function
 
     Public Async Function crearRapport(rapport As SeguimientoClienteDTO) As Task(Of String) Implements IRapportService.crearRapport
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            ' Adjuntar el JWT para que el usuario quede registrado en ELMAH (endpoint anónimo, token opcional)
-            Dim unusedAuth = Await _servicioAutenticacion.ConfigurarAutorizacion(client)
+        Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(rapport), Encoding.UTF8, "application/json")
 
@@ -140,8 +138,7 @@ Public Class RapportService
     End Function
 
     Public Async Function cargarListaRapportsFiltrada(vendedor As String, filtro As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapportsFiltrada
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -170,8 +167,7 @@ Public Class RapportService
 
     Private Async Function cargarListaRapports(empresa As String, cliente As String, contacto As String) As Task(Of ObservableCollection(Of SeguimientoClienteDTO)) Implements IRapportService.cargarListaRapports
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -336,8 +332,7 @@ Public Class RapportService
             clienteCrear.VendedorPeluqueria = Constantes.Vendedores.VENDEDOR_POR_DEFECTO
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(clienteCrear), Encoding.UTF8, "application/json")
 
@@ -359,8 +354,7 @@ Public Class RapportService
     End Function
 
     Public Async Function CargarClientesProbabilidad(vendedor As String, tipoInteraccion As String, grupoSubgrupo As String) As Task(Of List(Of ClienteProbabilidadVenta)) Implements IRapportService.CargarClientesProbabilidad
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -387,8 +381,7 @@ Public Class RapportService
     End Function
 
     Public Async Function CargarResumenRapports(empresa As String, cliente As String, contacto As String) As Task(Of String) Implements IRapportService.CargarResumenRapports
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuestaJson As String = String.Empty
 
@@ -431,8 +424,7 @@ Public Class RapportService
     End Function
 
     Public Async Function CopiarSeguimientos(empresa As String, clienteOrigen As String, contactoOrigen As String, clienteDestino As String, contactoDestino As String, eliminarOrigen As Boolean) As Task(Of Integer) Implements IRapportService.CopiarSeguimientos
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
