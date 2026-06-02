@@ -195,6 +195,11 @@
                                     Padding="10,3" Margin="15,0,0,0">
                                 Nuevo producto
                             </Button>
+                            <Button Command="{Binding NuevoDetalleAlternativoCommand}"
+                                    Padding="10,3" Margin="10,0,0,0"
+                                    ToolTip="Añade una alternativa intercambiable a la línea seleccionada (mismo grupo, p. ej. otra talla de la camiseta). El pedido podrá llevar una cualquiera de ellas.">
+                                Producto alternativo
+                            </Button>
                         </StackPanel>
 
                         <Separator Grid.Row="3"/>
@@ -203,6 +208,7 @@
                         <DataGrid x:Name="dgDetalles"
                                   Grid.Row="4"
                                   ItemsSource="{Binding DetallesOfertaSeleccionada}"
+                                  SelectedItem="{Binding DetalleSeleccionado}"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   CanUserDeleteRows="False"
@@ -293,6 +299,24 @@
                                     </DataGridTextColumn.EditingElementStyle>
                                 </DataGridTextColumn>
 
+                                <!-- Grupo de alternativas: líneas con el mismo número son intercambiables ("elige 1") -->
+                                <DataGridTextColumn Header="Grupo alt." Binding="{Binding GrupoAlternativa, UpdateSourceTrigger=LostFocus}" Width="80"
+                                                    ClipboardContentBinding="{x:Null}">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.EditingElementStyle>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGridTextColumn.EditingElementStyle>
+                                </DataGridTextColumn>
+
                                 <!-- Eliminar detalle -->
                                 <DataGridTemplateColumn Header="" Width="80">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -312,7 +336,7 @@
                         <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,5,0,0">
                             <TextBlock Text="Total ofertas: " VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding OfertasCombinadas.Count}" VerticalAlignment="Center" FontWeight="Bold"/>
-                            <TextBlock Text=" | Precio=0 significa sin restriccion de precio. Cantidad=0 significa producto opcional."
+                            <TextBlock Text=" | Precio=0 significa sin restriccion de precio. Cantidad=0 significa producto opcional. Mismo 'Grupo alt.' = alternativas intercambiables (se exige 1 cualquiera)."
                                        VerticalAlignment="Center" Margin="20,0,0,0"
                                        Foreground="Gray" FontStyle="Italic"/>
                         </StackPanel>

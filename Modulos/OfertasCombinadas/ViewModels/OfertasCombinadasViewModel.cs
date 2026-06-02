@@ -46,6 +46,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             EliminarOfertaFamiliaCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaFamilia(o as OfertaPermitidaFamiliaWrapper));
 
             NuevoDetalleCommand = new DelegateCommand(OnNuevoDetalle, () => OfertaCombinadaSeleccionada != null);
+            NuevoDetalleAlternativoCommand = new DelegateCommand(OnNuevoDetalleAlternativo, () => DetalleSeleccionado != null);
             EliminarDetalleCommand = new DelegateCommand<object>(OnEliminarDetalle);
 
             Titulo = "Ofertas Combinadas";
@@ -118,6 +119,19 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             set => SetProperty(ref _detallesOfertaSeleccionada, value);
         }
 
+        private DetalleOfertaCombinadaWrapper _detalleSeleccionado;
+        public DetalleOfertaCombinadaWrapper DetalleSeleccionado
+        {
+            get => _detalleSeleccionado;
+            set
+            {
+                if (SetProperty(ref _detalleSeleccionado, value))
+                {
+                    ((DelegateCommand)NuevoDetalleAlternativoCommand).RaiseCanExecuteChanged();
+                }
+            }
+        }
+
         // Ofertas por Familia (tab 2)
         private ObservableCollection<OfertaPermitidaFamiliaWrapper> _ofertasFamilia;
         public ObservableCollection<OfertaPermitidaFamiliaWrapper> OfertasFamilia
@@ -135,6 +149,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ICommand GuardarOfertaCombinadaCommand { get; }
         public ICommand EliminarOfertaCombinadaCommand { get; }
         public ICommand NuevoDetalleCommand { get; }
+        public ICommand NuevoDetalleAlternativoCommand { get; }
         public ICommand EliminarDetalleCommand { get; }
 
         public ICommand NuevaOfertaFamiliaCommand { get; }
@@ -220,6 +235,37 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             OfertaCombinadaSeleccionada.HaCambiado = true;
         }
 
+        // Añade una alternativa intercambiable a la línea seleccionada: una nueva línea en su
+        // mismo grupo (heredando cantidad y precio). Si la seleccionada aún no tenía grupo, se le
+        // asigna uno nuevo y pasa a ser la primera alternativa. Ej.: camiseta de regalo en
+        // cualquier talla → cada talla es una alternativa del mismo grupo.
+        private void OnNuevoDetalleAlternativo()
+        {
+            if (OfertaCombinadaSeleccionada == null || DetalleSeleccionado == null) return;
+
+            int grupo = DetalleSeleccionado.GrupoAlternativa ?? SiguienteGrupoAlternativa();
+            DetalleSeleccionado.GrupoAlternativa = grupo;
+
+            var alternativa = new DetalleOfertaCombinadaWrapper
+            {
+                Cantidad = DetalleSeleccionado.Cantidad,
+                Precio = DetalleSeleccionado.Precio,
+                GrupoAlternativa = grupo
+            };
+            OfertaCombinadaSeleccionada.Detalles.Add(alternativa);
+            OfertaCombinadaSeleccionada.HaCambiado = true;
+            DetalleSeleccionado = alternativa;
+        }
+
+        private int SiguienteGrupoAlternativa()
+        {
+            var gruposExistentes = OfertaCombinadaSeleccionada.Detalles
+                .Where(d => d.GrupoAlternativa.HasValue)
+                .Select(d => d.GrupoAlternativa.Value)
+                .ToList();
+            return gruposExistentes.Count == 0 ? 1 : gruposExistentes.Max() + 1;
+        }
+
         private void OnEliminarDetalle(object parameter)
         {
             if (parameter is not DetalleOfertaCombinadaWrapper detalle) return;
@@ -270,7 +316,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                         Id = d.Id,
                         Producto = d.Producto?.Trim(),
                         Cantidad = d.Cantidad,
-                        Precio = d.Precio
+                        Precio = d.Precio,
+                        GrupoAlternativa = d.GrupoAlternativa
                     }).ToList()
                 };
 
@@ -528,6 +575,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             ProductoNombre = model.ProductoNombre;
             Cantidad = model.Cantidad;
             Precio = model.Precio;
+            GrupoAlternativa = model.GrupoAlternativa;
         }
 
         public int Id { get; set; }
@@ -570,6 +618,14 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _precio;
             set => SetProperty(ref _precio, value);
+        }
+
+        // Líneas con el mismo GrupoAlternativa son intercambiables ("elige 1"); null = obligatoria.
+        private int? _grupoAlternativa;
+        public int? GrupoAlternativa
+        {
+            get => _grupoAlternativa;
+            set => SetProperty(ref _grupoAlternativa, value);
         }
     }
 
