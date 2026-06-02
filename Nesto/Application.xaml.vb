@@ -43,7 +43,51 @@ Partial Public Class Application
     ' can be handled in this file.
     Protected Overrides Sub OnStartup(e As StartupEventArgs)
         FrameworkElement.LanguageProperty.OverrideMetadata(GetType(FrameworkElement), New FrameworkPropertyMetadata(XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)))
+
+        ' Manejadores globales: cualquier excepción no controlada se registra en ELMAH (vía NestoAPI)
+        ' en lugar de cerrar la aplicación silenciosamente sin dejar rastro.
+        AddHandler Me.DispatcherUnhandledException, AddressOf OnDispatcherUnhandledException
+        AddHandler AppDomain.CurrentDomain.UnhandledException, AddressOf OnAppDomainUnhandledException
+        AddHandler TaskScheduler.UnobservedTaskException, AddressOf OnUnobservedTaskException
+
         MyBase.OnStartup(e)
+    End Sub
+
+    Private Sub OnDispatcherUnhandledException(sender As Object, e As System.Windows.Threading.DispatcherUnhandledExceptionEventArgs)
+        RegistrarError(e.Exception, "DispatcherUnhandledException")
+        Try
+            Dim unused = MessageBox.Show(
+                "Se ha producido un error inesperado. Se ha registrado para su revisión." & vbCrLf & vbCrLf & e.Exception.Message,
+                "Nesto", MessageBoxButton.OK, MessageBoxImage.Error)
+        Catch
+        End Try
+        ' Evita que la aplicación se cierre por una excepción en el hilo de UI.
+        e.Handled = True
+    End Sub
+
+    Private Sub OnAppDomainUnhandledException(sender As Object, e As UnhandledExceptionEventArgs)
+        Dim ex = TryCast(e.ExceptionObject, Exception)
+        If ex IsNot Nothing Then
+            RegistrarError(ex, "AppDomain.UnhandledException")
+        End If
+    End Sub
+
+    Private Sub OnUnobservedTaskException(sender As Object, e As System.Threading.Tasks.UnobservedTaskExceptionEventArgs)
+        RegistrarError(e.Exception, "UnobservedTaskException")
+        e.SetObserved()
+    End Sub
+
+    ' Envía el error al servidor de forma robusta. Se ejecuta en el threadpool para no capturar
+    ' el SynchronizationContext de UI (evita deadlocks al esperar) y nunca propaga excepciones.
+    Private Sub RegistrarError(ex As Exception, contexto As String)
+        Try
+            Dim servicio = Container?.Resolve(Of IServicioRegistroErrores)()
+            If servicio IsNot Nothing Then
+                Dim unused = Task.Run(Function() servicio.RegistrarErrorAsync(ex, contexto)).Wait(TimeSpan.FromSeconds(10))
+            End If
+        Catch
+            ' Nunca propagar desde el manejador de errores.
+        End Try
     End Sub
 
     Protected Overrides Sub RegisterTypes(containerRegistry As IContainerRegistry)
@@ -64,6 +108,14 @@ Partial Public Class Application
             Function(provider)
                 Dim cfg = provider.Resolve(Of IConfiguracion)()
                 Return New ServicioAutenticacion(cfg.servidorAPI)
+            End Function)
+
+        ' Registro centralizado de errores del cliente en ELMAH (vía NestoAPI)
+        Dim unusedErrores = containerRegistry.RegisterSingleton(Of IServicioRegistroErrores)(
+            Function(provider)
+                Dim cfg = provider.Resolve(Of IConfiguracion)()
+                Dim auth = provider.Resolve(Of IServicioAutenticacion)()
+                Return New ServicioRegistroErrores(cfg.servidorAPI, auth, cfg.usuario)
             End Function)
 
         Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))

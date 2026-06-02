@@ -1238,8 +1238,10 @@ Public Class ClientesViewModel
         End Set
     End Property
     Private Async Sub OnReclamarDeuda()
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Dim errorReclamacion As Exception = Nothing
+        Try
+            Using client As New HttpClient
+                client.BaseAddress = New Uri(configuracion.servidorAPI)
 
             If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -1322,7 +1324,31 @@ Public Class ClientesViewModel
             Catch ex As Exception
                 Throw New Exception("No se ha podido procesar el enlace de pago: " & ex.Message)
             End Try
-        End Using
+            End Using
+        Catch ex As Exception
+            ' En vez de crashear la aplicación (Async Sub sin manejo => excepción no observada),
+            ' capturamos el error para informar al usuario y registrarlo en ELMAH.
+            ' (VB no permite Await dentro de un Catch, por eso se trata fuera del Try).
+            errorReclamacion = ex
+        End Try
+
+        If errorReclamacion IsNot Nothing Then
+            Try
+                Dim servicioErrores = contenedor?.Resolve(Of IServicioRegistroErrores)()
+                If servicioErrores IsNot Nothing Then
+                    Await servicioErrores.RegistrarErrorAsync(errorReclamacion, "ClientesViewModel.OnReclamarDeuda")
+                End If
+            Catch
+                ' El registro de errores nunca debe impedir mostrar el aviso al usuario.
+            End Try
+
+            Dim mensaje As String = If(errorReclamacion.InnerException IsNot Nothing, errorReclamacion.InnerException.Message, errorReclamacion.Message)
+            Dim p As New DialogParameters From {
+                {"message", "No se ha podido reclamar la deuda." & vbCrLf & vbCrLf & mensaje}
+            }
+            dialogService.ShowDialog("NotificationDialog", p, Sub(r)
+                                                              End Sub)
+        End If
     End Sub
 
     Public Property AbrirEnlaceReclamacionCommand As DelegateCommand
