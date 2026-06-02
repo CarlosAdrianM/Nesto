@@ -384,6 +384,8 @@ Public Class PedidoVentaService
     Public Async Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer) As Task(Of PedidoVentaDTO) Implements IPedidoVentaService.UnirPedidos
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+            ' Adjuntar el JWT para que el usuario quede registrado en ELMAH (endpoint anónimo, token opcional)
+            Dim unusedAuth = Await _servicioAutenticacion.ConfigurarAutorizacion(client)
             Dim response As HttpResponseMessage
 
             Dim parametro As New ParametroStringIntInt With {

@@ -118,6 +118,15 @@ Partial Public Class Application
                 Return New ServicioRegistroErrores(cfg.servidorAPI, auth, cfg.usuario)
             End Function)
 
+        ' Factory de HttpClient que adjunta el JWT automáticamente (para que el usuario
+        ' salga en ELMAH). Usar IClienteApiFactory.Crear() en vez de 'New HttpClient'.
+        Dim unusedClienteApi = containerRegistry.RegisterSingleton(Of IClienteApiFactory)(
+            Function(provider)
+                Dim cfg = provider.Resolve(Of IConfiguracion)()
+                Dim auth = provider.Resolve(Of IServicioAutenticacion)()
+                Return New ClienteApiFactory(cfg.servidorAPI, auth)
+            End Function)
+
         Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
         Dim unused24 = containerRegistry.Register(GetType(IPlantillaVentaService), GetType(PlantillaVentaService))
         ' Issue #286: Borradores de PlantillaVenta

@@ -64,6 +64,8 @@ Public Class RapportService
     Public Async Function crearRapport(rapport As SeguimientoClienteDTO) As Task(Of String) Implements IRapportService.crearRapport
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+            ' Adjuntar el JWT para que el usuario quede registrado en ELMAH (endpoint anónimo, token opcional)
+            Dim unusedAuth = Await _servicioAutenticacion.ConfigurarAutorizacion(client)
             Dim response As HttpResponseMessage
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(rapport), Encoding.UTF8, "application/json")
 
