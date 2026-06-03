@@ -524,7 +524,10 @@ Public Class PlantillaVentaState
                 pedido.Lineas.Add(lineaPedido)
             End If
 
-            ' Línea de oferta (cantidad gratis)
+            ' Línea de oferta. Por defecto va gratis (precio 0, 100 % dto), pero Nesto#371 permite
+            ' "personalizar oferta": la unidad de oferta va a un precio y descuento concretos (p. ej.
+            ' "2ª unidad al 50 %" = precio de tarifa + 50 % dto). Con AplicarDescuento=False el descuento
+            ' efectivo es exactamente descuentoOferta (no se acumulan los del cliente/producto).
             If linea.cantidadOferta > 0 Then
                 Dim lineaPedidoOferta As New LineaPedidoVentaDTO With {
                     .Pedido = pedido,
@@ -534,8 +537,8 @@ Public Class PlantillaVentaState
                     .texto = linea.texto,
                     .Cantidad = linea.cantidadOferta,
                     .fechaEntrega = FechaEntrega,
-                    .PrecioUnitario = 0,
-                    .DescuentoLinea = 0,
+                    .PrecioUnitario = If(linea.personalizarOferta, linea.precioOferta, 0),
+                    .DescuentoLinea = If(linea.personalizarOferta, linea.descuentoOferta, 0),
                     .DescuentoProducto = 0,
                     .AplicarDescuento = False,
                     .vistoBueno = 0,

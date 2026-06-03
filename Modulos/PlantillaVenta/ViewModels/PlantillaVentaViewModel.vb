@@ -3239,6 +3239,10 @@ Public Class PlantillaVentaViewModel
                         lineaExistente.precio = lineaBorrador.precio
                         lineaExistente.descuento = lineaBorrador.descuento
                         lineaExistente.aplicarDescuento = lineaBorrador.aplicarDescuento
+                        ' Nesto#371: restaurar la personalización de la 2ª unidad de oferta
+                        lineaExistente.personalizarOferta = lineaBorrador.personalizarOferta
+                        lineaExistente.precioOferta = lineaBorrador.precioOferta
+                        lineaExistente.descuentoOferta = lineaBorrador.descuentoOferta
                         lineasActualizadas += 1
                     Else
                         ' El producto NO está en la plantilla - añadirlo directamente del borrador

@@ -32,7 +32,41 @@ Public Class LineaPlantillaVenta
             End If
             SetProperty(_cantidadOferta, value)
             RaisePropertyChanged(NameOf(colorStock))
+            RaisePropertyChanged(NameOf(personalizarOfertaVisible))
+            RaisePropertyChanged(NameOf(personalizarInputsVisible))
         End Set
+    End Property
+
+    ''' <summary>
+    ''' Nesto#371: permite que la unidad "de oferta" (cantidadOferta) no vaya gratis, sino a un precio
+    ''' y descuento concretos (típico "2ª unidad al 50 %": precio de tarifa + 50 % de descuento).
+    ''' Solo tiene sentido cuando cantidadOferta &gt; 0.
+    ''' </summary>
+    Private _personalizarOferta As Boolean
+    Public Property personalizarOferta As Boolean
+        Get
+            Return _personalizarOferta
+        End Get
+        Set(value As Boolean)
+            SetProperty(_personalizarOferta, value)
+            RaisePropertyChanged(NameOf(personalizarInputsVisible))
+        End Set
+    End Property
+    ''' <summary>Nesto#371: precio de la unidad de oferta cuando se personaliza (0 = gratis).</summary>
+    Public Property precioOferta As Decimal
+    ''' <summary>Nesto#371: descuento (0..1) de la unidad de oferta cuando se personaliza.</summary>
+    Public Property descuentoOferta As Decimal
+    ''' <summary>Nesto#371: el check "personalizar oferta" solo se ve si hay cantidad de oferta.</summary>
+    Public ReadOnly Property personalizarOfertaVisible As Visibility
+        Get
+            Return If(cantidadOferta > 0, Visibility.Visible, Visibility.Collapsed)
+        End Get
+    End Property
+    ''' <summary>Nesto#371: los inputs de precio/dto se ven al marcar personalizar (con cantidad oferta).</summary>
+    Public ReadOnly Property personalizarInputsVisible As Visibility
+        Get
+            Return If(cantidadOferta > 0 AndAlso personalizarOferta, Visibility.Visible, Visibility.Collapsed)
+        End Get
     End Property
     Public Property tamanno() As System.Nullable(Of Integer)
     Public Property unidadMedida() As String

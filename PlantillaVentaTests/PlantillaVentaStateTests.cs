@@ -1,5 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Modulos.PlantillaVenta;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace PlantillaVentaTests
 {
@@ -195,6 +197,67 @@ namespace PlantillaVentaTests
 
             // Assert
             Assert.IsNull(state.SuPedido);
+        }
+
+        [TestMethod]
+        public void ToPedidoVentaDTO_PersonalizarOferta_SegundaUnidadConPrecioYDescuento()
+        {
+            // Nesto#371: con personalizarOferta, la 2ª línea (oferta) va a precioOferta + descuentoOferta
+            // (sin aplicar descuentos del cliente: AplicarDescuento=False), en vez de gratis.
+            var state = new PlantillaVentaState();
+            state.Empresa = "1";
+            state.Cliente = "10001";
+            state.Contacto = "0";
+            state.LineasProducto = new List<LineaPlantillaVenta>
+            {
+                new LineaPlantillaVenta
+                {
+                    producto = "40583",
+                    texto = "Anubis",
+                    cantidad = 1,
+                    precio = 20.40m,
+                    cantidadOferta = 1,
+                    personalizarOferta = true,
+                    precioOferta = 20.40m,
+                    descuentoOferta = 0.5m,
+                    iva = "G21"
+                }
+            };
+
+            var pedido = state.ToPedidoVentaDTO("DIR", () => 1, () => "NV");
+
+            var lineas = pedido.Lineas.Where(l => l.Producto == "40583").ToList();
+            Assert.AreEqual(2, lineas.Count); // la cobrada + la 2ª unidad personalizada
+            var lineaOferta = lineas.Single(l => l.DescuentoLinea == 0.5m);
+            Assert.AreEqual(20.40m, lineaOferta.PrecioUnitario);
+            Assert.IsFalse(lineaOferta.AplicarDescuento);
+        }
+
+        [TestMethod]
+        public void ToPedidoVentaDTO_OfertaSinPersonalizar_SegundaUnidadGratis()
+        {
+            // Sin personalizar, la 2ª unidad (oferta) sigue yendo gratis (precio 0).
+            var state = new PlantillaVentaState();
+            state.Empresa = "1";
+            state.Cliente = "10001";
+            state.Contacto = "0";
+            state.LineasProducto = new List<LineaPlantillaVenta>
+            {
+                new LineaPlantillaVenta
+                {
+                    producto = "40583",
+                    texto = "Anubis",
+                    cantidad = 1,
+                    precio = 20.40m,
+                    cantidadOferta = 1,
+                    iva = "G21"
+                }
+            };
+
+            var pedido = state.ToPedidoVentaDTO("DIR", () => 1, () => "NV");
+
+            var lineaOferta = pedido.Lineas.Where(l => l.Producto == "40583").Single(l => l.PrecioUnitario == 0m);
+            Assert.AreEqual(0m, lineaOferta.DescuentoLinea);
         }
 
         #endregion

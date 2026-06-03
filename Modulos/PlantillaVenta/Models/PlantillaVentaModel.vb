@@ -313,6 +313,22 @@ Public Class LineaRegalo
     ''' </summary>
     Public Property cantidadOferta As Integer = 0 Implements ILineaConCantidad.cantidadOferta
 
+    ' Nesto#371: la personalización de oferta no aplica a regalos (solo a productos con cantidad oferta).
+    ' Se exponen como no-op para que el selector compartido pueda enlazarlas sin errores.
+    Public Property personalizarOferta As Boolean = False
+    Public Property precioOferta As Decimal = 0
+    Public Property descuentoOferta As Decimal = 0
+    Public ReadOnly Property personalizarOfertaVisible As Visibility
+        Get
+            Return Visibility.Collapsed
+        End Get
+    End Property
+    Public ReadOnly Property personalizarInputsVisible As Visibility
+        Get
+            Return Visibility.Collapsed
+        End Get
+    End Property
+
     ''' <summary>
     ''' No aplica descuento en regalos.
     ''' </summary>
