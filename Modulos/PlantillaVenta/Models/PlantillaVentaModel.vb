@@ -190,8 +190,9 @@ Public Class LineaRegalo
         Set(value As Boolean)
             SetProperty(_bloqueado, value)
             RaisePropertyChanged(NameOf(puedeSeleccionar))
-            RaisePropertyChanged(NameOf(textoUnidadesDisponibles))
-            RaisePropertyChanged(NameOf(colorStock))
+            RaisePropertyChanged(NameOf(colorEstado))
+            RaisePropertyChanged(NameOf(textoDesbloqueo))
+            RaisePropertyChanged(NameOf(desbloqueoVisible))
         End Set
     End Property
 
@@ -206,6 +207,26 @@ Public Class LineaRegalo
     Public ReadOnly Property puedeSeleccionar As Boolean
         Get
             Return Not bloqueado
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#370: mensaje de desbloqueo (solo para bloqueados). Se muestra en el panel ancho de la
+    ''' derecha, donde se ve entero, en vez de en la celda estrecha del stock.
+    ''' </summary>
+    Public ReadOnly Property textoDesbloqueo As String
+        Get
+            If Not bloqueado Then Return String.Empty
+            Return $"Amplía el pedido en {importeParaDesbloquear:C2} para desbloquearlo"
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' Nesto#370: visibilidad del mensaje de desbloqueo (visible solo en los bloqueados).
+    ''' </summary>
+    Public ReadOnly Property desbloqueoVisible As Visibility
+        Get
+            Return If(bloqueado, Visibility.Visible, Visibility.Collapsed)
         End Get
     End Property
 
@@ -263,11 +284,14 @@ Public Class LineaRegalo
     End Property
 
     ''' <summary>
-    ''' Color del indicador - verde para productos disponibles.
+    ''' Color del indicador - rojo si está bloqueado (no seleccionable), verde si disponible.
+    ''' Nesto#370.
     ''' </summary>
     Public ReadOnly Property colorEstado As Brush
         Get
-            If StockTotal > 0 Then
+            If bloqueado Then
+                Return Brushes.Red
+            ElseIf StockTotal > 0 Then
                 Return Brushes.Green
             Else
                 Return Brushes.Gray
@@ -299,10 +323,6 @@ Public Class LineaRegalo
     ''' </summary>
     Public ReadOnly Property textoUnidadesDisponibles As String
         Get
-            ' Nesto#370: en los bloqueados, en vez del stock mostramos cuánto falta para desbloquearlos.
-            If bloqueado Then
-                Return $"Amplía el pedido en {importeParaDesbloquear:C2} para desbloquear"
-            End If
             If StockTotal = 0 Then
                 Return "Sin stock"
             ElseIf StockTotal < cantidad Then
@@ -320,10 +340,6 @@ Public Class LineaRegalo
     ''' </summary>
     Public ReadOnly Property colorStock As Brush
         Get
-            ' Nesto#370: los bloqueados se muestran atenuados (gris) con la etiqueta de desbloqueo.
-            If bloqueado Then
-                Return Brushes.Gray
-            End If
             If StockTotal = 0 Then
                 Return Brushes.Red
             ElseIf StockTotal < cantidad Then

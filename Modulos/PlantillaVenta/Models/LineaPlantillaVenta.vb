@@ -85,6 +85,20 @@ Public Class LineaPlantillaVenta
             Return True
         End Get
     End Property
+
+    ''' <summary>
+    ''' Nesto#370: solo aplica a regalos bloqueados (LineaRegalo). En productos siempre vacío/oculto.
+    ''' </summary>
+    Public ReadOnly Property textoDesbloqueo As String
+        Get
+            Return String.Empty
+        End Get
+    End Property
+    Public ReadOnly Property desbloqueoVisible As Visibility
+        Get
+            Return Visibility.Collapsed
+        End Get
+    End Property
     Public Property stock As Integer
     Private _cantidadDisponible As Integer
     Public Property cantidadDisponible As Integer

@@ -88,6 +88,9 @@
                             <DockPanel DockPanel.Dock="Right" HorizontalAlignment="Stretch">
                                 <StackPanel DockPanel.Dock="Left" VerticalAlignment="Top" Margin="10,0,0,0" HorizontalAlignment="Stretch">
                                     <TextBlock Text="{Binding textoNombreProducto}" FontWeight="Bold" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
+                                    <!-- Nesto#370: mensaje de desbloqueo (solo regalos bloqueados), ancho y completo -->
+                                    <TextBlock Text="{Binding textoDesbloqueo}" Visibility="{Binding desbloqueoVisible}"
+                                               Foreground="Red" FontWeight="Bold" TextWrapping="Wrap" HorizontalAlignment="Stretch" Margin="0,2,0,2"/>
                                     <TextBlock Text="{Binding producto}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                     <TextBlock Text="{Binding familia}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                     <TextBlock Text="{Binding subGrupo}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>

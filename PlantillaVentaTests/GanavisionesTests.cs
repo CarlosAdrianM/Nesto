@@ -13,6 +13,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
 using Unity;
 
 namespace PlantillaVentaTests
@@ -838,9 +840,10 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public void LineaRegalo_Bloqueado_MuestraEtiquetaDeDesbloqueo()
+        public void LineaRegalo_Bloqueado_MuestraEtiquetaDeDesbloqueoYCuadradoRojo()
         {
-            // Nesto#370: en vez del stock, el bloqueado muestra cuánto falta para desbloquearlo.
+            // Nesto#370: el bloqueado muestra el mensaje de desbloqueo (en su etiqueta propia, ancha)
+            // y el cuadrado del indicador en rojo.
             var regalo = new LineaRegalo
             {
                 producto = "PROD1",
@@ -852,7 +855,27 @@ namespace PlantillaVentaTests
                 }
             };
 
-            StringAssert.Contains(regalo.textoUnidadesDisponibles, "desbloquear");
+            Assert.AreEqual(Visibility.Visible, regalo.desbloqueoVisible);
+            StringAssert.Contains(regalo.textoDesbloqueo, "desbloquear");
+            Assert.AreEqual(Brushes.Red, regalo.colorEstado);
+        }
+
+        [TestMethod]
+        public void LineaRegalo_NoBloqueado_SinEtiquetaDesbloqueoYCuadradoVerde()
+        {
+            var regalo = new LineaRegalo
+            {
+                producto = "PROD1",
+                bloqueado = false,
+                stocks = new List<StockAlmacenDTO>
+                {
+                    new StockAlmacenDTO { almacen = "ALG", stock = 10, cantidadDisponible = 10 }
+                }
+            };
+
+            Assert.AreEqual(Visibility.Collapsed, regalo.desbloqueoVisible);
+            Assert.AreEqual(string.Empty, regalo.textoDesbloqueo);
+            Assert.AreEqual(Brushes.Green, regalo.colorEstado);
         }
 
         [TestMethod]
