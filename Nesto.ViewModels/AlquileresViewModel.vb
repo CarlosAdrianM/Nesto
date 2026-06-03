@@ -85,6 +85,17 @@ Public Class AlquileresViewModel
         End Try
     End Function
 
+    ' Nesto#340 Fase 1C.2: carga las compras del alquiler desde el API (pestaña Compra).
+    ' Fire-and-forget desde el setter de PestañaSeleccionada; la excepción se captura aquí.
+    Public Async Function CargarCompraAsync(producto As String, numSerie As String) As Task
+        Try
+            Dim compras = Await _productosAlquilerService.LeerComprasAlquiler(producto, numSerie)
+            colCompra = New ObservableCollection(Of CompraAlquilerModel)(compras)
+        Catch ex As Exception
+            mensajeError = If(ex.InnerException IsNot Nothing, ex.InnerException.Message, ex.Message)
+        End Try
+    End Function
+
 
 #Region "Datos Publicados"
 
@@ -147,7 +158,12 @@ Public Class AlquileresViewModel
                         colMovimientos = New ObservableCollection(Of MovimientoAlquilerModel)
                     End If
                 ElseIf value.Name = "tabCompra" Then
-                    colCompra = New ObservableCollection(Of LinPedidoCmp)(From x In DbContext.LinPedidoCmp Where x.Producto = LineaSeleccionada.Producto And x.NumSerie = LineaSeleccionada.NumeroSerie Order By x.NºOrden)
+                    ' Nesto#340 Fase 1C.2: la lectura EF se sustituye por el API (carga asíncrona).
+                    If Not String.IsNullOrEmpty(LineaSeleccionada.Producto) AndAlso Not String.IsNullOrEmpty(LineaSeleccionada.NumeroSerie) Then
+                        CargarCompraAsync(LineaSeleccionada.Producto, LineaSeleccionada.NumeroSerie)
+                    Else
+                        colCompra = New ObservableCollection(Of CompraAlquilerModel)
+                    End If
                 End If
             End If
             SetProperty(_PestañaSeleccionada, value)
@@ -191,12 +207,13 @@ Public Class AlquileresViewModel
         End Set
     End Property
 
-    Private _colCompra As ObservableCollection(Of LinPedidoCmp)
-    Public Property colCompra As ObservableCollection(Of LinPedidoCmp)
+    ' Nesto#340 Fase 1C.2: las compras se leen del API (POCO), ya no de la entidad EF LinPedidoCmp.
+    Private _colCompra As ObservableCollection(Of CompraAlquilerModel)
+    Public Property colCompra As ObservableCollection(Of CompraAlquilerModel)
         Get
             Return _colCompra
         End Get
-        Set(value As ObservableCollection(Of LinPedidoCmp))
+        Set(value As ObservableCollection(Of CompraAlquilerModel))
             SetProperty(_colCompra, value)
         End Set
     End Property

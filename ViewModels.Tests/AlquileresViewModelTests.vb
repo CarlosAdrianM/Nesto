@@ -65,4 +65,21 @@ Public Class AlquileresViewModelTests
         A.CallTo(Function() _servicio.LeerMovimientosAlquiler("1", 12345)).MustHaveHappened()
     End Function
 
+    <TestMethod()>
+    Public Async Function CargarCompra_PoblaLaColeccionDesdeElServicio() As Task
+        ' Nesto#340 Fase 1C.2: las compras se leen del API, no de EF.
+        Dim compras = New List(Of CompraAlquilerModel) From {
+            New CompraAlquilerModel With {.NumeroOrden = 1, .NumeroPedido = 555, .Proveedor = "PROV1", .Producto = "26780", .NumSerie = "ABC123", .Texto = "Compra aparato", .Cantidad = 1, .Precio = 300D, .Total = 363D, .Estado = 4},
+            New CompraAlquilerModel With {.NumeroOrden = 2, .NumeroPedido = 556, .Proveedor = "PROV1", .Producto = "26780", .NumSerie = "ABC123", .Texto = "Reparación", .Cantidad = 1, .Precio = 50D, .Total = 60.5D, .Estado = 1}
+        }
+        A.CallTo(Function() _servicio.LeerComprasAlquiler("26780", "ABC123")).Returns(Task.FromResult(compras))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarCompraAsync("26780", "ABC123")
+
+        Assert.AreEqual(2, vm.colCompra.Count)
+        Assert.AreEqual(556, vm.colCompra.Last().NumeroPedido)
+        A.CallTo(Function() _servicio.LeerComprasAlquiler("26780", "ABC123")).MustHaveHappened()
+    End Function
+
 End Class
