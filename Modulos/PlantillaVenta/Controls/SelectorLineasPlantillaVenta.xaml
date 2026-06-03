@@ -91,14 +91,35 @@
                                     <!-- Nesto#370: mensaje de desbloqueo (solo regalos bloqueados), ancho y completo -->
                                     <TextBlock Text="{Binding textoDesbloqueo}" Visibility="{Binding desbloqueoVisible}"
                                                Foreground="Red" FontWeight="Bold" TextWrapping="Wrap" HorizontalAlignment="Stretch" Margin="0,2,0,2"/>
-                                    <!-- Nesto#371: personalizar la 2ª unidad de oferta (precio + dto), p.ej. "2ª unidad al 50%" -->
-                                    <CheckBox Content="Personalizar oferta (2ª unidad)" IsChecked="{Binding personalizarOferta}"
-                                              Visibility="{Binding personalizarOfertaVisible}" Margin="0,4,0,0"/>
+                                    <!-- Nesto#371: personalizar la oferta (precio + dto en la unidad de oferta), p.ej. "al 50%" -->
+                                    <CheckBox Content="Personalizar oferta" IsChecked="{Binding personalizarOferta}"
+                                              Visibility="{Binding personalizarOfertaVisible}" Margin="0,4,0,0">
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="Checked">
+                                                <i:InvokeCommandAction Command="{Binding ActualizarProductoCommand, ElementName=SelectorControl}" CommandParameter="{Binding}" />
+                                            </i:EventTrigger>
+                                            <i:EventTrigger EventName="Unchecked">
+                                                <i:InvokeCommandAction Command="{Binding ActualizarProductoCommand, ElementName=SelectorControl}" CommandParameter="{Binding}" />
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
+                                    </CheckBox>
                                     <StackPanel Orientation="Horizontal" Visibility="{Binding personalizarInputsVisible}" Margin="0,2,0,0">
                                         <TextBlock Text="Precio" VerticalAlignment="Center" Margin="0,0,3,0"/>
-                                        <xctk:DecimalUpDown Value="{Binding precioOferta}" Width="75" Margin="0,0,8,0"/>
+                                        <xctk:DecimalUpDown Value="{Binding precioOferta}" Width="75" Margin="0,0,8,0">
+                                            <i:Interaction.Triggers>
+                                                <i:EventTrigger EventName="ValueChanged">
+                                                    <i:InvokeCommandAction Command="{Binding ActualizarProductoCommand, ElementName=SelectorControl}" CommandParameter="{Binding}" />
+                                                </i:EventTrigger>
+                                            </i:Interaction.Triggers>
+                                        </xctk:DecimalUpDown>
                                         <TextBlock Text="Dto" VerticalAlignment="Center" Margin="0,0,3,0"/>
-                                        <xctk:DecimalUpDown Value="{Binding descuentoOferta}" Width="65" FormatString="P0" Increment="0.05" Minimum="0" Maximum="1"/>
+                                        <xctk:DecimalUpDown Value="{Binding descuentoOferta}" Width="65" FormatString="P0" Increment="0.05" Minimum="0" Maximum="1">
+                                            <i:Interaction.Triggers>
+                                                <i:EventTrigger EventName="ValueChanged">
+                                                    <i:InvokeCommandAction Command="{Binding ActualizarProductoCommand, ElementName=SelectorControl}" CommandParameter="{Binding}" />
+                                                </i:EventTrigger>
+                                            </i:Interaction.Triggers>
+                                        </xctk:DecimalUpDown>
                                     </StackPanel>
                                     <TextBlock Text="{Binding producto}" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>
                                     <TextBlock Text="{Binding familia}" MaxHeight="60" TextWrapping="WrapWithOverflow" HorizontalAlignment="Stretch"/>

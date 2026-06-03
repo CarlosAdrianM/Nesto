@@ -260,6 +260,48 @@ namespace PlantillaVentaTests
             Assert.AreEqual(0m, lineaOferta.DescuentoLinea);
         }
 
+        [TestMethod]
+        public void BaseImponible_PersonalizarOferta_IncluyeElAporteDeLaUnidadDeOferta()
+        {
+            // Nesto#371: si la unidad de oferta va personalizada (no gratis), su base cuenta en el total.
+            var state = new PlantillaVentaState();
+            state.LineasProducto = new List<LineaPlantillaVenta>
+            {
+                new LineaPlantillaVenta
+                {
+                    producto = "40583",
+                    cantidad = 1,
+                    precio = 20.40m,
+                    cantidadOferta = 1,
+                    personalizarOferta = true,
+                    precioOferta = 20.40m,
+                    descuentoOferta = 0.5m
+                }
+            };
+
+            // 20,40 (1ª unidad) + 10,20 (2ª al 50 %) = 30,60
+            Assert.AreEqual(30.60m, state.BaseImponible);
+        }
+
+        [TestMethod]
+        public void BaseImponible_OfertaGratis_NoSumaLaUnidadDeOferta()
+        {
+            var state = new PlantillaVentaState();
+            state.LineasProducto = new List<LineaPlantillaVenta>
+            {
+                new LineaPlantillaVenta
+                {
+                    producto = "40583",
+                    cantidad = 1,
+                    precio = 20.40m,
+                    cantidadOferta = 1
+                }
+            };
+
+            // La oferta va gratis -> solo cuenta la unidad cobrada.
+            Assert.AreEqual(20.40m, state.BaseImponible);
+        }
+
         #endregion
 
         #region ActualizarComentarioPickingAlCambiarContacto (Issue #297)

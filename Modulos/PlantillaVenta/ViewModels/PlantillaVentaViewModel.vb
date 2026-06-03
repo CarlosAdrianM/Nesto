@@ -238,7 +238,7 @@ Public Class PlantillaVentaViewModel
         Get
             Dim baseImponible As Decimal = 0
             If Not IsNothing(listaProductosPedido) AndAlso listaProductosPedido.Count > 0 Then
-                baseImponible = listaProductosPedido.Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
+                baseImponible = listaProductosPedido.Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
             End If
             Return baseImponible
         End Get
@@ -253,7 +253,7 @@ Public Class PlantillaVentaViewModel
                 Dim servirJunto As Boolean = If(direccionEntregaSeleccionada?.servirJunto, True)
                 baseImponible = listaProductosPedido.
                     Where(Function(l) Not EsSobrePedidoParaPortes(l, servirJunto)).
-                    Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero))
+                    Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.precio * l.descuento * l.cantidad, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
             End If
             Return baseImponible
         End Get
@@ -462,7 +462,7 @@ Public Class PlantillaVentaViewModel
             End If
             Return listaProductosPedido _
                 .Where(Function(l) Not String.IsNullOrEmpty(l.grupo) AndAlso GRUPOS_BONIFICABLES.Contains(l.grupo.Trim().ToUpper())) _
-                .Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero))
+                .Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
         End Get
     End Property
 

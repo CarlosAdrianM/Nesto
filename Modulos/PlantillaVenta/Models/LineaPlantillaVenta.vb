@@ -328,6 +328,20 @@ Public Class LineaPlantillaVenta
             Return Math.Round(bruto, 2, MidpointRounding.AwayFromZero) - importeDescuento
         End Get
     End Property
+
+    ''' <summary>
+    ''' Nesto#371: base imponible que aporta la unidad de oferta cuando se personaliza (precio/dto en
+    ''' vez de ir gratis). 0 si la oferta va gratis. Se calcula igual que la base de la línea cobrada,
+    ''' para que los totales del pedido (base, total, portes, bonificable) la tengan en cuenta.
+    ''' </summary>
+    Public ReadOnly Property baseImponibleOferta As Decimal
+        Get
+            If Not personalizarOferta OrElse cantidadOferta <= 0 Then Return 0
+            Dim bruto As Decimal = cantidadOferta * precioOferta
+            Dim importeDescuento As Decimal = Math.Round(bruto * descuentoOferta, 2, MidpointRounding.AwayFromZero)
+            Return Math.Round(bruto, 2, MidpointRounding.AwayFromZero) - importeDescuento
+        End Get
+    End Property
     Public ReadOnly Property textoUnidadesDisponibles As String
         Get
             Dim cantidadMenor As Integer = If(Not stockActualizado OrElse cantidadDisponible <= StockDisponibleTodosLosAlmacenes, cantidadDisponible, StockDisponibleTodosLosAlmacenes)

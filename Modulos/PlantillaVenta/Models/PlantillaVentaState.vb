@@ -361,7 +361,8 @@ Public Class PlantillaVentaState
     Public ReadOnly Property BaseImponible As Decimal
         Get
             If LineasProducto Is Nothing Then Return 0
-            Return LineasProducto.Where(Function(l) l.cantidad > 0).Sum(Function(l) l.baseImponible)
+            ' Nesto#371: incluye el aporte de la unidad de oferta cuando va personalizada (no gratis).
+            Return LineasProducto.Where(Function(l) l.cantidad > 0 OrElse l.cantidadOferta > 0).Sum(Function(l) l.baseImponible + l.baseImponibleOferta)
         End Get
     End Property
 
