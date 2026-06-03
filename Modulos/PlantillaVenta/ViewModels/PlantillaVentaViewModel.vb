@@ -626,7 +626,8 @@ Public Class PlantillaVentaViewModel
                 BaseImponibleBonificable,
                 almacen,
                 servirJunto,
-                clienteSeleccionado.cliente).ConfigureAwait(True)
+                clienteSeleccionado.cliente,
+                incluirBloqueados:=True).ConfigureAwait(True)
 
             If Not IsNothing(respuesta) AndAlso Not IsNothing(respuesta.Productos) Then
                 ' Issue #314: Excluir productos que ya están en el pedido con precio
@@ -646,7 +647,9 @@ Public Class PlantillaVentaViewModel
                         .precio = p.PVP,
                         .ganavisiones = p.Ganavisiones,
                         .iva = p.Iva,
-                        .stocks = p.Stocks
+                        .stocks = p.Stocks,
+                        .importeParaDesbloquear = p.ImporteParaDesbloquear,
+                        .bloqueado = p.Bloqueado
                     }))
 
                 ' Issue #286: Aplicar cantidades del borrador a los productos cargados

@@ -114,6 +114,14 @@ Public Class ProductoBonificableDTO
             Return Stocks.Sum(Function(s) s.stock)
         End Get
     End Property
+    ''' <summary>
+    ''' Nesto#370: el pedido aún no llega para canjear este Ganavisión (faltan puntos o importe).
+    ''' </summary>
+    Public Property Bloqueado As Boolean
+    ''' <summary>
+    ''' Nesto#370: importe (base imponible bonificable) que falta para poder seleccionarlo.
+    ''' </summary>
+    Public Property ImporteParaDesbloquear As Decimal
 End Class
 
 ' Los DTOs ValidarServirJuntoRequest/Response, ProductoBonificadoConCantidadRequest y
@@ -163,10 +171,42 @@ Public Class LineaRegalo
             Return _cantidad
         End Get
         Set(value As Integer)
-            SetProperty(_cantidad, value)
+            ' Nesto#370: un regalo bloqueado no se puede seleccionar (la cantidad se fuerza a 0).
+            Dim valorPermitido = If(bloqueado, 0, value)
+            SetProperty(_cantidad, valorPermitido)
             RaisePropertyChanged(NameOf(colorStock))
             RaisePropertyChanged(NameOf(textoUnidadesDisponibles))
         End Set
+    End Property
+
+    ''' <summary>
+    ''' Nesto#370: el pedido aún no llega para canjear este Ganavisión. Bloqueado = no seleccionable.
+    ''' </summary>
+    Private _bloqueado As Boolean
+    Public Property bloqueado As Boolean
+        Get
+            Return _bloqueado
+        End Get
+        Set(value As Boolean)
+            SetProperty(_bloqueado, value)
+            RaisePropertyChanged(NameOf(puedeSeleccionar))
+            RaisePropertyChanged(NameOf(textoUnidadesDisponibles))
+            RaisePropertyChanged(NameOf(colorStock))
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Nesto#370: importe de base imponible bonificable que falta para poder seleccionar este regalo.
+    ''' </summary>
+    Public Property importeParaDesbloquear As Decimal
+
+    ''' <summary>
+    ''' Nesto#370: enlazado a IsEnabled del control de cantidad (los bloqueados no se pueden elegir).
+    ''' </summary>
+    Public ReadOnly Property puedeSeleccionar As Boolean
+        Get
+            Return Not bloqueado
+        End Get
     End Property
 
     Public ReadOnly Property StockTotal As Integer
@@ -259,6 +299,10 @@ Public Class LineaRegalo
     ''' </summary>
     Public ReadOnly Property textoUnidadesDisponibles As String
         Get
+            ' Nesto#370: en los bloqueados, en vez del stock mostramos cuánto falta para desbloquearlos.
+            If bloqueado Then
+                Return $"Amplía el pedido en {importeParaDesbloquear:C2} para desbloquear"
+            End If
             If StockTotal = 0 Then
                 Return "Sin stock"
             ElseIf StockTotal < cantidad Then
@@ -276,6 +320,10 @@ Public Class LineaRegalo
     ''' </summary>
     Public ReadOnly Property colorStock As Brush
         Get
+            ' Nesto#370: los bloqueados se muestran atenuados (gris) con la etiqueta de desbloqueo.
+            If bloqueado Then
+                Return Brushes.Gray
+            End If
             If StockTotal = 0 Then
                 Return Brushes.Red
             ElseIf StockTotal < cantidad Then

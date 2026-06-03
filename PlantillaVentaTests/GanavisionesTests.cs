@@ -819,6 +819,58 @@ namespace PlantillaVentaTests
             Assert.AreEqual(string.Empty, regalo.textoStocksPorAlmacen);
         }
 
+        [TestMethod]
+        public void LineaRegalo_Bloqueado_NoSePuedeSeleccionar()
+        {
+            // Nesto#370: un regalo bloqueado no es seleccionable y la cantidad se fuerza a 0.
+            var regalo = new LineaRegalo
+            {
+                producto = "PROD1",
+                importeParaDesbloquear = 50M,
+                bloqueado = true
+            };
+
+            Assert.IsFalse(regalo.puedeSeleccionar);
+
+            regalo.cantidad = 3; // intento de selección
+
+            Assert.AreEqual(0, regalo.cantidad);
+        }
+
+        [TestMethod]
+        public void LineaRegalo_Bloqueado_MuestraEtiquetaDeDesbloqueo()
+        {
+            // Nesto#370: en vez del stock, el bloqueado muestra cuánto falta para desbloquearlo.
+            var regalo = new LineaRegalo
+            {
+                producto = "PROD1",
+                importeParaDesbloquear = 50M,
+                bloqueado = true,
+                stocks = new List<StockAlmacenDTO>
+                {
+                    new StockAlmacenDTO { almacen = "ALG", stock = 10, cantidadDisponible = 10 }
+                }
+            };
+
+            StringAssert.Contains(regalo.textoUnidadesDisponibles, "desbloquear");
+        }
+
+        [TestMethod]
+        public void LineaRegalo_NoBloqueado_SeSeleccionaNormalmente()
+        {
+            var regalo = new LineaRegalo
+            {
+                producto = "PROD1",
+                bloqueado = false
+            };
+
+            Assert.IsTrue(regalo.puedeSeleccionar);
+
+            regalo.cantidad = 3;
+
+            Assert.AreEqual(3, regalo.cantidad);
+        }
+
         #endregion
     }
 }

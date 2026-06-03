@@ -58,7 +58,8 @@
 
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Margin="3" TextWrapping="WrapWithOverflow" Text="Cantidad Cobrada"></TextBlock>
-                                    <xctk:ShortUpDown Value="{Binding cantidad}" Margin="3">
+                                    <!-- Nesto#370: los regalos bloqueados (sin importe suficiente) no se pueden seleccionar -->
+                                    <xctk:ShortUpDown Value="{Binding cantidad}" Margin="3" IsEnabled="{Binding puedeSeleccionar}">
                                         <i:Interaction.Triggers>
                                             <i:EventTrigger EventName="ValueChanged">
                                                 <i:InvokeCommandAction Command="{Binding ActualizarProductoCommand, ElementName=SelectorControl}" CommandParameter="{Binding}" />

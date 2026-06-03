@@ -75,6 +75,16 @@ Public Class LineaPlantillaVenta
         End Set
     End Property
     Public Property aplicarDescuentoFicha() As Boolean? Implements ILineaConCantidad.aplicarDescuentoFicha
+
+    ''' <summary>
+    ''' Nesto#370: en el selector compartido enlaza IsEnabled del control de cantidad. Los productos
+    ''' normales siempre se pueden seleccionar (solo los regalos bloqueados, en LineaRegalo, no).
+    ''' </summary>
+    Public ReadOnly Property puedeSeleccionar As Boolean
+        Get
+            Return True
+        End Get
+    End Property
     Public Property stock As Integer
     Private _cantidadDisponible As Integer
     Public Property cantidadDisponible As Integer

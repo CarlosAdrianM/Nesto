@@ -373,11 +373,11 @@ Public Class PlantillaVentaService
     ''' Obtiene los productos bonificables para un pedido segun los Ganavisiones disponibles.
     ''' Issue #94: Sistema Ganavisiones - FASE 7
     ''' </summary>
-    Public Async Function CargarProductosBonificablesParaPedido(empresa As String, baseImponibleBonificable As Decimal, almacen As String, servirJunto As Boolean, cliente As String) As Task(Of ProductosBonificablesResponse) Implements IPlantillaVentaService.CargarProductosBonificablesParaPedido
+    Public Async Function CargarProductosBonificablesParaPedido(empresa As String, baseImponibleBonificable As Decimal, almacen As String, servirJunto As Boolean, cliente As String, Optional incluirBloqueados As Boolean = False) As Task(Of ProductosBonificablesResponse) Implements IPlantillaVentaService.CargarProductosBonificablesParaPedido
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
             Try
-                Dim urlConsulta As String = $"Ganavisiones/ProductosBonificables?empresa={empresa}&baseImponibleBonificable={baseImponibleBonificable.ToString(Globalization.CultureInfo.InvariantCulture)}&almacen={almacen}&servirJunto={servirJunto.ToString().ToLower()}&cliente={cliente}"
+                Dim urlConsulta As String = $"Ganavisiones/ProductosBonificables?empresa={empresa}&baseImponibleBonificable={baseImponibleBonificable.ToString(Globalization.CultureInfo.InvariantCulture)}&almacen={almacen}&servirJunto={servirJunto.ToString().ToLower()}&cliente={cliente}&incluirBloqueados={incluirBloqueados.ToString().ToLower()}"
                 Dim response = Await client.GetAsync(urlConsulta).ConfigureAwait(False)
 
                 If response.IsSuccessStatusCode Then

@@ -18,7 +18,7 @@ Public Interface IPlantillaVentaService
     ''' Obtiene los productos bonificables para un pedido segun los Ganavisiones disponibles.
     ''' Issue #94: Sistema Ganavisiones - FASE 7
     ''' </summary>
-    Function CargarProductosBonificablesParaPedido(empresa As String, baseImponibleBonificable As Decimal, almacen As String, servirJunto As Boolean, cliente As String) As Task(Of ProductosBonificablesResponse)
+    Function CargarProductosBonificablesParaPedido(empresa As String, baseImponibleBonificable As Decimal, almacen As String, servirJunto As Boolean, cliente As String, Optional incluirBloqueados As Boolean = False) As Task(Of ProductosBonificablesResponse)
     Function CalcularFechaEntrega(fecha As DateTime, ruta As String, almacen As String) As Task(Of DateTime)
     Function CargarVendedoresEquipo(jefeEquipo As String) As Task(Of List(Of VendedorDTO))
     ' ValidarServirJunto se eliminó de aquí (NestoAPI#161): ahora lo expone
