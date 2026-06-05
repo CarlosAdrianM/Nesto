@@ -132,7 +132,9 @@ Public Class PlantillaVentaViewModel
         listaAlmacenes = New ObservableCollection(Of Sede)(Constantes.Sedes.ListaSedes)
         Dim almacenRuta As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenRuta)
         almacenSeleccionado = listaAlmacenes.Single(Function(a) a.Codigo = almacenRuta)
-        _visibilidadAnadirPortes = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+        ' Issue NestoAPI#218: también Compras puede suprimir portes (la autorización real la hace el servidor)
+        _visibilidadAnadirPortes = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+                                   configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS)
 
         ListaFiltrableProductos = New ColeccionFiltrable(New ObservableCollection(Of LineaPlantillaVenta)) With {
             .TieneDatosIniciales = True
