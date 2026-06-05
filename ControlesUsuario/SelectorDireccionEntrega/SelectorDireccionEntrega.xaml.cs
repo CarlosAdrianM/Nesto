@@ -6,6 +6,7 @@ using Prism.Regions;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Windows;
@@ -394,7 +395,7 @@ namespace ControlesUsuario
         /// Carga las direcciones de entrega del cliente desde la API.
         /// Carlos 20/11/24: FASE 3 - Refactorizado para usar IServicioDireccionesEntrega en lugar de HttpClient directo.
         /// </summary>
-        private async Task cargarDatos()
+        internal async Task cargarDatos()
         {
             // Modo degradado: si no hay servicio inyectado, no hacer nada
             if (_servicioDirecciones == null)
@@ -435,7 +436,12 @@ namespace ControlesUsuario
             }
             catch (Exception ex)
             {
-                throw new Exception($"No se pudieron leer las direcciones de entrega: {ex.Message}", ex);
+                // Issue #373: NO propagar la excepción. cargarDatos() se invoca fire-and-forget
+                // (OnEmpresaChanged, OnTotalPedidoChanged, TimerElapsed), así que un throw quedaría
+                // sin observar -> UnobservedTaskException recogida por el finalizer. Degradamos con
+                // gracia dejando la lista vacía, siguiendo el patrón de SelectorCCC.
+                Debug.WriteLine($"[SelectorDireccionEntrega] No se pudieron leer las direcciones de entrega: {ex.Message}");
+                listaDireccionesEntrega.ListaOriginal = new ObservableCollection<IFiltrableItem>();
             }
         }
 

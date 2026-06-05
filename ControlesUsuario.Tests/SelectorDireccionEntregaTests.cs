@@ -8,6 +8,7 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Models.Nesto.Models;
 using Prism.Events;
 using Prism.Regions;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -451,6 +452,54 @@ namespace ControlesUsuario.Tests
 
             Assert.IsTrue(true,
                 "Este test documenta que Seleccionada tiene prioridad sobre esDireccionPorDefecto");
+        }
+
+        #endregion
+
+        #region Issue #373: la carga no debe propagar excepciones (UnobservedTaskException)
+
+        [TestMethod]
+        [TestCategory("SelectorDireccionEntrega")]
+        public void SelectorDireccionEntrega_AlFallarElServicio_NoPropagaExcepcionYDejaListaVacia()
+        {
+            // Arrange: el servicio lanza al obtener direcciones (p.ej. 500 o error de red)
+            var configuracion = A.Fake<IConfiguracion>();
+            var eventAggregator = A.Fake<IEventAggregator>();
+            var regionManager = A.Fake<IRegionManager>();
+            var servicioDirecciones = A.Fake<IServicioDireccionesEntrega>();
+            A.CallTo(() => servicioDirecciones.ObtenerDireccionesEntrega(A<string>._, A<string>._, A<decimal?>._))
+                .Throws(new Exception("boom API"));
+
+            Exception excepcionPropagada = null;
+            int elementosEnLista = -1;
+
+            Thread thread = new Thread(() =>
+            {
+                var sut = new SelectorDireccionEntrega(regionManager, eventAggregator, configuracion, servicioDirecciones);
+                sut.Empresa = "1";
+                sut.Cliente = "10";
+
+                // Act: invocar cargarDatos directamente y observar la Task.
+                // Antes del fix re-lanzaba "No se pudieron leer las direcciones de entrega".
+                try
+                {
+                    sut.cargarDatos().GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    excepcionPropagada = ex;
+                }
+
+                elementosEnLista = sut.listaDireccionesEntrega.Lista.Count;
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+
+            // Assert: degrada con gracia, sin propagar y con lista vacía
+            Assert.IsNull(excepcionPropagada,
+                $"cargarDatos no debe propagar la excepción (quedaría sin observar). Propagó: {excepcionPropagada?.Message}");
+            Assert.AreEqual(0, elementosEnLista, "Ante un error de carga, la lista de direcciones debe quedar vacía");
         }
 
         #endregion
