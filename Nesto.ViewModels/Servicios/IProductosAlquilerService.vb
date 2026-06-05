@@ -4,4 +4,5 @@ Public Interface IProductosAlquilerService
     Function LeerProductosAlquiler() As Task(Of List(Of ProductoAlquilerModel))
     Function LeerMovimientosAlquiler(empresa As String, pedido As Integer) As Task(Of List(Of MovimientoAlquilerModel))
     Function LeerComprasAlquiler(producto As String, numSerie As String) As Task(Of List(Of CompraAlquilerModel))
+    Function LeerInmovilizadosAlquiler(empresa As String, numero As String) As Task(Of List(Of ExtractoInmovilizadoModel))
 End Interface

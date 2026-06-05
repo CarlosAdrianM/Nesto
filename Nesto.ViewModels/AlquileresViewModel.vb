@@ -96,6 +96,17 @@ Public Class AlquileresViewModel
         End Try
     End Function
 
+    ' Nesto#340 Fase 1C.2: carga el extracto del inmovilizado desde el API (pestaña Inmovilizados).
+    ' Fire-and-forget desde el setter de PestañaSeleccionada; la excepción se captura aquí.
+    Public Async Function CargarInmovilizadosAsync(empresa As String, numero As String) As Task
+        Try
+            Dim inmovilizados = Await _productosAlquilerService.LeerInmovilizadosAlquiler(empresa, numero)
+            colExtractoInmovilizado = New ObservableCollection(Of ExtractoInmovilizadoModel)(inmovilizados)
+        Catch ex As Exception
+            mensajeError = If(ex.InnerException IsNot Nothing, ex.InnerException.Message, ex.Message)
+        End Try
+    End Function
+
 
 #Region "Datos Publicados"
 
@@ -131,12 +142,12 @@ Public Class AlquileresViewModel
         End Set
     End Property
 
-    Private _colExtractoInmovilizado As ObservableCollection(Of ExtractoInmovilizado)
-    Public Property colExtractoInmovilizado() As ObservableCollection(Of ExtractoInmovilizado)
+    Private _colExtractoInmovilizado As ObservableCollection(Of ExtractoInmovilizadoModel)
+    Public Property colExtractoInmovilizado() As ObservableCollection(Of ExtractoInmovilizadoModel)
         Get
             Return _colExtractoInmovilizado
         End Get
-        Set(value As ObservableCollection(Of ExtractoInmovilizado))
+        Set(value As ObservableCollection(Of ExtractoInmovilizadoModel))
             SetProperty(_colExtractoInmovilizado, value)
         End Set
     End Property
@@ -149,7 +160,12 @@ Public Class AlquileresViewModel
         Set(value As TabItem)
             If LineaSeleccionada IsNot Nothing Then
                 If value.Name = "tabInmovilizados" Then
-                    colExtractoInmovilizado = New ObservableCollection(Of ExtractoInmovilizado)(From x In DbContext.ExtractoInmovilizado Where x.Empresa = LineaSeleccionada.Empresa And x.Número = LineaSeleccionada.Inmovilizado Order By x.Fecha)
+                    ' Nesto#340 Fase 1C.2: la lectura EF se sustituye por el API (carga asíncrona).
+                    If Not String.IsNullOrEmpty(LineaSeleccionada.Inmovilizado) Then
+                        CargarInmovilizadosAsync(LineaSeleccionada.Empresa, LineaSeleccionada.Inmovilizado)
+                    Else
+                        colExtractoInmovilizado = New ObservableCollection(Of ExtractoInmovilizadoModel)
+                    End If
                 ElseIf value.Name = "tabMovimientos" Then
                     ' Nesto#340 Fase 1C.2: la lectura EF se sustituye por el API (carga asíncrona).
                     If LineaSeleccionada.CabPedidoVta.HasValue Then

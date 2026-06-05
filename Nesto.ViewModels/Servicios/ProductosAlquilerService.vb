@@ -67,4 +67,23 @@ Public Class ProductosAlquilerService
             Return JsonConvert.DeserializeObject(Of List(Of CompraAlquilerModel))(body)
         End Using
     End Function
+
+    ' Nesto#340 Fase 1C.2: extracto del inmovilizado de un alquiler, por empresa + número de inmovilizado.
+    Public Async Function LeerInmovilizadosAlquiler(empresa As String, numero As String) As Task(Of List(Of ExtractoInmovilizadoModel)) Implements IProductosAlquilerService.LeerInmovilizadosAlquiler
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Alquileres/Inmovilizados?empresa={Uri.EscapeDataString(empresa)}&numero={Uri.EscapeDataString(numero)}"
+            Dim response = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener el extracto del inmovilizado del alquiler: {response.StatusCode}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of ExtractoInmovilizadoModel))(body)
+        End Using
+    End Function
 End Class

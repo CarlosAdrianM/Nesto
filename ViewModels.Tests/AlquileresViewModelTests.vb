@@ -82,4 +82,21 @@ Public Class AlquileresViewModelTests
         A.CallTo(Function() _servicio.LeerComprasAlquiler("26780", "ABC123")).MustHaveHappened()
     End Function
 
+    <TestMethod()>
+    Public Async Function CargarInmovilizados_PoblaLaColeccionDesdeElServicio() As Task
+        ' Nesto#340 Fase 1C.2: el extracto del inmovilizado se lee del API, no de EF.
+        Dim inmovilizados = New List(Of ExtractoInmovilizadoModel) From {
+            New ExtractoInmovilizadoModel With {.NumeroOrden = 1, .Concepto = "Compra aparato", .NumeroDocumento = "555", .Importe = 300D, .ImportePendiente = 0D, .Estado = 4},
+            New ExtractoInmovilizadoModel With {.NumeroOrden = 2, .Concepto = "Amortización", .NumeroDocumento = "A001", .Importe = -25D, .ImportePendiente = 0D, .Estado = 1}
+        }
+        A.CallTo(Function() _servicio.LeerInmovilizadosAlquiler("1", "ALQ000123")).Returns(Task.FromResult(inmovilizados))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarInmovilizadosAsync("1", "ALQ000123")
+
+        Assert.AreEqual(2, vm.colExtractoInmovilizado.Count)
+        Assert.AreEqual(2, vm.colExtractoInmovilizado.Last().NumeroOrden)
+        A.CallTo(Function() _servicio.LeerInmovilizadosAlquiler("1", "ALQ000123")).MustHaveHappened()
+    End Function
+
 End Class
