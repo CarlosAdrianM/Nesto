@@ -195,6 +195,8 @@ Partial Public Class Application
         containerRegistry.RegisterDialog(Of InputTextDialog, InputTextDialogViewModel)
         containerRegistry.RegisterDialog(Of CorreccionVideoProductoView, CorreccionVideoProductoViewModel)
         containerRegistry.RegisterDialog(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
+        ' Carlos 08/06/26: Nesto#368 - Selector cuando un código de barras corresponde a varios productos (API devuelve 409)
+        containerRegistry.RegisterDialog(Of SelectorProductoDuplicadoDialog, SelectorProductoDuplicadoDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window

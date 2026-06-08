@@ -1,9 +1,12 @@
+using ControlesUsuario.Dialogs;
 using ControlesUsuario.Models;
 using ControlesUsuario.Services;
 using Microsoft.Xaml.Behaviors;
 using Nesto.Infrastructure.Contracts;
 using Prism.Ioc;
+using Prism.Services.Dialogs;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -383,7 +386,27 @@ namespace ControlesUsuario.Behaviors
             System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] ValidarProducto: Servicio obtenido, buscando producto...");
 
             // Buscar el producto
-            var producto = await _servicio.BuscarProducto(Empresa, texto, Cliente, Contacto, Cantidad);
+            ProductoDTO producto;
+            try
+            {
+                producto = await _servicio.BuscarProducto(Empresa, texto, Cliente, Contacto, Cantidad);
+            }
+            catch (CodigoBarrasDuplicadoException ex)
+            {
+                // Nesto#368: el código de barras lo comparten varios productos. Mostramos un
+                // selector y reintentamos con el Número elegido (que resuelve de forma única).
+                string numeroElegido = await SeleccionarProductoDuplicado(ex.Candidatos);
+                if (string.IsNullOrEmpty(numeroElegido))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] ValidarProducto: selector de duplicados cancelado");
+                    RestaurarEstiloNormal();
+                    return;
+                }
+
+                texto = numeroElegido;
+                AssociatedObject.Text = numeroElegido;
+                producto = await _servicio.BuscarProducto(Empresa, numeroElegido, Cliente, Contacto, Cantidad);
+            }
 
             if (producto != null)
             {
@@ -492,6 +515,49 @@ namespace ControlesUsuario.Behaviors
                 if (ContainerLocator.Container != null)
                 {
                     return ContainerLocator.Container.Resolve<IServicioProducto>();
+                }
+            }
+            catch
+            {
+                // Ignorar errores de resolución
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Muestra el selector de productos cuando un código de barras está duplicado (Nesto#368)
+        /// y devuelve el Número elegido, o null si el usuario cancela.
+        /// </summary>
+        private async Task<string> SeleccionarProductoDuplicado(IReadOnlyList<ProductoCodigoBarrasDuplicado> candidatos)
+        {
+            var dialogService = ResolverDialogService();
+            if (dialogService == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ProductoBehavior] SeleccionarProductoDuplicado: IDialogService no disponible");
+                MostrarError("Código de barras duplicado: elija el producto manualmente");
+                return null;
+            }
+
+            var parameters = new DialogParameters
+            {
+                { "candidatos", candidatos }
+            };
+
+            var resultado = await dialogService.ShowDialogAsync("SelectorProductoDuplicadoDialog", parameters);
+            if (resultado != null && resultado.Result == ButtonResult.OK)
+            {
+                return resultado.Parameters.GetValue<string>("producto");
+            }
+            return null;
+        }
+
+        private IDialogService ResolverDialogService()
+        {
+            try
+            {
+                if (ContainerLocator.Container != null)
+                {
+                    return ContainerLocator.Container.Resolve<IDialogService>();
                 }
             }
             catch

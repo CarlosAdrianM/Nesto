@@ -2,6 +2,7 @@ using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -68,6 +69,17 @@ namespace ControlesUsuario.Services
 
                     System.Diagnostics.Debug.WriteLine($"[ServicioProducto] HTTP Status: {response.StatusCode}");
 
+                    // Nesto#368: el código de barras puede corresponder a varios productos.
+                    // En ese caso la API devuelve 409 con la lista de candidatos para que el
+                    // cliente muestre un selector y reintente con el Número elegido.
+                    if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                    {
+                        var jsonConflicto = await response.Content.ReadAsStringAsync();
+                        var candidatos = JsonConvert.DeserializeObject<List<ProductoCodigoBarrasDuplicado>>(jsonConflicto)
+                                         ?? new List<ProductoCodigoBarrasDuplicado>();
+                        throw new CodigoBarrasDuplicadoException(candidatos);
+                    }
+
                     if (response.IsSuccessStatusCode)
                     {
                         var json = await response.Content.ReadAsStringAsync();
@@ -101,6 +113,11 @@ namespace ControlesUsuario.Services
                         var errorContent = await response.Content.ReadAsStringAsync();
                         System.Diagnostics.Debug.WriteLine($"[ServicioProducto] Error HTTP: {errorContent}");
                     }
+                }
+                catch (CodigoBarrasDuplicadoException)
+                {
+                    // No la tragamos: el behavior la captura para mostrar el selector (Nesto#368).
+                    throw;
                 }
                 catch (Exception ex)
                 {
