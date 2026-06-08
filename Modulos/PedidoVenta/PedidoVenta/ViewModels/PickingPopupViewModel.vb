@@ -167,13 +167,12 @@ Public Class PickingPopupViewModel
     Private Async Sub OnInformeKits()
         Try
             estaSacandoPicking = True
-            Dim dataSource As List(Of Informes.KitsQueSePuedenMontarModel) = Await _servicioInformes.LeerKitsQueSePuedenMontar(
+            ' Nesto#340: el render se hace en el backend (QuestPDF); aquí solo descargamos el PDF.
+            Dim pdf As Byte() = Await _servicioInformes.DescargarKitsQueSePuedenMontarPdf(
                 empresa:="1",
                 fecha:=DateTime.Today.AddDays(4).ToString("dd/MM/yy"),
                 almacen:="ALG",
                 filtroRutas:=FILTRO_RUTAS_DEFECTO)
-            Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-                "Nesto.Informes.KitsQueSePuedenMontar.rdlc", "KitsQueSePuedenMontarDataSet", dataSource)
             Dim fileName As String = Path.GetTempPath + "InformeKitsQueSePuedenMontar.pdf"
             File.WriteAllBytes(fileName, pdf)
             Process.Start(New ProcessStartInfo(fileName) With {

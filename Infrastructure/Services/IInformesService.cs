@@ -17,6 +17,7 @@ namespace Nesto.Infrastructure.Services
         Task<List<ExtractoContableModel>> LeerExtractoContable(string empresa, string cuenta, DateTime fechaDesde, DateTime fechaHasta);
         Task<List<UbicacionesInventarioModel>> LeerUbicacionesInventario(string empresa = "1");
         Task<List<KitsQueSePuedenMontarModel>> LeerKitsQueSePuedenMontar(string empresa, string fecha, string almacen, string filtroRutas);
+        Task<byte[]> DescargarKitsQueSePuedenMontarPdf(string empresa, string fecha, string almacen, string filtroRutas);
         Task<List<MontarKitProductosModel>> LeerMontarKitProductos(int traspaso);
         Task<List<ManifiestoAgenciaModel>> LeerManifiestoAgencia(string empresa, int agencia, DateTime fecha);
         Task<List<PickingModel>> LeerPicking(int picking, string empresa = "1", int personas = 1);
