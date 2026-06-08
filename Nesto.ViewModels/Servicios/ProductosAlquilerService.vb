@@ -86,4 +86,48 @@ Public Class ProductosAlquilerService
             Return JsonConvert.DeserializeObject(Of List(Of ExtractoInmovilizadoModel))(body)
         End Using
     End Function
+
+    ' Nesto#340 Fase 1C.3: cabeceras del grid principal de un producto en alquiler.
+    Public Async Function LeerCabecerasAlquiler(empresa As String, producto As String) As Task(Of List(Of AlquilerModel)) Implements IProductosAlquilerService.LeerCabecerasAlquiler
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Alquileres/Cabeceras?empresa={Uri.EscapeDataString(empresa)}&producto={Uri.EscapeDataString(producto)}"
+            Dim response = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener las cabeceras del alquiler: {response.StatusCode}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of AlquilerModel))(body)
+        End Using
+    End Function
+
+    ' Nesto#340 Fase 1C.3: guardado del grid (la API reconcilia altas/ediciones/bajas).
+    Public Async Function GuardarCabecerasAlquiler(empresa As String, producto As String, cabeceras As List(Of AlquilerModel)) As Task(Of List(Of AlquilerModel)) Implements IProductosAlquilerService.GuardarCabecerasAlquiler
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim payload = New With {
+                .Empresa = empresa,
+                .Producto = producto,
+                .Cabeceras = cabeceras
+            }
+            Dim contenido As New StringContent(JsonConvert.SerializeObject(payload), Text.Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("Alquileres/Cabeceras/Guardar", contenido)
+            If Not response.IsSuccessStatusCode Then
+                Dim error_ As String = Await response.Content.ReadAsStringAsync()
+                Throw New Exception($"Error al guardar las cabeceras del alquiler: {response.StatusCode} {error_}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of AlquilerModel))(body)
+        End Using
+    End Function
 End Class

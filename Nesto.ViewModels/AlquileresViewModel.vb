@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.Collections.Specialized
 Imports System.ComponentModel
 Imports System.Windows
 Imports System.Windows.Input
@@ -19,12 +20,12 @@ Imports Unity
 Public Class AlquileresViewModel
     Inherits BindableBase
 
-    ' Nesto#340: ya no es Shared (ver RemesasViewModel para la justificación).
-    Private DbContext As NestoEntities
     Private ReadOnly dialogService As IDialogService
     Private ReadOnly configuracion As IConfiguracion
-    ' Nesto#340 Fase 1C.1: la lista de productos en alquiler ya no se lee con EF, sino del API.
+    ' Nesto#340 Fase 1C: la lectura de productos, detalle y el grid principal ya no usan EF, sino el API.
     Private ReadOnly _productosAlquilerService As IProductosAlquilerService
+    ' Nesto#340 Fase 1C.3: dirty flag que sustituye a DbContext.ChangeTracker.HasChanges().
+    Private _hayCambios As Boolean
 
     Public Sub New(dialogService As IDialogService, configuracion As IConfiguracion, container As IUnityContainer)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
@@ -46,7 +47,6 @@ Public Class AlquileresViewModel
     End Sub
 
     Private Sub Inicializar()
-        DbContext = New NestoEntities
         bultos = 2
 
         ' Comandos Prism
@@ -107,6 +107,51 @@ Public Class AlquileresViewModel
         End Try
     End Function
 
+    ' Nesto#340 Fase 1C.3: carga el grid principal (cabeceras del producto) desde el API.
+    ' Sustituye la lectura EF DbContext.CabAlquileres del setter ProductoSeleccionado.
+    Public Async Function CargarCabecerasAsync(empresa As String, producto As String) As Task
+        Try
+            Dim cabeceras = Await _productosAlquilerService.LeerCabecerasAlquiler(empresa, producto)
+            AlquileresCollection = New ObservableCollection(Of AlquilerModel)(cabeceras)
+            SuscribirCambios(AlquileresCollection)
+            _hayCambios = False
+            mensajeError = ""
+        Catch ex As Exception
+            mensajeError = If(ex.InnerException IsNot Nothing, ex.InnerException.Message, ex.Message)
+        End Try
+    End Function
+
+    ' Nesto#340 Fase 1C.3: vigila ediciones (PropertyChanged) y altas/bajas (CollectionChanged) para
+    ' marcar cambios pendientes, sustituyendo el seguimiento que hacía el ChangeTracker de EF.
+    Private Sub SuscribirCambios(coleccion As ObservableCollection(Of AlquilerModel))
+        AddHandler coleccion.CollectionChanged, AddressOf OnCabecerasCollectionChanged
+        For Each item In coleccion
+            AddHandler item.PropertyChanged, AddressOf OnCabeceraPropertyChanged
+        Next
+    End Sub
+
+    Private Sub OnCabecerasCollectionChanged(sender As Object, e As NotifyCollectionChangedEventArgs)
+        If e.NewItems IsNot Nothing Then
+            For Each item As AlquilerModel In e.NewItems
+                AddHandler item.PropertyChanged, AddressOf OnCabeceraPropertyChanged
+            Next
+        End If
+        _hayCambios = True
+    End Sub
+
+    Private Sub OnCabeceraPropertyChanged(sender As Object, e As PropertyChangedEventArgs)
+        _hayCambios = True
+    End Sub
+
+    ' Empresa/producto del grid actual (todas las filas comparten producto = el seleccionado).
+    Private Function EmpresaActual() As String
+        Return If(ProductoSeleccionado?.Empresa, If(LineaSeleccionada?.Empresa, "1"))
+    End Function
+
+    Private Function ProductoActual() As String
+        Return If(ProductoSeleccionado?.Numero, LineaSeleccionada?.Producto)
+    End Function
+
 
 #Region "Datos Publicados"
 
@@ -120,22 +165,22 @@ Public Class AlquileresViewModel
         End Set
     End Property
 
-    Private _AlquileresCollection As ObservableCollection(Of CabAlquileres)
-    Public Property AlquileresCollection() As ObservableCollection(Of CabAlquileres)
+    Private _AlquileresCollection As ObservableCollection(Of AlquilerModel)
+    Public Property AlquileresCollection() As ObservableCollection(Of AlquilerModel)
         Get
             Return _AlquileresCollection
         End Get
-        Set(value As ObservableCollection(Of CabAlquileres))
+        Set(value As ObservableCollection(Of AlquilerModel))
             SetProperty(_AlquileresCollection, value)
         End Set
     End Property
 
-    Private _LineaSeleccionada As CabAlquileres
-    Public Property LineaSeleccionada As CabAlquileres
+    Private _LineaSeleccionada As AlquilerModel
+    Public Property LineaSeleccionada As AlquilerModel
         Get
             Return _LineaSeleccionada
         End Get
-        Set(value As CabAlquileres)
+        Set(value As AlquilerModel)
             SetProperty(_LineaSeleccionada, value)
             cmdIntercambiarNumeroSerie.RaiseCanExecuteChanged()
             cmdInicializarAlquiler.RaiseCanExecuteChanged()
@@ -215,7 +260,8 @@ Public Class AlquileresViewModel
         Set(value As ProductoAlquilerModel)
             SetProperty(_ProductoSeleccionado, value)
             If Not IsNothing(ProductoSeleccionado) Then
-                AlquileresCollection = New ObservableCollection(Of CabAlquileres)(From c In DbContext.CabAlquileres Where c.Producto = ProductoSeleccionado.Numero Order By c.NumeroSerie)
+                ' Nesto#340 Fase 1C.3: el grid se carga del API (carga asíncrona) en vez de EF.
+                CargarCabecerasAsync(ProductoSeleccionado.Empresa, ProductoSeleccionado.Numero)
             End If
 
             colExtractoInmovilizado = Nothing
@@ -279,13 +325,23 @@ Public Class AlquileresViewModel
         End Get
     End Property
     Private Function CanGuardar(ByVal param As Object) As Boolean
-        Return DbContext.ChangeTracker.HasChanges()
+        Return _hayCambios
     End Function
-    Private Sub Guardar(ByVal param As Object)
+    Private Async Sub Guardar(ByVal param As Object)
         Try
-            DbContext.SaveChanges()
-            ' Nesto#340 Fase 1C.1: la lista se recarga desde el API (selecciona el último al volver).
-            CargarProductosAlquilerAsync(seleccionarUltimo:=True)
+            Dim producto As String = ProductoActual()
+            If String.IsNullOrEmpty(producto) OrElse AlquileresCollection Is Nothing Then
+                Return
+            End If
+
+            ' Nesto#340 Fase 1C.3: la API reconcilia altas/ediciones/bajas; sustituye SaveChanges.
+            Await _productosAlquilerService.GuardarCabecerasAlquiler(EmpresaActual(), producto, AlquileresCollection.ToList())
+
+            ' Recargamos la lista de productos (StockAlquileres cambia) manteniendo la selección,
+            ' lo que recarga las cabeceras del producto con los Números asignados a las altas.
+            Dim numeroActual As String = producto
+            Await CargarProductosAlquilerAsync(seleccionarUltimo:=False)
+            ProductoSeleccionado = colProductosAlquilerLista?.FirstOrDefault(Function(p) p.Numero = numeroActual)
             mensajeError = ""
         Catch ex As Exception
             If Not IsNothing(ex.InnerException) Then
@@ -309,14 +365,18 @@ Public Class AlquileresViewModel
         Return True
     End Function
     Private Sub Añadir(ByVal param As Object)
-        Dim alqui As New CabAlquileres
+        Dim alqui As New AlquilerModel
         alqui.Empresa = "1"
         If ProductoSeleccionado IsNot Nothing Then
             alqui.Producto = ProductoSeleccionado.Numero
         ElseIf LineaSeleccionada IsNot Nothing Then
             alqui.Producto = LineaSeleccionada.Producto
         End If
-        DbContext.CabAlquileres.Add(alqui)
+        If AlquileresCollection Is Nothing Then
+            AlquileresCollection = New ObservableCollection(Of AlquilerModel)
+            SuscribirCambios(AlquileresCollection)
+        End If
+        ' El alta es Número = 0; la BD le asigna el Número al guardar (identity).
         AlquileresCollection.Add(alqui)
     End Sub
 
@@ -333,7 +393,10 @@ Public Class AlquileresViewModel
         Return LineaSeleccionada IsNot Nothing
     End Function
     Private Sub Borrar(ByVal param As Object)
-        DbContext.CabAlquileres.Remove(LineaSeleccionada)
+        If LineaSeleccionada Is Nothing OrElse AlquileresCollection Is Nothing Then
+            Return
+        End If
+        ' La baja se persiste al guardar (la API reconcilia lo que ya no viene en la lista).
         AlquileresCollection.Remove(LineaSeleccionada)
     End Sub
 
@@ -428,10 +491,10 @@ Public Class AlquileresViewModel
                 builder.AppendLine("N")
                 builder.AppendLine("A50,500,3,4,3,2,N,""  UnióN LáseR""")
                 builder.AppendLine("A140,500,3,4,1,1,R,""     Aparatología Estética     """)
-                builder.AppendLine("A190,10,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Nombre.Trim + """")
-                builder.AppendLine("A190,60,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Dirección + """")
-                builder.AppendLine("A190,110,0,4,1,1,N,""" + LineaSeleccionada.Clientes.CodPostal.Trim + " " + LineaSeleccionada.Clientes.Población.Trim + """")
-                builder.AppendLine("A190,160,0,4,1,1,N,""" + LineaSeleccionada.Clientes.Provincia.Trim + "")
+                builder.AppendLine("A190,10,0,4,1,1,N,""" + If(LineaSeleccionada.NombreCliente, "").Trim + """")
+                builder.AppendLine("A190,60,0,4,1,1,N,""" + If(LineaSeleccionada.DireccionCliente, "") + """")
+                builder.AppendLine("A190,110,0,4,1,1,N,""" + If(LineaSeleccionada.CodPostalCliente, "").Trim + " " + If(LineaSeleccionada.PoblacionCliente, "").Trim + """")
+                builder.AppendLine("A190,160,0,4,1,1,N,""" + If(LineaSeleccionada.ProvinciaCliente, "").Trim + "")
                 builder.AppendLine("A190,210,0,4,1,1,N,""Bulto: " + i.ToString + "/" + bultos.ToString + "")
                 builder.AppendLine("B190,260,0,3,2,7,70,N,""" + LineaSeleccionada.CabPedidoVta.ToString + """")
                 builder.AppendLine("P1")
@@ -459,8 +522,8 @@ Public Class AlquileresViewModel
     Private Function CanIntercambiarNumeroSerie(arg As Object) As Boolean
         Return Not IsNothing(LineaSeleccionada) AndAlso Not IsNothing(numeroSerieIntercambiar) AndAlso numeroSerieIntercambiar.Trim.Length > 0
     End Function
-    Private Sub OnIntercambiarNumeroSerie(arg As Object)
-        Dim alquiler As CabAlquileres = (From a In AlquileresCollection Where a.NumeroSerie = numeroSerieIntercambiar).SingleOrDefault
+    Private Async Sub OnIntercambiarNumeroSerie(arg As Object)
+        Dim alquiler As AlquilerModel = (From a In AlquileresCollection Where a.NumeroSerie = numeroSerieIntercambiar).SingleOrDefault
 
         ' Comprobamos que no sea el mismo alquiler el que tenga ese nº de serie
         If LineaSeleccionada.NumeroSerie.Trim = numeroSerieIntercambiar.Trim Then
@@ -474,12 +537,13 @@ Public Class AlquileresViewModel
             Return
         End If
 
-        ' Procedemos al cambio
+        ' Procedemos al cambio: intercambiamos en memoria y persistimos vía API (Nesto#340 Fase 1C.3).
         Try
             Dim numeroSerieIntermedio As String = LineaSeleccionada.NumeroSerie
             LineaSeleccionada.NumeroSerie = numeroSerieIntercambiar.Trim
             alquiler.NumeroSerie = numeroSerieIntermedio.Trim
-            DbContext.SaveChanges()
+            Await _productosAlquilerService.GuardarCabecerasAlquiler(EmpresaActual(), ProductoActual(), AlquileresCollection.ToList())
+            _hayCambios = False
             dialogService.ShowNotification("Números de serie actualizados correctamente")
         Catch ex As Exception
             dialogService.ShowError("No se pudo realizar el cambio de número de serie")

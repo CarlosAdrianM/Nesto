@@ -99,4 +99,83 @@ Public Class AlquileresViewModelTests
         A.CallTo(Function() _servicio.LeerInmovilizadosAlquiler("1", "ALQ000123")).MustHaveHappened()
     End Function
 
+    ' Nesto#340 Fase 1C.3: grid principal (cabeceras editables) ya sin EF.
+
+    <TestMethod()>
+    Public Async Function CargarCabeceras_PoblaElGridYNoMarcaCambios() As Task
+        Dim cabeceras = New List(Of AlquilerModel) From {
+            New AlquilerModel With {.Empresa = "1", .Número = 100, .Producto = "26780", .NumeroSerie = "ABC123"},
+            New AlquilerModel With {.Empresa = "1", .Número = 101, .Producto = "26780", .NumeroSerie = "ABC124"}
+        }
+        A.CallTo(Function() _servicio.LeerCabecerasAlquiler("1", "26780")).Returns(Task.FromResult(cabeceras))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarCabecerasAsync("1", "26780")
+
+        Assert.AreEqual(2, vm.AlquileresCollection.Count)
+        Assert.AreEqual(100, vm.AlquileresCollection.First().Número)
+        Assert.IsFalse(vm.cmdGuardar.CanExecute(Nothing), "Tras cargar no debe haber cambios pendientes")
+    End Function
+
+    <TestMethod()>
+    Public Async Function Anadir_AgregaFilaConElProductoYMarcaCambios() As Task
+        Dim cabeceras = New List(Of AlquilerModel) From {
+            New AlquilerModel With {.Empresa = "1", .Número = 100, .Producto = "26780", .NumeroSerie = "ABC123"}
+        }
+        A.CallTo(Function() _servicio.LeerCabecerasAlquiler("1", "26780")).Returns(Task.FromResult(cabeceras))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarCabecerasAsync("1", "26780")
+        vm.LineaSeleccionada = vm.AlquileresCollection.First()
+
+        vm.cmdAñadir.Execute(Nothing)
+
+        Assert.AreEqual(2, vm.AlquileresCollection.Count)
+        Dim nueva = vm.AlquileresCollection.Last()
+        Assert.AreEqual("26780", nueva.Producto)
+        Assert.AreEqual(0, nueva.Número, "El alta es Número = 0 hasta que la BD lo asigna")
+        Assert.IsTrue(vm.cmdGuardar.CanExecute(Nothing), "Añadir debe marcar cambios pendientes")
+    End Function
+
+    <TestMethod()>
+    Public Async Function Guardar_EnviaLasCabecerasAlServicio() As Task
+        Dim cabeceras = New List(Of AlquilerModel) From {
+            New AlquilerModel With {.Empresa = "1", .Número = 100, .Producto = "26780", .NumeroSerie = "ABC123"}
+        }
+        A.CallTo(Function() _servicio.LeerCabecerasAlquiler("1", "26780")).Returns(Task.FromResult(cabeceras))
+        A.CallTo(Function() _servicio.GuardarCabecerasAlquiler(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of AlquilerModel)).Ignored)) _
+            .Returns(Task.FromResult(New List(Of AlquilerModel)))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarCabecerasAsync("1", "26780")
+        vm.LineaSeleccionada = vm.AlquileresCollection.First()
+        vm.cmdAñadir.Execute(Nothing)
+
+        vm.cmdGuardar.Execute(Nothing)
+
+        A.CallTo(Function() _servicio.GuardarCabecerasAlquiler("1", "26780", A(Of List(Of AlquilerModel)).Ignored)).MustHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function IntercambiarNumeroSerie_IntercambiaEnMemoriaYPersiste() As Task
+        Dim cabeceras = New List(Of AlquilerModel) From {
+            New AlquilerModel With {.Empresa = "1", .Número = 100, .Producto = "26780", .NumeroSerie = "AAA"},
+            New AlquilerModel With {.Empresa = "1", .Número = 101, .Producto = "26780", .NumeroSerie = "BBB"}
+        }
+        A.CallTo(Function() _servicio.LeerCabecerasAlquiler("1", "26780")).Returns(Task.FromResult(cabeceras))
+        A.CallTo(Function() _servicio.GuardarCabecerasAlquiler(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of AlquilerModel)).Ignored)) _
+            .Returns(Task.FromResult(cabeceras))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarCabecerasAsync("1", "26780")
+        vm.LineaSeleccionada = vm.AlquileresCollection.Single(Function(a) a.Número = 100)
+        vm.numeroSerieIntercambiar = "BBB"
+
+        vm.cmdIntercambiarNumeroSerie.Execute(Nothing)
+
+        Assert.AreEqual("BBB", vm.AlquileresCollection.Single(Function(a) a.Número = 100).NumeroSerie)
+        Assert.AreEqual("AAA", vm.AlquileresCollection.Single(Function(a) a.Número = 101).NumeroSerie)
+        A.CallTo(Function() _servicio.GuardarCabecerasAlquiler("1", "26780", A(Of List(Of AlquilerModel)).Ignored)).MustHaveHappened()
+    End Function
+
 End Class
