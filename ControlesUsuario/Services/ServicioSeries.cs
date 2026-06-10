@@ -16,18 +16,19 @@ namespace ControlesUsuario.Services
     public class ServicioSeries : IServicioSeries
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
-        public ServicioSeries(IConfiguracion configuracion)
+        public ServicioSeries(IConfiguracion configuracion, IClienteApiFactory clienteApiFactory)
         {
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));
+            _clienteApiFactory = clienteApiFactory ?? throw new ArgumentNullException(nameof(clienteApiFactory));
         }
 
         public async Task<List<SerieItem>> ObtenerSeries()
         {
-            using (var client = new HttpClient())
+            // Nesto#369: usar la factoría para que el HttpClient adjunte el JWT (usuario en ELMAH).
+            using (var client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
                 try
                 {
                     var response = await client.GetAsync("PedidosVenta/Series");

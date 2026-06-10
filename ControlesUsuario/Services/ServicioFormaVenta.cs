@@ -17,10 +17,12 @@ namespace ControlesUsuario.Services
     public class ServicioFormaVenta : IServicioFormaVenta
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
-        public ServicioFormaVenta(IConfiguracion configuracion)
+        public ServicioFormaVenta(IConfiguracion configuracion, IClienteApiFactory clienteApiFactory)
         {
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));
+            _clienteApiFactory = clienteApiFactory ?? throw new ArgumentNullException(nameof(clienteApiFactory));
         }
 
         /// <summary>
@@ -32,10 +34,9 @@ namespace ControlesUsuario.Services
             if (string.IsNullOrWhiteSpace(empresa))
                 throw new ArgumentException("Empresa es requerida", nameof(empresa));
 
-            using (HttpClient client = new HttpClient())
+            // Nesto#369: usar la factoría para que el HttpClient adjunte el JWT (usuario en ELMAH).
+            using (HttpClient client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
                 // Endpoint: api/FormasVenta?empresa=1
                 string urlConsulta = $"FormasVenta?empresa={empresa}";
                 Debug.WriteLine($"[ServicioFormaVenta] URL Base: {_configuracion.servidorAPI}, Consulta: {urlConsulta}");
