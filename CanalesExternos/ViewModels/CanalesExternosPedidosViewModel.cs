@@ -13,6 +13,7 @@ using Nesto.Infrastructure.Shared;
 using Nesto.Models;
 using System.Linq;
 using ControlesUsuario.Models;
+using Unity;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -29,13 +30,15 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         private ColeccionFiltrable _listaPedidos;
         
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
-        
-        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService)
+        private readonly IUnityContainer _container;
+
+        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
             DialogService = dialogService;
             PedidoVentaService = pedidoVentaService;
+            _container = container;
 
             Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion));
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
@@ -450,7 +453,18 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             finally
             {
                 EstaOcupado = false;
-            }            
+            }
+        }
+
+        // Nesto#374: abrir el pedido de Nesto asignado (doble clic en la fila de la lista).
+        public DelegateCommand<PedidoCanalExterno> AbrirPedidoNestoCommand { get; private set; }
+        private bool CanAbrirPedidoNesto(PedidoCanalExterno pedidoExterno)
+        {
+            return pedidoExterno != null && pedidoExterno.PedidoNestoId != 0 && pedidoExterno.Pedido != null;
+        }
+        private void OnAbrirPedidoNesto(PedidoCanalExterno pedidoExterno)
+        {
+            PedidoVentaViewModel.CargarPedido(pedidoExterno.Pedido.empresa, pedidoExterno.PedidoNestoId, _container);
         }
 
         #endregion
@@ -463,6 +477,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             CrearEtiquetaCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearEtiquetaAsync, CanCrearEtiqueta);
             CrearPedidoCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearPedidoAsync, CanCrearPedido);
             ConfirmarEnvioCommand = new DelegateCommand<object>(OnConfirmarEnvioAsync, CanConfirmarEnvio);
+            AbrirPedidoNestoCommand = new DelegateCommand<PedidoCanalExterno>(OnAbrirPedidoNesto, CanAbrirPedidoNesto);
         }
         
         async void OnCanalSeleccionadoHaCambiadoAsync(object sender, EventArgs e)
