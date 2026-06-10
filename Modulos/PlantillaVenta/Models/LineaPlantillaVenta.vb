@@ -49,6 +49,14 @@ Public Class LineaPlantillaVenta
         End Get
         Set(value As Boolean)
             SetProperty(_personalizarOferta, value)
+            ' Nesto#375 (hardening): al desmarcar, resetear precio/dto de oferta a su valor por
+            ' defecto (gratis) para no dejar valores residuales si se vuelve a marcar.
+            If Not value Then
+                precioOferta = 0
+                descuentoOferta = 0
+                RaisePropertyChanged(NameOf(precioOferta))
+                RaisePropertyChanged(NameOf(descuentoOferta))
+            End If
             RaisePropertyChanged(NameOf(personalizarInputsVisible))
         End Set
     End Property
@@ -56,6 +64,20 @@ Public Class LineaPlantillaVenta
     Public Property precioOferta As Decimal
     ''' <summary>Nesto#371: descuento (0..1) de la unidad de oferta cuando se personaliza.</summary>
     Public Property descuentoOferta As Decimal
+    ''' <summary>
+    ''' Nesto#375: True si se personaliza la oferta pero NO aporta beneficio: la unidad de oferta
+    ''' sale igual o más cara que la de pago (precio efectivo oferta &gt;= precio efectivo normal).
+    ''' Una "oferta" así es falsa (p. ej. 6+6 con los 12 al mismo precio): deben meterse todas las
+    ''' unidades sin oferta. Solo aplica con personalizarOferta y cantidadOferta &gt; 0.
+    ''' </summary>
+    Public ReadOnly Property ofertaPersonalizadaSinBeneficio As Boolean
+        Get
+            If Not personalizarOferta OrElse cantidadOferta <= 0 Then Return False
+            Dim precioEfectivoNormal As Decimal = precio * (1D - descuento)
+            Dim precioEfectivoOferta As Decimal = precioOferta * (1D - descuentoOferta)
+            Return precioEfectivoOferta >= precioEfectivoNormal
+        End Get
+    End Property
     ''' <summary>Nesto#371: el check "personalizar oferta" solo se ve si hay cantidad de oferta.</summary>
     Public ReadOnly Property personalizarOfertaVisible As Visibility
         Get

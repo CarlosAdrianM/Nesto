@@ -2498,6 +2498,17 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
+        ' Nesto#375: no permitir crear una oferta personalizada sin beneficio (la unidad de oferta
+        ' al mismo precio o más cara que la de pago). Si todas las unidades van al mismo precio,
+        ' deben meterse sin oferta (12 sin oferta en vez de 6+6 a precio completo).
+        SincronizarListasAlEstado()
+        For Each lineaOferta In Estado.LineasProducto
+            If lineaOferta.ofertaPersonalizadaSinBeneficio Then
+                dialogService.ShowError($"El producto {lineaOferta.producto?.Trim()} tiene una oferta personalizada que no aplica ningún descuento (la unidad de oferta sale al mismo precio o más cara que la de pago)." & vbCrLf &
+                    "Si quieres todas las unidades al mismo precio, mételas como cantidad normal sin oferta.")
+                Return
+            End If
+        Next
 
         estaOcupado = True
         Dim pedido As PedidoVentaDTO = PrepararPedido()

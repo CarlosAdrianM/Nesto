@@ -302,6 +302,74 @@ namespace PlantillaVentaTests
             Assert.AreEqual(20.40m, state.BaseImponible);
         }
 
+        // Nesto#375: detección de ofertas personalizadas sin beneficio (no se debe poder crear).
+        [TestMethod]
+        public void OfertaPersonalizadaSinBeneficio_MismoPrecioSinDescuento_DevuelveTrue()
+        {
+            // 6+6 con los 12 a precio completo: la unidad de oferta no aporta beneficio (el bug).
+            var linea = new LineaPlantillaVenta
+            {
+                producto = "40583",
+                cantidad = 6,
+                precio = 20.40m,
+                cantidadOferta = 6,
+                personalizarOferta = true,
+                precioOferta = 20.40m,
+                descuentoOferta = 0m
+            };
+
+            Assert.IsTrue(linea.ofertaPersonalizadaSinBeneficio);
+        }
+
+        [TestMethod]
+        public void OfertaPersonalizadaSinBeneficio_SegundaUnidadMitadPrecio_DevuelveFalse()
+        {
+            var linea = new LineaPlantillaVenta
+            {
+                producto = "40583",
+                cantidad = 1,
+                precio = 20.40m,
+                cantidadOferta = 1,
+                personalizarOferta = true,
+                precioOferta = 20.40m,
+                descuentoOferta = 0.5m
+            };
+
+            Assert.IsFalse(linea.ofertaPersonalizadaSinBeneficio);
+        }
+
+        [TestMethod]
+        public void OfertaPersonalizadaSinBeneficio_RegaloGratis_DevuelveFalse()
+        {
+            var linea = new LineaPlantillaVenta
+            {
+                producto = "40583",
+                cantidad = 6,
+                precio = 20.40m,
+                cantidadOferta = 6,
+                personalizarOferta = true,
+                precioOferta = 0m,
+                descuentoOferta = 0m
+            };
+
+            Assert.IsFalse(linea.ofertaPersonalizadaSinBeneficio);
+        }
+
+        [TestMethod]
+        public void OfertaPersonalizadaSinBeneficio_NoPersonalizada_DevuelveFalse()
+        {
+            var linea = new LineaPlantillaVenta
+            {
+                producto = "40583",
+                cantidad = 6,
+                precio = 20.40m,
+                cantidadOferta = 6,
+                personalizarOferta = false
+            };
+
+            Assert.IsFalse(linea.ofertaPersonalizadaSinBeneficio);
+        }
+
         #endregion
 
         #region ActualizarComentarioPickingAlCambiarContacto (Issue #297)
