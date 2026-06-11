@@ -18,6 +18,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 {
     public delegate void NuevaOfertaCombinadaCreadaHandler(OfertaCombinadaWrapper nuevoItem);
     public delegate void NuevaOfertaFamiliaCreadaHandler(OfertaPermitidaFamiliaWrapper nuevoItem);
+    public delegate void NuevaOfertaEscalonadaCreadaHandler(OfertaEscalonadaWrapper nuevoItem);
 
     public class OfertasCombinadasViewModel : ViewModelBase
     {
@@ -35,6 +36,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 
             OfertasCombinadas = new ObservableCollection<OfertaCombinadaWrapper>();
             OfertasFamilia = new ObservableCollection<OfertaPermitidaFamiliaWrapper>();
+            OfertasEscalonadas = new ObservableCollection<OfertaEscalonadaWrapper>();
 
             CargarCommand = new DelegateCommand(async () => await OnCargar());
             NuevaOfertaCombinadaCommand = new DelegateCommand(OnNuevaOfertaCombinada);
@@ -44,6 +46,15 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             NuevaOfertaFamiliaCommand = new DelegateCommand(OnNuevaOfertaFamilia);
             GuardarOfertaFamiliaCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaFamilia(o as OfertaPermitidaFamiliaWrapper));
             EliminarOfertaFamiliaCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaFamilia(o as OfertaPermitidaFamiliaWrapper));
+
+            NuevaOfertaEscalonadaCommand = new DelegateCommand(OnNuevaOfertaEscalonada);
+            GuardarOfertaEscalonadaCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaEscalonada(o as OfertaEscalonadaWrapper));
+            EliminarOfertaEscalonadaCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaEscalonada(o as OfertaEscalonadaWrapper));
+            AnadirReferenciasCommand = new DelegateCommand(OnAnadirReferencias, () => OfertaEscalonadaSeleccionada != null);
+            NuevoProductoEscalonadoCommand = new DelegateCommand(OnNuevoProductoEscalonado, () => OfertaEscalonadaSeleccionada != null);
+            EliminarProductoEscalonadoCommand = new DelegateCommand<object>(OnEliminarProductoEscalonado);
+            NuevoTramoCommand = new DelegateCommand(OnNuevoTramo, () => OfertaEscalonadaSeleccionada != null);
+            EliminarTramoCommand = new DelegateCommand<object>(OnEliminarTramo);
 
             NuevoDetalleCommand = new DelegateCommand(OnNuevoDetalle, () => OfertaCombinadaSeleccionada != null);
             NuevoDetalleAlternativoCommand = new DelegateCommand(OnNuevoDetalleAlternativo, () => DetalleSeleccionado != null);
@@ -140,6 +151,37 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             set => SetProperty(ref _ofertasFamilia, value);
         }
 
+        // Ofertas Escalonadas (tab 3)
+        private ObservableCollection<OfertaEscalonadaWrapper> _ofertasEscalonadas;
+        public ObservableCollection<OfertaEscalonadaWrapper> OfertasEscalonadas
+        {
+            get => _ofertasEscalonadas;
+            set => SetProperty(ref _ofertasEscalonadas, value);
+        }
+
+        private OfertaEscalonadaWrapper _ofertaEscalonadaSeleccionada;
+        public OfertaEscalonadaWrapper OfertaEscalonadaSeleccionada
+        {
+            get => _ofertaEscalonadaSeleccionada;
+            set
+            {
+                if (SetProperty(ref _ofertaEscalonadaSeleccionada, value))
+                {
+                    ((DelegateCommand)AnadirReferenciasCommand).RaiseCanExecuteChanged();
+                    ((DelegateCommand)NuevoProductoEscalonadoCommand).RaiseCanExecuteChanged();
+                    ((DelegateCommand)NuevoTramoCommand).RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        // Texto pegado con las referencias separadas por comas, espacios o saltos de línea.
+        private string _referenciasTexto;
+        public string ReferenciasTexto
+        {
+            get => _referenciasTexto;
+            set => SetProperty(ref _referenciasTexto, value);
+        }
+
         #endregion
 
         #region Comandos
@@ -156,8 +198,18 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ICommand GuardarOfertaFamiliaCommand { get; }
         public ICommand EliminarOfertaFamiliaCommand { get; }
 
+        public ICommand NuevaOfertaEscalonadaCommand { get; }
+        public ICommand GuardarOfertaEscalonadaCommand { get; }
+        public ICommand EliminarOfertaEscalonadaCommand { get; }
+        public ICommand AnadirReferenciasCommand { get; }
+        public ICommand NuevoProductoEscalonadoCommand { get; }
+        public ICommand EliminarProductoEscalonadoCommand { get; }
+        public ICommand NuevoTramoCommand { get; }
+        public ICommand EliminarTramoCommand { get; }
+
         public event NuevaOfertaCombinadaCreadaHandler NuevaOfertaCombinadaCreada;
         public event NuevaOfertaFamiliaCreadaHandler NuevaOfertaFamiliaCreada;
+        public event NuevaOfertaEscalonadaCreadaHandler NuevaOfertaEscalonadaCreada;
 
         #endregion
 
@@ -178,7 +230,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 EstaCargando = true;
                 OfertasCombinadas.Clear();
                 OfertasFamilia.Clear();
+                OfertasEscalonadas.Clear();
                 DetallesOfertaSeleccionada = null;
+                OfertaEscalonadaSeleccionada = null;
 
                 var ofertas = await _service.GetOfertasCombinadas(Empresa, SoloActivas);
                 foreach (var item in ofertas.OrderByDescending(o => o.Id))
@@ -190,6 +244,12 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 foreach (var item in ofertasFamilia.OrderBy(o => o.Familia).ThenBy(o => o.FiltroProducto))
                 {
                     OfertasFamilia.Add(new OfertaPermitidaFamiliaWrapper(item));
+                }
+
+                var ofertasEscalonadas = await _service.GetOfertasEscalonadas(Empresa, SoloActivas);
+                foreach (var item in (ofertasEscalonadas ?? new List<OfertaEscalonadaModel>()).OrderByDescending(o => o.Id))
+                {
+                    OfertasEscalonadas.Add(new OfertaEscalonadaWrapper(item));
                 }
             }
             catch (Exception ex)
@@ -205,7 +265,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         private bool TieneCambiosSinGuardar()
         {
             return OfertasCombinadas.Any(o => o.HaCambiado || o.Id == 0)
-                || OfertasFamilia.Any(o => o.HaCambiado || o.NOrden == 0);
+                || OfertasFamilia.Any(o => o.HaCambiado || o.NOrden == 0)
+                || OfertasEscalonadas.Any(o => o.HaCambiado || o.Id == 0);
         }
 
         private void OnNuevaOfertaCombinada()
@@ -367,6 +428,198 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 await _service.DeleteOfertaCombinada(oferta.Id);
                 OfertasCombinadas.Remove(oferta);
                 _dialogService.ShowNotification("Oferta combinada eliminada");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        #endregion
+
+        #region Ofertas Escalonadas
+
+        private void OnNuevaOfertaEscalonada()
+        {
+            var nuevo = new OfertaEscalonadaWrapper();
+            OfertasEscalonadas.Add(nuevo);
+            OfertaEscalonadaSeleccionada = nuevo;
+            NuevaOfertaEscalonadaCreada?.Invoke(nuevo);
+        }
+
+        /// <summary>
+        /// Convierte el texto pegado (separado por comas, puntos y coma, espacios, tabuladores o
+        /// saltos de línea — lo típico de un Excel o un correo) en la lista de referencias, sin
+        /// vacíos ni duplicados.
+        /// </summary>
+        public static List<string> ParsearReferencias(string texto)
+        {
+            if (string.IsNullOrWhiteSpace(texto))
+            {
+                return new List<string>();
+            }
+            return texto
+                .Split(new[] { ',', ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(r => r.Trim())
+                .Where(r => r.Length > 0)
+                .Distinct()
+                .ToList();
+        }
+
+        private void OnAnadirReferencias()
+        {
+            if (OfertaEscalonadaSeleccionada == null) return;
+
+            var referencias = ParsearReferencias(ReferenciasTexto);
+            if (referencias.Count == 0) return;
+
+            var yaExistentes = OfertaEscalonadaSeleccionada.Productos
+                .Select(p => p.Producto?.Trim())
+                .Where(p => !string.IsNullOrEmpty(p))
+                .ToHashSet();
+
+            foreach (var referencia in referencias.Where(r => !yaExistentes.Contains(r)))
+            {
+                // PrecioBase null: el servidor precarga el PVP de ficha al guardar.
+                OfertaEscalonadaSeleccionada.AnadirProducto(new OfertaEscalonadaProductoWrapper { Producto = referencia });
+            }
+
+            ReferenciasTexto = string.Empty;
+        }
+
+        private void OnNuevoProductoEscalonado()
+        {
+            if (OfertaEscalonadaSeleccionada == null) return;
+            OfertaEscalonadaSeleccionada.AnadirProducto(new OfertaEscalonadaProductoWrapper());
+        }
+
+        private void OnEliminarProductoEscalonado(object parameter)
+        {
+            if (parameter is not OfertaEscalonadaProductoWrapper producto) return;
+            if (OfertaEscalonadaSeleccionada == null) return;
+
+            OfertaEscalonadaSeleccionada.Productos.Remove(producto);
+            OfertaEscalonadaSeleccionada.HaCambiado = true;
+        }
+
+        private void OnNuevoTramo()
+        {
+            if (OfertaEscalonadaSeleccionada == null) return;
+
+            // Sugerimos continuar la escala: una unidad más que el último tramo.
+            short siguienteCantidad = (short)(OfertaEscalonadaSeleccionada.Tramos
+                .Select(t => (int)t.CantidadMinima)
+                .DefaultIfEmpty(1)
+                .Max() + 1);
+            OfertaEscalonadaSeleccionada.AnadirTramo(new OfertaEscalonadaTramoWrapper { CantidadMinima = siguienteCantidad });
+        }
+
+        private void OnEliminarTramo(object parameter)
+        {
+            if (parameter is not OfertaEscalonadaTramoWrapper tramo) return;
+            if (OfertaEscalonadaSeleccionada == null) return;
+
+            OfertaEscalonadaSeleccionada.Tramos.Remove(tramo);
+            OfertaEscalonadaSeleccionada.HaCambiado = true;
+        }
+
+        private async Task OnGuardarOfertaEscalonada(OfertaEscalonadaWrapper oferta)
+        {
+            if (oferta == null) return;
+
+            if (string.IsNullOrWhiteSpace(oferta.Nombre))
+            {
+                _dialogService.ShowError("Debe introducir un nombre para la oferta.");
+                return;
+            }
+
+            if (!oferta.Productos.Any(p => !string.IsNullOrWhiteSpace(p.Producto)))
+            {
+                _dialogService.ShowError("Una oferta escalonada debe tener al menos un producto.");
+                return;
+            }
+
+            if (oferta.Tramos.Count == 0)
+            {
+                _dialogService.ShowError("Una oferta escalonada debe tener al menos un tramo (cantidad mínima y descuento).");
+                return;
+            }
+
+            try
+            {
+                EstaCargando = true;
+
+                var createModel = new OfertaEscalonadaCreateModel
+                {
+                    Empresa = Empresa,
+                    Nombre = oferta.Nombre,
+                    FechaDesde = oferta.FechaDesde,
+                    FechaHasta = oferta.FechaHasta,
+                    Productos = oferta.Productos
+                        .Where(p => !string.IsNullOrWhiteSpace(p.Producto))
+                        .Select(p => new OfertaEscalonadaProductoCreateModel
+                        {
+                            Id = p.Id,
+                            Producto = p.Producto?.Trim(),
+                            PrecioBase = p.PrecioBase
+                        }).ToList(),
+                    Tramos = oferta.Tramos.Select(t => new OfertaEscalonadaTramoCreateModel
+                    {
+                        Id = t.Id,
+                        CantidadMinima = t.CantidadMinima,
+                        Descuento = t.DescuentoPorcentaje / 100m
+                    }).ToList()
+                };
+
+                OfertaEscalonadaModel resultado;
+                if (oferta.Id == 0)
+                {
+                    resultado = await _service.CreateOfertaEscalonada(createModel);
+                    _dialogService.ShowNotification($"Oferta escalonada '{resultado.Nombre}' creada");
+                }
+                else
+                {
+                    resultado = await _service.UpdateOfertaEscalonada(oferta.Id, createModel);
+                    _dialogService.ShowNotification($"Oferta escalonada '{resultado.Nombre}' actualizada");
+                }
+
+                oferta.ActualizarDesdeServidor(resultado);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        private async Task OnEliminarOfertaEscalonada(OfertaEscalonadaWrapper oferta)
+        {
+            if (oferta == null) return;
+
+            if (oferta.Id == 0)
+            {
+                OfertasEscalonadas.Remove(oferta);
+                return;
+            }
+
+            var confirmacion = _dialogService.ShowConfirmationAnswer(
+                "Eliminar oferta escalonada",
+                $"Se eliminara la oferta '{oferta.Nombre}' con todos sus productos y tramos. Continuar?");
+            if (!confirmacion) return;
+
+            try
+            {
+                EstaCargando = true;
+                await _service.DeleteOfertaEscalonada(oferta.Id);
+                OfertasEscalonadas.Remove(oferta);
+                _dialogService.ShowNotification("Oferta escalonada eliminada");
             }
             catch (Exception ex)
             {
@@ -626,6 +879,202 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _grupoAlternativa;
             set => SetProperty(ref _grupoAlternativa, value);
+        }
+    }
+
+    public class OfertaEscalonadaWrapper : BindableBase
+    {
+        private bool _rastreandoCambios = true;
+
+        public OfertaEscalonadaWrapper()
+        {
+            Productos = new ObservableCollection<OfertaEscalonadaProductoWrapper>();
+            Tramos = new ObservableCollection<OfertaEscalonadaTramoWrapper>();
+        }
+
+        public OfertaEscalonadaWrapper(OfertaEscalonadaModel model)
+        {
+            CargarDesdeModelo(model);
+        }
+
+        public void ActualizarDesdeServidor(OfertaEscalonadaModel model)
+        {
+            CargarDesdeModelo(model);
+        }
+
+        private void CargarDesdeModelo(OfertaEscalonadaModel model)
+        {
+            _rastreandoCambios = false;
+            Id = model.Id;
+            Nombre = model.Nombre;
+            FechaDesde = model.FechaDesde;
+            FechaHasta = model.FechaHasta;
+            Usuario = model.Usuario;
+            FechaModificacion = model.FechaModificacion;
+            Productos = new ObservableCollection<OfertaEscalonadaProductoWrapper>(
+                (model.Productos ?? new List<OfertaEscalonadaProductoModel>())
+                    .Select(p => Vincular(new OfertaEscalonadaProductoWrapper(p))));
+            Tramos = new ObservableCollection<OfertaEscalonadaTramoWrapper>(
+                (model.Tramos ?? new List<OfertaEscalonadaTramoModel>())
+                    .OrderBy(t => t.CantidadMinima)
+                    .Select(t => Vincular(new OfertaEscalonadaTramoWrapper(t))));
+            _rastreandoCambios = true;
+            HaCambiado = false;
+        }
+
+        // Las ediciones dentro de los grids hijos marcan la oferta como cambiada para que
+        // aparezca el botón Guardar.
+        private OfertaEscalonadaProductoWrapper Vincular(OfertaEscalonadaProductoWrapper producto)
+        {
+            producto.AlCambiar = () => { if (_rastreandoCambios) HaCambiado = true; };
+            return producto;
+        }
+
+        private OfertaEscalonadaTramoWrapper Vincular(OfertaEscalonadaTramoWrapper tramo)
+        {
+            tramo.AlCambiar = () => { if (_rastreandoCambios) HaCambiado = true; };
+            return tramo;
+        }
+
+        public void AnadirProducto(OfertaEscalonadaProductoWrapper producto)
+        {
+            Productos.Add(Vincular(producto));
+            HaCambiado = true;
+        }
+
+        public void AnadirTramo(OfertaEscalonadaTramoWrapper tramo)
+        {
+            Tramos.Add(Vincular(tramo));
+            HaCambiado = true;
+        }
+
+        public int Id { get; set; }
+
+        private string _nombre;
+        public string Nombre
+        {
+            get => _nombre;
+            set { if (SetProperty(ref _nombre, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private DateTime? _fechaDesde;
+        public DateTime? FechaDesde
+        {
+            get => _fechaDesde;
+            set { if (SetProperty(ref _fechaDesde, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private DateTime? _fechaHasta;
+        public DateTime? FechaHasta
+        {
+            get => _fechaHasta;
+            set { if (SetProperty(ref _fechaHasta, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        public string Usuario { get; set; }
+        public DateTime FechaModificacion { get; set; }
+
+        private ObservableCollection<OfertaEscalonadaProductoWrapper> _productos;
+        public ObservableCollection<OfertaEscalonadaProductoWrapper> Productos
+        {
+            get => _productos;
+            set => SetProperty(ref _productos, value);
+        }
+
+        private ObservableCollection<OfertaEscalonadaTramoWrapper> _tramos;
+        public ObservableCollection<OfertaEscalonadaTramoWrapper> Tramos
+        {
+            get => _tramos;
+            set => SetProperty(ref _tramos, value);
+        }
+
+        private bool _haCambiado;
+        public bool HaCambiado
+        {
+            get => _haCambiado;
+            set => SetProperty(ref _haCambiado, value);
+        }
+    }
+
+    public class OfertaEscalonadaProductoWrapper : BindableBase
+    {
+        public OfertaEscalonadaProductoWrapper() { }
+
+        public OfertaEscalonadaProductoWrapper(OfertaEscalonadaProductoModel model)
+        {
+            Id = model.Id;
+            Producto = model.Producto;
+            ProductoNombre = model.ProductoNombre;
+            PrecioBase = model.PrecioBase;
+        }
+
+        internal Action AlCambiar { get; set; }
+
+        public int Id { get; set; }
+
+        private string _producto;
+        public string Producto
+        {
+            get => _producto;
+            set { if (SetProperty(ref _producto, value)) AlCambiar?.Invoke(); }
+        }
+
+        private string _productoNombre;
+        public string ProductoNombre
+        {
+            get => _productoNombre;
+            set
+            {
+                if (SetProperty(ref _productoNombre, value))
+                {
+                    RaisePropertyChanged(nameof(texto));
+                }
+            }
+        }
+
+        public string texto
+        {
+            get => ProductoNombre;
+            set => ProductoNombre = value;
+        }
+
+        // Null = al guardar, el servidor precarga el PVP de ficha del producto.
+        private decimal? _precioBase;
+        public decimal? PrecioBase
+        {
+            get => _precioBase;
+            set { if (SetProperty(ref _precioBase, value)) AlCambiar?.Invoke(); }
+        }
+    }
+
+    public class OfertaEscalonadaTramoWrapper : BindableBase
+    {
+        public OfertaEscalonadaTramoWrapper() { }
+
+        public OfertaEscalonadaTramoWrapper(OfertaEscalonadaTramoModel model)
+        {
+            Id = model.Id;
+            CantidadMinima = model.CantidadMinima;
+            DescuentoPorcentaje = model.Descuento * 100m;
+        }
+
+        internal Action AlCambiar { get; set; }
+
+        public int Id { get; set; }
+
+        private short _cantidadMinima;
+        public short CantidadMinima
+        {
+            get => _cantidadMinima;
+            set { if (SetProperty(ref _cantidadMinima, value)) AlCambiar?.Invoke(); }
+        }
+
+        // El usuario teclea el porcentaje (25 = 25 %); el API trabaja en tanto por uno.
+        private decimal _descuentoPorcentaje;
+        public decimal DescuentoPorcentaje
+        {
+            get => _descuentoPorcentaje;
+            set { if (SetProperty(ref _descuentoPorcentaje, value)) AlCambiar?.Invoke(); }
         }
     }
 

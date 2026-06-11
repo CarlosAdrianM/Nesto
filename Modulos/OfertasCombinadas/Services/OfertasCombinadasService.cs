@@ -118,6 +118,92 @@ namespace Nesto.Modulos.OfertasCombinadas.Services
 
         #endregion
 
+        #region Ofertas Escalonadas
+
+        public async Task<List<OfertaEscalonadaModel>> GetOfertasEscalonadas(string empresa, bool soloActivas = false)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            string urlConsulta = $"OfertasEscalonadas?empresa={empresa}";
+            if (soloActivas)
+            {
+                urlConsulta += "&soloActivas=true";
+            }
+
+            HttpResponseMessage response = await client.GetAsync(urlConsulta);
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contenido = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<List<OfertaEscalonadaModel>>(contenido);
+            }
+            else
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+        }
+
+        public async Task<OfertaEscalonadaModel> CreateOfertaEscalonada(OfertaEscalonadaCreateModel oferta)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            string urlConsulta = $"OfertasEscalonadas?usuario={_configuracion.usuario}";
+            string jsonContent = JsonConvert.SerializeObject(oferta);
+            HttpContent content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await client.PostAsync(urlConsulta, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contenido = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<OfertaEscalonadaModel>(contenido);
+            }
+            else
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+        }
+
+        public async Task<OfertaEscalonadaModel> UpdateOfertaEscalonada(int id, OfertaEscalonadaCreateModel oferta)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            string urlConsulta = $"OfertasEscalonadas/{id}?usuario={_configuracion.usuario}";
+            string jsonContent = JsonConvert.SerializeObject(oferta);
+            HttpContent content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await client.PutAsync(urlConsulta, content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contenido = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<OfertaEscalonadaModel>(contenido);
+            }
+            else
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+        }
+
+        public async Task<OfertaEscalonadaModel> DeleteOfertaEscalonada(int id)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpResponseMessage response = await client.DeleteAsync($"OfertasEscalonadas/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contenido = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<OfertaEscalonadaModel>(contenido);
+            }
+            else
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+        }
+
+        #endregion
+
         #region Ofertas Permitidas por Familia
 
         public async Task<List<OfertaPermitidaFamiliaModel>> GetOfertasPermitidasFamilia(string empresa)
