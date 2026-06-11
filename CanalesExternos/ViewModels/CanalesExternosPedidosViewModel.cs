@@ -107,8 +107,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         {
             get { return _canalSeleccionado; }
             set {
-                SetProperty(ref _canalSeleccionado, value);
-                CanalSeleccionadoHaCambiado?.Invoke(this, new EventArgs());
+                // Solo si cambia de verdad: re-asignar el mismo canal (re-binding del combo,
+                // Loaded al volver de un pedido...) relanzaba la descarga completa del canal.
+                if (SetProperty(ref _canalSeleccionado, value))
+                {
+                    CanalSeleccionadoHaCambiado?.Invoke(this, new EventArgs());
+                }
             }
         }
 

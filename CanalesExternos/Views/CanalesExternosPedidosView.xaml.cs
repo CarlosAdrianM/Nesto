@@ -19,18 +19,24 @@ namespace Nesto.Modulos.CanalesExternos.Views
         }
         private void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
-            ((CanalesExternosPedidosViewModel)DataContext).CanalSeleccionado = ((CanalesExternosPedidosViewModel)DataContext).Factory.First().Value;
+            // Loaded vuelve a dispararse cada vez que la vista se re-engancha al árbol visual
+            // (p. ej. al volver de un pedido abierto en la misma región): el canal solo se
+            // inicializa la primera vez, para no resetear a Miravia ni relanzar la descarga.
+            if (DataContext is CanalesExternosPedidosViewModel vm && vm.CanalSeleccionado == null)
+            {
+                vm.CanalSeleccionado = vm.Factory.First().Value;
+            }
         }
 
-        // Nesto#374: doble clic en una fila abre el pedido de Nesto asignado (si lo tiene).
+        // Nesto#374: doble clic sobre la celda de comentarios (donde se ve el pedido) abre el
+        // pedido de Nesto asignado. Solo esa columna: en la barra de desplazamiento, la cabecera
+        // o los botones de la fila (Crear Pedido / Crear Etiqueta) no debe saltar.
         private void dgPedidos_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            // Ignorar el doble clic sobre los botones de la fila (Crear Pedido / Crear Etiqueta).
-            DependencyObject origen = e.OriginalSource as DependencyObject;
-            while (origen != null)
+            DataGridCell celda = BuscarAncestro<DataGridCell>(e.OriginalSource as DependencyObject);
+            if (celda == null || celda.Column != colComentarios)
             {
-                if (origen is Button) return;
-                origen = VisualTreeHelper.GetParent(origen);
+                return;
             }
 
             if (DataContext is CanalesExternosPedidosViewModel vm
@@ -39,6 +45,15 @@ namespace Nesto.Modulos.CanalesExternos.Views
             {
                 vm.AbrirPedidoNestoCommand.Execute(pedido);
             }
+        }
+
+        private static T BuscarAncestro<T>(DependencyObject origen) where T : class
+        {
+            while (origen != null && !(origen is T))
+            {
+                origen = VisualTreeHelper.GetParent(origen);
+            }
+            return origen as T;
         }
     }
 }

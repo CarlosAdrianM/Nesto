@@ -27,10 +27,10 @@
                 </Grid.RowDefinitions>
                 <ComboBox Grid.Row="0" ItemsSource="{Binding Factory}" DisplayMemberPath="Key" SelectedValuePath="Value" SelectedValue="{Binding CanalSeleccionado}"></ComboBox>
                 <controlesusuario:BarraFiltro Grid.Row="1" Name="txtFiltro" ListaItems="{Binding ListaPedidos}" ItemSeleccionado="{Binding ListaPedidos.ElementoSeleccionado}" Etiqueta="{Binding ListaPedidos.Filtro}"></controlesusuario:BarraFiltro>
-                <DataGrid Grid.Row="2" x:Name="dgPedidos" MouseDoubleClick="dgPedidos_MouseDoubleClick" ToolTip="Doble clic para abrir el pedido de Nesto asignado" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
+                <DataGrid Grid.Row="2" x:Name="dgPedidos" MouseDoubleClick="dgPedidos_MouseDoubleClick" ToolTip="Doble clic en los comentarios para abrir el pedido de Nesto asignado" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Fecha" Binding="{Binding Pedido.fecha}" IsReadOnly="True" />
-                        <DataGridTextColumn Header="Comentarios" Binding="{Binding Pedido.comentarios}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn x:Name="colComentarios" Header="Comentarios" Binding="{Binding Pedido.comentarios}" IsReadOnly="True" Width="*"/>
                         <DataGridTemplateColumn>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
