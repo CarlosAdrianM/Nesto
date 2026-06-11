@@ -1004,8 +1004,21 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             set { if (SetProperty(ref _fechaHasta, value) && _rastreandoCambios) HaCambiado = true; }
         }
 
-        public string Usuario { get; set; }
-        public DateTime FechaModificacion { get; set; }
+        // Con notificación (a diferencia del resto de wrappers): tras guardar, ActualizarDesdeServidor
+        // rellena usuario y fecha en la fila recién creada y el grid debe refrescarlos sin recargar.
+        private string _usuario;
+        public string Usuario
+        {
+            get => _usuario;
+            set => SetProperty(ref _usuario, value);
+        }
+
+        private DateTime _fechaModificacion;
+        public DateTime FechaModificacion
+        {
+            get => _fechaModificacion;
+            set => SetProperty(ref _fechaModificacion, value);
+        }
 
         private ObservableCollection<OfertaEscalonadaProductoWrapper> _productos;
         public ObservableCollection<OfertaEscalonadaProductoWrapper> Productos

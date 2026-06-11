@@ -298,6 +298,30 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         }
 
         [TestMethod]
+        public void Wrapper_ActualizarDesdeServidor_NotificaUsuarioYFechaParaRefrescarElGrid()
+        {
+            // Regresión: tras guardar una oferta nueva, la fila mostraba usuario vacío y fecha
+            // 01/01/0001 hasta recargar, porque Usuario/FechaModificacion no notificaban cambios.
+            var wrapper = new OfertaEscalonadaWrapper { Nombre = "Nueva" };
+            var notificadas = new List<string>();
+            wrapper.PropertyChanged += (s, e) => notificadas.Add(e.PropertyName);
+
+            wrapper.ActualizarDesdeServidor(new OfertaEscalonadaModel
+            {
+                Id = 1,
+                Nombre = "Nueva",
+                Usuario = "NUEVAVISION\\Carlos",
+                FechaModificacion = new System.DateTime(2026, 6, 11, 11, 19, 5),
+                Productos = new List<OfertaEscalonadaProductoModel>(),
+                Tramos = new List<OfertaEscalonadaTramoModel>()
+            });
+
+            Assert.AreEqual("NUEVAVISION\\Carlos", wrapper.Usuario);
+            CollectionAssert.Contains(notificadas, "Usuario", "El grid debe enterarse del usuario sin recargar");
+            CollectionAssert.Contains(notificadas, "FechaModificacion", "El grid debe enterarse de la fecha sin recargar");
+        }
+
+        [TestMethod]
         public void Wrapper_EditarUnTramoCargado_MarcaLaOfertaComoCambiada()
         {
             var model = new OfertaEscalonadaModel
