@@ -1,3 +1,4 @@
+using ControlesUsuario.Services;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -19,6 +20,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         private IConfiguracion _configuracion;
         private IDialogService _dialogService;
         private IRegionManager _regionManager;
+        private IServicioProducto _servicioProducto;
 
         [TestInitialize]
         public void Setup()
@@ -27,6 +29,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             _configuracion = A.Fake<IConfiguracion>();
             _dialogService = A.Fake<IDialogService>();
             _regionManager = A.Fake<IRegionManager>();
+            _servicioProducto = A.Fake<IServicioProducto>();
 
             // El constructor lanza una carga inicial; devolvemos listas vacías para que no falle.
             A.CallTo(() => _service.GetOfertasCombinadas(A<string>._, A<bool>._))
@@ -37,7 +40,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
 
         private OfertasCombinadasViewModel CrearViewModel()
         {
-            return new OfertasCombinadasViewModel(_service, _configuracion, _dialogService, _regionManager);
+            return new OfertasCombinadasViewModel(_service, _configuracion, _dialogService, _regionManager, _servicioProducto);
         }
 
         private static DetalleOfertaCombinadaWrapper Detalle(string producto, short cantidad, decimal precio)

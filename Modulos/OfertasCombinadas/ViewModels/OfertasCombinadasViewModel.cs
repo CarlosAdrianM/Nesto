@@ -1,4 +1,5 @@
 using ControlesUsuario.Dialogs;
+using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.OfertasCombinadas.Interfaces;
@@ -26,13 +27,15 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         private readonly IConfiguracion _configuracion;
         private readonly IDialogService _dialogService;
         private readonly IRegionManager _regionManager;
+        private readonly IServicioProducto _servicioProducto;
 
-        public OfertasCombinadasViewModel(IOfertasCombinadasService service, IConfiguracion configuracion, IDialogService dialogService, IRegionManager regionManager)
+        public OfertasCombinadasViewModel(IOfertasCombinadasService service, IConfiguracion configuracion, IDialogService dialogService, IRegionManager regionManager, IServicioProducto servicioProducto)
         {
             _service = service;
             _configuracion = configuracion;
             _dialogService = dialogService;
             _regionManager = regionManager;
+            _servicioProducto = servicioProducto;
 
             OfertasCombinadas = new ObservableCollection<OfertaCombinadaWrapper>();
             OfertasFamilia = new ObservableCollection<OfertaPermitidaFamiliaWrapper>();
@@ -50,7 +53,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             NuevaOfertaEscalonadaCommand = new DelegateCommand(OnNuevaOfertaEscalonada);
             GuardarOfertaEscalonadaCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaEscalonada(o as OfertaEscalonadaWrapper));
             EliminarOfertaEscalonadaCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaEscalonada(o as OfertaEscalonadaWrapper));
-            AnadirReferenciasCommand = new DelegateCommand(OnAnadirReferencias, () => OfertaEscalonadaSeleccionada != null);
+            AnadirReferenciasCommand = new DelegateCommand(async () => await OnAnadirReferencias(), () => OfertaEscalonadaSeleccionada != null);
             NuevoProductoEscalonadoCommand = new DelegateCommand(OnNuevoProductoEscalonado, () => OfertaEscalonadaSeleccionada != null);
             EliminarProductoEscalonadoCommand = new DelegateCommand<object>(OnEliminarProductoEscalonado);
             NuevoTramoCommand = new DelegateCommand(OnNuevoTramo, () => OfertaEscalonadaSeleccionada != null);
@@ -470,7 +473,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 .ToList();
         }
 
-        private void OnAnadirReferencias()
+        private async Task OnAnadirReferencias()
         {
             if (OfertaEscalonadaSeleccionada == null) return;
 
@@ -482,13 +485,43 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 .Where(p => !string.IsNullOrEmpty(p))
                 .ToHashSet();
 
-            foreach (var referencia in referencias.Where(r => !yaExistentes.Contains(r)))
+            try
             {
-                // PrecioBase null: el servidor precarga el PVP de ficha al guardar.
-                OfertaEscalonadaSeleccionada.AnadirProducto(new OfertaEscalonadaProductoWrapper { Producto = referencia });
-            }
+                EstaCargando = true;
+                foreach (var referencia in referencias.Where(r => !yaExistentes.Contains(r)))
+                {
+                    var wrapper = new OfertaEscalonadaProductoWrapper { Producto = referencia };
+                    try
+                    {
+                        // Sin cliente/contacto devuelve el precio de tarifa, que es el precio base
+                        // de la oferta (editable). Las referencias que no existan se marcan en rojo.
+                        var producto = await _servicioProducto.BuscarProducto(Empresa, referencia, null, null, 1);
+                        if (producto != null)
+                        {
+                            wrapper.Producto = producto.Producto?.Trim() ?? referencia;
+                            wrapper.ProductoNombre = producto.Nombre;
+                            wrapper.PrecioBase = producto.Precio;
+                        }
+                        else
+                        {
+                            wrapper.NoEncontrado = true;
+                            wrapper.ProductoNombre = "*** NO EXISTE ***";
+                        }
+                    }
+                    catch
+                    {
+                        wrapper.NoEncontrado = true;
+                        wrapper.ProductoNombre = "*** NO EXISTE ***";
+                    }
+                    OfertaEscalonadaSeleccionada.AnadirProducto(wrapper);
+                }
 
-            ReferenciasTexto = string.Empty;
+                ReferenciasTexto = string.Empty;
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
         }
 
         private void OnNuevoProductoEscalonado()
@@ -1016,7 +1049,16 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public string Producto
         {
             get => _producto;
-            set { if (SetProperty(ref _producto, value)) AlCambiar?.Invoke(); }
+            set
+            {
+                if (SetProperty(ref _producto, value))
+                {
+                    // Al corregir la referencia a mano se quita la marca de "no existe"; si sigue
+                    // sin existir, el ProductoBehavior del grid lo vuelve a señalar al validar.
+                    NoEncontrado = false;
+                    AlCambiar?.Invoke();
+                }
+            }
         }
 
         private string _productoNombre;
@@ -1044,6 +1086,15 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _precioBase;
             set { if (SetProperty(ref _precioBase, value)) AlCambiar?.Invoke(); }
+        }
+
+        // La referencia pegada no existe en la empresa: se pinta en rojo para que el usuario la
+        // corrija o la quite (si se guarda tal cual, el servidor la rechaza indicando cuál es).
+        private bool _noEncontrado;
+        public bool NoEncontrado
+        {
+            get => _noEncontrado;
+            set => SetProperty(ref _noEncontrado, value);
         }
     }
 

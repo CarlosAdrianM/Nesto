@@ -1,3 +1,5 @@
+using ControlesUsuario.Models;
+using ControlesUsuario.Services;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
@@ -24,6 +26,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         private IConfiguracion _configuracion;
         private IDialogService _dialogService;
         private IRegionManager _regionManager;
+        private IServicioProducto _servicioProducto;
 
         [TestInitialize]
         public void Setup()
@@ -32,6 +35,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             _configuracion = A.Fake<IConfiguracion>();
             _dialogService = A.Fake<IDialogService>();
             _regionManager = A.Fake<IRegionManager>();
+            _servicioProducto = A.Fake<IServicioProducto>();
 
             A.CallTo(() => _service.GetOfertasCombinadas(A<string>._, A<bool>._))
                 .Returns(Task.FromResult(new List<OfertaCombinadaModel>()));
@@ -39,11 +43,21 @@ namespace Nesto.Modulos.OfertasCombinadasTests
                 .Returns(Task.FromResult(new List<OfertaPermitidaFamiliaModel>()));
             A.CallTo(() => _service.GetOfertasEscalonadas(A<string>._, A<bool>._))
                 .Returns(Task.FromResult(new List<OfertaEscalonadaModel>()));
+
+            // Al añadir referencias se resuelve nombre y precio de tarifa de cada producto.
+            A.CallTo(() => _servicioProducto.BuscarProducto(A<string>._, A<string>._, A<string>._, A<string>._, A<short>._))
+                .ReturnsLazily((string empresa, string producto, string cliente, string contacto, short cantidad) =>
+                    Task.FromResult(new ProductoDTO
+                    {
+                        Producto = producto,
+                        Nombre = "Producto " + producto,
+                        Precio = 18.50m
+                    }));
         }
 
         private OfertasCombinadasViewModel CrearViewModel()
         {
-            return new OfertasCombinadasViewModel(_service, _configuracion, _dialogService, _regionManager);
+            return new OfertasCombinadasViewModel(_service, _configuracion, _dialogService, _regionManager, _servicioProducto);
         }
 
         #region Parseo de referencias
@@ -85,7 +99,7 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         #region Añadir referencias a la oferta
 
         [TestMethod]
-        public void AnadirReferencias_ConOfertaSeleccionada_CreaProductosSinPrecio()
+        public async Task AnadirReferencias_ConOfertaSeleccionada_ResuelveNombreYPrecioDeTarifa()
         {
             var vm = CrearViewModel();
             var oferta = new OfertaEscalonadaWrapper();
@@ -94,16 +108,41 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             vm.ReferenciasTexto = "44707, 44708\r\n44709";
 
             vm.AnadirReferenciasCommand.Execute(null);
+            await Task.Delay(50); // el comando es async void: dejamos que complete
 
             Assert.AreEqual(3, oferta.Productos.Count);
-            Assert.IsTrue(oferta.Productos.All(p => p.PrecioBase == null),
-                "El precio base queda vacío para que el servidor precargue el PVP de ficha");
+            Assert.IsTrue(oferta.Productos.All(p => p.PrecioBase == 18.50m),
+                "El precio base se rellena con el precio de tarifa al añadir (sigue siendo editable)");
+            Assert.AreEqual("Producto 44707", oferta.Productos.First().ProductoNombre,
+                "El nombre del producto se resuelve al añadir para poder verificar las referencias");
+            Assert.IsTrue(oferta.Productos.All(p => !p.NoEncontrado));
             Assert.AreEqual(string.Empty, vm.ReferenciasTexto, "El cuadro de texto se limpia tras añadir");
             Assert.IsTrue(oferta.HaCambiado);
         }
 
         [TestMethod]
-        public void AnadirReferencias_ReferenciaYaEnLaOferta_NoLaDuplica()
+        public async Task AnadirReferencias_ReferenciaInexistente_LaMarcaComoNoEncontrada()
+        {
+            A.CallTo(() => _servicioProducto.BuscarProducto(A<string>._, "99999", A<string>._, A<string>._, A<short>._))
+                .Returns(Task.FromResult<ProductoDTO>(null));
+
+            var vm = CrearViewModel();
+            var oferta = new OfertaEscalonadaWrapper();
+            vm.OfertasEscalonadas.Add(oferta);
+            vm.OfertaEscalonadaSeleccionada = oferta;
+            vm.ReferenciasTexto = "44707,99999";
+
+            vm.AnadirReferenciasCommand.Execute(null);
+            await Task.Delay(50);
+
+            Assert.AreEqual(2, oferta.Productos.Count, "La referencia inexistente se añade igualmente para que el usuario la vea y corrija");
+            var noEncontrado = oferta.Productos.Single(p => p.Producto == "99999");
+            Assert.IsTrue(noEncontrado.NoEncontrado, "Debe marcarse para pintarla en rojo");
+            Assert.IsNull(noEncontrado.PrecioBase);
+        }
+
+        [TestMethod]
+        public async Task AnadirReferencias_ReferenciaYaEnLaOferta_NoLaDuplica()
         {
             var vm = CrearViewModel();
             var oferta = new OfertaEscalonadaWrapper();
@@ -113,8 +152,19 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             vm.ReferenciasTexto = "44707,44708";
 
             vm.AnadirReferenciasCommand.Execute(null);
+            await Task.Delay(50);
 
             Assert.AreEqual(2, oferta.Productos.Count, "44707 ya estaba y no debe duplicarse");
+        }
+
+        [TestMethod]
+        public void Wrapper_CorregirReferenciaNoEncontrada_QuitaLaMarcaRoja()
+        {
+            var producto = new OfertaEscalonadaProductoWrapper { Producto = "99999", NoEncontrado = true };
+
+            producto.Producto = "44707";
+
+            Assert.IsFalse(producto.NoEncontrado, "Al corregir la referencia desaparece la marca de no encontrada");
         }
 
         [TestMethod]

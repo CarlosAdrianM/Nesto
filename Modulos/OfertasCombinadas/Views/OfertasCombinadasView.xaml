@@ -636,12 +636,14 @@
                         <!-- Pegar referencias -->
                         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,5">
                             <TextBlock Text="Referencias:" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                            <!-- AcceptsReturn=true para que un pegado multilínea no se trunque en el
+                                 primer salto de línea; la altura es la de un TextBox normal y el
+                                 contenido extra simplemente queda desplazado. -->
                             <TextBox Text="{Binding ReferenciasTexto, UpdateSourceTrigger=PropertyChanged}"
-                                     Width="450" Height="45" Margin="10,0,0,0"
+                                     Width="450" Margin="10,0,0,0"
                                      AcceptsReturn="True"
-                                     TextWrapping="Wrap"
-                                     VerticalScrollBarVisibility="Auto"
-                                     VerticalContentAlignment="Top"
+                                     VerticalAlignment="Center"
+                                     VerticalContentAlignment="Center"
                                      ToolTip="Pegue aquí las referencias separadas por comas, espacios o saltos de línea (p. ej. 44707,44708,44709)"/>
                             <Button Command="{Binding AnadirReferenciasCommand}"
                                     Padding="10,3" Margin="10,0,0,0"
@@ -721,12 +723,18 @@
                                         </DataGridTemplateColumn.CellEditingTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <!-- Nombre producto (solo lectura) -->
+                                    <!-- Nombre producto (solo lectura; en rojo si la referencia no existe) -->
                                     <DataGridTextColumn Header="Nombre" Binding="{Binding ProductoNombre}" Width="*" IsReadOnly="True">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="VerticalAlignment" Value="Center"/>
                                                 <Setter Property="Margin" Value="2,0"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding NoEncontrado}" Value="True">
+                                                        <Setter Property="Foreground" Value="Red"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
                                             </Style>
                                         </DataGridTextColumn.ElementStyle>
                                     </DataGridTextColumn>
