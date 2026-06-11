@@ -374,17 +374,28 @@ public class AmazonApiOrdersService
 
     public static AmazonConnection ConexionAmazon()
     {
-        return new AmazonConnection(new AmazonCredential()
+        // NestoAPI#225: la credencial LWA (la que rota cada 180 días) se pide a la API, donde el
+        // job de rotación la mantiene al día; el config queda como fallback. Las claves AWS IAM,
+        // RoleArn y MerchantId no rotan y siguen viniendo del config.
+        return new AmazonConnection(ConstruirCredencial(Nesto.Modulos.CanalesExternos.ApisExternas.CredencialAmazonProvider.Obtener()));
+    }
+
+    internal static AmazonCredential ConstruirCredencial(Nesto.Modulos.CanalesExternos.ApisExternas.CredencialAmazonRotada rotada)
+    {
+        return new AmazonCredential()
         {
             AccessKey = ConfigurationManager.AppSettings["AmazonSpApiAccessKey"],
             SecretKey = ConfigurationManager.AppSettings["AmazonSpApiSecretKey"],
             RoleArn = ConfigurationManager.AppSettings["AmazonSpApiRoleArn"],
-            ClientId = ConfigurationManager.AppSettings["AmazonSpApiClientId"],
-            ClientSecret = ConfigurationManager.AppSettings["AmazonSpApiClientSecret"],
-            RefreshToken = ConfigurationManager.AppSettings["AmazonSpApiRefreshToken"],
+            ClientId = string.IsNullOrEmpty(rotada?.ClientId)
+                ? ConfigurationManager.AppSettings["AmazonSpApiClientId"] : rotada.ClientId,
+            ClientSecret = string.IsNullOrEmpty(rotada?.ClientSecret)
+                ? ConfigurationManager.AppSettings["AmazonSpApiClientSecret"] : rotada.ClientSecret,
+            RefreshToken = string.IsNullOrEmpty(rotada?.RefreshToken)
+                ? ConfigurationManager.AppSettings["AmazonSpApiRefreshToken"] : rotada.RefreshToken,
             SellerID = ConfigurationManager.AppSettings["AmazonSpApiMerchantId"],
             MarketPlace = MarketPlace.Spain
-        });
+        };
     }
 
 }
