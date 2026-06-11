@@ -118,10 +118,9 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _empresaActual = value
-            listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
+            CargarListaContactos()
             If IsNothing(contactoActual) Then
                 Dim unused = CargarClienteActualEmpresa()
-                listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
             End If
             actualizarCliente(_empresaActual, clienteActual, contactoActual)
             RaisePropertyChanged("empresaActual")
@@ -133,6 +132,39 @@ Public Class ClientesViewModel
         clienteActual = Await mainViewModel.leerParametro(empresaActual, "UltNumCliente")
     End Function
 
+    ' Nesto#340 (1C.7): la lista de contactos se lee de la API (PlantillaVentas/DireccionesEntrega,
+    ' mismo filtro Estado >= 0) en vez de consultar Clientes con EF. Se mantiene la colección de
+    ' Clientes como contenedor porque el ComboBox solo usa el campo Contacto y así los bindings
+    ' quedan intactos. Al asignar clienteActual el setter relanza la carga, así que no hace falta
+    ' recargar tras CargarClienteActualEmpresa.
+    Private _servicioDireccionesEntrega As ControlesUsuario.Services.IServicioDireccionesEntrega
+    Private ReadOnly Property ServicioDireccionesEntrega As ControlesUsuario.Services.IServicioDireccionesEntrega
+        Get
+            If _servicioDireccionesEntrega Is Nothing Then
+                _servicioDireccionesEntrega = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(ControlesUsuario.Services.IServicioDireccionesEntrega))
+            End If
+            Return _servicioDireccionesEntrega
+        End Get
+    End Property
+
+    Private Async Sub CargarListaContactos()
+        Try
+            If String.IsNullOrWhiteSpace(_empresaActual) OrElse String.IsNullOrWhiteSpace(_clienteActual) Then
+                listaContactos = New ObservableCollection(Of Clientes)()
+                Return
+            End If
+            Dim direcciones = Await ServicioDireccionesEntrega.ObtenerDireccionesEntrega(_empresaActual.Trim(), _clienteActual.Trim())
+            listaContactos = New ObservableCollection(Of Clientes)(
+                direcciones.Select(Function(d) New Clientes With {
+                    .Empresa = _empresaActual,
+                    .Nº_Cliente = _clienteActual,
+                    .Contacto = d.contacto
+                }))
+        Catch ex As Exception
+            listaContactos = New ObservableCollection(Of Clientes)()
+        End Try
+    End Sub
+
     Private _clienteActual As String
     Public Property clienteActual As String
         Get
@@ -140,7 +172,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _clienteActual = value
-            listaContactos = New ObservableCollection(Of Clientes)(From c In DbContext.Clientes Where c.Empresa = empresaActual AndAlso c.Nº_Cliente = clienteActual AndAlso c.Estado >= 0)
+            CargarListaContactos()
             actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
             RaisePropertyChanged(NameOf(clienteActual))
             If Not IsNothing(clienteActivo) AndAlso Not IsNothing(clienteActivo.Nº_Cliente) Then
