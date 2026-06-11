@@ -18,10 +18,12 @@ namespace ControlesUsuario.Services
     public class ServicioCCC : IServicioCCC
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
-        public ServicioCCC(IConfiguracion configuracion)
+        public ServicioCCC(IConfiguracion configuracion, IClienteApiFactory clienteApiFactory)
         {
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));
+            _clienteApiFactory = clienteApiFactory ?? throw new ArgumentNullException(nameof(clienteApiFactory));
         }
 
         /// <summary>
@@ -42,10 +44,9 @@ namespace ControlesUsuario.Services
             if (string.IsNullOrWhiteSpace(contacto))
                 throw new ArgumentException("Contacto es requerido", nameof(contacto));
 
-            using (HttpClient client = new HttpClient())
+            // Nesto#369: usar la factoría para que el HttpClient adjunte el JWT (usuario en ELMAH).
+            using (HttpClient client = _clienteApiFactory.Crear())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
                 // Usar endpoint correcto de CCCs
                 // Nota: servidorAPI ya incluye "/api/" al final
                 string urlConsulta = $"Clientes/CCCs?empresa={empresa}&cliente={cliente}&contacto={contacto}";
