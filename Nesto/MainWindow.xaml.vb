@@ -14,6 +14,9 @@ Partial Class MainWindow
     Private ReadOnly tituloVentana As String
     Private _timerVerificacion As DispatcherTimer
     Private _configuracion As IConfiguracion
+    Private ReadOnly _novedadesService As INovedadesService
+    Private ReadOnly _dialogService As Prism.Services.Dialogs.IDialogService
+    Private ReadOnly _versionActual As String
     Public Property Maquina As String
     Public Property Delegacion As String
     Public ReadOnly Property Usuario As String
@@ -38,7 +41,8 @@ Partial Class MainWindow
 
     Public Event PropertyChanged As PropertyChangedEventHandler Implements INotifyPropertyChanged.PropertyChanged
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
+                   novedadesService As INovedadesService, dialogService As Prism.Services.Dialogs.IDialogService)
 
         ' Llamada necesaria para el diseñador.
         InitializeComponent()
@@ -47,11 +51,14 @@ Partial Class MainWindow
         Me.regionManager = regionManager
         Me._servicioAutenticacion = servicioAutenticacion
         Me._configuracion = configuracion
+        Me._novedadesService = novedadesService
+        Me._dialogService = dialogService
 
         Dim clickOnceVersion As String = Environment.GetEnvironmentVariable("ClickOnce_CurrentVersion")
         Dim version As String = If(String.IsNullOrEmpty(clickOnceVersion),
             GetType(MainWindow).Assembly.GetName().Version.ToString,
             clickOnceVersion)
+        _versionActual = version
         tituloVentana = "Nesto (" + version + ")"
         Title = tituloVentana
 
@@ -62,6 +69,34 @@ Partial Class MainWindow
 
         ' Inicializar verificación de autenticación
         InicializarVerificacionAutenticacion()
+
+        ' Nesto#372: mostrar las novedades la primera vez que se arranca tras actualizar
+        AddHandler Me.Loaded, AddressOf OnMainWindowLoadedComprobarNovedades
+    End Sub
+
+    ' Nesto#372: si la versión actual es posterior a la última cuyas novedades vio el usuario,
+    ' se muestran las novedades nuevas y se guarda la versión. La primera vez (sin parámetro
+    ' guardado) es un bootstrap silencioso. Nunca debe bloquear ni romper el arranque.
+    Private Async Sub OnMainWindowLoadedComprobarNovedades(sender As Object, e As RoutedEventArgs)
+        RemoveHandler Me.Loaded, AddressOf OnMainWindowLoadedComprobarNovedades
+        Try
+            Dim ultimaVista As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltimaVersionNovedades)
+            If NovedadesHelper.DebeMostrarNovedades(_versionActual, ultimaVista) Then
+                Dim novedades = Await _novedadesService.ObtenerNovedades(ultimaVista?.Trim())
+                If novedades.Count > 0 Then
+                    Dim parametros As New Prism.Services.Dialogs.DialogParameters From {
+                        {"novedades", novedades}
+                    }
+                    _dialogService.ShowDialog("NovedadesDialog", parametros, Sub(r)
+                                                                             End Sub)
+                End If
+            End If
+            If ultimaVista?.Trim() <> _versionActual Then
+                Await _configuracion.GuardarParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltimaVersionNovedades, _versionActual)
+            End If
+        Catch ex As Exception
+            ' Las novedades nunca deben impedir arrancar Nesto
+        End Try
     End Sub
 
     Private Sub ActualizarMaquinaYDelegacion()

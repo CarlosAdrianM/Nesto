@@ -33,6 +33,7 @@
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
             public const string SerieFacturacionDefecto = "SerieFacturaciónDefecto";
+            public const string UltimaVersionNovedades = "UltimaVersionNovedades";
             public const string UltNumProducto = "UltNumProducto";
             public const string UltTipoSeguimientoCliente = "UltTipoSeguimientoCliente";
             public const string UsarBusquedaContextualAND = "UsarBusquedaContextualAND";

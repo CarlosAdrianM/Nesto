@@ -127,6 +127,13 @@ Partial Public Class Application
                 Return New ClienteApiFactory(cfg.servidorAPI, auth)
             End Function)
 
+        ' Nesto#372: changelog de novedades para el usuario al actualizar
+        Dim unusedNovedades = containerRegistry.RegisterSingleton(Of INovedadesService)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New NovedadesService(factory)
+            End Function)
+
         Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
         Dim unused24 = containerRegistry.Register(GetType(IPlantillaVentaService), GetType(PlantillaVentaService))
         ' Issue #286: Borradores de PlantillaVenta
@@ -197,6 +204,8 @@ Partial Public Class Application
         containerRegistry.RegisterDialog(Of ActualizarControlesStockPopupView, ActualizarControlesStockPopupViewModel)
         ' Carlos 08/06/26: Nesto#368 - Selector cuando un código de barras corresponde a varios productos (API devuelve 409)
         containerRegistry.RegisterDialog(Of SelectorProductoDuplicadoDialog, SelectorProductoDuplicadoDialogViewModel)
+        ' Nesto#372: diálogo "Qué hay de nuevo" (popup tras actualizar + Herramientas → Ayuda → Novedades)
+        containerRegistry.RegisterDialog(Of NovedadesDialog, NovedadesDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window

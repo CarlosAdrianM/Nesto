@@ -48,6 +48,7 @@ Public Class MenuBarViewModel
         ClientesAgenciasCommand = New DelegateCommand(AddressOf OnClientesAgencias)
         RatioDeudaCommand = New DelegateCommand(AddressOf OnRatioDeuda)
         VideosCommand = New DelegateCommand(AddressOf OnVideos)
+        NovedadesCommand = New DelegateCommand(AddressOf OnNovedades)
         VendedoresComisionesCommand = New DelegateCommand(AddressOf OnVendedoresComisiones)
         VendedoresClientesCommand = New DelegateCommand(AddressOf OnVendedoresClientes)
         VendedoresPlanVentajasCommand = New DelegateCommand(AddressOf OnVendedoresPlanVentajas)
@@ -164,6 +165,7 @@ Public Class MenuBarViewModel
     Public Property ClientesAgenciasCommand As ICommand
     Public Property RatioDeudaCommand As ICommand
     Public Property VideosCommand As ICommand
+    Public Property NovedadesCommand As ICommand
     Public Property VendedoresComisionesCommand As ICommand
     Public Property VendedoresClientesCommand As ICommand
     Public Property VendedoresPlanVentajasCommand As ICommand
@@ -310,6 +312,22 @@ Public Class MenuBarViewModel
 
     Private Sub OnVideos()
         _regionManager.RequestNavigate("MainRegion", "VideosView")
+    End Sub
+
+    ' Nesto#372: consulta del changelog completo desde Herramientas → Ayuda → Novedades
+    Private Async Sub OnNovedades()
+        Try
+            Dim novedadesService = _container.Resolve(Of INovedadesService)()
+            Dim dialogService = _container.Resolve(Of Prism.Services.Dialogs.IDialogService)()
+            Dim novedades = Await novedadesService.ObtenerNovedades()
+            Dim parametros As New Prism.Services.Dialogs.DialogParameters From {
+                {"novedades", novedades}
+            }
+            dialogService.ShowDialog("NovedadesDialog", parametros, Sub(r)
+                                                                    End Sub)
+        Catch ex As Exception
+            ' Consultar las novedades nunca debe tirar la aplicación
+        End Try
     End Sub
 
     Private Sub OnVendedoresComisiones()
