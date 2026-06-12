@@ -16,10 +16,26 @@ namespace ControlesUsuario.Services
     public class ServicioCuentaContable : IServicioCuentaContable
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
-        public ServicioCuentaContable(IConfiguracion configuracion)
+        public ServicioCuentaContable(IConfiguracion configuracion) : this(configuracion, null)
+        {
+        }
+
+        // Nesto#369: Unity resuelve este constructor (el más largo); el de un parámetro se
+        // mantiene por compatibilidad con el fallback de CuentaContableBehavior.
+        public ServicioCuentaContable(IConfiguracion configuracion, IClienteApiFactory clienteApiFactory)
         {
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));
+            _clienteApiFactory = clienteApiFactory;
+        }
+
+        // Nesto#369: con factoría el HttpClient adjunta el JWT (usuario en ELMAH)
+        private HttpClient CrearClient()
+        {
+            return _clienteApiFactory != null
+                ? _clienteApiFactory.Crear()
+                : new HttpClient { BaseAddress = new Uri(_configuracion.servidorAPI) };
         }
 
         /// <summary>
@@ -41,10 +57,8 @@ namespace ControlesUsuario.Services
                 return null;
             }
 
-            using (var client = new HttpClient())
+            using (var client = CrearClient())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
                 try
                 {
                     var url = $"PlanCuentas/Buscar?empresa={empresa}&cuenta={cuentaExpandida}";

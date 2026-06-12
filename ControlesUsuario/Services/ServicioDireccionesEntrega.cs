@@ -17,10 +17,26 @@ namespace ControlesUsuario.Services
     public class ServicioDireccionesEntrega : IServicioDireccionesEntrega
     {
         private readonly IConfiguracion _configuracion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
-        public ServicioDireccionesEntrega(IConfiguracion configuracion)
+        public ServicioDireccionesEntrega(IConfiguracion configuracion) : this(configuracion, null)
+        {
+        }
+
+        // Nesto#369: Unity resuelve este constructor (el más largo); el de un parámetro se
+        // mantiene por compatibilidad con tests y fallbacks sin contenedor.
+        public ServicioDireccionesEntrega(IConfiguracion configuracion, IClienteApiFactory clienteApiFactory)
         {
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));
+            _clienteApiFactory = clienteApiFactory;
+        }
+
+        // Nesto#369: con factoría el HttpClient adjunta el JWT (usuario en ELMAH)
+        private HttpClient CrearClient()
+        {
+            return _clienteApiFactory != null
+                ? _clienteApiFactory.Crear()
+                : new HttpClient { BaseAddress = new Uri(_configuracion.servidorAPI) };
         }
 
         /// <summary>
@@ -39,10 +55,8 @@ namespace ControlesUsuario.Services
             if (string.IsNullOrWhiteSpace(cliente))
                 throw new ArgumentException("Cliente es requerido", nameof(cliente));
 
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearClient())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
                 // Construir URL con parámetros
                 string urlConsulta = $"PlantillaVentas/DireccionesEntrega?empresa={empresa}&clienteDirecciones={cliente}";
 
