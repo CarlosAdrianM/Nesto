@@ -127,7 +127,9 @@ Public Class Configuracion
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = Await response.Content.ReadAsStringAsync()
                     respuesta = JsonConvert.DeserializeObject(Of String)(respuesta)
-                    Return respuesta.Trim
+                    ' Nesto#372: si el Valor del parámetro es NULL en BD, la API puede devolver
+                    ' null y respuesta.Trim lanzaba NullReferenceException
+                    Return If(respuesta, String.Empty).Trim
                 Else
                     Throw New Exception("No se puede leer el parámetro")
                 End If
@@ -151,7 +153,8 @@ Public Class Configuracion
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = response.Content.ReadAsStringAsync().Result
                     respuesta = JsonConvert.DeserializeObject(Of String)(respuesta)
-                    Return respuesta.Trim
+                    ' Nesto#372: mismo guard de null que en leerParametro
+                    Return If(respuesta, String.Empty).Trim
                 Else
                     Throw New Exception("No se puede leer el parámetro")
                 End If

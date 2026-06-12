@@ -80,7 +80,15 @@ Partial Class MainWindow
     Private Async Sub OnMainWindowLoadedComprobarNovedades(sender As Object, e As RoutedEventArgs)
         RemoveHandler Me.Loaded, AddressOf OnMainWindowLoadedComprobarNovedades
         Try
-            Dim ultimaVista As String = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltimaVersionNovedades)
+            ' leerParametro lanza si el parámetro no existe todavía (ni siquiera para el usuario
+            ' "(defecto)"): se trata como "sin versión vista" para que el GuardarParametro de más
+            ' abajo lo cree y el mecanismo arranque solo.
+            Dim ultimaVista As String = String.Empty
+            Try
+                ultimaVista = Await _configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UltimaVersionNovedades)
+            Catch ex As Exception
+                ultimaVista = String.Empty
+            End Try
             If NovedadesHelper.DebeMostrarNovedades(_versionActual, ultimaVista) Then
                 Dim novedades = Await _novedadesService.ObtenerNovedades(ultimaVista?.Trim())
                 If novedades.Count > 0 Then
