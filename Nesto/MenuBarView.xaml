@@ -71,6 +71,9 @@
                     <RibbonControlSizeDefinition IsLabelVisible="True" />
                 </RibbonApplicationMenu.ControlSizeDefinition>
                 <RibbonApplicationMenuItem Header="Parámetros" KeyTip="P" Command="{Binding ParametrosCommand}" />
+                <!-- Nesto#372: changelog de novedades en lenguaje de usuario (en el menú de
+                     aplicación porque no todos los usuarios ven la pestaña Herramientas) -->
+                <RibbonApplicationMenuItem Header="Novedades" KeyTip="N" Command="{Binding NovedadesCommand}" />
             </RibbonApplicationMenu>
         </Ribbon.ApplicationMenu>
         <RibbonTab x:Name="tabClientes"
@@ -100,10 +103,6 @@
             <RibbonGroup x:Name="grpVideos"
                                     Header="Contenido" Visibility="{Binding VideosVisible}">
                 <RibbonButton Label="Videos" LargeImageSource="/Images/Prestashop.png" Command="{Binding VideosCommand}" />
-            </RibbonGroup>
-            <!-- Nesto#372: changelog de novedades en lenguaje de usuario -->
-            <RibbonGroup x:Name="grpAyuda" Header="Ayuda">
-                <RibbonButton Label="Novedades" Command="{Binding NovedadesCommand}" />
             </RibbonGroup>
         </RibbonTab>
 
