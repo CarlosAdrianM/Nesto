@@ -91,37 +91,8 @@ Public Class PedidoVentaViewModel
         End If
     End Sub
 
-    Public Shared Async Function CrearPedidoAsync(pedido As PedidoVentaDTO, configuracion As IConfiguracion) As Task(Of String)
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            Dim response As HttpResponseMessage
-
-            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(pedido), Encoding.UTF8, "application/json")
-
-            Try
-
-                response = Await client.PostAsync("PedidosVenta", content)
-
-                If response.IsSuccessStatusCode Then
-                    Dim pathNumeroPedido = response.Headers.Location.LocalPath
-                    Dim numPedido As String = pathNumeroPedido.Substring(pathNumeroPedido.LastIndexOf("/") + 1)
-                    Return "Pedido " + numPedido + " creado correctamente"
-                Else
-                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
-                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
-                    Return contenido
-                End If
-            Catch ex As Exception
-                Return ex.Message
-            Finally
-
-            End Try
-
-        End Using
-
-    End Function
-
+    ' Nesto#378: el método Shared CrearPedidoAsync se ha eliminado porque llamaba a la API sin
+    ' token JWT (errores sin usuario en ELMAH y 401 cuando se proteja el endpoint). Usar
+    ' IPedidoVentaService.CrearPedido, que autentica y parsea los errores del API.
 
 End Class

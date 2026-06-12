@@ -436,14 +436,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 EstaOcupado = true;
                 PedidoVentaDTO pedido = pedidoExterno.Pedido;
-                string resultado = await PedidoVentaViewModel.CrearPedidoAsync(pedido, Configuracion);
-                EstaOcupado = false;                
-                if (!resultado.StartsWith("Pedido"))
-                {
-                    DialogService.ShowError(resultado);
-                    return;
-                }
-                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).PedidoNestoId = Int32.Parse(resultado.Split(' ')[1]);
+                // Nesto#378: usar el servicio (lleva el token JWT) en vez del método estático
+                // legacy de PedidoVentaViewModel, que llamaba a la API sin autenticar.
+                int numeroPedido = await PedidoVentaService.CrearPedido(pedido);
+                EstaOcupado = false;
+                string resultado = $"Pedido {numeroPedido} creado correctamente";
+                (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).PedidoNestoId = numeroPedido;
                 if (await CanalSeleccionado.EjecutarTrasCrearPedido(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno))
                 {
                     resultado += "\nCompletado el proceso";
