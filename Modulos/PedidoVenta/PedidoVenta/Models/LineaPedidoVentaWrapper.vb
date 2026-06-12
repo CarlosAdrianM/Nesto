@@ -177,7 +177,13 @@ Public Class LineaPedidoVentaWrapper
             Return Model.iva
         End Get
         Set(value As String)
-            Dim parametroIva = Pedido.Model.ParametrosIva.SingleOrDefault(Function(p) p.CodigoIvaProducto.ToLower() = value.ToLower())
+            ' Nesto#379: en pedidos nuevos ParametrosIva puede no estar cargado todavía (la carga es
+            ' asíncrona al cambiar el IVA de cabecera). Sin este guard, SingleOrDefault sobre Nothing
+            ' tiraba la aplicación y la línea quedaba a medio actualizar tras CargarDatosProducto.
+            Dim parametroIva As ParametrosIvaBase = Nothing
+            If value IsNot Nothing AndAlso Pedido?.Model?.ParametrosIva IsNot Nothing Then
+                parametroIva = Pedido.Model.ParametrosIva.SingleOrDefault(Function(p) p.CodigoIvaProducto IsNot Nothing AndAlso p.CodigoIvaProducto.ToLower() = value.ToLower())
+            End If
             If Not IsNothing(parametroIva) Then
                 Model.iva = parametroIva.CodigoIvaProducto
                 Model.PorcentajeIva = parametroIva.PorcentajeIvaProducto

@@ -1362,7 +1362,19 @@ Public Class DetallePedidoViewModel
         End If
 
         Dim lineaCambio As LineaPedidoVentaWrapper = lineaActual 'para que se mantenga fija aunque cambie la linea actual durante el asíncrono
-        Dim producto As Producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, cantidad)
+        Dim producto As Producto
+        Try
+            producto = Await servicio.cargarProducto(pedido.empresa, numeroProducto, pedido.cliente, pedido.contacto, cantidad)
+        Catch ex As Exception
+            ' Nesto#379: un error del API (p.ej. descuentos duplicados del cliente) debe mostrarse
+            ' al usuario, no tirar la aplicación (esta cadena es Async Sub) ni confundirse con
+            ' "el producto no existe".
+            dialogService.ShowError(ex.Message)
+            lineaCambio.Producto = String.Empty
+            lineaCambio.texto = String.Empty
+            lineaCambio.PrecioUnitario = 0
+            Return
+        End Try
         If Not IsNothing(producto) Then
             If lineaCambio.Producto <> producto.producto Then
                 lineaCambio.Producto = producto.producto
@@ -2314,6 +2326,15 @@ Public Class DetallePedidoViewModel
             .VendedoresGrupoProducto = New ObservableCollection(Of VendedorGrupoProductoDTO),
             .EsPresupuesto = False
         }
+
+        ' Nesto#379: cargar los parámetros de IVA desde el principio para que las líneas que se
+        ' tecleen antes de seleccionar cliente no se encuentren ParametrosIva sin cargar.
+        Try
+            pedidoNuevo.ParametrosIva = Await servicio.CargarParametrosIva(empresa, IVA_POR_DEFECTO)
+        Catch ex As Exception
+            ' Si falla, el guard de LineaPedidoVentaWrapper.set_iva deja los porcentajes a cero;
+            ' no bloqueamos la creación del pedido por esto.
+        End Try
 
         Return New PedidoVentaWrapper(pedidoNuevo)
     End Function

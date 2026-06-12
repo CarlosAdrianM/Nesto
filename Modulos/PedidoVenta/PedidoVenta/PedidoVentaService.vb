@@ -93,8 +93,9 @@ Public Class PedidoVentaService
     Public Async Function cargarProducto(empresa As String, id As String, cliente As String, contacto As String, cantidad As Short) As Task(Of Producto) Implements IPedidoVentaService.cargarProducto
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
+            ' Nesto#379: sin token, los errores de este endpoint llegaban a ELMAH sin usuario
+            Dim unused = Await _servicioAutenticacion.ConfigurarAutorizacion(client)
             Dim response As HttpResponseMessage
-            Dim respuesta As String = ""
 
             Try
                 Dim urlConsulta As String = "Productos"
@@ -105,14 +106,20 @@ Public Class PedidoVentaService
                 urlConsulta += "&cantidad=" + cantidad.ToString
 
                 response = Await client.GetAsync(urlConsulta)
-
-                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsStringAsync(), "")
-
             Catch ex As Exception
                 Throw New Exception("No se ha podido cargar el producto " + id)
-            Finally
-
             End Try
+
+            ' Nesto#379: distinguir "no existe" (404) de un error del API. Antes cualquier fallo se
+            ' convertía en Nothing y el usuario veía "El producto no existe" aunque fuese un 500.
+            If response.StatusCode = Net.HttpStatusCode.NotFound Then
+                Return Nothing
+            End If
+
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(respuesta))
+            End If
 
             Dim producto As Producto = JsonConvert.DeserializeObject(Of Producto)(respuesta)
 
