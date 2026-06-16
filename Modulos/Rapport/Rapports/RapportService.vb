@@ -375,7 +375,10 @@ Public Class RapportService
 
             Dim listaClientes As List(Of ClienteProbabilidadVenta) = JsonConvert.DeserializeObject(Of List(Of ClienteProbabilidadVenta))(respuesta)
 
-            Return listaClientes
+            ' Nesto#381: si la respuesta no es exitosa/está vacía, DeserializeObject("") devuelve
+            ' Nothing y el ViewModel petaba al construir un ObservableCollection con null. Nunca
+            ' devolvemos Nothing.
+            Return If(listaClientes, New List(Of ClienteProbabilidadVenta))
 
         End Using
     End Function

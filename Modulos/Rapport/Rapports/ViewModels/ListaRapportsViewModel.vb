@@ -723,7 +723,9 @@ Public Class ListaRapportsViewModel
     Private Async Sub ActualizarClientesProbabilidad(grupoSubgrupo As String)
         IsLoadingClientesProbabilidad = True
         Try
-            ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(Await servicio.CargarClientesProbabilidad(vendedor, TipoRapportSeleccionado.descripcion, grupoSubgrupo))
+            ' Nesto#381: defensivo ante null (el ctor de ObservableCollection peta con Nothing).
+            Dim clientes = Await servicio.CargarClientesProbabilidad(vendedor, TipoRapportSeleccionado.descripcion, grupoSubgrupo)
+            ListaClientesProbabilidad = New ObservableCollection(Of ClienteProbabilidadVenta)(If(clientes, New List(Of ClienteProbabilidadVenta)))
         Finally
             IsLoadingClientesProbabilidad = False
         End Try
