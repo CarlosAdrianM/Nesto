@@ -290,6 +290,45 @@ Public Class PedidoVentaDTO
         Return esPedidoNuevo
     End Function
 
+    Private Const FORMA_PAGO_RECIBO As String = "RCB"
+
+    ''' <summary>
+    ''' Caso real pedido 918386 (Issue #254): un pedido con forma de pago Recibo
+    ''' (RCB) y CCC a NULL en BD es un estado incompleto, porque el Recibo exige una
+    ''' cuenta de cobro. Al abrir el detalle, el SelectorCCC le asigna automáticamente
+    ''' el CCC del cliente, lo que dispara el falso "el pedido tiene cambios sin
+    ''' guardar" aunque el usuario no toque nada.
+    '''
+    ''' Detecta exactamente ese escenario comparando con el snapshot: forma de pago
+    ''' Recibo, el snapshot SIN CCC y el estado actual CON CCC. En ese caso queremos
+    ''' mostrar un mensaje explicativo en vez del genérico.
+    ''' </summary>
+    Public Function EsCccAsignadoAutomaticamentePorRecibo(snapshot As PedidoVentaDTO) As Boolean
+        If snapshot Is Nothing Then Return False
+        ' La forma de pago actual debe ser Recibo (el campo viene de un char de BD
+        ' que puede traer espacios de padding).
+        If Not String.Equals(If(formaPago, String.Empty).Trim(), FORMA_PAGO_RECIBO, StringComparison.OrdinalIgnoreCase) Then Return False
+        ' El snapshot (lo que vino del API) no tenía CCC...
+        If Not String.IsNullOrWhiteSpace(snapshot.ccc) Then Return False
+        ' ...y ahora sí lo tiene (lo asignó el SelectorCCC).
+        If String.IsNullOrWhiteSpace(ccc) Then Return False
+        Return True
+    End Function
+
+    ''' <summary>
+    ''' Devuelve un mensaje explicativo cuando el cambio sin guardar se debe a que el
+    ''' SelectorCCC asignó automáticamente el CCC por tener forma de pago Recibo (RCB)
+    ''' sin CCC previo. Devuelve Nothing si no es ese escenario (entonces el llamante
+    ''' usa el mensaje genérico de "cambios sin guardar").
+    ''' </summary>
+    Public Function ObtenerMensajeCccAsignadoPorRecibo(snapshot As PedidoVentaDTO) As String
+        If Not EsCccAsignadoAutomaticamentePorRecibo(snapshot) Then Return Nothing
+        Return "Este pedido tiene forma de pago Recibo (RCB) pero no tenía asignada ninguna cuenta de cobro (CCC)." & vbCrLf &
+               $"Se le ha asignado automáticamente el CCC «{ccc.Trim()}» del cliente." & vbCrLf & vbCrLf &
+               "• Pulse «Sí» para GUARDAR ese CCC en el pedido (recomendado: si no, el recibo de la factura podría salir sin cuenta de cobro)." & vbCrLf &
+               "• Pulse «No» para continuar SIN guardar."
+    End Function
+
 #End Region
 
 End Class

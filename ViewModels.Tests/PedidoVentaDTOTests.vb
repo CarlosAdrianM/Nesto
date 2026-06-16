@@ -748,4 +748,99 @@ Public Class PedidoVentaDTOTests
 
 #End Region
 
+#Region "CCC asignado automáticamente por Recibo (RCB) - mensaje explicativo"
+
+    ''' <summary>
+    ''' Caso real pedido 918386: forma de pago Recibo (RCB) con CCC a NULL en BD.
+    ''' Al abrir el detalle, el SelectorCCC le asigna automáticamente el CCC del
+    ''' cliente (RCB exige CCC), lo que dispara un falso "el pedido tiene cambios
+    ''' sin guardar" aunque el usuario no toque nada. En ese escenario concreto
+    ''' queremos un mensaje explicativo, no el genérico.
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerMensajeCccAsignadoPorRecibo_FormaPagoRcbSinCccEnSnapshot_DevuelveMensajeExplicativo()
+        ' Arrange - snapshot tal como vino del API (RCB sin CCC)
+        Dim snapshot As New PedidoVentaDTO() With {.formaPago = "RCB", .ccc = Nothing}
+        ' Estado actual tras la auto-asignación del SelectorCCC
+        Dim actual As New PedidoVentaDTO() With {.formaPago = "RCB", .ccc = "1"}
+
+        ' Act
+        Dim mensaje = actual.ObtenerMensajeCccAsignadoPorRecibo(snapshot)
+
+        ' Assert
+        Assert.IsNotNull(mensaje, "Debe devolver un mensaje explicativo, no Nothing")
+        Assert.IsTrue(mensaje.Contains("RCB") OrElse mensaje.ToUpperInvariant().Contains("RECIBO"),
+                      $"El mensaje debe mencionar la forma de pago Recibo. Fue: {mensaje}")
+        Assert.IsTrue(mensaje.Contains("1"), $"El mensaje debe indicar el CCC asignado. Fue: {mensaje}")
+    End Sub
+
+    ''' <summary>
+    ''' El CCC del pedido viene de un char de BD con padding ('1  '); el snapshot
+    ''' "sin CCC" puede llegar como cadena vacía o con espacios. Debe seguir
+    ''' detectándose como asignación automática por Recibo.
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerMensajeCccAsignadoPorRecibo_SnapshotConEspaciosYRcbConPadding_DevuelveMensaje()
+        ' Arrange
+        Dim snapshot As New PedidoVentaDTO() With {.formaPago = "RCB  ", .ccc = "   "}
+        Dim actual As New PedidoVentaDTO() With {.formaPago = "RCB  ", .ccc = "1  "}
+
+        ' Act
+        Dim mensaje = actual.ObtenerMensajeCccAsignadoPorRecibo(snapshot)
+
+        ' Assert
+        Assert.IsNotNull(mensaje, "Empty/padding deben tratarse como 'sin CCC' y RCB con padding como Recibo")
+    End Sub
+
+    ''' <summary>
+    ''' Si el snapshot YA tenía CCC, el cambio no es la auto-asignación por Recibo:
+    ''' es un cambio real del usuario y debe usarse el mensaje genérico (Nothing).
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerMensajeCccAsignadoPorRecibo_SnapshotYaTeniaCcc_DevuelveNothing()
+        ' Arrange
+        Dim snapshot As New PedidoVentaDTO() With {.formaPago = "RCB", .ccc = "1"}
+        Dim actual As New PedidoVentaDTO() With {.formaPago = "RCB", .ccc = "2"}
+
+        ' Act
+        Dim mensaje = actual.ObtenerMensajeCccAsignadoPorRecibo(snapshot)
+
+        ' Assert
+        Assert.IsNull(mensaje, "Cambiar de un CCC a otro no es la auto-asignación por Recibo")
+    End Sub
+
+    ''' <summary>
+    ''' Si la forma de pago no es Recibo, asignar/cambiar el CCC no se explica por
+    ''' la regla de Recibo; debe usarse el mensaje genérico (Nothing).
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerMensajeCccAsignadoPorRecibo_FormaPagoNoRcb_DevuelveNothing()
+        ' Arrange
+        Dim snapshot As New PedidoVentaDTO() With {.formaPago = "EFC", .ccc = Nothing}
+        Dim actual As New PedidoVentaDTO() With {.formaPago = "EFC", .ccc = "1"}
+
+        ' Act
+        Dim mensaje = actual.ObtenerMensajeCccAsignadoPorRecibo(snapshot)
+
+        ' Assert
+        Assert.IsNull(mensaje, "Sin forma de pago Recibo no aplica el mensaje específico")
+    End Sub
+
+    ''' <summary>
+    ''' Guard de robustez: snapshot Nothing no debe lanzar y devuelve Nothing.
+    ''' </summary>
+    <TestMethod()>
+    Public Sub ObtenerMensajeCccAsignadoPorRecibo_SnapshotNothing_DevuelveNothing()
+        ' Arrange
+        Dim actual As New PedidoVentaDTO() With {.formaPago = "RCB", .ccc = "1"}
+
+        ' Act
+        Dim mensaje = actual.ObtenerMensajeCccAsignadoPorRecibo(Nothing)
+
+        ' Assert
+        Assert.IsNull(mensaje)
+    End Sub
+
+#End Region
+
 End Class

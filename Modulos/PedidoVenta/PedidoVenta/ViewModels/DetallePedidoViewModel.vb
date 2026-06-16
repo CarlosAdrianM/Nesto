@@ -1810,16 +1810,26 @@ Public Class DetallePedidoViewModel
                 If(difs.Any(), String.Join(" | ", difs), "(sin diferencias detectadas)"))
         End If
 
+        Dim titulo As String = "Cambios sin guardar"
         Dim mensaje As String
         If EstaCreandoPedido Then
             mensaje = "El pedido aún no ha sido guardado. Debe guardar el pedido antes de crear albarán o factura." & vbCrLf & vbCrLf &
                      "¿Desea guardar el pedido ahora?"
         Else
-            mensaje = "El pedido tiene cambios sin guardar. Si continúa sin guardar, el albarán/factura se creará con los datos anteriores." & vbCrLf & vbCrLf &
-                     "¿Desea guardar los cambios antes de continuar?"
+            ' Caso pedido 918386 (Issue #254): forma de pago Recibo (RCB) sin CCC en BD.
+            ' El SelectorCCC asigna el CCC automáticamente al cargar, lo que dispara este
+            ' aviso sin que el usuario toque nada. Mostramos un mensaje explicativo.
+            Dim mensajeCcc As String = If(IsNothing(pedido), Nothing, pedido.Model.ObtenerMensajeCccAsignadoPorRecibo(_snapshotPedidoGuardado))
+            If mensajeCcc IsNot Nothing Then
+                titulo = "Falta la cuenta de cobro (CCC)"
+                mensaje = mensajeCcc
+            Else
+                mensaje = "El pedido tiene cambios sin guardar. Si continúa sin guardar, el albarán/factura se creará con los datos anteriores." & vbCrLf & vbCrLf &
+                         "¿Desea guardar los cambios antes de continuar?"
+            End If
         End If
 
-        Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Cambios sin guardar", mensaje)
+        Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync(titulo, mensaje)
 
         If Not confirmar Then
             Return False ' Usuario no quiso guardar, cancelar operación
