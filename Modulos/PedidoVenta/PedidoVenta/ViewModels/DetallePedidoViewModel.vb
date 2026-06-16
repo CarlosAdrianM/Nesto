@@ -95,7 +95,7 @@ Public Class DetallePedidoViewModel
         cmdPonerDescuentoPedido = New DelegateCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
         EnviarCobroTarjetaCommand = New DelegateCommand(AddressOf OnEnviarCobroTarjeta, AddressOf CanEnviarCobroTarjeta)
-        CopiarAlPortapapelesCommand = New DelegateCommand(AddressOf OnCopiarAlPortapapeles)
+        CopiarAlPortapapelesCommand = New DelegateCommand(AddressOf OnCopiarAlPortapapeles, AddressOf CanCopiarAlPortapapeles)
         CrearAlbaranVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranVenta, AddressOf CanCrearAlbaranVenta)
         CrearFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
         CrearAlbaranYFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranYFacturaVenta, AddressOf CanCrearAlbaranYFacturaVenta)
@@ -567,6 +567,7 @@ Public Class DetallePedidoViewModel
             AceptarPresupuestoCommand.RaiseCanExecuteChanged()
             PasarAPresupuestoCommand.RaiseCanExecuteChanged()
             DescargarPresupuestoCommand.RaiseCanExecuteChanged()
+            CopiarAlPortapapelesCommand.RaiseCanExecuteChanged() ' Nesto#385
             CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
             CrearFacturaVentaCommand.RaiseCanExecuteChanged()
             CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
@@ -1408,6 +1409,11 @@ Public Class DetallePedidoViewModel
             Dim unused = SetProperty(_copiarAlPortapapelesCommand, value)
         End Set
     End Property
+    ' Nesto#385: el botón solo está habilitado si hay un pedido cargado.
+    Private Function CanCopiarAlPortapapeles() As Boolean
+        Return Not IsNothing(pedido)
+    End Function
+
     Private Sub OnCopiarAlPortapapeles()
         Dim html As New StringBuilder()
         Dim unused2 = html.Append(Constantes.Formatos.HTML_CLIENTE_P_TAG)
@@ -2436,6 +2442,10 @@ Public Class DetallePedidoViewModel
     End Sub
 
     Public Overrides Function ToString() As String
+        ' Nesto#385: sin pedido cargado (pedido = Nothing) no hay nada que copiar; evitamos el NRE.
+        If IsNothing(pedido) Then
+            Return String.Empty
+        End If
         Dim pedidoString As String = $"Pedido {pedido.numero}" + vbCr + $"Cliente {pedido.cliente}/{pedido.contacto}"
         If Not IsNothing(DireccionEntregaSeleccionada) Then
             pedidoString += vbCr + DireccionEntregaSeleccionada.nombre
