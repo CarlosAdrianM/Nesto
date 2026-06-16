@@ -136,6 +136,11 @@ Public Class BorradorPlantillaVenta
     Public Property MandarCobroTarjeta As Boolean
 
     ''' <summary>
+    ''' Nesto#380: si el cliente recoge el producto (casilla "Recoger Producto").
+    ''' </summary>
+    Public Property RecogerProducto As Boolean
+
+    ''' <summary>
     ''' Email para enviar el cobro por tarjeta
     ''' </summary>
     Public Property CobroTarjetaCorreo As String

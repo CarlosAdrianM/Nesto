@@ -216,6 +216,25 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
+        public void CargarBorrador_PreservaRecogerProducto()
+        {
+            // Nesto#380: RecogerProducto no se persistía en el borrador (no estaba en el modelo)
+            // y se perdía al guardar/cargar. Ahora debe conservarse en el round-trip.
+            // Arrange
+            var servicio = CrearServicioTest();
+            var borradorOriginal = CrearBorradorPrueba();
+            borradorOriginal.RecogerProducto = true;
+            var guardado = servicio.GuardarBorrador(borradorOriginal);
+
+            // Act
+            var cargado = servicio.CargarBorrador(guardado.Id);
+
+            // Assert
+            Assert.IsTrue(cargado.RecogerProducto,
+                "RecogerProducto debe conservarse al guardar y cargar el borrador");
+        }
+
+        [TestMethod]
         public void CargarBorrador_DevuelveLineasProducto()
         {
             // Arrange

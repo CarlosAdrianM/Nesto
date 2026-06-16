@@ -3122,7 +3122,8 @@ Public Class PlantillaVentaViewModel
             .ServirPorGlovo = Estado.EnviarPorGlovo,
             .MandarCobroTarjeta = Estado.MandarCobroTarjeta,
             .CobroTarjetaCorreo = Estado.CobroTarjetaCorreo,
-            .CobroTarjetaMovil = Estado.CobroTarjetaMovil
+            .CobroTarjetaMovil = Estado.CobroTarjetaMovil,
+            .RecogerProducto = RecogerProducto
         }
 
         Return borrador
@@ -3345,6 +3346,9 @@ Public Class PlantillaVentaViewModel
             EnviarPorGlovo = borrador.ServirPorGlovo
             Estado.MandarCobroTarjeta = borrador.MandarCobroTarjeta
             RaisePropertyChanged(NameOf(MandarCobroTarjeta))
+
+            ' Nesto#380: restaurar la casilla "Recoger Producto"
+            RecogerProducto = borrador.RecogerProducto
             If Not String.IsNullOrEmpty(borrador.CobroTarjetaCorreo) Then
                 CobroTarjetaCorreo = borrador.CobroTarjetaCorreo
             End If
