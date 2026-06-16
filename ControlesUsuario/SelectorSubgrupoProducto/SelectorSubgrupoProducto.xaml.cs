@@ -13,10 +13,34 @@ namespace ControlesUsuario
 {
     public partial class SelectorSubgrupoProducto : UserControl
     {
+        // Nesto#369: el HttpClient debe adjuntar el JWT para que el usuario salga en ELMAH.
+        private readonly IClienteApiFactory _clienteApiFactory;
+
         public SelectorSubgrupoProducto()
         {
             InitializeComponent();
             Loaded += OnLoaded; // Cargar datos al inicializar el control
+
+            try
+            {
+                _clienteApiFactory = ContainerLocator.Container.Resolve<IClienteApiFactory>();
+            }
+            catch
+            {
+                // Modo diseñador / sin contenedor: se usa el fallback en CrearClienteApi().
+            }
+        }
+
+        // Nesto#369: usa la factoría (HttpClient con JWT) si hay contenedor; si no (diseñador),
+        // cae al cliente sin token resolviendo la BaseAddress de IConfiguracion.
+        private HttpClient CrearClienteApi()
+        {
+            if (_clienteApiFactory != null)
+            {
+                return _clienteApiFactory.Crear();
+            }
+            IConfiguracion configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
+            return new HttpClient { BaseAddress = new Uri(configuracion.servidorAPI) };
         }
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -29,11 +53,8 @@ namespace ControlesUsuario
 
         private async Task CargarDatos()
         {
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearClienteApi())
             {
-                IConfiguracion configuracion = ContainerLocator.Container.Resolve<IConfiguracion>();
-                client.BaseAddress = new Uri(configuracion.servidorAPI);
-
                 try
                 {
                     string urlConsulta = "Productos/Subgrupos";

@@ -1,6 +1,7 @@
 ﻿using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
+using Prism.Ioc;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
@@ -17,10 +18,31 @@ namespace ControlesUsuario
     /// </summary>
     public partial class SelectorEmpresa : UserControl, INotifyPropertyChanged
     {
+        // Nesto#369: el HttpClient debe adjuntar el JWT para que el usuario salga en ELMAH.
+        private readonly IClienteApiFactory _clienteApiFactory;
+
         public SelectorEmpresa()
         {
             InitializeComponent();
             GridPrincipal.DataContext = this;
+
+            try
+            {
+                _clienteApiFactory = ContainerLocator.Container.Resolve<IClienteApiFactory>();
+            }
+            catch
+            {
+                // Modo diseñador / sin contenedor: se usa el fallback en CrearClienteApi().
+            }
+        }
+
+        // Nesto#369: usa la factoría (HttpClient con JWT) si hay contenedor; si no (diseñador),
+        // cae al cliente sin token con la BaseAddress de Configuracion.
+        private HttpClient CrearClienteApi()
+        {
+            return _clienteApiFactory != null
+                ? _clienteApiFactory.Crear()
+                : new HttpClient { BaseAddress = new Uri(Configuracion.servidorAPI) };
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -165,9 +187,8 @@ namespace ControlesUsuario
             {
                 return;
             }
-            using (HttpClient client = new HttpClient())
+            using (HttpClient client = CrearClienteApi())
             {
-                client.BaseAddress = new Uri(Configuracion.servidorAPI);
                 HttpResponseMessage response;
 
                 try

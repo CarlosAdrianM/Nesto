@@ -23,11 +23,32 @@ namespace ControlesUsuario
     /// </summary>
     public partial class SelectorFacturas : UserControl, INotifyPropertyChanged
     {
+        // Nesto#369: el HttpClient debe adjuntar el JWT para que el usuario salga en ELMAH.
+        private readonly IClienteApiFactory _clienteApiFactory;
+
         public SelectorFacturas()
         {
             InitializeComponent();
             GridPrincipal.DataContext = this;
             LimpiarBusquedaCommand = new DelegateCommand(OnLimpiarBusqueda);
+
+            try
+            {
+                _clienteApiFactory = ContainerLocator.Container.Resolve<IClienteApiFactory>();
+            }
+            catch
+            {
+                // Modo diseñador / sin contenedor: se usa el fallback en CrearClienteApi().
+            }
+        }
+
+        // Nesto#369: usa la factoría (HttpClient con JWT) si hay contenedor; si no (diseñador),
+        // cae al cliente sin token con la BaseAddress de Configuracion.
+        private HttpClient CrearClienteApi()
+        {
+            return _clienteApiFactory != null
+                ? _clienteApiFactory.Crear()
+                : new HttpClient { BaseAddress = new Uri(Configuracion.servidorAPI) };
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -424,9 +445,8 @@ namespace ControlesUsuario
 
             try
             {
-                using (var client = new HttpClient())
+                using (var client = CrearClienteApi())
                 {
-                    client.BaseAddress = new Uri(Configuracion.servidorAPI);
 
                     // Determinar rango de fechas segun permisos del usuario
                     bool esAdmin = Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
@@ -649,9 +669,8 @@ namespace ControlesUsuario
 
             try
             {
-                using (var client = new HttpClient())
+                using (var client = CrearClienteApi())
                 {
-                    client.BaseAddress = new Uri(Configuracion.servidorAPI);
 
                     string url = $"PedidosVenta/BuscarLineas?cliente={Cliente}&texto={Uri.EscapeDataString(texto)}";
                     var response = await client.GetAsync(url, token);
