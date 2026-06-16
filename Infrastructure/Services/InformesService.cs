@@ -53,6 +53,11 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/UbicacionesInventario?empresa={Uri.EscapeDataString(empresa)}",
                 "las ubicaciones de inventario").ConfigureAwait(false);
 
+        public async Task<byte[]> DescargarUbicacionesInventarioPdf(string empresa = "1")
+            => await GetBytesAsync(
+                $"Informes/UbicacionesInventario/Pdf?empresa={Uri.EscapeDataString(empresa)}",
+                "el PDF de las ubicaciones de inventario").ConfigureAwait(false);
+
         public async Task<List<KitsQueSePuedenMontarModel>> LeerKitsQueSePuedenMontar(string empresa, string fecha, string almacen, string filtroRutas)
             => await GetAsync<List<KitsQueSePuedenMontarModel>>(
                 $"Informes/KitsQueSePuedenMontar?empresa={Uri.EscapeDataString(empresa)}&fecha={Uri.EscapeDataString(fecha)}&almacen={Uri.EscapeDataString(almacen)}&filtroRutas={Uri.EscapeDataString(filtroRutas)}",

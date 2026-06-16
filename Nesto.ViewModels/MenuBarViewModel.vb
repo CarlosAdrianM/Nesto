@@ -239,9 +239,9 @@ Public Class MenuBarViewModel
     End Sub
 
     Private Async Sub OnInventario()
-        Dim dataSource As List(Of Informes.UbicacionesInventarioModel) = Await _servicioInformes.LeerUbicacionesInventario()
-        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-            "Nesto.Informes.UbicacionesInventario.rdlc", "UbicacionesInventarioDataSet", dataSource)
+        ' El PDF lo genera NestoAPI con QuestPDF (api/Informes/UbicacionesInventario/Pdf); ya no se
+        ' renderiza el RDLC en local (roadmap: mover el render de informes al backend).
+        Dim pdf As Byte() = Await _servicioInformes.DescargarUbicacionesInventarioPdf()
         Dim fileName As String = Path.GetTempPath + "InformeUbicacionesInventario.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
