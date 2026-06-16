@@ -42,4 +42,10 @@ Public Interface IAgencia
     ' necesita en el aviso de recogida (hoy solo Canteras).
     ReadOnly Property DimensionesBultosObligatorias As Boolean
 
+    ' Innovatrans: tipo de flujo de tramitación. Las agencias clásicas devuelven TramitarAlCerrar
+    ' (montamos e imprimimos en local, "Tramitar todos" envía a la agencia); las de plataforma
+    ' (Innovatrans/DataTrans) devuelven RegistrarAlImprimir (al imprimir ya se inserta en la
+    ' agencia). Las operaciones remotas concretas están en IAgenciaConGestionRemota.
+    ReadOnly Property FlujoTramitacion As TipoFlujoTramitacion
+
 End Interface

@@ -244,6 +244,12 @@ Public Class AgenciaCanteras
         End Get
     End Property
 
+    Public ReadOnly Property FlujoTramitacion As TipoFlujoTramitacion Implements IAgencia.FlujoTramitacion
+        Get
+            Return TipoFlujoTramitacion.TramitarAlCerrar
+        End Get
+    End Property
+
     Public ReadOnly Property DimensionesBultosObligatorias As Boolean Implements IAgencia.DimensionesBultosObligatorias
         Get
             ' Canteras necesita las medidas de los bultos en el aviso de recogida (Nesto#367).
