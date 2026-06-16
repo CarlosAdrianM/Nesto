@@ -151,26 +151,7 @@ Public Class PedidoVentaService
                     ' Hacer algo con respuesta si es necesario
                 Else
                     Dim respuestaError = Await response.Content.ReadAsStringAsync()
-                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-
-                    ' Carlos 28/11/25: Detectar si es un error de validación de pedido (PEDIDO_VALIDACION_FALLO)
-                    ' para lanzar ValidationException que el ViewModel pueda capturar (igual que en CrearPedido)
-                    Dim errorCode As String = Nothing
-                    If Not IsNothing(detallesError("error")) Then
-                        Dim errorObj As JObject = detallesError("error")
-                        errorCode = errorObj("code")?.ToString()
-                    End If
-
-                    ' Parsear el mensaje de error usando HttpErrorHelper
-                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
-
-                    ' Si es error de validación de pedido, lanzar ValidationException
-                    ' para que el ViewModel pueda preguntar "¿Crear sin pasar validación?"
-                    If errorCode = "PEDIDO_VALIDACION_FALLO" Then
-                        Throw New System.ComponentModel.DataAnnotations.ValidationException(contenido)
-                    Else
-                        Throw New Exception(contenido)
-                    End If
+                    Throw InterpretarRespuestaError(respuestaError)
                 End If
 
             Catch ex As ValidationException
@@ -179,6 +160,40 @@ Public Class PedidoVentaService
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
         End Using
+    End Function
+
+    ''' <summary>
+    ''' Convierte el cuerpo de una respuesta de error del API en la excepción adecuada.
+    ''' Detecta el código PEDIDO_VALIDACION_FALLO para lanzar ValidationException (que el
+    ''' ViewModel captura para ofrecer "¿Crear sin pasar validación?"); el resto se lanza
+    ''' como Exception normal con el mensaje legible.
+    ''' </summary>
+    Public Shared Function InterpretarRespuestaError(respuestaError As String) As Exception
+        ' La respuesta de error puede ser JSON (GlobalExceptionFilter / BadRequest) o
+        ' TEXTO PLANO: errorPersonalizado en NestoAPI manda StringContent sin formato JSON
+        ' (p.ej. "No se puede modificar un pedido ya facturado"). NO asumir JSON: al
+        ' deserializar un texto plano que empieza por 'N', Newtonsoft cree que es un NaN y
+        ' lanza "Error parsing NaN value. Path '', line 1, position 1.", enmascarando el
+        ' mensaje real (pedido 918386 en albarán).
+        Dim errorCode As String = Nothing
+        Try
+            Dim detallesError As JObject = JsonConvert.DeserializeObject(Of JObject)(respuestaError)
+            If detallesError IsNot Nothing AndAlso Not IsNothing(detallesError("error")) Then
+                Dim errorObj As JObject = detallesError("error")
+                errorCode = errorObj("code")?.ToString()
+            End If
+        Catch
+            ' No es un objeto JSON: se tratará como texto plano más abajo.
+        End Try
+
+        ' ParsearErrorHttp(String) ya cae a devolver el texto tal cual si no es JSON.
+        Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(respuestaError)
+
+        If errorCode = "PEDIDO_VALIDACION_FALLO" Then
+            Return New System.ComponentModel.DataAnnotations.ValidationException(contenido)
+        Else
+            Return New Exception(contenido)
+        End If
     End Function
 
     Private Async Function ObtenerMensajeError(response As HttpResponseMessage) As Task(Of String)
