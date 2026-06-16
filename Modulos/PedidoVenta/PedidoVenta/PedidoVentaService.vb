@@ -430,11 +430,10 @@ Public Class PedidoVentaService
                         Throw New Exception("Pedido unido no generado")
                     End If
                 Else
-                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
-                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
-                    Throw New Exception(contenido)
+                    ' Nesto#369/254: no asumir JSON; errorPersonalizado manda texto plano y la
+                    ' deserializacion ciega lo enmascaraba como "Error parsing NaN value".
+                    Dim respuestaError = Await response.Content.ReadAsStringAsync()
+                    Throw InterpretarRespuestaError(respuestaError)
                 End If
             Catch ex As Exception
                 Throw New Exception(ex.Message)
