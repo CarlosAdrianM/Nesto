@@ -18,11 +18,13 @@
             Return "Insular marítimo"
         End Get
     End Property
+    ' Tarifa GLS/ASM 2026 (ASM_2026.pdf, Servicio Insular Marítimo). Precios ANTES de fuel
+    ' (GLS aplica carburante 9,05% mayo 2026 + climat protec 1,5% aparte). DUAS/cabildos aparte.
     Private ReadOnly _costeEnvio As New List(Of (Decimal, ZonasEnvioAgencia, Decimal)) From {
-        (5D, ZonasEnvioAgencia.BalearesMayores, 12.16D),
-        (5D, ZonasEnvioAgencia.BalearesMenores, 14.75D),
-        (5D, ZonasEnvioAgencia.CanariasMayores, 10.63D + 20.85D), 'Los 20.85 € es un coste aproximado del DUA. Cambiar con valor real
-        (5D, ZonasEnvioAgencia.CanariasMenores, 14.36D + 20.85D)
+        (5D, ZonasEnvioAgencia.BalearesMayores, 12.51D),
+        (5D, ZonasEnvioAgencia.BalearesMenores, 15.18D),
+        (5D, ZonasEnvioAgencia.CanariasMayores, 12.94D + 20.85D), 'Los 20.85 € es un coste aproximado del DUA. Cambiar con valor real
+        (5D, ZonasEnvioAgencia.CanariasMenores, 14.78D + 20.85D)
     }
     Public ReadOnly Property CosteEnvio As List(Of (Decimal, ZonasEnvioAgencia, Decimal)) Implements ITarifaAgencia.CosteEnvio
         Get
@@ -38,13 +40,13 @@
 
     Public Function CosteKiloAdicional(zona As ZonasEnvioAgencia) As Decimal Implements ITarifaAgencia.CosteKiloAdicional
         If zona = ZonasEnvioAgencia.BalearesMayores Then
-            Return 0.91
+            Return 0.94
         ElseIf zona = ZonasEnvioAgencia.BalearesMenores Then
-            Return 1.11
+            Return 1.14
         ElseIf zona = ZonasEnvioAgencia.CanariasMayores Then
-            Return 0.97
+            Return 1.0
         ElseIf zona = ZonasEnvioAgencia.CanariasMenores Then
-            Return 1.46
+            Return 1.5
         Else
             Return Decimal.MaxValue
         End If
