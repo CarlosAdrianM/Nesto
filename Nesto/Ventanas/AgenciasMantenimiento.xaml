@@ -1,4 +1,4 @@
-<UserControl x:Class="RecargosCombustible" Name="RecargosCombustible"
+<UserControl x:Class="AgenciasMantenimiento" Name="AgenciasMantenimiento"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
@@ -13,28 +13,38 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="Recargo de combustible (fuel) por agencia"
+            <TextBlock Grid.Row="0" Text="Mantenimiento de agencias de transporte"
                        FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
 
             <DataGrid Grid.Row="1" ItemsSource="{Binding Agencias}" AutoGenerateColumns="False"
                       CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Nº" Binding="{Binding Numero}" IsReadOnly="True" Width="60"/>
-                    <DataGridTextColumn Header="Agencia" Binding="{Binding Nombre}" IsReadOnly="True" Width="*"/>
+                    <DataGridTextColumn Header="Nº" Binding="{Binding Numero}" Width="50"/>
+                    <DataGridTextColumn Header="Empresa" Binding="{Binding Empresa}" Width="70"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="140"/>
+                    <DataGridTextColumn Header="Ruta" Binding="{Binding Ruta}" Width="60"/>
+                    <DataGridTextColumn Header="Identificador" Binding="{Binding Identificador}" Width="*"/>
+                    <DataGridTextColumn Header="Prefijo cód. barras" Binding="{Binding PrefijoCodigoBarras}" Width="120"/>
+                    <DataGridTextColumn Header="Cta. reembolsos" Binding="{Binding CuentaReembolsos}" Width="120"/>
                     <DataGridTextColumn Header="Fuel (%)"
                                         Binding="{Binding PorcentajeFuel, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}"
-                                        Width="120">
+                                        Width="80">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Right"/>
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
+                    <DataGridCheckBoxColumn Header="Cuarentena" Binding="{Binding EnCuarentena, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
                 </DataGrid.Columns>
             </DataGrid>
 
-            <Button Grid.Row="2" Content="Guardar" Command="{Binding GuardarCommand}"
-                    HorizontalAlignment="Right" Width="120" Height="30" Margin="0,10,0,0"/>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button Content="Nueva agencia" Command="{Binding NuevaAgenciaCommand}"
+                        Width="120" Height="30" Margin="0,0,10,0"/>
+                <Button Content="Guardar" Command="{Binding GuardarCommand}"
+                        Width="120" Height="30"/>
+            </StackPanel>
         </Grid>
     </xctk:BusyIndicator>
 </UserControl>

@@ -135,11 +135,11 @@ Partial Public Class Application
                 Return New NovedadesService(factory)
             End Function)
 
-        ' Nesto#340: mantenimiento del recargo de combustible (fuel) por agencia
-        Dim unusedRecargos = containerRegistry.RegisterSingleton(Of IServicioRecargosCombustible)(
+        ' Nesto#340: mantenimiento de agencias de transporte (alta/edición + fuel + cuarentena)
+        Dim unusedAgencias = containerRegistry.RegisterSingleton(Of IServicioAgenciasMantenimiento)(
             Function(provider)
                 Dim factory = provider.Resolve(Of IClienteApiFactory)()
-                Return New RecargosCombustibleService(factory)
+                Return New AgenciasMantenimientoService(factory)
             End Function)
 
         Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
@@ -281,7 +281,7 @@ Partial Public Class Application
         ViewModelLocationProvider.Register(GetType(Alquileres).ToString, GetType(AlquileresViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorCliente).ToString, GetType(SelectorClienteViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorProveedor).ToString, GetType(SelectorProveedorViewModel))
-        ViewModelLocationProvider.Register(GetType(RecargosCombustible).ToString, GetType(RecargosCombustibleViewModel))
+        ViewModelLocationProvider.Register(GetType(AgenciasMantenimiento).ToString, GetType(AgenciasMantenimientoViewModel))
     End Sub
 
     Protected Overrides Sub OnInitialized()

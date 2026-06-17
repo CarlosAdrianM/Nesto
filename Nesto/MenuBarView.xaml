@@ -84,7 +84,7 @@
                 <RibbonButton Label="Alquileres" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesAlquileresCommand}" />
                 <RibbonButton Label="Remesas" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesRemesasCommand}" />
                 <RibbonButton Label="Agencias" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesAgenciasCommand}" />
-                <RibbonButton Label="Fuel agencias" LargeImageSource="/Images/Cliente.png" Command="{Binding RecargosCombustibleCommand}" />
+                <RibbonButton Label="Mant. agencias" LargeImageSource="/Images/Cliente.png" Command="{Binding AgenciasMantenimientoCommand}" />
             </RibbonGroup>
         </RibbonTab>
 
