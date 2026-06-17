@@ -85,6 +85,19 @@ Public Class AgenciasMantenimientoViewModelTests
     End Function
 
     <TestMethod()>
+    Public Async Function GuardarAsync_ExpandeLaCuentaDeReembolsosEnFormatoPunto() As Task
+        Dim agencia = New AgenciaMantenimiento With {.Numero = 12, .Nombre = "Innovatrans", .CuentaReembolsos = "555.20", .EsNueva = True}
+        A.CallTo(Function() servicio.LeerAgencias()).Returns(Task.FromResult(New List(Of AgenciaMantenimiento) From {agencia}))
+        Dim vm = CrearVm()
+        Await vm.CargarAsync()
+
+        Await vm.GuardarAsync()
+
+        Assert.AreEqual("55500020", agencia.CuentaReembolsos)
+        A.CallTo(Function() servicio.CrearAgencia(A(Of AgenciaMantenimiento).That.Matches(Function(a) a.CuentaReembolsos = "55500020"))).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
     Public Async Function NuevaAgencia_AnadeFilaConElSiguienteNumeroYMarcadaComoNueva() As Task
         A.CallTo(Function() servicio.LeerAgencias()).Returns(Task.FromResult(New List(Of AgenciaMantenimiento) From {
             New AgenciaMantenimiento With {.Numero = 11, .Nombre = "Canteras"}

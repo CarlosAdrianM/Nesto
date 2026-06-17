@@ -25,7 +25,13 @@
                     <DataGridTextColumn Header="Ruta" Binding="{Binding Ruta}" Width="60"/>
                     <DataGridTextColumn Header="Identificador" Binding="{Binding Identificador}" Width="*"/>
                     <DataGridTextColumn Header="Prefijo cód. barras" Binding="{Binding PrefijoCodigoBarras}" Width="120"/>
-                    <DataGridTextColumn Header="Cta. reembolsos" Binding="{Binding CuentaReembolsos}" Width="120"/>
+                    <DataGridTextColumn Header="Cta. reembolsos" Binding="{Binding CuentaReembolsos}" Width="120">
+                        <DataGridTextColumn.HeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="ToolTip" Value="Admite formato abreviado con punto: 555.20 → 55500020"/>
+                            </Style>
+                        </DataGridTextColumn.HeaderStyle>
+                    </DataGridTextColumn>
                     <DataGridTextColumn Header="Fuel (%)"
                                         Binding="{Binding PorcentajeFuel, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}"
                                         Width="80">

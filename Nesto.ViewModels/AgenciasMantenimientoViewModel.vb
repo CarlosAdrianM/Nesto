@@ -1,4 +1,5 @@
 Imports System.Collections.ObjectModel
+Imports ControlesUsuario.Behaviors
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models
@@ -66,6 +67,9 @@ Public Class AgenciasMantenimientoViewModel
 
     Public Async Function GuardarAsync() As Task
         For Each agencia In Agencias
+            ' Admite la cuenta en formato abreviado con punto (555.20 -> 55500020). Una cuenta ya
+            ' expandida o vacía (Glovo/Canteras no tienen) se queda igual.
+            agencia.CuentaReembolsos = ExpandirCuentaReembolsos(agencia.CuentaReembolsos)
             If agencia.EsNueva Then
                 Await _servicio.CrearAgencia(agencia)
                 agencia.EsNueva = False
@@ -74,6 +78,17 @@ Public Class AgenciasMantenimientoViewModel
             End If
         Next
         Await GuardarCuarentenaAsync()
+    End Function
+
+    Private Shared Function ExpandirCuentaReembolsos(cuenta As String) As String
+        If String.IsNullOrWhiteSpace(cuenta) Then
+            Return cuenta
+        End If
+        Dim cuentaExpandida As String = Nothing
+        If Not CuentaContableHelper.TryExpandirCuenta(cuenta, cuentaExpandida) Then
+            Throw New ApplicationException($"La cuenta de reembolsos '{cuenta}' no es válida.")
+        End If
+        Return cuentaExpandida
     End Function
 
     ' Nombres (distinct) marcados en cuarentena -> parámetro "Nombre1, Nombre2, ...".
