@@ -16,15 +16,17 @@ Public Class PlantillaVentaService
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _servicioAutenticacion = servicioAutenticacion
+        ' Nesto#369: el factory pone BaseAddress y adjunta el JWT automáticamente (AuthTokenHandler).
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
     Public Async Function EnviarCobroTarjeta(correo As String, movil As String, totalPedido As Decimal, pedido As String, empresa As String, cliente As String) As Task(Of String) Implements IPlantillaVentaService.EnviarCobroTarjeta
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -60,8 +62,7 @@ Public Class PlantillaVentaService
     End Function
 
     Public Async Function CargarClientesVendedor(filtroCliente As String, vendedor As String, todosLosVendedores As Boolean) As Task(Of ICollection(Of ClienteJson)) Implements IPlantillaVentaService.CargarClientesVendedor
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
 
@@ -86,8 +87,7 @@ Public Class PlantillaVentaService
     End Function
 
     Public Async Function CargarCliente(empresa As String, cliente As String, contacto As String) As Task(Of ClienteCrear) Implements IPlantillaVentaService.CargarCliente
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
 
@@ -114,8 +114,7 @@ Public Class PlantillaVentaService
             Return Nothing
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             client.Timeout = client.Timeout.Add(New TimeSpan(0, 5, 0)) 'cinco minutos más
             Dim response As HttpResponseMessage
 
@@ -141,8 +140,7 @@ Public Class PlantillaVentaService
             .Almacenes = almacenes
         }
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = String.Empty
 
@@ -168,8 +166,7 @@ Public Class PlantillaVentaService
     End Function
 
     Public Async Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of Integer)) Implements IPlantillaVentaService.CargarListaPendientes
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             Try
@@ -193,8 +190,7 @@ Public Class PlantillaVentaService
 
     Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of String) Implements IPlantillaVentaService.CrearPedido
         ' TO-DO: llamar al método CrearPedido del servicio de pedidos y eliminar este código duplicado
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
@@ -241,8 +237,7 @@ Public Class PlantillaVentaService
     End Function
 
     Public Async Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, PedidoAmpliacion As PedidoVentaDTO) As Task(Of PedidoVentaDTO) Implements IPlantillaVentaService.UnirPedidos
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             Dim parametro As New ParametroStringIntPedido With {
@@ -281,8 +276,7 @@ Public Class PlantillaVentaService
     End Function
 
     Public Async Function CalcularFechaEntrega(fecha As Date, ruta As String, almacen As String) As Task(Of Date) Implements IPlantillaVentaService.CalcularFechaEntrega
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Try
                 Dim urlConsulta As String = $"PedidosVenta/FechaAjustada?fecha={fecha:yyyy-MM-ddTHH:mm:ss.fffZ}&ruta={ruta}&almacen={almacen}"
@@ -302,8 +296,7 @@ Public Class PlantillaVentaService
     End Function
 
     Public Async Function CargarVendedoresEquipo(jefeEquipo As String) As Task(Of List(Of VendedorDTO)) Implements IPlantillaVentaService.CargarVendedoresEquipo
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Try
                 Dim urlConsulta As String = $"Vendedores?empresa={Constantes.Empresas.EMPRESA_DEFECTO}&vendedor={jefeEquipo}"
@@ -323,8 +316,7 @@ Public Class PlantillaVentaService
     End Function
 
     Private Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta) Implements IPlantillaVentaService.CargarProductosBonificables
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Try
                 Dim parametro = (cliente, lineas)
@@ -350,8 +342,7 @@ Public Class PlantillaVentaService
     ''' Issue #94: Sistema Ganavisiones - FASE 6
     ''' </summary>
     Public Async Function CargarProductosBonificablesIds() As Task(Of HashSet(Of String)) Implements IPlantillaVentaService.CargarProductosBonificablesIds
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Try
                 Dim urlConsulta As String = $"Ganavisiones/ProductosIds?empresa={Constantes.Empresas.EMPRESA_DEFECTO}"
                 Dim response = Await client.GetAsync(urlConsulta).ConfigureAwait(False)
@@ -374,8 +365,7 @@ Public Class PlantillaVentaService
     ''' Issue #94: Sistema Ganavisiones - FASE 7
     ''' </summary>
     Public Async Function CargarProductosBonificablesParaPedido(empresa As String, baseImponibleBonificable As Decimal, almacen As String, servirJunto As Boolean, cliente As String, Optional incluirBloqueados As Boolean = False) As Task(Of ProductosBonificablesResponse) Implements IPlantillaVentaService.CargarProductosBonificablesParaPedido
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Try
                 Dim urlConsulta As String = $"Ganavisiones/ProductosBonificables?empresa={empresa}&baseImponibleBonificable={baseImponibleBonificable.ToString(Globalization.CultureInfo.InvariantCulture)}&almacen={almacen}&servirJunto={servirJunto.ToString().ToLower()}&cliente={cliente}&incluirBloqueados={incluirBloqueados.ToString().ToLower()}"
                 Dim response = Await client.GetAsync(urlConsulta).ConfigureAwait(False)
