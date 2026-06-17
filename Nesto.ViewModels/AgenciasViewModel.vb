@@ -2551,19 +2551,41 @@ Public Class AgenciasViewModel
     ' Llama al comparador de NestoAPI y lo contrasta con el cálculo local, SIN cambiar la selección
     ' real. Fire-and-forget: nunca debe bloquear ni romper el flujo de configuración del pedido.
     ' Transitorio hasta jubilar el comparador local (cuando Innovatrans esté operativa).
+    ' Para no inundar ELMAH, solo se registran las discrepancias (DIFIERE / sin resultado / error);
+    ' las coincidencias van a Console.
     Private Async Sub ComparacionShadow(empresa As String, codigoPostal As String, peso As Decimal, reembolso As Decimal, agenciaIdLocal As Integer, costeLocal As Decimal)
+        Dim mensajeElmah As String = Nothing
         Try
             Dim opcionServidor As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codigoPostal, peso, reembolso)
             If opcionServidor Is Nothing Then
-                Console.WriteLine($"[ComparadorShadow] CP={codigoPostal} peso={peso} | Local: agencia {agenciaIdLocal} ({costeLocal:N2}) | Servidor: sin resultado")
-                Return
+                mensajeElmah = $"Servidor sin resultado. Local: agencia {agenciaIdLocal} ({costeLocal:N2}). CP={codigoPostal} peso={peso} reembolso={reembolso}"
+            ElseIf opcionServidor.AgenciaId <> agenciaIdLocal Then
+                mensajeElmah = $"DIFIERE. Local: agencia {agenciaIdLocal} ({costeLocal:N2}); Servidor: agencia {opcionServidor.AgenciaId} {opcionServidor.NombreServicio} ({opcionServidor.Coste:N2}). CP={codigoPostal} peso={peso} reembolso={reembolso}"
+            Else
+                Console.WriteLine($"[ComparadorShadow] OK agencia {agenciaIdLocal} local={costeLocal:N2} servidor={opcionServidor.Coste:N2}")
             End If
-            Dim coincide As String = If(opcionServidor.AgenciaId = agenciaIdLocal, "OK", "DIFIERE")
-            Console.WriteLine($"[ComparadorShadow] CP={codigoPostal} peso={peso} reembolso={reembolso} | Local: agencia {agenciaIdLocal} ({costeLocal:N2}) | Servidor: agencia {opcionServidor.AgenciaId} {opcionServidor.NombreServicio} ({opcionServidor.Coste:N2}) | {coincide}")
         Catch ex As Exception
-            Console.WriteLine($"[ComparadorShadow] Error al consultar el comparador del servidor: {ex.Message}")
+            ' VB no permite Await dentro de un Catch: se registra fuera del Try.
+            mensajeElmah = $"Error al consultar el comparador del servidor: {ex.Message}"
         End Try
+
+        If mensajeElmah IsNot Nothing Then
+            Await RegistrarShadowEnElmah(mensajeElmah)
+        End If
     End Sub
+
+    ' Registra una entrada informativa del shadow en ELMAH (server-side, visible en producción).
+    ' Nunca lanza: el registro de diagnóstico no debe afectar al flujo real.
+    Private Shared Async Function RegistrarShadowEnElmah(mensaje As String) As Task
+        Try
+            Dim servicioErrores = ContainerLocator.Container?.Resolve(Of IServicioRegistroErrores)()
+            If servicioErrores IsNot Nothing Then
+                Await servicioErrores.RegistrarErrorAsync(New Exception("[ComparadorShadow] " & mensaje), "AgenciasViewModel.ComparacionShadow")
+            End If
+        Catch
+            ' Si falla el registro, se ignora.
+        End Try
+    End Function
     Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, fechaEntrega As Date)
         modificarEnvio(envio, reembolso, retorno, estado, False, fechaEntrega)
     End Sub
