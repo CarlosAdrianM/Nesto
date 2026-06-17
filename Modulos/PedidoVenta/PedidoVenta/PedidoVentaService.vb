@@ -18,16 +18,19 @@ Public Class PedidoVentaService
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _servicioAutenticacion = servicioAutenticacion
+        ' Nesto#369: el factory pone BaseAddress y adjunta el JWT automáticamente (AuthTokenHandler),
+        ' así el usuario sale en ELMAH sin tener que acordarse de ConfigurarAutorizacion en cada llamada.
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
     Private Async Function cargarListaPedidos(vendedor As String, verTodosLosVendedores As Boolean, mostrarPresupuestos As Boolean) As Task(Of ObservableCollection(Of ResumenPedido)) Implements IPedidoVentaService.cargarListaPedidos
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
             Dim vendedorConsulta As String = vendedor
@@ -61,8 +64,7 @@ Public Class PedidoVentaService
         End Using
     End Function
     Public Async Function cargarPedido(empresa As String, numero As Integer) As Task(Of PedidoVentaDTO) Implements IPedidoVentaService.cargarPedido
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             Try
                 Dim urlConsulta As String = "PedidosVenta"
@@ -91,10 +93,7 @@ Public Class PedidoVentaService
         End Using
     End Function
     Public Async Function cargarProducto(empresa As String, id As String, cliente As String, contacto As String, cantidad As Short) As Task(Of Producto) Implements IPedidoVentaService.cargarProducto
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            ' Nesto#379: sin token, los errores de este endpoint llegaban a ELMAH sin usuario
-            Dim unused = Await _servicioAutenticacion.ConfigurarAutorizacion(client)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             Try
@@ -129,8 +128,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function modificarPedido(pedido As PedidoVentaDTO) As Task Implements IPedidoVentaService.modificarPedido
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -212,8 +210,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function sacarPickingPedido(empresa As String, numero As Integer) As Task Implements IPedidoVentaService.sacarPickingPedido
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -243,8 +240,7 @@ Public Class PedidoVentaService
         End Using
     End Function
     Public Async Function sacarPickingPedido(cliente As String) As Task Implements IPedidoVentaService.sacarPickingPedido
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -273,8 +269,7 @@ Public Class PedidoVentaService
         End Using
     End Function
     Public Async Function sacarPickingPedido() As Task Implements IPedidoVentaService.sacarPickingPedido
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -303,8 +298,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO)) Implements IPedidoVentaService.CargarEnlacesSeguimiento
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -343,8 +337,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function EnviarCobroTarjeta(correo As String, movil As String, totalPedido As Decimal, pedido As String, empresa As String, cliente As String) As Task(Of String) Implements IPedidoVentaService.EnviarCobroTarjeta
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -381,8 +374,7 @@ Public Class PedidoVentaService
 
     Public Async Function CargarPedidosPendientes(empresa As String, cliente As String) As Task(Of ObservableCollection(Of Integer)) Implements IPedidoVentaService.CargarPedidosPendientes
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             Try
@@ -404,10 +396,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer) As Task(Of PedidoVentaDTO) Implements IPedidoVentaService.UnirPedidos
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
-            ' Adjuntar el JWT para que el usuario quede registrado en ELMAH (endpoint anónimo, token opcional)
-            Dim unusedAuth = Await _servicioAutenticacion.ConfigurarAutorizacion(client)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             Dim parametro As New ParametroStringIntInt With {
@@ -445,8 +434,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CrearAlbaranVenta(empresa As String, numeroPedido As Integer) As Task(Of Integer) Implements IPedidoVentaService.CrearAlbaranVenta
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             ' Creo estas variables para que los campos .Empresa y .Usuario se creen con mayúscula
@@ -489,8 +477,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of CrearFacturaResponseDTO) Implements IPedidoVentaService.CrearFacturaVenta
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             ' Creo estas variables para que los campos .Empresa y .Usuario se creen con mayúscula
@@ -537,8 +524,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CargarFactura(empresa As String, numeroFactura As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte()) Implements IPedidoVentaService.CargarFactura
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As Byte()
 
@@ -589,8 +575,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CargarAlbaran(empresa As String, numeroAlbaran As Integer, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte()) Implements IPedidoVentaService.CargarAlbaran
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As Byte()
 
@@ -644,8 +629,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CrearPedido(pedido As PedidoVentaDTO) As Task(Of Integer) Implements IPedidoVentaService.CrearPedido
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
@@ -697,8 +681,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CargarParametrosIva(empresa As String, ivaCabecera As String) As Task(Of List(Of ParametrosIvaBase)) Implements IPedidoVentaService.CargarParametrosIva
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -724,8 +707,7 @@ Public Class PedidoVentaService
     ''' Genera PDFs con las copias y bandeja apropiadas según el tipo de ruta.
     ''' </summary>
     Public Async Function ObtenerDocumentosImpresion(empresa As String, numeroPedido As Integer, Optional numeroFactura As String = Nothing, Optional numeroAlbaran As Integer? = Nothing) As Task(Of DocumentosImpresionPedidoDTO) Implements IPedidoVentaService.ObtenerDocumentosImpresion
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -785,8 +767,7 @@ Public Class PedidoVentaService
             Return False
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -816,8 +797,7 @@ Public Class PedidoVentaService
     ''' Issue #85
     ''' </summary>
     Public Async Function CopiarFactura(request As CopiarFacturaRequestDTO) As Task(Of CopiarFacturaResponseDTO) Implements IPedidoVentaService.CopiarFactura
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             ' Configurar autorización
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -851,8 +831,7 @@ Public Class PedidoVentaService
     ''' Issue #85
     ''' </summary>
     Public Async Function ObtenerClientePorFactura(empresa As String, numeroFactura As String) As Task(Of Models.Rectificativas.ClienteFacturaDTO) Implements IPedidoVentaService.ObtenerClientePorFactura
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorizacion")
@@ -876,8 +855,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CalcularPortes(empresa As String, pedido As Integer) As Task(Of ResultadoPortesDTO) Implements IPedidoVentaService.CalcularPortes
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -901,8 +879,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CalcularPortesPost(input As PedidoPortesInputDTO) As Task(Of ResultadoPortesDTO) Implements IPedidoVentaService.CalcularPortesPost
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -926,8 +903,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function CrearEtiquetaPendiente(empresa As String, pedido As Integer, agencia As Integer, retorno As Short) As Task Implements IPedidoVentaService.CrearEtiquetaPendiente
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -950,8 +926,7 @@ Public Class PedidoVentaService
     End Function
 
     Public Async Function EliminarEtiquetaPendiente(numeroEnvio As Integer) As Task Implements IPedidoVentaService.EliminarEtiquetaPendiente
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
