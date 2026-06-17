@@ -6,6 +6,7 @@ Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Services
 Imports ControlesUsuario.ViewModels
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modules.Producto
 Imports Nesto.Modules.Producto.ViewModels
@@ -132,6 +133,13 @@ Partial Public Class Application
             Function(provider)
                 Dim factory = provider.Resolve(Of IClienteApiFactory)()
                 Return New NovedadesService(factory)
+            End Function)
+
+        ' Nesto#340: mantenimiento del recargo de combustible (fuel) por agencia
+        Dim unusedRecargos = containerRegistry.RegisterSingleton(Of IServicioRecargosCombustible)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New RecargosCombustibleService(factory)
             End Function)
 
         Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
@@ -273,6 +281,7 @@ Partial Public Class Application
         ViewModelLocationProvider.Register(GetType(Alquileres).ToString, GetType(AlquileresViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorCliente).ToString, GetType(SelectorClienteViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorProveedor).ToString, GetType(SelectorProveedorViewModel))
+        ViewModelLocationProvider.Register(GetType(RecargosCombustible).ToString, GetType(RecargosCombustibleViewModel))
     End Sub
 
     Protected Overrides Sub OnInitialized()

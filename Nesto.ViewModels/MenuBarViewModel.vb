@@ -46,6 +46,7 @@ Public Class MenuBarViewModel
         ClientesAlquileresCommand = New DelegateCommand(AddressOf OnClientesAlquileres)
         ClientesRemesasCommand = New DelegateCommand(AddressOf OnClientesRemesas)
         ClientesAgenciasCommand = New DelegateCommand(AddressOf OnClientesAgencias)
+        RecargosCombustibleCommand = New DelegateCommand(AddressOf OnRecargosCombustible)
         RatioDeudaCommand = New DelegateCommand(AddressOf OnRatioDeuda)
         VideosCommand = New DelegateCommand(AddressOf OnVideos)
         NovedadesCommand = New DelegateCommand(AddressOf OnNovedades)
@@ -163,6 +164,7 @@ Public Class MenuBarViewModel
     Public Property ClientesAlquileresCommand As ICommand
     Public Property ClientesRemesasCommand As ICommand
     Public Property ClientesAgenciasCommand As ICommand
+    Public Property RecargosCombustibleCommand As ICommand
     Public Property RatioDeudaCommand As ICommand
     Public Property VideosCommand As ICommand
     Public Property NovedadesCommand As ICommand
@@ -304,6 +306,11 @@ Public Class MenuBarViewModel
 
     Private Sub OnClientesAgencias()
         NavegarAVista("Agencias")
+    End Sub
+
+    ' Nesto#340: mantenimiento del recargo de combustible (fuel) por agencia (editable mensualmente)
+    Private Sub OnRecargosCombustible()
+        NavegarAVista("RecargosCombustible")
     End Sub
 
     Private Sub OnRatioDeuda()
