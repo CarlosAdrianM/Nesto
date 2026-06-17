@@ -15,6 +15,7 @@ Imports ControlesUsuario.Dialogs
 Imports Microsoft.Reporting.NETCore
 Imports Microsoft.Win32
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
@@ -44,6 +45,7 @@ Public Class AgenciasViewModel
     Private ReadOnly _regionManager As IRegionManager
     Private ReadOnly _servicio As IAgenciaService
     Private ReadOnly _configuracion As IConfiguracion
+    Private ReadOnly _comparadorAgencias As IServicioComparadorAgencias
     Public ReadOnly _dialogService As IDialogService
     Private ReadOnly _servicioPedidos As IPedidoVentaService
     Private ReadOnly _contabilidadService As IContabilidadService
@@ -69,6 +71,9 @@ Public Class AgenciasViewModel
         _dialogService = dialogService
         _servicioPedidos = servicioPedidos
         _servicioInformes = New InformesService(configuracion, servicioAutenticacion)
+        ' Nesto#340: comparador de agencias server-side (de momento en "shadow": se compara con el
+        ' cálculo local sin afectar a la selección real, para validar el endpoint con datos reales).
+        _comparadorAgencias = New ComparadorAgenciasService(New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion))
 
         Titulo = "Agencias"
 
@@ -2536,9 +2541,29 @@ Public Class AgenciasViewModel
         CosteEnvio = parMasEconomico.Value
         Dim tarifaEconomica As ITarifaAgencia = parMasEconomico.Key
 
+        ' Nesto#340: comparación "shadow" con el comparador del servidor (no afecta a la selección).
+        ComparacionShadow(pedidoSeleccionado.Empresa, cliente.CodPostal, Peso, reembolso, tarifaEconomica.AgenciaId, parMasEconomico.Value)
+
         Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Numero = tarifaEconomica.AgenciaId)
 
     End Function
+
+    ' Llama al comparador de NestoAPI y lo contrasta con el cálculo local, SIN cambiar la selección
+    ' real. Fire-and-forget: nunca debe bloquear ni romper el flujo de configuración del pedido.
+    ' Transitorio hasta jubilar el comparador local (cuando Innovatrans esté operativa).
+    Private Async Sub ComparacionShadow(empresa As String, codigoPostal As String, peso As Decimal, reembolso As Decimal, agenciaIdLocal As Integer, costeLocal As Decimal)
+        Try
+            Dim opcionServidor As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codigoPostal, peso, reembolso)
+            If opcionServidor Is Nothing Then
+                Console.WriteLine($"[ComparadorShadow] CP={codigoPostal} peso={peso} | Local: agencia {agenciaIdLocal} ({costeLocal:N2}) | Servidor: sin resultado")
+                Return
+            End If
+            Dim coincide As String = If(opcionServidor.AgenciaId = agenciaIdLocal, "OK", "DIFIERE")
+            Console.WriteLine($"[ComparadorShadow] CP={codigoPostal} peso={peso} reembolso={reembolso} | Local: agencia {agenciaIdLocal} ({costeLocal:N2}) | Servidor: agencia {opcionServidor.AgenciaId} {opcionServidor.NombreServicio} ({opcionServidor.Coste:N2}) | {coincide}")
+        Catch ex As Exception
+            Console.WriteLine($"[ComparadorShadow] Error al consultar el comparador del servidor: {ex.Message}")
+        End Try
+    End Sub
     Private Sub modificarEnvio(ByRef envio As EnviosAgencia, reembolso As Double, retorno As tipoIdDescripcion, estado As Integer, fechaEntrega As Date)
         modificarEnvio(envio, reembolso, retorno, estado, False, fechaEntrega)
     End Sub
