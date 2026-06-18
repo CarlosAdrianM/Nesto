@@ -2531,7 +2531,13 @@ Public Class AgenciasViewModel
 
         End Using ' finaliza la transacción
 
-        If success AndAlso Not esAmpliacion AndAlso Not _servicio.EsTodoElPedidoOnline(envioActual.Empresa, envioActual.Pedido) Then
+        ' En las agencias "registrar al imprimir" (Innovatrans) el CodigoBarras y el enlace de
+        ' seguimiento NO existen en este punto: los asigna la agencia al tramitar (InsertarYEtiquetar,
+        ' que corre después). Mandar aquí el correo daría código vacío y enlace roto, así que NO se
+        ' envía. Pendiente: reenviarlo tras tramitar, cuando tengamos la URL de seguimiento de DataTrans.
+        If success AndAlso Not esAmpliacion AndAlso
+           agenciaEspecifica.FlujoTramitacion <> TipoFlujoTramitacion.RegistrarAlImprimir AndAlso
+           Not _servicio.EsTodoElPedidoOnline(envioActual.Empresa, envioActual.Pedido) Then
             Dim unused = _servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
         End If
     End Sub
