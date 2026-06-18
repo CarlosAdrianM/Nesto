@@ -1518,7 +1518,26 @@ Public Class AgenciasViewModel
                 _servicio.Modificar(envioActual)
             End If
 
-            agenciaEspecifica.imprimirEtiqueta(envioActual)
+            ' Innovatrans y demás agencias de plataforma (RegistrarAlImprimir): "imprimir la etiqueta"
+            ' ES registrar el envío en la agencia. NestoAPI lo inserta, devuelve el albarán y la etiqueta
+            ' ZPL, y la agencia la manda a la Zebra. El polimorfismo decide; el usuario no ve diferencia.
+            ' Las clásicas (TramitarAlCerrar) montan e imprimen la etiqueta en local como hasta ahora.
+            If agenciaEspecifica.FlujoTramitacion = TipoFlujoTramitacion.RegistrarAlImprimir Then
+                Dim agenciaRemota = TryCast(agenciaEspecifica, IAgenciaConGestionRemota)
+                If agenciaRemota Is Nothing Then
+                    _dialogService.ShowError("La agencia está marcada como 'registrar al imprimir' pero no implementa la gestión remota.")
+                    Return
+                End If
+                ' El servidor ya audita la llamada (con el SOAP crudo), así que no se guarda aquí.
+                Dim respuestaRemota = Await agenciaRemota.InsertarYEtiquetar(envioActual, _servicio)
+                If Not respuestaRemota.Exito Then
+                    _dialogService.ShowError($"No se pudo tramitar el envío con la agencia: {respuestaRemota.TextoRespuestaError}")
+                    Return
+                End If
+            Else
+                agenciaEspecifica.imprimirEtiqueta(envioActual)
+            End If
+
             If Not _facturarAlImprimirEtiqueta Then
                 ' Issue #282: Mostrar notificación y poner foco en número de pedido
                 _dialogService.ShowNotification("Envío", "Envío insertado correctamente e impresa la etiqueta")
