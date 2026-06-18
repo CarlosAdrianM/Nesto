@@ -91,8 +91,9 @@ Public Class AgenciaInnovatrans
             zpl = resultado.EtiquetaContenido
         End If
 
+        ' Misma impresora Zebra que Correos Express (parámetro ImpresoraBolsas).
         Dim mainViewModel As New MainViewModel
-        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, Parametros.Claves.ImpresoraAgenciaGLS).ConfigureAwait(False)
+        Dim puerto As String = Await mainViewModel.leerParametro(envio.Empresa, Parametros.Claves.ImpresoraBolsas).ConfigureAwait(False)
         Dim unused = RawPrinterHelper.SendStringToPrinter(puerto, zpl)
     End Function
 
