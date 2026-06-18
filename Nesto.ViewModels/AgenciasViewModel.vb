@@ -1528,11 +1528,18 @@ Public Class AgenciasViewModel
                     _dialogService.ShowError("La agencia está marcada como 'registrar al imprimir' pero no implementa la gestión remota.")
                     Return
                 End If
+                ' Si todavía no tiene código, es el alta (registro) inicial; si ya lo tiene, es una
+                ' reimpresión (no hay que volver a avisar al cliente).
+                Dim eraNuevoRegistro As Boolean = String.IsNullOrWhiteSpace(envioActual.CodigoBarras)
                 ' El servidor ya audita la llamada (con el SOAP crudo), así que no se guarda aquí.
                 Dim respuestaRemota = Await agenciaRemota.InsertarYEtiquetar(envioActual, _servicio)
                 If Not respuestaRemota.Exito Then
                     _dialogService.ShowError($"No se pudo tramitar el envío con la agencia: {respuestaRemota.TextoRespuestaError}")
                     Return
+                End If
+                ' Solo en el alta inicial (no en reimpresiones) avisamos al cliente con el seguimiento.
+                If eraNuevoRegistro Then
+                    NotificarEntregaAgencia(envioActual)
                 End If
             Else
                 agenciaEspecifica.imprimirEtiqueta(envioActual)
@@ -2531,15 +2538,29 @@ Public Class AgenciasViewModel
 
         End Using ' finaliza la transacción
 
-        ' En las agencias "registrar al imprimir" (Innovatrans) el CodigoBarras y el enlace de
-        ' seguimiento NO existen en este punto: los asigna la agencia al tramitar (InsertarYEtiquetar,
-        ' que corre después). Mandar aquí el correo daría código vacío y enlace roto, así que NO se
-        ' envía. Pendiente: reenviarlo tras tramitar, cuando tengamos la URL de seguimiento de DataTrans.
+        ' Tramitar primero (agencias clásicas): el CodigoBarras ya está, así que notificamos al cliente
+        ' aquí (este punto cubre tanto "Insertar Envío" como "Insertar e Imprimir"). En las de "imprimir
+        ' primero" (Innovatrans) el código lo asigna la agencia al tramitar, así que el correo se manda
+        ' desde ImprimirEtiquetaPedido (tras InsertarYEtiquetar), no aquí.
         If success AndAlso Not esAmpliacion AndAlso
-           agenciaEspecifica.FlujoTramitacion <> TipoFlujoTramitacion.RegistrarAlImprimir AndAlso
-           Not _servicio.EsTodoElPedidoOnline(envioActual.Empresa, envioActual.Pedido) Then
-            Dim unused = _servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envioActual))
+           agenciaEspecifica.FlujoTramitacion <> TipoFlujoTramitacion.RegistrarAlImprimir Then
+            NotificarEntregaAgencia(envioActual)
         End If
+    End Sub
+
+    ' Manda al cliente el correo "Pedido entregado a la agencia" (su cuerpo incluye el enlace de
+    ' seguimiento, que el servidor monta con el CodigoBarras). Único sitio con las guardas comunes:
+    ' solo si el envío ya tiene código y el pedido no es todo de tienda online. Fire-and-forget.
+    ' Lo invocan los dos flujos: las clásicas desde InsertarRegistro, Innovatrans desde
+    ' ImprimirEtiquetaPedido (tras tramitar), cada uno cuando el código ya está disponible.
+    Private Sub NotificarEntregaAgencia(envio As EnviosAgencia)
+        If String.IsNullOrWhiteSpace(envio.CodigoBarras) Then
+            Return
+        End If
+        If _servicio.EsTodoElPedidoOnline(envio.Empresa, envio.Pedido) Then
+            Return
+        End If
+        Dim unused = _servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio))
     End Sub
 
     Private Function buscarEnvioPendiente(pedidoSeleccionado As CabPedidoVta) As EnviosAgencia
