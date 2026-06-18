@@ -2584,40 +2584,45 @@ Public Class AgenciasViewModel
 
         Dim cliente As Clientes = _servicio.CargarCliente(pedidoSeleccionado.Empresa, pedidoSeleccionado.Nº_Cliente, pedidoSeleccionado.Contacto)
 
+        ' Selección LOCAL inmediata (default instantáneo, no bloquea la UI).
         Dim parMasEconomico = TarifaMasEconomica(cliente.CodPostal, Peso, reembolso)
         CosteEnvio = parMasEconomico.Value
         Dim tarifaEconomica As ITarifaAgencia = parMasEconomico.Key
 
-        ' Nesto#340: comparación "shadow" con el comparador del servidor (no afecta a la selección).
-        ComparacionShadow(pedidoSeleccionado.Empresa, cliente.CodPostal, Peso, reembolso, tarifaEconomica.AgenciaId, parMasEconomico.Value)
+        ' Nesto#340: el comparador del SERVIDOR es la fuente autoritativa (conoce los precios reales de
+        ' Innovatrans + fuel por agencia; el local no, porque sus tarifas se movieron a NestoAPI). Como
+        ' este método es síncrono (lo llaman setters), corregimos la selección de forma asíncrona cuando
+        ' el servidor responde. Sin esto, Innovatrans NUNCA se elegiría (tarifa placeholder en el cliente).
+        AjustarAgenciaConServidor(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número, cliente.CodPostal, Peso, reembolso)
 
         Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Numero = tarifaEconomica.AgenciaId)
 
     End Function
 
-    ' Llama al comparador de NestoAPI y lo contrasta con el cálculo local, SIN cambiar la selección
-    ' real. Fire-and-forget: nunca debe bloquear ni romper el flujo de configuración del pedido.
-    ' Transitorio hasta jubilar el comparador local (cuando Innovatrans esté operativa).
-    ' Para no inundar ELMAH, solo se registran las discrepancias (DIFIERE / sin resultado / error);
-    ' las coincidencias van a Console.
-    Private Async Sub ComparacionShadow(empresa As String, codigoPostal As String, peso As Decimal, reembolso As Decimal, agenciaIdLocal As Integer, costeLocal As Decimal)
-        Dim mensajeElmah As String = Nothing
+    ' Consulta el comparador de NestoAPI (autoritativo) y, si elige una agencia distinta a la del cálculo
+    ' local (típicamente Innovatrans, que en el cliente es placeholder), corrige la selección. Best-effort:
+    ' si el servidor falla o tarda, se queda la selección local. No pisa la selección si entretanto cambió
+    ' el pedido (evita carreras al cambiar de pedido rápido).
+    Private Async Sub AjustarAgenciaConServidor(empresa As String, pedidoNumero As Integer, codigoPostal As String, peso As Decimal, reembolso As Decimal)
+        Dim mensajeError As String = Nothing
         Try
-            Dim opcionServidor As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codigoPostal, peso, reembolso)
-            If opcionServidor Is Nothing Then
-                mensajeElmah = $"Servidor sin resultado. Local: agencia {agenciaIdLocal} ({costeLocal:N2}). CP={codigoPostal} peso={peso} reembolso={reembolso}"
-            ElseIf opcionServidor.AgenciaId <> agenciaIdLocal Then
-                mensajeElmah = $"DIFIERE. Local: agencia {agenciaIdLocal} ({costeLocal:N2}); Servidor: agencia {opcionServidor.AgenciaId} {opcionServidor.NombreServicio} ({opcionServidor.Coste:N2}). CP={codigoPostal} peso={peso} reembolso={reembolso}"
-            Else
-                Console.WriteLine($"[ComparadorShadow] OK agencia {agenciaIdLocal} local={costeLocal:N2} servidor={opcionServidor.Coste:N2}")
+            Dim opcion As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codigoPostal, peso, reembolso)
+            ' Si cambió el pedido mientras respondía el servidor, no tocamos la selección actual.
+            If IsNothing(pedidoSeleccionado) OrElse pedidoSeleccionado.Número <> pedidoNumero Then Return
+            If opcion Is Nothing OrElse IsNothing(listaAgencias) Then Return
+            Dim agenciaServidor = listaAgencias.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Numero = opcion.AgenciaId)
+            If agenciaServidor Is Nothing Then Return
+            CosteEnvio = opcion.Coste
+            If IsNothing(agenciaSeleccionada) OrElse agenciaSeleccionada.Numero <> opcion.AgenciaId Then
+                agenciaSeleccionada = agenciaServidor
             End If
         Catch ex As Exception
             ' VB no permite Await dentro de un Catch: se registra fuera del Try.
-            mensajeElmah = $"Error al consultar el comparador del servidor: {ex.Message}"
+            mensajeError = $"Error en el comparador del servidor (se mantiene la selección local): {ex.Message}"
         End Try
 
-        If mensajeElmah IsNot Nothing Then
-            Await RegistrarShadowEnElmah(mensajeElmah)
+        If mensajeError IsNot Nothing Then
+            Await RegistrarShadowEnElmah(mensajeError)
         End If
     End Sub
 
