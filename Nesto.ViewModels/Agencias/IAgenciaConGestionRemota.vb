@@ -58,7 +58,7 @@ Public Interface IAgenciaConGestionRemota
     ''' Reimprime la etiqueta de un envío YA insertado, sin volver a insertarlo (mismo albarán).
     ''' bultoDesde/bultoHasta opcionales (0 = todos los bultos). Para errores físicos de impresión.
     ''' </summary>
-    Function Reimprimir(envio As EnviosAgencia, bultoDesde As Integer, bultoHasta As Integer) As Task(Of RespuestaAgencia)
+    Function Reimprimir(envio As EnviosAgencia, servicio As IAgenciaService, bultoDesde As Integer, bultoHasta As Integer) As Task(Of RespuestaAgencia)
 
     ''' <summary>
     ''' Aplica en la agencia un cambio de datos (bultos, reembolso, dirección...) de un envío ya

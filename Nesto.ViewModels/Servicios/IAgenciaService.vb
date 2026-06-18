@@ -40,6 +40,9 @@ Public Interface IAgenciaService
     Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia
     Function CargarDeudasCliente(cliente As String, fechaReclamar As Date) As List(Of ExtractoCliente)
     Function TramitarEnvio(envio As EnviosAgencia) As String
+    ' Innovatrans (registrar al imprimir): tramita el envío contra la agencia en el servidor
+    ' (POST api/EnviosAgencias/{id}/Tramitar) y devuelve el albarán + bultos + etiqueta ZPL.
+    Function TramitarEnvioRemoto(numeroEnvio As Integer) As Task(Of TramitarEnvioResultadoDto)
     Function ContabilizarReembolso(envio As EnviosAgencia) As Integer
     Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente
     Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente

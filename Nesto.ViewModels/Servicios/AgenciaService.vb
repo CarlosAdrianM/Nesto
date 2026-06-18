@@ -502,6 +502,27 @@ Public Class AgenciaService
     End Function
 
 
+    Public Async Function TramitarEnvioRemoto(numeroEnvio As Integer) As Task(Of TramitarEnvioResultadoDto) Implements IAgenciaService.TramitarEnvioRemoto
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            ' El cuerpo va vacío: el envío ya existe (lo identifica la ruta); el servidor lo tramita.
+            Dim content As HttpContent = New StringContent(String.Empty, Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync($"EnviosAgencias/{numeroEnvio}/Tramitar", content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI rechazó la tramitación ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+
+            Return JsonConvert.DeserializeObject(Of TramitarEnvioResultadoDto)(cuerpo)
+        End Using
+    End Function
+
     Public Async Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal) Implements IAgenciaService.ImporteReembolso
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)

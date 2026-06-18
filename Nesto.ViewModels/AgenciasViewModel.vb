@@ -106,6 +106,7 @@ Public Class AgenciasViewModel
         factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
         factory.Add("Sending", Function() New AgenciaSending())
         factory.Add("Canteras", Function() New AgenciaCanteras()) ' Nesto#359: envíos manuales a Canarias
+        factory.Add("Innovatrans", Function() New AgenciaInnovatrans(Me)) ' registrar al imprimir (DataTrans, server-side)
 
 
     End Sub
