@@ -770,8 +770,8 @@ Public Class AgenciasViewModel
 
     Private Function CalcularZonaEnvio(codigoPostal As String) As ZonasEnvioAgencia
         codigoPostal = codigoPostal.Trim()
-        ' Comprobar si es código postal de Portugal
-        Dim regex As New Regex("^\d{4}[ -]\d{3}$")
+        ' Comprobar si es código postal de Portugal (NNNN-NNN; separador opcional: guion, espacio o junto)
+        Dim regex As New Regex("^\d{4}[ -]?\d{3}$")
         If regex.IsMatch(codigoPostal) Then
             Return ZonasEnvioAgencia.Portugal
         End If
