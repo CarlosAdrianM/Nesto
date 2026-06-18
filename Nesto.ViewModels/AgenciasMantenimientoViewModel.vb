@@ -27,21 +27,76 @@ Public Class AgenciasMantenimientoViewModel
         _servicio = servicio
         _configuracion = configuracion
         _dialogService = dialogService
+        Titulo = "Mant. agencias"
+        _empresaSeleccionada = Constantes.Empresas.EMPRESA_DEFECTO
         GuardarCommand = New DelegateCommand(AddressOf OnGuardar, AddressOf CanGuardar)
         NuevaAgenciaCommand = New DelegateCommand(AddressOf OnNuevaAgencia)
         Dim unused = CargarAsync()
     End Sub
 
+    Private _titulo As String
+    ' Título del tab (lo muestra el header de la pestaña).
+    Public Property Titulo As String
+        Get
+            Return _titulo
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_titulo, value)
+        End Set
+    End Property
+
+    ' Para el SelectorEmpresa de la vista.
+    Public ReadOnly Property configuracion As IConfiguracion
+        Get
+            Return _configuracion
+        End Get
+    End Property
+
     Private _agencias As ObservableCollection(Of AgenciaMantenimiento)
+    ' Colección COMPLETA (todas las empresas). Es la que se guarda. La rejilla muestra AgenciasFiltradas.
     Public Property Agencias As ObservableCollection(Of AgenciaMantenimiento)
         Get
             Return _agencias
         End Get
         Set(value As ObservableCollection(Of AgenciaMantenimiento))
             Dim unused = SetProperty(_agencias, value)
+            AplicarFiltro()
             GuardarCommand?.RaiseCanExecuteChanged()
         End Set
     End Property
+
+    Private _agenciasFiltradas As ObservableCollection(Of AgenciaMantenimiento)
+    ' Vista filtrada por empresa (mismas instancias que Agencias: editar aquí edita allí). La rejilla
+    ' bindea a esto y por eso quitamos la columna Empresa (la fija el SelectorEmpresa).
+    Public Property AgenciasFiltradas As ObservableCollection(Of AgenciaMantenimiento)
+        Get
+            Return _agenciasFiltradas
+        End Get
+        Private Set(value As ObservableCollection(Of AgenciaMantenimiento))
+            Dim unused = SetProperty(_agenciasFiltradas, value)
+        End Set
+    End Property
+
+    Private _empresaSeleccionada As String
+    Public Property empresaSeleccionada As String
+        Get
+            Return _empresaSeleccionada
+        End Get
+        Set(value As String)
+            If SetProperty(_empresaSeleccionada, value) Then
+                AplicarFiltro()
+            End If
+        End Set
+    End Property
+
+    Private Sub AplicarFiltro()
+        If Agencias Is Nothing Then
+            AgenciasFiltradas = New ObservableCollection(Of AgenciaMantenimiento)
+            Return
+        End If
+        AgenciasFiltradas = New ObservableCollection(Of AgenciaMantenimiento)(
+            Agencias.Where(Function(a) String.Equals(a.Empresa?.Trim(), empresaSeleccionada?.Trim(), StringComparison.OrdinalIgnoreCase)))
+    End Sub
 
     Private _estaOcupado As Boolean
     Public Property EstaOcupado As Boolean
@@ -124,9 +179,10 @@ Public Class AgenciasMantenimientoViewModel
         Dim siguienteNumero = If(Agencias.Any(), Agencias.Max(Function(a) a.Numero) + 1, 1)
         Agencias.Add(New AgenciaMantenimiento With {
             .Numero = siguienteNumero,
-            .Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+            .Empresa = If(String.IsNullOrWhiteSpace(empresaSeleccionada), Constantes.Empresas.EMPRESA_DEFECTO, empresaSeleccionada),
             .EsNueva = True
         })
+        AplicarFiltro()
         GuardarCommand?.RaiseCanExecuteChanged()
     End Sub
 

@@ -3,6 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
     <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Espere, por favor...">
@@ -13,14 +14,18 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="Mantenimiento de agencias de transporte"
-                       FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                <TextBlock Text="Mantenimiento de agencias de transporte"
+                           FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                <controles:SelectorEmpresa Configuracion="{Binding configuracion}"
+                                           Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}"
+                                           Etiqueta="Empresa:" HorizontalAlignment="Left"/>
+            </StackPanel>
 
-            <DataGrid Grid.Row="1" ItemsSource="{Binding Agencias}" AutoGenerateColumns="False"
+            <DataGrid Grid.Row="1" ItemsSource="{Binding AgenciasFiltradas}" AutoGenerateColumns="False"
                       CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Nº" Binding="{Binding Numero}" Width="50"/>
-                    <DataGridTextColumn Header="Empresa" Binding="{Binding Empresa}" Width="70"/>
                     <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="140"/>
                     <DataGridTextColumn Header="Ruta" Binding="{Binding Ruta}" Width="60"/>
                     <DataGridTextColumn Header="Identificador" Binding="{Binding Identificador}" Width="*"/>
