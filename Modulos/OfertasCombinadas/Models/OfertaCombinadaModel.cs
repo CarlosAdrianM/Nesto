@@ -25,6 +25,9 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         public decimal Precio { get; set; }
         // Líneas con el mismo GrupoAlternativa son intercambiables ("elige 1"); null = obligatoria.
         public int? GrupoAlternativa { get; set; }
+        // Si true, Cantidad es un MÁXIMO: el pedido puede llevar de 0 a Cantidad sin que la oferta
+        // deje de validar (extra opcional, p. ej. folletos/expositor). NestoAPI#239.
+        public bool PermitirCantidadMenor { get; set; }
     }
 
     public class OfertaCombinadaCreateModel
@@ -44,6 +47,7 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         public short Cantidad { get; set; }
         public decimal Precio { get; set; }
         public int? GrupoAlternativa { get; set; }
+        public bool PermitirCantidadMenor { get; set; }
     }
 
     public class OfertaPermitidaFamiliaModel

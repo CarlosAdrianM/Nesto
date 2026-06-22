@@ -11,6 +11,7 @@ using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -381,7 +382,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                         Producto = d.Producto?.Trim(),
                         Cantidad = d.Cantidad,
                         Precio = d.Precio,
-                        GrupoAlternativa = d.GrupoAlternativa
+                        GrupoAlternativa = d.GrupoAlternativa,
+                        PermitirCantidadMenor = d.PermitirCantidadMenor
                     }).ToList()
                 };
 
@@ -839,7 +841,45 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ObservableCollection<DetalleOfertaCombinadaWrapper> Detalles
         {
             get => _detalles;
-            set => SetProperty(ref _detalles, value);
+            set
+            {
+                // Enganchamos cada detalle (y los que se añadan después) para que cualquier edición
+                // de una línea marque la oferta como cambiada y aparezca el botón Guardar.
+                if (_detalles != null)
+                {
+                    _detalles.CollectionChanged -= DetallesCollectionChanged;
+                }
+                SetProperty(ref _detalles, value);
+                if (_detalles != null)
+                {
+                    foreach (var detalle in _detalles)
+                    {
+                        Vincular(detalle);
+                    }
+                    _detalles.CollectionChanged += DetallesCollectionChanged;
+                }
+            }
+        }
+
+        // Añadir o quitar líneas también es un cambio; y las líneas nuevas hay que engancharlas.
+        private void DetallesCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.NewItems != null)
+            {
+                foreach (DetalleOfertaCombinadaWrapper detalle in e.NewItems)
+                {
+                    Vincular(detalle);
+                }
+            }
+            if (_rastreandoCambios)
+            {
+                HaCambiado = true;
+            }
+        }
+
+        private void Vincular(DetalleOfertaCombinadaWrapper detalle)
+        {
+            detalle.AlCambiar = () => { if (_rastreandoCambios) HaCambiado = true; };
         }
 
         private bool _haCambiado;
@@ -862,7 +902,12 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             Cantidad = model.Cantidad;
             Precio = model.Precio;
             GrupoAlternativa = model.GrupoAlternativa;
+            PermitirCantidadMenor = model.PermitirCantidadMenor;
         }
+
+        // La oferta engancha aquí para enterarse de cualquier edición del detalle y marcarse como
+        // cambiada (mostrar el botón Guardar). Lo asigna OfertaCombinadaWrapper al vincular el detalle.
+        internal Action AlCambiar { get; set; }
 
         public int Id { get; set; }
 
@@ -870,7 +915,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public string Producto
         {
             get => _producto;
-            set => SetProperty(ref _producto, value);
+            set { if (SetProperty(ref _producto, value)) AlCambiar?.Invoke(); }
         }
 
         private string _productoNombre;
@@ -896,14 +941,14 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public short Cantidad
         {
             get => _cantidad;
-            set => SetProperty(ref _cantidad, value);
+            set { if (SetProperty(ref _cantidad, value)) AlCambiar?.Invoke(); }
         }
 
         private decimal _precio;
         public decimal Precio
         {
             get => _precio;
-            set => SetProperty(ref _precio, value);
+            set { if (SetProperty(ref _precio, value)) AlCambiar?.Invoke(); }
         }
 
         // Líneas con el mismo GrupoAlternativa son intercambiables ("elige 1"); null = obligatoria.
@@ -911,7 +956,15 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public int? GrupoAlternativa
         {
             get => _grupoAlternativa;
-            set => SetProperty(ref _grupoAlternativa, value);
+            set { if (SetProperty(ref _grupoAlternativa, value)) AlCambiar?.Invoke(); }
+        }
+
+        // Si true, Cantidad es un MÁXIMO: el pedido puede llevar de 0 a Cantidad (extra opcional).
+        private bool _permitirCantidadMenor;
+        public bool PermitirCantidadMenor
+        {
+            get => _permitirCantidadMenor;
+            set { if (SetProperty(ref _permitirCantidadMenor, value)) AlCambiar?.Invoke(); }
         }
     }
 

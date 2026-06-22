@@ -110,6 +110,76 @@ namespace Nesto.Modulos.OfertasCombinadasTests
         }
 
         [TestMethod]
+        public void Guardar_DetalleConPermitirCantidadMenor_ViajaEnElCreateModel()
+        {
+            // NestoAPI#239: al guardar, el flag "permitir cantidad menor" de cada línea debe
+            // enviarse al servidor en el CreateModel.
+            OfertaCombinadaCreateModel capturado = null;
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .Invokes((OfertaCombinadaCreateModel m) => capturado = m)
+                .Returns(Task.FromResult(new OfertaCombinadaModel
+                {
+                    Id = 1,
+                    Nombre = "Level Lash Sérum 6+2",
+                    Detalles = new List<OfertaCombinadaDetalleModel>()
+                }));
+
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper { Nombre = "Level Lash Sérum 6+2" }; // Id = 0 -> create
+            oferta.Detalles.Add(new DetalleOfertaCombinadaWrapper { Producto = "SERUM", Cantidad = 1, Precio = 10, PermitirCantidadMenor = false });
+            oferta.Detalles.Add(new DetalleOfertaCombinadaWrapper { Producto = "FOLLETO", Cantidad = 20, Precio = 0, PermitirCantidadMenor = true });
+
+            vm.GuardarOfertaCombinadaCommand.Execute(oferta);
+
+            Assert.IsNotNull(capturado, "Debe llamar a CreateOfertaCombinada");
+            Assert.IsTrue(capturado.Detalles.Single(d => d.Producto == "FOLLETO").PermitirCantidadMenor,
+                "El folleto debe enviarse con el flag a true");
+            Assert.IsFalse(capturado.Detalles.Single(d => d.Producto == "SERUM").PermitirCantidadMenor,
+                "El sérum debe enviarse sin el flag");
+        }
+
+        private static OfertaCombinadaWrapper OfertaExistenteConDosDetalles()
+        {
+            // Cargada desde el servidor (HaCambiado=false de inicio).
+            return new OfertaCombinadaWrapper(new OfertaCombinadaModel
+            {
+                Id = 5,
+                Nombre = "Oferta existente",
+                ImporteMinimo = 0,
+                Detalles = new List<OfertaCombinadaDetalleModel>
+                {
+                    new OfertaCombinadaDetalleModel { Id = 1, Producto = "SERUM", Cantidad = 1, Precio = 10 },
+                    new OfertaCombinadaDetalleModel { Id = 2, Producto = "FOLLETO", Cantidad = 20, Precio = 0 }
+                }
+            });
+        }
+
+        [TestMethod]
+        public void MarcarPermitirCantidadMenor_EnOfertaExistente_ActivaGuardar()
+        {
+            // Bug reportado: marcar "permitir cantidad menor" en una línea de una oferta ya guardada
+            // no activaba el botón Guardar (HaCambiado seguía false), así que no se podía guardar.
+            var oferta = OfertaExistenteConDosDetalles();
+            Assert.IsFalse(oferta.HaCambiado, "Recién cargada no debe tener cambios");
+
+            oferta.Detalles.Single(d => d.Producto == "FOLLETO").PermitirCantidadMenor = true;
+
+            Assert.IsTrue(oferta.HaCambiado, "Marcar la casilla debe activar Guardar");
+        }
+
+        [TestMethod]
+        public void EditarCantidadDetalle_EnOfertaExistente_ActivaGuardar()
+        {
+            // Mismo bug subyacente: editar cualquier campo del detalle (no solo la casilla nueva)
+            // debe marcar la oferta como cambiada.
+            var oferta = OfertaExistenteConDosDetalles();
+
+            oferta.Detalles.First().Cantidad = 99;
+
+            Assert.IsTrue(oferta.HaCambiado, "Editar la cantidad de un detalle debe activar Guardar");
+        }
+
+        [TestMethod]
         public void ProductoAlternativo_SinSeleccion_NoSePuedeEjecutar()
         {
             var vm = CrearViewModel();

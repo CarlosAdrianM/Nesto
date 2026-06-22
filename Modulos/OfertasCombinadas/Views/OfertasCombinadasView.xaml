@@ -317,6 +317,23 @@
                                     </DataGridTextColumn.EditingElementStyle>
                                 </DataGridTextColumn>
 
+                                <!-- Permitir cantidad menor: la Cantidad pasa a ser un máximo (0..Cantidad) -->
+                                <DataGridCheckBoxColumn Header="Cant. menor" Binding="{Binding PermitirCantidadMenor, UpdateSourceTrigger=PropertyChanged}" Width="90">
+                                    <DataGridCheckBoxColumn.ElementStyle>
+                                        <Style TargetType="CheckBox">
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="ToolTip" Value="Si se marca, la Cantidad es un máximo: el pedido puede llevar de 0 a esa cantidad de este producto (p. ej. folletos o expositor) sin que la oferta deje de validar."/>
+                                        </Style>
+                                    </DataGridCheckBoxColumn.ElementStyle>
+                                    <DataGridCheckBoxColumn.EditingElementStyle>
+                                        <Style TargetType="CheckBox">
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGridCheckBoxColumn.EditingElementStyle>
+                                </DataGridCheckBoxColumn>
+
                                 <!-- Eliminar detalle -->
                                 <DataGridTemplateColumn Header="" Width="80">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -336,7 +353,7 @@
                         <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,5,0,0">
                             <TextBlock Text="Total ofertas: " VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding OfertasCombinadas.Count}" VerticalAlignment="Center" FontWeight="Bold"/>
-                            <TextBlock Text=" | Precio=0 significa sin restriccion de precio. Cantidad=0 significa producto opcional. Mismo 'Grupo alt.' = alternativas intercambiables (se exige 1 cualquiera)."
+                            <TextBlock Text=" | Precio=0 significa sin restriccion de precio. Cantidad=0 significa producto opcional. Mismo 'Grupo alt.' = alternativas intercambiables (se exige 1 cualquiera). 'Cant. menor' = la cantidad es un máximo (se admite de 0 a esa cantidad)."
                                        VerticalAlignment="Center" Margin="20,0,0,0"
                                        Foreground="Gray" FontStyle="Italic"/>
                         </StackPanel>
