@@ -38,5 +38,30 @@ namespace Nesto.Infrastructure.Services
                 return JsonConvert.DeserializeObject<OpcionEnvioAgencia>(json);
             }
         }
+
+        public async Task<OpcionEnvioAgencia> CosteAgencia(string empresa, int numero, string codigoPostal, decimal peso, decimal reembolso, byte? servicioId = null)
+        {
+            using (HttpClient client = _clienteApiFactory.Crear())
+            {
+                string url = $"Agencias/{numero}/Coste" +
+                    $"?codigoPostal={Uri.EscapeDataString(codigoPostal ?? string.Empty)}" +
+                    $"&peso={peso.ToString(CultureInfo.InvariantCulture)}" +
+                    $"&empresa={Uri.EscapeDataString(empresa ?? string.Empty)}" +
+                    $"&reembolso={reembolso.ToString(CultureInfo.InvariantCulture)}";
+                if (servicioId.HasValue)
+                {
+                    url += $"&servicioId={servicioId.Value}";
+                }
+
+                HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+                response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                return JsonConvert.DeserializeObject<OpcionEnvioAgencia>(json);
+            }
+        }
     }
 }

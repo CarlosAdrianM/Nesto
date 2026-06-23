@@ -206,6 +206,23 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    ' Tramitación/impresión en curso. La vista la enlaza a un BusyIndicator (overlay que bloquea el
+    ' input) para que el operario no vuelva a pulsar "Imprimir" mientras el servidor inserta el envío
+    ' y devuelve la etiqueta: un segundo click reinsertaría (el albarán aún no está guardado) = envío
+    ' doble. También da feedback visible ("Tramitando…") durante los segundos de las llamadas remotas.
+    Private _estaOcupado As Boolean
+    Public Property EstaOcupado As Boolean
+        Get
+            Return _estaOcupado
+        End Get
+        Private Set(value As Boolean)
+            If SetProperty(_estaOcupado, value) Then
+                ' Refresca el CanExecute de los comandos (RelayCommand usa CommandManager.RequerySuggested).
+                CommandManager.InvalidateRequerySuggested()
+            End If
+        End Set
+    End Property
+
     Private _listaAgencias As ObservableCollection(Of AgenciasTransporte)
     Public Property listaAgencias As ObservableCollection(Of AgenciasTransporte)
         Get
@@ -1498,9 +1515,16 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function canImprimirEtiquetaPedido(ByVal param As Object) As Boolean
-        Return Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso envioActual.Agencia = agenciaSeleccionada.Numero
+        Return Not EstaOcupado AndAlso Not IsNothing(envioActual) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso envioActual.Agencia = agenciaSeleccionada.Numero
     End Function
     Private Async Sub ImprimirEtiquetaPedido(ByVal param As Object)
+        ' Guard de re-entrada: si ya hay un tramitado/impresión en curso, ignorar el nuevo click.
+        ' Evita que un doble click reinserte el envío (envío fantasma + cobro doble) mientras la
+        ' primera llamada aún no ha guardado el albarán.
+        If EstaOcupado Then
+            Return
+        End If
+        EstaOcupado = True
         Try
             ' Nesto#367: las agencias que lo exigen (Canteras) necesitan las dimensiones de los
             ' bultos en el aviso de recogida. Las pide aquí, al imprimir la etiqueta, el operario que
@@ -1626,6 +1650,8 @@ Public Class AgenciasViewModel
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine($"❌ Error en ImprimirEtiquetaPedido: {ex.Message}")
             _dialogService.ShowError(ex.Message)
+        Finally
+            EstaOcupado = False
         End Try
     End Sub
 
@@ -1704,12 +1730,15 @@ Public Class AgenciasViewModel
     Private Function CanInsertar(arg As Object) As Boolean
         Return Not IsNothing(pedidoSeleccionado) AndAlso Not IsNothing(agenciaSeleccionada) AndAlso Not EstaInsertandoEnvio 'AndAlso pedidoSeleccionado.Empresa <> EMPRESA_ESPEJO
     End Function
-    Private Sub OnInsertar(arg As Object)
+    Private Async Sub OnInsertar(arg As Object)
         Try
             If Not EstaInsertandoEnvio Then
                 EstaInsertandoEnvio = True
                 cmdInsertar.RaiseCanExecuteChanged()
-                InsertarRegistro(servicioActual.ServicioId = agenciaEspecifica.ServicioCreaEtiquetaRetorno)
+                ' NestoAPI#238: el coste de la agencia realmente usada se calcula contra el servidor
+                ' (async), así que se obtiene ANTES de abrir el TransactionScope síncrono de InsertarRegistro.
+                Dim importeGasto As Decimal = Await ObtenerImporteGastoAgenciaUsadaAsync()
+                InsertarRegistro(servicioActual.ServicioId = agenciaEspecifica.ServicioCreaEtiquetaRetorno, importeGasto)
             End If
         Catch e As Exception
             imprimirEtiqueta = False
@@ -1719,6 +1748,21 @@ Public Class AgenciasViewModel
             cmdInsertar.RaiseCanExecuteChanged()
         End Try
     End Sub
+
+    ' NestoAPI#238: coste de la agencia REALMENTE usada (no la más barata) para guardarlo en
+    ' EnviosAgencia.ImporteGasto al imprimir. Best-effort: si el servidor falla o no hay tarifa portada
+    ' devuelve 0 y NO rompe el flujo de impresión (el llamante mantiene el comportamiento anterior).
+    ' No se pasa servicioId: para una zona dada solo el servicio que la cubre tiene coste finito.
+    Private Async Function ObtenerImporteGastoAgenciaUsadaAsync() As Task(Of Decimal)
+        Try
+            If IsNothing(agenciaSeleccionada) OrElse IsNothing(pedidoSeleccionado) Then Return 0D
+            Dim opcion As OpcionEnvioAgencia = Await _comparadorAgencias.CosteAgencia(
+                pedidoSeleccionado.Empresa, agenciaSeleccionada.Numero, codPostalEnvio, Peso, reembolso)
+            Return If(opcion?.Coste, 0D)
+        Catch ex As Exception
+            Return 0D
+        End Try
+    End Function
 
     Private _cmdImprimirEInsertar As ICommand
     Public ReadOnly Property cmdImprimirEInsertar() As ICommand
@@ -1730,7 +1774,7 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function CanImprimirEInsertar(ByVal param As Object) As Boolean
-        Return CanInsertar(Nothing)
+        Return Not EstaOcupado AndAlso CanInsertar(Nothing)
     End Function
     Private Sub ImprimirEInsertar(ByVal param As Object)
         Try
@@ -2373,7 +2417,7 @@ Public Class AgenciasViewModel
 
     'End Function
 
-    Public Sub InsertarRegistro(Optional ByVal conEtiquetaRecogida As Boolean = False)
+    Public Sub InsertarRegistro(Optional ByVal conEtiquetaRecogida As Boolean = False, Optional ByVal importeGasto As Decimal = -1D)
         Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
         Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
         If Not estabaPendiente Then
@@ -2440,6 +2484,11 @@ Public Class AgenciasViewModel
                 If estabaPendiente Then
                     envioActual.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO
                     envioActual.Bultos = bultos
+                    ' NestoAPI#238: la rama pendiente (tienda online, etiqueta pendiente) no rellenaba
+                    ' ImporteGasto. Lo ponemos con el coste real si lo tenemos; si no, se deja como estaba.
+                    If importeGasto > 0D Then
+                        envioActual.ImporteGasto = importeGasto
+                    End If
                 Else
                     With envioActual
                         .Empresa = agenciaSeleccionada.Empresa
@@ -2468,7 +2517,10 @@ Public Class AgenciasViewModel
                         '.CodigoBarras = calcularCodigoBarras()
                         .Vendedor = If(pedidoSeleccionado.Vendedor.Trim <> "", pedidoSeleccionado.Vendedor, "NV")
                         .Peso = Peso
-                        .ImporteGasto = CosteEnvio
+                        ' NestoAPI#238: coste de la agencia REALMENTE usada (importeGasto). Si no se pudo
+                        ' calcular (servidor caído / sin tarifa portada), se mantiene el comportamiento
+                        ' anterior (CosteEnvio, el coste de la más barata del comparador).
+                        .ImporteGasto = If(importeGasto >= 0D, importeGasto, CosteEnvio)
                     End With
                 End If
                 agenciaEspecifica.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
