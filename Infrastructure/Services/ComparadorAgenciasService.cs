@@ -18,7 +18,7 @@ namespace Nesto.Infrastructure.Services
             _clienteApiFactory = clienteApiFactory;
         }
 
-        public async Task<OpcionEnvioAgencia> MasEconomica(string empresa, string codigoPostal, decimal peso, decimal reembolso)
+        public async Task<OpcionEnvioAgencia> MasEconomica(string empresa, string codigoPostal, decimal peso, decimal reembolso, string pais = "ES")
         {
             using (HttpClient client = _clienteApiFactory.Crear())
             {
@@ -26,7 +26,8 @@ namespace Nesto.Infrastructure.Services
                     $"?codigoPostal={Uri.EscapeDataString(codigoPostal ?? string.Empty)}" +
                     $"&peso={peso.ToString(CultureInfo.InvariantCulture)}" +
                     $"&empresa={Uri.EscapeDataString(empresa ?? string.Empty)}" +
-                    $"&reembolso={reembolso.ToString(CultureInfo.InvariantCulture)}";
+                    $"&reembolso={reembolso.ToString(CultureInfo.InvariantCulture)}" +
+                    $"&pais={Uri.EscapeDataString(pais ?? "ES")}";
 
                 HttpResponseMessage response = await client.GetAsync(url).ConfigureAwait(false);
                 if (response.StatusCode == HttpStatusCode.NotFound)
@@ -39,7 +40,7 @@ namespace Nesto.Infrastructure.Services
             }
         }
 
-        public async Task<OpcionEnvioAgencia> CosteAgencia(string empresa, int numero, string codigoPostal, decimal peso, decimal reembolso, byte? servicioId = null)
+        public async Task<OpcionEnvioAgencia> CosteAgencia(string empresa, int numero, string codigoPostal, decimal peso, decimal reembolso, byte? servicioId = null, string pais = "ES")
         {
             using (HttpClient client = _clienteApiFactory.Crear())
             {
@@ -47,7 +48,8 @@ namespace Nesto.Infrastructure.Services
                     $"?codigoPostal={Uri.EscapeDataString(codigoPostal ?? string.Empty)}" +
                     $"&peso={peso.ToString(CultureInfo.InvariantCulture)}" +
                     $"&empresa={Uri.EscapeDataString(empresa ?? string.Empty)}" +
-                    $"&reembolso={reembolso.ToString(CultureInfo.InvariantCulture)}";
+                    $"&reembolso={reembolso.ToString(CultureInfo.InvariantCulture)}" +
+                    $"&pais={Uri.EscapeDataString(pais ?? "ES")}";
                 if (servicioId.HasValue)
                 {
                     url += $"&servicioId={servicioId.Value}";

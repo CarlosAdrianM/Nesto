@@ -1767,6 +1767,11 @@ Public Class AgenciasViewModel
         Try
             EstaInsertandoEnvio = True
             cmdInsertar.RaiseCanExecuteChanged()
+            ' #252: el peso es OBLIGATORIO para tramitar. Sin él, el comparador no puede saber qué
+            ' agencia es la más barata (la tarifa depende del peso) y la agencia puede rechazar el envío.
+            If Peso <= 0D Then
+                Throw New Exception("Indica el peso del envío antes de imprimir: es necesario para elegir la agencia más barata y para tramitar con la agencia.")
+            End If
             ' Red de seguridad de cobertura: no se puede tramitar por una agencia que no tenga tarifa
             ' para la zona del destino REAL. Puede corregir agenciaSeleccionada (a la más barata que sí
             ' cubra) o lanzar si NINGUNA agencia cubre la zona (lo captura el llamante y avisa).
@@ -1789,7 +1794,7 @@ Public Class AgenciasViewModel
         Try
             If IsNothing(agenciaSeleccionada) OrElse IsNothing(pedidoSeleccionado) Then Return 0D
             Dim opcion As OpcionEnvioAgencia = Await _comparadorAgencias.CosteAgencia(
-                pedidoSeleccionado.Empresa, agenciaSeleccionada.Numero, codPostalEnvio, Peso, reembolso)
+                pedidoSeleccionado.Empresa, agenciaSeleccionada.Numero, codPostalEnvio, Peso, reembolso, pais:=PaisIsoActual())
             Return If(opcion?.Coste, 0D)
         Catch ex As Exception
             Return 0D
@@ -1810,13 +1815,13 @@ Public Class AgenciasViewModel
         Dim empresa As String = pedidoSeleccionado.Empresa
         ' Caso normal primero (1 sola llamada): ¿la agencia seleccionada cubre el destino?
         ' CosteAgencia null = esa agencia no tiene tarifa para esa zona.
-        Dim costeSeleccionada As OpcionEnvioAgencia = Await _comparadorAgencias.CosteAgencia(empresa, agenciaSeleccionada.Numero, codPostalEnvio, Peso, reembolso)
+        Dim costeSeleccionada As OpcionEnvioAgencia = Await _comparadorAgencias.CosteAgencia(empresa, agenciaSeleccionada.Numero, codPostalEnvio, Peso, reembolso, pais:=PaisIsoActual())
         If costeSeleccionada IsNot Nothing Then
             Return ' la agencia elegida sí cubre la zona: se respeta, sin llamadas extra
         End If
 
         ' No cubre: buscar la más barata que SÍ cubra (típicamente Innovatrans para Portugal/UE).
-        Dim mejor As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codPostalEnvio, Peso, reembolso)
+        Dim mejor As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codPostalEnvio, Peso, reembolso, PaisIsoActual())
         If mejor Is Nothing Then
             Throw New Exception($"Ninguna agencia tiene tarifa para la zona del destino (CP {codPostalEnvio?.Trim()}). No se puede tramitar el envío.")
         End If
@@ -1828,6 +1833,13 @@ Public Class AgenciasViewModel
         agenciaSeleccionada = agenciaCubre
         _dialogService.ShowNotification("Agencia cambiada",
             $"{nombreAnterior} no tiene tarifa para el destino (CP {codPostalEnvio?.Trim()}). Se tramitará por {agenciaCubre.Nombre?.Trim()}.")
+    End Function
+
+    ' País del destino en ISO 3166-1 alpha-2 (ES, PT, FR...) para el comparador del servidor. El destino
+    ' canónico es (codPostalEnvio + país); cada tarifa resuelve su zona puertas adentro. Si no hay país
+    ' seleccionado, "ES" (retrocompatible: antes el comparador asumía España).
+    Private Function PaisIsoActual() As String
+        Return If(paisActual?.CodigoAlfa?.Trim(), "ES")
     End Function
 
     ' Agencias gestionadas por el comparador del servidor (auto-tarificadas). Las demás (Canteras
@@ -2561,6 +2573,10 @@ Public Class AgenciasViewModel
                 If estabaPendiente Then
                     envioActual.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO
                     envioActual.Bultos = bultos
+                    ' #252: la etiqueta pendiente se creó con Peso=0; al imprimir el operario indica el
+                    ' peso real, que hay que persistir (antes se quedaba a 0 en la rama pendiente). El
+                    ' peso es necesario para el coste/comparador y para la tramitación con la agencia.
+                    envioActual.Peso = Peso
                     ' NestoAPI#238: la rama pendiente (tienda online, etiqueta pendiente) no rellenaba
                     ' ImporteGasto. Lo ponemos con el coste real si lo tenemos; si no, se deja como estaba.
                     If importeGasto > 0D Then
@@ -2728,7 +2744,7 @@ Public Class AgenciasViewModel
         ' Innovatrans + fuel por agencia; el local no, porque sus tarifas se movieron a NestoAPI). Como
         ' este método es síncrono (lo llaman setters), corregimos la selección de forma asíncrona cuando
         ' el servidor responde. Sin esto, Innovatrans NUNCA se elegiría (tarifa placeholder en el cliente).
-        AjustarAgenciaConServidor(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número, codPostalDestino, Peso, reembolso)
+        AjustarAgenciaConServidor(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número, codPostalDestino, Peso, reembolso, PaisIsoActual())
 
         Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Numero = tarifaEconomica.AgenciaId)
 
@@ -2738,10 +2754,10 @@ Public Class AgenciasViewModel
     ' local (típicamente Innovatrans, que en el cliente es placeholder), corrige la selección. Best-effort:
     ' si el servidor falla o tarda, se queda la selección local. No pisa la selección si entretanto cambió
     ' el pedido (evita carreras al cambiar de pedido rápido).
-    Private Async Sub AjustarAgenciaConServidor(empresa As String, pedidoNumero As Integer, codigoPostal As String, peso As Decimal, reembolso As Decimal)
+    Private Async Sub AjustarAgenciaConServidor(empresa As String, pedidoNumero As Integer, codigoPostal As String, peso As Decimal, reembolso As Decimal, pais As String)
         Dim mensajeError As String = Nothing
         Try
-            Dim opcion As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codigoPostal, peso, reembolso)
+            Dim opcion As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codigoPostal, peso, reembolso, pais)
             ' Si cambió el pedido mientras respondía el servidor, no tocamos la selección actual.
             If IsNothing(pedidoSeleccionado) OrElse pedidoSeleccionado.Número <> pedidoNumero Then Return
             If opcion Is Nothing OrElse IsNothing(listaAgencias) Then Return

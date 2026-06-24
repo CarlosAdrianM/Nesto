@@ -940,6 +940,19 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarListaIncidentados("1")).MustHaveHappened()
     End Sub
 
+    ' #252: sin peso no se puede tramitar (el comparador no sabría la agencia más barata).
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlInsertarSinPeso_NoTramitaYAvisa()
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        ' Peso por defecto = 0.
+
+        viewModel.cmdInsertar.Execute(Nothing)
+
+        ' Sin peso no se crea el envío (se aborta antes de InsertarRegistro). ShowError es método de
+        ' extensión de IDialogService y FakeItEasy no puede verificarlo, así que comprobamos el efecto.
+        A.CallTo(Function() servicio.Insertar(A(Of EnviosAgencia).Ignored)).MustNotHaveHappened()
+    End Sub
+
     Private Sub CrearViewModelConUnEnvioEnLaListaDePendientes()
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
         A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("12345     ")
