@@ -1732,22 +1732,35 @@ Public Class AgenciasViewModel
     End Function
     Private Async Sub OnInsertar(arg As Object)
         Try
-            If Not EstaInsertandoEnvio Then
-                EstaInsertandoEnvio = True
-                cmdInsertar.RaiseCanExecuteChanged()
-                ' NestoAPI#238: el coste de la agencia realmente usada se calcula contra el servidor
-                ' (async), así que se obtiene ANTES de abrir el TransactionScope síncrono de InsertarRegistro.
-                Dim importeGasto As Decimal = Await ObtenerImporteGastoAgenciaUsadaAsync()
-                InsertarRegistro(servicioActual.ServicioId = agenciaEspecifica.ServicioCreaEtiquetaRetorno, importeGasto)
-            End If
+            Await InsertarEnvioAsync()
         Catch e As Exception
             imprimirEtiqueta = False
             _dialogService.ShowError(e.Message)
+        End Try
+    End Sub
+
+    ' Núcleo AWAITABLE de la inserción, compartido por el botón "Insertar" (OnInsertar) y por
+    ' "Imprimir e insertar" (ImprimirEInsertar). Tiene que ser awaitable: como precalcula el coste de
+    ' la agencia contra el servidor (NestoAPI#238) hay un Await ANTES de InsertarRegistro, y es
+    ' InsertarRegistro quien genera el código de barras (agenciaEspecifica.calcularCodigoBarras). Si el
+    ' llamante no espera a que termine, imprimiría un envío todavía sin código de barras: regresión por
+    ' la que GLS lanzaba "El envío debe tener un código de barras..." al imprimir e insertar.
+    Private Async Function InsertarEnvioAsync() As Task
+        If EstaInsertandoEnvio Then
+            Return
+        End If
+        Try
+            EstaInsertandoEnvio = True
+            cmdInsertar.RaiseCanExecuteChanged()
+            ' NestoAPI#238: el coste de la agencia realmente usada se calcula contra el servidor
+            ' (async), así que se obtiene ANTES de abrir el TransactionScope síncrono de InsertarRegistro.
+            Dim importeGasto As Decimal = Await ObtenerImporteGastoAgenciaUsadaAsync()
+            InsertarRegistro(servicioActual.ServicioId = agenciaEspecifica.ServicioCreaEtiquetaRetorno, importeGasto)
         Finally
             EstaInsertandoEnvio = False
             cmdInsertar.RaiseCanExecuteChanged()
         End Try
-    End Sub
+    End Function
 
     ' NestoAPI#238: coste de la agencia REALMENTE usada (no la más barata) para guardarlo en
     ' EnviosAgencia.ImporteGasto al imprimir. Best-effort: si el servidor falla o no hay tarifa portada
@@ -1776,9 +1789,13 @@ Public Class AgenciasViewModel
     Private Function CanImprimirEInsertar(ByVal param As Object) As Boolean
         Return Not EstaOcupado AndAlso CanInsertar(Nothing)
     End Function
-    Private Sub ImprimirEInsertar(ByVal param As Object)
+    Private Async Sub ImprimirEInsertar(ByVal param As Object)
         Try
-            cmdInsertar.Execute(Nothing)
+            ' Esperar a que la inserción TERMINE (es la que genera el código de barras) antes de imprimir.
+            ' Antes era cmdInsertar.Execute (fire-and-forget); al volverse async la inserción (NestoAPI#238
+            ' precalcula el coste con un Await previo a InsertarRegistro), la impresión se adelantaba al
+            ' código de barras y GLS lanzaba "El envío debe tener un código de barras...".
+            Await InsertarEnvioAsync()
             If imprimirEtiqueta Then
                 ' Issue #282: ImprimirEtiquetaPedido es Async y maneja su propia notificación y foco
                 ' No debemos levantar el evento aquí porque causaría condición de carrera
