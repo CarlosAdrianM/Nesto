@@ -204,8 +204,14 @@ Public Class AgenciaInnovatrans
     End Property
 
     Private Function IAgencia_EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento
-        ' Pendiente: URL de tracking del Cliente Web de DataTrans (si la habilitan).
-        Return String.Empty
+        If IsNothing(envio) OrElse String.IsNullOrWhiteSpace(envio.CodigoBarras) Then
+            Return String.Empty
+        End If
+        ' Portal TIP-SA: id fijo de cliente (028040028040) + albarán (CodigoBarras) de DataTrans.
+        ' DEUDA TEMPORAL: duplica la versión canónica de NestoAPI (RegistroSeguimientoAgencias.
+        ' SeguimientoInnovatrans). Se eliminará cuando la ventana de Agencias consuma el EnlaceSeguimiento
+        ' del DTO del servidor (migración Nesto -> NestoAPI), en vez de calcularlo en local.
+        Return "https://aplicaciones.tip-sa.com/cliente/datos_env.php?id=028040028040" & envio.CodigoBarras.Trim()
     End Function
 
     Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada

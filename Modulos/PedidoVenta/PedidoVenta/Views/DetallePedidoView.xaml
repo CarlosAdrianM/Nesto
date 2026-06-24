@@ -309,6 +309,43 @@
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
                                     <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciaNombre}" Width="Auto"/>
+                                    <!-- Estado coloreado, mismos colores que la ventana de Agencias (#387). -->
+                                    <DataGridTemplateColumn Header="Estado" Width="Auto">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock FontWeight="Bold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="En curso"/>
+                                                            <Setter Property="Foreground" Value="Gray"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Estado}" Value="-1">
+                                                                    <Setter Property="Text" Value="Pendiente"/>
+                                                                    <Setter Property="Foreground" Value="Gray"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Estado}" Value="1">
+                                                                    <Setter Property="Text" Value="Tramitado"/>
+                                                                    <Setter Property="Foreground" Value="RoyalBlue"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Estado}" Value="2">
+                                                                    <Setter Property="Text" Value="Entregado"/>
+                                                                    <Setter Property="Foreground" Value="Green"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Estado}" Value="3">
+                                                                    <Setter Property="Text" Value="Incidentado"/>
+                                                                    <Setter Property="Foreground" Value="DarkOrange"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Estado}" Value="4">
+                                                                    <Setter Property="Text" Value="Devuelto"/>
+                                                                    <Setter Property="Foreground" Value="Red"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTemplateColumn Header="Enlace">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>

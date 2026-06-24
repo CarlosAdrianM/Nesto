@@ -1030,6 +1030,10 @@ Public Class AgenciasViewModel
             If PestannaNombre = Pestannas.TRAMITADOS AndAlso Not IsNothing(empresaSeleccionada) Then
                 listaEnviosTramitados = _servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
             End If
+            ' #387: Incidentados = todos los Estado=3 de la empresa, sin filtro de fecha ni agencia.
+            If PestannaNombre = Pestannas.INCIDENTADOS AndAlso Not IsNothing(empresaSeleccionada) Then
+                listaIncidentados = _servicio.CargarListaIncidentados(empresaSeleccionada.Número)
+            End If
         End Set
     End Property
 
@@ -1078,6 +1082,17 @@ Public Class AgenciasViewModel
             RaisePropertyChanged(NameOf(sePuedeModificarEstado))
             RaisePropertyChanged(NameOf(etiquetaBultosTramitados))
             cmdImprimirManifiesto.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    ' #387: todos los envíos que siguen incidentados (Estado=3), sin filtro de fecha ni de agencia.
+    Private _listaIncidentados As ObservableCollection(Of EnviosAgencia)
+    Public Property listaIncidentados As ObservableCollection(Of EnviosAgencia)
+        Get
+            Return _listaIncidentados
+        End Get
+        Set(value As ObservableCollection(Of EnviosAgencia))
+            Dim unused = SetProperty(_listaIncidentados, value)
         End Set
     End Property
 
@@ -3330,6 +3345,7 @@ Public Class Pestannas
     Public Const PENDIENTES As String = "tabPendientes"
     Public Const EN_CURSO As String = "tabCurso"
     Public Const TRAMITADOS As String = "tabTramitados"
+    Public Const INCIDENTADOS As String = "tabIncidentados"
     Public Const REEMBOLSOS As String = "tabReembolsos"
     Public Const RETORNOS As String = "tabRetornos"
     Public Const ETIQUETAS As String = "tabEtiquetas"

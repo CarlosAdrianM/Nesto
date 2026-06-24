@@ -11,6 +11,10 @@ namespace Nesto.Infrastructure.Shared
             public const string AGENCIA_REEMBOLSOS = "Correos Express"; // String.Empty para no usar ninguna
             public const int ESTADO_INICIAL_ENVIO = 0;
             public const int ESTADO_TRAMITADO_ENVIO = 1;
+            // Estados de seguimiento (#247/#248), los rellena el poll del servidor por agencia.
+            public const int ESTADO_ENTREGADO_ENVIO = 2;
+            public const int ESTADO_INCIDENTADO_ENVIO = 3;
+            public const int ESTADO_DEVUELTO_ENVIO = 4; // devuelto a origen (fallo terminal de entrega)
             public const short ESTADO_PENDIENTE_ENVIO = -1; // Etiqueta pendiente de envío
             public const decimal REEMBOLSO_NO_COBRAR = -1M; // Sentinel: no cobrar reembolso
         }

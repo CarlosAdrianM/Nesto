@@ -491,6 +491,35 @@
                         <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaEnviosTramitados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" IsReadOnly="True">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
+                                <!-- #387: Estado coloreado: Tramitado (azul) / Entregado (verde) / Incidentado (rojo). -->
+                                <DataGridTemplateColumn Header="Estado" Width="Auto">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="Tramitado"/>
+                                                        <Setter Property="Foreground" Value="RoyalBlue"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Estado}" Value="2">
+                                                                <Setter Property="Text" Value="Entregado"/>
+                                                                <Setter Property="Foreground" Value="Green"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Estado}" Value="3">
+                                                                <Setter Property="Text" Value="Incidentado"/>
+                                                                <Setter Property="Foreground" Value="DarkOrange"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Estado}" Value="4">
+                                                                <Setter Property="Text" Value="Devuelto"/>
+                                                                <Setter Property="Foreground" Value="Red"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
                                 <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
                                 <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="Auto"/>
@@ -535,6 +564,23 @@
                         <TextBlock DockPanel.Dock="Right" Text="{Binding etiquetaBultosTramitados}" HorizontalAlignment="Right"/>
                     </DockPanel>
                 </Grid>
+            </TabItem>
+            <TabItem Name="tabIncidentados" Header="Incidentados">
+                <DataGrid ItemsSource="{Binding listaIncidentados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
+                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
+                        <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
+                        <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="Auto"/>
+                        <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="Auto"/>
+                        <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                        <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="*"/>
+                        <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="Auto"/>
+                        <DataGridTextColumn Header="C.P." Binding="{Binding CodPostal}" Width="Auto"/>
+                        <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="Auto"/>
+                        <DataGridTextColumn Header="Nº Envío" Binding="{Binding CodigoBarras}" Width="Auto"/>
+                    </DataGrid.Columns>
+                </DataGrid>
             </TabItem>
             <TabItem Name="tabReembolsos" Header="Reembolsos">
                 <Grid>

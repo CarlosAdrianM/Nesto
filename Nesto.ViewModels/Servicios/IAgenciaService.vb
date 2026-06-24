@@ -14,6 +14,7 @@ Public Interface IAgenciaService
     Function CargarListaEnviosTramitados(empresa As String, agencia As Integer, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnvios(agencia As Integer) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnviosTramitadosPorFecha(empresa As String, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia)
+    Function CargarListaIncidentados(empresa As String) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnviosTramitadosPorCliente(empresa As String, clienteFiltro As String) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnviosTramitadosPorNombre(empresa As String, nombreFiltro As String) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaAgencias(empresa As String) As ObservableCollection(Of AgenciasTransporte)

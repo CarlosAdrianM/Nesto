@@ -93,7 +93,18 @@ Public Class AgenciaService
     End Function
 
     Private Function CargarListaEnviosTramitadosGenerica(contexto As NestoEntities, empresa As String) As IQueryable(Of EnviosAgencia)
-        Return From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresa And e.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending
+        ' >= TRAMITADO para incluir también Entregado (2) e Incidentado (3) en la pestaña de tramitados
+        ' (#387): se distinguen por la columna Estado coloreada. Antes era "= TRAMITADO".
+        Return From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresa And e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending
+    End Function
+
+    ' #387: envíos INCIDENTADOS (estado temporal), sin filtro de fecha. Es un estado de paso: deben
+    ' avanzar a Entregado o a Devuelto, y en ambos casos salen de esta lista. Los Devueltos (terminales)
+    ' NO se incluyen aquí a propósito: se quedarían para siempre y la lista crecería sin fin.
+    Public Function CargarListaIncidentados(empresa As String) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaIncidentados
+        Using contexto = New NestoEntities
+            Return New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresa And e.Estado = Constantes.Agencias.ESTADO_INCIDENTADO_ENVIO Order By e.Fecha Descending)
+        End Using
     End Function
     Public Function CargarListaEnviosTramitados(empresa As String, agencia As Integer, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosTramitados
         Using contexto = New NestoEntities

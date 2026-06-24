@@ -916,6 +916,30 @@ Public Class AgenciaViewModelTests
 
 
 
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlSeleccionarTabIncidentados_CargaTodosLosIncidentados()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1")
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        Dim empresa1 = A.Fake(Of Empresas)
+        empresa1.Número = "1"
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(New ObservableCollection(Of Empresas) From {empresa1})
+        Dim agencia1 = A.Fake(Of AgenciasTransporte)
+        agencia1.Empresa = "1"
+        agencia1.Numero = 2
+        agencia1.Nombre = "ASM"
+        agencia1.Ruta = "XXX"
+        A.CallTo(Function() servicio.CargarListaAgencias("1")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1})
+        Dim envio = A.Fake(Of EnviosAgencia)
+        envio.Estado = CShort(3) ' Incidentado
+        A.CallTo(Function() servicio.CargarListaIncidentados("1")).Returns(New ObservableCollection(Of EnviosAgencia) From {envio})
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.PestannaNombre = Pestannas.INCIDENTADOS
+
+        Assert.AreEqual(1, viewModel.listaIncidentados.Count)
+        A.CallTo(Function() servicio.CargarListaIncidentados("1")).MustHaveHappened()
+    End Sub
+
     Private Sub CrearViewModelConUnEnvioEnLaListaDePendientes()
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
         A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("12345     ")
