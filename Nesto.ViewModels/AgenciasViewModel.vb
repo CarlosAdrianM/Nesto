@@ -1752,6 +1752,10 @@ Public Class AgenciasViewModel
         Try
             EstaInsertandoEnvio = True
             cmdInsertar.RaiseCanExecuteChanged()
+            ' Red de seguridad de cobertura: no se puede tramitar por una agencia que no tenga tarifa
+            ' para la zona del destino REAL. Puede corregir agenciaSeleccionada (a la más barata que sí
+            ' cubra) o lanzar si NINGUNA agencia cubre la zona (lo captura el llamante y avisa).
+            Await AsegurarCoberturaDestinoAsync()
             ' NestoAPI#238: el coste de la agencia realmente usada se calcula contra el servidor
             ' (async), así que se obtiene ANTES de abrir el TransactionScope síncrono de InsertarRegistro.
             Dim importeGasto As Decimal = Await ObtenerImporteGastoAgenciaUsadaAsync()
@@ -1775,6 +1779,47 @@ Public Class AgenciasViewModel
         Catch ex As Exception
             Return 0D
         End Try
+    End Function
+
+    ' Red de seguridad de cobertura (requisito Innovatrans): antes de crear la etiqueta, garantiza que
+    ' la agencia con la que se va a tramitar TIENE tarifa para la zona del destino real (codPostalEnvio):
+    '   - Si la agencia seleccionada no cubre la zona -> cambia a la más barata que sí (p.ej. GLS no
+    '     tiene tarifa de Portugal -> Innovatrans).
+    '   - Si NINGUNA agencia cubre la zona -> lanza, y el envío NO se tramita (el llamante muestra el error).
+    ' Solo se aplica a las agencias del comparador (ASM/Innovatrans). Las manuales (Canteras, o CEX/
+    ' Sending en cuarentena) tienen su propia lógica y no pasan por aquí.
+    Private Async Function AsegurarCoberturaDestinoAsync() As Task
+        If IsNothing(agenciaSeleccionada) OrElse IsNothing(pedidoSeleccionado) Then Return
+        If Not EsAgenciaDelComparador(agenciaSeleccionada) Then Return
+
+        Dim empresa As String = pedidoSeleccionado.Empresa
+        ' Caso normal primero (1 sola llamada): ¿la agencia seleccionada cubre el destino?
+        ' CosteAgencia null = esa agencia no tiene tarifa para esa zona.
+        Dim costeSeleccionada As OpcionEnvioAgencia = Await _comparadorAgencias.CosteAgencia(empresa, agenciaSeleccionada.Numero, codPostalEnvio, Peso, reembolso)
+        If costeSeleccionada IsNot Nothing Then
+            Return ' la agencia elegida sí cubre la zona: se respeta, sin llamadas extra
+        End If
+
+        ' No cubre: buscar la más barata que SÍ cubra (típicamente Innovatrans para Portugal/UE).
+        Dim mejor As OpcionEnvioAgencia = Await _comparadorAgencias.MasEconomica(empresa, codPostalEnvio, Peso, reembolso)
+        If mejor Is Nothing Then
+            Throw New Exception($"Ninguna agencia tiene tarifa para la zona del destino (CP {codPostalEnvio?.Trim()}). No se puede tramitar el envío.")
+        End If
+        Dim agenciaCubre = listaAgencias?.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Numero = mejor.AgenciaId)
+        If agenciaCubre Is Nothing Then
+            Throw New Exception($"La agencia seleccionada no tiene tarifa para la zona del destino (CP {codPostalEnvio?.Trim()}) y la recomendada no está disponible. No se puede tramitar.")
+        End If
+        Dim nombreAnterior As String = agenciaSeleccionada.Nombre?.Trim()
+        agenciaSeleccionada = agenciaCubre
+        _dialogService.ShowNotification("Agencia cambiada",
+            $"{nombreAnterior} no tiene tarifa para el destino (CP {codPostalEnvio?.Trim()}). Se tramitará por {agenciaCubre.Nombre?.Trim()}.")
+    End Function
+
+    ' Agencias gestionadas por el comparador del servidor (auto-tarificadas). Las demás (Canteras
+    ' manual, CEX/Sending en cuarentena, OnTime) se seleccionan a mano y no pasan por la red de cobertura.
+    Private Shared Function EsAgenciaDelComparador(agencia As AgenciasTransporte) As Boolean
+        Dim nombre As String = agencia?.Nombre?.Trim()
+        Return nombre = "ASM" OrElse nombre = "Innovatrans"
     End Function
 
     Private _cmdImprimirEInsertar As ICommand
@@ -2653,8 +2698,14 @@ Public Class AgenciasViewModel
 
         Dim cliente As Clientes = _servicio.CargarCliente(pedidoSeleccionado.Empresa, pedidoSeleccionado.Nº_Cliente, pedidoSeleccionado.Contacto)
 
+        ' La agencia/tarifa se calcula contra el CP del DESTINO REAL (codPostalEnvio, que el operario
+        ' puede cambiar a mano), NO contra el del contacto del pedido. Si el destino aún no está cargado,
+        ' se cae al del contacto. Bug corregido: un pedido a Portugal con el contacto en Algete elegía
+        ' GLS-provincial (3,43 €) porque se comparaba con el CP del contacto, no con el de entrega.
+        Dim codPostalDestino As String = If(String.IsNullOrWhiteSpace(codPostalEnvio), cliente.CodPostal, codPostalEnvio)
+
         ' Selección LOCAL inmediata (default instantáneo, no bloquea la UI).
-        Dim parMasEconomico = TarifaMasEconomica(cliente.CodPostal, Peso, reembolso)
+        Dim parMasEconomico = TarifaMasEconomica(codPostalDestino, Peso, reembolso)
         CosteEnvio = parMasEconomico.Value
         Dim tarifaEconomica As ITarifaAgencia = parMasEconomico.Key
 
@@ -2662,7 +2713,7 @@ Public Class AgenciasViewModel
         ' Innovatrans + fuel por agencia; el local no, porque sus tarifas se movieron a NestoAPI). Como
         ' este método es síncrono (lo llaman setters), corregimos la selección de forma asíncrona cuando
         ' el servidor responde. Sin esto, Innovatrans NUNCA se elegiría (tarifa placeholder en el cliente).
-        AjustarAgenciaConServidor(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número, cliente.CodPostal, Peso, reembolso)
+        AjustarAgenciaConServidor(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número, codPostalDestino, Peso, reembolso)
 
         Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Numero = tarifaEconomica.AgenciaId)
 
