@@ -5,6 +5,7 @@
     xmlns:i="http://schemas.microsoft.com/xaml/behaviors" 
     xmlns:prism="http://prismlibrary.com/"
     xmlns:local="clr-namespace:Nesto.Views"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     xmlns:vm="clr-namespace:Nesto.ViewModels;assembly=ViewModels">
 
     <UserControl.Resources>
@@ -34,6 +35,7 @@
     </UserControl.Resources>
 
 
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Tramitando con la agencia, espere…">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -677,4 +679,5 @@
             </TabItem>
         </TabControl>
     </Grid>
+    </xctk:BusyIndicator>
 </UserControl>
