@@ -173,6 +173,12 @@ Public Class AgenciaOnTime
         Return "https://ontimegts.alertran.net/gts/pub/clielocserv.seam?cliente=02890107&referencia=" + referencia
     End Function
 
+    Public ReadOnly Property LoggingDetallado As Boolean Implements IAgencia.LoggingDetallado
+        Get
+            Return False
+        End Get
+    End Property
+
     Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada
         Return False
     End Function

@@ -110,6 +110,12 @@ Public Class AgenciaGlovo
         }
     End Function
 
+    Public ReadOnly Property LoggingDetallado As Boolean Implements IAgencia.LoggingDetallado
+        Get
+            Return False
+        End Get
+    End Property
+
     Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada
         Return False
     End Function

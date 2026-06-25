@@ -48,4 +48,10 @@ Public Interface IAgencia
     ' agencia). Las operaciones remotas concretas están en IAgenciaConGestionRemota.
     ReadOnly Property FlujoTramitacion As TipoFlujoTramitacion
 
+    ' NestoAPI#259: si es True, esta agencia emite logging DETALLADO en ELMAH (p.ej. intentos de
+    ' borrar un envío ya tramitado) para vigilarla de cerca mientras se integra (hoy solo Innovatrans).
+    ' Se pone a False cuando ya está rodada y a True en la nueva agencia que se vaya a integrar. No
+    ' afecta a la operativa, solo a la verbosidad del log.
+    ReadOnly Property LoggingDetallado As Boolean
+
 End Interface

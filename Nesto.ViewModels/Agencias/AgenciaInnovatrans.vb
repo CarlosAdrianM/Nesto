@@ -214,6 +214,13 @@ Public Class AgenciaInnovatrans
         Return "https://aplicaciones.tip-sa.com/cliente/datos_env.php?id=028040028040" & envio.CodigoBarras.Trim()
     End Function
 
+    ' Innovatrans recién integrada: logging detallado ON para vigilarla (NestoAPI#259). Poner a False cuando esté rodada.
+    Public ReadOnly Property LoggingDetallado As Boolean Implements IAgencia.LoggingDetallado
+        Get
+            Return True
+        End Get
+    End Property
+
     Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada
         Return False
     End Function
