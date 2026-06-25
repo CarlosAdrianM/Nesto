@@ -561,6 +561,14 @@
                                 Content="Pegar nº envío"
                                 Command="{Binding cmdPegarCodigoBarras}"
                                 ToolTip="Pegar el nº de envío que la agencia ha devuelto por correo (Canteras y similares)."/>
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Abrir seguimiento"
+                                Command="{Binding AbrirEnlaceSeguimientoCommand}"
+                                ToolTip="Abre el enlace de seguimiento del envío seleccionado."/>
+                        <Button DockPanel.Dock="Left" MinWidth="120" Margin="3" Padding="6,2"
+                                Content="Actualizar estado"
+                                Command="{Binding cmdActualizarSeguimiento}"
+                                ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado, sin esperar al proceso automático."/>
                         <TextBlock DockPanel.Dock="Right" Text="{Binding etiquetaBultosTramitados}" HorizontalAlignment="Right"/>
                     </DockPanel>
                 </Grid>
