@@ -254,40 +254,60 @@ namespace Nesto.Modulos.CanalesExternos
             return resultado;
         }
 
-        private DatosEnvioConfirmarPrestashop LeerDatosEnvio(string seguimiento)
+        // Mapeo seguimiento -> (transportista de Prestashop, nº de seguimiento), por agencia.
+        // Para soportar una agencia basta con una fila: el token que identifica su enlace, su id de
+        // transportista en Prestashop y cómo extraer el nº de seguimiento del enlace. Antes era un
+        // if/else que solo contemplaba CEX y Sending y lanzaba NotImplementedException para el resto
+        // (Innovatrans, GLS...). GLS e Innovatrans comparten el transportista genérico 160 de Prestashop.
+        private static readonly (string Token, string AgenciaId, Func<string, string> ExtraerNumero)[] MapeoSeguimiento =
         {
-            if (seguimiento.Contains("correosexpress"))
-            {
-                int indiceIgual = seguimiento.IndexOf("="); // Obtiene el índice del símbolo "="
+            ("correosexpress", "105", s => DespuesDe(s, "=", ultima: false)),
+            ("sending",        "103", s => DespuesDe(s, "=", ultima: true)),
+            ("gls-spain.es",   "160", s => Entre(s, "/e/", "/")),                 // https://mygls.gls-spain.es/e/{albaran}/{cp}
+            ("tip-sa.com",     "160", s => DespuesDe(s, "028040028040", ultima: false)), // .../datos_env.php?id=028040028040{albaran}
+        };
 
-                if (indiceIgual == -1) // Verifica si se encuentra el símbolo "=" en la cadena
-                {
-                    throw new Exception("El seguimiento de CEX tiene que incluir el símbolo = (igual)");
-                }
-                return new DatosEnvioConfirmarPrestashop
-                {
-                    AgenciaId = "105",
-                    NumeroSeguimiento = seguimiento[(indiceIgual + 1)..]
-                };
-            }
-            else if (seguimiento.Contains("sending"))
+        internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(string seguimiento)
+        {
+            if (string.IsNullOrWhiteSpace(seguimiento))
             {
-                int indiceIgual = seguimiento.LastIndexOf("=");
+                throw new Exception("El pedido no tiene un enlace de seguimiento que confirmar.");
+            }
 
-                if (indiceIgual == -1) // Verifica si se encuentra el símbolo "=" en la cadena
-                {
-                    throw new Exception("El seguimiento de Sending tiene que incluir el símbolo = (igual)");
-                }
-                return new DatosEnvioConfirmarPrestashop
-                {
-                    AgenciaId = "103",
-                    NumeroSeguimiento = seguimiento[(indiceIgual + 1)..]
-                };
-            }
-            else
+            foreach (var (token, agenciaId, extraer) in MapeoSeguimiento)
             {
-                throw new NotImplementedException();
+                if (seguimiento.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    string numero = extraer(seguimiento)?.Trim();
+                    if (string.IsNullOrWhiteSpace(numero))
+                    {
+                        throw new Exception($"No se pudo extraer el número de seguimiento del enlace: {seguimiento}");
+                    }
+                    return new DatosEnvioConfirmarPrestashop { AgenciaId = agenciaId, NumeroSeguimiento = numero };
+                }
             }
+
+            throw new NotImplementedException($"No se reconoce la agencia del enlace de seguimiento: {seguimiento}");
+        }
+
+        private static string DespuesDe(string texto, string marca, bool ultima)
+        {
+            int i = ultima
+                ? texto.LastIndexOf(marca, StringComparison.OrdinalIgnoreCase)
+                : texto.IndexOf(marca, StringComparison.OrdinalIgnoreCase);
+            return i < 0 ? null : texto.Substring(i + marca.Length);
+        }
+
+        private static string Entre(string texto, string desde, string hasta)
+        {
+            int i = texto.IndexOf(desde, StringComparison.OrdinalIgnoreCase);
+            if (i < 0)
+            {
+                return null;
+            }
+            i += desde.Length;
+            int j = texto.IndexOf(hasta, i, StringComparison.OrdinalIgnoreCase);
+            return j < 0 ? texto.Substring(i) : texto.Substring(i, j - i);
         }
 
         public async Task<ICollection<LineaPedidoVentaDTO>> GetLineas(PedidoCanalExterno pedido)
@@ -558,7 +578,7 @@ namespace Nesto.Modulos.CanalesExternos
             return true;
         }
 
-        private class DatosEnvioConfirmarPrestashop
+        internal class DatosEnvioConfirmarPrestashop
         {
             public string AgenciaId { get; set; }
             public string NumeroSeguimiento { get; set; }
