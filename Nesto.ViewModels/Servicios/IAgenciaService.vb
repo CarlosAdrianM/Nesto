@@ -44,6 +44,8 @@ Public Interface IAgenciaService
     ' Innovatrans (registrar al imprimir): tramita el envío contra la agencia en el servidor
     ' (POST api/EnviosAgencias/{id}/Tramitar) y devuelve el albarán + bultos + etiqueta ZPL.
     Function TramitarEnvioRemoto(numeroEnvio As Integer) As Task(Of TramitarEnvioResultadoDto)
+    ' Actualiza el estado de un envío a demanda (sin esperar al job de Hangfire de cada 2h).
+    Function ActualizarSeguimientoEnvio(numeroEnvio As Integer) As Task(Of SeguimientoActualizadoDto)
     Function ContabilizarReembolso(envio As EnviosAgencia) As Integer
     Function CalcularMovimientoLiq(env As EnviosAgencia) As ExtractoCliente
     Function CalcularMovimientoLiq(env As EnviosAgencia, reembolsoAnterior As Double) As ExtractoCliente

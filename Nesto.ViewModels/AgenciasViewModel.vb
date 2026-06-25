@@ -98,6 +98,7 @@ Public Class AgenciasViewModel
         BorrarEnvioPendienteCommand = New DelegateCommand(AddressOf OnBorrarEnvioPendiente, AddressOf CanBorrarEnvioPendiente)
         GuardarEnvioPendienteCommand = New DelegateCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
+        cmdActualizarSeguimiento = New DelegateCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
         cmdPegarCodigoBarras = New DelegateCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
 
         factory.Add("ASM", Function() New AgenciaASM(Me))
@@ -753,6 +754,10 @@ Public Class AgenciasViewModel
 
                 If Not IsNothing(cmdCargarEstado) Then
                     cmdCargarEstado.RaiseCanExecuteChanged()
+                End If
+
+                If Not IsNothing(cmdActualizarSeguimiento) Then
+                    cmdActualizarSeguimiento.RaiseCanExecuteChanged()
                 End If
 
                 If Not IsNothing(envioActual) AndAlso Not IsNothing(listaTiposRetorno) Then
@@ -2441,6 +2446,44 @@ Public Class AgenciasViewModel
             .UseShellExecute = True
         })
     End Sub
+
+    ' Actualiza el estado del envío seleccionado a demanda (NestoAPI consulta el seguimiento de la
+    ' agencia y persiste), sin esperar al job de Hangfire de cada 2h. Útil sobre todo en Incidentados.
+    Public Property cmdActualizarSeguimiento As DelegateCommand
+    Private Function CanActualizarSeguimiento() As Boolean
+        Return envioActual IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(envioActual.CodigoBarras)
+    End Function
+    Private Async Sub OnActualizarSeguimiento()
+        If envioActual Is Nothing Then
+            Return
+        End If
+        Dim numero As Integer = envioActual.Numero
+        Try
+            EstaOcupado = True
+            Dim resultado = Await _servicio.ActualizarSeguimientoEnvio(numero)
+            ' Recargamos la lista activa para que el envío refleje (o salga de) su nuevo estado.
+            If PestannaNombre = Pestannas.INCIDENTADOS AndAlso Not IsNothing(empresaSeleccionada) Then
+                listaIncidentados = _servicio.CargarListaIncidentados(empresaSeleccionada.Número)
+            ElseIf PestannaNombre = Pestannas.TRAMITADOS AndAlso Not IsNothing(empresaSeleccionada) AndAlso Not IsNothing(agenciaSeleccionada) Then
+                listaEnviosTramitados = _servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+            End If
+            _dialogService.ShowNotification("Seguimiento", $"Estado del envío {numero}: {NombreEstado(resultado.Estado)}" & If(String.IsNullOrWhiteSpace(resultado.Detalle), "", $" — {resultado.Detalle}"))
+        Catch ex As Exception
+            _dialogService.ShowError($"No se pudo actualizar el seguimiento: {ex.Message}")
+        Finally
+            EstaOcupado = False
+        End Try
+    End Sub
+    Private Shared Function NombreEstado(estado As Short) As String
+        Select Case estado
+            Case 0 : Return "En curso"
+            Case 1 : Return "Tramitado"
+            Case 2 : Return "Entregado"
+            Case 3 : Return "Incidentado"
+            Case 4 : Return "Devuelto"
+            Case Else : Return $"Estado {estado}"
+        End Select
+    End Function
 #End Region
 
 #Region "Funciones de Ayuda"

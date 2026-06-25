@@ -566,21 +566,34 @@
                 </Grid>
             </TabItem>
             <TabItem Name="tabIncidentados" Header="Incidentados">
-                <DataGrid ItemsSource="{Binding listaIncidentados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
-                        <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
-                        <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
-                        <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="Auto"/>
-                        <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="Auto"/>
-                        <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
-                        <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="*"/>
-                        <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="Auto"/>
-                        <DataGridTextColumn Header="C.P." Binding="{Binding CodPostal}" Width="Auto"/>
-                        <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="Auto"/>
-                        <DataGridTextColumn Header="Nº Envío" Binding="{Binding CodigoBarras}" Width="Auto"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3">
+                        <Button Content="Abrir seguimiento" MinWidth="120" Margin="3" Command="{Binding AbrirEnlaceSeguimientoCommand}"
+                                ToolTip="Abre el enlace de seguimiento del envío seleccionado (o haz doble clic en la fila)"/>
+                        <Button Content="Actualizar estado" MinWidth="120" Margin="3" Command="{Binding cmdActualizarSeguimiento}"
+                                ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado, sin esperar al proceso automático"/>
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding listaIncidentados}" SelectedItem="{Binding envioActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="MouseDoubleClick">
+                                <i:InvokeCommandAction Command="{Binding AbrirEnlaceSeguimientoCommand}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
+                            <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
+                            <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="Auto"/>
+                            <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                            <DataGridTextColumn Header="Dirección" Binding="{Binding Direccion}" Width="*"/>
+                            <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="Auto"/>
+                            <DataGridTextColumn Header="C.P." Binding="{Binding CodPostal}" Width="Auto"/>
+                            <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nº Envío" Binding="{Binding CodigoBarras}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
             </TabItem>
             <TabItem Name="tabReembolsos" Header="Reembolsos">
                 <Grid>

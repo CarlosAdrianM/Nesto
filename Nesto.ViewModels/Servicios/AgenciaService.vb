@@ -534,6 +534,27 @@ Public Class AgenciaService
         End Using
     End Function
 
+    Public Async Function ActualizarSeguimientoEnvio(numeroEnvio As Integer) As Task(Of SeguimientoActualizadoDto) Implements IAgenciaService.ActualizarSeguimientoEnvio
+        Using client As New HttpClient
+            client.BaseAddress = New Uri(configuracion.servidorAPI)
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            ' Cuerpo vacío: el envío lo identifica la ruta; el servidor consulta su seguimiento y persiste.
+            Dim content As HttpContent = New StringContent(String.Empty, Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync($"EnviosAgencias/{numeroEnvio}/ActualizarSeguimiento", content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"No se pudo actualizar el seguimiento ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+
+            Return JsonConvert.DeserializeObject(Of SeguimientoActualizadoDto)(cuerpo)
+        End Using
+    End Function
+
     Public Async Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal) Implements IAgenciaService.ImporteReembolso
         Using client As New HttpClient
             client.BaseAddress = New Uri(configuracion.servidorAPI)
