@@ -15,15 +15,24 @@ namespace Nesto.Modulos.Ganavisiones.Services
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
-        public GanavisionesService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
+        public GanavisionesService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IClienteApiFactory clienteApiFactory = null)
         {
             _configuracion = configuracion;
             _servicioAutenticacion = servicioAutenticacion;
+            _clienteApiFactory = clienteApiFactory;
         }
 
+        // Nesto#369: usa el HttpClient de la factory (base + JWT centralizados, usuario en ELMAH).
+        // Si la factory no está disponible, conserva EXACTAMENTE la autenticación manual de antes.
         private async Task<HttpClient> CrearClienteAutenticado()
         {
+            if (_clienteApiFactory != null)
+            {
+                return _clienteApiFactory.Crear();
+            }
+
             var client = new HttpClient
             {
                 BaseAddress = new Uri(_configuracion.servidorAPI)
