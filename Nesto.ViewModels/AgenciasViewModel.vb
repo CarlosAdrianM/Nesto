@@ -1691,6 +1691,8 @@ Public Class AgenciasViewModel
         ' Bloqueo por albarán (no solo por Estado>0): un envío "En curso" (0) ya tiene albarán y está
         ' registrado en la agencia. Hasta que se pueda anular en la agencia, no se permite borrarlo aquí.
         If envioActual.Estado > 0 OrElse Not String.IsNullOrWhiteSpace(envioActual.CodigoBarras) Then
+            ' NestoAPI#259: dejamos rastro en ELMAH del intento (lo que pasó con 245943: tramitado y borrado).
+            RegistrarIncidenciaAgencia($"Intento de borrar un envío ya registrado en la agencia: envío {envioActual.Numero} (cliente {envioActual.Cliente?.Trim}, albarán {envioActual.CodigoBarras?.Trim}, estado {envioActual.Estado}).", "AgenciasViewModel.Borrar")
             Throw New Exception($"No se puede borrar un envío ya registrado en la agencia (albarán {envioActual.CodigoBarras?.Trim}). Hay que anularlo en la agencia primero.")
         End If
         Dim mensajeMostrar = String.Format("¿Confirma que desea borrar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
@@ -1706,6 +1708,18 @@ Public Class AgenciasViewModel
         Dim unused = listaEnvios.Remove(copiaEnvio)
         envioActual = listaEnvios.LastOrDefault
         RaisePropertyChanged(NameOf(listaEnvios))
+    End Sub
+
+    ' NestoAPI#259: registra en ELMAH (vía POST /api/Errores) una incidencia/error de agencia desde
+    ' Nesto, para detectarlo desde el primer momento. Fire-and-forget y todo en Try: el registro NUNCA
+    ' debe romper la operación ni lanzar (mismo patrón que el log del comparador shadow).
+    Private Sub RegistrarIncidenciaAgencia(mensaje As String, contexto As String)
+        Try
+            Dim servicioErrores = ContainerLocator.Container?.Resolve(Of IServicioRegistroErrores)()
+            Dim unused = servicioErrores?.RegistrarErrorAsync(New Exception(mensaje), contexto)
+        Catch
+            ' nunca lanzar
+        End Try
     End Sub
 
     ' Nesto#359: para agencias sin integración (Canteras) el usuario pega manualmente el
@@ -2327,6 +2341,7 @@ Public Class AgenciasViewModel
         ' Aunque esté en la pestaña de Pendientes, si tiene albarán ya está registrado en la agencia
         ' (p.ej. tramitado pero aún sin "cerrar el día"): no se puede borrar sin anularlo en la agencia.
         If Not String.IsNullOrWhiteSpace(EnvioPendienteSeleccionado?.CodigoBarras) Then
+            RegistrarIncidenciaAgencia($"Intento de borrar un envío pendiente ya registrado en la agencia: envío {EnvioPendienteSeleccionado.Numero} (cliente {EnvioPendienteSeleccionado.Cliente?.Trim}, albarán {EnvioPendienteSeleccionado.CodigoBarras.Trim}).", "AgenciasViewModel.OnBorrarEnvioPendiente")
             _dialogService.ShowError($"No se puede borrar un envío ya registrado en la agencia (albarán {EnvioPendienteSeleccionado.CodigoBarras.Trim}). Hay que anularlo en la agencia primero.")
             Return
         End If
