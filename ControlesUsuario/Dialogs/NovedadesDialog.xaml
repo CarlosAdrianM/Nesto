@@ -7,13 +7,30 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Qué hay de nuevo" FontSize="18" FontWeight="Bold" Margin="0,0,0,10" />
+        <TextBlock Grid.Row="0" Text="Qué hay de nuevo" FontSize="18" FontWeight="Bold" Margin="0,0,0,4" />
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <!-- Navegación entre versiones: solo se muestra una versión a la vez (la más nueva al abrir);
+             las flechas permiten consultar las novedades de versiones anteriores/siguientes. -->
+        <Grid Grid.Row="1" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="◀" Width="30" Height="24" FontSize="13"
+                    Command="{Binding VersionAnteriorCommand}" ToolTip="Versión anterior" />
+            <TextBlock Grid.Column="1" Text="{Binding VersionActual}" HorizontalAlignment="Center"
+                       VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#4A90D9" />
+            <Button Grid.Column="2" Content="▶" Width="30" Height="24" FontSize="13"
+                    Command="{Binding VersionSiguienteCommand}" ToolTip="Versión siguiente" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Novedades}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -46,7 +63,7 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <Button Grid.Row="2" Content="Cerrar" Command="{Binding CloseDialogCommand}"
+        <Button Grid.Row="3" Content="Cerrar" Command="{Binding CloseDialogCommand}"
                 Width="90" Height="28" HorizontalAlignment="Right" Margin="0,10,0,0" IsDefault="True" IsCancel="True" />
     </Grid>
 </UserControl>
