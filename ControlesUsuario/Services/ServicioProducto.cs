@@ -16,16 +16,40 @@ namespace ControlesUsuario.Services
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
+        private readonly IClienteApiFactory _clienteApiFactory;
 
         /// <summary>
         /// Constructor con inyección de dependencias.
         /// </summary>
         /// <param name="configuracion">Configuración con el servidor API.</param>
         /// <param name="servicioAutenticacion">Servicio de autenticación para obtener tokens.</param>
-        public ServicioProducto(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
+        /// <param name="clienteApiFactory">
+        /// Factory de HttpClient ya configurado con JWT (Nesto#369: así el usuario sale en ELMAH).
+        /// Opcional: si no se inyecta, se cae al cliente con autenticación manual de siempre.
+        /// </param>
+        public ServicioProducto(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion, IClienteApiFactory clienteApiFactory = null)
         {
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));
             _servicioAutenticacion = servicioAutenticacion;
+            _clienteApiFactory = clienteApiFactory;
+        }
+
+        // Nesto#369: prioriza el HttpClient de la factory (base + JWT centralizados). Si la factory no
+        // está disponible, mantiene EXACTAMENTE el comportamiento anterior (cliente propio + auth manual),
+        // de modo que la migración nunca degrada la autenticación.
+        private async Task<HttpClient> CrearClienteAsync()
+        {
+            if (_clienteApiFactory != null)
+            {
+                return _clienteApiFactory.Crear();
+            }
+
+            var client = new HttpClient { BaseAddress = new Uri(_configuracion.servidorAPI) };
+            if (_servicioAutenticacion != null)
+            {
+                await _servicioAutenticacion.ConfigurarAutorizacion(client);
+            }
+            return client;
         }
 
         /// <inheritdoc/>
@@ -36,16 +60,8 @@ namespace ControlesUsuario.Services
                 return null;
             }
 
-            using (var client = new HttpClient())
+            using (var client = await CrearClienteAsync())
             {
-                client.BaseAddress = new Uri(_configuracion.servidorAPI);
-
-                // Configurar autenticación
-                if (_servicioAutenticacion != null)
-                {
-                    await _servicioAutenticacion.ConfigurarAutorizacion(client);
-                }
-
                 try
                 {
                     // Si no hay cliente/contacto, usar el endpoint simple que solo devuelve nombre y PVP
