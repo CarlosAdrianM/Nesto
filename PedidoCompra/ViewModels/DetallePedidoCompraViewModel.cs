@@ -158,9 +158,21 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 return;
             }
             EstaOcupado = true;
-            List<ReportDataSource> dataSources = await ObtenerDataSourcesInforme(pedido);
-            var pdf = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "PDF", dataSources);
-            var xlsx = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "EXCELOPENXML", dataSources);
+            byte[] pdf;
+            byte[] xlsx;
+            if (await UsarQuestPdf(pedido.Model.Empresa))
+            {
+                // QuestPDF: PDF y Excel los genera NestoAPI (mismo contenido que el RDLC).
+                pdf = await _servicioInformes.DescargarPedidoCompraPdf(pedido.Model.Empresa, pedido.Id);
+                xlsx = await _servicioInformes.DescargarPedidoCompraExcel(pedido.Model.Empresa, pedido.Id);
+            }
+            else
+            {
+                // RDLC (por defecto): render local como hasta ahora.
+                List<ReportDataSource> dataSources = await ObtenerDataSourcesInforme(pedido);
+                pdf = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "PDF", dataSources);
+                xlsx = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "EXCELOPENXML", dataSources);
+            }
 
             string[] scopes = new string[] { "Mail.Send", "Mail.ReadWrite" };
             GraphServiceClient graphClient = new GraphServiceClient(InteractiveBrowserCredential, scopes);
@@ -299,11 +311,36 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             {
                 return;
             }
-            List<ReportDataSource> dataSources = await ObtenerDataSourcesInforme(pedido);
-            var pdf = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "PDF", dataSources);
+            byte[] pdf;
+            if (await UsarQuestPdf(pedido.Model.Empresa))
+            {
+                pdf = await _servicioInformes.DescargarPedidoCompraPdf(pedido.Model.Empresa, pedido.Id);
+            }
+            else
+            {
+                List<ReportDataSource> dataSources = await ObtenerDataSourcesInforme(pedido);
+                pdf = Nesto.Infrastructure.Services.RenderizadorInformes.Renderizar("Nesto.Informes.PedidoCompra.rdlc", "PDF", dataSources);
+            }
             string fileName = Path.GetTempPath() + $"PedidoCompra{pedido.Id}.pdf";
             System.IO.File.WriteAllBytes(fileName, pdf);
             System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+        }
+
+        // Decide el motor de generación del pedido de compra según el parámetro por usuario
+        // MotorPdfPedidoCompra ("QuestPDF" => NestoAPI; cualquier otro valor o error => RDLC local).
+        // Ante CUALQUIER fallo al leer el parámetro se usa RDLC (comportamiento actual), para no
+        // romper la impresión/envío durante la migración progresiva usuario a usuario.
+        private async Task<bool> UsarQuestPdf(string empresa)
+        {
+            try
+            {
+                string motor = await Configuracion.leerParametro(empresa, Parametros.Claves.MotorPdfPedidoCompra);
+                return string.Equals(motor, "QuestPDF", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private async Task<List<ReportDataSource>> ObtenerDataSourcesInforme(PedidoCompraWrapper pedido)

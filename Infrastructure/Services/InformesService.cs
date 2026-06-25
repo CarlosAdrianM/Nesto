@@ -125,6 +125,16 @@ namespace Nesto.Infrastructure.Services
             }
         }
 
+        public async Task<byte[]> DescargarPedidoCompraPdf(string empresa, int pedido)
+            => await GetBytesAsync(
+                $"Informes/PedidoCompra/Pdf?empresa={Uri.EscapeDataString(empresa)}&pedido={pedido}",
+                "el PDF del pedido de compra").ConfigureAwait(false);
+
+        public async Task<byte[]> DescargarPedidoCompraExcel(string empresa, int pedido)
+            => await GetBytesAsync(
+                $"Informes/PedidoCompra/Excel?empresa={Uri.EscapeDataString(empresa)}&pedido={pedido}",
+                "el Excel del pedido de compra").ConfigureAwait(false);
+
         private async Task<T> GetAsync<T>(string urlRelativa, string descripcion)
         {
             using (var client = new HttpClient())
