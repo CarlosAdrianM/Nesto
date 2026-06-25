@@ -1680,12 +1680,18 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function canBorrar(ByVal param As Object) As Boolean
+        ' No se puede borrar un envío ya registrado en la agencia (tiene albarán/CodigoBarras): aunque
+        ' su Estado sea "En curso" (0), ya está tramitado en la agencia y borrarlo aquí lo deja registrado
+        ' allí pero perdido en nuestra BD (caso real 245943, 25-jun-2026). Solo Pendientes (sin albarán).
         Return envioActual IsNot Nothing AndAlso Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0 AndAlso
+        String.IsNullOrWhiteSpace(envioActual.CodigoBarras) AndAlso
         (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION))
     End Function
     Private Sub Borrar(ByVal param As Object)
-        If envioActual.Estado > 0 Then
-            Throw New Exception("No se puede borrar un pedido tramitado")
+        ' Bloqueo por albarán (no solo por Estado>0): un envío "En curso" (0) ya tiene albarán y está
+        ' registrado en la agencia. Hasta que se pueda anular en la agencia, no se permite borrarlo aquí.
+        If envioActual.Estado > 0 OrElse Not String.IsNullOrWhiteSpace(envioActual.CodigoBarras) Then
+            Throw New Exception($"No se puede borrar un envío ya registrado en la agencia (albarán {envioActual.CodigoBarras?.Trim}). Hay que anularlo en la agencia primero.")
         End If
         Dim mensajeMostrar = String.Format("¿Confirma que desea borrar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
         Dim continuar As Boolean
@@ -2318,6 +2324,12 @@ Public Class AgenciasViewModel
             (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION))
     End Function
     Private Sub OnBorrarEnvioPendiente()
+        ' Aunque esté en la pestaña de Pendientes, si tiene albarán ya está registrado en la agencia
+        ' (p.ej. tramitado pero aún sin "cerrar el día"): no se puede borrar sin anularlo en la agencia.
+        If Not String.IsNullOrWhiteSpace(EnvioPendienteSeleccionado?.CodigoBarras) Then
+            _dialogService.ShowError($"No se puede borrar un envío ya registrado en la agencia (albarán {EnvioPendienteSeleccionado.CodigoBarras.Trim}). Hay que anularlo en la agencia primero.")
+            Return
+        End If
         Dim mensajeMostrar = String.Format("¿Confirma que desea borrar el envío pendiente del cliente {1}?{0}{0}{2}", Environment.NewLine, EnvioPendienteSeleccionado.Cliente?.Trim, EnvioPendienteSeleccionado.Direccion)
         Dim continuar As Boolean
         continuar = _dialogService.ShowConfirmationAnswer("Borrar Envío", mensajeMostrar)
