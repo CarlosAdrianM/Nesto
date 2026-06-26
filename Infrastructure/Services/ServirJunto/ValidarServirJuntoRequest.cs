@@ -5,6 +5,12 @@ namespace Nesto.Infrastructure.Services.ServirJunto
     public class ValidarServirJuntoRequest
     {
         public string Almacen { get; set; }
+
+        // NestoAPI#262: número del pedido que se valida, para que el backend excluya sus propias líneas
+        // del cálculo de stock disponible (si no, una línea del pedido cuenta su reserva contra sí misma
+        // y se deniega aunque haya stock libre). 0/null en pedidos nuevos sin guardar.
+        public int? Pedido { get; set; }
+
         public List<string> ProductosBonificados { get; set; }
         public List<ProductoBonificadoConCantidadRequest> ProductosBonificadosConCantidad { get; set; }
         public List<ProductoBonificadoConCantidadRequest> LineasPedido { get; set; }

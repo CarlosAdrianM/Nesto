@@ -2260,7 +2260,8 @@ Public Class DetallePedidoViewModel
                 pedido.ccc,
                 pedido.periodoFacturacion,
                 pedido.notaEntrega,
-                lineasParaPortes).ConfigureAwait(True)
+                lineasParaPortes,
+                pedido.numero).ConfigureAwait(True)
 
             If Not respuesta.PuedeDesmarcar Then
                 pedido.servirJunto = True
