@@ -378,8 +378,12 @@ namespace Nesto.Modulos.CanalesExternos
 
         private decimal CambioDivisas { get; set; } = 1;
 
-        private DatosEnvioConfirmarAmazon LeerDatosEnvio(string seguimiento)
+        internal static DatosEnvioConfirmarAmazon LeerDatosEnvio(string seguimiento)
         {
+            if (string.IsNullOrWhiteSpace(seguimiento))
+            {
+                throw new Exception("El pedido no tiene un enlace de seguimiento que confirmar.");
+            }
             if (seguimiento.Contains("correosexpress"))
             {
                 int indiceIgual = seguimiento.IndexOf("="); // Obtiene el índice del símbolo "="
@@ -431,9 +435,32 @@ namespace Nesto.Modulos.CanalesExternos
                     NumeroSeguimiento = numeroSeguimiento
                 };
             }
+            else if (seguimiento.Contains("tip-sa"))
+            {
+                // Innovatrans (TIP-SA): https://aplicaciones.tip-sa.com/cliente/datos_env.php?id=028040028040{albaran}
+                // El nº de seguimiento (albarán) va tras el prefijo fijo "028040028040" (código de cliente
+                // duplicado origen+destino). Antes caía en el else -> NotImplementedException al confirmar el
+                // envío de un pedido de Amazon con seguimiento de Innovatrans (no llegaba a ELMAH por ser
+                // excepción del cliente). El gemelo de Prestashop ya se arregló en 2e84a88; este es su par.
+                const string prefijo = "028040028040";
+                int indicePrefijo = seguimiento.IndexOf(prefijo, StringComparison.OrdinalIgnoreCase);
+                string numeroSeguimiento = indicePrefijo >= 0
+                    ? seguimiento.Substring(indicePrefijo + prefijo.Length).Trim()
+                    : null;
+                if (string.IsNullOrWhiteSpace(numeroSeguimiento))
+                {
+                    throw new Exception($"No se pudo extraer el número de seguimiento de Innovatrans del enlace: {seguimiento}");
+                }
+                return new DatosEnvioConfirmarAmazon
+                {
+                    NombreAgencia = "Innovatrans",
+                    NombreServicio = "Estándar",
+                    NumeroSeguimiento = numeroSeguimiento
+                };
+            }
             else
             {
-                throw new NotImplementedException();
+                throw new NotImplementedException($"No se reconoce la agencia del enlace de seguimiento: {seguimiento}");
             }
         }
 
@@ -453,7 +480,7 @@ namespace Nesto.Modulos.CanalesExternos
             }
         }
 
-        private class DatosEnvioConfirmarAmazon
+        internal class DatosEnvioConfirmarAmazon
         {
             public string AmazonOrderId { get; set; }
             public string NombreAgencia { get; set; }
