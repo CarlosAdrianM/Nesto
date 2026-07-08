@@ -71,6 +71,8 @@ Public Class PlantillaVentaViewModel
     End Property
 
     Private ReadOnly _servicioServirJunto As IServirJuntoService
+    ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Public Sub New(container As IUnityContainer, regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPlantillaVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, servicioPedidosVenta As IPedidoVentaService, servicioBorradores As IBorradorPlantillaVentaService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
@@ -82,6 +84,7 @@ Public Class PlantillaVentaViewModel
         Me.servicioPedidosVenta = servicioPedidosVenta
         Me.servicioBorradores = servicioBorradores
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
 
         Titulo = "Plantilla Ventas"
 
@@ -722,8 +725,7 @@ Public Class PlantillaVentaViewModel
         ' Si tiene cantidad y no tiene imagen, cargar la imagen
         If regalo.cantidad > 0 AndAlso String.IsNullOrEmpty(regalo.urlImagen) Then
             Try
-                Using client As New HttpClient
-                    client.BaseAddress = New Uri(configuracion.servidorAPI)
+                Using client As HttpClient = _clienteApiFactory.Crear()
                     Dim response As HttpResponseMessage
 
                     Dim almacen As String = If(almacenSeleccionado?.Codigo, "ALG")
@@ -1778,8 +1780,7 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             'estaOcupado = True
@@ -1893,8 +1894,7 @@ Public Class PlantillaVentaViewModel
         Return Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Filtro) AndAlso ListaFiltrableProductos.Filtro.Length >= 1
     End Function
     Private Async Sub OnBuscarContextual(filtro As String)
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -1958,8 +1958,7 @@ Public Class PlantillaVentaViewModel
         Return Not IsNothing(ListaFiltrableProductos) AndAlso Not IsNothing(ListaFiltrableProductos.Filtro) AndAlso ListaFiltrableProductos.Filtro.Length >= 3
     End Function
     Private Async Sub OnBuscarEnTodosLosProductos(filtro As String)
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -2156,8 +2155,7 @@ Public Class PlantillaVentaViewModel
             End If
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             estaOcupado = True
@@ -2352,8 +2350,7 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             'estaOcupado = True
@@ -2404,8 +2401,7 @@ Public Class PlantillaVentaViewModel
             Return
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             'estaOcupado = True
@@ -2825,10 +2821,8 @@ Public Class PlantillaVentaViewModel
         If PaginaActual?.Name <> PAGINA_FINALIZAR Then
             Return
         End If
-        Using client As New HttpClient
+        Using client As HttpClient = _clienteApiFactory.Crear()
             estaOcupado = True
-
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             Dim pedido As PedidoVentaDTO = PrepararPedido()

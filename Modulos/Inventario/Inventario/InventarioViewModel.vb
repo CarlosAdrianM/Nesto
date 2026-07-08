@@ -17,13 +17,16 @@ Public Class InventarioViewModel
     Private ReadOnly regionManager As IRegionManager
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly dialogService As IDialogService
+    ' Nesto#369: factoría que crea el HttpClient con BaseAddress + JWT (para que el usuario salga en ELMAH).
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Const EMPRESA_DEFECTO As String = "1"
 
-    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
+    Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService, clienteApiFactory As IClienteApiFactory)
         Me.regionManager = regionManager
         Me.configuracion = configuracion
         Me.dialogService = dialogService
+        _clienteApiFactory = clienteApiFactory
 
         cmdAbrirInventario = New DelegateCommand(AddressOf OnAbrirInventario)
         cmdActualizarLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnActualizarLineaInventario)
@@ -170,10 +173,8 @@ Public Class InventarioViewModel
         End Set
     End Property
     Private Async Sub OnActualizarMovimientos()
-        Using client As New HttpClient
+        Using client As HttpClient = _clienteApiFactory.Crear()
             estaOcupado = True
-
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
             'Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
 
@@ -211,10 +212,8 @@ Public Class InventarioViewModel
         End Set
     End Property
     Private Async Function OnActualizarLineaInventario(linea As InventarioDTO) As Task(Of Movimiento)
-        Using client As New HttpClient
+        Using client As HttpClient = _clienteApiFactory.Crear()
             'estaOcupado = True
-
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
             linea.Usuario = configuracion.usuario
@@ -297,10 +296,8 @@ Public Class InventarioViewModel
         End Set
     End Property
     Private Async Function OnCrearLineaInventario(linea As InventarioDTO) As Task(Of Movimiento)
-        Using client As New HttpClient
+        Using client As HttpClient = _clienteApiFactory.Crear()
             'estaOcupado = True
-
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
 
             'Dim linea As InventarioDTO = arg
@@ -350,10 +347,8 @@ Public Class InventarioViewModel
 #Region "Funciones Auxiliares"
     Private Async Function buscarInventario(empresa As String, almacen As String, fecha As DateTime, producto As String) As Task(Of InventarioDTO)
         Dim linea As InventarioDTO = Nothing
-        Using client As New HttpClient
+        Using client As HttpClient = _clienteApiFactory.Crear()
             'estaOcupado = True
-
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
             Dim response As HttpResponseMessage
             'Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(linea), Encoding.UTF8, "application/json")
 
