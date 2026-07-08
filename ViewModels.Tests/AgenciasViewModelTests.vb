@@ -8,6 +8,7 @@ Imports Prism.Services.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modulos.PedidoVenta
+Imports System.Threading.Tasks
 
 <TestClass()>
 Public Class AgenciaViewModelTests
@@ -938,6 +939,78 @@ Public Class AgenciaViewModelTests
 
         Assert.AreEqual(1, viewModel.listaIncidentados.Count)
         A.CallTo(Function() servicio.CargarListaIncidentados("1")).MustHaveHappened()
+    End Sub
+
+    ' Nesto#395: con un envío PENDIENTE de tienda online, el destino real (CP del pendiente) debe
+    ' prevalecer sobre el CP de la ficha del cliente del pedido (el almacén) al seleccionar el pedido,
+    ' para que el ImporteGasto/zona se calculen contra el destino real.
+    <TestMethod>
+    Public Sub AgenciaViewModel_ConEnvioPendiente_CodPostalEnvioEsElDelDestinoRealNoElDelCliente()
+        'arrange
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("12345     ")
+
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1"
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(New ObservableCollection(Of Empresas) From {empresa})
+
+        Dim agencia = New AgenciasTransporte With {
+            .Empresa = "1",
+            .Numero = 1,
+            .Ruta = "NNN",
+            .Nombre = Constantes.Agencias.AGENCIA_DEFECTO
+        }
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
+        A.CallTo(Function() servicio.CargarAgenciaPorRuta(A(Of String).Ignored, A(Of String).Ignored)).Returns(agencia)
+
+        ' Ficha del cliente del pedido: tienda online en Algete (28110) -> zona Provincial.
+        Dim cliente = New Clientes() With {
+            .Empresa = "1",
+            .Nº_Cliente = "1",
+            .Contacto = "0",
+            .Nombre = "VENTAS TIENDA ONLINE",
+            .Dirección = "C/ Río Tiétar, 11",
+            .Población = "Algete",
+            .Provincia = "Madrid",
+            .CodPostal = "28110",
+            .Teléfono = "911234567"
+        }
+        Dim pedido = New CabPedidoVta With {
+            .Empresa = "1",
+            .Número = 12345,
+            .Ruta = "NNN",
+            .Nº_Cliente = "1",
+            .Contacto = "0",
+            .Clientes = cliente
+        }
+        A.CallTo(Function() servicio.CargarPedidoPorNumero(A(Of Integer).Ignored)).Returns(pedido)
+        A.CallTo(Function() servicio.CargarPedido("1", 12345)).Returns(pedido)
+        A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(cliente)
+        A.CallTo(Function() servicio.ImporteReembolso("1", 12345)).Returns(Task.FromResult(0D))
+        A.CallTo(Function() servicioPedidos.DebeImprimirDocumento(A(Of String).Ignored)).Returns(Task.FromResult(False))
+
+        ' Envío PENDIENTE (tienda online) con el destino REAL: Donostia, CP 20018 -> zona Peninsular.
+        Dim envioPendiente = New EnviosAgencia With {
+            .Empresa = "1",
+            .Pedido = 12345,
+            .CodPostal = "20018",
+            .Poblacion = "Donostia",
+            .Provincia = "Gipuzkoa",
+            .Nombre = "Cliente final",
+            .AgenciasTransporte = agencia
+        }
+        A.CallTo(Function() servicio.CargarEnvio("1", 12345)).Returns(envioPendiente)
+        A.CallTo(Function() servicio.CargarListaEnviosPedido("1", 12345)).Returns(New ObservableCollection(Of EnviosAgencia))
+
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.PestannaNombre = Pestannas.PEDIDOS
+
+        'act
+        viewModel.cmdCargarDatos.Execute()
+
+        'assert: el CP y la población usados para el coste son los del destino real, no los del cliente
+        Assert.AreEqual("20018", viewModel.codPostalEnvio, "Debe usar el CP del envío pendiente (destino real), no el de la ficha del cliente (28110)")
+        Assert.AreEqual("Donostia", viewModel.poblacionEnvio, "Debe usar la población del envío pendiente")
     End Sub
 
     ' #252: sin peso no se puede tramitar (el comparador no sabría la agencia más barata).

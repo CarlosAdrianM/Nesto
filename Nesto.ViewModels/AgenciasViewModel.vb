@@ -428,6 +428,25 @@ Public Class AgenciasViewModel
 
                 Dim envioPendiente As EnviosAgencia = buscarEnvioPendiente(pedidoSeleccionado)
                 Dim estabaPendiente As Boolean = Not IsNothing(envioPendiente)
+
+                ' Nesto#395: si hay un envío PENDIENTE (etiqueta creada por la tienda online), el destino
+                ' real es el de ESE envío, no el de la ficha del cliente del pedido (que suele ser el
+                ' almacén, p.ej. "VENTAS TIENDA ONLINE" en Algete). Sin esto, codPostalEnvio se quedaba en
+                ' el CP del cliente (28110 → zona Provincial) y el ImporteGasto/zona/plaza se calculaban mal
+                ' para un destino que puede ser cualquier punto de la península. Es el mismo criterio que ya
+                ' aplica ConfigurarAgenciaPedido al elegir la agencia contra el CP del destino real.
+                If estabaPendiente Then
+                    If Not String.IsNullOrWhiteSpace(envioPendiente.Nombre) Then nombreEnvio = envioPendiente.Nombre.Trim
+                    If Not String.IsNullOrWhiteSpace(envioPendiente.Direccion) Then direccionEnvio = envioPendiente.Direccion.Trim
+                    If Not String.IsNullOrWhiteSpace(envioPendiente.Poblacion) Then poblacionEnvio = envioPendiente.Poblacion.Trim
+                    If Not String.IsNullOrWhiteSpace(envioPendiente.Provincia) Then provinciaEnvio = envioPendiente.Provincia.Trim
+                    If Not String.IsNullOrWhiteSpace(envioPendiente.CodPostal) Then codPostalEnvio = envioPendiente.CodPostal.Trim
+                    If Not String.IsNullOrWhiteSpace(envioPendiente.Telefono) Then telefonoEnvio = envioPendiente.Telefono.Trim
+                    If Not String.IsNullOrWhiteSpace(envioPendiente.Movil) Then movilEnvio = envioPendiente.Movil.Trim
+                    If Not String.IsNullOrWhiteSpace(envioPendiente.Email) Then correoEnvio = envioPendiente.Email.Trim
+                    attEnvio = If(Not String.IsNullOrWhiteSpace(envioPendiente.Atencion), envioPendiente.Atencion.Trim, nombreEnvio)
+                End If
+
                 Dim agenciaConfigurar = If(estabaPendiente, envioPendiente.AgenciasTransporte, DirectCast(ConfigurarAgenciaPedido(), Object))
 
                 If Not IsNothing(agenciaConfigurar) AndAlso (IsNothing(empresaSeleccionada) OrElse agenciaConfigurar.Empresa <> empresaSeleccionada.Número) AndAlso Not IsNothing(listaEmpresas) Then
