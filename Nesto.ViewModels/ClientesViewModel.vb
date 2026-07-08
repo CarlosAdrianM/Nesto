@@ -922,6 +922,13 @@ Public Class ClientesViewModel
         Try
             'Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified)
 
+            ' Nesto#396: sin cuenta activa no hay nada que guardar. CanGuardar ya lo filtra, pero el comando
+            ' puede dispararse en un teardown con cuentaActiva ya a Nothing; sin esta guarda, cuentaActiva.Número
+            ' abajo lanza NRE.
+            If IsNothing(cuentaActiva) Then
+                Return
+            End If
+
             extractoCCC = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual AndAlso e.Número = clienteActual AndAlso e.Contacto = contactoActual AndAlso e.ImportePdte <> 0 AndAlso e.CCC <> cuentaActiva.Número)
             pedidosCCC = New ObservableCollection(Of cabeceraPedidoAgrupada)((From p In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On p.Empresa Equals l.Empresa And p.Número Equals l.Número Where p.Empresa = empresaActual AndAlso p.Nº_Cliente = clienteActual AndAlso (p.CCC <> cuentaActiva.Número Or p.CCC Is Nothing) AndAlso l.Estado >= -1 AndAlso l.Estado <= 1 Select New cabeceraPedidoAgrupada With {.CCC = p.CCC,
                 .Fecha = p.Fecha,
@@ -932,7 +939,10 @@ Public Class ClientesViewModel
             Dim unused = DbContext.SaveChanges()
             mensajeError = ""
         Catch ex As Exception
-            mensajeError = ex.InnerException.Message
+            ' Nesto#396: ex.InnerException puede ser Nothing (p.ej. un NullReferenceException pelado). Usar
+            ' ex.Message en ese caso, para no provocar un SEGUNDO NRE dentro del Catch que escapa como
+            ' DispatcherUnhandledException y tumba la aplicación (mismo patrón que VerMandato/NuevoMandato).
+            mensajeError = If(ex.InnerException Is Nothing, ex.Message, ex.InnerException.Message)
         End Try
 
     End Sub
