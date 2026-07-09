@@ -2355,6 +2355,13 @@ Public Class AgenciasViewModel
         Return Not IsNothing(envioActual) AndAlso IsNothing(envioActual.FechaPagoReembolso)
     End Function
     Private Sub OnRehusarEnvio(arg As Object)
+        ' Nesto#393: listaTiposRetorno se puebla al seleccionar agencia (ActualizarListas); si aún no
+        ' está cargada (o falta la agencia / el envío actual), el LINQ sobre Nothing lanzaba
+        ' ArgumentNullException ("source"). Guarda defensiva con aviso al usuario.
+        If IsNothing(agenciaEspecifica) OrElse IsNothing(listaTiposRetorno) OrElse IsNothing(envioActual) Then
+            _dialogService.ShowError("No se puede rehusar el envío: seleccione una agencia y un envío primero.")
+            Return
+        End If
         Dim tipoRetorno As tipoIdDescripcion = (From l In listaTiposRetorno Where l.id = agenciaEspecifica.retornoObligatorio).FirstOrDefault
         modificarEnvio(envioActual, 0, tipoRetorno, envioActual.Estado, True, envioActual.FechaEntrega)
     End Sub
@@ -2422,13 +2429,18 @@ Public Class AgenciasViewModel
         End If
 
         ' Comenzamos a ejecutar
+        ' Nesto#398: listaHorarios se puebla al seleccionar agencia (ActualizarListas); si aún no está
+        ' cargada (p. ej. al crear la etiqueta desde fuera antes de elegir agencia), FirstOrDefault sobre
+        ' Nothing lanzaba ArgumentNullException ("source"). Horario por defecto null-safe (0 si no hay
+        ' lista todavía; el usuario lo ajusta luego).
+        Dim horarioDefecto As Byte = If(listaHorarios IsNot Nothing AndAlso listaHorarios.Any(), listaHorarios.First().id, CByte(0))
         Dim envioNuevo As New EnvioAgenciaWrapper With {
             .Agencia = agenciaSeleccionada.Numero,
             .Empresa = empresaSeleccionada.Número,
             .Estado = Constantes.Agencias.ESTADO_PENDIENTE_ENVIO,
             .TieneCambios = True,
-            .Horario = listaHorarios.FirstOrDefault().id,
-            .Servicio = listaHorarios.FirstOrDefault().id
+            .Horario = horarioDefecto,
+            .Servicio = horarioDefecto
         }
         listaPendientes.Add(envioNuevo)
         EnvioPendienteSeleccionado = envioNuevo
