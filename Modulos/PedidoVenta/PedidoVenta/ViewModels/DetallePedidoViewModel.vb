@@ -980,6 +980,10 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Sub OnAbrirPicking()
+        ' Nesto#394: sin pedido cargado, pedido.Model lanzaba NullReferenceException al pulsar Abrir Picking.
+        If IsNothing(pedido) Then
+            Return
+        End If
         dialogService.ShowDialog("PickingPopupView", New DialogParameters From {
             {"pedidoPicking", pedido.Model}
         }, Nothing)
