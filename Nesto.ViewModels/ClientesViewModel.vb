@@ -43,6 +43,8 @@ Public Class ClientesViewModel
     Private ReadOnly Property servicio As IClienteComercialService
     Private ReadOnly Property servicioRapports As IRapportService
     Private ReadOnly Property servicioAutenticacion As IServicioAutenticacion
+    ' Nesto#369: factoría que crea HttpClient con AuthTokenHandler (adjunta el JWT → usuario en ELMAH).
+    Private _clienteApiFactory As IClienteApiFactory
 
     'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
@@ -70,6 +72,7 @@ Public Class ClientesViewModel
         cargarDatos()
         configuracion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IConfiguracion))
         _servicioAutenticacion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IServicioAutenticacion))
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
     Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
@@ -79,6 +82,7 @@ Public Class ClientesViewModel
         Me.servicio = servicio
         Me.servicioRapports = servicioRapports
         Me.servicioAutenticacion = servicioAutenticacion
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
         cargarDatos()
         clienteActivo = Nothing
         'inicializarListaClientesVendedor()
@@ -314,8 +318,7 @@ Public Class ClientesViewModel
         End If
         ' Calculamos el vendedor de peluquería
         If IsNothing(clienteServidor) OrElse clienteServidor.empresa <> clienteActivo.Empresa OrElse clienteServidor.cliente <> clienteActivo.Nº_Cliente OrElse clienteServidor.contacto <> clienteActivo.Contacto Then
-            Using client As New HttpClient
-                client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim response As HttpResponseMessage
                 Dim respuesta As String = ""
                 Dim vendedorConsulta As String = vendedor
@@ -1099,8 +1102,7 @@ Public Class ClientesViewModel
         Try
 
             ' PUT de clienteServidor
-            Using client As New HttpClient
-                client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim response As HttpResponseMessage
                 Dim respuesta As String = ""
 
@@ -1282,8 +1284,7 @@ Public Class ClientesViewModel
     Private Async Sub OnReclamarDeuda()
         Dim errorReclamacion As Exception = Nothing
         Try
-            Using client As New HttpClient
-                client.BaseAddress = New Uri(configuracion.servidorAPI)
+            Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -1462,8 +1463,7 @@ Public Class ClientesViewModel
         End If
 
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As Byte()
 
@@ -1504,8 +1504,7 @@ Public Class ClientesViewModel
         End If
 
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -1543,8 +1542,7 @@ Public Class ClientesViewModel
 
     Private Async Function CargarMandato(empresa As String, cliente As String, contacto As String, ccc As String) As Task(Of Byte())
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As Byte()
 
@@ -1581,8 +1579,7 @@ Public Class ClientesViewModel
         End If
 
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = ""
 
@@ -1622,8 +1619,7 @@ Public Class ClientesViewModel
             Return
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = String.Empty
 
@@ -1671,8 +1667,7 @@ Public Class ClientesViewModel
             Return
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Try
                 If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then
                     Return
@@ -1722,8 +1717,7 @@ Public Class ClientesViewModel
             Return
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
 
