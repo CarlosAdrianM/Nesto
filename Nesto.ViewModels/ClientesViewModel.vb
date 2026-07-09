@@ -945,10 +945,26 @@ Public Class ClientesViewModel
             ' Nesto#396: ex.InnerException puede ser Nothing (p.ej. un NullReferenceException pelado). Usar
             ' ex.Message en ese caso, para no provocar un SEGUNDO NRE dentro del Catch que escapa como
             ' DispatcherUnhandledException y tumba la aplicación (mismo patrón que VerMandato/NuevoMandato).
-            mensajeError = If(ex.InnerException Is Nothing, ex.Message, ex.InnerException.Message)
+            ' Nesto#399: EF anida el error real (SqlException / raiserror de trigger) en
+            ' DbUpdateException→UpdateException, cuyos mensajes son genéricos ("An error occurred when
+            ' updating the entries…"). Mostramos la excepción MÁS INTERNA (el error real, accionable) y
+            ' registramos la excepción completa en ELMAH vía /api/Errores para poder diagnosticarla.
+            mensajeError = ExcepcionMasInterna(ex).Message
+            Dim servicioErrores = contenedor?.Resolve(Of IServicioRegistroErrores)()
+            Dim unused2 = servicioErrores?.RegistrarErrorAsync(ex, "ClientesViewModel.Guardar (Nuevo Mandato / CCC)")
         End Try
 
     End Sub
+
+    ' Nesto#399: EF anida el error real varias capas (DbUpdateException→UpdateException→SqlException).
+    ' Devuelve la excepción más interna para mostrar/loguear el mensaje real y no el genérico de EF.
+    Private Shared Function ExcepcionMasInterna(ByVal ex As Exception) As Exception
+        Dim actual As Exception = ex
+        While actual.InnerException IsNot Nothing
+            actual = actual.InnerException
+        End While
+        Return actual
+    End Function
 
     Private _cmdVerMandato As ICommand
     Public ReadOnly Property cmdVerMandato() As ICommand
