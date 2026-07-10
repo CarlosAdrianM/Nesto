@@ -48,6 +48,11 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/ExtractoContable?empresa={Uri.EscapeDataString(empresa)}&cuenta={Uri.EscapeDataString(cuenta)}&fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}",
                 "el extracto contable").ConfigureAwait(false);
 
+        public async Task<byte[]> DescargarExtractoContablePdf(string empresa, string cuenta, DateTime fechaDesde, DateTime fechaHasta)
+            => await GetBytesAsync(
+                $"Informes/ExtractoContable/Pdf?empresa={Uri.EscapeDataString(empresa)}&cuenta={Uri.EscapeDataString(cuenta)}&fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}",
+                "el PDF del extracto contable").ConfigureAwait(false);
+
         public async Task<List<UbicacionesInventarioModel>> LeerUbicacionesInventario(string empresa = "1")
             => await GetAsync<List<UbicacionesInventarioModel>>(
                 $"Informes/UbicacionesInventario?empresa={Uri.EscapeDataString(empresa)}",

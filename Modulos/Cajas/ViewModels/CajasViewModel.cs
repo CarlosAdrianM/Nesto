@@ -894,18 +894,45 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             foreach (var empresa in MovimientosEfectivoDia.Select(e => e.Empresa).Distinct())
             {
-                List<ExtractoContableModel> dataSource = await _servicioInformes.LeerExtractoContable(empresa, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta);
-                List<ReportParameter> listaParametros =
-                [
-                    new ReportParameter("Cuenta", CuentaOrigen.Cuenta),
-                    new ReportParameter("FechaDesde", FechaDesde.ToString("d")),
-                    new ReportParameter("FechaHasta", _fechaHasta.ToString("d"))
-                ];
-                byte[] pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-                    "Nesto.Informes.ExtractoContable.rdlc", "ExtractoContableDataSet", dataSource, listaParametros);
+                byte[] pdf;
+                if (await UsarQuestPdf(empresa))
+                {
+                    // QuestPDF: el PDF lo genera NestoAPI (mismo contenido que el RDLC).
+                    pdf = await _servicioInformes.DescargarExtractoContablePdf(empresa, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta);
+                }
+                else
+                {
+                    // RDLC (por defecto): render local como hasta ahora.
+                    List<ExtractoContableModel> dataSource = await _servicioInformes.LeerExtractoContable(empresa, CuentaOrigen.Cuenta, FechaDesde, _fechaHasta);
+                    List<ReportParameter> listaParametros =
+                    [
+                        new ReportParameter("Cuenta", CuentaOrigen.Cuenta),
+                        new ReportParameter("FechaDesde", FechaDesde.ToString("d")),
+                        new ReportParameter("FechaHasta", _fechaHasta.ToString("d"))
+                    ];
+                    pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+                        "Nesto.Informes.ExtractoContable.rdlc", "ExtractoContableDataSet", dataSource, listaParametros);
+                }
                 string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}_{empresa}.pdf";
                 System.IO.File.WriteAllBytes(fileName, pdf);
                 _ = System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
+            }
+        }
+
+        // Decide el motor de generación del extracto contable según el parámetro por usuario
+        // MotorPdfExtractoContable ("QuestPDF" => NestoAPI; cualquier otro valor o error => RDLC local).
+        // Ante CUALQUIER fallo al leer el parámetro se usa RDLC (comportamiento actual), para no
+        // romper la impresión durante la migración progresiva usuario a usuario.
+        private async Task<bool> UsarQuestPdf(string empresa)
+        {
+            try
+            {
+                string motor = await _configuracion.leerParametro(empresa, Parametros.Claves.MotorPdfExtractoContable);
+                return string.Equals(motor, "QuestPDF", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
             }
         }
 

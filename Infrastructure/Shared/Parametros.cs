@@ -24,6 +24,9 @@
             public const string ImpresoraAgenciaGLS = "ImpresoraAgenciaGLS";
             public const string ImpresoraBolsas = "ImpresoraBolsas";
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";
+            // Motor de generación del extracto contable (Cajas): "RDLC" (por defecto, render local)
+            // o "QuestPDF" (descarga el PDF de NestoAPI). Permite migrar usuario a usuario con vuelta atrás.
+            public const string MotorPdfExtractoContable = "MotorPdfExtractoContable";
             // Motor de generación del pedido de compra a proveedor: "RDLC" (por defecto, render local)
             // o "QuestPDF" (descarga PDF/Excel de NestoAPI). Permite migrar usuario a usuario con vuelta atrás.
             public const string MotorPdfPedidoCompra = "MotorPdfPedidoCompra";
