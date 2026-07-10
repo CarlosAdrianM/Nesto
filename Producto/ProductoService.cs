@@ -17,12 +17,66 @@ namespace Nesto.Modules.Producto
     {
         private readonly IConfiguracion _configuracion;
         private readonly IServicioAutenticacion _servicioAutenticacion;
+        private readonly IClienteApiFactory _clienteApiFactory;
         private readonly string EmpresaDefecto = "1";
 
         public ProductoService(IConfiguracion configuracion, IServicioAutenticacion servicioAutenticacion)
         {
             _configuracion = configuracion;
             _servicioAutenticacion = servicioAutenticacion;
+            // Nesto#369: cliente con BaseAddress y JWT automático para los métodos nuevos.
+            _clienteApiFactory = new ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion);
+        }
+
+        // NestoAPI#249: grupos de producto distintos (derivados de los subgrupos, que ya expone la API).
+        public async Task<List<string>> LeerGruposProducto()
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.GetAsync("Productos/Subgrupos");
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("No se han podido cargar los grupos de producto");
+            }
+            string resultado = await response.Content.ReadAsStringAsync();
+            List<SubgrupoGrupoDto> subgrupos = JsonConvert.DeserializeObject<List<SubgrupoGrupoDto>>(resultado);
+            return subgrupos
+                .Select(s => s.Grupo?.Trim())
+                .Where(g => !string.IsNullOrEmpty(g))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(g => g)
+                .ToList();
+        }
+
+        private class SubgrupoGrupoDto
+        {
+            public string Grupo { get; set; }
+        }
+
+        // NestoAPI#249: grupos alternativos por los que puede comisionar el producto (además del de ficha).
+        public async Task<List<string>> LeerGruposComisionables(string producto)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.GetAsync($"Productos/GruposComisionables?empresa={EmpresaDefecto}&producto={producto}");
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("No se han podido cargar los grupos comisionables del producto " + producto);
+            }
+            string resultado = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<string>>(resultado);
+        }
+
+        // NestoAPI#249: sustituye el conjunto de grupos alternativos del producto (vacío = desmarcar).
+        public async Task GuardarGruposComisionables(string producto, List<string> grupos)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            var dto = new { Empresa = EmpresaDefecto, Producto = producto, Grupos = grupos };
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(dto), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PutAsync("Productos/GruposComisionables", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                string detalle = await response.Content.ReadAsStringAsync();
+                throw new Exception("No se han podido guardar los grupos comisionables: " + detalle);
+            }
         }
 
         public async Task<ICollection<ProductoClienteModel>> BuscarClientes(string producto)

@@ -595,6 +595,22 @@
                     <Button Grid.Row="2" Grid.Column="1" Margin="3" Command="{Binding MontarKitCommand}" IsEnabled="{Binding ProductoActual.EsKit}">Montar kit</Button>
                 </Grid>
             </TabItem>
+            <!-- NestoAPI#249: grupos alternativos por los que puede comisionar el producto -->
+            <TabItem Header="Comisiones">
+                <StackPanel Margin="10" MaxWidth="550" HorizontalAlignment="Left">
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,10"
+                               Text="Grupos por los que también puede comisionar este producto, además del de su ficha. Si quien mete el pedido es el vendedor del cliente en uno de estos grupos, la línea comisiona por ese grupo (p. ej. guantes que venden tanto estética como peluquería). Solo se puede quitar la línea a un grupo sin vendedor propio o con el vendedor genérico." />
+                    <ItemsControl ItemsSource="{Binding GruposComisionables}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Grupo}" IsChecked="{Binding Seleccionado}" Margin="0,2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="Guardar grupos" Command="{Binding GuardarGruposComisionablesCommand}"
+                            Margin="0,10,0,0" Padding="10,3" HorizontalAlignment="Left"/>
+                </StackPanel>
+            </TabItem>
         </TabControl>
     </Grid>
 

@@ -28,5 +28,10 @@ namespace Nesto.Modules.Producto
         Task<List<ProductoControlStockModel>> LeerProductosProveedorControlStock(string proveedorId, string almacen);
         Task<List<VideoLookupModel>> CargarVideos(int skip, int take);
         Task<List<VideoLookupModel>> BuscarVideos(string busqueda, int skip, int take);
+        // NestoAPI#249: grupos de producto disponibles y grupos alternativos por los que puede
+        // comisionar un producto marcado (pestaña Comisiones de la ficha).
+        Task<List<string>> LeerGruposProducto();
+        Task<List<string>> LeerGruposComisionables(string producto);
+        Task GuardarGruposComisionables(string producto, List<string> grupos);
     }
 }

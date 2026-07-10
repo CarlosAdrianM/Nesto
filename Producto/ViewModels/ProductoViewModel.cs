@@ -69,6 +69,7 @@ namespace Nesto.Modules.Producto.ViewModels
             BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
             CorrigeVideoProductoCommand = new DelegateCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
             GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
+            GuardarGruposComisionablesCommand = new DelegateCommand(OnGuardarGruposComisionables, () => ProductoActual != null);
             ImprimirEtiquetasProductoCommand = new DelegateCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
             MontarKitCommand = new DelegateCommand(OnMontarKit, CanMontarKit);
             SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
@@ -118,6 +119,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     PestannaSeleccionada = Pestannas.Filtros;
                 }
                 ProductosKit = await _servicio.LeerKitsContienePertenece(productoId);
+                await CargarGruposComisionablesAsync(productoId);
                 if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
                 {
                     PestannaSeleccionada = Pestannas.Filtros;
@@ -579,6 +581,43 @@ namespace Nesto.Modules.Producto.ViewModels
                 ControlStock.Model.ControlesStocksAlmacen.Single(c => c.Almacen == controlStock.Almacén).StockMaximoInicial = controlStock.StockMáximo;
             }
             GuardarProductoCommand.RaiseCanExecuteChanged();
+        }
+
+        // NestoAPI#249: grupos alternativos por los que puede comisionar el producto (pestaña Comisiones).
+        // Se listan todos los grupos menos el de la ficha; los marcados son los de la tabla
+        // ProductosGruposComisionablesAlternativos y el guardado sustituye el conjunto entero.
+        public ObservableCollection<GrupoComisionableModel> GruposComisionables { get; } = new();
+
+        private async Task CargarGruposComisionablesAsync(string productoId)
+        {
+            GruposComisionables.Clear();
+            List<string> disponibles = await _servicio.LeerGruposProducto();
+            List<string> marcados = await _servicio.LeerGruposComisionables(productoId) ?? new List<string>();
+            string grupoFicha = ProductoActual?.Grupo?.Trim();
+            foreach (string grupo in disponibles.Where(g => !g.Equals(grupoFicha, StringComparison.OrdinalIgnoreCase)))
+            {
+                GruposComisionables.Add(new GrupoComisionableModel
+                {
+                    Grupo = grupo,
+                    Seleccionado = marcados.Any(m => m != null && m.Trim().Equals(grupo, StringComparison.OrdinalIgnoreCase))
+                });
+            }
+            GuardarGruposComisionablesCommand.RaiseCanExecuteChanged();
+        }
+
+        public DelegateCommand GuardarGruposComisionablesCommand { get; private set; }
+        private async void OnGuardarGruposComisionables()
+        {
+            try
+            {
+                List<string> grupos = GruposComisionables.Where(g => g.Seleccionado).Select(g => g.Grupo).ToList();
+                await _servicio.GuardarGruposComisionables(ProductoActual.Producto, grupos);
+                _dialogService.ShowNotification("Grupos comisionables guardados correctamente");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
         }
 
 
