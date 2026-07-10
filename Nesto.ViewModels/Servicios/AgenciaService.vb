@@ -17,11 +17,13 @@ Public Class AgenciaService
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _dialogService As IDialogService
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _dialogService = dialogService
         _servicioAutenticacion = servicioAutenticacion
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
     Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
@@ -466,9 +468,8 @@ Public Class AgenciaService
     End Function
 
     Public Async Function EnviarCorreoEntregaAgencia(envioActual As EnvioAgenciaWrapper) As Task Implements IAgenciaService.EnviarCorreoEntregaAgencia
-        Using client As New HttpClient
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Try
-                client.BaseAddress = New Uri(configuracion.servidorAPI)
 
                 ' Carlos 21/11/24: Agregar autenticación
                 If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -494,9 +495,8 @@ Public Class AgenciaService
 
     Public Async Function GuardarLlamadaAgencia(respuesta As RespuestaAgencia) As Task Implements IAgenciaService.GuardarLlamadaAgencia
         respuesta.Usuario = configuracion.usuario
-        Using client As New HttpClient
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Try
-                client.BaseAddress = New Uri(configuracion.servidorAPI)
 
                 ' Carlos 21/11/24: Agregar autenticación
                 If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -514,8 +514,7 @@ Public Class AgenciaService
 
 
     Public Async Function TramitarEnvioRemoto(numeroEnvio As Integer) As Task(Of TramitarEnvioResultadoDto) Implements IAgenciaService.TramitarEnvioRemoto
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
@@ -535,8 +534,7 @@ Public Class AgenciaService
     End Function
 
     Public Async Function ActualizarSeguimientoEnvio(numeroEnvio As Integer) As Task(Of SeguimientoActualizadoDto) Implements IAgenciaService.ActualizarSeguimientoEnvio
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
@@ -556,8 +554,7 @@ Public Class AgenciaService
     End Function
 
     Public Async Function ImporteReembolso(empresa As String, pedido As Integer) As Task(Of Decimal) Implements IAgenciaService.ImporteReembolso
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             ' Carlos 21/11/24: Agregar autenticación
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -602,8 +599,7 @@ Public Class AgenciaService
             Return (False, $"El pedido {numeroPedido} no tiene factura asociada todavía. Factura primero el pedido y vuelve a tramitar el envío.")
         End If
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Return (False, "No se pudo configurar la autorización contra NestoAPI.")
             End If

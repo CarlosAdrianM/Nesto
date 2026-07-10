@@ -1,6 +1,7 @@
 Imports System.Net.Http
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models.Alquileres
+Imports Nesto.Infrastructure.Shared
 Imports Newtonsoft.Json
 
 Public Class ProductosAlquilerService
@@ -8,15 +9,16 @@ Public Class ProductosAlquilerService
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _servicioAutenticacion = servicioAutenticacion
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
     Public Async Function LeerProductosAlquiler() As Task(Of List(Of ProductoAlquilerModel)) Implements IProductosAlquilerService.LeerProductosAlquiler
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
@@ -33,8 +35,7 @@ Public Class ProductosAlquilerService
 
     ' Nesto#340 Fase 1C.2: movimientos (líneas del pedido de venta) de un alquiler.
     Public Async Function LeerMovimientosAlquiler(empresa As String, pedido As Integer) As Task(Of List(Of MovimientoAlquilerModel)) Implements IProductosAlquilerService.LeerMovimientosAlquiler
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
@@ -51,8 +52,7 @@ Public Class ProductosAlquilerService
 
     ' Nesto#340 Fase 1C.2: compras (líneas del pedido de compra) de un alquiler, por producto + número de serie.
     Public Async Function LeerComprasAlquiler(producto As String, numSerie As String) As Task(Of List(Of CompraAlquilerModel)) Implements IProductosAlquilerService.LeerComprasAlquiler
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
@@ -70,8 +70,7 @@ Public Class ProductosAlquilerService
 
     ' Nesto#340 Fase 1C.2: extracto del inmovilizado de un alquiler, por empresa + número de inmovilizado.
     Public Async Function LeerInmovilizadosAlquiler(empresa As String, numero As String) As Task(Of List(Of ExtractoInmovilizadoModel)) Implements IProductosAlquilerService.LeerInmovilizadosAlquiler
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
@@ -89,8 +88,7 @@ Public Class ProductosAlquilerService
 
     ' Nesto#340 Fase 1C.3: cabeceras del grid principal de un producto en alquiler.
     Public Async Function LeerCabecerasAlquiler(empresa As String, producto As String) As Task(Of List(Of AlquilerModel)) Implements IProductosAlquilerService.LeerCabecerasAlquiler
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
@@ -108,8 +106,7 @@ Public Class ProductosAlquilerService
 
     ' Nesto#340 Fase 1C.3: guardado del grid (la API reconcilia altas/ediciones/bajas).
     Public Async Function GuardarCabecerasAlquiler(empresa As String, producto As String, cabeceras As List(Of AlquilerModel)) As Task(Of List(Of AlquilerModel)) Implements IProductosAlquilerService.GuardarCabecerasAlquiler
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If

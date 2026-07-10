@@ -2,6 +2,7 @@ Imports System.Net.Http
 Imports System.Text
 Imports System.Threading.Tasks
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Newtonsoft.Json
 
@@ -14,17 +15,19 @@ Namespace Services
 
         Private ReadOnly configuracion As IConfiguracion
         Private ReadOnly servicioAutenticacion As IServicioAutenticacion
+        Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
         Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
             Me.configuracion = configuracion
             Me.servicioAutenticacion = servicioAutenticacion
+            _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
         End Sub
 
         ''' <summary>
         ''' Factura pedidos por rutas (propia o agencias)
         ''' </summary>
         Public Async Function FacturarRutas(request As FacturarRutasRequestDTO) As Task(Of FacturarRutasResponseDTO) Implements IServicioFacturacionRutas.FacturarRutas
-            Using client As New HttpClient
+            Using client As HttpClient = _clienteApiFactory.Crear()
                 Try
                     ' Carlos 20/11/24: Aumentar timeout para facturación masiva de rutas (500 segundos)
                     client.Timeout = TimeSpan.FromSeconds(500)
@@ -74,7 +77,7 @@ Namespace Services
         ''' Genera un preview (simulación) de facturación SIN crear nada en la BD
         ''' </summary>
         Public Async Function PreviewFacturarRutas(request As FacturarRutasRequestDTO) As Task(Of PreviewFacturacionRutasResponseDTO) Implements IServicioFacturacionRutas.PreviewFacturarRutas
-            Using client As New HttpClient
+            Using client As HttpClient = _clienteApiFactory.Crear()
                 Try
                     ' Carlos 20/11/24: Aumentar timeout para preview de facturación masiva (500 segundos)
                     client.Timeout = TimeSpan.FromSeconds(500)
@@ -124,7 +127,7 @@ Namespace Services
         ''' Obtiene la lista de tipos de ruta disponibles desde la API
         ''' </summary>
         Public Async Function ObtenerTiposRuta() As Task(Of List(Of TipoRutaInfoDTO)) Implements IServicioFacturacionRutas.ObtenerTiposRuta
-            Using client As New HttpClient
+            Using client As HttpClient = _clienteApiFactory.Crear()
                 Try
                     ' Configurar autorización con token
                     If Not Await servicioAutenticacion.ConfigurarAutorizacion(client) Then

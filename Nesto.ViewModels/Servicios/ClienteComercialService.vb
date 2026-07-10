@@ -9,10 +9,12 @@ Public Class ClienteComercialService
     Implements IClienteComercialService
     Public ReadOnly Property Configuracion As IConfiguracion
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.Configuracion = configuracion
         _servicioAutenticacion = servicioAutenticacion
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
     Public Async Function ModificarExtractoCliente(extracto As ExtractoClienteDTO) As Task Implements IClienteComercialService.ModificarExtractoCliente
@@ -20,8 +22,7 @@ Public Class ClienteComercialService
         If IsNothing(extracto) Then
             Throw New Exception("No se puede actualizar un extracto nulo")
         End If
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(Configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             ' Carlos 21/11/24: Agregar autenticación
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then

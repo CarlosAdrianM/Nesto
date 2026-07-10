@@ -10,16 +10,17 @@ Public Class CarteraPagosService
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _servicioAutenticacion = servicioAutenticacion
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
     Public Async Function CrearFichero(numeroRemesa As Integer) As Task(Of String) Implements ICarteraPagosService.CrearFichero
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             ' Carlos 21/11/24: Agregar autenticación
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -55,8 +56,7 @@ Public Class CarteraPagosService
     End Function
 
     Public Async Function CrearFichero(extractoId As Integer, numeroBanco As String) As Task(Of String) Implements ICarteraPagosService.CrearFichero
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
 
             ' Carlos 21/11/24: Agregar autenticación
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then

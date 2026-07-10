@@ -11,10 +11,12 @@ Public Class PlanesVentajasService
 
     Private ReadOnly configuracion As IConfiguracion
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
 
     Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _servicioAutenticacion = servicioAutenticacion
+        _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
     Public Async Function LeerEstados() As Task(Of List(Of EstadoPlanVentajasModel)) Implements IPlanesVentajasService.LeerEstados
@@ -60,8 +62,7 @@ Public Class PlanesVentajasService
     End Function
 
     Private Async Function GetAsync(Of T)(urlRelativa As String, descripcion As String, Optional devolverNullSiNotFound As Boolean = False) As Task(Of T)
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
@@ -80,8 +81,7 @@ Public Class PlanesVentajasService
     End Function
 
     Private Async Function SendAsync(Of T)(metodo As HttpMethod, urlRelativa As String, cuerpo As Object, descripcion As String) As Task(Of T)
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If

@@ -4,6 +4,7 @@ Imports System.Windows.Controls
 Imports System.Windows
 Imports System.Windows.Data
 Imports System.Windows.Media.Imaging
+Imports Prism.Ioc
 Imports Prism.Mvvm
 Imports Prism.Regions
 Imports System.Net.Http
@@ -169,10 +170,19 @@ Public Class MainViewModel
         End Set
     End Property
 
+    Private Function CrearClienteApi() As HttpClient
+        Try
+            ' Nesto#369: cliente con JWT y URL de configuración (funciona también en desarrollo/localhost)
+            Return Prism.Ioc.ContainerLocator.Container.Resolve(Of Nesto.Infrastructure.Contracts.IClienteApiFactory)().Crear()
+        Catch
+            ' Fallback si el contenedor no está disponible (tests, diseño)
+            Return New HttpClient With {.BaseAddress = New Uri("http://api.nuevavision.es/api/")}
+        End Try
+    End Function
+
     Public Async Function leerParametro(empresa As String, clave As String) As Task(Of String)
 
-        Using client As New HttpClient
-            client.BaseAddress = New Uri("http://api.nuevavision.es/api/")
+        Using client As HttpClient = CrearClienteApi()
             Dim response As HttpResponseMessage
 
             Try

@@ -34,6 +34,7 @@ Public Class ComisionesViewModel
     Private mismoMesAnnoPasado As String
     Private mesAnteriorAnnoPasado As String
     Private ReadOnly Property _servicio As ComisionesService
+    Private ReadOnly _clienteApiFactory As IClienteApiFactory
     Public Sub New(container As IUnityContainer, configuracion As IConfiguracion, dialogService As IDialogService)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
@@ -43,6 +44,7 @@ Public Class ComisionesViewModel
         _dialogService = dialogService
         Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _servicio = New ComisionesService(configuracion, servicioAutenticacion)
+        _clienteApiFactory = container.Resolve(Of IClienteApiFactory)()
 
         colMeses = New Collection(Of String)
         For i = 12 To 1 Step -1
@@ -403,8 +405,7 @@ Public Class ComisionesViewModel
 
 
     Private Async Function CalcularComisionAnual(vendedor As String, anno As Integer, mes As Integer, incluirAlbaranes As Boolean, incluirPicking As Boolean) As Task(Of ComisionAnualResumen)
-        Using client As New HttpClient
-            client.BaseAddress = New Uri(configuracion.servidorAPI)
+        Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
             Dim respuesta As String = String.Empty
 
