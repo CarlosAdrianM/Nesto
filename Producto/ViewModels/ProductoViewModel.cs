@@ -583,10 +583,27 @@ namespace Nesto.Modules.Producto.ViewModels
             GuardarProductoCommand.RaiseCanExecuteChanged();
         }
 
-        // NestoAPI#249: grupos alternativos por los que puede comisionar el producto (pestaña Comisiones).
-        // Se listan todos los grupos menos el de la ficha; los marcados son los de la tabla
-        // ProductosGruposComisionablesAlternativos y el guardado sustituye el conjunto entero.
+        // NestoAPI#249: grupo alternativo por el que puede comisionar el producto (pestaña Comisiones).
+        // Se listan todos los grupos menos el de la ficha como radio buttons: aunque la tabla y la API
+        // admiten varios (many-to-many), desde la UI solo se marca UNO (la conversión es a un único
+        // grupo y permitir varios solo añadiría ambigüedad de desempate).
         public ObservableCollection<GrupoComisionableModel> GruposComisionables { get; } = new();
+
+        private bool _ningunGrupoComisionable = true;
+        public bool NingunGrupoComisionable
+        {
+            get => _ningunGrupoComisionable;
+            set
+            {
+                if (SetProperty(ref _ningunGrupoComisionable, value) && value)
+                {
+                    foreach (GrupoComisionableModel grupo in GruposComisionables)
+                    {
+                        grupo.Seleccionado = false;
+                    }
+                }
+            }
+        }
 
         private async Task CargarGruposComisionablesAsync(string productoId)
         {
@@ -602,6 +619,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     Seleccionado = marcados.Any(m => m != null && m.Trim().Equals(grupo, StringComparison.OrdinalIgnoreCase))
                 });
             }
+            NingunGrupoComisionable = !GruposComisionables.Any(g => g.Seleccionado);
             GuardarGruposComisionablesCommand.RaiseCanExecuteChanged();
         }
 
