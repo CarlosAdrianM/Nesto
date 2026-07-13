@@ -30,6 +30,10 @@
             // Motor de generación del pedido de compra a proveedor: "RDLC" (por defecto, render local)
             // o "QuestPDF" (descarga PDF/Excel de NestoAPI). Permite migrar usuario a usuario con vuelta atrás.
             public const string MotorPdfPedidoCompra = "MotorPdfPedidoCompra";
+            // Motor de los informes de picking Y packing: "RDLC" (por defecto, render local) o
+            // "QuestPDF" (descarga de NestoAPI). Son informes delicados (el packing viaja dentro
+            // de la caja del cliente): migración usuario a usuario con vuelta atrás (Nesto#340).
+            public const string MotorPdfPicking = "MotorPdfPicking";
             public const string PathNorma19 = "PathNorma19";
             public const string PathNorma43 = "PathNorma43";
             public const string PathNormaFB500 = "PathNormaFB500";
