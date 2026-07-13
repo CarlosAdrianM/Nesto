@@ -37,6 +37,12 @@ Public Class LineaParaPlantillaModel
     ''' <summary>Ids de LinPedidoVta originales para que el PUT actualice en vez de recrear.</summary>
     Public Property IdLineaPago As Integer
     Public Property IdLineaOferta As Integer?
+    ''' <summary>
+    ''' Las líneas con PICKING ya están preparadas en el almacén: no se pueden modificar ni
+    ''' quitar desde la plantilla (se valida contra datos frescos antes del PUT).
+    ''' </summary>
+    Public Property PagoTienePicking As Boolean
+    Public Property OfertaTienePicking As Boolean
 End Class
 
 Public Class RegaloParaPlantillaModel
@@ -44,4 +50,5 @@ Public Class RegaloParaPlantillaModel
     Public Property Texto As String
     Public Property Cantidad As Integer
     Public Property IdLinea As Integer
+    Public Property TienePicking As Boolean
 End Class

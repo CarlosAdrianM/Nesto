@@ -2525,6 +2525,17 @@ Public Class PlantillaVentaViewModel
                 ' POST (crear). Las líneas llevan los ids originales (id=0 son nuevas y el PUT las
                 ' crea; las ausentes las borra, protegiendo picking/albarán en el servidor).
                 pedido.numero = NumeroPedidoEnEdicion.Value
+
+                ' Las líneas con PICKING ya están preparadas en el almacén: no se pueden modificar
+                ' ni quitar. Se valida contra el estado FRESCO del pedido (el almacén puede coger
+                ' picking MIENTRAS se edita) para dar un mensaje claro antes del PUT.
+                Dim estadoFresco = Await servicio.CargarPedidoParaPlantilla(clienteSeleccionado.empresa, NumeroPedidoEnEdicion.Value)
+                Dim errorPicking As String = ValidarLineasConPicking(estadoFresco, pedido)
+                If errorPicking IsNot Nothing Then
+                    dialogService.ShowError(errorPicking)
+                    Return
+                End If
+
                 Await servicioPedidosVenta.modificarPedido(pedido)
                 numPedido = NumeroPedidoEnEdicion.Value.ToString()
                 NumeroPedidoEnEdicion = Nothing
@@ -2627,6 +2638,61 @@ Public Class PlantillaVentaViewModel
 
 
     End Sub
+
+    ''' <summary>
+    ''' Nesto#397: las líneas con PICKING ya están preparadas en el almacén y no se pueden
+    ''' modificar ni quitar desde la plantilla (si se cambiara, lo enviado no coincidiría con lo
+    ''' facturado). Compara el estado FRESCO del pedido (ParaPlantilla) con el DTO que se va a
+    ''' enviar por PUT: toda línea original con picking debe seguir presente (mismo id) con la
+    ''' misma cantidad, precio y descuento. Función pura para poder testearla.
+    ''' Devuelve Nothing si todo está intacto, o el mensaje de error.
+    ''' </summary>
+    Public Shared Function ValidarLineasConPicking(estadoFresco As PedidoParaPlantillaModel, pedido As PedidoVentaDTO) As String
+        If estadoFresco Is Nothing OrElse pedido Is Nothing Then
+            Return Nothing
+        End If
+
+        For Each lineaOriginal In If(estadoFresco.Lineas, New List(Of LineaParaPlantillaModel))
+            If lineaOriginal.PagoTienePicking Then
+                Dim errorLinea = ComprobarLineaConPickingIntacta(pedido, lineaOriginal.IdLineaPago, lineaOriginal.Producto,
+                    lineaOriginal.Cantidad, lineaOriginal.Precio, lineaOriginal.Descuento)
+                If errorLinea IsNot Nothing Then Return errorLinea
+            End If
+            If lineaOriginal.OfertaTienePicking AndAlso lineaOriginal.IdLineaOferta.HasValue Then
+                Dim precioOferta As Decimal = If(lineaOriginal.PersonalizarOferta, lineaOriginal.PrecioOferta, 0D)
+                Dim descuentoOferta As Decimal = If(lineaOriginal.PersonalizarOferta, lineaOriginal.DescuentoOferta, 0D)
+                Dim errorLinea = ComprobarLineaConPickingIntacta(pedido, lineaOriginal.IdLineaOferta.Value, lineaOriginal.Producto,
+                    lineaOriginal.CantidadOferta, precioOferta, descuentoOferta)
+                If errorLinea IsNot Nothing Then Return errorLinea
+            End If
+        Next
+
+        For Each regalo In If(estadoFresco.Regalos, New List(Of RegaloParaPlantillaModel))
+            If regalo.TienePicking Then
+                ' En los regalos solo importa la cantidad (el precio/descuento se regeneran igual).
+                Dim errorLinea = ComprobarLineaConPickingIntacta(pedido, regalo.IdLinea, regalo.Producto,
+                    regalo.Cantidad, Nothing, Nothing)
+                If errorLinea IsNot Nothing Then Return errorLinea
+            End If
+        Next
+
+        Return Nothing
+    End Function
+
+    Private Shared Function ComprobarLineaConPickingIntacta(pedido As PedidoVentaDTO, idLinea As Integer,
+            producto As String, cantidad As Integer, precio As Decimal?, descuento As Decimal?) As String
+        Dim lineaEnviada = pedido.Lineas.FirstOrDefault(Function(l) l.id = idLinea)
+        If lineaEnviada Is Nothing Then
+            Return $"La línea del producto {producto?.Trim()} ya tiene picking en el almacén y no se puede quitar desde la plantilla."
+        End If
+        Dim cambiada As Boolean = lineaEnviada.Cantidad <> cantidad OrElse
+            (precio.HasValue AndAlso lineaEnviada.PrecioUnitario <> precio.Value) OrElse
+            (descuento.HasValue AndAlso lineaEnviada.DescuentoLinea <> descuento.Value)
+        If cambiada Then
+            Return $"La línea del producto {producto?.Trim()} ya tiene picking en el almacén y no se puede modificar desde la plantilla (debe quedarse con su cantidad y precio originales)."
+        End If
+        Return Nothing
+    End Function
 
     ''' <summary>
     ''' Issue #366: comprueba si la ampliación lleva fechas de entrega que no coinciden con ninguna
