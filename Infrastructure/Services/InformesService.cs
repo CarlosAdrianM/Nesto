@@ -96,6 +96,16 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/Packing?picking={picking}&personas={personas}",
                 "el packing").ConfigureAwait(false);
 
+        public async Task<byte[]> DescargarPickingPdf(int picking, string empresa = "1", int personas = 1)
+            => await GetBytesAsync(
+                $"Informes/Picking/Pdf?picking={picking}&empresa={Uri.EscapeDataString(empresa)}&personas={personas}",
+                "el PDF del picking").ConfigureAwait(false);
+
+        public async Task<byte[]> DescargarPackingPdf(int picking, int personas = 1)
+            => await GetBytesAsync(
+                $"Informes/Packing/Pdf?picking={picking}&personas={personas}",
+                "el PDF del packing").ConfigureAwait(false);
+
         public async Task<List<FilaEtiquetasModel>> LeerEtiquetasTienda(List<string> productos, int etiquetaPrimera)
         {
             if (productos == null || productos.Count == 0)

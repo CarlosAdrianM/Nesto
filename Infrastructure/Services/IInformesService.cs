@@ -25,6 +25,8 @@ namespace Nesto.Infrastructure.Services
         Task<List<PickingModel>> LeerPicking(int picking, string empresa = "1", int personas = 1);
         Task<int> LeerUltimoPicking();
         Task<List<PackingModel>> LeerPacking(int picking, int personas = 1);
+        Task<byte[]> DescargarPickingPdf(int picking, string empresa = "1", int personas = 1);
+        Task<byte[]> DescargarPackingPdf(int picking, int personas = 1);
         Task<PedidoCompraModel> LeerPedidoCompra(string empresa, int pedido);
         Task<byte[]> DescargarPedidoCompraPdf(string empresa, int pedido);
         Task<byte[]> DescargarPedidoCompraExcel(string empresa, int pedido);

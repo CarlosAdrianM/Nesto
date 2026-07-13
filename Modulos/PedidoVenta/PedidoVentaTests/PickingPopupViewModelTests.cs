@@ -1,16 +1,16 @@
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Nesto.Informes;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Services;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Events;
 using Prism.Services.Dialogs;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace PedidoVentaTests
 {
+    // Nesto#340 (RDLC -> QuestPDF): los informes de picking/packing se descargan ya en PDF
+    // del backend; el VM solo resuelve el número de picking y pide el PDF.
     [TestClass]
     public class PickingPopupViewModelTests
     {
@@ -34,97 +34,95 @@ namespace PedidoVentaTests
         }
 
         [TestMethod]
-        public async Task ObtenerDatosPicking_SinNumero_PideUltimoPickingYLoUsa()
+        public async Task ObtenerPdfPicking_SinNumero_PideUltimoPickingYLoUsa()
         {
             var servicioInformes = A.Fake<IInformesService>();
             A.CallTo(() => servicioInformes.LeerUltimoPicking()).Returns(Task.FromResult(98765));
-            A.CallTo(() => servicioInformes.LeerPicking(A<int>.Ignored, A<string>.Ignored, A<int>.Ignored))
-                .Returns(Task.FromResult(new List<PickingModel>()));
+            A.CallTo(() => servicioInformes.DescargarPickingPdf(A<int>.Ignored, A<string>.Ignored, A<int>.Ignored))
+                .Returns(Task.FromResult(new byte[] { 1, 2, 3 }));
             var vm = CrearViewModel(servicioInformes);
 
-            await vm.ObtenerDatosPickingAsync();
+            await vm.ObtenerPdfPickingAsync();
 
             A.CallTo(() => servicioInformes.LeerUltimoPicking()).MustHaveHappenedOnceExactly();
-            A.CallTo(() => servicioInformes.LeerPicking(98765, "1", 1)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicioInformes.DescargarPickingPdf(98765, "1", 1)).MustHaveHappenedOnceExactly();
             Assert.AreEqual(98765, vm.numeroPicking);
         }
 
         [TestMethod]
-        public async Task ObtenerDatosPicking_ConNumeroYaEstablecido_NoPideUltimoPicking()
+        public async Task ObtenerPdfPicking_ConNumeroYaEstablecido_NoPideUltimoPicking()
         {
             var servicioInformes = A.Fake<IInformesService>();
-            A.CallTo(() => servicioInformes.LeerPicking(A<int>.Ignored, A<string>.Ignored, A<int>.Ignored))
-                .Returns(Task.FromResult(new List<PickingModel>()));
+            A.CallTo(() => servicioInformes.DescargarPickingPdf(A<int>.Ignored, A<string>.Ignored, A<int>.Ignored))
+                .Returns(Task.FromResult(new byte[] { 1 }));
             var vm = CrearViewModel(servicioInformes);
             vm.numeroPicking = 12345;
 
-            await vm.ObtenerDatosPickingAsync();
+            await vm.ObtenerPdfPickingAsync();
 
             A.CallTo(() => servicioInformes.LeerUltimoPicking()).MustNotHaveHappened();
-            A.CallTo(() => servicioInformes.LeerPicking(12345, "1", 1)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicioInformes.DescargarPickingPdf(12345, "1", 1)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
-        public async Task ObtenerDatosPicking_DevuelveLaListaDelServicio()
+        public async Task ObtenerPdfPicking_DevuelveElPdfDelServicio()
         {
             var servicioInformes = A.Fake<IInformesService>();
-            var datos = new List<PickingModel> { new PickingModel { Producto = "12345", Cantidad = 3 } };
             A.CallTo(() => servicioInformes.LeerUltimoPicking()).Returns(Task.FromResult(1));
-            A.CallTo(() => servicioInformes.LeerPicking(A<int>.Ignored, A<string>.Ignored, A<int>.Ignored))
-                .Returns(Task.FromResult(datos));
+            A.CallTo(() => servicioInformes.DescargarPickingPdf(A<int>.Ignored, A<string>.Ignored, A<int>.Ignored))
+                .Returns(Task.FromResult(new byte[] { 9, 8, 7 }));
             var vm = CrearViewModel(servicioInformes);
 
-            var resultado = await vm.ObtenerDatosPickingAsync();
+            var resultado = await vm.ObtenerPdfPickingAsync();
 
-            Assert.AreEqual(1, resultado.Count);
-            Assert.AreEqual("12345", resultado[0].Producto);
+            Assert.AreEqual(3, resultado.Length);
+            Assert.AreEqual(9, resultado[0]);
         }
 
         [TestMethod]
-        public async Task ObtenerDatosPacking_SinNumero_PideUltimoPickingYLoUsa()
+        public async Task ObtenerPdfPacking_SinNumero_PideUltimoPickingYLoUsa()
         {
             var servicioInformes = A.Fake<IInformesService>();
             A.CallTo(() => servicioInformes.LeerUltimoPicking()).Returns(Task.FromResult(22222));
-            A.CallTo(() => servicioInformes.LeerPacking(A<int>.Ignored, A<int>.Ignored))
-                .Returns(Task.FromResult(new List<PackingModel>()));
+            A.CallTo(() => servicioInformes.DescargarPackingPdf(A<int>.Ignored, A<int>.Ignored))
+                .Returns(Task.FromResult(new byte[] { 1, 2 }));
             var vm = CrearViewModel(servicioInformes);
 
-            await vm.ObtenerDatosPackingAsync();
+            await vm.ObtenerPdfPackingAsync();
 
             A.CallTo(() => servicioInformes.LeerUltimoPicking()).MustHaveHappenedOnceExactly();
-            A.CallTo(() => servicioInformes.LeerPacking(22222, 1)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicioInformes.DescargarPackingPdf(22222, 1)).MustHaveHappenedOnceExactly();
             Assert.AreEqual(22222, vm.numeroPicking);
         }
 
         [TestMethod]
-        public async Task ObtenerDatosPacking_ConNumeroYaEstablecido_NoPideUltimoPicking()
+        public async Task ObtenerPdfPacking_ConNumeroYaEstablecido_NoPideUltimoPicking()
         {
             var servicioInformes = A.Fake<IInformesService>();
-            A.CallTo(() => servicioInformes.LeerPacking(A<int>.Ignored, A<int>.Ignored))
-                .Returns(Task.FromResult(new List<PackingModel>()));
+            A.CallTo(() => servicioInformes.DescargarPackingPdf(A<int>.Ignored, A<int>.Ignored))
+                .Returns(Task.FromResult(new byte[] { 1 }));
             var vm = CrearViewModel(servicioInformes);
             vm.numeroPicking = 33333;
 
-            await vm.ObtenerDatosPackingAsync();
+            await vm.ObtenerPdfPackingAsync();
 
             A.CallTo(() => servicioInformes.LeerUltimoPicking()).MustNotHaveHappened();
-            A.CallTo(() => servicioInformes.LeerPacking(33333, 1)).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicioInformes.DescargarPackingPdf(33333, 1)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]
-        public async Task ObtenerDatosPacking_DevuelveLaListaDelServicio()
+        public async Task ObtenerPdfPacking_DevuelveElPdfDelServicio()
         {
             var servicioInformes = A.Fake<IInformesService>();
-            var datos = new List<PackingModel> { new PackingModel { Número = 555555 } };
             A.CallTo(() => servicioInformes.LeerUltimoPicking()).Returns(Task.FromResult(1));
-            A.CallTo(() => servicioInformes.LeerPacking(A<int>.Ignored, A<int>.Ignored))
-                .Returns(Task.FromResult(datos));
+            A.CallTo(() => servicioInformes.DescargarPackingPdf(A<int>.Ignored, A<int>.Ignored))
+                .Returns(Task.FromResult(new byte[] { 5, 5, 5, 5 }));
             var vm = CrearViewModel(servicioInformes);
 
-            var resultado = await vm.ObtenerDatosPackingAsync();
+            var resultado = await vm.ObtenerPdfPackingAsync();
 
-            Assert.AreEqual(1, resultado.Count);
-            Assert.AreEqual(555555, resultado[0].Número);
+            Assert.AreEqual(4, resultado.Length);
+            Assert.AreEqual(5, resultado[0]);
         }
     }
 }

@@ -252,27 +252,21 @@ Public Class MenuBarViewModel
     End Sub
 
     ' Extraído para poder testear la interacción con IInformesService sin tocar el render RDLC.
-    Public Async Function ObtenerDatosPickingAsync() As Task(Of (NumeroPicking As Integer, Datos As List(Of Informes.PickingModel)))
+    ' El PDF lo genera NestoAPI con QuestPDF (api/Informes/Picking/Pdf y Packing/Pdf); ya no
+    ' se renderiza el RDLC en local (Nesto#340). Extraídos para testear la interacción con
+    ' IInformesService sin tocar el Process.Start.
+    Public Async Function ObtenerPdfPickingAsync() As Task(Of Byte())
         Dim numero As Integer = Await _servicioInformes.LeerUltimoPicking()
-        Dim datos As List(Of Informes.PickingModel) = Await _servicioInformes.LeerPicking(numero)
-        Return (numero, datos)
+        Return Await _servicioInformes.DescargarPickingPdf(numero)
     End Function
 
-    Public Async Function ObtenerDatosPackingAsync() As Task(Of (NumeroPicking As Integer, Datos As List(Of Informes.PackingModel)))
+    Public Async Function ObtenerPdfPackingAsync() As Task(Of Byte())
         Dim numero As Integer = Await _servicioInformes.LeerUltimoPicking()
-        Dim datos As List(Of Informes.PackingModel) = Await _servicioInformes.LeerPacking(numero)
-        Return (numero, datos)
+        Return Await _servicioInformes.DescargarPackingPdf(numero)
     End Function
 
     Private Async Sub OnPicking()
-        Dim datos = Await ObtenerDatosPickingAsync()
-        Dim numeroPicking As Integer = datos.NumeroPicking
-        Dim dataSource As List(Of Informes.PickingModel) = datos.Datos
-        Dim listaParametros As New List(Of ReportParameter) From {
-            New ReportParameter("NumeroPicking", numeroPicking)
-        }
-        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-            "Nesto.Informes.Picking.rdlc", "PickingDataSet", dataSource, listaParametros)
+        Dim pdf As Byte() = Await ObtenerPdfPickingAsync()
         Dim fileName As String = Path.GetTempPath + "InformePicking.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
@@ -281,14 +275,7 @@ Public Class MenuBarViewModel
     End Sub
 
     Private Async Sub OnPacking()
-        Dim datos = Await ObtenerDatosPackingAsync()
-        Dim numeroPicking As Integer = datos.NumeroPicking
-        Dim dataSource As List(Of Informes.PackingModel) = datos.Datos
-        Dim listaParametros As New List(Of ReportParameter) From {
-            New ReportParameter("NumeroPicking", numeroPicking)
-        }
-        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-            "Nesto.Informes.Packing.rdlc", "PackingDataSet", dataSource, listaParametros)
+        Dim pdf As Byte() = Await ObtenerPdfPackingAsync()
         Dim fileName As String = Path.GetTempPath + "InformePacking.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
