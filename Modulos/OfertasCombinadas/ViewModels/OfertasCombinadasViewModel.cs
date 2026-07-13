@@ -308,6 +308,13 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             if (OfertaCombinadaSeleccionada == null || DetalleSeleccionado == null) return;
 
+            // Los grupos de alternativas son solo de producto concreto (limitación de NestoAPI#282).
+            if (DetalleSeleccionado.EsFiltro)
+            {
+                _dialogService.ShowError("Las líneas de filtro no pueden pertenecer a un grupo de alternativas.");
+                return;
+            }
+
             int grupo = DetalleSeleccionado.GrupoAlternativa ?? SiguienteGrupoAlternativa();
             DetalleSeleccionado.GrupoAlternativa = grupo;
 
@@ -365,6 +372,29 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 return;
             }
 
+            // NestoAPI#282: cada línea es de producto concreto O de filtro (familia y/o prefijo
+            // del nombre), nunca ambas cosas ni ninguna. Mismas reglas que valida el servidor.
+            foreach (var d in oferta.Detalles)
+            {
+                bool tieneProducto = !string.IsNullOrWhiteSpace(d.Producto);
+                bool tieneFiltro = !string.IsNullOrWhiteSpace(d.Familia) || !string.IsNullOrWhiteSpace(d.FiltroProducto);
+                if (!tieneProducto && !tieneFiltro)
+                {
+                    _dialogService.ShowError("Cada línea debe llevar un producto o un filtro (familia y/o principio del nombre).");
+                    return;
+                }
+                if (tieneProducto && tieneFiltro)
+                {
+                    _dialogService.ShowError($"La línea del producto '{d.Producto.Trim()}' no puede llevar también familia o filtro: una línea es de producto concreto O de filtro.");
+                    return;
+                }
+                if (!tieneProducto && d.GrupoAlternativa.HasValue)
+                {
+                    _dialogService.ShowError("Las líneas de filtro no pueden pertenecer a un grupo de alternativas.");
+                    return;
+                }
+            }
+
             try
             {
                 EstaCargando = true;
@@ -379,7 +409,11 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                     Detalles = oferta.Detalles.Select(d => new OfertaCombinadaDetalleCreateModel
                     {
                         Id = d.Id,
-                        Producto = d.Producto?.Trim(),
+                        // Null (no cadena vacía) en las filas de filtro: el servidor distingue
+                        // fila de producto y fila de filtro por Producto == null.
+                        Producto = string.IsNullOrWhiteSpace(d.Producto) ? null : d.Producto.Trim(),
+                        Familia = string.IsNullOrWhiteSpace(d.Familia) ? null : d.Familia.Trim(),
+                        FiltroProducto = string.IsNullOrWhiteSpace(d.FiltroProducto) ? null : d.FiltroProducto.Trim(),
                         Cantidad = d.Cantidad,
                         Precio = d.Precio,
                         GrupoAlternativa = d.GrupoAlternativa,
@@ -899,6 +933,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             Id = model.Id;
             Producto = model.Producto;
             ProductoNombre = model.ProductoNombre;
+            Familia = model.Familia;
+            FiltroProducto = model.FiltroProducto;
             Cantidad = model.Cantidad;
             Precio = model.Precio;
             GrupoAlternativa = model.GrupoAlternativa;
@@ -936,6 +972,25 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             get => ProductoNombre;
             set => ProductoNombre = value;
         }
+
+        // NestoAPI#282: fila de FILTRO. Con el producto vacío, la línea casa las líneas del pedido
+        // por familia y/o prefijo del nombre, y la cantidad se cuenta agregada entre todas.
+        private string _familia;
+        public string Familia
+        {
+            get => _familia;
+            set { if (SetProperty(ref _familia, value)) AlCambiar?.Invoke(); }
+        }
+
+        private string _filtroProducto;
+        public string FiltroProducto
+        {
+            get => _filtroProducto;
+            set { if (SetProperty(ref _filtroProducto, value)) AlCambiar?.Invoke(); }
+        }
+
+        public bool EsFiltro => string.IsNullOrWhiteSpace(Producto)
+            && (!string.IsNullOrWhiteSpace(Familia) || !string.IsNullOrWhiteSpace(FiltroProducto));
 
         private short _cantidad;
         public short Cantidad

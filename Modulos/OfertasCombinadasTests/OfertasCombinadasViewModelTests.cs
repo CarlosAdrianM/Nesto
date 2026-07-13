@@ -188,5 +188,98 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             Assert.IsFalse(vm.NuevoDetalleAlternativoCommand.CanExecute(null),
                 "Sin línea seleccionada no debe poder añadirse alternativa");
         }
+
+        // ----- NestoAPI#282: líneas de filtro (familia y/o prefijo del nombre) -----
+
+        [TestMethod]
+        public void Guardar_LineaDeFiltro_ViajaEnElCreateModelConProductoNull()
+        {
+            // Caso Lisap: fila de filtro (72 tintes OPC) + regalo de producto concreto.
+            OfertaCombinadaCreateModel capturado = null;
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .Invokes((OfertaCombinadaCreateModel m) => capturado = m)
+                .Returns(Task.FromResult(new OfertaCombinadaModel
+                {
+                    Id = 1,
+                    Nombre = "Lisap OPC",
+                    Detalles = new List<OfertaCombinadaDetalleModel>()
+                }));
+
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper { Nombre = "Lisap OPC" };
+            oferta.Detalles.Add(new DetalleOfertaCombinadaWrapper { Familia = " Lisap ", FiltroProducto = "LK OPC ", Cantidad = 72, Precio = 0 });
+            oferta.Detalles.Add(new DetalleOfertaCombinadaWrapper { Producto = "45473", Cantidad = 1, Precio = 0 });
+
+            vm.GuardarOfertaCombinadaCommand.Execute(oferta);
+
+            Assert.IsNotNull(capturado, "Debe llamar a CreateOfertaCombinada");
+            var filtro = capturado.Detalles.Single(d => d.Producto == null);
+            Assert.AreEqual("Lisap", filtro.Familia, "La familia debe viajar recortada");
+            Assert.AreEqual("LK OPC", filtro.FiltroProducto, "El filtro debe viajar recortado");
+            var regalo = capturado.Detalles.Single(d => d.Producto == "45473");
+            Assert.IsNull(regalo.Familia, "La fila de producto no lleva familia");
+            Assert.IsNull(regalo.FiltroProducto, "La fila de producto no lleva filtro");
+        }
+
+        [TestMethod]
+        public void Guardar_LineaSinProductoNiFiltro_NoLlamaAlServicio()
+        {
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper { Nombre = "Incompleta" };
+            oferta.Detalles.Add(Detalle("SERUM", 1, 10m));
+            oferta.Detalles.Add(new DetalleOfertaCombinadaWrapper { Cantidad = 1, Precio = 0 }); // ni producto ni filtro
+
+            vm.GuardarOfertaCombinadaCommand.Execute(oferta);
+
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void Guardar_LineaConProductoYFiltroALaVez_NoLlamaAlServicio()
+        {
+            // Una línea es de producto concreto O de filtro; ambas cosas a la vez es ambiguo
+            // (el motor ignoraría el filtro) y se rechaza antes de enviar.
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper { Nombre = "Ambigua" };
+            oferta.Detalles.Add(new DetalleOfertaCombinadaWrapper { Producto = "45473", Familia = "Lisap", Cantidad = 1, Precio = 0 });
+            oferta.Detalles.Add(Detalle("SERUM", 1, 10m));
+
+            vm.GuardarOfertaCombinadaCommand.Execute(oferta);
+
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void Guardar_LineaDeFiltroEnGrupoAlternativa_NoLlamaAlServicio()
+        {
+            // Los grupos de alternativas siguen siendo solo de producto concreto (NestoAPI#282).
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper { Nombre = "Filtro en grupo" };
+            oferta.Detalles.Add(new DetalleOfertaCombinadaWrapper { Familia = "Lisap", Cantidad = 6, Precio = 0, GrupoAlternativa = 1 });
+            oferta.Detalles.Add(Detalle("SERUM", 1, 10m));
+
+            vm.GuardarOfertaCombinadaCommand.Execute(oferta);
+
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void ProductoAlternativo_SobreLineaDeFiltro_NoAnadeAlternativa()
+        {
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper();
+            var filtro = new DetalleOfertaCombinadaWrapper { Familia = "Lisap", FiltroProducto = "LK OPC", Cantidad = 72, Precio = 0 };
+            oferta.Detalles.Add(filtro);
+            vm.OfertaCombinadaSeleccionada = oferta;
+            vm.DetalleSeleccionado = filtro;
+
+            vm.NuevoDetalleAlternativoCommand.Execute(null);
+
+            Assert.AreEqual(1, oferta.Detalles.Count, "No debe añadir alternativa sobre una línea de filtro");
+            Assert.IsNull(filtro.GrupoAlternativa, "La línea de filtro no debe recibir grupo de alternativas");
+        }
     }
 }

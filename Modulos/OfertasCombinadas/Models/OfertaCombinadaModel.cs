@@ -21,6 +21,10 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         public int Id { get; set; }
         public string Producto { get; set; }
         public string ProductoNombre { get; set; }
+        // NestoAPI#282: fila de FILTRO (Producto null): casa las líneas del pedido por familia
+        // y/o prefijo del nombre del producto; la cantidad se cuenta agregada entre todas.
+        public string Familia { get; set; }
+        public string FiltroProducto { get; set; }
         public short Cantidad { get; set; }
         public decimal Precio { get; set; }
         // Líneas con el mismo GrupoAlternativa son intercambiables ("elige 1"); null = obligatoria.
@@ -44,6 +48,9 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
     {
         public int Id { get; set; }
         public string Producto { get; set; }
+        // NestoAPI#282: fila de FILTRO (Producto null): familia y/o prefijo del nombre.
+        public string Familia { get; set; }
+        public string FiltroProducto { get; set; }
         public short Cantidad { get; set; }
         public decimal Precio { get; set; }
         public int? GrupoAlternativa { get; set; }

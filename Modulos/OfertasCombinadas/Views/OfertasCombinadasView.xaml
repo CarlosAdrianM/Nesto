@@ -256,11 +256,33 @@
                                 </DataGridTemplateColumn>
 
                                 <!-- Nombre producto (solo lectura) -->
-                                <DataGridTextColumn Header="Nombre" Binding="{Binding ProductoNombre}" Width="250" IsReadOnly="True">
+                                <DataGridTextColumn Header="Nombre" Binding="{Binding ProductoNombre}" Width="220" IsReadOnly="True">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="Margin" Value="2,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Familia (línea de filtro: producto vacío) -->
+                                <DataGridTextColumn Header="Familia" Binding="{Binding Familia, UpdateSourceTrigger=LostFocus}" Width="90">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                            <Setter Property="ToolTip" Value="Solo para líneas de filtro (sin producto): casa los productos de esta familia."/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- Filtro por principio del nombre (línea de filtro: producto vacío) -->
+                                <DataGridTextColumn Header="Filtro (nombre empieza por)" Binding="{Binding FiltroProducto, UpdateSourceTrigger=LostFocus}" Width="170">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="Margin" Value="2,0"/>
+                                            <Setter Property="ToolTip" Value="Solo para líneas de filtro (sin producto): casa los productos cuyo nombre empiece por este texto."/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
@@ -353,9 +375,10 @@
                         <StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,5,0,0">
                             <TextBlock Text="Total ofertas: " VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding OfertasCombinadas.Count}" VerticalAlignment="Center" FontWeight="Bold"/>
-                            <TextBlock Text=" | Precio=0 significa sin restriccion de precio. Cantidad=0 significa producto opcional. Mismo 'Grupo alt.' = alternativas intercambiables (se exige 1 cualquiera). 'Cant. menor' = la cantidad es un máximo (se admite de 0 a esa cantidad)."
+                            <TextBlock Text=" | Precio=0 significa sin restriccion de precio. Cantidad=0 significa producto opcional. Mismo 'Grupo alt.' = alternativas intercambiables (se exige 1 cualquiera). 'Cant. menor' = la cantidad es un máximo (se admite de 0 a esa cantidad). Línea de FILTRO: deje el producto vacío y rellene familia y/o filtro; la cantidad se suma entre todos los productos que casan (no admite grupo alt.)."
                                        VerticalAlignment="Center" Margin="20,0,0,0"
-                                       Foreground="Gray" FontStyle="Italic"/>
+                                       Foreground="Gray" FontStyle="Italic"
+                                       TextWrapping="Wrap" MaxWidth="900"/>
                         </StackPanel>
                     </Grid>
                 </TabItem>
