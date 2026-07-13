@@ -30,6 +30,13 @@ Public Class BorradorPlantillaVenta
     ''' </summary>
     Public Property MensajeError As String
 
+    ''' <summary>
+    ''' Nesto#397: si el borrador procede de un pedido existente (Modificar con plantilla), su
+    ''' número. Al guardar, la plantilla hace PUT sobre este pedido en vez de POST (crear).
+    ''' Nothing = borrador normal (POST). Los borradores antiguos deserializan a Nothing.
+    ''' </summary>
+    Public Property NumeroPedidoEnEdicion As Integer?
+
     ' ========== Datos del cliente ==========
     ''' <summary>
     ''' Empresa del cliente

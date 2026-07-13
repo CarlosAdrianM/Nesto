@@ -198,6 +198,69 @@ Public Class BorradorPlantillaVentaService
     End Function
 
     ''' <summary>
+    ''' Nesto#397: construye un borrador EN MEMORIA (no se guarda a disco) a partir del pedido
+    ''' que devuelve GET api/PedidosVenta/ParaPlantilla, para cargarlo en la plantilla con el
+    ''' pipeline de borradores existente. Lleva NumeroPedidoEnEdicion para que el guardado haga
+    ''' PUT sobre el pedido original, y los ids de línea para actualizar en vez de recrear.
+    ''' </summary>
+    Public Function CrearBorradorDesdePedido(pedido As PedidoParaPlantillaModel) As BorradorPlantillaVenta Implements IBorradorPlantillaVentaService.CrearBorradorDesdePedido
+        If pedido Is Nothing Then
+            Throw New ArgumentNullException(NameOf(pedido))
+        End If
+
+        Dim borrador As New BorradorPlantillaVenta With {
+            .Id = Guid.NewGuid().ToString(),
+            .FechaCreacion = DateTime.Now,
+            .Empresa = pedido.Empresa,
+            .Cliente = pedido.Cliente,
+            .Contacto = pedido.Contacto,
+            .NumeroPedidoEnEdicion = pedido.NumeroPedido,
+            .EsPresupuesto = pedido.EsPresupuesto,
+            .FormaPago = pedido.FormaPago,
+            .PlazosPago = pedido.PlazosPago,
+            .ComentarioPicking = pedido.ComentarioPicking,
+            .ComentarioRuta = pedido.Comentarios,
+            .AlmacenCodigo = pedido.Almacen,
+            .ServirJunto = pedido.ServirJunto,
+            .MantenerJunto = pedido.MantenerJunto,
+            .LineasProducto = New List(Of LineaPlantillaVenta),
+            .LineasRegalo = New List(Of LineaRegalo)
+        }
+        If pedido.FechaEntrega.HasValue Then
+            borrador.FechaEntrega = pedido.FechaEntrega.Value
+        End If
+
+        For Each linea In If(pedido.Lineas, New List(Of LineaParaPlantillaModel))
+            borrador.LineasProducto.Add(New LineaPlantillaVenta With {
+                .producto = linea.Producto,
+                .texto = linea.Texto,
+                .cantidad = linea.Cantidad,
+                .precio = linea.Precio,
+                .descuento = linea.Descuento,
+                .aplicarDescuento = linea.AplicarDescuento,
+                .cantidadOferta = linea.CantidadOferta,
+                .personalizarOferta = linea.PersonalizarOferta,
+                .precioOferta = linea.PrecioOferta,
+                .descuentoOferta = linea.DescuentoOferta,
+                .idLineaPedido = linea.IdLineaPago,
+                .idLineaPedidoOferta = linea.IdLineaOferta,
+                .stockActualizado = False
+            })
+        Next
+
+        For Each regalo In If(pedido.Regalos, New List(Of RegaloParaPlantillaModel))
+            borrador.LineasRegalo.Add(New LineaRegalo With {
+                .producto = regalo.Producto,
+                .texto = regalo.Texto,
+                .cantidad = regalo.Cantidad,
+                .idLineaPedido = regalo.IdLinea
+            })
+        Next
+
+        Return borrador
+    End Function
+
+    ''' <summary>
     ''' Comprueba si un texto es un JSON válido que puede deserializarse como borrador.
     ''' Requiere al menos un cliente y alguna línea de producto o regalo.
     ''' Issue #288: Crear borrador desde JSON del portapapeles

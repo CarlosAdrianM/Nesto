@@ -86,6 +86,24 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' Nesto#397: carga el pedido YA en forma de plantilla. La inversión (colapsar ofertas,
+    ''' clasificar Ganavisiones) la hace NestoAPI; NestoApp consumirá el mismo endpoint.
+    ''' </summary>
+    Public Async Function CargarPedidoParaPlantilla(empresa As String, numero As Integer) As Task(Of PedidoParaPlantillaModel) Implements IPlantillaVentaService.CargarPedidoParaPlantilla
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response As HttpResponseMessage = Await client.GetAsync($"PedidosVenta/ParaPlantilla?empresa={empresa}&numero={numero}")
+            If response.StatusCode = Net.HttpStatusCode.NotFound Then
+                Return Nothing
+            End If
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Se ha producido un error al cargar el pedido {numero} para la plantilla")
+            End If
+            Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of PedidoParaPlantillaModel)(cadenaJson)
+        End Using
+    End Function
+
     Public Async Function CargarCliente(empresa As String, cliente As String, contacto As String) As Task(Of ClienteCrear) Implements IPlantillaVentaService.CargarCliente
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

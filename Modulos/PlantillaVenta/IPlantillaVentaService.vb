@@ -5,6 +5,8 @@ Imports Nesto.Modulos.PedidoVenta
 
 Public Interface IPlantillaVentaService
     Function CargarCliente(empresa As String, cliente As String, contacto As String) As Task(Of ClienteCrear)
+    ''' <summary>Nesto#397: el pedido ya en forma de plantilla (GET api/PedidosVenta/ParaPlantilla).</summary>
+    Function CargarPedidoParaPlantilla(empresa As String, numero As Integer) As Task(Of PedidoParaPlantillaModel)
     Function CargarClientesVendedor(filtroCliente As String, vendedor As String, todosLosVendedores As Boolean) As Task(Of ICollection(Of ClienteJson))
     Function CargarListaPendientes(empresa As String, cliente As String) As Task(Of List(Of Integer))
     Function CargarProductosPlantilla(clienteSeleccionado As ClienteJson) As Task(Of ObservableCollection(Of LineaPlantillaVenta))

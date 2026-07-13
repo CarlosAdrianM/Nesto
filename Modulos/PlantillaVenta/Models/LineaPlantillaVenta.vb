@@ -192,6 +192,14 @@ Public Class LineaPlantillaVenta
     Public Property descuentoProducto As Decimal
     Public Property clasificacionMasVendidos As Integer
     Public Property stocks As List(Of StockAlmacenDTO)
+
+    ''' <summary>
+    ''' Nesto#397: ids de LinPedidoVta originales cuando la plantilla está en modo edición de un
+    ''' pedido existente (0/Nothing = línea nueva). Permiten que el guardado haga PUT actualizando
+    ''' las líneas en vez de recrearlas. En borradores normales quedan a 0 (ignorados).
+    ''' </summary>
+    Public Property idLineaPedido As Integer
+    Public Property idLineaPedidoOferta As Integer?
     Private _urlImagen As String
     Public Property urlImagen As String
         Get

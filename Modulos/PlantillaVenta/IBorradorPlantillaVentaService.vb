@@ -59,4 +59,11 @@ Public Interface IBorradorPlantillaVentaService
     ''' <param name="json">Texto a validar</param>
     ''' <returns>True si es un JSON válido de borrador</returns>
     Function EsJsonBorradorValido(json As String) As Boolean
+
+    ''' <summary>
+    ''' Nesto#397: construye un borrador EN MEMORIA (sin guardar a disco) a partir del pedido que
+    ''' devuelve GET api/PedidosVenta/ParaPlantilla, con NumeroPedidoEnEdicion y los ids de línea
+    ''' para que el guardado haga PUT sobre el pedido original.
+    ''' </summary>
+    Function CrearBorradorDesdePedido(pedido As PedidoParaPlantillaModel) As BorradorPlantillaVenta
 End Interface
