@@ -563,7 +563,9 @@ namespace Nesto.Modules.Producto.ViewModels
         private bool CanGuardarProducto()
         {
             return ControlStock != null &&
-                (ControlStock.Model.StockMinimoActual != ControlStock.Model.StockMinimoInicial || ControlStock.Model.ControlesStocksAlmacen.Any(c => c.StockMaximoInicial != c.StockMaximoActual));
+                (ControlStock.Model.StockMinimoActual != ControlStock.Model.StockMinimoInicial ||
+                 ControlStock.MultiplosActual != ControlStock.Model.MultiplosInicial || // Nesto#392
+                 ControlStock.Model.ControlesStocksAlmacen.Any(c => c.StockMaximoInicial != c.StockMaximoActual));
         }
         private async void OnGuardarProducto()
         {
@@ -580,6 +582,9 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
                 ControlStock.Model.ControlesStocksAlmacen.Single(c => c.Almacen == controlStock.Almacén).StockMaximoInicial = controlStock.StockMáximo;
             }
+            // Refrescar los valores iniciales para que el botón Guardar se desactive tras guardar.
+            ControlStock.Model.StockMinimoInicial = ControlStock.Model.StockMinimoActual;
+            ControlStock.Model.MultiplosInicial = ControlStock.MultiplosActual;
             GuardarProductoCommand.RaiseCanExecuteChanged();
         }
 

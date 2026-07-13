@@ -19,6 +19,9 @@ namespace Nesto.Modules.Producto.Models
         }
         public int StockMinimoCalculado { get; set; }
         public int StockMinimoInicial { get; set; }
+        // Nesto#392: valor de los múltiplos del almacén central al cargar, para detectar cambios
+        // (espejo de StockMinimoInicial). Lo rellena el wrapper, no viene de la API.
+        public int MultiplosInicial { get; set; }
         public ICollection<ControlStockAlmacenModel> ControlesStocksAlmacen { get; set; }
     }
 }

@@ -25,7 +25,9 @@ namespace Nesto.Modules.Producto.Models
             {
                 control.StockMaximoInicial = control.StockMaximoActual;
                 ControlesStocksAlmacen.Add(new ControlStockAlmacenWrapper(control));
-            }         
+            }
+            model.MultiplosInicial = Model.ControlesStocksAlmacen
+                .SingleOrDefault(c => c.Almacen == Constantes.Almacenes.ALMACEN_CENTRAL)?.Multiplos ?? 1;
         }
 
         private void ContentCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -94,6 +96,27 @@ namespace Nesto.Modules.Producto.Models
             }
         }
         public int StockMinimoCalculado => Model != null ? Model.StockMinimoCalculado : 0;
+
+        // Nesto#392: los múltiplos se editan a nivel producto (espejo del stock mínimo) y
+        // persisten en el almacén central (ALG); los del resto de almacenes no se tocan.
+        public int MultiplosActual
+        {
+            get => ControlesStocksAlmacen?
+                .SingleOrDefault(c => c.Model.Almacen == Constantes.Almacenes.ALMACEN_CENTRAL)?
+                .Model.Multiplos ?? 1;
+            set
+            {
+                var central = ControlesStocksAlmacen?
+                    .SingleOrDefault(c => c.Model.Almacen == Constantes.Almacenes.ALMACEN_CENTRAL);
+                if (central == null || central.Model.Multiplos == value || value < 1)
+                {
+                    return;
+                }
+                central.Model.Multiplos = value;
+                RaisePropertyChanged(nameof(MultiplosActual));
+                OnStockChanged();
+            }
+        }
         public int SumaStocksMaximos => Model != null ? Model.SumaStocksMaximos : 0;
 
         public List<ControlStock> ToListModificados
@@ -101,9 +124,11 @@ namespace Nesto.Modules.Producto.Models
             get
             {
                 List<ControlStock> controles = new();
-                foreach (var control in ControlesStocksAlmacen.Where(c => 
-                    c.Model.StockMaximoInicial != c.Model.StockMaximoActual || 
-                    (c.Model.Almacen == Constantes.Almacenes.ALMACEN_CENTRAL && c.ControlStockProducto.Model.StockMinimoInicial != c.ControlStockProducto.Model.StockMinimoActual)))
+                foreach (var control in ControlesStocksAlmacen.Where(c =>
+                    c.Model.StockMaximoInicial != c.Model.StockMaximoActual ||
+                    (c.Model.Almacen == Constantes.Almacenes.ALMACEN_CENTRAL &&
+                        (c.ControlStockProducto.Model.StockMinimoInicial != c.ControlStockProducto.Model.StockMinimoActual ||
+                         c.ControlStockProducto.Model.MultiplosInicial != c.Model.Multiplos))))
                 {
                     ControlStock controlStock = new ControlStock
                     {

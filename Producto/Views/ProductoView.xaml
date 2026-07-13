@@ -111,6 +111,8 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
                     <!-- Contenido de las celdas -->
@@ -118,6 +120,10 @@
                     <xctk:ShortUpDown Value="{Binding StockMinimoActual}" Margin="3" Grid.Column="2" />
                     <TextBlock Text="Stock Mínimo (sugerido)" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="3" />
                     <TextBlock Text="{Binding StockMinimoCalculado}" VerticalAlignment="Center" Grid.Column="4" Margin="10,0,0,0"/>
+                    <!-- Nesto#392: múltiplos a nivel producto, persisten en el almacén central (ALG) -->
+                    <TextBlock Text="Múltiplos" HorizontalAlignment="Right" VerticalAlignment="Center" Grid.Column="5"
+                               ToolTip="Cantidad múltiplo en la que se repone el producto. Se guarda en el almacén central (ALG), igual que el stock mínimo."/>
+                    <xctk:IntegerUpDown Value="{Binding MultiplosActual}" Minimum="1" Margin="3" Grid.Column="6" />
                 </Grid>
             </xctk:BusyIndicator>
         </Border>
