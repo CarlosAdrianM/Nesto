@@ -28,6 +28,10 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         // y/o prefijo del nombre del producto; la cantidad se cuenta agregada entre todas.
         public string Familia { get; set; }
         public string FiltroProducto { get; set; }
+        // NestoAPI#289: el filtro también puede casar por Grupo y/o Subgrupo del producto
+        // (todos los criterios informados en AND). En blanco = igual que antes.
+        public string Grupo { get; set; }
+        public string Subgrupo { get; set; }
         public short Cantidad { get; set; }
         public decimal Precio { get; set; }
         // Líneas con el mismo GrupoAlternativa son intercambiables ("elige 1"); null = obligatoria.
@@ -56,10 +60,26 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         // NestoAPI#282: fila de FILTRO (Producto null): familia y/o prefijo del nombre.
         public string Familia { get; set; }
         public string FiltroProducto { get; set; }
+        // NestoAPI#289: filtro por Grupo y/o Subgrupo del producto (AND con familia/prefijo).
+        public string Grupo { get; set; }
+        public string Subgrupo { get; set; }
         public short Cantidad { get; set; }
         public decimal Precio { get; set; }
         public int? GrupoAlternativa { get; set; }
         public bool PermitirCantidadMenor { get; set; }
+    }
+
+    // NestoAPI#289: item del combo de subgrupos del detalle (GET api/Productos/Subgrupos, ya
+    // ordenado por grupo + descripción). La opción en blanco (Grupo/Subgrupo vacíos) deja la
+    // fila sin filtro de subgrupo, exactamente igual que antes de la #289.
+    public class SubgrupoComboModel
+    {
+        public string Grupo { get; set; }
+        public string Subgrupo { get; set; }
+        public string Nombre { get; set; }
+        // Clave estable para SelectedValue: con separador porque el grupo puede tener menos de 3 letras.
+        public string Clave => $"{Grupo}|{Subgrupo}";
+        public string Etiqueta => string.IsNullOrEmpty(Subgrupo) ? Nombre : $"{Grupo}/{Subgrupo} - {Nombre}";
     }
 
     public class OfertaPermitidaFamiliaModel

@@ -125,6 +125,25 @@ namespace Nesto.Modulos.OfertasCombinadas.Services
             }
         }
 
+        // NestoAPI#289: subgrupos para el combo del detalle (el endpoint ya los devuelve
+        // ordenados por grupo + descripción).
+        public async Task<List<SubgrupoComboModel>> GetSubgrupos()
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpResponseMessage response = await client.GetAsync("Productos/Subgrupos");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string contenido = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<List<SubgrupoComboModel>>(contenido);
+            }
+            else
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+        }
+
         #endregion
 
         #region Ofertas Escalonadas

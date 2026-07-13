@@ -281,5 +281,140 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             Assert.AreEqual(1, oferta.Detalles.Count, "No debe añadir alternativa sobre una línea de filtro");
             Assert.IsNull(filtro.GrupoAlternativa, "La línea de filtro no debe recibir grupo de alternativas");
         }
+
+        // ==== NestoAPI#289: filtro por grupo/subgrupo (combo de subgrupos) ====
+
+        [TestMethod]
+        public void GrupoSubgrupoClave_SeleccionarEnElCombo_ReparteGrupoYSubgrupo()
+        {
+            var detalle = new DetalleOfertaCombinadaWrapper();
+
+            detalle.GrupoSubgrupoClave = "COS|107";
+
+            Assert.AreEqual("COS", detalle.Grupo);
+            Assert.AreEqual("107", detalle.Subgrupo);
+            Assert.IsTrue(detalle.EsFiltro, "Una fila solo con subgrupo es una fila de filtro");
+        }
+
+        [TestMethod]
+        public void GrupoSubgrupoClave_OpcionEnBlanco_DejaGrupoYSubgrupoANull()
+        {
+            var detalle = new DetalleOfertaCombinadaWrapper { Grupo = "COS", Subgrupo = "107" };
+
+            detalle.GrupoSubgrupoClave = "|";
+
+            Assert.IsNull(detalle.Grupo);
+            Assert.IsNull(detalle.Subgrupo);
+            Assert.IsFalse(detalle.EsFiltro, "Sin ningún criterio la fila deja de ser de filtro");
+        }
+
+        [TestMethod]
+        public void SeleccionarSubgrupo_EnOfertaExistente_ActivaGuardar()
+        {
+            var oferta = OfertaExistenteConDosDetalles();
+            Assert.IsFalse(oferta.HaCambiado, "Recién cargada no debe estar marcada como cambiada");
+
+            oferta.Detalles.First().GrupoSubgrupoClave = "COS|107";
+
+            Assert.IsTrue(oferta.HaCambiado, "Elegir subgrupo debe activar el botón Guardar");
+        }
+
+        [TestMethod]
+        public void Guardar_LineaDeFiltroPorSubgrupo_ViajaEnElCreateModel()
+        {
+            // Caso aceites CV (NestoAPI#289): UNA fila de filtro Familia CV + Grupo COS +
+            // Subgrupo 107, cantidad 3, con "Regalo menor importe" y sin importe mínimo.
+            OfertaCombinadaCreateModel capturado = null;
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .Invokes((OfertaCombinadaCreateModel m) => capturado = m)
+                .Returns(Task.FromResult(new OfertaCombinadaModel
+                {
+                    Id = 1,
+                    Nombre = "2+1 aceites CV",
+                    Detalles = new List<OfertaCombinadaDetalleModel>()
+                }));
+
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper { Nombre = "2+1 aceites CV", ImporteMinimo = 0, RegalarMenorImporte = true };
+            var filtro = new DetalleOfertaCombinadaWrapper { Familia = "CV", Cantidad = 3, Precio = 0 };
+            filtro.GrupoSubgrupoClave = "COS|107";
+            oferta.Detalles.Add(filtro);
+
+            vm.GuardarOfertaCombinadaCommand.Execute(oferta);
+
+            Assert.IsNotNull(capturado, "Debe llamar a CreateOfertaCombinada");
+            var fila = capturado.Detalles.Single();
+            Assert.IsNull(fila.Producto);
+            Assert.AreEqual("COS", fila.Grupo);
+            Assert.AreEqual("107", fila.Subgrupo);
+            Assert.AreEqual("CV", fila.Familia);
+        }
+
+        [TestMethod]
+        public void Guardar_LineaSoloConSubgrupo_EsUnFiltroValido()
+        {
+            // El subgrupo puede ir solo (sin familia ni prefijo): sigue siendo una fila de filtro.
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .Returns(Task.FromResult(new OfertaCombinadaModel
+                {
+                    Id = 1,
+                    Nombre = "Solo subgrupo",
+                    Detalles = new List<OfertaCombinadaDetalleModel>()
+                }));
+
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper { Nombre = "Solo subgrupo", ImporteMinimo = 100 };
+            var filtro = new DetalleOfertaCombinadaWrapper { Cantidad = 3, Precio = 0 };
+            filtro.GrupoSubgrupoClave = "COS|107";
+            oferta.Detalles.Add(filtro);
+            oferta.Detalles.Add(Detalle("REGALO", 1, 0m));
+
+            vm.GuardarOfertaCombinadaCommand.Execute(oferta);
+
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .MustHaveHappened();
+        }
+
+        [TestMethod]
+        public void CargarSubgrupos_InsertaLaOpcionEnBlancoLaPrimera()
+        {
+            A.CallTo(() => _service.GetSubgrupos()).Returns(Task.FromResult(new List<SubgrupoComboModel>
+            {
+                new SubgrupoComboModel { Grupo = "COS", Subgrupo = "107", Nombre = "Aceites, fluidos y geles profesionales" },
+                new SubgrupoComboModel { Grupo = "PEL", Subgrupo = "001", Nombre = "Champús" }
+            }));
+
+            var vm = CrearViewModel();
+
+            Assert.IsNotNull(vm.Subgrupos, "El combo debe cargarse al crear el ViewModel");
+            Assert.AreEqual(3, vm.Subgrupos.Count);
+            Assert.AreEqual("|", vm.Subgrupos[0].Clave, "La primera opción es la de en blanco (sin subgrupo)");
+            Assert.AreEqual("COS/107 - Aceites, fluidos y geles profesionales", vm.Subgrupos[1].Etiqueta);
+        }
+
+        [TestMethod]
+        public void Guardar_UnaSolaLineaSinImporteMinimoConRegalarMenorImporte_LlamaAlServicio()
+        {
+            // Regla relajada (NestoAPI#289/#290): con "Regalo menor importe" la oferta de una
+            // sola fila sin importe mínimo es válida (suelo dinámico).
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .Returns(Task.FromResult(new OfertaCombinadaModel
+                {
+                    Id = 1,
+                    Nombre = "2+1 aceites",
+                    Detalles = new List<OfertaCombinadaDetalleModel>()
+                }));
+
+            var vm = CrearViewModel();
+            var oferta = new OfertaCombinadaWrapper { Nombre = "2+1 aceites", ImporteMinimo = 0, RegalarMenorImporte = true };
+            var filtro = new DetalleOfertaCombinadaWrapper { Cantidad = 3, Precio = 0 };
+            filtro.GrupoSubgrupoClave = "COS|107";
+            oferta.Detalles.Add(filtro);
+
+            vm.GuardarOfertaCombinadaCommand.Execute(oferta);
+
+            A.CallTo(() => _service.CreateOfertaCombinada(A<OfertaCombinadaCreateModel>._))
+                .MustHaveHappened();
+        }
     }
 }

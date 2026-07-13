@@ -10,6 +10,8 @@ namespace Nesto.Modulos.OfertasCombinadas.Interfaces
         Task<OfertaCombinadaModel> CreateOfertaCombinada(OfertaCombinadaCreateModel oferta);
         Task<OfertaCombinadaModel> UpdateOfertaCombinada(int id, OfertaCombinadaCreateModel oferta);
         Task<OfertaCombinadaModel> DeleteOfertaCombinada(int id);
+        // NestoAPI#289: subgrupos para el combo de las filas de filtro.
+        Task<List<SubgrupoComboModel>> GetSubgrupos();
 
         Task<List<OfertaEscalonadaModel>> GetOfertasEscalonadas(string empresa, bool soloActivas = false);
         Task<OfertaEscalonadaModel> CreateOfertaEscalonada(OfertaEscalonadaCreateModel oferta);

@@ -304,6 +304,22 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
 
+                                <!-- Subgrupo (línea de filtro, NestoAPI#289): combo ordenado por grupo y
+                                     descripción; la opción en blanco deja la fila sin filtro de subgrupo
+                                     (funciona exactamente igual que antes). -->
+                                <DataGridTemplateColumn Header="Subgrupo" Width="230">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding Data.Subgrupos, Source={StaticResource ViewModelProxy}}"
+                                                      DisplayMemberPath="Etiqueta"
+                                                      SelectedValuePath="Clave"
+                                                      SelectedValue="{Binding GrupoSubgrupoClave, Mode=TwoWay}"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="Solo para líneas de filtro (sin producto): casa los productos de este subgrupo."/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
                                 <!-- Cantidad -->
                                 <DataGridTextColumn Header="Cantidad" Binding="{Binding Cantidad, UpdateSourceTrigger=LostFocus}" Width="80">
                                     <DataGridTextColumn.ElementStyle>

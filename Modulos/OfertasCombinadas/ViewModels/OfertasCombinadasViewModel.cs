@@ -74,6 +74,25 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         private async Task CargarDatosIniciales()
         {
             await OnCargar(mostrarConfirmacion: false);
+            await CargarSubgrupos();
+        }
+
+        // NestoAPI#289: subgrupos para el combo de las filas de filtro. La primera opción (en
+        // blanco) deja la fila sin filtro de subgrupo; si la carga falla, el combo queda solo
+        // con esa opción y la pantalla sigue siendo usable.
+        private async Task CargarSubgrupos()
+        {
+            var opcionEnBlanco = new SubgrupoComboModel { Grupo = string.Empty, Subgrupo = string.Empty, Nombre = "(sin subgrupo)" };
+            try
+            {
+                List<SubgrupoComboModel> subgrupos = await _service.GetSubgrupos() ?? new List<SubgrupoComboModel>();
+                subgrupos.Insert(0, opcionEnBlanco);
+                Subgrupos = subgrupos;
+            }
+            catch
+            {
+                Subgrupos = new List<SubgrupoComboModel> { opcionEnBlanco };
+            }
         }
 
         #region Propiedades
@@ -90,6 +109,14 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _estaCargando;
             set => SetProperty(ref _estaCargando, value);
+        }
+
+        // NestoAPI#289: items del combo de subgrupos (compartido por todas las filas del grid).
+        private List<SubgrupoComboModel> _subgrupos;
+        public List<SubgrupoComboModel> Subgrupos
+        {
+            get => _subgrupos;
+            set => SetProperty(ref _subgrupos, value);
         }
 
         private bool _soloActivas;
@@ -365,22 +392,26 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 
             // Se admiten ofertas de un solo producto (p. ej. 2ª unidad al 50 %): varias
             // líneas con precio, o una sola línea con el precio total en el importe mínimo.
-            // Una sola línea sin importe mínimo no la podría autorizar el validador de precios.
-            if (oferta.Detalles.Count == 1 && oferta.ImporteMinimo <= 0)
+            // Una sola línea sin importe mínimo no la podría autorizar el validador de precios,
+            // SALVO con "Regalo menor importe" (NestoAPI#289/#290): el suelo dinámico la hace
+            // autorizable — es la config natural del 2+1 por filtro de subgrupo.
+            if (oferta.Detalles.Count == 1 && oferta.ImporteMinimo <= 0 && !oferta.RegalarMenorImporte)
             {
                 _dialogService.ShowError("Una oferta combinada de una sola línea debe tener un importe mínimo mayor que cero.");
                 return;
             }
 
-            // NestoAPI#282: cada línea es de producto concreto O de filtro (familia y/o prefijo
-            // del nombre), nunca ambas cosas ni ninguna. Mismas reglas que valida el servidor.
+            // NestoAPI#282: cada línea es de producto concreto O de filtro (familia, prefijo del
+            // nombre, grupo y/o subgrupo — NestoAPI#289), nunca ambas cosas ni ninguna. Mismas
+            // reglas que valida el servidor.
             foreach (var d in oferta.Detalles)
             {
                 bool tieneProducto = !string.IsNullOrWhiteSpace(d.Producto);
-                bool tieneFiltro = !string.IsNullOrWhiteSpace(d.Familia) || !string.IsNullOrWhiteSpace(d.FiltroProducto);
+                bool tieneFiltro = !string.IsNullOrWhiteSpace(d.Familia) || !string.IsNullOrWhiteSpace(d.FiltroProducto)
+                    || !string.IsNullOrWhiteSpace(d.Grupo) || !string.IsNullOrWhiteSpace(d.Subgrupo);
                 if (!tieneProducto && !tieneFiltro)
                 {
-                    _dialogService.ShowError("Cada línea debe llevar un producto o un filtro (familia y/o principio del nombre).");
+                    _dialogService.ShowError("Cada línea debe llevar un producto o un filtro (familia, principio del nombre y/o subgrupo).");
                     return;
                 }
                 if (tieneProducto && tieneFiltro)
@@ -415,6 +446,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                         Producto = string.IsNullOrWhiteSpace(d.Producto) ? null : d.Producto.Trim(),
                         Familia = string.IsNullOrWhiteSpace(d.Familia) ? null : d.Familia.Trim(),
                         FiltroProducto = string.IsNullOrWhiteSpace(d.FiltroProducto) ? null : d.FiltroProducto.Trim(),
+                        Grupo = string.IsNullOrWhiteSpace(d.Grupo) ? null : d.Grupo.Trim(),
+                        Subgrupo = string.IsNullOrWhiteSpace(d.Subgrupo) ? null : d.Subgrupo.Trim(),
                         Cantidad = d.Cantidad,
                         Precio = d.Precio,
                         GrupoAlternativa = d.GrupoAlternativa,
@@ -948,6 +981,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             ProductoNombre = model.ProductoNombre;
             Familia = model.Familia;
             FiltroProducto = model.FiltroProducto;
+            Grupo = model.Grupo;
+            Subgrupo = model.Subgrupo;
             Cantidad = model.Cantidad;
             Precio = model.Precio;
             GrupoAlternativa = model.GrupoAlternativa;
@@ -1002,8 +1037,52 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             set { if (SetProperty(ref _filtroProducto, value)) AlCambiar?.Invoke(); }
         }
 
+        // NestoAPI#289: el filtro también puede casar por Grupo/Subgrupo del producto (AND con
+        // familia/prefijo). Se editan juntos desde el combo de subgrupos (GrupoSubgrupoClave).
+        private string _grupo;
+        public string Grupo
+        {
+            get => _grupo;
+            set
+            {
+                if (SetProperty(ref _grupo, value))
+                {
+                    RaisePropertyChanged(nameof(GrupoSubgrupoClave));
+                    AlCambiar?.Invoke();
+                }
+            }
+        }
+
+        private string _subgrupo;
+        public string Subgrupo
+        {
+            get => _subgrupo;
+            set
+            {
+                if (SetProperty(ref _subgrupo, value))
+                {
+                    RaisePropertyChanged(nameof(GrupoSubgrupoClave));
+                    AlCambiar?.Invoke();
+                }
+            }
+        }
+
+        // SelectedValue del combo de subgrupos: "Grupo|Subgrupo" ("|" = opción en blanco).
+        // El separador evita ambigüedad si el grupo tiene menos de 3 letras.
+        public string GrupoSubgrupoClave
+        {
+            get => $"{Grupo?.Trim()}|{Subgrupo?.Trim()}";
+            set
+            {
+                string[] partes = (value ?? "|").Split('|');
+                Grupo = partes.Length > 0 && !string.IsNullOrWhiteSpace(partes[0]) ? partes[0].Trim() : null;
+                Subgrupo = partes.Length > 1 && !string.IsNullOrWhiteSpace(partes[1]) ? partes[1].Trim() : null;
+            }
+        }
+
         public bool EsFiltro => string.IsNullOrWhiteSpace(Producto)
-            && (!string.IsNullOrWhiteSpace(Familia) || !string.IsNullOrWhiteSpace(FiltroProducto));
+            && (!string.IsNullOrWhiteSpace(Familia) || !string.IsNullOrWhiteSpace(FiltroProducto)
+                || !string.IsNullOrWhiteSpace(Grupo) || !string.IsNullOrWhiteSpace(Subgrupo));
 
         private short _cantidad;
         public short Cantidad
