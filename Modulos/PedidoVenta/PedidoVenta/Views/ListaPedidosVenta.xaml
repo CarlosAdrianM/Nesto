@@ -88,6 +88,12 @@
                                             </Style.Triggers>
                                         </Style>
                                     </StackPanel.Style>
+                                    <!-- Nesto#397: editar el pedido con la ergonomía de la plantilla (PUT al guardar) -->
+                                    <Button Content="Modificar con plantilla"
+                                            Margin="0,0,0,3" Padding="5,2"
+                                            Command="{Binding DataContext.ModificarConPlantillaCommand, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip="Abre este pedido en la Plantilla de Ventas para modificarlo (al guardar se actualiza el pedido, no se crea uno nuevo)."/>
                                     <TextBlock Text="{Binding DataContext.TextoUnirPedido, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}"></TextBlock>
                                     <ComboBox ItemsSource="{Binding DataContext.ListaPedidosPendientes, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}" DisplayMemberPath="numero" SelectedItem="{Binding DataContext.PedidoPendienteUnir, RelativeSource={RelativeSource FindAncestor, AncestorType=UserControl}}">
                                         <ComboBox.Style>

@@ -6,6 +6,7 @@ using Nesto.Modulos.PedidoVenta;
 using static Nesto.Modulos.PedidoVenta.PedidoVentaModel;
 using Prism.Services.Dialogs;
 using Nesto.Infrastructure.Contracts;
+using Prism.Regions;
 
 namespace PedidoVentaTests
 {
@@ -21,7 +22,7 @@ namespace PedidoVentaTests
             IDialogService dialogService = A.Fake<IDialogService>();
             var pedido = A.Fake<ResumenPedido>();
             A.CallTo(() => servicio.cargarListaPedidos("", false, false)).Returns(new ObservableCollection<ResumenPedido> { pedido });
-            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator, dialogService);
+            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator, dialogService, A.Fake<IRegionManager>());
 
             vm.cmdCargarListaPedidos.Execute();
 
@@ -39,7 +40,7 @@ namespace PedidoVentaTests
             IDialogService dialogService = A.Fake<IDialogService>();
             A.CallTo(() => configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1");
             A.CallTo(() => configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("123456");
-            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator, dialogService);
+            var vm = new ListaPedidosVentaViewModel(configuracion, servicio, eventAggregator, dialogService, A.Fake<IRegionManager>());
 
             ResumenPedido resumen = vm.cargarPedidoPorDefecto().Result;
             ResumenPedido esperado = new ResumenPedido { empresa = "1", numero = 123456 };

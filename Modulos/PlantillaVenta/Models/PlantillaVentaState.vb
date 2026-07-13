@@ -506,6 +506,7 @@ Public Class PlantillaVentaState
             If linea.cantidad > 0 Then
                 Dim lineaPedido As New LineaPedidoVentaDTO With {
                     .Pedido = pedido,
+                    .id = linea.idLineaPedido, ' Nesto#397: 0 = línea nueva; con valor, el PUT actualiza
                     .estado = If(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO),
                     .tipoLinea = 1,
                     .Producto = linea.producto,
@@ -532,6 +533,7 @@ Public Class PlantillaVentaState
             If linea.cantidadOferta > 0 Then
                 Dim lineaPedidoOferta As New LineaPedidoVentaDTO With {
                     .Pedido = pedido,
+                    .id = If(linea.idLineaPedidoOferta, 0), ' Nesto#397
                     .estado = If(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO),
                     .tipoLinea = 1,
                     .Producto = linea.producto,
@@ -561,6 +563,7 @@ Public Class PlantillaVentaState
 
             Dim lineaPedidoRegalo As New LineaPedidoVentaDTO With {
                 .Pedido = pedido,
+                .id = lineaRegalo.idLineaPedido, ' Nesto#397
                 .estado = If(EsPresupuesto, ESTADO_LINEA_PRESUPUESTO, ESTADO_LINEA_CURSO),
                 .tipoLinea = 1,
                 .Producto = lineaRegalo.producto,

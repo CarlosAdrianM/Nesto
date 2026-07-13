@@ -17,6 +17,7 @@ Public Class ListaPedidosVentaViewModel
     Public Property configuracion As IConfiguracion
     Private ReadOnly servicio As IPedidoVentaService
     Private ReadOnly dialogService As IDialogService
+    Private ReadOnly regionManager As IRegionManager
 
     Private vendedor As String
     Private ReadOnly verTodosLosVendedores As Boolean = False
@@ -24,15 +25,17 @@ Public Class ListaPedidosVentaViewModel
     Public Event PedidoCreadoConfirmado(numeroPedido As Integer)
     Public Event PedidoCreacionCancelada()
 
-    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService)
+    Public Sub New(configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, regionManager As IRegionManager)
         Me.configuracion = configuracion
         Me.servicio = servicio
         Me.dialogService = dialogService
+        Me.regionManager = regionManager
 
         cmdCargarListaPedidos = New DelegateCommand(AddressOf OnCargarListaPedidos)
         CrearPedidoCommand = New DelegateCommand(AddressOf OnCrearPedido)
         CancelarCreacionCommand = New DelegateCommand(AddressOf OnCancelarCreacion)
         RecalcularTotalesCommand = New DelegateCommand(AddressOf RecalcularTotalesSeleccionados)
+        ModificarConPlantillaCommand = New DelegateCommand(Of ResumenPedido)(AddressOf OnModificarConPlantilla)
 
         Dim unused3 = eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
         Dim unused2 = eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
@@ -265,6 +268,23 @@ Public Class ListaPedidosVentaViewModel
 #Region "Comandos"
 
     Public Property RecalcularTotalesCommand As DelegateCommand
+
+    ''' <summary>
+    ''' Nesto#397: abre el pedido seleccionado en la PlantillaVenta en modo edición (al guardar
+    ''' hará PUT sobre el pedido). Los pedidos facturados los rechaza el servidor con mensaje claro.
+    ''' </summary>
+    Public Property ModificarConPlantillaCommand As DelegateCommand(Of ResumenPedido)
+
+    Private Sub OnModificarConPlantilla(resumen As ResumenPedido)
+        If resumen Is Nothing OrElse resumen.numero = 0 OrElse resumen.esNuevo Then
+            Return
+        End If
+        Dim parameters As New NavigationParameters From {
+            {"pedidoAModificar", resumen.numero},
+            {"empresaPedido", resumen.empresa}
+        }
+        regionManager.RequestNavigate("MainRegion", "PlantillaVentaView", parameters)
+    End Sub
 
     Private _cancelarCreacionCommand As DelegateCommand
     Public Property CancelarCreacionCommand As DelegateCommand

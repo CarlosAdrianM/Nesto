@@ -184,6 +184,13 @@ Public Class PlantillaVentaViewModel
     Private _borradorEnRestauracion As BorradorPlantillaVenta
 
     ''' <summary>
+    ''' Nesto#397: si tiene valor, la plantilla está EDITANDO ese pedido existente y el guardado
+    ''' hace PUT (modificar) en vez de POST (crear). Se establece al cargar un pedido con
+    ''' "Modificar con plantilla" y se limpia al guardar con éxito.
+    ''' </summary>
+    Public Property NumeroPedidoEnEdicion As Integer?
+
+    ''' <summary>
     ''' Flag que indica si ya se restauraron los valores del borrador en OnCargarFormasVenta.
     ''' Issue #286: Evita aplicar los valores múltiples veces si el usuario navega varias veces.
     ''' </summary>
@@ -2513,7 +2520,17 @@ Public Class PlantillaVentaViewModel
 
             Dim numPedido As String
 
-            If PedidoPendienteSeleccionado = 0 Then
+            If NumeroPedidoEnEdicion.HasValue Then
+                ' Nesto#397: la plantilla está editando un pedido existente → PUT (modificar), no
+                ' POST (crear). Las líneas llevan los ids originales (id=0 son nuevas y el PUT las
+                ' crea; las ausentes las borra, protegiendo picking/albarán en el servidor).
+                pedido.numero = NumeroPedidoEnEdicion.Value
+                Await servicioPedidosVenta.modificarPedido(pedido)
+                numPedido = NumeroPedidoEnEdicion.Value.ToString()
+                NumeroPedidoEnEdicion = Nothing
+                ' Refrescar ListaPedidosVenta (está suscrita, igual que tras modificar en DetallePedido)
+                eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido)
+            ElseIf PedidoPendienteSeleccionado = 0 Then
                 Dim crearEx As Exception = Nothing
                 Try
                     numPedido = Await servicio.CrearPedido(pedido)
@@ -2977,6 +2994,16 @@ Public Class PlantillaVentaViewModel
 
         ' Issue #286: Cargar lista de borradores guardados
         OnActualizarListaBorradores()
+
+        ' Nesto#397: si se navega con un pedido a modificar (botón "Modificar con plantilla" de
+        ' ListaPedidosVenta), cargarlo en modo edición.
+        If navigationContext?.Parameters IsNot Nothing AndAlso navigationContext.Parameters.ContainsKey("pedidoAModificar") Then
+            Dim numeroPedido As Integer = CInt(navigationContext.Parameters("pedidoAModificar"))
+            Dim empresaPedido As String = If(navigationContext.Parameters.ContainsKey("empresaPedido"),
+                navigationContext.Parameters("empresaPedido").ToString(),
+                Constantes.Empresas.EMPRESA_DEFECTO)
+            Await CargarPedidoParaModificarAsync(empresaPedido, numeroPedido)
+        End If
     End Sub
 
     Public Function IsNavigationTarget(navigationContext As NavigationContext) As Boolean Implements INavigationAware.IsNavigationTarget
@@ -3095,6 +3122,7 @@ Public Class PlantillaVentaViewModel
             .FechaCreacion = DateTime.Now,
             .Usuario = configuracion?.usuario,
             .MensajeError = mensajeError,
+            .NumeroPedidoEnEdicion = NumeroPedidoEnEdicion, ' Nesto#397: al retomar, seguirá siendo PUT
             .Empresa = Estado.Empresa,
             .Cliente = Estado.Cliente,
             .Contacto = Estado.Contacto,
@@ -3147,6 +3175,29 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    ''' <summary>
+    ''' Nesto#397: carga un pedido existente en la plantilla para MODIFICARLO. Pide a NestoAPI el
+    ''' pedido ya en forma de plantilla (ofertas colapsadas, Ganavisiones como regalos), lo
+    ''' convierte en un borrador en memoria y reutiliza el pipeline de carga de borradores. La
+    ''' plantilla queda en modo edición: el guardado hará PUT sobre este pedido.
+    ''' </summary>
+    Public Async Function CargarPedidoParaModificarAsync(empresa As String, numero As Integer) As Task
+        Try
+            estaOcupado = True
+            Dim pedidoPlantilla = Await servicio.CargarPedidoParaPlantilla(empresa, numero)
+            If pedidoPlantilla Is Nothing Then
+                dialogService.ShowError($"No se encontró el pedido {numero}")
+                Return
+            End If
+            Dim borrador = servicioBorradores.CrearBorradorDesdePedido(pedidoPlantilla)
+            OnCargarBorrador(borrador)
+        Catch ex As Exception
+            dialogService.ShowError($"No se pudo cargar el pedido {numero} en la plantilla: {ex.Message}")
+        Finally
+            estaOcupado = False
+        End Try
+    End Function
+
     Private Async Sub OnCargarBorrador(borradorResumen As BorradorPlantillaVenta)
         If borradorResumen Is Nothing Then
             Return
@@ -3155,12 +3206,20 @@ Public Class PlantillaVentaViewModel
         Try
             estaOcupado = True
 
-            ' Cargar el borrador completo (con las líneas)
-            Dim borrador = servicioBorradores.CargarBorrador(borradorResumen.Id)
+            ' Cargar el borrador completo (con las líneas). Nesto#397: los borradores construidos
+            ' EN MEMORIA (Modificar con plantilla) ya traen las líneas y no están en disco; los de
+            ' la lista son resúmenes (colecciones vaciadas) y hay que recargarlos por Id.
+            Dim yaTraeLineas = (borradorResumen.LineasProducto IsNot Nothing AndAlso borradorResumen.LineasProducto.Any()) OrElse
+                               (borradorResumen.LineasRegalo IsNot Nothing AndAlso borradorResumen.LineasRegalo.Any())
+            Dim borrador = If(yaTraeLineas, borradorResumen, servicioBorradores.CargarBorrador(borradorResumen.Id))
             If borrador Is Nothing Then
                 dialogService.ShowError("No se pudo cargar el borrador")
                 Return
             End If
+
+            ' Nesto#397: si el borrador procede de un pedido existente, la plantilla queda en modo
+            ' edición (el guardado hará PUT sobre ese pedido). Un borrador normal lo deja a Nothing.
+            NumeroPedidoEnEdicion = borrador.NumeroPedidoEnEdicion
 
             ' Issue #286: Establecer flags para indicar que estamos cargando desde borrador
             ' Esto evita que otros procesos sobrescriban los datos del borrador
