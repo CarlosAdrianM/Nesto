@@ -406,6 +406,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                     ImporteMinimo = oferta.ImporteMinimo,
                     FechaDesde = oferta.FechaDesde,
                     FechaHasta = oferta.FechaHasta,
+                    RegalarMenorImporte = oferta.RegalarMenorImporte,
                     Detalles = oferta.Detalles.Select(d => new OfertaCombinadaDetalleCreateModel
                     {
                         Id = d.Id,
@@ -812,6 +813,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             ImporteMinimo = model.ImporteMinimo;
             FechaDesde = model.FechaDesde;
             FechaHasta = model.FechaHasta;
+            RegalarMenorImporte = model.RegalarMenorImporte;
             Usuario = model.Usuario;
             FechaModificacion = model.FechaModificacion;
             Detalles = new ObservableCollection<DetalleOfertaCombinadaWrapper>(
@@ -829,6 +831,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             ImporteMinimo = model.ImporteMinimo;
             FechaDesde = model.FechaDesde;
             FechaHasta = model.FechaHasta;
+            RegalarMenorImporte = model.RegalarMenorImporte;
             Usuario = model.Usuario;
             FechaModificacion = model.FechaModificacion;
             Detalles = new ObservableCollection<DetalleOfertaCombinadaWrapper>(
@@ -866,6 +869,16 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _fechaHasta;
             set { if (SetProperty(ref _fechaHasta, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        // NestoAPI#290: la unidad a base 0 debe ser la de menor tarifa del conjunto y las pagadas
+        // cubrir su tarifa. Por defecto true en ofertas nuevas; desmarcar para promos que regalan
+        // a propósito un artículo más caro que lo comprado (p. ej. la de Lisap con el aparato).
+        private bool _regalarMenorImporte = true;
+        public bool RegalarMenorImporte
+        {
+            get => _regalarMenorImporte;
+            set { if (SetProperty(ref _regalarMenorImporte, value) && _rastreandoCambios) HaCambiado = true; }
         }
 
         public string Usuario { get; set; }
