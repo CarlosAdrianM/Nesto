@@ -14,6 +14,8 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         // NestoAPI#290: la unidad a base 0 debe ser la de menor tarifa del conjunto y las pagadas
         // cubren su tarifa (suelo dinámico). Por defecto true en las ofertas nuevas.
         public bool RegalarMenorImporte { get; set; }
+        // NestoAPI#292: unidades gratis por instancia de la oferta (3+2 → 2). Default 1.
+        public short UnidadesRegaladas { get; set; } = 1;
         public string Usuario { get; set; }
         public DateTime FechaModificacion { get; set; }
         public List<OfertaCombinadaDetalleModel> Detalles { get; set; }
@@ -50,6 +52,8 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         public DateTime? FechaHasta { get; set; }
         // NestoAPI#290: por defecto true (las ofertas nuevas nacen con la regla activada).
         public bool RegalarMenorImporte { get; set; } = true;
+        // NestoAPI#292: unidades gratis por instancia (3+2 → 2). Default 1.
+        public short UnidadesRegaladas { get; set; } = 1;
         public List<OfertaCombinadaDetalleCreateModel> Detalles { get; set; }
     }
 

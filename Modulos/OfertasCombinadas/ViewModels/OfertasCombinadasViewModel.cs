@@ -401,6 +401,18 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 return;
             }
 
+            // NestoAPI#292: mismas reglas que el servidor para las unidades regaladas.
+            if (oferta.UnidadesRegaladas > 1 && !oferta.RegalarMenorImporte)
+            {
+                _dialogService.ShowError("Para regalar más de una unidad, la oferta debe tener marcado 'Regalo menor imp.' (sin la regla, el regalo se expresa con líneas a precio 0).");
+                return;
+            }
+            if (oferta.RegalarMenorImporte && oferta.UnidadesPorInstancia > 0 && oferta.UnidadesRegaladas >= oferta.UnidadesPorInstancia)
+            {
+                _dialogService.ShowError($"Las unidades regaladas ({oferta.UnidadesRegaladas}) deben ser menores que el total de unidades de la oferta ({oferta.UnidadesPorInstancia}): al menos una unidad debe cobrarse.");
+                return;
+            }
+
             // NestoAPI#282: cada línea es de producto concreto O de filtro (familia, prefijo del
             // nombre, grupo y/o subgrupo — NestoAPI#289), nunca ambas cosas ni ninguna. Mismas
             // reglas que valida el servidor.
@@ -438,6 +450,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                     FechaDesde = oferta.FechaDesde,
                     FechaHasta = oferta.FechaHasta,
                     RegalarMenorImporte = oferta.RegalarMenorImporte,
+                    UnidadesRegaladas = oferta.UnidadesRegaladas,
                     Detalles = oferta.Detalles.Select(d => new OfertaCombinadaDetalleCreateModel
                     {
                         Id = d.Id,
@@ -847,6 +860,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             FechaDesde = model.FechaDesde;
             FechaHasta = model.FechaHasta;
             RegalarMenorImporte = model.RegalarMenorImporte;
+            UnidadesRegaladas = model.UnidadesRegaladas < 1 ? (short)1 : model.UnidadesRegaladas;
             Usuario = model.Usuario;
             FechaModificacion = model.FechaModificacion;
             Detalles = new ObservableCollection<DetalleOfertaCombinadaWrapper>(
@@ -865,6 +879,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             FechaDesde = model.FechaDesde;
             FechaHasta = model.FechaHasta;
             RegalarMenorImporte = model.RegalarMenorImporte;
+            UnidadesRegaladas = model.UnidadesRegaladas < 1 ? (short)1 : model.UnidadesRegaladas;
             Usuario = model.Usuario;
             FechaModificacion = model.FechaModificacion;
             Detalles = new ObservableCollection<DetalleOfertaCombinadaWrapper>(
@@ -911,8 +926,82 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public bool RegalarMenorImporte
         {
             get => _regalarMenorImporte;
-            set { if (SetProperty(ref _regalarMenorImporte, value) && _rastreandoCambios) HaCambiado = true; }
+            set
+            {
+                if (SetProperty(ref _regalarMenorImporte, value) && _rastreandoCambios) HaCambiado = true;
+                RaisePropertyChanged(nameof(ResumenOferta));
+            }
         }
+
+        // NestoAPI#292: el usuario piensa en "3+2" (3 cobradas + 2 regaladas). Regaladas se
+        // persiste (UnidadesRegaladas); Cobradas se deriva del total de unidades por instancia
+        // y, al editarla, ajusta sola la cantidad de la fila en la config natural (un grupo de
+        // alternativas o una única fila). De cada oferta salen gratis las Regaladas unidades
+        // MÁS BARATAS del conjunto y las cobradas van a su tarifa.
+        private short _unidadesRegaladas = 1;
+        public short UnidadesRegaladas
+        {
+            get => _unidadesRegaladas;
+            set
+            {
+                short valor = value < 1 ? (short)1 : value;
+                int cobradasAntes = UnidadesCobradas;
+                if (SetProperty(ref _unidadesRegaladas, valor) && _rastreandoCambios) HaCambiado = true;
+                // Al cambiar las regaladas se conservan las cobradas (3+1 → 3+2 pasa el total
+                // de 4 a 5), que es como piensa el usuario.
+                if (cobradasAntes > 0)
+                {
+                    UnidadesCobradas = cobradasAntes;
+                }
+                RaisePropertyChanged(nameof(UnidadesCobradas));
+                RaisePropertyChanged(nameof(ResumenOferta));
+            }
+        }
+
+        // Total de unidades por instancia: la cantidad de cada grupo de alternativas (una vez
+        // por grupo, la cantidad es del grupo) más las cantidades de las filas sueltas.
+        public int UnidadesPorInstancia => Detalles == null
+            ? 0
+            : Detalles.Where(d => d.GrupoAlternativa.HasValue)
+                  .GroupBy(d => d.GrupoAlternativa.Value)
+                  .Sum(g => (int)g.First().Cantidad)
+              + Detalles.Where(d => !d.GrupoAlternativa.HasValue).Sum(d => (int)d.Cantidad);
+
+        public int UnidadesCobradas
+        {
+            get => Math.Max(UnidadesPorInstancia - UnidadesRegaladas, 0);
+            set
+            {
+                // Editable en la config natural (un único grupo de alternativas o una única
+                // fila): la cantidad de la fila se pone sola a cobradas + regaladas. En configs
+                // complejas, las cantidades se editan en las propias filas.
+                if (value < 1 || Detalles == null)
+                {
+                    return;
+                }
+                short total = (short)(value + UnidadesRegaladas);
+                var grupos = Detalles.Where(d => d.GrupoAlternativa.HasValue).GroupBy(d => d.GrupoAlternativa.Value).ToList();
+                var sueltas = Detalles.Where(d => !d.GrupoAlternativa.HasValue).ToList();
+                if (grupos.Count == 1 && sueltas.Count == 0)
+                {
+                    foreach (var d in grupos[0])
+                    {
+                        d.Cantidad = total;
+                    }
+                }
+                else if (grupos.Count == 0 && sueltas.Count == 1)
+                {
+                    sueltas[0].Cantidad = total;
+                }
+                RaisePropertyChanged(nameof(UnidadesCobradas));
+                RaisePropertyChanged(nameof(ResumenOferta));
+            }
+        }
+
+        // Columna informativa "3+2" para leer la oferta de un vistazo.
+        public string ResumenOferta => RegalarMenorImporte && UnidadesPorInstancia > 0
+            ? $"{UnidadesCobradas}+{UnidadesRegaladas}"
+            : string.Empty;
 
         public string Usuario { get; set; }
         public DateTime FechaModificacion { get; set; }
@@ -959,7 +1048,13 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 
         private void Vincular(DetalleOfertaCombinadaWrapper detalle)
         {
-            detalle.AlCambiar = () => { if (_rastreandoCambios) HaCambiado = true; };
+            detalle.AlCambiar = () =>
+            {
+                if (_rastreandoCambios) HaCambiado = true;
+                // NestoAPI#292: editar cantidades en las filas también mueve el "3+2" de la cabecera.
+                RaisePropertyChanged(nameof(UnidadesCobradas));
+                RaisePropertyChanged(nameof(ResumenOferta));
+            };
         }
 
         private bool _haCambiado;

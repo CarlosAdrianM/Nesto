@@ -162,6 +162,36 @@
                                     </DataGridCheckBoxColumn.EditingElementStyle>
                                 </DataGridCheckBoxColumn>
 
+                                <!-- NestoAPI#292: el usuario piensa en "3+2". Cobradas ajusta sola la
+                                     cantidad de la fila (config de un grupo o una fila); Regaladas se
+                                     guarda en la oferta. Se cobran las más caras a tarifa y se regalan
+                                     las más baratas. -->
+                                <DataGridTextColumn Header="Cobradas" Binding="{Binding UnidadesCobradas, UpdateSourceTrigger=PropertyChanged}" Width="65">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="ToolTip" Value="Unidades que se cobran (a su tarifa) por cada oferta completa. En un 3+2 ponga 3: la cantidad de la fila se ajusta sola a 5."/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Regaladas" Binding="{Binding UnidadesRegaladas, UpdateSourceTrigger=PropertyChanged}" Width="70">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="ToolTip" Value="Unidades que salen gratis por cada oferta completa (las de menor tarifa del conjunto). En un 3+2 ponga 2. Requiere 'Regalo menor imp.' para más de una."/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Oferta" Binding="{Binding ResumenOferta}" IsReadOnly="True" Width="55">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="ToolTip" Value="Resumen cobradas+regaladas de la oferta."/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+
                                 <!-- Acciones -->
                                 <DataGridTemplateColumn Header="Acciones" Width="150">
                                     <DataGridTemplateColumn.CellTemplate>
