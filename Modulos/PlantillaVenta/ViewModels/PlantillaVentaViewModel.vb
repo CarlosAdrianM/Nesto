@@ -2047,7 +2047,9 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Function CanCargarClientesVendedor() As Boolean
-        Return filtroCliente.Length = 0 OrElse IsNothing(listaClientes) OrElse listaClientes.Count = 0
+        ' Nesto#402: WPF evalúa los CanExecute en cada pulsación (CommandManager.TranslateInput),
+        ' también durante navegación/teardown cuando filtroCliente aún es Nothing.
+        Return String.IsNullOrEmpty(filtroCliente) OrElse IsNothing(listaClientes) OrElse listaClientes.Count = 0
     End Function
     Private Async Sub OnCargarClientesVendedor()
 
@@ -2473,7 +2475,10 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
     Private Function CanCrearPedido() As Boolean
-        Return Not IsNothing(FormaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
+        ' Nesto#402: guard de clienteSeleccionado (mismo patrón de NRE que CanCargarClientesVendedor:
+        ' los CanExecute se evalúan también con el VM a medio cargar o en teardown).
+        Return Not IsNothing(clienteSeleccionado) AndAlso
+            Not IsNothing(FormaPagoSeleccionada) AndAlso Not IsNothing(plazoPagoSeleccionado) AndAlso
             (Not String.IsNullOrEmpty(clienteSeleccionado.cifNif) OrElse String.IsNullOrEmpty(clienteSeleccionado.iva) OrElse EsPresupuesto)
     End Function
     Private Async Sub OnCrearPedido()
