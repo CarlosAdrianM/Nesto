@@ -337,6 +337,16 @@ Public Class LineaRegalo
     Public Property aplicarDescuentoFicha As Boolean? = False Implements ILineaConCantidad.aplicarDescuentoFicha
 
     ''' <summary>
+    ''' Nesto#401: en los regalos la cantidad oferta nunca se edita (el control ni se muestra:
+    ''' PermitirCantidadOferta=False en el selector), pero la interfaz lo exige.
+    ''' </summary>
+    Public ReadOnly Property puedeEditarCantidadOferta As Boolean Implements ILineaConCantidad.puedeEditarCantidadOferta
+        Get
+            Return False
+        End Get
+    End Property
+
+    ''' <summary>
     ''' Texto de unidades disponibles basado en stock total.
     ''' </summary>
     Public ReadOnly Property textoUnidadesDisponibles As String

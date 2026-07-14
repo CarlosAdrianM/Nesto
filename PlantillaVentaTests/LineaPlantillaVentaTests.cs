@@ -367,5 +367,89 @@ namespace PlantillaVentaTests
         }
 
         #endregion
+
+        #region cantidadOferta / puedeEditarCantidadOferta (Nesto#401)
+
+        // Nesto#401: el campo cantidad oferta se quedaba inactivo (IsEnabled bindeaba la ficha)
+        // y no había forma de quitar una oferta ya puesta. Además, poner una oferta inicializaba
+        // aplicarDescuentoFicha a False si aún era null (el setter público de aplicarDescuento
+        // la inicializa con el primer valor que recibe), corrompiéndola al recargar borradores
+        // (Json.NET asigna cantidadOferta ANTES que la ficha, por orden de declaración).
+
+        [TestMethod]
+        public void CantidadOferta_PonerOfertaConFichaNull_NoInicializaLaFicha()
+        {
+            var linea = new LineaPlantillaVenta();
+
+            linea.cantidadOferta = 1;
+
+            Assert.IsNull(linea.aplicarDescuentoFicha,
+                "Poner una oferta no debe inicializar la ficha con un valor derivado");
+            Assert.IsFalse(linea.aplicarDescuento, "Oferta y descuento no se suman");
+        }
+
+        [TestMethod]
+        public void PuedeEditarCantidadOferta_ConOfertaPuesta_SiempreEditable()
+        {
+            // Un producto sin descuento de ficha PUEDE llevar una oferta autorizada (OfertasPermitidas):
+            // quitar o reducir esa oferta debe estar siempre permitido (la validación del servidor manda).
+            var linea = new LineaPlantillaVenta { aplicarDescuentoFicha = false, cantidadOferta = 1 };
+
+            Assert.IsTrue(linea.puedeEditarCantidadOferta,
+                "Con oferta puesta el control debe estar activo aunque la ficha no admita descuentos");
+        }
+
+        [TestMethod]
+        public void PuedeEditarCantidadOferta_SinOferta_SegunLaFicha()
+        {
+            Assert.IsFalse(new LineaPlantillaVenta { aplicarDescuentoFicha = false }.puedeEditarCantidadOferta);
+            Assert.IsFalse(new LineaPlantillaVenta().puedeEditarCantidadOferta, "Ficha null sin oferta: no editable");
+            Assert.IsTrue(new LineaPlantillaVenta { aplicarDescuentoFicha = true }.puedeEditarCantidadOferta);
+        }
+
+        [TestMethod]
+        public void CantidadOferta_QuitarLaOferta_RestauraElDescuentoDeLaFicha()
+        {
+            var linea = new LineaPlantillaVenta { aplicarDescuento = true }; // inicializa ficha = true
+            linea.cantidadOferta = 2;
+            Assert.IsFalse(linea.aplicarDescuento);
+
+            linea.cantidadOferta = 0;
+
+            Assert.IsTrue(linea.aplicarDescuento, "Al quitar la oferta vuelve el descuento de ficha");
+            Assert.IsTrue(linea.aplicarDescuentoFicha.Value, "La ficha no se toca en todo el ciclo");
+        }
+
+        [TestMethod]
+        public void CantidadOferta_DeserializarBorradorConOfertaAntesDeLaFicha_LaFichaDelJsonPrevalece()
+        {
+            // Orden REAL de las propiedades en el JSON del borrador (caso 27593, cliente 9471):
+            // cantidadOferta llega ANTES que aplicarDescuento/aplicarDescuentoFicha. Antes del fix,
+            // el setter de cantidadOferta inicializaba la ficha a False vía el setter público de
+            // aplicarDescuento.
+            string json = "{\"producto\":\"27593\",\"cantidad\":0,\"cantidadOferta\":1," +
+                "\"aplicarDescuento\":false,\"aplicarDescuentoFicha\":true}";
+
+            var linea = Newtonsoft.Json.JsonConvert.DeserializeObject<LineaPlantillaVenta>(json);
+
+            Assert.IsTrue(linea.aplicarDescuentoFicha.Value, "La ficha del JSON debe prevalecer");
+            Assert.IsTrue(linea.puedeEditarCantidadOferta);
+        }
+
+        [TestMethod]
+        public void CantidadOferta_DeserializarBorradorViejoConFichaCorrupta_SePuedeQuitarLaOferta()
+        {
+            // Borradores guardados ANTES del fix llevan la ficha ya corrompida a false. El control
+            // debe quedar editable igualmente (cantidadOferta > 0) para poder quitar la oferta.
+            string json = "{\"producto\":\"27593\",\"cantidad\":0,\"cantidadOferta\":1," +
+                "\"aplicarDescuento\":false,\"aplicarDescuentoFicha\":false}";
+
+            var linea = Newtonsoft.Json.JsonConvert.DeserializeObject<LineaPlantillaVenta>(json);
+
+            Assert.IsTrue(linea.puedeEditarCantidadOferta,
+                "Con oferta puesta siempre se puede editar, aunque el borrador viejo traiga la ficha corrupta");
+        }
+
+        #endregion
     }
 }

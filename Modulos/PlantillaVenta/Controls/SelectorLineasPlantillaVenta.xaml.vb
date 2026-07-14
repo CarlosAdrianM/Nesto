@@ -112,7 +112,7 @@ Partial Public Class SelectorLineasPlantillaVenta
                 InternalListView.SelectedItem = InternalListView.Items(0)
             End If
             Dim linea = TryCast(InternalListView.SelectedItem, ILineaConCantidad)
-            If linea IsNot Nothing AndAlso linea.aplicarDescuentoFicha.GetValueOrDefault(False) Then
+            If linea IsNot Nothing AndAlso linea.puedeEditarCantidadOferta Then
                 linea.cantidadOferta += 1
                 If ActualizarProductoCommand IsNot Nothing AndAlso ActualizarProductoCommand.CanExecute(InternalListView.SelectedItem) Then
                     ActualizarProductoCommand.Execute(InternalListView.SelectedItem)
@@ -142,7 +142,7 @@ Partial Public Class SelectorLineasPlantillaVenta
                 InternalListView.SelectedItem = InternalListView.Items(0)
             End If
             Dim linea = TryCast(InternalListView.SelectedItem, ILineaConCantidad)
-            If linea IsNot Nothing AndAlso linea.aplicarDescuentoFicha.GetValueOrDefault(False) AndAlso linea.cantidadOferta > 0 Then
+            If linea IsNot Nothing AndAlso linea.puedeEditarCantidadOferta AndAlso linea.cantidadOferta > 0 Then
                 linea.cantidadOferta -= 1
                 If ActualizarProductoCommand IsNot Nothing AndAlso ActualizarProductoCommand.CanExecute(InternalListView.SelectedItem) Then
                     ActualizarProductoCommand.Execute(InternalListView.SelectedItem)
@@ -157,7 +157,7 @@ Partial Public Class SelectorLineasPlantillaVenta
                 InternalListView.SelectedItem = InternalListView.Items(0)
             End If
             Dim linea = TryCast(InternalListView.SelectedItem, ILineaConCantidad)
-            If linea IsNot Nothing AndAlso linea.aplicarDescuentoFicha.GetValueOrDefault(False) Then
+            If linea IsNot Nothing AndAlso linea.puedeEditarCantidadOferta Then
                 linea.cantidad = 6
                 linea.cantidadOferta = 1
                 If ActualizarProductoCommand IsNot Nothing AndAlso ActualizarProductoCommand.CanExecute(InternalListView.SelectedItem) Then

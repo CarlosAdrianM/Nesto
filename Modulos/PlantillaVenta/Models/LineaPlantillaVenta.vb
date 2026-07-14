@@ -24,16 +24,23 @@ Public Class LineaPlantillaVenta
             Return _cantidadOferta
         End Get
         Set(value As Integer)
-            ' No permitimos sumar oferta y descuento
+            ' No permitimos sumar oferta y descuento. OJO (Nesto#401): se asigna el CAMPO privado,
+            ' no la propiedad, para que poner una oferta nunca inicialice aplicarDescuentoFicha.
+            ' Al recargar un borrador, Json.NET ejecuta este setter ANTES de asignar la ficha
+            ' (cantidadOferta va antes en el JSON) y la dejaba False para siempre, deshabilitando
+            ' el control de cantidad oferta sin forma de quitar la oferta.
             If value > 0 AndAlso cantidadOferta = 0 Then
-                aplicarDescuento = False
-            ElseIf cantidadOferta > 0 AndAlso value = 0 Then
-                aplicarDescuento = aplicarDescuentoFicha
+                _aplicarDescuento = False
+                RaisePropertyChanged(NameOf(aplicarDescuento))
+            ElseIf cantidadOferta > 0 AndAlso value = 0 AndAlso aplicarDescuentoFicha.HasValue Then
+                _aplicarDescuento = aplicarDescuentoFicha.Value
+                RaisePropertyChanged(NameOf(aplicarDescuento))
             End If
             SetProperty(_cantidadOferta, value)
             RaisePropertyChanged(NameOf(colorStock))
             RaisePropertyChanged(NameOf(personalizarOfertaVisible))
             RaisePropertyChanged(NameOf(personalizarInputsVisible))
+            RaisePropertyChanged(NameOf(puedeEditarCantidadOferta))
         End Set
     End Property
 
@@ -130,7 +137,27 @@ Public Class LineaPlantillaVenta
             SetProperty(_aplicarDescuento, value)
         End Set
     End Property
+    Private _aplicarDescuentoFicha As Boolean?
     Public Property aplicarDescuentoFicha() As Boolean? Implements ILineaConCantidad.aplicarDescuentoFicha
+        Get
+            Return _aplicarDescuentoFicha
+        End Get
+        Set(value As Boolean?)
+            Dim unused = SetProperty(_aplicarDescuentoFicha, value)
+            RaisePropertyChanged(NameOf(puedeEditarCantidadOferta))
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Nesto#401: habilita el control de cantidad oferta. Con oferta YA puesta siempre se puede
+    ''' editar (para reducirla o quitarla, que nunca añade beneficio no autorizado — la validación
+    ''' del servidor sigue mandando); sin oferta, solo si la ficha del producto admite descuentos.
+    ''' </summary>
+    Public ReadOnly Property puedeEditarCantidadOferta As Boolean Implements ILineaConCantidad.puedeEditarCantidadOferta
+        Get
+            Return aplicarDescuentoFicha.GetValueOrDefault(False) OrElse cantidadOferta > 0
+        End Get
+    End Property
 
     ''' <summary>
     ''' Nesto#370: en el selector compartido enlaza IsEnabled del control de cantidad. Los productos

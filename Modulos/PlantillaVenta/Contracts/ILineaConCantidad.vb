@@ -7,4 +7,9 @@ Public Interface ILineaConCantidad
     Property cantidad As Integer
     Property cantidadOferta As Integer
     Property aplicarDescuentoFicha As Boolean?
+    ''' <summary>
+    ''' Nesto#401: habilita el control de cantidad oferta del selector. Con oferta ya puesta
+    ''' siempre editable (para poder reducirla o quitarla); sin oferta, según la ficha.
+    ''' </summary>
+    ReadOnly Property puedeEditarCantidadOferta As Boolean
 End Interface

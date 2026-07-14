@@ -70,7 +70,8 @@
 
                                 <StackPanel Grid.Column="1" Visibility="{Binding PermitirCantidadOfertaVisibility, ElementName=SelectorControl}">
                                     <TextBlock Margin="3" TextWrapping="WrapWithOverflow" >Cantidad Oferta</TextBlock>
-                                    <xctk:ShortUpDown Value="{Binding cantidadOferta}" Margin="3" IsEnabled="{Binding aplicarDescuentoFicha}" >
+                                    <!-- Nesto#401: con oferta ya puesta siempre editable (para quitarla); sin oferta, según la ficha -->
+                                    <xctk:ShortUpDown Value="{Binding cantidadOferta}" Margin="3" IsEnabled="{Binding puedeEditarCantidadOferta}" >
                                         <i:Interaction.Triggers>
                                             <i:EventTrigger EventName="ValueChanged">
                                                 <i:InvokeCommandAction Command="{Binding ActualizarProductoCommand, ElementName=SelectorControl}" CommandParameter="{Binding}"/>
