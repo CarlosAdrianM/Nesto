@@ -268,7 +268,9 @@
                                             <TextBox Name="txtReclamarDeudaCorreo" Grid.Row="0" Grid.Column="1" Text="{Binding CorreoReclamarDeuda, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                                             <TextBox Name="txtReclamarDeudaMovil" Grid.Row="1" Grid.Column="1" Text="{Binding MovilReclamarDeuda, UpdateSourceTrigger=PropertyChanged}"></TextBox>
                                             <TextBox Name="txtReclamarDeudaImporte" Grid.Row="2" Grid.Column="1" Text="{Binding ImporteReclamarDeuda, StringFormat=c, UpdateSourceTrigger=PropertyChanged}"></TextBox>
-                                            <TextBox Name="txtReclamarDeudaAsunto" Grid.Row="3" Grid.Column="1" Text="{Binding AsuntoReclamarDeuda}"></TextBox>
+                                            <!-- NestoAPI#295: sin efectos marcados hay que escribir un concepto real (se contabiliza en el extracto) -->
+                                            <TextBox Name="txtReclamarDeudaAsunto" Grid.Row="3" Grid.Column="1" Text="{Binding AsuntoReclamarDeuda, UpdateSourceTrigger=PropertyChanged}"
+                                                     ToolTip="Si no marca los efectos que paga el cliente, escriba un concepto que identifique el pago (se contabiliza en el extracto).&#x0a;Ejemplos: 'Pago pedido 123456', 'Pago señal curso quiromasaje'"></TextBox>
                                             <TextBox Name="txtReclamarDeudaNombre" Grid.Row="4" Grid.Column="1" Text="{Binding NombreReclamarDeuda}"></TextBox>
                                             <TextBlock Grid.Row="5" Grid.Column="0" Text="Motor:" TextAlignment="Right" Margin="3"></TextBlock>
                                             <ComboBox Grid.Row="5" Grid.Column="1" SelectedItem="{Binding MotorPagosSeleccionado}" IsEnabled="{Binding PuedeElegirMotorPagos}" Margin="3">

@@ -872,15 +872,33 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private _asuntoReclamarDeuda As String = "Enlace de pago a Nueva Visión"
+    ' NestoAPI#295: el asunto por defecto SOLO cuando hay efectos seleccionados (en ese caso el
+    ' concepto contable identifica el pago por el efecto liquidado). Sin efectos, el usuario debe
+    ' escribir un concepto real: se contabiliza tal cual en el extracto del cliente.
+    Public Const ASUNTO_PAGO_POR_DEFECTO As String = "Enlace de pago a Nueva Visión"
+
+    Private _asuntoReclamarDeuda As String = String.Empty
     Public Property AsuntoReclamarDeuda As String
         Get
             Return _asuntoReclamarDeuda
         End Get
         Set(value As String)
-            Dim unused = SetProperty(_asuntoReclamarDeuda, value)
+            If SetProperty(_asuntoReclamarDeuda, value) Then
+                ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+            End If
         End Set
     End Property
+
+    ' NestoAPI#295: pone el asunto por defecto al seleccionar efectos (si el usuario no ha
+    ' escrito nada) y lo vacía al deseleccionarlos todos (si sigue siendo el por defecto).
+    Private Sub ActualizarAsuntoPorDefecto()
+        Dim hayEfectosSeleccionados = ListaDeudas IsNot Nothing AndAlso ListaDeudas.Any(Function(l) l.Seleccionada)
+        If hayEfectosSeleccionados AndAlso String.IsNullOrWhiteSpace(AsuntoReclamarDeuda) Then
+            AsuntoReclamarDeuda = ASUNTO_PAGO_POR_DEFECTO
+        ElseIf Not hayEfectosSeleccionados AndAlso AsuntoReclamarDeuda = ASUNTO_PAGO_POR_DEFECTO Then
+            AsuntoReclamarDeuda = String.Empty
+        End If
+    End Sub
 
     Private _correoReclamarDeuda As String
     Public Property CorreoReclamarDeuda As String
@@ -1493,7 +1511,13 @@ Public Class ClientesViewModel
 
     Public Property ConfirmarReclamarDeudaCommand As DelegateCommand
     Private Function CanConfirmarReclamarDeuda() As Boolean
-        Return ImporteReclamarDeuda >= 1 AndAlso (Not IsNothing(CorreoReclamarDeuda) OrElse Not IsNothing(MovilReclamarDeuda))
+        ' NestoAPI#295: sin efectos seleccionados hace falta un concepto real (el genérico se
+        ' contabilizaría en el extracto y no se sabría qué pagó el cliente). El servidor lo
+        ' valida igualmente (400).
+        Dim hayEfectosSeleccionados = ListaDeudas IsNot Nothing AndAlso ListaDeudas.Any(Function(l) l.Seleccionada)
+        Dim conceptoValido = hayEfectosSeleccionados OrElse
+            (Not String.IsNullOrWhiteSpace(AsuntoReclamarDeuda) AndAlso AsuntoReclamarDeuda.Trim() <> ASUNTO_PAGO_POR_DEFECTO)
+        Return conceptoValido AndAlso ImporteReclamarDeuda >= 1 AndAlso (Not IsNothing(CorreoReclamarDeuda) OrElse Not IsNothing(MovilReclamarDeuda))
     End Function
     Private Sub OnConfirmarReclamarDeuda()
         Dim p As New DialogParameters From {
@@ -1733,6 +1757,7 @@ Public Class ClientesViewModel
             Next
             ListaDeudas = New ObservableCollection(Of ExtractoClienteDTO)(lista.OrderBy(Function(l) l.Fecha))
             ImporteReclamarDeuda = SumaDeudasSeleccionadas
+            ActualizarAsuntoPorDefecto() ' NestoAPI#295: las vencidas vienen preseleccionadas
         End Using
 
         Dim correo As New CorreoCliente(clienteActivo.PersonasContactoCliente)
@@ -1777,6 +1802,7 @@ Public Class ClientesViewModel
     Private Sub LineaDeudaPropertyChangedEventHandler(sender As Object, e As PropertyChangedEventArgs)
         If e.PropertyName = "Seleccionada" Then
             ImporteReclamarDeuda = SumaDeudasSeleccionadas
+            ActualizarAsuntoPorDefecto()
         End If
     End Sub
 
