@@ -227,13 +227,22 @@ Public Class RapportViewModel
             SetProperty(_cmdGuardarCambios, value)
         End Set
     End Property
+    ' NestoAPI#294: guard de reentrada. Con el guardado en vuelo (servidor lento) el botón seguía
+    ' activo y cada clic extra disparaba otro POST: dos peticiones concurrentes pasaban ambas el
+    ' check del servidor y se creaban rapports duplicados. Mismo patrón que SePuedeCrearRapport.
+    Private _guardandoRapport As Boolean = False
     Private Function CanGuardarCambios(arg As Object) As Boolean
-        Return Not IsNothing(rapport) AndAlso (rapport.Usuario.ToLower = configuracion.usuario.ToLower OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
+        Return Not _guardandoRapport AndAlso Not IsNothing(rapport) AndAlso (rapport.Usuario.ToLower = configuracion.usuario.ToLower OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
     End Function
     Private Async Sub OnGuardarCambios(arg As Object)
+        If _guardandoRapport Then
+            Return
+        End If
         If Not EstaVisibleTipoCentro Then
             rapport.TipoCentro = TiposCentro.NoSeSabe
         End If
+        _guardandoRapport = True
+        cmdGuardarCambios.RaiseCanExecuteChanged()
         Dim texto As String
         Try
             texto = Await servicio.crearRapport(rapport)
@@ -248,6 +257,9 @@ Public Class RapportViewModel
             dialogService.ShowNotification("Rapport", texto)
         Catch ex As Exception
             dialogService.ShowError(ex.Message)
+        Finally
+            _guardandoRapport = False
+            cmdGuardarCambios.RaiseCanExecuteChanged()
         End Try
     End Sub
 #End Region
