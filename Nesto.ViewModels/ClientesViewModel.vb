@@ -358,25 +358,50 @@ Public Class ClientesViewModel
             End Using
         End If
     End Sub
+    ' Nesto#340 (1C.8): el grid de ventas agrupadas por producto se lee de la API
+    ' (ventascliente/productos) en vez de consultar LinPedidoVta con EF. La API replica la
+    ' consulta antigua: empresas 1 y 3, Estado >= 2, agrupado por producto con suma de
+    ' cantidades y fecha de última venta. Sin fechaDesde devuelve las ventas de siempre.
+    Private Async Sub CargarListaVentas()
+        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.Nº_Cliente) Then
+            listaVentas = Nothing
+            Return
+        End If
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                Dim urlConsulta As String = "ventascliente/productos"
+                urlConsulta += "?clienteId=" + clienteActivo.Nº_Cliente.Trim
+                urlConsulta += "&contacto=" + If(clienteActivo.Contacto?.Trim, String.Empty)
+                If rangoFechasVenta <> "System.Windows.Controls.ComboBoxItem: Ventas de siempre" Then 'esto está fatal, hay que desacoplarlo de la vista
+                    urlConsulta += "&fechaDesde=" + Date.Now.AddYears(-1).ToString("s")
+                End If
+
+                Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+                If response.IsSuccessStatusCode Then
+                    Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    listaVentas = JsonConvert.DeserializeObject(Of ObservableCollection(Of lineaVentaAgrupada))(respuesta)
+                Else
+                    listaVentas = New ObservableCollection(Of lineaVentaAgrupada)()
+                End If
+            End Using
+        Catch ex As Exception
+            listaVentas = New ObservableCollection(Of lineaVentaAgrupada)()
+        End Try
+    End Sub
+
     Private _clienteActivo As Clientes
     Public Property clienteActivo As Clientes
         Get
             Return _clienteActivo
         End Get
         Set(value As Clientes)
-            Dim fechaDesde As Date
             _clienteActivo = value
 
             If Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
                 If Not IsNothing(clienteActivoDTO) Then
                     cargarVendedoresPorGrupo()
                     seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
-                    If rangoFechasVenta = "System.Windows.Controls.ComboBoxItem: Ventas de siempre" Then 'esto está fatal, hay que desacoplarlo de la vista 
-                        fechaDesde = Date.MinValue
-                    Else
-                        fechaDesde = Date.Now.AddYears(-1)
-                    End If
-                    listaVentas = New ObservableCollection(Of lineaVentaAgrupada)(From l In DbContext.LinPedidoVta Where (l.Empresa = "1" Or l.Empresa = "3") And l.Nº_Cliente = clienteActivo.Nº_Cliente And l.Contacto = clienteActivo.Contacto And l.Estado >= 2 And l.Fecha_Albarán >= fechaDesde Group By l.Producto, l.Texto, l.SubGruposProducto.Descripción, l.Familia Into Sum(l.Cantidad), Max(l.Fecha_Albarán) Select New lineaVentaAgrupada With {.producto = Producto, .nombre = Texto, .cantidad = Sum, .fechaUltVenta = Max, .subGrupo = Descripción, .familia = Familia})
+                    CargarListaVentas()
                     deudaVencida = Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?))
                 Else
                     seguimientosOrdenados = Nothing
@@ -599,15 +624,9 @@ Public Class ClientesViewModel
             Return _rangoFechasVenta
         End Get
         Set(value As String)
-            Dim fechaDesde As Date
             _rangoFechasVenta = value
             If Not IsNothing(clienteActivo) Then
-                If rangoFechasVenta = "System.Windows.Controls.ComboBoxItem: Ventas de siempre" Then 'esto hay que cambiarlo, que es una ñapa muy gorda
-                    fechaDesde = Date.MinValue
-                Else
-                    fechaDesde = Date.Now.AddYears(-1)
-                End If
-                listaVentas = New ObservableCollection(Of lineaVentaAgrupada)(From l In DbContext.LinPedidoVta Where (l.Empresa = "1" Or l.Empresa = "3") And l.Nº_Cliente = clienteActivo.Nº_Cliente And l.Contacto = clienteActivo.Contacto And l.Estado >= 2 And l.Fecha_Albarán >= fechaDesde Group By l.Producto, l.Texto, l.SubGruposProducto.Descripción Into Sum(l.Cantidad), Max(l.Fecha_Albarán) Select New lineaVentaAgrupada With {.producto = Producto, .nombre = Texto, .cantidad = Sum, .fechaUltVenta = Max, .subGrupo = Descripción})
+                CargarListaVentas()
             End If
             RaisePropertyChanged("rangoFechasVenta")
         End Set
