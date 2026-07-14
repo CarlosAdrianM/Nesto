@@ -98,10 +98,9 @@ Partial Public Class Application
         Dim unused27 = containerRegistry.RegisterSingleton(GetType(IConfiguracion), GetType(Configuracion))
 
         Dim clientId = "d287e79a-5e01-4642-ac29-9b568dd39f67"
-        Dim interactiveBrowserCredentialOptions As New InteractiveBrowserCredentialOptions() With {
-            .ClientId = clientId
-        }
-        Dim interactiveBrowserCredential As New InteractiveBrowserCredential(interactiveBrowserCredentialOptions)
+        ' Nesto#400: credencial con caché de tokens persistida y AuthenticationRecord rehidratado:
+        ' el navegador de MS Graph solo se abre la primera vez, no en cada arranque de Nesto.
+        Dim interactiveBrowserCredential As New CredencialGraphPersistente(clientId)
         Dim unused26 = containerRegistry.RegisterInstance(GetType(InteractiveBrowserCredential), interactiveBrowserCredential)
 
         ' Registrar servicio de autenticación con la URL base de tu API
