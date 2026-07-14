@@ -159,6 +159,7 @@ Public Class PlantillaVentaViewModel
 
         EsBusquedaConAND = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.UsarBusquedaContextualAND) = "1"
         EsBusquedaConOR = Not EsBusquedaConAND
+        CargarPreferenciaAlmacenes() ' NestoAPI#256 / Nesto#390
 
         Dim unused = eventAggregator.GetEvent(Of ClienteCreadoEvent).Subscribe(AddressOf ActualizarCliente)
 
@@ -228,7 +229,7 @@ Public Class PlantillaVentaViewModel
                                                                      For Each linea In ListaFiltrableProductos.ListaOriginal
                                                                          listaCast.Add(linea)
                                                                      Next
-                                                                     Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo, Constantes.Almacenes.ALMACENES_STOCK)
+                                                                     Dim nuevosStocks As ObservableCollection(Of LineaPlantillaVenta) = Await servicio.PonerStocks(listaCast, value.Codigo, AlmacenesStockUsuario)
                                                                      ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(nuevosStocks)
                                                                      For Each linea In nuevosStocks
                                                                          If linea.StockDisponibleTodosLosAlmacenes = 0 AndAlso linea.stocks IsNot Nothing AndAlso linea.stocks.Count > 0 Then
@@ -1078,6 +1079,82 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    ' NestoAPI#256 / Nesto#390: preferencia del usuario de ver el stock de los tres almacenes
+    ' (más información) o solo el suyo (más rapidez). Se persiste en ParametrosUsuario
+    ' (AlmacenesPlantillaVenta) y la API la usa como fuente de verdad; aquí además mandamos la
+    ' lista coherente y refrescamos los stocks al cambiarla.
+    Private _almacenesStockUsuario As List(Of String)
+    Public ReadOnly Property AlmacenesStockUsuario As List(Of String)
+        Get
+            If _almacenesStockUsuario Is Nothing OrElse Not _almacenesStockUsuario.Any() Then
+                Return Constantes.Almacenes.ALMACENES_STOCK.ToList()
+            End If
+            Return _almacenesStockUsuario
+        End Get
+    End Property
+
+    Private _verStockTresAlmacenes As Boolean = True
+    Public Property VerStockTresAlmacenes As Boolean
+        Get
+            Return _verStockTresAlmacenes
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_verStockTresAlmacenes, value) Then
+                Dim valor As String = If(value,
+                    String.Join(",", Constantes.Almacenes.ALMACENES_STOCK),
+                    If(almacenSeleccionado?.Codigo, Constantes.Almacenes.ALMACEN_ALGETE))
+                _almacenesStockUsuario = ParsearAlmacenes(valor)
+                configuracion.GuardarParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenesPlantillaVenta, valor)
+                RefrescarStocksTrasCambioDeAlmacenes()
+            End If
+        End Set
+    End Property
+
+    Private Sub CargarPreferenciaAlmacenes()
+        Dim valor As String = configuracion.LeerParametroSync(Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.AlmacenesPlantillaVenta)
+        _almacenesStockUsuario = ParsearAlmacenes(valor)
+        _verStockTresAlmacenes = AlmacenesStockUsuario.Count >= Constantes.Almacenes.ALMACENES_STOCK.Count
+        RaisePropertyChanged(NameOf(VerStockTresAlmacenes))
+    End Sub
+
+    Private Shared Function ParsearAlmacenes(valor As String) As List(Of String)
+        If String.IsNullOrWhiteSpace(valor) Then
+            Return Nothing ' sin parámetro: fallback a los tres (comportamiento de siempre)
+        End If
+        Return valor.Split(","c).
+            Select(Function(a) a.Trim().ToUpper()).
+            Where(Function(a) a <> String.Empty).
+            Distinct().
+            ToList()
+    End Function
+
+    ' Al cambiar la preferencia se repiden los stocks de lo ya cargado, actualizando las líneas
+    ' EN SITIO (mismo patrón que la carga de borradores) para no romper referencias del pedido.
+    Private Async Sub RefrescarStocksTrasCambioDeAlmacenes()
+        Try
+            If ListaFiltrableProductos?.ListaOriginal Is Nothing OrElse Not ListaFiltrableProductos.ListaOriginal.Any() OrElse almacenSeleccionado Is Nothing Then
+                Return
+            End If
+            Dim lineas = ListaFiltrableProductos.ListaOriginal.Cast(Of LineaPlantillaVenta)().ToList()
+            Dim conStocks = Await servicio.PonerStocks(New ObservableCollection(Of LineaPlantillaVenta)(lineas), almacenSeleccionado.Codigo, AlmacenesStockUsuario)
+            If conStocks Is Nothing Then
+                Return
+            End If
+            For Each lineaConStock In conStocks
+                Dim original = lineas.FirstOrDefault(Function(l) l.producto?.Trim() = lineaConStock.producto?.Trim())
+                If original IsNot Nothing Then
+                    original.stocks = lineaConStock.stocks
+                    original.cantidadDisponible = lineaConStock.cantidadDisponible
+                    original.StockDisponibleTodosLosAlmacenes = lineaConStock.StockDisponibleTodosLosAlmacenes
+                    original.stockActualizado = True
+                End If
+            Next
+        Catch ex As Exception
+            ' La preferencia nunca debe tumbar la plantilla: los stocks se refrescarán en la
+            ' siguiente carga.
+        End Try
+    End Sub
+
     Private _esBusquedaConOR As Boolean
     Public Property EsBusquedaConOR As Boolean
         Get
@@ -1916,7 +1993,7 @@ Public Class PlantillaVentaViewModel
                     For Each item In ListaFiltrableProductos.ListaFijada
                         listaPlantilla.Add(item)
                     Next
-                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList()))
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, AlmacenesStockUsuario))
                     Dim productoOriginal As LineaPlantillaVenta
                     Dim producto As LineaPlantillaVenta
                     For i = 0 To ListaFiltrableProductos.ListaFijada.Count - 1
@@ -1981,7 +2058,7 @@ Public Class PlantillaVentaViewModel
                     For Each item In ListaFiltrableProductos.ListaFijada
                         listaPlantilla.Add(item)
                     Next
-                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList()))
+                    ListaFiltrableProductos.ListaFijada = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, AlmacenesStockUsuario))
                     Dim productoOriginal As LineaPlantillaVenta
                     Dim producto As LineaPlantillaVenta
                     For i = 0 To ListaFiltrableProductos.ListaFijada.Count - 1
@@ -2325,7 +2402,7 @@ Public Class PlantillaVentaViewModel
             For Each item In ListaFiltrableProductos.ListaOriginal
                 listaPlantilla.Add(item)
             Next
-            ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList()))
+            ListaFiltrableProductos.ListaOriginal = New ObservableCollection(Of IFiltrableItem)(Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, AlmacenesStockUsuario))
             ' Issue #286: Marcar stockActualizado=True y calcular StockDisponibleTodosLosAlmacenes si no viene del API
             For Each item In ListaFiltrableProductos.ListaOriginal
                 Dim linea = DirectCast(item, LineaPlantillaVenta)
@@ -3490,7 +3567,7 @@ Public Class PlantillaVentaViewModel
 
                 If productosSinStock IsNot Nothing AndAlso productosSinStock.Any() Then
                     Dim listaPlantilla = New ObservableCollection(Of LineaPlantillaVenta)(productosSinStock)
-                    Dim stocksActualizados = Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, Constantes.Almacenes.ALMACENES_STOCK.ToList())
+                    Dim stocksActualizados = Await servicio.PonerStocks(listaPlantilla, almacenSeleccionado.Codigo, AlmacenesStockUsuario)
 
                     Dim productosActualizados As Integer = 0
                     ' Actualizar los productos originales con la info de stock

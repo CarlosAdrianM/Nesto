@@ -228,11 +228,21 @@
                             </Grid.RowDefinitions>
                             <!-- Botones de búsqueda -->
                             <Grid Grid.Row="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
+                                <!-- NestoAPI#256 / Nesto#390: preferencia de usuario de almacenes de stock -->
+                                <CheckBox Grid.Row="1" Grid.ColumnSpan="3" Margin="3,4,3,0"
+                                          IsChecked="{Binding VerStockTresAlmacenes, Mode=TwoWay}"
+                                          ToolTip="Marcado: se muestra el stock de ALG, ALC y REI (más información).&#x0a;Desmarcado: solo el de su almacén (la plantilla carga más rápido).&#x0a;La preferencia se guarda para su usuario.">
+                                    <AccessText>Ver stock de los _tres almacenes (más lento)</AccessText>
+                                </CheckBox>
                                 <Button Grid.Column="0" Name="btnBuscar" Command="{Binding cmdBuscarEnTodosLosProductos}" CommandParameter="{Binding ListaFiltrableProductos.Filtro}">
                                     <AccessText>_Buscar en todos los productos</AccessText>
                                 </Button>

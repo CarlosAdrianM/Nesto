@@ -6,6 +6,9 @@
         {
             // Colocar por orden alfabético, por favor
             public const string AgenciasEnCuarentena = "AgenciasEnCuarentena";
+            // NestoAPI#256: almacenes de stock de la plantilla de venta (CSV: "ALG,ALC,REI" o "ALG").
+            // Contrato común con NestoAPI y NestoApp; la API es la fuente de verdad al cargar stocks.
+            public const string AlmacenesPlantillaVenta = "AlmacenesPlantillaVenta";
             public const string AlmacenInventario = "AlmacénInventario";
             public const string AlmacenPedidoVta = "AlmacénPedidoVta";
             public const string AlmacenReposición = "AlmacénReposición";

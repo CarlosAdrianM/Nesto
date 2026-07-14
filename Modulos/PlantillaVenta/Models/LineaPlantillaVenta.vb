@@ -218,7 +218,19 @@ Public Class LineaPlantillaVenta
     End Property
     Public Property descuentoProducto As Decimal
     Public Property clasificacionMasVendidos As Integer
+    ' Nesto#390: notificante para que al cambiar la preferencia de almacenes (toggle) se
+    ' refresquen los textos derivados sin recargar la plantilla entera.
+    Private _stocks As List(Of StockAlmacenDTO)
     Public Property stocks As List(Of StockAlmacenDTO)
+        Get
+            Return _stocks
+        End Get
+        Set(value As List(Of StockAlmacenDTO))
+            SetProperty(_stocks, value)
+            RaisePropertyChanged(NameOf(textoStocksPorAlmacen))
+            RaisePropertyChanged(NameOf(stockTotalTodosAlmacenes))
+        End Set
+    End Property
 
     ''' <summary>
     ''' Nesto#397: ids de LinPedidoVta originales cuando la plantilla está en modo edición de un
