@@ -358,6 +358,32 @@ Public Class ClientesViewModel
             End Using
         End If
     End Sub
+    ' Nesto#340 (1C.8, slice 2): la deuda vencida se lee de la API (ExtractosCliente/DeudaVencida,
+    ' misma consulta: empresas 1 y 3, FechaVto pasada, ImportePdte <> 0) en vez de sumar
+    ' ExtractoCliente con EF.
+    Private Async Sub CargarDeudaVencida()
+        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.Nº_Cliente) Then
+            deudaVencida = 0
+            Return
+        End If
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                Dim urlConsulta As String = "ExtractosCliente/DeudaVencida"
+                urlConsulta += "?cliente=" + clienteActivo.Nº_Cliente.Trim
+                urlConsulta += "&contacto=" + If(clienteActivo.Contacto?.Trim, String.Empty)
+                Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+                If response.IsSuccessStatusCode Then
+                    Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    deudaVencida = JsonConvert.DeserializeObject(Of Decimal)(respuesta)
+                Else
+                    deudaVencida = 0
+                End If
+            End Using
+        Catch ex As Exception
+            deudaVencida = 0
+        End Try
+    End Sub
+
     ' Nesto#340 (1C.8): el grid de ventas agrupadas por producto se lee de la API
     ' (ventascliente/productos) en vez de consultar LinPedidoVta con EF. La API replica la
     ' consulta antigua: empresas 1 y 3, Estado >= 2, agrupado por producto con suma de
@@ -402,7 +428,7 @@ Public Class ClientesViewModel
                     cargarVendedoresPorGrupo()
                     seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
                     CargarListaVentas()
-                    deudaVencida = Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?))
+                    CargarDeudaVencida()
                 Else
                     seguimientosOrdenados = Nothing
                     listaVentas = Nothing
@@ -1814,11 +1840,7 @@ Public Class ClientesViewModel
             "Ventas de Siempre"
         }
 
-        If clienteActivo IsNot Nothing Then
-            deudaVencida = Aggregate c In DbContext.ExtractoCliente Where (c.Empresa = "1" Or c.Empresa = "3") And c.Número = clienteActivo.Nº_Cliente And c.Contacto = clienteActivo.Contacto And c.FechaVto < Now And c.ImportePdte <> 0 Into Sum(CType(c.ImportePdte, Decimal?))
-        Else
-            deudaVencida = 0
-        End If
+        CargarDeudaVencida()
 
         listaSecuencias = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion("FRST", "Primer adeudo recurrente"),
