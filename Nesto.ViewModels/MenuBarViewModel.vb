@@ -401,13 +401,9 @@ Public Class MenuBarViewModel
             cadenaVendedores = String.Join(",", _listaVendedoresEquipo.Select(Function(v) v.Vendedor))
         End If
 
-        Dim dataSource As List(Of Informes.DetalleRapportsModel) = Await _servicioInformes.LeerDetalleRapports(FechaDesde, FechaHasta, cadenaVendedores)
-        Dim listaParametros As New List(Of ReportParameter) From {
-            New ReportParameter("FechaDesde", FechaDesde),
-            New ReportParameter("FechaHasta", FechaHasta)
-        }
-        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-            "Nesto.Informes.DetalleRapports.rdlc", "DetalleRapportsDataSet", dataSource, listaParametros)
+        ' El PDF lo genera NestoAPI con QuestPDF (api/Informes/DetalleRapports/Pdf);
+        ' ya no se renderiza el RDLC en local (Nesto#340).
+        Dim pdf As Byte() = Await _servicioInformes.DescargarDetalleRapportsPdf(FechaDesde, FechaHasta, cadenaVendedores)
         Dim fileName As String = Path.GetTempPath + "InformeRapports.pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
