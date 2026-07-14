@@ -72,14 +72,17 @@
                             </Style>
                         </DataGridTextColumn.CellStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Cobradas" Binding="{Binding CantidadCobrada}" IsReadOnly="True">
+                    <!-- Nesto#403: editables para ofertas puntuales del proveedor solo para este pedido
+                         (sin pasar por OfertasProveedores). Editar Regalo ajusta Cobradas y viceversa
+                         (Cobradas + Regalo = Cantidad); vaciar Regalo vuelve al automático de la tabla. -->
+                    <DataGridTextColumn Header="Cobradas" Binding="{Binding CantidadCobrada, UpdateSourceTrigger=LostFocus}" IsReadOnly="False">
                         <DataGridTextColumn.CellStyle>
                             <Style>
                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
                             </Style>
                         </DataGridTextColumn.CellStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Regalo" Binding="{Binding CantidadRegalo}" IsReadOnly="True">
+                    <DataGridTextColumn Header="Regalo" Binding="{Binding CantidadRegalo, UpdateSourceTrigger=LostFocus}" IsReadOnly="False">
                         <DataGridTextColumn.CellStyle>
                             <Style>
                                 <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />

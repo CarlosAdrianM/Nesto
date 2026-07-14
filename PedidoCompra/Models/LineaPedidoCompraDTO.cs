@@ -48,7 +48,14 @@ namespace Nesto.Modulos.PedidoCompra.Models
                     }
                 }
                 _cantidad = value;
-                if (Ofertas != null && Ofertas.Any())
+                if (OfertaManual)
+                {
+                    // Nesto#403: la oferta manual mantiene el regalo pactado con el proveedor y
+                    // ajusta las cobradas al nuevo total (Cobradas + Regalo = Cantidad siempre).
+                    CantidadRegalo = Math.Min(CantidadRegalo ?? 0, value);
+                    CantidadCobrada = value - CantidadRegalo;
+                }
+                else if (Ofertas != null && Ofertas.Any())
                 {
                     ActualizarOfertaActual();
                 }
@@ -108,6 +115,53 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public int? CantidadCobrada { get; set; }
         public int? CantidadRegalo { get; set; }
 
+        /// <summary>
+        /// Nesto#403: oferta puntual pactada con el proveedor SOLO para este pedido (no está en
+        /// OfertasProveedores). Mientras está activa, el recálculo automático por cambio de
+        /// cantidad no pisa las cantidades manuales. Al crear el pedido, el servidor genera las
+        /// dos líneas (cobrada + regalo a precio 0) exactamente igual que con una oferta de tabla.
+        /// </summary>
+        public bool OfertaManual { get; private set; }
+
+        /// <summary>Pone el regalo a mano y ajusta las cobradas (Cobradas + Regalo = Cantidad).
+        /// Vaciarlo (null o 0) deshace la oferta manual y vuelve al automático de la tabla.</summary>
+        public void PonerRegaloManual(int? cantidadRegalo)
+        {
+            if (cantidadRegalo == null || cantidadRegalo <= 0)
+            {
+                QuitarOfertaManual();
+                return;
+            }
+            OfertaManual = true;
+            CantidadRegalo = Math.Min(cantidadRegalo.Value, Cantidad);
+            CantidadCobrada = Cantidad - CantidadRegalo;
+        }
+
+        /// <summary>Pone las cobradas a mano y ajusta el regalo (Cobradas + Regalo = Cantidad).
+        /// Cobradas &gt;= Cantidad significa que no hay regalo: deshace la oferta manual.</summary>
+        public void PonerCobradasManual(int? cantidadCobrada)
+        {
+            if (cantidadCobrada == null || cantidadCobrada < 0 || cantidadCobrada >= Cantidad)
+            {
+                QuitarOfertaManual();
+                return;
+            }
+            OfertaManual = true;
+            CantidadCobrada = cantidadCobrada;
+            CantidadRegalo = Cantidad - cantidadCobrada;
+        }
+
+        /// <summary>Deshace la oferta manual y recalcula con las ofertas de OfertasProveedores.</summary>
+        public void QuitarOfertaManual()
+        {
+            OfertaManual = false;
+            CantidadCobrada = null;
+            CantidadRegalo = null;
+            if (Ofertas != null && Ofertas.Any())
+            {
+                ActualizarOfertaActual();
+            }
+        }
 
         private void ActualizarOfertaActual()
         {

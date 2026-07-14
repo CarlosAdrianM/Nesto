@@ -182,6 +182,104 @@ namespace PedidoCompraTests
             // Assert
             Assert.AreEqual(13, lineaDTO.CantidadCobrada);
             Assert.AreEqual(2, lineaDTO.CantidadRegalo);
-        }        
+        }
+
+        // ----- Oferta manual (Nesto#403): oferta puntual del proveedor solo para este pedido -----
+
+        [TestMethod]
+        public void PonerRegaloManual_AjustaLasCobradasYMarcaLaOfertaComoManual()
+        {
+            var lineaDTO = new LineaPedidoCompraDTO { Cantidad = 24 };
+
+            lineaDTO.PonerRegaloManual(4);
+
+            Assert.IsTrue(lineaDTO.OfertaManual);
+            Assert.AreEqual(20, lineaDTO.CantidadCobrada);
+            Assert.AreEqual(4, lineaDTO.CantidadRegalo);
+        }
+
+        [TestMethod]
+        public void PonerCobradasManual_AjustaElRegalo()
+        {
+            var lineaDTO = new LineaPedidoCompraDTO { Cantidad = 24 };
+
+            lineaDTO.PonerCobradasManual(20);
+
+            Assert.IsTrue(lineaDTO.OfertaManual);
+            Assert.AreEqual(20, lineaDTO.CantidadCobrada);
+            Assert.AreEqual(4, lineaDTO.CantidadRegalo);
+        }
+
+        [TestMethod]
+        public void OfertaManual_CambiarLaCantidad_MantieneElRegaloPactadoYNoLaPisaLaTabla()
+        {
+            // Con oferta de tabla 6+1, la manual 20+4 debe sobrevivir a un cambio de cantidad:
+            // el recálculo automático no puede pisarla.
+            var lineaDTO = new LineaPedidoCompraDTO
+            {
+                Cantidad = 24,
+                Ofertas = new List<OfertaCompra> { new OfertaCompra { CantidadCobrada = 6, CantidadRegalo = 1 } }
+            };
+            lineaDTO.PonerRegaloManual(4);
+
+            lineaDTO.Cantidad = 30;
+
+            Assert.IsTrue(lineaDTO.OfertaManual);
+            Assert.AreEqual(26, lineaDTO.CantidadCobrada, "Mantiene el regalo pactado y ajusta las cobradas");
+            Assert.AreEqual(4, lineaDTO.CantidadRegalo);
+        }
+
+        [TestMethod]
+        public void PonerRegaloManual_Vaciarlo_VuelveAlAutomaticoDeLaTabla()
+        {
+            var lineaDTO = new LineaPedidoCompraDTO
+            {
+                Cantidad = 14,
+                Ofertas = new List<OfertaCompra> { new OfertaCompra { CantidadCobrada = 6, CantidadRegalo = 1 } }
+            };
+            lineaDTO.PonerRegaloManual(5);
+
+            lineaDTO.PonerRegaloManual(null);
+
+            Assert.IsFalse(lineaDTO.OfertaManual);
+            Assert.AreEqual(12, lineaDTO.CantidadCobrada, "Vuelve al 6+1 de OfertasProveedores (14 = 2x(6+1))");
+            Assert.AreEqual(2, lineaDTO.CantidadRegalo);
+        }
+
+        [TestMethod]
+        public void PonerRegaloManual_SinOfertasDeTabla_VaciarloDejaLasCantidadesLimpias()
+        {
+            var lineaDTO = new LineaPedidoCompraDTO { Cantidad = 20 };
+            lineaDTO.PonerRegaloManual(4);
+
+            lineaDTO.PonerRegaloManual(0);
+
+            Assert.IsFalse(lineaDTO.OfertaManual);
+            Assert.IsNull(lineaDTO.CantidadCobrada);
+            Assert.IsNull(lineaDTO.CantidadRegalo);
+        }
+
+        [TestMethod]
+        public void PonerRegaloManual_MayorQueLaCantidad_SeRecortaALaCantidad()
+        {
+            var lineaDTO = new LineaPedidoCompraDTO { Cantidad = 10 };
+
+            lineaDTO.PonerRegaloManual(15);
+
+            Assert.AreEqual(10, lineaDTO.CantidadRegalo);
+            Assert.AreEqual(0, lineaDTO.CantidadCobrada);
+        }
+
+        [TestMethod]
+        public void PonerCobradasManual_IgualOMayorQueLaCantidad_NoHayRegaloYVuelveAlAutomatico()
+        {
+            var lineaDTO = new LineaPedidoCompraDTO { Cantidad = 20 };
+            lineaDTO.PonerRegaloManual(4);
+
+            lineaDTO.PonerCobradasManual(20);
+
+            Assert.IsFalse(lineaDTO.OfertaManual);
+            Assert.IsNull(lineaDTO.CantidadRegalo);
+        }
     }
 }

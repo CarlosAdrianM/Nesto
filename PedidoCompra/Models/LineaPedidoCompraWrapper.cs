@@ -310,7 +310,37 @@ namespace Nesto.Modulos.PedidoCompra.Models
         public decimal BaseImponible { get => Model.BaseImponible; }
         public decimal ImporteIva { get => Model.ImporteIva; }
         public decimal Total { get => Model.Total; }
-        public int? CantidadCobrada { get => Model.CantidadCobrada; }
-        public int? CantidadRegalo { get => Model.CantidadRegalo; }
+        // Nesto#403: editables para reflejar ofertas puntuales del proveedor solo para este
+        // pedido (sin pasar por OfertasProveedores). La coherencia Cobradas + Regalo = Cantidad
+        // la garantiza el modelo; vaciar cualquiera de los dos vuelve al automático de la tabla.
+        public int? CantidadCobrada
+        {
+            get => Model.CantidadCobrada;
+            set
+            {
+                Model.PonerCobradasManual(value);
+                NotificarCambioDeOferta();
+            }
+        }
+        public int? CantidadRegalo
+        {
+            get => Model.CantidadRegalo;
+            set
+            {
+                Model.PonerRegaloManual(value);
+                NotificarCambioDeOferta();
+            }
+        }
+
+        private void NotificarCambioDeOferta()
+        {
+            RaisePropertyChanged(nameof(CantidadCobrada));
+            RaisePropertyChanged(nameof(CantidadRegalo));
+            RaisePropertyChanged(nameof(Bruto));
+            RaisePropertyChanged(nameof(ImporteDescuento));
+            RaisePropertyChanged(nameof(BaseImponible));
+            RaisePropertyChanged(nameof(ImporteIva));
+            RaisePropertyChanged(nameof(Total));
+        }
     }
 }
