@@ -358,6 +358,36 @@ Public Class ClientesViewModel
             End Using
         End If
     End Sub
+    ' Nesto#340 (1C.8, slice 3): los últimos 20 seguimientos se leen de la API
+    ' (SeguimientosClientes?empresa=&cliente=&contacto=) en vez de la nav property EF
+    ' clienteActivo.SeguimientoCliente. Diferencia deliberada: la API limita a 3 años
+    ' (para la ficha comercial el top-20 de más de 3 años no aporta).
+    Private Async Sub CargarSeguimientos()
+        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.Nº_Cliente) Then
+            seguimientosOrdenados = Nothing
+            Return
+        End If
+        Try
+            Using client As HttpClient = _clienteApiFactory.Crear()
+                Dim urlConsulta As String = "SeguimientosClientes"
+                urlConsulta += "?empresa=" + If(clienteActivo.Empresa?.Trim, String.Empty)
+                urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente.Trim
+                urlConsulta += "&contacto=" + If(clienteActivo.Contacto?.Trim, String.Empty)
+                Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+                If response.IsSuccessStatusCode Then
+                    Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                    Dim seguimientos = JsonConvert.DeserializeObject(Of List(Of SeguimientoResumen))(respuesta)
+                    seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)(
+                        seguimientos.OrderByDescending(Function(s) s.Fecha).Take(20))
+                Else
+                    seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)()
+                End If
+            End Using
+        Catch ex As Exception
+            seguimientosOrdenados = New ObservableCollection(Of SeguimientoResumen)()
+        End Try
+    End Sub
+
     ' Nesto#340 (1C.8, slice 2): la deuda vencida se lee de la API (ExtractosCliente/DeudaVencida,
     ' misma consulta: empresas 1 y 3, FechaVto pasada, ImportePdte <> 0) en vez de sumar
     ' ExtractoCliente con EF.
@@ -426,7 +456,7 @@ Public Class ClientesViewModel
             If Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
                 If Not IsNothing(clienteActivoDTO) Then
                     cargarVendedoresPorGrupo()
-                    seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
+                    CargarSeguimientos()
                     CargarListaVentas()
                     CargarDeudaVencida()
                 Else
@@ -576,19 +606,14 @@ Public Class ClientesViewModel
     '    End Set
     'End Property
 
-    Private _seguimientosOrdenados As ObservableCollection(Of SeguimientoCliente)
-    Public Property seguimientosOrdenados As ObservableCollection(Of SeguimientoCliente)
+    ' Nesto#340 (1C.8, slice 3): POCO en vez de la entidad EF SeguimientoCliente (la vista solo
+    ' bindea Fecha/Tipo/Vendedor/Comentarios/Usuario).
+    Private _seguimientosOrdenados As ObservableCollection(Of SeguimientoResumen)
+    Public Property seguimientosOrdenados As ObservableCollection(Of SeguimientoResumen)
         Get
-            'If IsNothing(_seguimientosOrdenados) Then
-            '    If Not IsNothing(clienteActivo) Then
-            '        _seguimientosOrdenados = New ObservableCollection(Of SeguimientoCliente)(From c In clienteActivo.SeguimientoCliente Order By c.Fecha Descending Take 20)
-            '    Else
-            '        _seguimientosOrdenados = Nothing
-            '    End If
-            'End If
             Return _seguimientosOrdenados
         End Get
-        Set(value As ObservableCollection(Of SeguimientoCliente))
+        Set(value As ObservableCollection(Of SeguimientoResumen))
             _seguimientosOrdenados = value
             RaisePropertyChanged("seguimientosOrdenados")
         End Set
@@ -1894,6 +1919,18 @@ Public Class datosBancoConverter
         End If
     End Function
 
+End Class
+
+''' <summary>
+''' Nesto#340 (1C.8, slice 3): fila del grid de seguimientos de la ficha de cliente. Los nombres
+''' coinciden con SeguimientoClienteDTO de la API para deserializar sin mapeos.
+''' </summary>
+Public Class SeguimientoResumen
+    Public Property Fecha As Date
+    Public Property Tipo As String
+    Public Property Vendedor As String
+    Public Property Comentarios As String
+    Public Property Usuario As String
 End Class
 
 Public Class lineaVentaAgrupada
