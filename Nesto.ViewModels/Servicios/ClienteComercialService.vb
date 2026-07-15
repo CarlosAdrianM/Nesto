@@ -2,6 +2,7 @@
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
+Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 
@@ -49,5 +50,25 @@ Public Class ClienteComercialService
             End If
         End Using
 
+    End Function
+
+    ''' <summary>
+    ''' Nesto#340 (1C.8, slice 4): ficha completa del cliente desde la API (GET Clientes), con
+    ''' VendedoresGrupoProducto y PersonasContacto. Sustituye a DbContext.Clientes en el VM.
+    ''' </summary>
+    Public Async Function LeerCliente(empresa As String, cliente As String, contacto As String) As Task(Of ClienteJson) Implements IClienteComercialService.LeerCliente
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim urlConsulta As String = "Clientes" +
+                "?empresa=" + Uri.EscapeDataString(If(empresa?.Trim(), String.Empty)) +
+                "&cliente=" + Uri.EscapeDataString(If(cliente?.Trim(), String.Empty)) +
+                "&contacto=" + Uri.EscapeDataString(If(contacto?.Trim(), String.Empty))
+            Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+            If response.IsSuccessStatusCode Then
+                Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+                Return JsonConvert.DeserializeObject(Of ClienteJson)(respuesta)
+            Else
+                Return Nothing
+            End If
+        End Using
     End Function
 End Class

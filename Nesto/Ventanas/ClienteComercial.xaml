@@ -69,17 +69,17 @@
                     <TextBlock Grid.Row="0" Grid.Column="1">
                         <TextBlock.Text>
                             <MultiBinding StringFormat="{}{0}/{1}">
-                                <Binding Path="clienteActivo.Nº_Cliente" />
-                                <Binding Path="clienteActivo.Contacto" />
+                                <Binding Path="clienteActivo.cliente" />
+                                <Binding Path="clienteActivo.contacto" />
                             </MultiBinding>
                         </TextBlock.Text>
                     </TextBlock>
-                    <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding clienteActivo.Estado}" ToolTip="Estado en ficha"></TextBox>
+                    <TextBox Grid.Row="0" Grid.Column="2" Text="{Binding clienteActivo.estado}" ToolTip="Estado en ficha"></TextBox>
                     <TextBlock Grid.Row="1" Grid.Column="0">Teléfono:</TextBlock>
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding clienteActivo.Teléfono}" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding clienteActivo.telefono}" />
                     <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding estadoPeluqueria}" ToolTip="Estado de peluquería"></TextBox>
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding clienteActivo.CCC, Converter={StaticResource bancoConverter}}" />
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding clienteActivo.CCC2.EstadosCCC.Descripción}" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{Binding clienteActivo.ccc, Converter={StaticResource bancoConverter}}" />
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding descripcionEstadoCCC}" />
                     <TextBlock Grid.Row="2" Grid.Column="2">Deuda vencida:</TextBlock>
                     <TextBlock Grid.Row="2" Grid.Column="3" Text="{Binding deudaVencida, StringFormat=c}" Foreground="Red"/>
                     <TextBlock Grid.Row="0" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor en Ficha:</TextBlock>
@@ -87,13 +87,13 @@
                     <TextBlock Grid.Row="1" Grid.Column="3" HorizontalAlignment="Right" Margin="2">Vendedor Peluquería:</TextBlock>
                     <controles:SelectorVendedor Grid.Row="1" Grid.Column="4" Configuracion="{Binding configuracion}" Empresa="{Binding clienteServidor.empresa}" Seleccionado="{Binding vendedorPorGrupo, Mode=TwoWay}" Etiqueta="" Margin="2"></controles:SelectorVendedor>
                     <Button Grid.Row="2" Grid.Column="4" Command="{Binding cmdGuardarVendedores}" Margin="2">Guardar</Button>
-                    <DataGrid Name="dgrPersonasContacto" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContactoCliente}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" SelectionUnit="Cell">
+                    <DataGrid Name="dgrPersonasContacto" Grid.Row="3" Grid.ColumnSpan="5" ItemsSource="{Binding clienteActivo.PersonasContacto}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False" SelectionUnit="Cell">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
+                            <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
-                            <DataGridTextColumn Header="Cargo" Binding="{Binding Cargos.Descripción}" />
-                            <DataGridTextColumn Header="Teléfono" Binding="{Binding Teléfono}" />
-                            <DataGridTextColumn Header="Correo" Binding="{Binding CorreoElectrónico}" Width="2*" />
+                            <DataGridTextColumn Header="Cargo" Binding="{Binding CargoDescripcion}" />
+                            <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" />
+                            <DataGridTextColumn Header="Correo" Binding="{Binding CorreoElectronico}" Width="2*" />
                             <DataGridCheckBoxColumn Header="¿Enviar Boletín?" Binding="{Binding EnviarBoletin}" />
                             <DataGridTextColumn Header="Saludo" Binding="{Binding Saludo}" />
                             <DataGridTextColumn Header="Estado" Binding="{Binding Estado}" />
@@ -101,7 +101,7 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Grid.Column="5" Grid.RowSpan="4" Text="{Binding clienteActivo.Comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
+                    <TextBlock Grid.Column="5" Grid.RowSpan="4" Text="{Binding clienteActivo.comentarios}" Background="Yellow" Padding="3" Margin="3" TextWrapping="Wrap"/>
                 </Grid>
                 <DataGrid Grid.Row="1" ItemsSource="{Binding seguimientosOrdenados}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                     <!-- Seguimientos -->
@@ -153,7 +153,7 @@
                                     x:Name="selectorFacturasCliente"
                                     Grid.Row="0"
                                     Empresa="{Binding clienteServidor.empresa}"
-                                    Cliente="{Binding clienteActivo.Nº_Cliente}"
+                                    Cliente="{Binding clienteActivo.cliente}"
                                     Configuracion="{Binding configuracion}"
                                     FacturasSeleccionadas="{Binding FacturasSeleccionadas, Mode=TwoWay}"
                                     AbrirPedidoAction="{Binding AbrirPedidoAction}"

@@ -43,6 +43,13 @@ Public Class ClienteJson
 
     Public Overridable Property VendedoresGrupoProducto As ObservableCollection(Of VendedorGrupoProductoDTO)
 
+    ''' <summary>
+    ''' Nesto#340 (1C.8, slice 4): personas de contacto que la API devuelve en GET Clientes
+    ''' (empresa/cliente/contacto). Sustituye a la nav property EF PersonasContactoCliente en la
+    ''' ficha comercial (grid + correo de agencia).
+    ''' </summary>
+    Public Property PersonasContacto As ObservableCollection(Of PersonaContactoJson)
+
     Public ReadOnly Property rutaLogo As String
         Get
             If empresa = "1" OrElse empresa = "2" OrElse empresa = "4" OrElse empresa = "5" Then
@@ -90,4 +97,23 @@ Public Class ClienteJson
                 (Not IsNothing(poblacion) AndAlso poblacion.ToLower.Contains(filtro.ToLower)) OrElse
                 (Not IsNothing(comentarios) AndAlso comentarios.ToLower.Contains(filtro.ToLower))
     End Function
+End Class
+
+''' <summary>
+''' Nesto#340 (1C.8, slice 4): persona de contacto tal y como la devuelve la API
+''' (PersonaContactoDTO de NestoAPI). Los nombres coinciden para deserializar sin mapeos.
+''' Cargo 26 = agencia, 22 = factura por correo (reglas de CorreoCliente).
+''' </summary>
+Public Class PersonaContactoJson
+    Public Property Numero As Integer
+    Public Property Nombre As String
+    Public Property CorreoElectronico As String
+    Public Property FacturacionElectronica As Boolean
+    Public Property Telefono As String
+    Public Property Cargo As Short?
+    Public Property CargoDescripcion As String
+    Public Property Comentarios As String
+    Public Property EnviarBoletin As Boolean
+    Public Property Saludo As String
+    Public Property Estado As Short?
 End Class

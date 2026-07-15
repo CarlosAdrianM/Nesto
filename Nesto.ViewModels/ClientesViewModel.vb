@@ -73,6 +73,10 @@ Public Class ClientesViewModel
         configuracion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IConfiguracion))
         _servicioAutenticacion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IServicioAutenticacion))
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
+        ' Nesto#340 (1C.8, slice 4): actualizarCliente carga la ficha por la API en las dos vistas,
+        ' así que el servicio también hace falta en este constructor. cargarDatos no lo usa hasta
+        ' después de su primer Await, cuando ya está asignado.
+        servicio = New ClienteComercialService(configuracion, servicioAutenticacion)
     End Sub
 
     Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
@@ -104,6 +108,22 @@ Public Class ClientesViewModel
         GuardarEfectoDeudaCommand = New DelegateCommand(AddressOf OnGuardarEfectoDeuda, AddressOf CanGuardarEfectoDeuda)
     End Sub
 
+    ' Nesto#340 (1C.8, slice 4): constructor para tests. Inyecta fakes, no toca EF (DbContext
+    ' queda a Nothing) ni el contenedor de Prism, y no dispara cargarDatos. ListaClientesFiltrable
+    ' queda a Nothing a propósito: el setter de clienteActivo no dispara las cargas HTTP en
+    ' cascada. Unity sigue eligiendo el constructor de 6 parámetros (el más largo).
+    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
+        Me.configuracion = configuracion
+        Me.dialogService = dialogService
+        Me.servicio = servicio
+        Me.servicioRapports = servicioRapports
+        Me.servicioAutenticacion = servicioAutenticacion
+        ReclamarDeudaCommand = New DelegateCommand(AddressOf OnReclamarDeuda)
+        AbrirEnlaceReclamacionCommand = New DelegateCommand(AddressOf OnAbrirEnlaceReclamacion, AddressOf CanAbrirEnlaceReclamacion)
+        ConfirmarReclamarDeudaCommand = New DelegateCommand(AddressOf OnConfirmarReclamarDeuda, AddressOf CanConfirmarReclamarDeuda)
+        GuardarEfectoDeudaCommand = New DelegateCommand(AddressOf OnGuardarEfectoDeuda, AddressOf CanGuardarEfectoDeuda)
+    End Sub
+
 #Region "Propiedades"
     Private _titulo As String
     Public Property Titulo As String
@@ -126,7 +146,7 @@ Public Class ClientesViewModel
             If IsNothing(contactoActual) Then
                 Dim unused = CargarClienteActualEmpresa()
             End If
-            actualizarCliente(_empresaActual, clienteActual, contactoActual)
+            ActualizarClienteAsync(_empresaActual, clienteActual, contactoActual)
             RaisePropertyChanged("empresaActual")
         End Set
     End Property
@@ -177,12 +197,10 @@ Public Class ClientesViewModel
         Set(value As String)
             _clienteActual = value
             CargarListaContactos()
-            actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
+            ActualizarClienteAsync(_empresaActual, _clienteActual, _contactoActual)
             RaisePropertyChanged(NameOf(clienteActual))
-            If Not IsNothing(clienteActivo) AndAlso Not IsNothing(clienteActivo.Nº_Cliente) Then
-                Titulo = String.Format("Cliente {0}", clienteActivo.Nº_Cliente.Trim)
-                RaisePropertyChanged(NameOf(Titulo))
-            End If
+            ' Nesto#340 (1C.8, slice 4): el Titulo se pone en actualizarCliente al terminar la
+            ' carga async (aquí clienteActivo aún sería el cliente anterior).
         End Set
     End Property
 
@@ -193,7 +211,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             _contactoActual = value
-            actualizarCliente(_empresaActual, _clienteActual, _contactoActual)
+            ActualizarClienteAsync(_empresaActual, _clienteActual, _contactoActual)
             RaisePropertyChanged("contactoActual")
         End Set
     End Property
@@ -275,7 +293,20 @@ Public Class ClientesViewModel
         Set(value As CCC)
             _cuentaActiva = value
             RaisePropertyChanged("cuentaActiva")
+            RaisePropertyChanged(NameOf(descripcionEstadoCCC))
         End Set
+    End Property
+
+    ' Nesto#340 (1C.8, slice 4): la vista mostraba clienteActivo.CCC2.EstadosCCC.Descripción (dos
+    ' nav properties de EF). Con el POCO, la descripción se calcula con la cuenta activa y la
+    ' lista de estados que ya está cargada.
+    Public ReadOnly Property descripcionEstadoCCC As String
+        Get
+            If IsNothing(cuentaActiva) OrElse IsNothing(listaEstadosCCC) Then
+                Return String.Empty
+            End If
+            Return listaEstadosCCC.FirstOrDefault(Function(e) e.Número = cuentaActiva.Estado)?.Descripción
+        End Get
     End Property
 
     Private _cuentasBanco As ObservableCollection(Of CCC)
@@ -289,73 +320,52 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Sub actualizarCliente(empresa As String, numCliente As String, contacto As String)
-        If Not (IsNothing(empresa) Or IsNothing(numCliente) Or IsNothing(contacto)) Then
-            Dim cliente = (From c In DbContext.Clientes Where c.Empresa = empresa And c.Nº_Cliente = numCliente And c.Contacto = contacto).FirstOrDefault
-            'If IsNothing(cliente) Then 'Si no existe el cliente que tiene en el parámetro
-            '    cliente = (From c In DbContext.Clientes Where c.Empresa = empresa).FirstOrDefault
-            '    numCliente = cliente.Nº_Cliente
-            '    contacto = cliente.Contacto
-            '    clienteActual = numCliente
-            '    contactoActual = contacto
-            'End If
+    ' Nesto#340 (1C.8, slice 4): la ficha del cliente se carga de la API (GET Clientes) en vez de
+    ' DbContext.Clientes, y clienteActivo pasa a ser el DTO. La cuenta activa se localiza por el
+    ' campo escalar ccc (antes nav property CCC2). cuentasBanco sigue en EF hasta el slice 5 (CRUD
+    ' CCC). El Titulo se pone aquí (antes en el setter de clienteActual) porque la carga es async.
+    ' Es Function As Task (no Sub) para que los tests puedan await; los setters la invocan como
+    ' sentencia (fire-and-forget) y la excepción queda capturada aquí dentro.
+    Public Async Function ActualizarClienteAsync(empresa As String, numCliente As String, contacto As String) As Task
+        If IsNothing(empresa) OrElse IsNothing(numCliente) OrElse IsNothing(contacto) Then
+            Return
+        End If
+        Try
+            Dim cliente As ClienteJson = Await servicio.LeerCliente(empresa, numCliente, contacto)
             If Not IsNothing(cliente) Then
-                nombre = cliente.Nombre
-                cuentasBanco = New ObservableCollection(Of CCC)(From c In DbContext.CCC Where c.Empresa = empresa And c.Cliente = numCliente And c.Contacto = contacto)
-                If Not IsNothing(cliente.CCC2) Then
-                    cuentaActiva = cuentasBanco.Where(Function(x) x.Número = cliente.CCC2.Número).FirstOrDefault
+                nombre = cliente.nombre
+                If Not IsNothing(DbContext) Then ' Nothing en tests; el slice 5 retirará esta consulta EF
+                    cuentasBanco = New ObservableCollection(Of CCC)(From c In DbContext.CCC Where c.Empresa = empresa And c.Cliente = numCliente And c.Contacto = contacto)
+                End If
+                If Not String.IsNullOrWhiteSpace(cliente.ccc) AndAlso Not IsNothing(cuentasBanco) Then
+                    cuentaActiva = cuentasBanco.Where(Function(x) x.Número.Trim = cliente.ccc.Trim).FirstOrDefault
                 End If
                 clienteActivo = cliente
+                If Not IsNothing(cliente.cliente) Then
+                    Titulo = String.Format("Cliente {0}", cliente.cliente.Trim)
+                End If
                 extractoCCC = Nothing
                 pedidosCCC = Nothing
             End If
-        End If
-    End Sub
+        Catch ex As Exception
+            mensajeError = ex.Message
+        End Try
+    End Function
 
-    Private Async Sub cargarVendedoresPorGrupo()
+    ' Nesto#340 (1C.8, slice 4): clienteActivo YA ES la ficha completa de la API (incluye
+    ' VendedoresGrupoProducto), así que no hace falta una segunda llamada: clienteServidor se
+    ' unifica con clienteActivo.
+    Private Sub cargarVendedoresPorGrupo()
         If IsNothing(clienteActivo) Then
             Return
         End If
-        ' Calculamos el vendedor de peluquería
-        If IsNothing(clienteServidor) OrElse clienteServidor.empresa <> clienteActivo.Empresa OrElse clienteServidor.cliente <> clienteActivo.Nº_Cliente OrElse clienteServidor.contacto <> clienteActivo.Contacto Then
-            Using client As HttpClient = _clienteApiFactory.Crear()
-                Dim response As HttpResponseMessage
-                Dim respuesta As String = ""
-                Dim vendedorConsulta As String = vendedor
-
-
-                Try
-                    Dim urlConsulta As String = "Clientes"
-                    urlConsulta += "?empresa=" + clienteActivo.Empresa
-                    urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
-                    urlConsulta += "&contacto=" + clienteActivo.Contacto
-
-                    response = Await client.GetAsync(urlConsulta)
-
-                    If response.IsSuccessStatusCode Then
-                        respuesta = Await response.Content.ReadAsStringAsync()
-                    Else
-                        respuesta = ""
-                    End If
-
-                Catch ex As Exception
-                    Throw New Exception("No se ha podido recuperar el cliente desde el servidor")
-                Finally
-
-                End Try
-
-                clienteServidor = JsonConvert.DeserializeObject(Of ClienteJson)(respuesta)
-                If Not IsNothing(clienteServidor) AndAlso Not IsNothing(clienteServidor.VendedoresGrupoProducto) AndAlso clienteServidor.VendedoresGrupoProducto.Count > 0 Then
-                    vendedorPorGrupo = clienteServidor.VendedoresGrupoProducto.ElementAt(0).vendedor
-                    estadoPeluqueria = clienteServidor.VendedoresGrupoProducto.ElementAt(0).estado
-                Else
-                    vendedorPorGrupo = Nothing
-                    estadoPeluqueria = Nothing
-                End If
-
-
-
-            End Using
+        clienteServidor = clienteActivo
+        If Not IsNothing(clienteServidor.VendedoresGrupoProducto) AndAlso clienteServidor.VendedoresGrupoProducto.Count > 0 Then
+            vendedorPorGrupo = clienteServidor.VendedoresGrupoProducto.ElementAt(0).vendedor
+            estadoPeluqueria = clienteServidor.VendedoresGrupoProducto.ElementAt(0).estado
+        Else
+            vendedorPorGrupo = Nothing
+            estadoPeluqueria = Nothing
         End If
     End Sub
     ' Nesto#340 (1C.8, slice 3): los últimos 20 seguimientos se leen de la API
@@ -363,16 +373,16 @@ Public Class ClientesViewModel
     ' clienteActivo.SeguimientoCliente. Diferencia deliberada: la API limita a 3 años
     ' (para la ficha comercial el top-20 de más de 3 años no aporta).
     Private Async Sub CargarSeguimientos()
-        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.Nº_Cliente) Then
+        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.cliente) Then
             seguimientosOrdenados = Nothing
             Return
         End If
         Try
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "SeguimientosClientes"
-                urlConsulta += "?empresa=" + If(clienteActivo.Empresa?.Trim, String.Empty)
-                urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente.Trim
-                urlConsulta += "&contacto=" + If(clienteActivo.Contacto?.Trim, String.Empty)
+                urlConsulta += "?empresa=" + If(clienteActivo.empresa?.Trim, String.Empty)
+                urlConsulta += "&cliente=" + clienteActivo.cliente.Trim
+                urlConsulta += "&contacto=" + If(clienteActivo.contacto?.Trim, String.Empty)
                 Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = Await response.Content.ReadAsStringAsync()
@@ -392,15 +402,15 @@ Public Class ClientesViewModel
     ' misma consulta: empresas 1 y 3, FechaVto pasada, ImportePdte <> 0) en vez de sumar
     ' ExtractoCliente con EF.
     Private Async Sub CargarDeudaVencida()
-        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.Nº_Cliente) Then
+        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.cliente) Then
             deudaVencida = 0
             Return
         End If
         Try
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "ExtractosCliente/DeudaVencida"
-                urlConsulta += "?cliente=" + clienteActivo.Nº_Cliente.Trim
-                urlConsulta += "&contacto=" + If(clienteActivo.Contacto?.Trim, String.Empty)
+                urlConsulta += "?cliente=" + clienteActivo.cliente.Trim
+                urlConsulta += "&contacto=" + If(clienteActivo.contacto?.Trim, String.Empty)
                 Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
                 If response.IsSuccessStatusCode Then
                     Dim respuesta As String = Await response.Content.ReadAsStringAsync()
@@ -419,15 +429,15 @@ Public Class ClientesViewModel
     ' consulta antigua: empresas 1 y 3, Estado >= 2, agrupado por producto con suma de
     ' cantidades y fecha de última venta. Sin fechaDesde devuelve las ventas de siempre.
     Private Async Sub CargarListaVentas()
-        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.Nº_Cliente) Then
+        If IsNothing(clienteActivo) OrElse IsNothing(clienteActivo.cliente) Then
             listaVentas = Nothing
             Return
         End If
         Try
             Using client As HttpClient = _clienteApiFactory.Crear()
                 Dim urlConsulta As String = "ventascliente/productos"
-                urlConsulta += "?clienteId=" + clienteActivo.Nº_Cliente.Trim
-                urlConsulta += "&contacto=" + If(clienteActivo.Contacto?.Trim, String.Empty)
+                urlConsulta += "?clienteId=" + clienteActivo.cliente.Trim
+                urlConsulta += "&contacto=" + If(clienteActivo.contacto?.Trim, String.Empty)
                 If rangoFechasVenta <> "System.Windows.Controls.ComboBoxItem: Ventas de siempre" Then 'esto está fatal, hay que desacoplarlo de la vista
                     urlConsulta += "&fechaDesde=" + Date.Now.AddYears(-1).ToString("s")
                 End If
@@ -445,12 +455,14 @@ Public Class ClientesViewModel
         End Try
     End Sub
 
-    Private _clienteActivo As Clientes
-    Public Property clienteActivo As Clientes
+    ' Nesto#340 (1C.8, slice 4): POCO de la API en vez de la entidad EF Clientes. Es la misma
+    ' ficha que clienteServidor (se cargan de una sola llamada en actualizarCliente).
+    Private _clienteActivo As ClienteJson
+    Public Property clienteActivo As ClienteJson
         Get
             Return _clienteActivo
         End Get
-        Set(value As Clientes)
+        Set(value As ClienteJson)
             _clienteActivo = value
 
             If Not IsNothing(ListaClientesFiltrable) AndAlso Not IsNothing(ListaClientesFiltrable.Lista) Then
@@ -495,8 +507,10 @@ Public Class ClientesViewModel
         End Get
         Set(value As ClienteJson)
             _clienteActivoDTO = value
+            ' Nesto#340 (1C.8, slice 4): la ficha completa se carga de la API (el DTO de la lista
+            ' no trae VendedoresGrupoProducto ni PersonasContacto), ya no se consulta EF.
             If Not IsNothing(clienteActivoDTO) Then
-                clienteActivo = DbContext.Clientes.SingleOrDefault(Function(c) c.Empresa = clienteActivoDTO.empresa AndAlso c.Nº_Cliente = clienteActivoDTO.cliente AndAlso c.Contacto = clienteActivoDTO.contacto)
+                ActualizarClienteAsync(clienteActivoDTO.empresa, clienteActivoDTO.cliente, clienteActivoDTO.contacto)
             Else
                 clienteActivo = Nothing
             End If
@@ -1211,9 +1225,14 @@ Public Class ClientesViewModel
                 Dim respuesta As String = ""
 
                 Dim urlConsulta As String = "Clientes/ClienteComercial"
-                clienteServidor.estado = clienteActivo.Estado
+                clienteServidor.estado = clienteActivo.estado
                 clienteServidor.usuario = configuracion.usuario
-                Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(clienteServidor), Encoding.UTF8, "application/json")
+                ' Nesto#340 (1C.8, slice 4): el PUT solo gestiona vendedores; quitamos
+                ' PersonasContacto del payload para que el [EmailAddress] del DTO del servidor no
+                ' devuelva 400 por correos mal grabados en fichas antiguas.
+                Dim payload As Newtonsoft.Json.Linq.JObject = Newtonsoft.Json.Linq.JObject.FromObject(clienteServidor)
+                Dim unused = payload.Remove("PersonasContacto")
+                Dim content As HttpContent = New StringContent(payload.ToString(), Encoding.UTF8, "application/json")
 
                 response = client.PutAsync(urlConsulta, content).Result
 
@@ -1415,9 +1434,9 @@ Public Class ClientesViewModel
             End If
 
             Dim solicitud = New With {
-                .Empresa = clienteActivo?.Empresa.Trim(),
-                .Cliente = clienteActivo?.Nº_Cliente.Trim(),
-                .Contacto = clienteActivo?.Contacto?.Trim(),
+                .Empresa = clienteActivo?.empresa.Trim(),
+                .Cliente = clienteActivo?.cliente.Trim(),
+                .Contacto = clienteActivo?.contacto?.Trim(),
                 .Importe = ImporteReclamarDeuda,
                 .Descripcion = AsuntoReclamarDeuda,
                 .Correo = CorreoReclamarDeuda,
@@ -1442,13 +1461,13 @@ Public Class ClientesViewModel
                     Else
                         ' Motor Paygold: enviar también por P2F para que el cliente reciba SMS/correo
                         Dim reclamacion As New ReclamacionDeuda With {
-                            .Cliente = clienteActivo?.Nº_Cliente.Trim(),
+                            .Cliente = clienteActivo?.cliente.Trim(),
                             .Asunto = AsuntoReclamarDeuda,
                             .Correo = CorreoReclamarDeuda,
                             .Importe = ImporteReclamarDeuda,
                             .Movil = MovilReclamarDeuda,
                             .Nombre = NombreReclamarDeuda,
-                            .Direccion = clienteActivo.Dirección,
+                            .Direccion = clienteActivo.direccion,
                             .TextoSMS = "Este es un mensaje de @COMERCIO@. Puede pagar el importe pendiente de @IMPORTE@ @MONEDA@ aquí: @URL@"
                         }
                         Dim reclamacionJson As String = JsonConvert.SerializeObject(reclamacion)
@@ -1609,7 +1628,7 @@ Public Class ClientesViewModel
     End Function
 
     Private Async Sub CargarFacturas()
-        If IsNothing(clienteActivo) OrElse (ListaFacturas IsNot Nothing AndAlso clienteActivo.Nº_Cliente?.Trim() = ListaFacturas.FirstOrDefault()?.Cliente) Then
+        If IsNothing(clienteActivo) OrElse (ListaFacturas IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaFacturas.FirstOrDefault()?.Cliente) Then
             Return
         End If
 
@@ -1620,8 +1639,8 @@ Public Class ClientesViewModel
 
             Try
                 Dim urlConsulta As String = "ExtractosCliente"
-                urlConsulta += "?empresa=" + clienteActivo.Empresa
-                urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
+                urlConsulta += "?empresa=" + clienteActivo.empresa
+                urlConsulta += "&cliente=" + clienteActivo.cliente
                 urlConsulta += "&tipoApunte=1"
                 If EsUsuarioAdministracion Then
                     urlConsulta += "&fechaDesde=" + Date.Today.AddMonths(-72).ToString("s")
@@ -1684,7 +1703,7 @@ Public Class ClientesViewModel
     End Function
 
     Private Async Sub CargarPedidos()
-        If IsNothing(clienteActivo) OrElse (ListaPedidos IsNot Nothing AndAlso clienteActivo.Nº_Cliente?.Trim() = ListaPedidos.FirstOrDefault()?.cliente) Then
+        If IsNothing(clienteActivo) OrElse (ListaPedidos IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaPedidos.FirstOrDefault()?.cliente) Then
             Return
         End If
 
@@ -1702,7 +1721,7 @@ Public Class ClientesViewModel
                 Else
                     urlConsulta += "?vendedor="
                 End If
-                urlConsulta += "&cliente=" + clienteActivo.Nº_Cliente
+                urlConsulta += "&cliente=" + clienteActivo.cliente
 
                 response = Await client.GetAsync(urlConsulta)
 
@@ -1725,7 +1744,7 @@ Public Class ClientesViewModel
     End Sub
 
     Private Async Sub CargarDeudas()
-        If IsNothing(clienteActivo) OrElse (ListaDeudas IsNot Nothing AndAlso clienteActivo.Nº_Cliente?.Trim() = ListaDeudas.FirstOrDefault()?.Cliente) Then
+        If IsNothing(clienteActivo) OrElse (ListaDeudas IsNot Nothing AndAlso clienteActivo.cliente?.Trim() = ListaDeudas.FirstOrDefault()?.Cliente) Then
             Return
         End If
 
@@ -1735,7 +1754,7 @@ Public Class ClientesViewModel
 
             Try
                 Dim urlConsulta As String = "ExtractosCliente"
-                urlConsulta += "?cliente=" + clienteActivo.Nº_Cliente
+                urlConsulta += "?cliente=" + clienteActivo.cliente
 
                 response = Await client.GetAsync(urlConsulta)
 
@@ -1760,9 +1779,21 @@ Public Class ClientesViewModel
             ActualizarAsuntoPorDefecto() ' NestoAPI#295: las vencidas vienen preseleccionadas
         End Using
 
-        Dim correo As New CorreoCliente(clienteActivo.PersonasContactoCliente)
+        ' Nesto#340 (1C.8, slice 4): las personas de contacto vienen en la ficha de la API con su
+        ' Cargo real; se mapean a la entidad-contenedor que espera CorreoCliente (mismo patrón que
+        ' PlantillaVenta, sin consultar EF).
+        Dim personasContacto As New List(Of PersonasContactoCliente)
+        If Not IsNothing(clienteActivo.PersonasContacto) Then
+            For Each persona In clienteActivo.PersonasContacto
+                personasContacto.Add(New PersonasContactoCliente With {
+                    .Cargo = If(persona.Cargo, 0),
+                    .CorreoElectrónico = persona.CorreoElectronico
+                })
+            Next
+        End If
+        Dim correo As New CorreoCliente(personasContacto)
         CorreoReclamarDeuda = correo.CorreoAgencia ' TODO: desarrollar correo deuda
-        Dim telefono As New Telefono(clienteActivo.Teléfono)
+        Dim telefono As New Telefono(clienteActivo.telefono)
         MovilReclamarDeuda = telefono.MovilUnico
 
         CargarHistorialPagos()
@@ -1784,8 +1815,8 @@ Public Class ClientesViewModel
                     Return
                 End If
 
-                Dim empresa = clienteActivo.Empresa?.Trim()
-                Dim cliente = clienteActivo.Nº_Cliente?.Trim()
+                Dim empresa = clienteActivo.empresa?.Trim()
+                Dim cliente = clienteActivo.cliente?.Trim()
                 Dim response = Await client.GetAsync($"Pagos/Cliente/{empresa}/{cliente}")
 
                 If response.IsSuccessStatusCode Then
