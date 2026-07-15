@@ -83,6 +83,11 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/MontarKitProductos?traspaso={traspaso}",
                 "los productos del kit a montar").ConfigureAwait(false);
 
+        public async Task<byte[]> DescargarMontarKitProductosPdf(int traspaso)
+            => await GetBytesAsync(
+                $"Informes/MontarKitProductos/Pdf?traspaso={traspaso}",
+                "el PDF del kit a montar").ConfigureAwait(false);
+
         public async Task<List<ManifiestoAgenciaModel>> LeerManifiestoAgencia(string empresa, int agencia, DateTime fecha)
             => await GetAsync<List<ManifiestoAgenciaModel>>(
                 $"Informes/ManifiestoAgencia?empresa={Uri.EscapeDataString(empresa)}&agencia={agencia}&fecha={fecha:yyyy-MM-dd}",

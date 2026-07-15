@@ -1,5 +1,4 @@
 ﻿using ControlesUsuario.Dialogs;
-using Microsoft.Reporting.NETCore;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
@@ -704,15 +703,12 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
+        // Nesto#340 (Fase 2 RDLC→QuestPDF): el PDF se genera en NestoAPI y se descarga, en vez de
+        // renderizar MontarKitProductos.rdlc en local. Informe interno de almacén → switch directo
+        // sin flag (la lección del flag aplica a los informes que salen al cliente/almacén externo).
         private static async Task AbrirInformeMontarKitProductos(int traspaso, Nesto.Infrastructure.Services.InformesService servicioInformes)
         {
-            List<Informes.MontarKitProductosModel> dataSource = await servicioInformes.LeerMontarKitProductos(traspaso);
-            List<ReportParameter> listaParametros =
-                    [
-                        new ReportParameter("Traspaso", traspaso.ToString()),
-                    ];
-            byte[] pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-                "Nesto.Informes.MontarKitProductos.rdlc", "MontarKitProductosDataSet", dataSource, listaParametros);
+            byte[] pdf = await servicioInformes.DescargarMontarKitProductosPdf(traspaso);
             string fileName = Path.GetTempPath() + "InformeMontarKitProductos.pdf";
             File.WriteAllBytes(fileName, pdf);
             _ = Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
