@@ -95,16 +95,20 @@
                                 <Button Grid.Column="1" Command="{Binding LimpiarDireccionCommand}" Visibility="{Binding TieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}" FontFamily="Segoe UI Symbol" Content="&#xE104;"></Button>
                             </Grid>
                             <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right" ToolTip="Poner solo tipo de vía, nombre de la vía y número. Ejemplo: Paseo de la Castellana, 110" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">Dirección (solo calle y número)</TextBlock>
-                            <TextBox Name="txtDireccion" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteDireccionCalleNumero, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtDireccion_KeyUp" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
-                            <!-- Nesto#409: combo de sugerencias de direcciones (Google Places vía NestoAPI) -->
+                            <TextBox Name="txtDireccion" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteDireccionCalleNumero, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtDireccion_KeyUp" PreviewKeyDown="TxtDireccion_PreviewKeyDown" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
+                            <!-- Nesto#409: combo de sugerencias de direcciones (Google Places vía NestoAPI).
+                                 El foco se queda en el TextBox: ↑/↓ mueven el resaltado, Intro aplica,
+                                 Escape cierra (TxtDireccion_PreviewKeyDown); el clic aplica directamente. -->
                             <Popup PlacementTarget="{Binding ElementName=txtDireccion}" Placement="Bottom"
                                    IsOpen="{Binding HaySugerenciasDireccion, Mode=TwoWay}" StaysOpen="False"
+                                   Focusable="False"
                                    Width="{Binding ActualWidth, ElementName=txtDireccion}">
                                 <Border Background="White" BorderBrush="Gray" BorderThickness="1">
                                     <StackPanel>
-                                        <ListBox ItemsSource="{Binding SugerenciasDireccion}"
+                                        <ListBox Name="lstSugerenciasDireccion" ItemsSource="{Binding SugerenciasDireccion}"
                                                  SelectedItem="{Binding SugerenciaDireccionSeleccionada, Mode=TwoWay}"
-                                                 DisplayMemberPath="Descripcion" MaxHeight="200" BorderThickness="0"/>
+                                                 DisplayMemberPath="Descripcion" MaxHeight="200" BorderThickness="0"
+                                                 PreviewMouseLeftButtonUp="LstSugerenciasDireccion_PreviewMouseLeftButtonUp"/>
                                         <TextBlock Text="Powered by Google" FontSize="10" Foreground="Gray"
                                                    HorizontalAlignment="Right" Margin="3,1"/>
                                     </StackPanel>

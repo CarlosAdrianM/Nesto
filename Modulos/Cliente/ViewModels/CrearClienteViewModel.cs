@@ -109,17 +109,46 @@ namespace Nesto.Modulos.Cliente
             set { SetProperty(ref haySugerenciasDireccion, value); }
         }
 
+        // Solo RESALTA (flechas del teclado o hover); aplicar es cosa de Intro o del clic, para
+        // que se pueda navegar por la lista sin disparar la selección a cada movimiento.
         private SugerenciaDireccionModel sugerenciaDireccionSeleccionada;
         public SugerenciaDireccionModel SugerenciaDireccionSeleccionada
         {
             get { return sugerenciaDireccionSeleccionada; }
-            set
+            set { SetProperty(ref sugerenciaDireccionSeleccionada, value); }
+        }
+
+        /// <summary>Mueve el resaltado con las flechas (delta ±1), sin salirse de la lista.</summary>
+        public void MoverSeleccionSugerencias(int delta)
+        {
+            if (!HaySugerenciasDireccion || SugerenciasDireccion.Count == 0)
             {
-                if (SetProperty(ref sugerenciaDireccionSeleccionada, value) && value != null)
-                {
-                    _ = AplicarSugerenciaDireccionAsync(value);
-                }
+                return;
             }
+            int indice = SugerenciaDireccionSeleccionada == null
+                ? -1
+                : SugerenciasDireccion.IndexOf(SugerenciaDireccionSeleccionada);
+            int nuevo = System.Math.Max(0, System.Math.Min(SugerenciasDireccion.Count - 1, indice + delta));
+            SugerenciaDireccionSeleccionada = SugerenciasDireccion[nuevo];
+        }
+
+        /// <summary>Aplica la sugerencia resaltada (Intro o clic). Devuelve si había algo que aplicar.</summary>
+        public async Task<bool> AplicarSugerenciaSeleccionadaAsync()
+        {
+            if (!HaySugerenciasDireccion || SugerenciaDireccionSeleccionada == null)
+            {
+                return false;
+            }
+            await AplicarSugerenciaDireccionAsync(SugerenciaDireccionSeleccionada);
+            return true;
+        }
+
+        /// <summary>Cierra el combo sin aplicar nada (Escape o pérdida de foco).</summary>
+        public void CerrarSugerenciasDireccion()
+        {
+            SugerenciasDireccion.Clear();
+            HaySugerenciasDireccion = false;
+            SugerenciaDireccionSeleccionada = null;
         }
 
         private async void BuscarSugerenciasDireccionConDebounce(string texto)

@@ -76,6 +76,64 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public void MoverSeleccionSugerencias_ConFlechas_RecorreLaListaSinSalirse()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var s1 = new SugerenciaDireccionModel { PlaceId = "1" };
+            var s2 = new SugerenciaDireccionModel { PlaceId = "2" };
+            vm.SugerenciasDireccion.Add(s1);
+            vm.SugerenciasDireccion.Add(s2);
+            vm.HaySugerenciasDireccion = true;
+
+            vm.MoverSeleccionSugerencias(1);   // sin resaltado previo → la primera
+            Assert.AreSame(s1, vm.SugerenciaDireccionSeleccionada);
+
+            vm.MoverSeleccionSugerencias(1);   // baja a la segunda
+            Assert.AreSame(s2, vm.SugerenciaDireccionSeleccionada);
+
+            vm.MoverSeleccionSugerencias(1);   // en la última, no se sale
+            Assert.AreSame(s2, vm.SugerenciaDireccionSeleccionada);
+
+            vm.MoverSeleccionSugerencias(-1);  // sube
+            Assert.AreSame(s1, vm.SugerenciaDireccionSeleccionada);
+
+            vm.MoverSeleccionSugerencias(-1);  // en la primera, no se sale
+            Assert.AreSame(s1, vm.SugerenciaDireccionSeleccionada);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaSeleccionada_ConResaltada_AplicaYDevuelveTrue()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ444", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var sugerencia = new SugerenciaDireccionModel { PlaceId = "ChIJ444" };
+            vm.SugerenciasDireccion.Add(sugerencia);
+            vm.HaySugerenciasDireccion = true;
+            vm.SugerenciaDireccionSeleccionada = sugerencia; // solo resalta, NO aplica
+
+            Assert.IsNull(vm.ClienteCodigoPostal, "Resaltar no debe aplicar nada");
+
+            bool aplicada = await vm.AplicarSugerenciaSeleccionadaAsync();
+
+            Assert.IsTrue(aplicada);
+            Assert.AreEqual("Calle Mayor, 1", vm.ClienteDireccionCalleNumero);
+            Assert.AreEqual("28001", vm.ClienteCodigoPostal);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaSeleccionada_SinResaltada_DevuelveFalseSinLlamarAlServicio()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.HaySugerenciasDireccion = true;
+
+            bool aplicada = await vm.AplicarSugerenciaSeleccionadaAsync();
+
+            Assert.IsFalse(aplicada);
+            A.CallTo(() => Servicio.LeerDetalleDireccion(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_BloqueaElNombreSiEsUnCif()
         {
             var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);

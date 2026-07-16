@@ -101,6 +101,48 @@ namespace Nesto.Modulos.Cliente
             }));
         }
 
+        // Nesto#409: navegación por teclado del combo de sugerencias SIN sacar el foco del
+        // TextBox: ↑/↓ mueven el resaltado, Intro aplica la resaltada, Escape cierra.
+        private void TxtDireccion_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (!(DataContext is CrearClienteViewModel vm) || !vm.HaySugerenciasDireccion)
+            {
+                return;
+            }
+
+            switch (e.Key)
+            {
+                case Key.Down:
+                    vm.MoverSeleccionSugerencias(1);
+                    lstSugerenciasDireccion.ScrollIntoView(vm.SugerenciaDireccionSeleccionada);
+                    e.Handled = true;
+                    break;
+                case Key.Up:
+                    vm.MoverSeleccionSugerencias(-1);
+                    lstSugerenciasDireccion.ScrollIntoView(vm.SugerenciaDireccionSeleccionada);
+                    e.Handled = true;
+                    break;
+                case Key.Escape:
+                    vm.CerrarSugerenciasDireccion();
+                    e.Handled = true;
+                    break;
+                case Key.Enter:
+                    // Aplica la resaltada; el KeyUp de siempre moverá el foco al siguiente campo
+                    _ = vm.AplicarSugerenciaSeleccionadaAsync();
+                    break;
+            }
+        }
+
+        // Nesto#409: el clic en una sugerencia la aplica (la selección por sí sola es solo resaltado)
+        private async void LstSugerenciasDireccion_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is CrearClienteViewModel vm)
+            {
+                _ = await vm.AplicarSugerenciaSeleccionadaAsync();
+                Keyboard.Focus(txtDireccion); // devolver el teclado al TextBox
+            }
+        }
+
         private void TxtDireccion_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter && e.OriginalSource is UIElement uiElement)
