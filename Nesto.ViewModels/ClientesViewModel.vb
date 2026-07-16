@@ -285,12 +285,14 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private _cuentaActiva As CCC
-    Public Property cuentaActiva As CCC
+    ' Nesto#340 (1C.8, slice 5): la cuenta activa deja de ser la entidad EF y pasa al POCO
+    ' CCCModel (mismos nombres de propiedad que bindea la vista, con dirty flag propio).
+    Private _cuentaActiva As CCCModel
+    Public Property cuentaActiva As CCCModel
         Get
             Return _cuentaActiva
         End Get
-        Set(value As CCC)
+        Set(value As CCCModel)
             _cuentaActiva = value
             RaisePropertyChanged("cuentaActiva")
             RaisePropertyChanged(NameOf(descripcionEstadoCCC))
@@ -309,12 +311,12 @@ Public Class ClientesViewModel
         End Get
     End Property
 
-    Private _cuentasBanco As ObservableCollection(Of CCC)
-    Public Property cuentasBanco As ObservableCollection(Of CCC)
+    Private _cuentasBanco As ObservableCollection(Of CCCModel)
+    Public Property cuentasBanco As ObservableCollection(Of CCCModel)
         Get
             Return _cuentasBanco
         End Get
-        Set(value As ObservableCollection(Of CCC))
+        Set(value As ObservableCollection(Of CCCModel))
             _cuentasBanco = value
             RaisePropertyChanged("cuentasBanco")
         End Set
@@ -322,8 +324,9 @@ Public Class ClientesViewModel
 
     ' Nesto#340 (1C.8, slice 4): la ficha del cliente se carga de la API (GET Clientes) en vez de
     ' DbContext.Clientes, y clienteActivo pasa a ser el DTO. La cuenta activa se localiza por el
-    ' campo escalar ccc (antes nav property CCC2). cuentasBanco sigue en EF hasta el slice 5 (CRUD
-    ' CCC). El Titulo se pone aquí (antes en el setter de clienteActual) porque la carga es async.
+    ' campo escalar ccc (antes nav property CCC2). Slice 5: cuentasBanco también viene de la API
+    ' (GET Clientes/CCCs) como POCOs con dirty flag; ya no queda EF en la carga de la ficha.
+    ' El Titulo se pone aquí (antes en el setter de clienteActual) porque la carga es async.
     ' Es Function As Task (no Sub) para que los tests puedan await; los setters la invocan como
     ' sentencia (fire-and-forget) y la excepción queda capturada aquí dentro.
     Public Async Function ActualizarClienteAsync(empresa As String, numCliente As String, contacto As String) As Task
@@ -334,9 +337,8 @@ Public Class ClientesViewModel
             Dim cliente As ClienteJson = Await servicio.LeerCliente(empresa, numCliente, contacto)
             If Not IsNothing(cliente) Then
                 nombre = cliente.nombre
-                If Not IsNothing(DbContext) Then ' Nothing en tests; el slice 5 retirará esta consulta EF
-                    cuentasBanco = New ObservableCollection(Of CCC)(From c In DbContext.CCC Where c.Empresa = empresa And c.Cliente = numCliente And c.Contacto = contacto)
-                End If
+                Dim cccs As List(Of CCCModel) = Await servicio.LeerCCCs(empresa, numCliente, contacto)
+                cuentasBanco = New ObservableCollection(Of CCCModel)(If(cccs, New List(Of CCCModel)))
                 If Not String.IsNullOrWhiteSpace(cliente.ccc) AndAlso Not IsNothing(cuentasBanco) Then
                     cuentaActiva = cuentasBanco.Where(Function(x) x.Número.Trim = cliente.ccc.Trim).FirstOrDefault
                 End If
@@ -541,14 +543,18 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private Property _listaEstadosCCC As ObservableCollection(Of EstadosCCC)
-    Public Property listaEstadosCCC As ObservableCollection(Of EstadosCCC)
+    ' Nesto#340 (1C.8, slice 5): estados de CCC desde la API (POCO con Número/Descripción, los
+    ' nombres que bindea la vista). Como la carga ahora es async, se notifica también la
+    ' descripción del estado por si la ficha se cargó antes que el catálogo.
+    Private Property _listaEstadosCCC As ObservableCollection(Of EstadoCCCModel)
+    Public Property listaEstadosCCC As ObservableCollection(Of EstadoCCCModel)
         Get
             Return _listaEstadosCCC
         End Get
-        Set(value As ObservableCollection(Of EstadosCCC))
+        Set(value As ObservableCollection(Of EstadoCCCModel))
             _listaEstadosCCC = value
             RaisePropertyChanged("listaEstadosCCC")
+            RaisePropertyChanged(NameOf(descripcionEstadoCCC))
         End Set
     End Property
 
@@ -732,12 +738,14 @@ Public Class ClientesViewModel
 
     Public Property listaCodigosPostalesVendedor As List(Of String)
 
-    Private _extractoCCC As ObservableCollection(Of ExtractoCliente)
-    Public Property extractoCCC() As ObservableCollection(Of ExtractoCliente)
+    ' Nesto#340 (1C.8, slice 5): los avisos de efectos con otro CCC vienen del PUT Clientes/CCCs
+    ' como POCO ligero (FechaVto/Concepto/ImportePdte/CCC, lo único que bindea el grid).
+    Private _extractoCCC As ObservableCollection(Of ExtractoCCCModel)
+    Public Property extractoCCC() As ObservableCollection(Of ExtractoCCCModel)
         Get
             Return _extractoCCC
         End Get
-        Set(ByVal value As ObservableCollection(Of ExtractoCliente))
+        Set(ByVal value As ObservableCollection(Of ExtractoCCCModel))
             _extractoCCC = value
             RaisePropertyChanged("extractoCCC")
             RaisePropertyChanged("estaVisibleExtractoCCC")
@@ -1020,28 +1028,45 @@ Public Class ClientesViewModel
             Return _cmdGuardar
         End Get
     End Property
+    ' Nesto#340 (1C.8, slice 5): el dirty pasa del ChangeTracker de EF al flag EsModificado de
+    ' los POCOs CCCModel (mismo patrón que AlquilerModel en 1C.3).
     Private Function CanGuardar(ByVal param As Object) As Boolean
-        Return Not IsNothing(cuentaActiva) AndAlso DbContext.ChangeTracker.HasChanges() AndAlso (File.Exists(rutaMandato) OrElse (cuentaActiva.Estado <> 5 And cuentaActiva.Estado <> 1))
+        Return Not IsNothing(cuentaActiva) AndAlso Not IsNothing(cuentasBanco) AndAlso
+            cuentasBanco.Any(Function(c) c.EsModificado) AndAlso
+            (File.Exists(rutaMandato) OrElse (cuentaActiva.Estado <> 5 And cuentaActiva.Estado <> 1))
     End Function
-    Private Sub Guardar(ByVal param As Object)
+    ' Nesto#340 (1C.8, slice 5): guardar pasa por PUT api/Clientes/CCCs. El servidor hace el
+    ' upsert de los CCC modificados y devuelve los avisos (efectos pendientes y pedidos abiertos
+    ' que apuntan a OTRO CCC) que antes calculaba este VM con dos consultas EF.
+    Private Async Sub Guardar(ByVal param As Object)
         Try
-            'Dim changes As IEnumerable(Of System.Data.Objects.ObjectStateEntry) = DbContext.ObjectStateManager.GetObjectStateEntries(System.Data.EntityState.Added Or System.Data.EntityState.Modified)
-
             ' Nesto#396: sin cuenta activa no hay nada que guardar. CanGuardar ya lo filtra, pero el comando
             ' puede dispararse en un teardown con cuentaActiva ya a Nothing; sin esta guarda, cuentaActiva.Número
             ' abajo lanza NRE.
-            If IsNothing(cuentaActiva) Then
+            If IsNothing(cuentaActiva) OrElse IsNothing(cuentasBanco) Then
                 Return
             End If
 
-            extractoCCC = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual AndAlso e.Número = clienteActual AndAlso e.Contacto = contactoActual AndAlso e.ImportePdte <> 0 AndAlso e.CCC <> cuentaActiva.Número)
-            pedidosCCC = New ObservableCollection(Of cabeceraPedidoAgrupada)((From p In DbContext.CabPedidoVta Join l In DbContext.LinPedidoVta On p.Empresa Equals l.Empresa And p.Número Equals l.Número Where p.Empresa = empresaActual AndAlso p.Nº_Cliente = clienteActual AndAlso (p.CCC <> cuentaActiva.Número Or p.CCC Is Nothing) AndAlso l.Estado >= -1 AndAlso l.Estado <= 1 Select New cabeceraPedidoAgrupada With {.CCC = p.CCC,
-                .Fecha = p.Fecha,
-                .Numero = p.Número}).Distinct)
+            Dim modificados = cuentasBanco.Where(Function(c) c.EsModificado).ToList()
+            If Not modificados.Any() Then
+                Return
+            End If
 
-            ' hay que comprobar que no se queden dos CCC activos del mismo cliente
+            Dim peticion As New GuardarCCCsRequest With {
+                .empresa = empresaActual,
+                .cliente = clienteActual,
+                .contacto = contactoActual,
+                .cccActivo = cuentaActiva.Número,
+                .cccs = modificados
+            }
+            Dim respuesta As GuardarCCCsRespuesta = Await servicio.GuardarCCCs(peticion)
 
-            Dim unused = DbContext.SaveChanges()
+            extractoCCC = New ObservableCollection(Of ExtractoCCCModel)(If(respuesta?.extractoOtroCCC, New List(Of ExtractoCCCModel)))
+            pedidosCCC = New ObservableCollection(Of cabeceraPedidoAgrupada)(If(respuesta?.pedidosOtroCCC, New List(Of cabeceraPedidoAgrupada)))
+
+            For Each ccc In modificados
+                ccc.EsModificado = False
+            Next
             mensajeError = ""
         Catch ex As Exception
             ' Nesto#396: ex.InnerException puede ser Nothing (p.ej. un NullReferenceException pelado). Usar
@@ -1117,28 +1142,29 @@ Public Class ClientesViewModel
     Private Function CanNuevoMandato(ByVal param As Object) As Boolean
         Return True
     End Function
+    ' Nesto#340 (1C.8, slice 5): el CCC nuevo es un POCO marcado como modificado; se persiste
+    ' al Guardar (PUT api/Clientes/CCCs hace el upsert), igual que antes hacía SaveChanges.
     Private Sub NuevoMandato(ByVal param As Object)
         Try
             Dim siguienteNumero As Integer
-            'siguienteNumero = 1
-            'If Not IsNothing(cuentaActiva) Then
+            If IsNothing(cuentasBanco) Then
+                cuentasBanco = New ObservableCollection(Of CCCModel)
+            End If
             If cuentasBanco.Count = 0 Then
                 siguienteNumero = 1
             Else
-                'siguienteNumero = CInt(cuentasBanco.Where(Function(x) x.Cliente.Trim = clienteActual).LastOrDefault.Número) + 1
                 siguienteNumero = CInt(cuentasBanco.Where(Function(x) x.Cliente.Trim = clienteActual).OrderBy(Function(x) x.Número).LastOrDefault.Número) + 1
             End If
-            'End If
-            cuentaActiva = New CCC With {
+            cuentaActiva = New CCCModel With {
                 .Empresa = empresaActual,
                 .Cliente = clienteActual,
                 .Contacto = contactoActual,
-                .Número = siguienteNumero,
+                .Número = siguienteNumero.ToString(),
                 .Estado = 0,
-                .Secuencia = "FRST"
+                .Secuencia = "FRST",
+                .EsModificado = True
             }
             cuentasBanco.Add(cuentaActiva)
-            Dim unused = DbContext.CCC.Add(cuentaActiva)
             mensajeError = ""
 
         Catch ex As Exception
@@ -1915,7 +1941,12 @@ Public Class ClientesViewModel
         clienteActual = clienteDefecto
         'contactoActual = "0  " 'esto hay que cambiarlo por el ClientePrincipal
 
-        listaEstadosCCC = New ObservableCollection(Of EstadosCCC)(From c In DbContext.EstadosCCC Where c.Empresa = empresaActual)
+        ' Nesto#340 (1C.8, slice 5): estados de CCC desde la API (la tabla no se toca desde EF).
+        Try
+            listaEstadosCCC = New ObservableCollection(Of EstadoCCCModel)(Await servicio.LeerEstadosCCC(empresaActual))
+        Catch ex As Exception
+            mensajeError = ex.Message
+        End Try
 
         Dim rangosFechas As New List(Of String) From {
             "Ventas del Último Año",
@@ -2005,8 +2036,194 @@ End Class
 
 Public Class cabeceraPedidoAgrupada
     Public Property Numero As Integer
-    Public Property Fecha As Date
+    ' Nesto#340 (1C.8, slice 5): nullable porque CabPedidoVta.Fecha puede venir nula de la API
+    Public Property Fecha As Date?
     Public Property CCC As String
+End Class
+
+' Nesto#340 (1C.8, slice 5): POCO del CCC de la ficha de clientes. Mantiene los nombres de
+' propiedad que bindea Clientes.xaml (SelectedItem.Pais, .Nº_Cuenta, etc.) y mapea con
+' JsonProperty los que no coinciden con el CCCDTO de la API. El dirty que antes llevaba el
+' ChangeTracker de EF lo lleva EsModificado (los setters editables lo activan).
+Public Class CCCModel
+    Inherits BindableBase
+
+    <JsonIgnore>
+    Public Property EsModificado As Boolean
+
+    Public Property Empresa As String
+    Public Property Cliente As String
+    Public Property Contacto As String
+    <JsonProperty("numero")>
+    Public Property Número As String
+
+    Private _pais As String
+    Public Property Pais As String
+        Get
+            Return _pais
+        End Get
+        Set(value As String)
+            If SetProperty(_pais, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _dcIban As String
+    <JsonProperty("dcIban")>
+    Public Property DC_IBAN As String
+        Get
+            Return _dcIban
+        End Get
+        Set(value As String)
+            If SetProperty(_dcIban, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _entidad As String
+    Public Property Entidad As String
+        Get
+            Return _entidad
+        End Get
+        Set(value As String)
+            If SetProperty(_entidad, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _oficina As String
+    Public Property Oficina As String
+        Get
+            Return _oficina
+        End Get
+        Set(value As String)
+            If SetProperty(_oficina, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _dc As String
+    Public Property DC As String
+        Get
+            Return _dc
+        End Get
+        Set(value As String)
+            If SetProperty(_dc, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _numeroCuenta As String
+    <JsonProperty("numeroCuenta")>
+    Public Property Nº_Cuenta As String
+        Get
+            Return _numeroCuenta
+        End Get
+        Set(value As String)
+            If SetProperty(_numeroCuenta, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _bic As String
+    Public Property BIC As String
+        Get
+            Return _bic
+        End Get
+        Set(value As String)
+            If SetProperty(_bic, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _estado As Short
+    Public Property Estado As Short
+        Get
+            Return _estado
+        End Get
+        Set(value As Short)
+            If SetProperty(_estado, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _tipoMandato As Short?
+    Public Property TipoMandato As Short?
+        Get
+            Return _tipoMandato
+        End Get
+        Set(value As Short?)
+            If SetProperty(_tipoMandato, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _fechaMandato As Date?
+    Public Property FechaMandato As Date?
+        Get
+            Return _fechaMandato
+        End Get
+        Set(value As Date?)
+            If SetProperty(_fechaMandato, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+
+    Private _secuencia As String
+    Public Property Secuencia As String
+        Get
+            Return _secuencia
+        End Get
+        Set(value As String)
+            If SetProperty(_secuencia, value) Then
+                EsModificado = True
+            End If
+        End Set
+    End Property
+End Class
+
+' Nesto#340 (1C.8, slice 5): estados de CCC de la API; Número/Descripción son los nombres
+' que bindea el combo de la vista.
+Public Class EstadoCCCModel
+    <JsonProperty("numero")>
+    Public Property Número As Short
+    <JsonProperty("descripcion")>
+    Public Property Descripción As String
+End Class
+
+' Nesto#340 (1C.8, slice 5): fila del aviso de efectos pendientes con otro CCC (PUT Clientes/CCCs).
+' Nombres = columnas que bindea el grid extractoCCC de Clientes.xaml.
+Public Class ExtractoCCCModel
+    <JsonProperty("fechaVencimiento")>
+    Public Property FechaVto As Date?
+    Public Property Concepto As String
+    <JsonProperty("importePendiente")>
+    Public Property ImportePdte As Decimal
+    Public Property CCC As String
+End Class
+
+' Nesto#340 (1C.8, slice 5): petición/respuesta del PUT api/Clientes/CCCs.
+Public Class GuardarCCCsRequest
+    Public Property empresa As String
+    Public Property cliente As String
+    Public Property contacto As String
+    Public Property cccActivo As String
+    Public Property cccs As List(Of CCCModel)
+End Class
+
+Public Class GuardarCCCsRespuesta
+    Public Property extractoOtroCCC As List(Of ExtractoCCCModel)
+    Public Property pedidosOtroCCC As List(Of cabeceraPedidoAgrupada)
 End Class
 
 Public Class ExtractoClienteDTO

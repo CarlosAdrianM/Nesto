@@ -71,4 +71,58 @@ Public Class ClienteComercialService
             End If
         End Using
     End Function
+
+    ''' <summary>
+    ''' Nesto#340 (1C.8, slice 5): CCCs del cliente/contacto desde la API. Los setters de
+    ''' CCCModel marcan EsModificado al deserializar, así que se resetea antes de devolver.
+    ''' </summary>
+    Public Async Function LeerCCCs(empresa As String, cliente As String, contacto As String) As Task(Of List(Of CCCModel)) Implements IClienteComercialService.LeerCCCs
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim urlConsulta As String = "Clientes/CCCs" +
+                "?empresa=" + Uri.EscapeDataString(If(empresa?.Trim(), String.Empty)) +
+                "&cliente=" + Uri.EscapeDataString(If(cliente?.Trim(), String.Empty)) +
+                "&contacto=" + Uri.EscapeDataString(If(contacto?.Trim(), String.Empty))
+            Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+            If Not response.IsSuccessStatusCode Then
+                Return New List(Of CCCModel)
+            End If
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            Dim cccs As List(Of CCCModel) = JsonConvert.DeserializeObject(Of List(Of CCCModel))(respuesta)
+            If IsNothing(cccs) Then
+                Return New List(Of CCCModel)
+            End If
+            For Each ccc In cccs
+                ccc.EsModificado = False
+            Next
+            Return cccs
+        End Using
+    End Function
+
+    Public Async Function LeerEstadosCCC(empresa As String) As Task(Of List(Of EstadoCCCModel)) Implements IClienteComercialService.LeerEstadosCCC
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim urlConsulta As String = "Clientes/EstadosCCC?empresa=" + Uri.EscapeDataString(If(empresa?.Trim(), String.Empty))
+            Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+            If Not response.IsSuccessStatusCode Then
+                Return New List(Of EstadoCCCModel)
+            End If
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            Return If(JsonConvert.DeserializeObject(Of List(Of EstadoCCCModel))(respuesta), New List(Of EstadoCCCModel))
+        End Using
+    End Function
+
+    Public Async Function GuardarCCCs(peticion As GuardarCCCsRequest) As Task(Of GuardarCCCsRespuesta) Implements IClienteComercialService.GuardarCCCs
+        If IsNothing(peticion) Then
+            Throw New Exception("No se puede guardar una petición de CCCs nula")
+        End If
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(peticion), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PutAsync("Clientes/CCCs", content)
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuesta)
+                Throw New Exception(HttpErrorHelper.ParsearErrorHttp(detallesError))
+            End If
+            Return JsonConvert.DeserializeObject(Of GuardarCCCsRespuesta)(respuesta)
+        End Using
+    End Function
 End Class

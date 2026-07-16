@@ -64,16 +64,18 @@ Public Class ClientesViewModelTests
 
     <TestMethod()>
     Public Async Function ActualizarCliente_LaCuentaActivaSeLocalizaPorElCccEscalar() As Task
-        ' Antes se usaba la nav property CCC2 de la entidad EF; ahora el campo ccc del DTO.
+        ' Antes se usaba la nav property CCC2 de la entidad EF; ahora el campo ccc del DTO y
+        ' (slice 5) las cuentas vienen del servicio como POCOs CCCModel.
         A.CallTo(Function() _servicio.LeerCliente("1", "15191", "0")).Returns(Task.FromResult(CrearFicha()))
+        A.CallTo(Function() _servicio.LeerCCCs("1", "15191", "0")).Returns(Task.FromResult(New List(Of CCCModel) From {
+            New CCCModel With {.Empresa = "1", .Cliente = "15191", .Número = "1  ", .Estado = 0},
+            New CCCModel With {.Empresa = "1", .Cliente = "15191", .Número = "3  ", .Estado = 0}
+        }))
         Dim vm = CrearViewModel()
-        vm.cuentasBanco = New ObservableCollection(Of CCC) From {
-            New CCC With {.Empresa = "1", .Cliente = "15191", .Número = "1  ", .Estado = 0},
-            New CCC With {.Empresa = "1", .Cliente = "15191", .Número = "3  ", .Estado = 0}
-        }
 
         Await vm.ActualizarClienteAsync("1", "15191", "0")
 
+        Assert.AreEqual(2, vm.cuentasBanco.Count)
         Assert.IsNotNull(vm.cuentaActiva)
         Assert.AreEqual("3  ", vm.cuentaActiva.Número)
     End Function
@@ -111,4 +113,79 @@ Public Class ClientesViewModelTests
         Assert.AreEqual("Se ha caído el servidor", vm.mensajeError)
         Assert.IsNull(vm.clienteActivo)
     End Function
+
+    ' Nesto#340 (1C.8, slice 5): CRUD de CCC sin EF (POCOs con dirty flag + PUT Clientes/CCCs).
+
+    <TestMethod()>
+    Public Sub NuevoMandato_CreaUnCCCNuevoMarcadoComoModificado()
+        Dim vm = CrearViewModel()
+        vm.cuentasBanco = New ObservableCollection(Of CCCModel)
+
+        vm.cmdNuevoMandato.Execute(Nothing)
+
+        Assert.AreEqual(1, vm.cuentasBanco.Count)
+        Assert.IsNotNull(vm.cuentaActiva)
+        Assert.IsTrue(vm.cuentaActiva.EsModificado)
+        Assert.AreEqual("1", vm.cuentaActiva.Número)
+        Assert.AreEqual(CShort(0), vm.cuentaActiva.Estado)
+        Assert.AreEqual("FRST", vm.cuentaActiva.Secuencia)
+        Assert.AreEqual(String.Empty, vm.mensajeError)
+    End Sub
+
+    <TestMethod()>
+    Public Sub EditarUnCampoDelCCC_MarcaElDirtyQueAntesLlevabaElChangeTracker()
+        Dim ccc As New CCCModel With {.Número = "1"}
+        ccc.EsModificado = False
+
+        ccc.Entidad = "2100"
+
+        Assert.IsTrue(ccc.EsModificado)
+    End Sub
+
+    <TestMethod()>
+    Public Sub Guardar_EnviaSoloLosModificadosYLimpiaElFlag()
+        Dim peticionEnviada As GuardarCCCsRequest = Nothing
+        A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)) _
+            .Invokes(Sub(p As GuardarCCCsRequest) peticionEnviada = p) _
+            .Returns(Task.FromResult(New GuardarCCCsRespuesta With {
+                .extractoOtroCCC = New List(Of ExtractoCCCModel) From {
+                    New ExtractoCCCModel With {.Concepto = "Efecto viejo", .ImportePdte = 100, .CCC = "2"}
+                },
+                .pedidosOtroCCC = New List(Of cabeceraPedidoAgrupada)
+            }))
+        Dim vm = CrearViewModel()
+        Dim sinCambios As New CCCModel With {.Número = "1"}
+        sinCambios.EsModificado = False
+        Dim modificado As New CCCModel With {.Número = "2"}
+        modificado.Entidad = "2100" ' marca EsModificado
+        vm.cuentasBanco = New ObservableCollection(Of CCCModel) From {sinCambios, modificado}
+        vm.cuentaActiva = modificado
+
+        vm.cmdGuardar.Execute(Nothing)
+
+        Assert.IsNotNull(peticionEnviada)
+        Assert.AreEqual(1, peticionEnviada.cccs.Count)
+        Assert.AreEqual("2", peticionEnviada.cccs.Single().Número)
+        Assert.AreEqual("2", peticionEnviada.cccActivo)
+        Assert.IsFalse(modificado.EsModificado)
+        Assert.AreEqual(1, vm.extractoCCC.Count)
+        Assert.AreEqual("Efecto viejo", vm.extractoCCC.Single().Concepto)
+        Assert.AreEqual(String.Empty, vm.mensajeError)
+    End Sub
+
+    <TestMethod()>
+    Public Sub Guardar_SiElServicioFallaInformaElErrorYNoLimpiaElFlag()
+        A.CallTo(Function() _servicio.GuardarCCCs(A(Of GuardarCCCsRequest).Ignored)) _
+            .Throws(New Exception("No se pudo grabar el CCC"))
+        Dim vm = CrearViewModel()
+        Dim modificado As New CCCModel With {.Número = "1"}
+        modificado.Entidad = "2100"
+        vm.cuentasBanco = New ObservableCollection(Of CCCModel) From {modificado}
+        vm.cuentaActiva = modificado
+
+        vm.cmdGuardar.Execute(Nothing)
+
+        Assert.AreEqual("No se pudo grabar el CCC", vm.mensajeError)
+        Assert.IsTrue(modificado.EsModificado)
+    End Sub
 End Class
