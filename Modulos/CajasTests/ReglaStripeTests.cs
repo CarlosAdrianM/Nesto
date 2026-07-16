@@ -50,6 +50,64 @@ namespace CajasTests
             Assert.IsTrue(esContabilizable);
         }
 
+        // Nesto#406: caso real 16/07/26 — banco 38,62 €, contabilidad 39,95 € (comisión 1,33 €
+        // ≈ 2,7 % + 0,25, tarifa no contemplada). Debe aceptarse por el rango plausible.
+        [TestMethod]
+        public void ReglaStripe_ComisionNoEstandarDentroDeRango_EsContabilizableDevuelveTrue()
+        {
+            var apunteBanco = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "032",
+                RegistrosConcepto =
+                [
+                    new RegistroComplementarioConcepto { Concepto = "STRIPE" }
+                ],
+                ImporteMovimiento = 38.62m
+            };
+            var apunteContabilidad = new ContabilidadDTO { Debe = 39.95m };
+
+            Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+        }
+
+        [TestMethod]
+        public void ReglaStripe_DescuadreFueraDeRango_EsContabilizableDevuelveFalse()
+        {
+            // 5 € de "comisión" sobre 39,95 € no es ninguna tarifa de Stripe: seguir bloqueando
+            var apunteBanco = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "032",
+                RegistrosConcepto =
+                [
+                    new RegistroComplementarioConcepto { Concepto = "STRIPE" }
+                ],
+                ImporteMovimiento = 34.95m
+            };
+            var apunteContabilidad = new ContabilidadDTO { Debe = 39.95m };
+
+            Assert.IsFalse(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+        }
+
+        [TestMethod]
+        public void ReglaStripe_ComisionNegativa_EsContabilizableDevuelveFalse()
+        {
+            // El banco ingresa MÁS de lo contabilizado: eso no es una comisión
+            var apunteBanco = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "032",
+                RegistrosConcepto =
+                [
+                    new RegistroComplementarioConcepto { Concepto = "STRIPE" }
+                ],
+                ImporteMovimiento = 41.00m
+            };
+            var apunteContabilidad = new ContabilidadDTO { Debe = 39.95m };
+
+            Assert.IsFalse(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+        }
+
         [TestMethod]
         public void ReglaStripe_CasoPremium_UnSoloPago_EsContabilizableDevuelveTrue()
         {

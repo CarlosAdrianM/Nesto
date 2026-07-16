@@ -119,7 +119,26 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 }
             }
 
-            return false;
+            // Nesto#406 (caso real 16/07/26: comisión de 1,33 € sobre 39,95 € ≈ 2,7 % + 0,25 que
+            // no cuadraba con las tarifas exactas y bloqueaba la conciliación): si ninguna
+            // combinación exacta cuadra, se acepta cuando la comisión total cae dentro del rango
+            // plausible de tarifas de Stripe. Así una tarjeta no contemplada (UK, internacional,
+            // comercial) o un cambio de tarifas no bloquea el botón, pero un descuadre real
+            // (fuera de rango) se sigue rechazando. El % aplicado queda visible en el concepto.
+            return ComisionDentroDeRangoStripe(importesOriginales, importeComision);
+        }
+
+        // Rango por pago: entre 1,1 % + 0,20 € y 3,35 % + 0,35 € (cubre 1,5/1,9/2,5/2,7/3,25 + 0,25
+        // con margen para redondeos). La comisión debe ser positiva.
+        private bool ComisionDentroDeRangoStripe(IList<decimal> importesOriginales, decimal importeComision)
+        {
+            if (importeComision <= 0 || importesOriginales.Count == 0)
+            {
+                return false;
+            }
+            decimal minimo = Math.Round(importesOriginales.Sum(b => (b * 0.011m) + 0.20m), 2, MidpointRounding.AwayFromZero);
+            decimal maximo = Math.Round(importesOriginales.Sum(b => (b * 0.0335m) + 0.35m), 2, MidpointRounding.AwayFromZero);
+            return importeComision >= minimo && importeComision <= maximo;
         }
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)
