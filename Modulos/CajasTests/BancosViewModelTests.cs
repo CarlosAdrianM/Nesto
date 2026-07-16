@@ -16,6 +16,56 @@ namespace CajasTests
     [TestClass]
     public class BancosViewModelTests
     {
+        // Nesto#382: regularizar con cuenta introducida a mano fallaba con "gasto sin centro de
+        // coste, delegación o departamento" porque reutilizaba la línea del banco (57x, sin
+        // imputación). La línea manual debe nacer imputada a la delegación del usuario + defaults.
+        [TestMethod]
+        public void CrearApunteRegularizacionManual_LlevaDelegacionYCentroCosteYDepartamento()
+        {
+            ContabilidadDTO apunte = BancosViewModel.CrearApunteRegularizacionManual("62900000", "ALG");
+
+            Assert.AreEqual("62900000", apunte.Cuenta);
+            Assert.AreEqual("ALG", apunte.Delegacion);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(apunte.CentroCoste), "Sin centro de coste el trigger de contabilidad rechaza el gasto");
+            Assert.IsFalse(string.IsNullOrWhiteSpace(apunte.Departamento));
+        }
+
+        [TestMethod]
+        public void CrearApunteRegularizacionManual_SinDelegacionDelUsuario_SigueImputadoPorLosDefaults()
+        {
+            // Usuario sin parámetro DelegaciónDefecto: el trigger exige AL MENOS uno de los tres
+            ContabilidadDTO apunte = BancosViewModel.CrearApunteRegularizacionManual("62900000", null);
+
+            Assert.IsNull(apunte.Delegacion);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(apunte.CentroCoste));
+            Assert.IsFalse(string.IsNullOrWhiteSpace(apunte.Departamento));
+        }
+
+        [TestMethod]
+        public void AsegurarImputacion_LineaSinImputacion_LaCompleta()
+        {
+            // Red de seguridad para las ramas 6xx/7xx: una línea heredada sin imputación se completa
+            ContabilidadDTO apunte = new() { Cuenta = "70000000" };
+
+            BancosViewModel.AsegurarImputacion(apunte, "ALG");
+
+            Assert.AreEqual("ALG", apunte.Delegacion);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(apunte.CentroCoste));
+        }
+
+        [TestMethod]
+        public void AsegurarImputacion_LineaYaImputada_NoLaToca()
+        {
+            // Una línea de gasto real conserva su imputación original (no se pisa con la del usuario)
+            ContabilidadDTO apunte = new() { Cuenta = "62900000", CentroCoste = "CC1" };
+
+            BancosViewModel.AsegurarImputacion(apunte, "ALG");
+
+            Assert.AreEqual("CC1", apunte.CentroCoste);
+            Assert.IsNull(apunte.Delegacion);
+            Assert.IsNull(apunte.Departamento);
+        }
+
         // Nesto#408: el botón "Contabilizar apunte" debe quedar desactivado mientras dura la
         // contabilización (sin el candado, un doble clic lanzaba una segunda contabilización
         // del mismo apunte). El candado cubre también Regularizar diferencia.

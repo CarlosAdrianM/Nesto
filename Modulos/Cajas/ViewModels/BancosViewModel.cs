@@ -947,6 +947,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 }
             }
 
+            // #382: la delegación por defecto del usuario (mismo parámetro que usa CajasViewModel)
+            string delegacionUsuario = await _configuracion.leerParametro(
+                Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.DelegacionDefecto);
+
             if (apunteGasto is null)
             {
                 string cuentaIntroducida = _dialogService.GetText(
@@ -962,14 +966,13 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     _dialogService.ShowNotification($"La cuenta '{cuentaIntroducida}' no tiene un formato válido");
                     return;
                 }
-                apunteGasto = primerApunte ?? new ContabilidadDTO
-                {
-                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                    CentroCoste = Constantes.Empresas.CENTRO_COSTE_DEFECTO,
-                    Departamento = Constantes.Empresas.DEPARTAMENTO_DEFECTO
-                };
-                apunteGasto.Cuenta = cuentaExpandida;
+                // #382: antes era "primerApunte ?? new {...defaults...}": primerApunte nunca es null
+                // (es la línea del banco, 57x, SIN centro de coste/delegación/departamento), así que
+                // los defaults eran código muerto y el trigger rechazaba el gasto.
+                apunteGasto = CrearApunteRegularizacionManual(cuentaExpandida, delegacionUsuario);
             }
+
+            AsegurarImputacion(apunteGasto, delegacionUsuario);
             try
             {
                 EstaContabilizando = true; // Nesto#408: mismo candado que Contabilizar apunte
@@ -998,6 +1001,46 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 EstaContabilizando = false; // Nesto#408
             }
+        }
+
+        /// <summary>
+        /// Nesto#382: línea de regularización con cuenta introducida a mano. NO se reutiliza la
+        /// línea del banco (57x, sin imputación): el trigger de contabilidad rechaza un gasto sin
+        /// centro de coste, delegación ni departamento. Se imputa a la delegación por defecto del
+        /// usuario más los defaults de centro de coste y departamento.
+        /// </summary>
+        internal static ContabilidadDTO CrearApunteRegularizacionManual(string cuentaExpandida, string delegacionUsuario)
+        {
+            return new ContabilidadDTO
+            {
+                Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                Cuenta = cuentaExpandida,
+                Delegacion = string.IsNullOrWhiteSpace(delegacionUsuario) ? null : delegacionUsuario.Trim(),
+                CentroCoste = Constantes.Empresas.CENTRO_COSTE_DEFECTO,
+                Departamento = Constantes.Empresas.DEPARTAMENTO_DEFECTO
+            };
+        }
+
+        /// <summary>
+        /// Nesto#382: red de seguridad para las demás ramas (6xx/7xx heredadas de un asiento):
+        /// si la línea elegida llega sin NINGUNA imputación, se completa igual que la manual.
+        /// Una línea ya imputada no se toca (conserva la imputación original del asiento).
+        /// </summary>
+        internal static void AsegurarImputacion(ContabilidadDTO apunte, string delegacionUsuario)
+        {
+            if (apunte is null)
+            {
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(apunte.CentroCoste)
+                || !string.IsNullOrWhiteSpace(apunte.Delegacion)
+                || !string.IsNullOrWhiteSpace(apunte.Departamento))
+            {
+                return;
+            }
+            apunte.Delegacion = string.IsNullOrWhiteSpace(delegacionUsuario) ? null : delegacionUsuario.Trim();
+            apunte.CentroCoste = Constantes.Empresas.CENTRO_COSTE_DEFECTO;
+            apunte.Departamento = Constantes.Empresas.DEPARTAMENTO_DEFECTO;
         }
 
 
