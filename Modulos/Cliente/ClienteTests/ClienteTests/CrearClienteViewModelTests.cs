@@ -103,6 +103,41 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_GuardaPoblacionYProvinciaDeGoogleEnMayusculas()
+        {
+            // Un CP puede cubrir varias poblaciones: la de Google es la correcta para la ficha
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ666", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel
+                {
+                    Calle = "Calle Allende",
+                    Numero = "35",
+                    CodigoPostal = "39584",
+                    Poblacion = "Allende",
+                    Provincia = "Cantabria"
+                });
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ666" });
+
+            Assert.AreEqual("ALLENDE", vm.PoblacionGoogle);
+            Assert.AreEqual("CANTABRIA", vm.ProvinciaGoogle);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task EditarLaDireccionAMano_DescartaLaPoblacionYProvinciaDeGoogle()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ666", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel { Calle = "Calle Allende", Numero = "35", CodigoPostal = "39584", Poblacion = "Allende", Provincia = "Cantabria" });
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ666" });
+
+            vm.ClienteDireccionCalleNumero = "Calle Allende, 36"; // editado a mano
+
+            Assert.IsNull(vm.PoblacionGoogle);
+            Assert.IsNull(vm.ProvinciaGoogle);
+        }
+
+        [TestMethod]
         public void MoverSeleccionSugerencias_ConFlechas_RecorreLaListaSinSalirse()
         {
             var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);

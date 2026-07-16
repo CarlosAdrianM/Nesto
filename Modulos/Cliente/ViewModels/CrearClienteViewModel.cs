@@ -111,10 +111,23 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref direccionVerificadaPorGoogle, value))
                 {
                     RaisePropertyChanged(nameof(CodigoPostalIsEnabled));
+                    if (!value)
+                    {
+                        // Sin verificación no hay datos de Google que preferir
+                        PoblacionGoogle = null;
+                        ProvinciaGoogle = null;
+                    }
                 }
             }
         }
         public bool CodigoPostalIsEnabled => !DireccionVerificadaPorGoogle;
+
+        // Nesto#409: población/provincia que dio Google junto a la dirección (en mayúsculas).
+        // Un CP puede cubrir varias poblaciones y nuestra tabla solo tiene una: la de Google es
+        // la correcta para la ficha (importante para las agencias de transporte). La ruta y los
+        // vendedores siguen saliendo SIEMPRE de nuestra tabla de códigos postales.
+        public string PoblacionGoogle { get; private set; }
+        public string ProvinciaGoogle { get; private set; }
 
         #region Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI)
         // El usuario va tecleando y sale el combo de sugerencias de Google; al seleccionar una se
@@ -228,6 +241,8 @@ namespace Nesto.Modulos.Cliente
                     // Dirección y CP vienen juntos de Google: pareja verificada → CP bloqueado y
                     // la validación del wizard se salta el geocoding
                     DireccionVerificadaPorGoogle = true;
+                    PoblacionGoogle = detalle.Poblacion?.ToUpper().Trim();
+                    ProvinciaGoogle = detalle.Provincia?.ToUpper().Trim();
                 }
             }
             catch
@@ -710,8 +725,17 @@ namespace Nesto.Modulos.Cliente
                     ClienteDireccion += ", " + ClienteDireccionAdicional.ToUpper();
                 }
                 ClienteDireccion = Strings.Left(ClienteDireccion, 50);
-                ClientePoblacion = Strings.Left(respuesta.Poblacion, 30);
-                ClienteProvincia = respuesta.Provincia;
+                // Nesto#409: un CP puede cubrir varias poblaciones y nuestra tabla solo tiene una;
+                // si la dirección viene verificada de Google, SU población/provincia son las
+                // correctas para la ficha (importa para las agencias de transporte). La ruta y
+                // los vendedores siguen saliendo de nuestra tabla de CPs.
+                ClientePoblacion = Strings.Left(
+                    DireccionVerificadaPorGoogle && !string.IsNullOrWhiteSpace(PoblacionGoogle)
+                        ? PoblacionGoogle
+                        : respuesta.Poblacion, 30);
+                ClienteProvincia = DireccionVerificadaPorGoogle && !string.IsNullOrWhiteSpace(ProvinciaGoogle)
+                    ? ProvinciaGoogle
+                    : respuesta.Provincia;
                 ClienteRuta = respuesta.Ruta;
                 ClienteTelefono = respuesta.TelefonoFormateado;
                 if (!esUnaModificacion || ClienteCodigoPostal != respuesta.CodigoPostal)
