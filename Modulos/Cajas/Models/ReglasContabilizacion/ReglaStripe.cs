@@ -70,47 +70,51 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             return response;
         }
 
+        // Nesto#406: tarifas OFICIALES de Stripe para negocios EEE (stripe.com/en-es/pricing,
+        // verificado 16/07/26). El botón solo se activa con cuadre EXACTO contra alguna
+        // combinación de estas tarifas por pago: así detectar el tipo de movimiento sigue
+        // significando "sabemos contabilizarlo". Si Stripe cobra algo que no cuadra (error suyo
+        // o caso no contemplado), el botón NO se activa: hay que mirar el desglose del fee en el
+        // dashboard de Stripe y, si es una tarifa oficial nueva, añadirla aquí.
+        private static readonly (decimal Porcentaje, decimal Fijo)[] TarifasStripe =
+        {
+            (0.015m, 0.25m),  // estándar EEE
+            (0.019m, 0.25m),  // premium EEE (comercial/empresa)
+            (0.025m, 0.25m),  // tarjetas UK
+            (0.0325m, 0.25m)  // internacional (no EEE)
+        };
+
         private bool VerificarImportesCombinadosPorMovimiento(IList<decimal> importesOriginales, decimal importeComision, decimal importeIngresado)
         {
-            const decimal porcentajeStandard = 0.015m;
-            const decimal fijoStandard = 0.25m;
-            const decimal porcentajePremium = 0.019m;
-            const decimal fijoPremium = 0.25m;
-
             int numeroPagos = importesOriginales.Count;
-            if (numeroPagos == 0)
+            // 4^n combinaciones: con más de 10 pagos (1M combos) no merece la pena la fuerza bruta
+            if (numeroPagos == 0 || numeroPagos > 10)
             {
                 return false;
             }
 
-            int combinaciones = 1 << numeroPagos; // 2^n combinaciones
+            decimal sumaOriginales = Math.Round(importesOriginales.Sum(), 2, MidpointRounding.AwayFromZero);
+            long combinaciones = 1;
+            for (int i = 0; i < numeroPagos; i++)
+            {
+                combinaciones *= TarifasStripe.Length;
+            }
 
-            for (int mask = 0; mask < combinaciones; mask++)
+            for (long mask = 0; mask < combinaciones; mask++)
             {
                 decimal comisionTotal = 0m;
+                long resto = mask;
 
                 for (int i = 0; i < numeroPagos; i++)
                 {
-                    bool esPremium = (mask & (1 << i)) != 0;
-                    decimal baseImporte = importesOriginales[i];
-
-                    decimal comisionIndividual;
-                    if (esPremium)
-                    {
-                        comisionIndividual = Math.Round((baseImporte * porcentajePremium) + fijoPremium, 2, MidpointRounding.AwayFromZero);
-                    }
-                    else
-                    {
-                        comisionIndividual = Math.Round((baseImporte * porcentajeStandard) + fijoStandard, 2, MidpointRounding.AwayFromZero);
-                    }
-
-                    comisionTotal += comisionIndividual;
+                    var tarifa = TarifasStripe[resto % TarifasStripe.Length];
+                    resto /= TarifasStripe.Length;
+                    comisionTotal += Math.Round((importesOriginales[i] * tarifa.Porcentaje) + tarifa.Fijo, 2, MidpointRounding.AwayFromZero);
                 }
 
                 comisionTotal = Math.Round(comisionTotal, 2, MidpointRounding.AwayFromZero);
 
                 // Comparar comisiones exactas y que la resta (suma original - comisión total) cuadre con lo ingresado
-                decimal sumaOriginales = Math.Round(importesOriginales.Sum(), 2, MidpointRounding.AwayFromZero);
                 decimal netoCalculado = Math.Round(sumaOriginales - comisionTotal, 2, MidpointRounding.AwayFromZero);
 
                 if (comisionTotal == importeComision && netoCalculado == importeIngresado)
@@ -119,26 +123,7 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 }
             }
 
-            // Nesto#406 (caso real 16/07/26: comisión de 1,33 € sobre 39,95 € ≈ 2,7 % + 0,25 que
-            // no cuadraba con las tarifas exactas y bloqueaba la conciliación): si ninguna
-            // combinación exacta cuadra, se acepta cuando la comisión total cae dentro del rango
-            // plausible de tarifas de Stripe. Así una tarjeta no contemplada (UK, internacional,
-            // comercial) o un cambio de tarifas no bloquea el botón, pero un descuadre real
-            // (fuera de rango) se sigue rechazando. El % aplicado queda visible en el concepto.
-            return ComisionDentroDeRangoStripe(importesOriginales, importeComision);
-        }
-
-        // Rango por pago: entre 1,1 % + 0,20 € y 3,35 % + 0,35 € (cubre 1,5/1,9/2,5/2,7/3,25 + 0,25
-        // con margen para redondeos). La comisión debe ser positiva.
-        private bool ComisionDentroDeRangoStripe(IList<decimal> importesOriginales, decimal importeComision)
-        {
-            if (importeComision <= 0 || importesOriginales.Count == 0)
-            {
-                return false;
-            }
-            decimal minimo = Math.Round(importesOriginales.Sum(b => (b * 0.011m) + 0.20m), 2, MidpointRounding.AwayFromZero);
-            decimal maximo = Math.Round(importesOriginales.Sum(b => (b * 0.0335m) + 0.35m), 2, MidpointRounding.AwayFromZero);
-            return importeComision >= minimo && importeComision <= maximo;
+            return false;
         }
 
         public bool EsContabilizable(IEnumerable<ApunteBancarioDTO> apuntesBancarios, IEnumerable<ContabilidadDTO> apuntesContabilidad)

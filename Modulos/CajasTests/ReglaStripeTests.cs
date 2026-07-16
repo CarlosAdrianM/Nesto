@@ -50,10 +50,52 @@ namespace CajasTests
             Assert.IsTrue(esContabilizable);
         }
 
-        // Nesto#406: caso real 16/07/26 — banco 38,62 €, contabilidad 39,95 € (comisión 1,33 €
-        // ≈ 2,7 % + 0,25, tarifa no contemplada). Debe aceptarse por el rango plausible.
+        // Nesto#406: tarifas oficiales UK (2,5 % + 0,25) e internacional (3,25 % + 0,25) que
+        // faltaban en el validador. Cuadre EXACTO.
         [TestMethod]
-        public void ReglaStripe_ComisionNoEstandarDentroDeRango_EsContabilizableDevuelveTrue()
+        public void ReglaStripe_TarjetaUK_EsContabilizableDevuelveTrue()
+        {
+            decimal comision = Math.Round((39.95m * 0.025m) + 0.25m, 2, MidpointRounding.AwayFromZero); // 1,25
+            var apunteBanco = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "032",
+                RegistrosConcepto =
+                [
+                    new RegistroComplementarioConcepto { Concepto = "STRIPE" }
+                ],
+                ImporteMovimiento = 39.95m - comision
+            };
+            var apunteContabilidad = new ContabilidadDTO { Debe = 39.95m };
+
+            Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+        }
+
+        [TestMethod]
+        public void ReglaStripe_TarjetaInternacional_EsContabilizableDevuelveTrue()
+        {
+            decimal comision = Math.Round((39.95m * 0.0325m) + 0.25m, 2, MidpointRounding.AwayFromZero); // 1,55
+            var apunteBanco = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "032",
+                RegistrosConcepto =
+                [
+                    new RegistroComplementarioConcepto { Concepto = "STRIPE" }
+                ],
+                ImporteMovimiento = 39.95m - comision
+            };
+            var apunteContabilidad = new ContabilidadDTO { Debe = 39.95m };
+
+            Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+        }
+
+        // Nesto#406: el caso real 16/07/26 (comisión 1,33 € sobre 39,95 € ≈ 2,7 % + 0,25) NO
+        // cuadra con NINGUNA tarifa oficial de Stripe → el botón debe seguir desactivado hasta
+        // ver en el dashboard qué caso es y añadirlo como tarifa exacta. Decisión de Carlos:
+        // cuadre exacto o nada; nada de rangos que activen el botón "casi siempre".
+        [TestMethod]
+        public void ReglaStripe_ComisionQueNoCuadraConNingunaTarifaOficial_EsContabilizableDevuelveFalse()
         {
             var apunteBanco = new ApunteBancarioDTO
             {
@@ -67,7 +109,7 @@ namespace CajasTests
             };
             var apunteContabilidad = new ContabilidadDTO { Debe = 39.95m };
 
-            Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+            Assert.IsFalse(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
         }
 
         [TestMethod]
