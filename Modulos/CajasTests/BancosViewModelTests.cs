@@ -16,6 +16,42 @@ namespace CajasTests
     [TestClass]
     public class BancosViewModelTests
     {
+        // Nesto#408: el botón "Contabilizar apunte" debe quedar desactivado mientras dura la
+        // contabilización (sin el candado, un doble clic lanzaba una segunda contabilización
+        // del mismo apunte). El candado cubre también Regularizar diferencia.
+        [TestMethod]
+        public void CanContabilizarApunte_MientrasContabiliza_DevuelveFalse()
+        {
+            var _bancosService = A.Fake<IBancosService>();
+            var _contabilidadService = A.Fake<IContabilidadService>();
+            var _configuracion = A.Fake<IConfiguracion>();
+            var _dialogService = A.Fake<IDialogService>();
+            var _pedidoCompraService = A.Fake<IPedidoCompraService>();
+            var _container = A.Fake<IUnityContainer>();
+            var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
+            var sut = new BancosViewModel(_bancosService, _contabilidadService, _configuracion, _dialogService, _pedidoCompraService, _container, _recursosHumanosService);
+
+            // Selección válida (regla Stripe, comisión estándar exacta): sin candado el botón se activa
+            decimal comision = Math.Round((39.95m * 0.015m) + 0.25m, 2, MidpointRounding.AwayFromZero);
+            var apunteBanco = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "032",
+                RegistrosConcepto = [new RegistroComplementarioConcepto { Concepto = "STRIPE" }],
+                ImporteMovimiento = 39.95m - comision
+            };
+            sut.ApuntesBancoSeleccionados = new[] { new ApunteBancarioWrapper(apunteBanco) };
+            sut.ApuntesContabilidadSeleccionados = new[] { new ContabilidadWrapper(new ContabilidadDTO { Debe = 39.95m }) };
+
+            Assert.IsTrue(sut.CanContabilizarApunte(), "Control positivo: la selección es contabilizable");
+
+            sut.EstaContabilizando = true;
+            Assert.IsFalse(sut.CanContabilizarApunte(), "Mientras contabiliza, el botón debe quedar gris");
+
+            sut.EstaContabilizando = false;
+            Assert.IsTrue(sut.CanContabilizarApunte(), "Al terminar, vuelve a activarse");
+        }
+
         [TestMethod]
         public void BancosViewModel_DescuadreSaldoInicial_MuestraLaDiferenciaEntreElSaldoInicialDelBancoYElDeLaCaja()
         {

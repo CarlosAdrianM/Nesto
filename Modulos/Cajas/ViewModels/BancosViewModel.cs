@@ -647,8 +647,28 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
 
         public ICommand ContabilizarApunteCommand { get; private set; }
+
+        // Nesto#408: candado mientras dura una contabilización. Sin él, el botón seguía activo
+        // durante el await y un doble clic lanzaba una SEGUNDA contabilización del mismo apunte
+        // (riesgo de asiento/factura duplicados). Cubre también Regularizar diferencia.
+        private bool _estaContabilizando;
+        internal bool EstaContabilizando
+        {
+            get => _estaContabilizando;
+            set
+            {
+                _estaContabilizando = value;
+                ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
+                ((DelegateCommand)RegularizarDiferenciaCommand).RaiseCanExecuteChanged();
+            }
+        }
+
         public bool CanContabilizarApunte()
         {
+            if (EstaContabilizando)
+            {
+                return false;
+            }
             foreach (IReglaContabilizacion regla in _reglasContabilizacion)
             {
                 try
@@ -675,6 +695,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
             try
             {
+                EstaContabilizando = true; // Nesto#408: botón gris hasta que termine
                 IsBusyApuntesBanco = true;
                 IsBusyApuntesContabilidad = true;
                 foreach (IReglaContabilizacion regla in _reglasContabilizacion)
@@ -761,6 +782,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 IsBusyApuntesBanco = false;
                 IsBusyApuntesContabilidad = false;
+                EstaContabilizando = false; // Nesto#408
             }
         }
 
@@ -877,7 +899,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand RegularizarDiferenciaCommand { get; private set; }
         private bool CanRegularizarDiferencia()
         {
-            return ApuntesBancoSeleccionados != null && ApuntesContabilidadSeleccionados != null
+            return !EstaContabilizando // Nesto#408: candado compartido con Contabilizar apunte
+                && ApuntesBancoSeleccionados != null && ApuntesContabilidadSeleccionados != null
                 && DescuadrePunteo != 0
                 && Math.Abs(DescuadrePunteo) < .5M;
         }
@@ -949,6 +972,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
             try
             {
+                EstaContabilizando = true; // Nesto#408: mismo candado que Contabilizar apunte
                 PreContabilidadDTO apunteNuevo = apunteGasto.ToPreContabilidadDTO();
                 apunteNuevo.Diario = "_ConcBanco";
                 apunteNuevo.TipoApunte = Constantes.TiposApunte.PASO_A_CARTERA;
@@ -969,6 +993,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             catch (Exception ex)
             {
                 throw new Exception("No se pudo regularizar el movimiento", ex);
+            }
+            finally
+            {
+                EstaContabilizando = false; // Nesto#408
             }
         }
 
