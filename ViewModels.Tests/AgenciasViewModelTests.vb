@@ -98,6 +98,52 @@ Public Class AgenciaViewModelTests
         Assert.IsFalse(AgenciasViewModel.PuedeBorrarEnvio(2, Nothing, Nothing))
     End Sub
 
+    ' Nesto#407: el enlace de seguimiento se calcula con la agencia DEL ENVÍO y sin depender de
+    ' listaTiposRetorno (en Incidentados no está cargada y el botón quedaba desactivado siempre).
+
+    <TestMethod()>
+    Public Sub CalcularEnlaceSeguimiento_ConAgenciaDelEnvio_DevuelveElEnlace()
+        Dim envio As New EnviosAgencia With {.CodigoBarras = "61197140246221"}
+        Dim agencia = A.Fake(Of IAgencia)()
+        A.CallTo(Function() agencia.EnlaceSeguimiento(envio)).Returns("https://mygls.gls-spain.es/e/61197140246221/28004")
+
+        Dim enlace = AgenciasViewModel.CalcularEnlaceSeguimiento(envio, agencia)
+
+        Assert.AreEqual("https://mygls.gls-spain.es/e/61197140246221/28004", enlace)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularEnlaceSeguimiento_SinAgenciaResuelta_DevuelveVacio()
+        Dim envio As New EnviosAgencia With {.CodigoBarras = "61197140246221"}
+
+        Assert.AreEqual(String.Empty, AgenciasViewModel.CalcularEnlaceSeguimiento(envio, Nothing))
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularEnlaceSeguimiento_SinEnvio_DevuelveVacio()
+        Assert.AreEqual(String.Empty, AgenciasViewModel.CalcularEnlaceSeguimiento(Nothing, A.Fake(Of IAgencia)()))
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularEnlaceSeguimiento_SiLaAgenciaLanza_DevuelveVacioSinPropagar()
+        ' Antes cualquier excepción del setter se tragaba en el Catch general y dejaba el enlace
+        ' vacío sin rastro; el helper la aísla y el resto del setter sigue funcionando.
+        Dim envio As New EnviosAgencia()
+        Dim agencia = A.Fake(Of IAgencia)()
+        A.CallTo(Function() agencia.EnlaceSeguimiento(envio)).Throws(New NullReferenceException())
+
+        Assert.AreEqual(String.Empty, AgenciasViewModel.CalcularEnlaceSeguimiento(envio, agencia))
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularEnlaceSeguimiento_EnlaceNothing_DevuelveVacio()
+        Dim envio As New EnviosAgencia()
+        Dim agencia = A.Fake(Of IAgencia)()
+        A.CallTo(Function() agencia.EnlaceSeguimiento(envio)).Returns(Nothing)
+
+        Assert.AreEqual(String.Empty, AgenciasViewModel.CalcularEnlaceSeguimiento(envio, agencia))
+    End Sub
+
     <TestMethod()>
     Public Sub AgenciaViewModel_AlCargarDatos_HayUnaEmpresaSeleccionada()
         'arrange

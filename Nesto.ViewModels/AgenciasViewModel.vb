@@ -779,9 +779,15 @@ Public Class AgenciasViewModel
                     cmdActualizarSeguimiento.RaiseCanExecuteChanged()
                 End If
 
+                ' Nesto#407: el enlace de seguimiento se calcula SIEMPRE (también en Incidentados,
+                ' donde listaTiposRetorno no está cargada porque ActualizarListas solo corre en las
+                ' otras pestañas) y con la agencia DEL ENVÍO, no la seleccionada (las listas mixtas
+                ' de #387 pueden no coincidir). No depende de listaTiposRetorno: son cosas
+                ' independientes.
+                EnlaceSeguimientoEnvio = CalcularEnlaceSeguimiento(envioActual, ResolverAgenciaDelEnvio(agenciaEnvio))
+
                 If Not IsNothing(envioActual) AndAlso Not IsNothing(listaTiposRetorno) Then
                     reembolsoModificar = envioActual.Reembolso
-                    EnlaceSeguimientoEnvio = agenciaEspecifica.EnlaceSeguimiento(envioActual)
                     retornoModificar = (From l In listaTiposRetorno Where l.id = envioActual.Retorno).FirstOrDefault
                     estadoModificar = envioActual.Estado
                     fechaEntregaModificar = envioActual.FechaEntrega
@@ -808,6 +814,38 @@ Public Class AgenciasViewModel
             cmdPegarCodigoBarras?.RaiseCanExecuteChanged()
         End Set
     End Property
+
+    ''' <summary>
+    ''' Nesto#407: enlace de seguimiento de un envío calculado con SU agencia, con guardas
+    ''' defensivas: cualquier fallo devuelve cadena vacía (botón desactivado) sin romper el setter.
+    ''' </summary>
+    Public Shared Function CalcularEnlaceSeguimiento(envio As EnviosAgencia, agencia As IAgencia) As String
+        If envio Is Nothing OrElse agencia Is Nothing Then
+            Return String.Empty
+        End If
+        Try
+            Return If(agencia.EnlaceSeguimiento(envio), String.Empty)
+        Catch
+            Return String.Empty
+        End Try
+    End Function
+
+    ' Nesto#407: resuelve la IAgencia del ENVÍO (no la seleccionada) a partir de su fila de
+    ' AgenciasTransporte. Nothing si no se puede resolver (agencia sin integración, etc.).
+    Private Function ResolverAgenciaDelEnvio(agenciaEnvio As AgenciasTransporte) As IAgencia
+        If agenciaEnvio Is Nothing OrElse String.IsNullOrWhiteSpace(agenciaEnvio.Nombre) Then
+            Return Nothing
+        End If
+        Dim creadorAgencia As Func(Of IAgencia) = Nothing
+        If Not factory.TryGetValue(agenciaEnvio.Nombre.Trim(), creadorAgencia) Then
+            Return Nothing
+        End If
+        Try
+            Return creadorAgencia.Invoke()
+        Catch
+            Return Nothing
+        End Try
+    End Function
 
     Private Function CalcularZonaEnvio(codigoPostal As String) As ZonasEnvioAgencia
         codigoPostal = codigoPostal.Trim()
