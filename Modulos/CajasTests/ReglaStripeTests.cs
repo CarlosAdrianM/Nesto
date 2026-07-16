@@ -90,12 +90,38 @@ namespace CajasTests
             Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
         }
 
-        // Nesto#406: el caso real 16/07/26 (comisión 1,33 € sobre 39,95 € ≈ 2,7 % + 0,25) NO
-        // cuadra con NINGUNA tarifa oficial de Stripe → el botón debe seguir desactivado hasta
-        // ver en el dashboard qué caso es y añadirlo como tarifa exacta. Decisión de Carlos:
-        // cuadre exacto o nada; nada de rangos que activen el botón "casi siempre".
+        // Nesto#406, caso real 16/07/26 (desglose del dashboard de Stripe): el payout de 38,62 €
+        // agrupa DOS cargos premium (39,95 con comisión 1,01 y 3,90 con comisión 0,32) y UN
+        // reembolso de -3,90 con comisión 0 (Stripe no devuelve la del cargo original).
+        // Seleccionando los TRES apuntes de contabilidad el cuadre es EXACTO y el botón se activa.
         [TestMethod]
-        public void ReglaStripe_ComisionQueNoCuadraConNingunaTarifaOficial_EsContabilizableDevuelveFalse()
+        public void ReglaStripe_PayoutConCargosYReembolso_SeleccionCompleta_EsContabilizableDevuelveTrue()
+        {
+            var apunteBanco = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "032",
+                RegistrosConcepto =
+                [
+                    new RegistroComplementarioConcepto { Concepto = "STRIPE" }
+                ],
+                ImporteMovimiento = 38.62m
+            };
+            var apuntesContabilidad = new[]
+            {
+                new ContabilidadDTO { Debe = 39.95m },          // cargo premium (comisión 1,01)
+                new ContabilidadDTO { Debe = 3.90m },           // cargo premium (comisión 0,32)
+                new ContabilidadDTO { Haber = 3.90m }           // reembolso (comisión 0)
+            };
+
+            Assert.IsTrue(_regla.EsContabilizable(new[] { apunteBanco }, apuntesContabilidad));
+        }
+
+        // Con la selección INCOMPLETA (solo el cargo de 39,95) el descuadre de 1,33 no cuadra
+        // con ninguna tarifa → el botón sigue desactivado. Cuadre exacto o nada (decisión de
+        // Carlos): nada de rangos que activen el botón "casi siempre".
+        [TestMethod]
+        public void ReglaStripe_PayoutConReembolso_SeleccionIncompleta_EsContabilizableDevuelveFalse()
         {
             var apunteBanco = new ApunteBancarioDTO
             {
@@ -108,6 +134,25 @@ namespace CajasTests
                 ImporteMovimiento = 38.62m
             };
             var apunteContabilidad = new ContabilidadDTO { Debe = 39.95m };
+
+            Assert.IsFalse(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
+        }
+
+        [TestMethod]
+        public void ReglaStripe_SoloReembolsos_EsContabilizableDevuelveFalse()
+        {
+            // Sin ningún cargo no hay comisión que cuadrar
+            var apunteBanco = new ApunteBancarioDTO
+            {
+                ConceptoComun = "02",
+                ConceptoPropio = "032",
+                RegistrosConcepto =
+                [
+                    new RegistroComplementarioConcepto { Concepto = "STRIPE" }
+                ],
+                ImporteMovimiento = -3.90m
+            };
+            var apunteContabilidad = new ContabilidadDTO { Haber = 3.90m };
 
             Assert.IsFalse(_regla.EsContabilizable(new[] { apunteBanco }, new[] { apunteContabilidad }));
         }

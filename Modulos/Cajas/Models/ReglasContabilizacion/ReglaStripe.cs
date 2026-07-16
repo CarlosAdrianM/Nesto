@@ -20,7 +20,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
             var importeDescuadre = apunteBancario.ImporteMovimiento - apuntesContabilidad.Sum(c => c.Importe);
 
-            var importesOriginales = apuntesContabilidad.Select(a => a.Debe).ToList();
+            // Nesto#406: Importe (Debe - Haber) para que los reembolsos entren en negativo
+            var importesOriginales = apuntesContabilidad.Select(a => a.Importe).ToList();
             var sumaOriginales = importesOriginales.Sum();
             var importeIngresado = apunteBancario.ImporteMovimiento;
             var importeComision = sumaOriginales - importeIngresado;
@@ -86,8 +87,14 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
 
         private bool VerificarImportesCombinadosPorMovimiento(IList<decimal> importesOriginales, decimal importeComision, decimal importeIngresado)
         {
-            int numeroPagos = importesOriginales.Count;
-            // 4^n combinaciones: con más de 10 pagos (1M combos) no merece la pena la fuerza bruta
+            // Nesto#406 (caso real 16/07/26: payout de 38,62 = cargos 39,95 + 3,90 - reembolso
+            // 3,90, comisiones 1,01 + 0,32 + 0,00): los REEMBOLSOS (importes negativos) llevan
+            // comisión 0 (Stripe no devuelve la del cargo original) y solo aportan su importe al
+            // neto. Solo los CARGOS (positivos) entran en las combinaciones de tarifas, así que
+            // el cuadre sigue siendo EXACTO: un descuadre arbitrario no activa el botón.
+            List<decimal> cargos = importesOriginales.Where(i => i > 0).ToList();
+            int numeroPagos = cargos.Count;
+            // 4^n combinaciones: con más de 10 cargos (1M combos) no merece la pena la fuerza bruta
             if (numeroPagos == 0 || numeroPagos > 10)
             {
                 return false;
@@ -109,12 +116,12 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
                 {
                     var tarifa = TarifasStripe[resto % TarifasStripe.Length];
                     resto /= TarifasStripe.Length;
-                    comisionTotal += Math.Round((importesOriginales[i] * tarifa.Porcentaje) + tarifa.Fijo, 2, MidpointRounding.AwayFromZero);
+                    comisionTotal += Math.Round((cargos[i] * tarifa.Porcentaje) + tarifa.Fijo, 2, MidpointRounding.AwayFromZero);
                 }
 
                 comisionTotal = Math.Round(comisionTotal, 2, MidpointRounding.AwayFromZero);
 
-                // Comparar comisiones exactas y que la resta (suma original - comisión total) cuadre con lo ingresado
+                // Comparar comisiones exactas y que la resta (suma con reembolsos - comisión total) cuadre con lo ingresado
                 decimal netoCalculado = Math.Round(sumaOriginales - comisionTotal, 2, MidpointRounding.AwayFromZero);
 
                 if (comisionTotal == importeComision && netoCalculado == importeIngresado)
@@ -135,8 +142,8 @@ namespace Nesto.Modulos.Cajas.Models.ReglasContabilizacion
             var apunteBancario = apuntesBancarios.Single();
 
             decimal importeIngresado = apunteBancario.ImporteMovimiento;
-            // Suma de los importes originales por movimiento (usamos Debe porque dijiste que Importes es readonly)
-            var importesOriginales = apuntesContabilidad.Select(a => a.Debe).ToList();
+            // Nesto#406: Importe (Debe - Haber) para que los reembolsos entren en negativo
+            var importesOriginales = apuntesContabilidad.Select(a => a.Importe).ToList();
             decimal sumaOriginales = importesOriginales.Sum();
             decimal importeComision = sumaOriginales - importeIngresado;
 
