@@ -913,7 +913,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
                         "Nesto.Informes.ExtractoContable.rdlc", "ExtractoContableDataSet", dataSource, listaParametros);
                 }
-                string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}_{empresa}.pdf";
+                // Nesto#404: nombre único por impresión; con el nombre determinista, reimprimir la
+                // misma cuenta con el PDF anterior abierto en el visor petaba en WriteAllBytes.
+                string fileName = Path.GetTempPath() + $"ExtractoCuenta{CuentaOrigen.Cuenta}_{empresa}_{DateTime.Now:yyyyMMddHHmmss}.pdf";
                 System.IO.File.WriteAllBytes(fileName, pdf);
                 _ = System.Diagnostics.Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
             }
