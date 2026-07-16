@@ -1704,17 +1704,35 @@ Public Class AgenciasViewModel
         End Get
     End Property
     Private Function canBorrar(ByVal param As Object) As Boolean
-        ' No se puede borrar un envío ya registrado en la agencia (tiene albarán/CodigoBarras): aunque
-        ' su Estado sea "En curso" (0), ya está tramitado en la agencia y borrarlo aquí lo deja registrado
-        ' allí pero perdido en nuestra BD (caso real 245943, 25-jun-2026). Solo Pendientes (sin albarán).
-        Return envioActual IsNot Nothing AndAlso Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso envioActual.Estado <= 0 AndAlso
-        String.IsNullOrWhiteSpace(envioActual.CodigoBarras) AndAlso
+        Return envioActual IsNot Nothing AndAlso Not IsNothing(listaEnvios) AndAlso listaEnvios.Count > 0 AndAlso
+        PuedeBorrarEnvio(envioActual.Estado, envioActual.CodigoBarras, agenciaEspecifica?.FlujoTramitacion) AndAlso
         (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION))
     End Function
+
+    ''' <summary>
+    ''' Nesto#405: decide si un envío se puede borrar. El bloqueo por CodigoBarras (caso real
+    ''' 245943, 25-jun-2026) solo aplica a agencias RegistrarAlImprimir (Innovatrans): ahí tener
+    ''' código significa que el envío YA está registrado en la agencia aunque siga EN CURSO, y
+    ''' borrarlo aquí lo dejaría registrado allí pero perdido en nuestra BD. En las TramitarAlCerrar
+    ''' (ASM y clásicas) el código se genera en LOCAL al montar el envío y no se tramita hasta
+    ''' "Tramitar todos", así que TODOS los EN CURSO tienen código y borrar es seguro: basta
+    ''' Estado &lt;= 0 (criterio de siempre).
+    ''' </summary>
+    Public Shared Function PuedeBorrarEnvio(estado As Integer, codigoBarras As String, flujo As TipoFlujoTramitacion?) As Boolean
+        If estado > 0 Then
+            Return False
+        End If
+        If flujo.HasValue AndAlso flujo.Value = TipoFlujoTramitacion.RegistrarAlImprimir AndAlso
+           Not String.IsNullOrWhiteSpace(codigoBarras) Then
+            Return False
+        End If
+        Return True
+    End Function
+
     Private Sub Borrar(ByVal param As Object)
-        ' Bloqueo por albarán (no solo por Estado>0): un envío "En curso" (0) ya tiene albarán y está
-        ' registrado en la agencia. Hasta que se pueda anular en la agencia, no se permite borrarlo aquí.
-        If envioActual.Estado > 0 OrElse Not String.IsNullOrWhiteSpace(envioActual.CodigoBarras) Then
+        ' Nesto#405: mismo criterio que canBorrar (guard defensivo por si el comando se dispara
+        ' con el botón desactualizado).
+        If Not PuedeBorrarEnvio(envioActual.Estado, envioActual.CodigoBarras, agenciaEspecifica?.FlujoTramitacion) Then
             ' NestoAPI#259: dejamos rastro en ELMAH del intento (lo que pasó con 245943: tramitado y
             ' borrado), gobernado por el flag de logging detallado de la agencia (hoy solo Innovatrans).
             If agenciaEspecifica IsNot Nothing AndAlso agenciaEspecifica.LoggingDetallado Then

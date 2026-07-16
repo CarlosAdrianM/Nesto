@@ -66,6 +66,38 @@ Public Class AgenciaViewModelTests
 
 
 
+    ' Nesto#405: el bloqueo de borrado por CodigoBarras solo aplica al flujo RegistrarAlImprimir
+    ' (Innovatrans, donde tener código = ya registrado en la agencia). En TramitarAlCerrar (ASM)
+    ' todos los EN CURSO tienen código generado en local y borrar es seguro.
+
+    <TestMethod()>
+    Public Sub PuedeBorrarEnvio_EnCursoConCodigoEnASM_SePermite()
+        Assert.IsTrue(AgenciasViewModel.PuedeBorrarEnvio(0, "61197140246221", TipoFlujoTramitacion.TramitarAlCerrar))
+    End Sub
+
+    <TestMethod()>
+    Public Sub PuedeBorrarEnvio_EnCursoConCodigoEnInnovatrans_SeBloquea()
+        Assert.IsFalse(AgenciasViewModel.PuedeBorrarEnvio(0, "2470188878", TipoFlujoTramitacion.RegistrarAlImprimir))
+    End Sub
+
+    <TestMethod()>
+    Public Sub PuedeBorrarEnvio_PendienteSinCodigoEnInnovatrans_SePermite()
+        Assert.IsTrue(AgenciasViewModel.PuedeBorrarEnvio(-1, Nothing, TipoFlujoTramitacion.RegistrarAlImprimir))
+    End Sub
+
+    <TestMethod()>
+    Public Sub PuedeBorrarEnvio_EstadoTramitado_SeBloqueaEnAmbosFlujos()
+        Assert.IsFalse(AgenciasViewModel.PuedeBorrarEnvio(1, Nothing, TipoFlujoTramitacion.TramitarAlCerrar))
+        Assert.IsFalse(AgenciasViewModel.PuedeBorrarEnvio(1, Nothing, TipoFlujoTramitacion.RegistrarAlImprimir))
+    End Sub
+
+    <TestMethod()>
+    Public Sub PuedeBorrarEnvio_SinAgenciaResuelta_MandaSoloElEstado()
+        ' Sin agencia (flujo desconocido) se vuelve al criterio clásico: Estado <= 0
+        Assert.IsTrue(AgenciasViewModel.PuedeBorrarEnvio(0, "61197140246221", Nothing))
+        Assert.IsFalse(AgenciasViewModel.PuedeBorrarEnvio(2, Nothing, Nothing))
+    End Sub
+
     <TestMethod()>
     Public Sub AgenciaViewModel_AlCargarDatos_HayUnaEmpresaSeleccionada()
         'arrange
