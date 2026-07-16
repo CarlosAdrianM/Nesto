@@ -76,6 +76,33 @@ namespace ClienteTests
         }
 
         [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_MarcaVerificadaYBloqueaElCodigoPostal()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ555", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ555" });
+
+            Assert.IsTrue(vm.DireccionVerificadaPorGoogle);
+            Assert.IsFalse(vm.CodigoPostalIsEnabled, "El CP viene de Google junto a la dirección: bloqueado");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task EditarLaDireccionAMano_QuitaLaVerificacionYDesbloqueaElCodigoPostal()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ555", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel { Calle = "Calle Mayor", Numero = "1", CodigoPostal = "28001" });
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ555" });
+
+            vm.ClienteDireccionCalleNumero = "Calle Mayor, 2"; // el usuario lo toca a mano
+
+            Assert.IsFalse(vm.DireccionVerificadaPorGoogle);
+            Assert.IsTrue(vm.CodigoPostalIsEnabled);
+        }
+
+        [TestMethod]
         public void MoverSeleccionSugerencias_ConFlechas_RecorreLaListaSinSalirse()
         {
             var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
@@ -232,7 +259,7 @@ namespace ClienteTests
                 Nombre = "Prueba"
             };
             respuestaFake.ClientesMismoTelefono = new List<ClienteTelefonoLookup> { clienteFake };
-            A.CallTo(() => Servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored)).Returns(respuestaFake);
+            A.CallTo(() => Servicio.ValidarDatosGenerales(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<bool>.Ignored)).Returns(respuestaFake);
             WizardPage paginaActual = A.Fake<WizardPage>(); // NO FUNCIONA EL TEST PORQUE NO SÉ CÓMO CREAR EL MOCK DE WizardPage
             paginaActual.Name = CrearClienteViewModel.DATOS_GENERALES;
             WizardPage paginaSiguiente = A.Fake<WizardPage>();

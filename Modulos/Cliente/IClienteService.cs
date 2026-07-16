@@ -8,7 +8,9 @@ namespace Nesto.Modulos.Cliente
     public interface IClienteService
     {
         Task<RespuestaNifNombreCliente> ValidarNif(string nif, string nombre);
-        Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono);
+        // direccionVerificada=true cuando dirección y CP vienen del combo de Places (Nesto#409):
+        // el servidor se salta el geocoding y solo normaliza para la BD.
+        Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false);
         Task<RespuestaDatosBancoCliente> ValidarDatosPago(string formaPago, string plazosPago, string iban);
         Task<Clientes> CrearCliente(ClienteCrear cliente);
         Task<Clientes> ModificarCliente(ClienteCrear cliente);

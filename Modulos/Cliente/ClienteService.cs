@@ -163,7 +163,7 @@ namespace Nesto.Modulos.Cliente
             return respuesta;
         }
 
-        public async Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono)
+        public async Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false)
         {
             RespuestaDatosGeneralesClientes respuesta;
 
@@ -183,7 +183,8 @@ namespace Nesto.Modulos.Cliente
                 {
                     string urlConsulta = "Clientes/ComprobarDatosGenerales?direccion=" + direccion
                         + "&codigoPostal=" + codigoPostal
-                        + "&telefono="+telefono;
+                        + "&telefono=" + telefono
+                        + "&direccionVerificada=" + direccionVerificada.ToString().ToLower();
 
 
                     response = await client.GetAsync(urlConsulta);

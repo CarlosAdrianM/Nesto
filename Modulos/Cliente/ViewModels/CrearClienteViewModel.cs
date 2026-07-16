@@ -59,7 +59,14 @@ namespace Nesto.Modulos.Cliente
         private string clienteCodigoPostal;
         public string ClienteCodigoPostal {
             get { return clienteCodigoPostal; }
-            set { SetProperty(ref clienteCodigoPostal, value); }
+            set
+            {
+                if (SetProperty(ref clienteCodigoPostal, value) && !aplicandoSugerenciaDireccion)
+                {
+                    // Editado a mano: la pareja dirección+CP ya no es la que dio Google
+                    DireccionVerificadaPorGoogle = false;
+                }
+            }
         }
         public string ClienteContacto { get; set; }
         public bool ClienteDatosPagoValidados { get; set; }
@@ -85,10 +92,29 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref clienteDireccionCalleNumero, value) && !aplicandoSugerenciaDireccion)
                 {
+                    // Editado a mano: la pareja dirección+CP ya no es la que dio Google
+                    DireccionVerificadaPorGoogle = false;
                     BuscarSugerenciasDireccionConDebounce(value);
                 }
             }
         }
+
+        // Nesto#409: dirección y CP salieron JUNTOS del combo de Places → son consistentes entre
+        // sí. Mientras el usuario no los toque a mano, el CP queda bloqueado y la validación del
+        // wizard se salta el geocoding (direccionVerificada=true): cero llamadas extra a Google.
+        private bool direccionVerificadaPorGoogle;
+        public bool DireccionVerificadaPorGoogle
+        {
+            get { return direccionVerificadaPorGoogle; }
+            set
+            {
+                if (SetProperty(ref direccionVerificadaPorGoogle, value))
+                {
+                    RaisePropertyChanged(nameof(CodigoPostalIsEnabled));
+                }
+            }
+        }
+        public bool CodigoPostalIsEnabled => !DireccionVerificadaPorGoogle;
 
         #region Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI)
         // El usuario va tecleando y sale el combo de sugerencias de Google; al seleccionar una se
@@ -199,6 +225,9 @@ namespace Nesto.Modulos.Cliente
                 if (!string.IsNullOrWhiteSpace(detalle.CodigoPostal))
                 {
                     ClienteCodigoPostal = detalle.CodigoPostal;
+                    // Dirección y CP vienen juntos de Google: pareja verificada → CP bloqueado y
+                    // la validación del wizard se salta el geocoding
+                    DireccionVerificadaPorGoogle = true;
                 }
             }
             catch
@@ -667,7 +696,7 @@ namespace Nesto.Modulos.Cliente
 
             try
             {
-                RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono);
+                RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono, DireccionVerificadaPorGoogle);
                 respuesta.ClientesMismoTelefono = respuesta.ClientesMismoTelefono.Where(c => c.Cliente != ClienteNumero).ToList();
                 if (respuesta.ClientesMismoTelefono.Count > 0)
                 {
