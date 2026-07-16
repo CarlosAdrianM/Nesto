@@ -150,6 +150,18 @@ Public Class PedidoVentaWrapper
             Model.comentarioPicking = value
         End Set
     End Property
+    ' NestoAPI#253 / Nesto#389: aviso automático con importe cuando el pedido coja picking
+    Public Property avisarConImporteAlCogerPicking As Boolean
+        Get
+            Return Model.avisarConImporteAlCogerPicking
+        End Get
+        Set(value As Boolean)
+            If Model.avisarConImporteAlCogerPicking <> value Then
+                Model.avisarConImporteAlCogerPicking = value
+                RaisePropertyChanged(NameOf(avisarConImporteAlCogerPicking))
+            End If
+        End Set
+    End Property
     Public Property suPedido() As String
         Get
             Return Model.suPedido

@@ -245,6 +245,19 @@ Public Class PlantillaVentaState
             SetProperty(_comentarioPicking, value)
         End Set
     End Property
+
+    Private _avisarConImporteAlCogerPicking As Boolean
+    ''' <summary>
+    ''' NestoAPI#253 / Nesto#389: casilla "Avisar con importe cuando coja picking"
+    ''' </summary>
+    Public Property AvisarConImporteAlCogerPicking As Boolean
+        Get
+            Return _avisarConImporteAlCogerPicking
+        End Get
+        Set(value As Boolean)
+            SetProperty(_avisarConImporteAlCogerPicking, value)
+        End Set
+    End Property
 #End Region
 
 #Region "Su Pedido / P.O."
@@ -494,6 +507,7 @@ Public Class PlantillaVentaState
             .mantenerJunto = MantenerJunto,
             .servirJunto = ServirJunto,
             .comentarioPicking = ComentarioPicking,
+            .avisarConImporteAlCogerPicking = AvisarConImporteAlCogerPicking,
             .suPedido = SuPedido,
             .comentarios = ComentarioRuta
         }

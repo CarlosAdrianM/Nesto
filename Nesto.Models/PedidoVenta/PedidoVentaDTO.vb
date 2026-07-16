@@ -27,6 +27,8 @@ Public Class PedidoVentaDTO
     Public Property vendedor As String
     Public Property comentarios() As String
     Public Property comentarioPicking() As String
+    ' NestoAPI#253 / Nesto#389: casilla "Avisar con importe cuando coja picking"
+    Public Property avisarConImporteAlCogerPicking As Boolean
     Public Property CrearEfectosManualmente As Boolean
     Public Property periodoFacturacion() As String
     Public Property ruta() As String
@@ -156,6 +158,7 @@ Public Class PedidoVentaDTO
                noComisiona = other.noComisiona AndAlso
                mantenerJunto = other.mantenerJunto AndAlso
                servirJunto = other.servirJunto AndAlso
+               avisarConImporteAlCogerPicking = other.avisarConImporteAlCogerPicking AndAlso
                notaEntrega = other.notaEntrega
     End Function
 
@@ -197,6 +200,9 @@ Public Class PedidoVentaDTO
         End If
         If servirJunto <> other.servirJunto Then
             difs.Add($"servirJunto: '{other.servirJunto}' -> '{servirJunto}'")
+        End If
+        If avisarConImporteAlCogerPicking <> other.avisarConImporteAlCogerPicking Then
+            difs.Add($"avisarConImporteAlCogerPicking: '{other.avisarConImporteAlCogerPicking}' -> '{avisarConImporteAlCogerPicking}'")
         End If
         If notaEntrega <> other.notaEntrega Then
             difs.Add($"notaEntrega: '{other.notaEntrega}' -> '{notaEntrega}'")
@@ -267,6 +273,7 @@ Public Class PedidoVentaDTO
             .contactoCobro = Me.contactoCobro,
             .comentarios = Me.comentarios,
             .comentarioPicking = Me.comentarioPicking,
+            .avisarConImporteAlCogerPicking = Me.avisarConImporteAlCogerPicking,
             .suPedido = Me.suPedido,
             .noComisiona = Me.noComisiona,
             .mantenerJunto = Me.mantenerJunto,

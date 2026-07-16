@@ -923,6 +923,19 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    ' NestoAPI#253 / Nesto#389: casilla "Avisar con importe cuando coja picking"
+    Public Property AvisarConImporteAlCogerPicking As Boolean
+        Get
+            Return Estado.AvisarConImporteAlCogerPicking
+        End Get
+        Set(value As Boolean)
+            If Estado.AvisarConImporteAlCogerPicking <> value Then
+                Estado.AvisarConImporteAlCogerPicking = value
+                RaisePropertyChanged()
+            End If
+        End Set
+    End Property
+
     ''' <summary>
     ''' Comentario de picking introducido por el usuario. Delegado a Estado.
     ''' Diferente de ComentarioPickingCliente que viene del cliente.

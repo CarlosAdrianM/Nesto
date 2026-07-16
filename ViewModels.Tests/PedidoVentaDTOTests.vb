@@ -843,4 +843,29 @@ Public Class PedidoVentaDTOTests
 
 #End Region
 
+#Region "Nesto#389: casilla avisar con importe al coger picking"
+
+    <TestMethod()>
+    Public Sub Equals_CambiarAvisarConImporteAlCogerPicking_DetectaElCambio()
+        Dim pedido As New PedidoVentaDTO With {.avisarConImporteAlCogerPicking = False}
+        Dim snapshot = pedido.CrearSnapshot()
+
+        pedido.avisarConImporteAlCogerPicking = True
+
+        Assert.IsFalse(pedido.Equals(snapshot))
+        Assert.IsTrue(pedido.ObtenerCamposDiferentes(snapshot).Any(Function(d) d.Contains("avisarConImporteAlCogerPicking")))
+    End Sub
+
+    <TestMethod()>
+    Public Sub CrearSnapshot_CopiaAvisarConImporteAlCogerPicking()
+        Dim pedido As New PedidoVentaDTO With {.avisarConImporteAlCogerPicking = True}
+
+        Dim snapshot = pedido.CrearSnapshot()
+
+        Assert.IsTrue(snapshot.avisarConImporteAlCogerPicking)
+        Assert.IsTrue(pedido.Equals(snapshot))
+    End Sub
+
+#End Region
+
 End Class

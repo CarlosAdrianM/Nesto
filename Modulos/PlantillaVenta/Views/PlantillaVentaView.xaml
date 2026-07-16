@@ -669,6 +669,7 @@
                             </CheckBox>
                             <CheckBox Content="Mantener Junto" IsChecked="{Binding direccionEntregaSeleccionada.mantenerJunto}" Margin="3,0"/>
                             <CheckBox Content="Recoger Producto" IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al crear el pedido" Margin="3,0"/>
+                            <CheckBox Content="Avisar con importe cuando coja picking" IsChecked="{Binding AvisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir" Margin="3,0"/>
                             <TextBlock Margin="3,0">
                                 <Run Text="Periodo de Facturación:"></Run>
                                 <Run Text="{Binding direccionEntregaSeleccionada.periodoFacturacion}"></Run>
