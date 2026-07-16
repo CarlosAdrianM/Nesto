@@ -61,6 +61,12 @@ Public Interface IBorradorPlantillaVentaService
     Function EsJsonBorradorValido(json As String) As Boolean
 
     ''' <summary>
+    ''' Nesto#397 (Parte 1): detecta si el texto es el JSON de un PedidoVentaDTO (dump de ELMAH),
+    ''' que se convierte a plantilla con el POST ParaPlantilla del servidor.
+    ''' </summary>
+    Function EsJsonPedidoVenta(json As String) As Boolean
+
+    ''' <summary>
     ''' Nesto#397: construye un borrador EN MEMORIA (sin guardar a disco) a partir del pedido que
     ''' devuelve GET api/PedidosVenta/ParaPlantilla, con NumeroPedidoEnEdicion y los ids de línea
     ''' para que el guardado haga PUT sobre el pedido original.

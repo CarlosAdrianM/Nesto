@@ -3783,7 +3783,9 @@ Public Class PlantillaVentaViewModel
         Try
             If Clipboard.ContainsText() Then
                 Dim texto = Clipboard.GetText()
-                If servicioBorradores.EsJsonBorradorValido(texto) Then
+                ' Nesto#397 (Parte 1): además del formato borrador, se acepta el JSON de un
+                ' PedidoVentaDTO (el dump que guarda ELMAH cuando un pedido falla al crearse).
+                If servicioBorradores.EsJsonBorradorValido(texto) OrElse servicioBorradores.EsJsonPedidoVenta(texto) Then
                     _textoJsonPortapapeles = texto
                     HayJsonEnPortapapeles = True
                     Return
@@ -3796,14 +3798,23 @@ Public Class PlantillaVentaViewModel
         HayJsonEnPortapapeles = False
     End Sub
 
-    Private Sub OnCrearBorradorDesdeJson()
+    Private Async Sub OnCrearBorradorDesdeJson()
         Try
             If String.IsNullOrEmpty(_textoJsonPortapapeles) Then
                 dialogService.ShowError("No hay JSON válido en el portapapeles")
                 Return
             End If
 
-            Dim borrador = servicioBorradores.CrearBorradorDesdeJson(_textoJsonPortapapeles)
+            Dim borrador As BorradorPlantillaVenta
+            If servicioBorradores.EsJsonPedidoVenta(_textoJsonPortapapeles) Then
+                ' Nesto#397 (Parte 1): el pedido pegado se convierte a plantilla en el SERVIDOR
+                ' (misma inversión de ofertas que Modificar con plantilla) y se guarda como
+                ' borrador normal. Si el dump no lleva nº de pedido, al guardar hará POST.
+                Dim pedidoPlantilla = Await servicio.ConvertirPedidoAPlantilla(_textoJsonPortapapeles)
+                borrador = servicioBorradores.GuardarBorrador(servicioBorradores.CrearBorradorDesdePedido(pedidoPlantilla))
+            Else
+                borrador = servicioBorradores.CrearBorradorDesdeJson(_textoJsonPortapapeles)
+            End If
             OnActualizarListaBorradores()
 
             ' Limpiar estado del portapapeles

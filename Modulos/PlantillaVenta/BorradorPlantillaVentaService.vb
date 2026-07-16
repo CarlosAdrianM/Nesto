@@ -1,6 +1,7 @@
 Imports System.IO
 Imports Nesto.Infrastructure.Contracts
 Imports Newtonsoft.Json
+Imports Newtonsoft.Json.Linq
 
 ''' <summary>
 ''' Implementación del servicio de borradores que guarda en archivos JSON locales.
@@ -208,13 +209,15 @@ Public Class BorradorPlantillaVentaService
             Throw New ArgumentNullException(NameOf(pedido))
         End If
 
+        ' Nesto#397 (Parte 1): un pedido SIN número (dump de un pedido que no llegó a crearse)
+        ' no es una edición: NumeroPedidoEnEdicion queda a Nothing y al guardar hará POST.
         Dim borrador As New BorradorPlantillaVenta With {
             .Id = Guid.NewGuid().ToString(),
             .FechaCreacion = DateTime.Now,
             .Empresa = pedido.Empresa,
             .Cliente = pedido.Cliente,
             .Contacto = pedido.Contacto,
-            .NumeroPedidoEnEdicion = pedido.NumeroPedido,
+            .NumeroPedidoEnEdicion = If(pedido.NumeroPedido = 0, CType(Nothing, Integer?), pedido.NumeroPedido),
             .EsPresupuesto = pedido.EsPresupuesto,
             .FormaPago = pedido.FormaPago,
             .PlazosPago = pedido.PlazosPago,
@@ -258,6 +261,31 @@ Public Class BorradorPlantillaVentaService
         Next
 
         Return borrador
+    End Function
+
+    ''' <summary>
+    ''' Nesto#397 (Parte 1): detecta si el texto es el JSON de un PedidoVentaDTO (el dump que
+    ''' guarda ELMAH cuando un pedido falla al crearse): tiene "Lineas" y "cliente", y NO tiene
+    ''' las colecciones propias del borrador (LineasProducto/LineasRegalo). Se convierte a
+    ''' plantilla con el POST ParaPlantilla del servidor (misma inversión que el GET).
+    ''' </summary>
+    Public Function EsJsonPedidoVenta(json As String) As Boolean Implements IBorradorPlantillaVentaService.EsJsonPedidoVenta
+        If String.IsNullOrWhiteSpace(json) Then
+            Return False
+        End If
+        Try
+            Dim objeto = JObject.Parse(json)
+            Dim tieneLineasPedido = TienePropiedad(objeto, "Lineas")
+            Dim tieneCliente = TienePropiedad(objeto, "cliente")
+            Dim esBorrador = TienePropiedad(objeto, "LineasProducto") OrElse TienePropiedad(objeto, "LineasRegalo")
+            Return tieneLineasPedido AndAlso tieneCliente AndAlso Not esBorrador
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private Shared Function TienePropiedad(objeto As JObject, nombre As String) As Boolean
+        Return objeto.Properties().Any(Function(p) String.Equals(p.Name, nombre, StringComparison.OrdinalIgnoreCase))
     End Function
 
     ''' <summary>

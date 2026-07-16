@@ -104,6 +104,23 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' Nesto#397 (Parte 1): convierte un PedidoVentaDTO SUELTO (dump JSON de ELMAH de un pedido
+    ''' que no llegó a crearse) a la forma de plantilla, reutilizando la MISMA inversión del
+    ''' servidor. Se manda el JSON tal cual: el pedido no existe en BD y el GET no vale.
+    ''' </summary>
+    Public Async Function ConvertirPedidoAPlantilla(jsonPedido As String) As Task(Of PedidoParaPlantillaModel) Implements IPlantillaVentaService.ConvertirPedidoAPlantilla
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim contenido As New StringContent(jsonPedido, Text.Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync("PedidosVenta/ParaPlantilla", contenido)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception("No se pudo convertir el pedido pegado a la plantilla")
+            End If
+            Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of PedidoParaPlantillaModel)(cadenaJson)
+        End Using
+    End Function
+
     Public Async Function CargarCliente(empresa As String, cliente As String, contacto As String) As Task(Of ClienteCrear) Implements IPlantillaVentaService.CargarCliente
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage

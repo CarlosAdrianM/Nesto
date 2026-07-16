@@ -59,6 +59,46 @@ namespace PlantillaVentaTests
             };
         }
 
+        // Nesto#397 (Parte 1): un PedidoVentaDTO pegado desde el portapapeles (dump de ELMAH de
+        // un pedido que NO llegó a crearse) se convierte en el servidor y llega aquí sin número.
+
+        [TestMethod]
+        public void CrearBorradorDesdePedido_SinNumeroDePedido_NoEsModoEdicion()
+        {
+            var pedido = PedidoDeEjemplo();
+            pedido.NumeroPedido = 0; // dump de un pedido no creado
+
+            var borrador = _servicio.CrearBorradorDesdePedido(pedido);
+
+            Assert.IsNull(borrador.NumeroPedidoEnEdicion, "Sin número no hay edición: al guardar debe hacer POST");
+        }
+
+        [TestMethod]
+        public void EsJsonPedidoVenta_ConDumpDePedido_True()
+        {
+            // Forma del PedidoVentaDTO que guarda ELMAH (cliente en minúscula, colección Lineas)
+            string json = @"{ ""empresa"": ""1"", ""cliente"": ""15191"", ""contacto"": ""0"",
+                ""Lineas"": [ { ""Producto"": ""38697"", ""Cantidad"": 6, ""PrecioUnitario"": 10.0 } ] }";
+
+            Assert.IsTrue(_servicio.EsJsonPedidoVenta(json));
+        }
+
+        [TestMethod]
+        public void EsJsonPedidoVenta_ConJsonDeBorrador_False()
+        {
+            // El formato borrador tiene LineasProducto/LineasRegalo: lo trata el flujo de siempre
+            string json = @"{ ""Cliente"": ""15191"", ""LineasProducto"": [ { ""producto"": ""38697"" } ] }";
+
+            Assert.IsFalse(_servicio.EsJsonPedidoVenta(json));
+        }
+
+        [TestMethod]
+        public void EsJsonPedidoVenta_ConTextoQueNoEsJson_False()
+        {
+            Assert.IsFalse(_servicio.EsJsonPedidoVenta("esto no es un json"));
+            Assert.IsFalse(_servicio.EsJsonPedidoVenta(null));
+        }
+
         [TestMethod]
         public void CrearBorradorDesdePedido_MapeaCabeceraYModoEdicion()
         {
