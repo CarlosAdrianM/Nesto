@@ -29,6 +29,52 @@ namespace ClienteTests
             DialogService = A.Fake<IDialogService>();
         }
 
+        // Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI)
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_RellenaCalleNumeroYCodigoPostal()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ111", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel
+                {
+                    Calle = "Avenida de Castilla",
+                    Numero = "3",
+                    CodigoPostal = "28830"
+                });
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ111" });
+
+            Assert.AreEqual("Avenida de Castilla, 3", vm.ClienteDireccionCalleNumero);
+            Assert.AreEqual("28830", vm.ClienteCodigoPostal);
+            Assert.IsFalse(vm.HaySugerenciasDireccion, "Tras seleccionar, el combo se cierra");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_SinNumero_NoDejaComaColgando()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ222", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel { Calle = "Avenida de Castilla", CodigoPostal = "28830" });
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ222" });
+
+            Assert.AreEqual("Avenida de Castilla", vm.ClienteDireccionCalleNumero);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_SiElDetalleFalla_NoTocaLosCampos()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion(A<string>.Ignored, A<string>.Ignored))
+                .Throws(new Exception("Places no habilitado"));
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.ClienteCodigoPostal = "28004";
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ333" });
+
+            Assert.AreEqual("28004", vm.ClienteCodigoPostal);
+        }
+
         [TestMethod]
         public void CrearClienteViewModel_AlCambiarElNif_BloqueaElNombreSiEsUnCif()
         {

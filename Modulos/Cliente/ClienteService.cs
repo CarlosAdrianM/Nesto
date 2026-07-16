@@ -307,6 +307,48 @@ namespace Nesto.Modulos.Cliente
 
             return respuesta;
         }
-        
+
+        // NestoAPI#306 / Nesto#409: autocompletado de direcciones. Best-effort: si falla (Places
+        // sin habilitar, red...) devuelve vacío/null y el usuario sigue tecleando a mano.
+        public async Task<System.Collections.Generic.List<SugerenciaDireccionModel>> BuscarSugerenciasDireccion(string texto, string sessionToken)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    return new System.Collections.Generic.List<SugerenciaDireccionModel>();
+                }
+                HttpResponseMessage response = await client.GetAsync(
+                    $"Direcciones/Sugerencias?texto={Uri.EscapeDataString(texto ?? string.Empty)}&sessionToken={Uri.EscapeDataString(sessionToken ?? string.Empty)}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return new System.Collections.Generic.List<SugerenciaDireccionModel>();
+                }
+                string json = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<System.Collections.Generic.List<SugerenciaDireccionModel>>(json)
+                    ?? new System.Collections.Generic.List<SugerenciaDireccionModel>();
+            }
+        }
+
+        public async Task<DireccionDetalleModel> LeerDetalleDireccion(string placeId, string sessionToken)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    return null;
+                }
+                HttpResponseMessage response = await client.GetAsync(
+                    $"Direcciones/Detalle?placeId={Uri.EscapeDataString(placeId ?? string.Empty)}&sessionToken={Uri.EscapeDataString(sessionToken ?? string.Empty)}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return null;
+                }
+                string json = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<DireccionDetalleModel>(json);
+            }
+        }
     }
 }

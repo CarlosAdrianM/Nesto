@@ -96,6 +96,20 @@
                             </Grid>
                             <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right" ToolTip="Poner solo tipo de vía, nombre de la vía y número. Ejemplo: Paseo de la Castellana, 110" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">Dirección (solo calle y número)</TextBlock>
                             <TextBox Name="txtDireccion" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteDireccionCalleNumero, UpdateSourceTrigger=PropertyChanged}" KeyUp="TxtDireccion_KeyUp" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
+                            <!-- Nesto#409: combo de sugerencias de direcciones (Google Places vía NestoAPI) -->
+                            <Popup PlacementTarget="{Binding ElementName=txtDireccion}" Placement="Bottom"
+                                   IsOpen="{Binding HaySugerenciasDireccion, Mode=TwoWay}" StaysOpen="False"
+                                   Width="{Binding ActualWidth, ElementName=txtDireccion}">
+                                <Border Background="White" BorderBrush="Gray" BorderThickness="1">
+                                    <StackPanel>
+                                        <ListBox ItemsSource="{Binding SugerenciasDireccion}"
+                                                 SelectedItem="{Binding SugerenciaDireccionSeleccionada, Mode=TwoWay}"
+                                                 DisplayMemberPath="Descripcion" MaxHeight="200" BorderThickness="0"/>
+                                        <TextBlock Text="Powered by Google" FontSize="10" Foreground="Gray"
+                                                   HorizontalAlignment="Right" Margin="3,1"/>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
                             <TextBlock Grid.Column="1" Grid.Row="3" TextAlignment="Right" ToolTip="Piso, puerta, nombre comercial, etc. Ejemplo: 1ºC, Esc. 4, Estética Pepita" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">Dirección (resto de información)</TextBlock>
                             <TextBox Name="txtDireccionAdicional" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteDireccionAdicional, UpdateSourceTrigger=PropertyChanged}" GotFocus="txtDireccionAdicional_GotFocus" KeyUp="txtDireccionAdicional_KeyUp" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
                             <TextBlock Grid.Column="1" Grid.Row="5" TextAlignment="Right">Código Postal</TextBlock>

@@ -81,8 +81,110 @@ namespace Nesto.Modulos.Cliente
         public string ClienteDireccionCalleNumero
         {
             get { return clienteDireccionCalleNumero; }
-            set { SetProperty(ref clienteDireccionCalleNumero, value); }
+            set
+            {
+                if (SetProperty(ref clienteDireccionCalleNumero, value) && !aplicandoSugerenciaDireccion)
+                {
+                    BuscarSugerenciasDireccionConDebounce(value);
+                }
+            }
         }
+
+        #region Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI)
+        // El usuario va tecleando y sale el combo de sugerencias de Google; al seleccionar una se
+        // rellenan calle+número y código postal ya normalizados. Best-effort: cualquier fallo
+        // deja el combo vacío y se sigue tecleando a mano. El sessionToken agrupa
+        // autocomplete+detalle en una sesión de facturación y se renueva tras cada selección.
+        private System.Threading.CancellationTokenSource ctsSugerenciasDireccion;
+        private string sessionTokenDireccion = System.Guid.NewGuid().ToString();
+        private bool aplicandoSugerenciaDireccion;
+
+        public System.Collections.ObjectModel.ObservableCollection<SugerenciaDireccionModel> SugerenciasDireccion { get; } =
+            new System.Collections.ObjectModel.ObservableCollection<SugerenciaDireccionModel>();
+
+        private bool haySugerenciasDireccion;
+        public bool HaySugerenciasDireccion
+        {
+            get { return haySugerenciasDireccion; }
+            set { SetProperty(ref haySugerenciasDireccion, value); }
+        }
+
+        private SugerenciaDireccionModel sugerenciaDireccionSeleccionada;
+        public SugerenciaDireccionModel SugerenciaDireccionSeleccionada
+        {
+            get { return sugerenciaDireccionSeleccionada; }
+            set
+            {
+                if (SetProperty(ref sugerenciaDireccionSeleccionada, value) && value != null)
+                {
+                    _ = AplicarSugerenciaDireccionAsync(value);
+                }
+            }
+        }
+
+        private async void BuscarSugerenciasDireccionConDebounce(string texto)
+        {
+            ctsSugerenciasDireccion?.Cancel();
+            ctsSugerenciasDireccion = new System.Threading.CancellationTokenSource();
+            var token = ctsSugerenciasDireccion.Token;
+            try
+            {
+                await Task.Delay(350, token); // debounce: solo busca cuando el usuario para de teclear
+                if (string.IsNullOrWhiteSpace(texto) || texto.Trim().Length < 3)
+                {
+                    SugerenciasDireccion.Clear();
+                    HaySugerenciasDireccion = false;
+                    return;
+                }
+                var sugerencias = await Servicio.BuscarSugerenciasDireccion(texto.Trim(), sessionTokenDireccion);
+                if (token.IsCancellationRequested)
+                {
+                    return; // el usuario siguió tecleando: esta respuesta ya está obsoleta
+                }
+                SugerenciasDireccion.Clear();
+                foreach (var sugerencia in sugerencias)
+                {
+                    SugerenciasDireccion.Add(sugerencia);
+                }
+                HaySugerenciasDireccion = SugerenciasDireccion.Count > 0;
+            }
+            catch
+            {
+                // Cancelado o fallo de red/Places: el autocompletado nunca molesta al alta
+            }
+        }
+
+        public async Task AplicarSugerenciaDireccionAsync(SugerenciaDireccionModel sugerencia)
+        {
+            try
+            {
+                DireccionDetalleModel detalle = await Servicio.LeerDetalleDireccion(sugerencia.PlaceId, sessionTokenDireccion);
+                if (detalle == null)
+                {
+                    return;
+                }
+                aplicandoSugerenciaDireccion = true;
+                ClienteDireccionCalleNumero = string.IsNullOrWhiteSpace(detalle.Numero)
+                    ? detalle.Calle
+                    : $"{detalle.Calle}, {detalle.Numero}";
+                if (!string.IsNullOrWhiteSpace(detalle.CodigoPostal))
+                {
+                    ClienteCodigoPostal = detalle.CodigoPostal;
+                }
+            }
+            catch
+            {
+                // best-effort: si el detalle falla, el usuario sigue con lo tecleado
+            }
+            finally
+            {
+                aplicandoSugerenciaDireccion = false;
+                SugerenciasDireccion.Clear();
+                HaySugerenciasDireccion = false;
+                sessionTokenDireccion = System.Guid.NewGuid().ToString(); // nueva sesión de facturación
+            }
+        }
+        #endregion
         private string clienteComentarios;
         public string ClienteComentarios
         {
