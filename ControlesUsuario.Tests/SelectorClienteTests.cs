@@ -606,10 +606,95 @@ namespace ControlesUsuario.Tests
 
 
 
+        #region Nesto#388: contactos desplegados/colapsados por defecto + badge
+
+        private static SelectorClienteViewModel CrearVmConPreferencia(string valorParametro, out IConfiguracion configuracion)
+        {
+            IConfiguracion configuracionLocal = A.Fake<IConfiguracion>();
+            configuracion = configuracionLocal;
+            ISelectorClienteService servicio = A.Fake<ISelectorClienteService>();
+            A.CallTo(() => configuracionLocal.leerParametro("1", Parametros.Claves.SelectorClienteContactosExpandidos))
+                .Returns(System.Threading.Tasks.Task.FromResult(valorParametro));
+            A.CallTo(() => servicio.CargarCliente("1", "17545", null)).Returns(new ClienteDTO
+            {
+                empresa = "1",
+                cliente = "17545",
+                contacto = "0",
+                nombre = "Cliente 17545"
+            });
+            return new SelectorClienteViewModel(configuracion, servicio);
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task SelectorCliente_PreferenciaExpandida_AbreElPanelAlSeleccionarCliente()
+        {
+            SelectorClienteViewModel vm = CrearVmConPreferencia("1", out _);
+
+            await vm.CargarPreferencias("1");
+            vm.cargarCliente("1", "17545", null);
+
+            Assert.IsTrue(vm.visibilidadSelectorEntrega, "Con la preferencia a 1, el panel de contactos debe abrirse solo");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task SelectorCliente_SinPreferencia_ElPanelSigueColapsado()
+        {
+            SelectorClienteViewModel vm = CrearVmConPreferencia(null, out _);
+
+            await vm.CargarPreferencias("1");
+            vm.cargarCliente("1", "17545", null);
+
+            Assert.IsFalse(vm.visibilidadSelectorEntrega, "Sin preferencia guardada se mantiene el comportamiento de siempre (colapsado)");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task SelectorCliente_CambiarLaPreferencia_LaPersistePorUsuario()
+        {
+            SelectorClienteViewModel vm = CrearVmConPreferencia(null, out IConfiguracion configuracion);
+            await vm.CargarPreferencias("1");
+
+            vm.ContactosExpandidosPorDefecto = true;
+
+            A.CallTo(() => configuracion.GuardarParametro("1", Parametros.Claves.SelectorClienteContactosExpandidos, "1"))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task SelectorCliente_CargarLaPreferencia_NoLaReescribe()
+        {
+            // La carga inicial pone la propiedad, pero solo los cambios del USUARIO persisten
+            SelectorClienteViewModel vm = CrearVmConPreferencia("1", out IConfiguracion configuracion);
+
+            await vm.CargarPreferencias("1");
+
+            Assert.IsTrue(vm.ContactosExpandidosPorDefecto);
+            A.CallTo(() => configuracion.GuardarParametro(A<string>._, A<string>._, A<string>._))
+                .MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void SelectorCliente_BadgeDeContactos_SoloConPanelColapsadoYClienteSeleccionado()
+        {
+            SelectorClienteViewModel vm = CrearVmConPreferencia(null, out _);
+            vm.cargarCliente("1", "17545", null); // deja un cliente seleccionado
+            vm.NumeroContactos = 3;
+
+            Assert.IsTrue(vm.MostrarBadgeContactos, "Colapsado y con contactos: el badge se muestra");
+
+            vm.visibilidadSelectorEntrega = true;
+            Assert.IsFalse(vm.MostrarBadgeContactos, "Desplegado ya se ven los contactos: sin badge");
+
+            vm.visibilidadSelectorEntrega = false;
+            vm.NumeroContactos = 0;
+            Assert.IsFalse(vm.MostrarBadgeContactos, "Sin contactos no hay nada que anunciar");
+        }
+
+        #endregion
+
         private PedidoFiltrable _pedidoFiltrableSeleccionado;
         public PedidoFiltrable PedidoFiltrableSeleccionado
         {
-            get => _pedidoFiltrableSeleccionado; 
+            get => _pedidoFiltrableSeleccionado;
             set => SetProperty(ref _pedidoFiltrableSeleccionado, value);
         }
 

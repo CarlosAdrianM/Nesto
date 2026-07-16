@@ -36,23 +36,39 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" Text="{Binding Etiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock">
-                        <Style.Triggers>
-                            <Trigger Property="Text" Value="">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+            <DockPanel Grid.Row="0" LastChildFill="True">
+                <!-- Nesto#388: ruedita de opciones del selector (patrón reutilizable BotonOpciones) -->
+                <controles:BotonOpciones DockPanel.Dock="Right" VerticalAlignment="Top" Titulo="Opciones del selector de clientes">
+                    <CheckBox Content="Mostrar contactos desplegados por defecto"
+                              IsChecked="{Binding ContactosExpandidosPorDefecto, Mode=TwoWay}"/>
+                </controles:BotonOpciones>
+                <TextBlock Text="{Binding Etiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <Trigger Property="Text" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </DockPanel>
             <controles:BarraFiltro Grid.Row="1" x:Name="txtFiltro" ListaItems="{Binding listaClientes}" ItemSeleccionado="{Binding listaClientes.ElementoSeleccionado}" KeyUp="txtFiltro_KeyUp"></controles:BarraFiltro>
             <StackPanel Grid.Row="2" Name="pnlCargando" Visibility="{Binding visibilidadCargando, Converter={StaticResource BoolToVisibilityConverter}}">
                 <TextBlock Text="Descargando Clientes del Servidor..." FontWeight="Light" FontSize="10" Foreground="Blue"></TextBlock>
             </StackPanel>
             <StackPanel Grid.Row="3" Name="pnlDatosCliente" MouseUp="pnlDatosCliente_MouseUp" Visibility="{Binding visibilidadDatosCliente, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock Name="txtNombreCliente" Text="{Binding listaClientes.ElementoSeleccionado.nombre}" FontWeight="Light" FontSize="10"></TextBlock>
+                <DockPanel LastChildFill="True">
+                    <!-- Nesto#388: badge discreto con el nº de contactos que se verían al desplegar
+                         el panel (solo cuando está colapsado) -->
+                    <Border DockPanel.Dock="Right" CornerRadius="8" Background="#FF78909C" Padding="5,1" Margin="4,0,0,0"
+                            VerticalAlignment="Center" ToolTip="Contactos del cliente (clic en la dirección para desplegar)"
+                            Visibility="{Binding MostrarBadgeContactos, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <TextBlock Text="{Binding NumeroContactos}" Foreground="White" FontSize="9" FontWeight="Bold"/>
+                    </Border>
+                    <TextBlock Name="txtNombreCliente" Text="{Binding listaClientes.ElementoSeleccionado.nombre}" FontWeight="Light" FontSize="10"></TextBlock>
+                </DockPanel>
                 <TextBlock Name="txtDireccionCliente" Text="{Binding listaClientes.ElementoSeleccionado.direccion}" FontWeight="Light" FontSize="10"></TextBlock>
             </StackPanel>
             <Popup x:Name="popupListView" StaysOpen="False" IsOpen="{Binding visibilidadSelectorEntrega, Mode=TwoWay}">

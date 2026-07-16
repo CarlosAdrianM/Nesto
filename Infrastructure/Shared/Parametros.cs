@@ -45,6 +45,9 @@
             public const string PermitirCopiarSeguimientos = "PermitirCopiarSeguimientos";
             public const string PermitirVerClientesTodosLosVendedores = "PermitirVerClientesTodosLosVendedores";
             public const string RutaPedidosCmp = "RutaPedidosCmp";
+            // Nesto#388: "1" = el panel de contactos/direcciones del SelectorCliente aparece
+            // desplegado al seleccionar un cliente; cualquier otro valor (o ausencia) = colapsado.
+            public const string SelectorClienteContactosExpandidos = "SelectorClienteContactosExpandidos";
             public const string SerieFacturacionDefecto = "SerieFacturaciónDefecto";
             public const string UltimaVersionNovedades = "UltimaVersionNovedades";
             public const string UltNumProducto = "UltNumProducto";

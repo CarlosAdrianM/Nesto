@@ -90,6 +90,21 @@ namespace ControlesUsuario
                 // Por aquí entra cuando buscamos un cliente en el selector directamente
                 vm.cargarCliente(Empresa, txtFiltro.Text, null);
             };
+
+            // Nesto#388: el count de contactos vive en el control hijo (SelectorDireccionEntrega),
+            // que carga su lista aunque el popup esté cerrado (cargarDatos salta al cambiar el
+            // Cliente, no al abrirse). Lo propagamos al ViewModel para el badge del header.
+            selectorEntrega.listaDireccionesEntrega.PropertyChanged += (sender, args) =>
+            {
+                if (args.PropertyName == nameof(ColeccionFiltrable.Lista))
+                {
+                    var vmActual = DataContext as SelectorClienteViewModel;
+                    if (vmActual != null)
+                    {
+                        vmActual.NumeroContactos = NumeroDeDirecciones();
+                    }
+                }
+            };
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -165,6 +180,7 @@ namespace ControlesUsuario
 
             SelectorClienteViewModel vm = DataContext as SelectorClienteViewModel;
             await vm.CargarVendedor(Empresa);
+            await vm.CargarPreferencias(Empresa); // Nesto#388: estado inicial del panel de contactos
 
             // Para poner el foco en el primer control
             //TraversalRequest tRequest = new TraversalRequest(FocusNavigationDirection.Next);

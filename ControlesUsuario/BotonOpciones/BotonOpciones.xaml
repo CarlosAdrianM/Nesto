@@ -1,0 +1,25 @@
+<UserControl x:Class="ControlesUsuario.BotonOpciones"
+             x:Name="root"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d">
+    <Grid>
+        <ToggleButton x:Name="btnEngranaje" Cursor="Hand" ToolTip="Opciones"
+                      Style="{StaticResource {x:Static ToolBar.ToggleButtonStyleKey}}"
+                      Padding="2,0" VerticalAlignment="Center">
+            <TextBlock FontFamily="Segoe UI Symbol" Text="&#xE115;" FontSize="12" Foreground="Gray"/>
+        </ToggleButton>
+        <Popup IsOpen="{Binding IsChecked, ElementName=btnEngranaje, Mode=TwoWay}" StaysOpen="False"
+               PlacementTarget="{Binding ElementName=btnEngranaje}" Placement="Bottom">
+            <Border Background="{x:Static SystemColors.ControlBrush}"
+                    BorderBrush="{x:Static SystemColors.ActiveBorderBrush}" BorderThickness="1" Padding="10">
+                <StackPanel>
+                    <TextBlock Text="{Binding Titulo, ElementName=root}" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <ContentPresenter Content="{Binding Opciones, ElementName=root}"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

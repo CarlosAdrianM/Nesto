@@ -27,6 +27,8 @@ namespace ControlesUsuario.ViewModels
 
         private string empresaPorDefecto = "1";
         private string vendedor;
+        private string _empresaParametros;
+        private bool _preferenciasCargadas;
         
         #region "Propiedades"
         private bool _cargando;
@@ -119,8 +121,47 @@ namespace ControlesUsuario.ViewModels
             {
                 _visibilidadSelectorEntrega = value;
                 RaisePropertyChanged(nameof(visibilidadSelectorEntrega));
+                RaisePropertyChanged(nameof(MostrarBadgeContactos));
             }
         }
+
+        // Nesto#388: preferencia por usuario (parámetro SelectorClienteContactosExpandidos).
+        // true = el panel de contactos se abre solo al seleccionar un cliente.
+        private bool _contactosExpandidosPorDefecto;
+        public bool ContactosExpandidosPorDefecto
+        {
+            get => _contactosExpandidosPorDefecto;
+            set
+            {
+                if (SetProperty(ref _contactosExpandidosPorDefecto, value) && _preferenciasCargadas)
+                {
+                    // Solo persiste cuando lo cambia el usuario (la carga inicial no debe reescribirlo)
+                    _ = Configuracion.GuardarParametro(_empresaParametros ?? empresaPorDefecto,
+                        Parametros.Claves.SelectorClienteContactosExpandidos, value ? "1" : "0");
+                    if (value && listaClientes?.ElementoSeleccionado != null)
+                    {
+                        visibilidadSelectorEntrega = true;
+                    }
+                }
+            }
+        }
+
+        // Nesto#388: nº de contactos/direcciones que se verían al desplegar (badge del header).
+        private int _numeroContactos;
+        public int NumeroContactos
+        {
+            get => _numeroContactos;
+            set
+            {
+                if (SetProperty(ref _numeroContactos, value))
+                {
+                    RaisePropertyChanged(nameof(MostrarBadgeContactos));
+                }
+            }
+        }
+
+        // Badge discreto solo cuando el panel está colapsado (desplegado ya se ven los contactos).
+        public bool MostrarBadgeContactos => NumeroContactos > 0 && !visibilidadSelectorEntrega && visibilidadDatosCliente;
         #endregion
 
 
@@ -135,6 +176,23 @@ namespace ControlesUsuario.ViewModels
             else
             {
                 vendedor = await Configuracion.leerParametro(empresaPorDefecto, "Vendedor");
+            }
+        }
+
+        // Nesto#388: lee la preferencia del usuario ANTES de que se pinte el estado inicial del
+        // panel de contactos. Si ya había un cliente seleccionado (carga por binding más rápida
+        // que la lectura del parámetro), aplica el estado ahora.
+        public async Task CargarPreferencias(string empresa)
+        {
+            _empresaParametros = empresa ?? empresaPorDefecto;
+            string valor = await Configuracion.leerParametro(_empresaParametros,
+                Parametros.Claves.SelectorClienteContactosExpandidos);
+            _contactosExpandidosPorDefecto = valor?.Trim() == "1";
+            RaisePropertyChanged(nameof(ContactosExpandidosPorDefecto));
+            _preferenciasCargadas = true;
+            if (_contactosExpandidosPorDefecto && listaClientes?.ElementoSeleccionado != null)
+            {
+                visibilidadSelectorEntrega = true;
             }
         }
         private async Task buscarClientes(string empresa, string filtro)
@@ -196,16 +254,18 @@ namespace ControlesUsuario.ViewModels
 
                 ClienteDTO clienteLeido = await Servicio.CargarCliente(empresa, cliente, contactoSeleccionado);
 
-                if (clienteLeido != null) 
+                if (clienteLeido != null)
                 {
                     if ((listaClientes.ElementoSeleccionado as ClienteDTO)?.cliente == clienteLeido.cliente &&
                     (listaClientes.ElementoSeleccionado as ClienteDTO)?.contacto == clienteLeido.contacto)
                     {
+                        AbrirContactosSiProcede();
                         return;
                     }
                     listaClientes.ElementoSeleccionado = clienteLeido;
                     //(listaClientes.ElementoSeleccionado as ClienteDTO).contacto = contactoSeleccionado;
                     //this.contactoSeleccionado = clienteLeido.contacto;
+                    AbrirContactosSiProcede();
                 }
                 else
                 {
@@ -235,6 +295,16 @@ namespace ControlesUsuario.ViewModels
             catch (Exception)
             {
                 await buscarClientes(empresa, filtro);
+            }
+        }
+
+        // Nesto#388: con la preferencia "desplegado por defecto", el panel de contactos se abre
+        // solo al quedar un cliente seleccionado (cargarCliente lo cierra al empezar a cambiar).
+        private void AbrirContactosSiProcede()
+        {
+            if (ContactosExpandidosPorDefecto)
+            {
+                visibilidadSelectorEntrega = true;
             }
         }
 
