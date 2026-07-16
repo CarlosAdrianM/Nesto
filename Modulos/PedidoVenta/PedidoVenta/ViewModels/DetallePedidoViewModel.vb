@@ -1457,10 +1457,26 @@ Public Class DetallePedidoViewModel
             Dim unused = SetProperty(_crearAlbaranVentaCommand, value)
         End Set
     End Property
+    ' Nesto#410: los pedidos con alguna línea de tienda online (QRU/WEB/STK/BLT) se pueden
+    ' facturar y albaranear aunque el usuario no sea del grupo almacén/tiendas ni tenga su
+    ' almacén en las líneas. La lista de formas online vive en Constantes.FormasVenta.FORMAS_ONLINE.
+    Public Shared Function TieneLineaTiendaOnline(formasVentaLineas As IEnumerable(Of String)) As Boolean
+        Return formasVentaLineas IsNot Nothing AndAlso
+            formasVentaLineas.Any(Function(f) f IsNot Nothing AndAlso
+                Constantes.FormasVenta.FORMAS_ONLINE.Contains(f.Trim()))
+    End Function
+
+    Public ReadOnly Property PedidoTieneLineaTiendaOnline As Boolean
+        Get
+            Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso
+                TieneLineaTiendaOnline(pedido.Lineas.Select(Function(l) l.formaVenta))
+        End Get
+    End Property
+
     Private Function CanCrearAlbaranVenta() As Boolean
         Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso
             pedido.Lineas.Any(Function(l) l.estado < Constantes.LineasPedido.ESTADO_ALBARAN AndAlso l.estado >= Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE) AndAlso
-            pedido.Lineas.Any(Function(l) l.Almacen = AlmacenUsuario)
+            (pedido.Lineas.Any(Function(l) l.Almacen = AlmacenUsuario) OrElse PedidoTieneLineaTiendaOnline)
     End Function
 
     Private Async Sub OnCrearAlbaranVenta()
@@ -1504,9 +1520,10 @@ Public Class DetallePedidoViewModel
     Private Function CanCrearFacturaVenta() As Boolean
         ' La factura es un documento administrativo, no requiere estar en el almacén específico
         ' Solo verificamos que el usuario tenga permisos para facturar
+        ' Nesto#410: los pedidos de tienda online los factura quien los gestiona, sea del grupo que sea
         Return Not IsNothing(pedido) AndAlso Not IsNothing(pedido.Lineas) AndAlso
             pedido.Lineas.Any(Function(l) l.estado = Constantes.LineasPedido.ESTADO_ALBARAN) AndAlso
-            EsGrupoQuePuedeFacturar
+            (EsGrupoQuePuedeFacturar OrElse PedidoTieneLineaTiendaOnline)
     End Function
 
     Private Async Sub OnCrearFacturaVenta()
@@ -1753,7 +1770,7 @@ Public Class DetallePedidoViewModel
         Return CanCrearAlbaranVenta() AndAlso
                Not IsNothing(pedido) AndAlso
                (pedido.periodoFacturacion <> Constantes.PeriodosFacturacion.FIN_DE_MES OrElse pedido.Agrupada) AndAlso
-               EsGrupoQuePuedeFacturar
+               (EsGrupoQuePuedeFacturar OrElse PedidoTieneLineaTiendaOnline) ' Nesto#410
     End Function
 
     Private Async Sub OnCrearAlbaranYFacturaVenta()

@@ -16,6 +16,44 @@ Imports Unity
 ''' que además producía falso "el pedido ha cambiado").
 ''' </summary>
 <TestClass()>
+Public Class DetallePedidoTiendaOnlineTests
+
+    ' Nesto#410: pedidos con líneas de tienda online (Constantes.FormasVenta.FORMAS_ONLINE)
+    ' se pueden facturar/albaranear aunque el usuario no sea de almacén/tiendas.
+
+    <TestMethod()>
+    Public Sub TieneLineaTiendaOnline_ConLineaQRU_True()
+        Assert.IsTrue(DetallePedidoViewModel.TieneLineaTiendaOnline({"VAR", "QRU"}))
+    End Sub
+
+    <TestMethod()>
+    Public Sub TieneLineaTiendaOnline_TodasLasFormasOnline_True()
+        For Each forma In {"QRU", "WEB", "STK", "BLT"}
+            Assert.IsTrue(DetallePedidoViewModel.TieneLineaTiendaOnline({forma}), $"Debe reconocer {forma}")
+        Next
+    End Sub
+
+    <TestMethod()>
+    Public Sub TieneLineaTiendaOnline_ConPaddingDeBD_True()
+        ' Los char de BD llegan con espacios de relleno
+        Assert.IsTrue(DetallePedidoViewModel.TieneLineaTiendaOnline({"WEB "}))
+    End Sub
+
+    <TestMethod()>
+    Public Sub TieneLineaTiendaOnline_SoloFormasNormales_False()
+        Assert.IsFalse(DetallePedidoViewModel.TieneLineaTiendaOnline({"VAR", "APC"}))
+    End Sub
+
+    <TestMethod()>
+    Public Sub TieneLineaTiendaOnline_SinLineasONothing_False()
+        Assert.IsFalse(DetallePedidoViewModel.TieneLineaTiendaOnline(Nothing))
+        Assert.IsFalse(DetallePedidoViewModel.TieneLineaTiendaOnline(New List(Of String)))
+        Assert.IsFalse(DetallePedidoViewModel.TieneLineaTiendaOnline({CType(Nothing, String)}))
+    End Sub
+
+End Class
+
+<TestClass()>
 Public Class DetallePedidoViewModelConfirmacionTests
 
     Private regionManager As IRegionManager
