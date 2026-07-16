@@ -3352,6 +3352,11 @@ Public Class PlantillaVentaViewModel
             End If
             Dim borrador = servicioBorradores.CrearBorradorDesdePedido(pedidoPlantilla)
             OnCargarBorrador(borrador)
+            ' NestoAPI#303: las líneas ya albaranadas/facturadas no se cargan (el servidor las
+            ' excluye y el PUT las conserva sin tocar); avisar para que nadie las eche en falta.
+            If pedidoPlantilla.LineasEnAlbaranOFactura > 0 Then
+                dialogService.ShowNotification($"El pedido {numero} tiene {pedidoPlantilla.LineasEnAlbaranOFactura} línea(s) ya albaranada(s) o facturada(s) que no se muestran y no se pueden modificar desde la plantilla.")
+            End If
         Catch ex As Exception
             dialogService.ShowError($"No se pudo cargar el pedido {numero} en la plantilla: {ex.Message}")
         Finally

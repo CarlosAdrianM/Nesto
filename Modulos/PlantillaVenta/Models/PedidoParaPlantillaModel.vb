@@ -21,6 +21,11 @@ Public Class PedidoParaPlantillaModel
     Public Property Almacen As String
     Public Property Lineas As New List(Of LineaParaPlantillaModel)
     Public Property Regalos As New List(Of RegaloParaPlantillaModel)
+    ''' <summary>
+    ''' NestoAPI#303: nº de líneas ya en albarán/factura que el servidor NO carga en la plantilla
+    ''' (no son modificables). Se usa para avisar al usuario; el PUT las conserva sin tocar.
+    ''' </summary>
+    Public Property LineasEnAlbaranOFactura As Integer
 End Class
 
 Public Class LineaParaPlantillaModel
