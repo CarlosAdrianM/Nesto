@@ -2720,11 +2720,29 @@ Public Class AgenciasViewModel
             envioActual = buscarPedidoAmpliacion(pedidoSeleccionado)
         Else
             envioActual = envioPendiente
-            agenciaEspecifica.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
         End If
 
-        If String.IsNullOrEmpty(envioActual?.Nemonico) Then
-            agenciaEspecifica.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
+        ' Nesto#412 (caso real: envío 246998, 17/07/26): la agencia EFECTIVA de la inserción se
+        ' resuelve UNA sola vez aquí y se usa para TODO el método. Antes se mezclaban dos fuentes:
+        ' la Agencia del envío heredado (pendiente/ampliación) y la agencia de la VENTANA
+        ' (agenciaSeleccionada/agenciaEspecifica), que puede ser otra (el default local del
+        ' comparador es ASM hasta que el servidor corrige, y los correctores async pueden cambiar
+        ' la selección mientras un diálogo modal bombea el dispatcher). Resultado real: envío
+        ' Innovatrans con código de barras y plaza de ASM -> al imprimir, el servidor intentaba
+        ' "reimprimir" un albarán que DataTrans no conoce y la etiqueta no salía.
+        Dim agenciaTransporteInsercion As AgenciasTransporte = agenciaSeleccionada
+        Dim agenciaInsercion As IAgencia = agenciaEspecifica
+        If envioActual IsNot Nothing AndAlso envioActual.Agencia > 0 AndAlso
+           (agenciaTransporteInsercion Is Nothing OrElse envioActual.Agencia <> agenciaTransporteInsercion.Numero) Then
+            Dim agenciaDelEnvio As AgenciasTransporte = listaAgencias?.FirstOrDefault(Function(a) a.Numero = envioActual.Agencia)
+            If agenciaDelEnvio IsNot Nothing AndAlso factory.ContainsKey(agenciaDelEnvio.Nombre) Then
+                agenciaTransporteInsercion = agenciaDelEnvio
+                agenciaInsercion = factory(agenciaDelEnvio.Nombre).Invoke()
+            End If
+        End If
+
+        If estabaPendiente OrElse String.IsNullOrEmpty(envioActual?.Nemonico) Then
+            agenciaInsercion.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
         End If
 
         Dim textoConfirmar As String
@@ -2791,8 +2809,8 @@ Public Class AgenciasViewModel
                     End If
                 Else
                     With envioActual
-                        .Empresa = agenciaSeleccionada.Empresa
-                        .Agencia = agenciaSeleccionada.Numero
+                        .Empresa = agenciaTransporteInsercion.Empresa
+                        .Agencia = agenciaTransporteInsercion.Numero
                         .Cliente = pedidoSeleccionado.Nº_Cliente
                         .Contacto = pedidoSeleccionado.Contacto
                         .Pedido = pedidoSeleccionado.Número
@@ -2823,7 +2841,7 @@ Public Class AgenciasViewModel
                         .ImporteGasto = If(importeGasto >= 0D, importeGasto, CosteEnvio)
                     End With
                 End If
-                agenciaEspecifica.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
+                agenciaInsercion.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
                 If Not String.IsNullOrEmpty(envioActual.TelefonoPlaza) AndAlso envioActual.TelefonoPlaza.Length > 27 Then
                     envioActual.TelefonoPlaza = Left(envioActual.TelefonoPlaza, 27)
                 End If
@@ -2836,7 +2854,7 @@ Public Class AgenciasViewModel
                     listaEnviosPedido.Add(envioActual)
                 End If
 
-                envioActual.CodigoBarras = agenciaEspecifica.calcularCodigoBarras(Me)
+                envioActual.CodigoBarras = agenciaInsercion.calcularCodigoBarras(Me)
                 _servicio.Modificar(envioActual)
 
                 If conEtiquetaRecogida Then
@@ -2849,7 +2867,7 @@ Public Class AgenciasViewModel
                         .Pedido = envioActual.Pedido,
                         .Fecha = envioActual.Fecha,
                         .FechaEntrega = envioActual.FechaEntrega,
-                        .Servicio = agenciaEspecifica.ServicioAuxiliar,
+                        .Servicio = agenciaInsercion.ServicioAuxiliar,
                         .Horario = envioActual.Horario,
                         .Bultos = 1,
                         .Retorno = envioActual.Retorno,
@@ -2895,7 +2913,7 @@ Public Class AgenciasViewModel
         ' primero" (Innovatrans) el código lo asigna la agencia al tramitar, así que el correo se manda
         ' desde ImprimirEtiquetaPedido (tras InsertarYEtiquetar), no aquí.
         If success AndAlso Not esAmpliacion AndAlso
-           agenciaEspecifica.FlujoTramitacion <> TipoFlujoTramitacion.RegistrarAlImprimir Then
+           agenciaInsercion.FlujoTramitacion <> TipoFlujoTramitacion.RegistrarAlImprimir Then
             NotificarEntregaAgencia(envioActual)
         End If
     End Sub
