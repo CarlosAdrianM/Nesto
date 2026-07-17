@@ -14,7 +14,9 @@ Imports Prism.Services.Dialogs
 Imports Azure.Identity
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models
 Imports System.Collections.Specialized
+Imports Unity
 
 Public Class RemesasViewModel
     Inherits BindableBase
@@ -32,6 +34,8 @@ Public Class RemesasViewModel
     Dim blnPuedeVerTodasLasRemesas As Boolean = True
 
     Private ReadOnly dialogService As IDialogService
+    ' Nesto#340 Fase 1C.14: servicio API que va sustituyendo los accesos EF de este VM.
+    Private ReadOnly _remesasService As IRemesasService
 
     Public Structure tipoRemesa
         Public Sub New(
@@ -45,7 +49,7 @@ Public Class RemesasViewModel
         Property descripcion As String
     End Structure
 
-    Public Sub New(interactiveBrowserCredential As InteractiveBrowserCredential, configuracion As IConfiguracion, dialogService As IDialogService)
+    Public Sub New(interactiveBrowserCredential As InteractiveBrowserCredential, configuracion As IConfiguracion, dialogService As IDialogService, container As IUnityContainer)
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
@@ -53,8 +57,12 @@ Public Class RemesasViewModel
         Me.InteractiveBrowserCredential = interactiveBrowserCredential
         Me.configuracion = configuracion
         Me.dialogService = dialogService
+        Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
+        _remesasService = New RemesasService(configuracion, servicioAutenticacion)
         DbContext = New NestoEntities
-        listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
+        ' Nesto#340 Fase 1C.14 slice 1: las empresas se leen del API (async); el resto sigue en EF.
+        listaEmpresas = New ObservableCollection(Of EmpresaModel)
+        CargarEmpresasAsync()
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
         listaRemesas = New ObservableCollection(Of Remesas)(From c In DbContext.Remesas Where c.Empresa = empresaActual Order By c.Número Descending Take numRemesas)
         remesaActual = listaRemesas.FirstOrDefault
@@ -69,6 +77,27 @@ Public Class RemesasViewModel
 
         CrearTareasPlannerCommand = New DelegateCommand(AddressOf OnCrearTareasPlanner, AddressOf CanCrearTareasPlanner)
     End Sub
+
+    ' Constructor para tests: inyecta el servicio API y NO toca EF (Nesto#340 Fase 1C.14).
+    Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, remesasService As IRemesasService)
+        Titulo = "Remesas"
+        Me.configuracion = configuracion
+        Me.dialogService = dialogService
+        _remesasService = remesasService
+        listaEmpresas = New ObservableCollection(Of EmpresaModel)
+    End Sub
+
+    ' Nesto#340 Fase 1C.14 slice 1: sustituye la lectura EF de DbContext.Empresas.
+    ' Es Function As Task (no Sub) para que los tests puedan await; los call sites de
+    ' fire-and-forget la invocan como sentencia y la excepción queda capturada aquí dentro.
+    Public Async Function CargarEmpresasAsync() As Task
+        Try
+            Dim empresas = Await _remesasService.LeerEmpresas()
+            listaEmpresas = New ObservableCollection(Of EmpresaModel)(empresas)
+        Catch ex As Exception
+            mensajeError = $"No se han podido cargar las empresas: {ex.Message}"
+        End Try
+    End Function
 
 
 #Region "Propiedades"
@@ -87,12 +116,12 @@ Public Class RemesasViewModel
     Private Property InteractiveBrowserCredential As InteractiveBrowserCredential
     Private Property configuracion As IConfiguracion
 
-    Private Property _listaEmpresas As ObservableCollection(Of Empresas)
-    Public Property listaEmpresas As ObservableCollection(Of Empresas)
+    Private Property _listaEmpresas As ObservableCollection(Of EmpresaModel)
+    Public Property listaEmpresas As ObservableCollection(Of EmpresaModel)
         Get
             Return _listaEmpresas
         End Get
-        Set(value As ObservableCollection(Of Empresas))
+        Set(value As ObservableCollection(Of EmpresaModel))
             _listaEmpresas = value
             RaisePropertyChanged("listaEmpresas")
         End Set

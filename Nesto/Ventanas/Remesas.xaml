@@ -17,7 +17,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <ComboBox Grid.Column="0" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Número" SelectedValue="{Binding empresaActual}" VerticalAlignment="Center"/>
+                <ComboBox Grid.Column="0" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Numero" SelectedValue="{Binding empresaActual}" VerticalAlignment="Center"/>
                 <TextBlock Grid.Column="1" Text="{Binding mensajeError}" Foreground="Red" TextAlignment="Center" VerticalAlignment="Center" TextWrapping="WrapWithOverflow" Margin="3"/>
             </Grid>
             <TabControl Grid.Row="2" TabStripPlacement="Top" SelectedItem="{Binding PestañaSeleccionada}">
