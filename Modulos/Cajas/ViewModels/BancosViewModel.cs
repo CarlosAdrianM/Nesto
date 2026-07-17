@@ -866,6 +866,12 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 return;
             }
+            // Guard: sin las dos listas cargadas no hay nada que puntear (antes: NullReferenceException).
+            if (ApuntesBanco is null || ApuntesContabilidad is null)
+            {
+                _dialogService.ShowError("Carga primero los apuntes del banco y de contabilidad antes de puntear.");
+                return;
+            }
             try
             {
                 int punteados = 0;
@@ -892,7 +898,10 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
             catch (Exception ex)
             {
-                throw new Exception($"No se ha podido realizar el punteo automático", ex);
+                // Este manejador es async void: relanzar aquí mata el PROCESO entero (nadie puede
+                // observar la excepción; era el crash intermitente "Serie de pruebas anulada" de
+                // CajasTests y el pantallazo en producción). Se muestra el error y se sigue vivo.
+                _dialogService.ShowError("No se ha podido realizar el punteo automático:\n" + ex.Message);
             }
         }
 
@@ -1182,30 +1191,40 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 return;
             }
-            // Esperar la carga anterior si aún no ha terminado
+            // Esperar la carga anterior si aún no ha terminado. OJO: sin ConfigureAwait(false),
+            // para seguir en el hilo de UI después del await. La versión anterior usaba
+            // ConfigureAwait(false) + ContinueWith(TaskScheduler.FromCurrentSynchronizationContext()),
+            // y cuando DOS cargas se solapaban (cambiar fechas/banco rápido) el continuation corría
+            // en un hilo del pool sin SynchronizationContext -> InvalidOperationException que nadie
+            // observaba (los call sites son fire-and-forget) -> UnobservedTaskException en ELMAH
+            // (caso real 17/07/26). Con async/await normal la vuelta al hilo de UI es automática y
+            // la excepción siempre queda observada.
             if (_cargaApuntesTask != null && !_cargaApuntesTask.IsCompleted)
             {
-                await _cargaApuntesTask.ConfigureAwait(false);
+                try
+                {
+                    await _cargaApuntesTask;
+                }
+                catch
+                {
+                    // El error de la carga anterior ya se mostró en su propia ejecución.
+                }
             }
 
-            _cargaApuntesTask = Task.Run(async () =>
+            Task carga = Task.WhenAll(
+                CargarApuntesBanco(fechaDesde, fechaHasta),
+                CargarApuntesContabilidad(fechaDesde, fechaHasta));
+            _cargaApuntesTask = carga;
+            try
             {
-                await Task.WhenAll(
-                    CargarApuntesBanco(fechaDesde, fechaHasta),
-                    CargarApuntesContabilidad(fechaDesde, fechaHasta)
-                ).ConfigureAwait(false);
-            }).ContinueWith(task =>
+                await carga;
+            }
+            catch (Exception ex)
             {
-                // Código para ejecutar después de que ambas tareas hayan terminado
-                if (task.IsFaulted)
-                {
-                    _dialogService.ShowError("Error al cargar los apuntes:\n" + task.Exception.Message);
-                }
-                else
-                {
-                    FiltrarRegistros();
-                }
-            }, TaskScheduler.FromCurrentSynchronizationContext());
+                _dialogService.ShowError("Error al cargar los apuntes:\n" + ex.Message);
+                return;
+            }
+            FiltrarRegistros();
         }
         private async Task CargarApuntesBanco(DateTime fechaDesde, DateTime fechaHasta)
         {

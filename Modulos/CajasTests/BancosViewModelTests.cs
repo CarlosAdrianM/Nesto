@@ -780,7 +780,9 @@ namespace CajasTests
                     Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
 
                     // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    callback.Invoke(new DialogResult(ButtonResult.OK));
+                    // Null-safe: ShowNotification/ShowError llaman a ShowDialog SIN callback; invocar null
+                    // mataba el host de tests con NRE en un hilo de fondo ("Serie de pruebas anulada").
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
@@ -835,7 +837,9 @@ namespace CajasTests
                     Action<IDialogResult> callback = call.GetArgument<Action<IDialogResult>>(2);
 
                     // Simular el comportamiento del diálogo (en este caso, ButtonResult.OK)
-                    callback.Invoke(new DialogResult(ButtonResult.OK));
+                    // Null-safe: ShowNotification/ShowError llaman a ShowDialog SIN callback; invocar null
+                    // mataba el host de tests con NRE en un hilo de fondo ("Serie de pruebas anulada").
+                    callback?.Invoke(new DialogResult(ButtonResult.OK));
                 });
             var _container = A.Fake<IUnityContainer>();
             var _recursosHumanosService = A.Fake<IRecursosHumanosService>();
