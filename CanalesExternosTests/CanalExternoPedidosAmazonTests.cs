@@ -58,5 +58,44 @@ namespace CanalesExternosTests
         {
             CanalExternoPedidosAmazon.LeerDatosEnvio("");
         }
+
+        // NestoAPI#258 slice (a): si el servidor manda los identificadores por canal del último
+        // envío, se usan directamente sin parsear el enlace.
+
+        [TestMethod]
+        public void LeerDatosEnvio_ConDatosDelServidor_NoParseaElEnlace()
+        {
+            var pedido = new PedidoCanalExterno
+            {
+                UltimoSeguimiento = "https://url-que-no-se-sabe-parsear.com/x/1",
+                UltimoEnvio = new Nesto.Modulos.PedidoVenta.PedidoVentaModel.EnvioAgenciaDTO
+                {
+                    CarrierNameAmazon = "CTT Express",
+                    ShippingMethodAmazon = "24H",
+                    NumeroSeguimiento = "CTT0001"
+                }
+            };
+
+            var datos = CanalExternoPedidosAmazon.LeerDatosEnvio(pedido);
+
+            Assert.AreEqual("CTT Express", datos.NombreAgencia);
+            Assert.AreEqual("24H", datos.NombreServicio);
+            Assert.AreEqual("CTT0001", datos.NumeroSeguimiento);
+        }
+
+        [TestMethod]
+        public void LeerDatosEnvio_SinDatosDelServidor_CaeAlParseoDelEnlace()
+        {
+            var pedido = new PedidoCanalExterno
+            {
+                UltimoSeguimiento = "https://aplicaciones.tip-sa.com/cliente/datos_env.php?id=0280400280406522393001",
+                UltimoEnvio = null
+            };
+
+            var datos = CanalExternoPedidosAmazon.LeerDatosEnvio(pedido);
+
+            Assert.AreEqual("Innovatrans", datos.NombreAgencia);
+            Assert.AreEqual("6522393001", datos.NumeroSeguimiento);
+        }
     }
 }

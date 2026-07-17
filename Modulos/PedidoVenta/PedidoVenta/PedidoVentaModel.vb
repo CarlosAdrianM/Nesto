@@ -257,6 +257,12 @@ Public Class PedidoVentaModel
         Public Property EnlaceSeguimiento As String
         Public Property Estado As Short
         Public Property Retorno As Short
+        ' NestoAPI#258 slice (a): identificadores por canal externo que declara la agencia en el
+        ' servidor; los canales (Prestashop/Amazon) confirman envíos con esto sin parsear el enlace.
+        Public Property NumeroSeguimiento As String
+        Public Property TransportistaPrestashop As String
+        Public Property CarrierNameAmazon As String
+        Public Property ShippingMethodAmazon As String
     End Class
 
     Public Class ParametroStringIntInt

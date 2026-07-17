@@ -372,11 +372,27 @@ namespace Nesto.Modulos.CanalesExternos
 
         public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
         {
-            DatosEnvioConfirmarAmazon datosEnvio = LeerDatosEnvio(pedido.UltimoSeguimiento);
+            DatosEnvioConfirmarAmazon datosEnvio = LeerDatosEnvio(pedido);
             return await AmazonApiOrdersService.ConfirmarPedido(pedido.PedidoCanalId, datosEnvio.NombreAgencia, datosEnvio.NombreServicio, datosEnvio.NumeroSeguimiento);
         }
 
         private decimal CambioDivisas { get; set; } = 1;
+
+        // NestoAPI#258 slice (a): si el servidor ya mandó los identificadores por canal del último
+        // envío (los declara la agencia en NestoAPI), se usan directamente. El parseo del enlace
+        // queda como fallback para envíos sin esos datos.
+        internal static DatosEnvioConfirmarAmazon LeerDatosEnvio(PedidoCanalExterno pedido)
+        {
+            var envio = pedido?.UltimoEnvio;
+            return !string.IsNullOrWhiteSpace(envio?.CarrierNameAmazon) && !string.IsNullOrWhiteSpace(envio.NumeroSeguimiento)
+                ? new DatosEnvioConfirmarAmazon
+                {
+                    NombreAgencia = envio.CarrierNameAmazon,
+                    NombreServicio = envio.ShippingMethodAmazon,
+                    NumeroSeguimiento = envio.NumeroSeguimiento
+                }
+                : LeerDatosEnvio(pedido?.UltimoSeguimiento);
+        }
 
         internal static DatosEnvioConfirmarAmazon LeerDatosEnvio(string seguimiento)
         {

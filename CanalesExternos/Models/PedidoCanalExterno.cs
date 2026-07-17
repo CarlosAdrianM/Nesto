@@ -1,5 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
+using Nesto.Modulos.PedidoVenta;
 
 namespace Nesto.Modulos.CanalesExternos
 {
@@ -18,6 +19,12 @@ namespace Nesto.Modulos.CanalesExternos
         public string PaisISO { get; set; }
         public string Observaciones { get; set; }
         public string UltimoSeguimiento { get; set; }
+        /// <summary>
+        /// NestoAPI#258 slice (a): último envío tramitado con los identificadores por canal que
+        /// declara la agencia en el servidor. Si está informado, ConfirmarPedido usa estos datos
+        /// en vez de re-parsear UltimoSeguimiento.
+        /// </summary>
+        public PedidoVentaModel.EnvioAgenciaDTO UltimoEnvio { get; set; }
         public PedidoVentaDTO Pedido { get; set; }
         public string Almacen { get; set; }
 

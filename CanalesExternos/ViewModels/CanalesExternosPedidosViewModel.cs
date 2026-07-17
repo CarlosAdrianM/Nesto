@@ -66,7 +66,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 FechaDesde = (DateTime)(ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.fecha;
                 List<PedidoVentaModel.EnvioAgenciaDTO> listaEnlaces = await PedidoVentaService.CargarEnlacesSeguimiento(pedidoSeleccionado.Pedido.empresa, pedidoSeleccionado.PedidoNestoId);
-                pedidoSeleccionado.UltimoSeguimiento = listaEnlaces.Where(e => e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO).OrderByDescending(e => e.Fecha).FirstOrDefault()?.EnlaceSeguimiento;                
+                // NestoAPI#258 slice (a): guardamos el envío completo (con los identificadores por
+                // canal que declara la agencia en el servidor), no solo el enlace.
+                PedidoVentaModel.EnvioAgenciaDTO ultimoEnvio = listaEnlaces.Where(e => e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO).OrderByDescending(e => e.Fecha).FirstOrDefault();
+                pedidoSeleccionado.UltimoEnvio = ultimoEnvio;
+                pedidoSeleccionado.UltimoSeguimiento = ultimoEnvio?.EnlaceSeguimiento;
             }
             if (pedidoSeleccionado != null && !pedidoSeleccionado.Pedido.Lineas.Any())
             {

@@ -106,5 +106,42 @@ namespace CanalesExternosTests
         {
             CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio("https://www.agencia-desconocida.com/track/123");
         }
+
+        // NestoAPI#258 slice (a): si el servidor manda los identificadores por canal del último
+        // envío, se usan directamente sin parsear el enlace.
+
+        [TestMethod]
+        public void LeerDatosEnvio_ConDatosDelServidor_NoParseaElEnlace()
+        {
+            var pedido = new PedidoCanalExterno
+            {
+                UltimoSeguimiento = "https://url-que-no-se-sabe-parsear.com/x/1",
+                UltimoEnvio = new Nesto.Modulos.PedidoVenta.PedidoVentaModel.EnvioAgenciaDTO
+                {
+                    TransportistaPrestashop = "160",
+                    NumeroSeguimiento = "6522393001"
+                }
+            };
+
+            var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(pedido);
+
+            Assert.AreEqual("160", datos.AgenciaId);
+            Assert.AreEqual("6522393001", datos.NumeroSeguimiento);
+        }
+
+        [TestMethod]
+        public void LeerDatosEnvio_SinDatosDelServidor_CaeAlParseoDelEnlace()
+        {
+            var pedido = new PedidoCanalExterno
+            {
+                UltimoSeguimiento = "https://s.correosexpress.com/c?n=12345678901234",
+                UltimoEnvio = null
+            };
+
+            var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(pedido);
+
+            Assert.AreEqual("105", datos.AgenciaId);
+            Assert.AreEqual("12345678901234", datos.NumeroSeguimiento);
+        }
     }
 }

@@ -233,7 +233,7 @@ namespace Nesto.Modulos.CanalesExternos
 
         public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
         {
-            DatosEnvioConfirmarPrestashop datosEnvio = LeerDatosEnvio(pedido.UltimoSeguimiento);
+            DatosEnvioConfirmarPrestashop datosEnvio = LeerDatosEnvio(pedido);
             string resultado;
             if (await PrestashopService.ConfirmarPedidoAsync(pedido.PedidoCanalId, datosEnvio.AgenciaId, datosEnvio.NumeroSeguimiento, true))
             {
@@ -266,6 +266,17 @@ namespace Nesto.Modulos.CanalesExternos
             ("gls-spain.es",   "160", s => Entre(s, "/e/", "/")),                 // https://mygls.gls-spain.es/e/{albaran}/{cp}
             ("tip-sa.com",     "160", s => DespuesDe(s, "028040028040", ultima: false)), // .../datos_env.php?id=028040028040{albaran}
         };
+
+        // NestoAPI#258 slice (a): si el servidor ya mandó los identificadores por canal del último
+        // envío (los declara la agencia en NestoAPI), se usan directamente. El parseo del enlace
+        // queda como fallback para envíos sin esos datos.
+        internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(PedidoCanalExterno pedido)
+        {
+            var envio = pedido?.UltimoEnvio;
+            return !string.IsNullOrWhiteSpace(envio?.TransportistaPrestashop) && !string.IsNullOrWhiteSpace(envio.NumeroSeguimiento)
+                ? new DatosEnvioConfirmarPrestashop { AgenciaId = envio.TransportistaPrestashop, NumeroSeguimiento = envio.NumeroSeguimiento }
+                : LeerDatosEnvio(pedido?.UltimoSeguimiento);
+        }
 
         internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(string seguimiento)
         {
