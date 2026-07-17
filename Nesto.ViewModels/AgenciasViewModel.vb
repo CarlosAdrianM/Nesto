@@ -1748,41 +1748,64 @@ Public Class AgenciasViewModel
     End Function
 
     ''' <summary>
-    ''' Nesto#405: decide si un envío se puede borrar. El bloqueo por CodigoBarras (caso real
-    ''' 245943, 25-jun-2026) solo aplica a agencias RegistrarAlImprimir (Innovatrans): ahí tener
-    ''' código significa que el envío YA está registrado en la agencia aunque siga EN CURSO, y
-    ''' borrarlo aquí lo dejaría registrado allí pero perdido en nuestra BD. En las TramitarAlCerrar
-    ''' (ASM y clásicas) el código se genera en LOCAL al montar el envío y no se tramita hasta
-    ''' "Tramitar todos", así que TODOS los EN CURSO tienen código y borrar es seguro: basta
-    ''' Estado &lt;= 0 (criterio de siempre).
+    ''' Nesto#405/Nesto#411: decide si un envío se puede borrar. Un envío EN CURSO con albarán de
+    ''' una agencia RegistrarAlImprimir (Innovatrans) YA está registrado en la agencia: desde
+    ''' Nesto#411 se PERMITE borrarlo, pero el flujo lo anula primero en la agencia
+    ''' (<see cref="RequiereAnulacionRemota"/>) y solo si la agencia confirma se borra de la BD
+    ''' (regla API primero, BD después de IAgenciaConGestionRemota). En las TramitarAlCerrar (ASM
+    ''' y clásicas) el código se genera en LOCAL y borrar es directo: basta Estado &lt;= 0.
     ''' </summary>
     Public Shared Function PuedeBorrarEnvio(estado As Integer, codigoBarras As String, flujo As TipoFlujoTramitacion?) As Boolean
-        If estado > 0 Then
-            Return False
-        End If
-        If flujo.HasValue AndAlso flujo.Value = TipoFlujoTramitacion.RegistrarAlImprimir AndAlso
-           Not String.IsNullOrWhiteSpace(codigoBarras) Then
-            Return False
-        End If
-        Return True
+        Return estado <= 0
     End Function
 
-    Private Sub Borrar(ByVal param As Object)
-        ' Nesto#405: mismo criterio que canBorrar (guard defensivo por si el comando se dispara
-        ' con el botón desactualizado).
+    ''' <summary>
+    ''' Nesto#411: ¿el borrado de este envío exige anularlo ANTES en la agencia? Solo en agencias
+    ''' RegistrarAlImprimir con albarán asignado (el envío vive en la plataforma de la agencia;
+    ''' borrar solo nuestra BD lo dejaría vivo y facturable allí — caso real 245943, Nesto#405).
+    ''' </summary>
+    Public Shared Function RequiereAnulacionRemota(estado As Integer, codigoBarras As String, flujo As TipoFlujoTramitacion?) As Boolean
+        Return estado <= 0 AndAlso
+            flujo.HasValue AndAlso flujo.Value = TipoFlujoTramitacion.RegistrarAlImprimir AndAlso
+            Not String.IsNullOrWhiteSpace(codigoBarras)
+    End Function
+
+    Private Async Sub Borrar(ByVal param As Object)
+        ' Guard defensivo por si el comando se dispara con el botón desactualizado (Nesto#405).
         If Not PuedeBorrarEnvio(envioActual.Estado, envioActual.CodigoBarras, agenciaEspecifica?.FlujoTramitacion) Then
-            ' NestoAPI#259: dejamos rastro en ELMAH del intento (lo que pasó con 245943: tramitado y
-            ' borrado), gobernado por el flag de logging detallado de la agencia (hoy solo Innovatrans).
-            If agenciaEspecifica IsNot Nothing AndAlso agenciaEspecifica.LoggingDetallado Then
-                RegistrarIncidenciaAgencia($"Intento de borrar un envío ya registrado en la agencia: envío {envioActual.Numero} (cliente {envioActual.Cliente?.Trim}, albarán {envioActual.CodigoBarras?.Trim}, estado {envioActual.Estado}).", "AgenciasViewModel.Borrar")
-            End If
-            Throw New Exception($"No se puede borrar un envío ya registrado en la agencia (albarán {envioActual.CodigoBarras?.Trim}). Hay que anularlo en la agencia primero.")
+            Throw New Exception($"No se puede borrar un envío en estado {envioActual.Estado}.")
         End If
+
+        ' Nesto#411: si el envío ya está registrado en la agencia, hay que anularlo allí PRIMERO;
+        ' solo si la agencia confirma se borra de nuestra BD (API primero, BD después).
+        Dim anulacionRemota As Boolean = RequiereAnulacionRemota(envioActual.Estado, envioActual.CodigoBarras, agenciaEspecifica?.FlujoTramitacion)
+        Dim agenciaRemota As IAgenciaConGestionRemota = Nothing
+        If anulacionRemota Then
+            agenciaRemota = TryCast(agenciaEspecifica, IAgenciaConGestionRemota)
+            If agenciaRemota Is Nothing Then
+                _dialogService.ShowError("El envío ya está registrado en la agencia y esta no permite anularlo desde Nesto.")
+                Return
+            End If
+        End If
+
         Dim mensajeMostrar = String.Format("¿Confirma que desea borrar el envío del cliente {1}?{0}{0}{2}", Environment.NewLine, envioActual.Cliente?.Trim, envioActual.Direccion)
+        If anulacionRemota Then
+            mensajeMostrar &= String.Format("{0}{0}El envío se anulará también en la agencia (albarán {1}).", Environment.NewLine, envioActual.CodigoBarras?.Trim)
+        End If
         Dim continuar As Boolean
         continuar = _dialogService.ShowConfirmationAnswer("Borrar Envío", mensajeMostrar)
         If Not continuar Then
             Return
+        End If
+
+        If anulacionRemota Then
+            Dim respuesta As RespuestaAgencia = Await agenciaRemota.AnularEnAgencia(envioActual, _servicio)
+            If Not respuesta.Exito Then
+                ' La agencia rechazó (p. ej. la ventana de edición del día ya cerró): NO se toca la
+                ' BD y el usuario ve el motivo real para saber que toca incidencia con la agencia.
+                _dialogService.ShowError($"No se pudo anular el envío en la agencia: {respuesta.TextoRespuestaError}")
+                Return
+            End If
         End If
 
         _servicio.Borrar(envioActual.Numero)
@@ -2427,21 +2450,43 @@ Public Class AgenciasViewModel
         Return Not IsNothing(EnvioPendienteSeleccionado) AndAlso
             (_configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION) OrElse _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.FACTURACION))
     End Function
-    Private Sub OnBorrarEnvioPendiente()
-        ' Aunque esté en la pestaña de Pendientes, si tiene albarán ya está registrado en la agencia
-        ' (p.ej. tramitado pero aún sin "cerrar el día"): no se puede borrar sin anularlo en la agencia.
-        If Not String.IsNullOrWhiteSpace(EnvioPendienteSeleccionado?.CodigoBarras) Then
-            If agenciaEspecifica IsNot Nothing AndAlso agenciaEspecifica.LoggingDetallado Then
-                RegistrarIncidenciaAgencia($"Intento de borrar un envío pendiente ya registrado en la agencia: envío {EnvioPendienteSeleccionado.Numero} (cliente {EnvioPendienteSeleccionado.Cliente?.Trim}, albarán {EnvioPendienteSeleccionado.CodigoBarras.Trim}).", "AgenciasViewModel.OnBorrarEnvioPendiente")
+    Private Async Sub OnBorrarEnvioPendiente()
+        ' Nesto#411: aunque esté en la pestaña de Pendientes, si tiene albarán ya está registrado en
+        ' la agencia (p.ej. tramitado pero aún sin "cerrar el día"): se anula PRIMERO en la agencia
+        ' y solo si esta confirma se borra de la BD (API primero, BD después). Antes se bloqueaba.
+        Dim anulacionRemota As Boolean = Not String.IsNullOrWhiteSpace(EnvioPendienteSeleccionado?.CodigoBarras)
+        Dim agenciaRemota As IAgenciaConGestionRemota = Nothing
+        If anulacionRemota Then
+            agenciaRemota = TryCast(agenciaEspecifica, IAgenciaConGestionRemota)
+            If agenciaRemota Is Nothing Then
+                _dialogService.ShowError($"No se puede borrar un envío ya registrado en la agencia (albarán {EnvioPendienteSeleccionado.CodigoBarras.Trim}) porque la agencia no permite anularlo desde Nesto.")
+                Return
             End If
-            _dialogService.ShowError($"No se puede borrar un envío ya registrado en la agencia (albarán {EnvioPendienteSeleccionado.CodigoBarras.Trim}). Hay que anularlo en la agencia primero.")
-            Return
         End If
         Dim mensajeMostrar = String.Format("¿Confirma que desea borrar el envío pendiente del cliente {1}?{0}{0}{2}", Environment.NewLine, EnvioPendienteSeleccionado.Cliente?.Trim, EnvioPendienteSeleccionado.Direccion)
+        If anulacionRemota Then
+            mensajeMostrar &= String.Format("{0}{0}El envío se anulará también en la agencia (albarán {1}).", Environment.NewLine, EnvioPendienteSeleccionado.CodigoBarras?.Trim)
+        End If
         Dim continuar As Boolean
         continuar = _dialogService.ShowConfirmationAnswer("Borrar Envío", mensajeMostrar)
         If Not continuar Then
             Return
+        End If
+
+        If anulacionRemota Then
+            ' La estrategia trabaja con la entidad; el wrapper de pendientes no la envuelve, así que
+            ' se construye una ligera con lo que AnularEnAgencia necesita (el número identifica el
+            ' envío en el servidor, que es quien anula y actualiza su BD).
+            Dim envioAnular As New EnviosAgencia With {
+                .Numero = EnvioPendienteSeleccionado.Numero,
+                .CodigoBarras = EnvioPendienteSeleccionado.CodigoBarras,
+                .Estado = EnvioPendienteSeleccionado.Estado
+            }
+            Dim respuesta As RespuestaAgencia = Await agenciaRemota.AnularEnAgencia(envioAnular, _servicio)
+            If Not respuesta.Exito Then
+                _dialogService.ShowError($"No se pudo anular el envío en la agencia: {respuesta.TextoRespuestaError}")
+                Return
+            End If
         End If
 
         Dim envioBorrar As EnvioAgenciaWrapper = EnvioPendienteSeleccionado

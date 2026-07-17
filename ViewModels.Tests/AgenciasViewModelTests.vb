@@ -66,9 +66,10 @@ Public Class AgenciaViewModelTests
 
 
 
-    ' Nesto#405: el bloqueo de borrado por CodigoBarras solo aplica al flujo RegistrarAlImprimir
-    ' (Innovatrans, donde tener código = ya registrado en la agencia). En TramitarAlCerrar (ASM)
-    ' todos los EN CURSO tienen código generado en local y borrar es seguro.
+    ' Nesto#405/Nesto#411: un EN CURSO con albarán de una agencia RegistrarAlImprimir (Innovatrans)
+    ' YA está registrado en la agencia. Desde Nesto#411 se PERMITE borrarlo, pero el flujo lo anula
+    ' primero en la agencia (RequiereAnulacionRemota); solo si la agencia confirma se borra la BD.
+    ' En TramitarAlCerrar (ASM) el código se genera en local y borrar es directo.
 
     <TestMethod()>
     Public Sub PuedeBorrarEnvio_EnCursoConCodigoEnASM_SePermite()
@@ -76,13 +77,16 @@ Public Class AgenciaViewModelTests
     End Sub
 
     <TestMethod()>
-    Public Sub PuedeBorrarEnvio_EnCursoConCodigoEnInnovatrans_SeBloquea()
-        Assert.IsFalse(AgenciasViewModel.PuedeBorrarEnvio(0, "2470188878", TipoFlujoTramitacion.RegistrarAlImprimir))
+    Public Sub PuedeBorrarEnvio_EnCursoConCodigoEnInnovatrans_SePermiteViaAnulacionRemota()
+        ' Nesto#411: antes se bloqueaba (Nesto#405); ahora se permite porque el flujo anula primero.
+        Assert.IsTrue(AgenciasViewModel.PuedeBorrarEnvio(0, "2470188878", TipoFlujoTramitacion.RegistrarAlImprimir))
+        Assert.IsTrue(AgenciasViewModel.RequiereAnulacionRemota(0, "2470188878", TipoFlujoTramitacion.RegistrarAlImprimir))
     End Sub
 
     <TestMethod()>
-    Public Sub PuedeBorrarEnvio_PendienteSinCodigoEnInnovatrans_SePermite()
+    Public Sub PuedeBorrarEnvio_PendienteSinCodigoEnInnovatrans_SePermiteSinAnular()
         Assert.IsTrue(AgenciasViewModel.PuedeBorrarEnvio(-1, Nothing, TipoFlujoTramitacion.RegistrarAlImprimir))
+        Assert.IsFalse(AgenciasViewModel.RequiereAnulacionRemota(-1, Nothing, TipoFlujoTramitacion.RegistrarAlImprimir))
     End Sub
 
     <TestMethod()>
@@ -96,6 +100,16 @@ Public Class AgenciaViewModelTests
         ' Sin agencia (flujo desconocido) se vuelve al criterio clásico: Estado <= 0
         Assert.IsTrue(AgenciasViewModel.PuedeBorrarEnvio(0, "61197140246221", Nothing))
         Assert.IsFalse(AgenciasViewModel.PuedeBorrarEnvio(2, Nothing, Nothing))
+    End Sub
+
+    <TestMethod()>
+    Public Sub RequiereAnulacionRemota_SoloEnRegistrarAlImprimirConAlbaran()
+        ' ASM (TramitarAlCerrar): el código es local, borrar no toca a la agencia.
+        Assert.IsFalse(AgenciasViewModel.RequiereAnulacionRemota(0, "61197140246221", TipoFlujoTramitacion.TramitarAlCerrar))
+        ' Sin agencia resuelta no se puede anular en remoto.
+        Assert.IsFalse(AgenciasViewModel.RequiereAnulacionRemota(0, "2470188878", Nothing))
+        ' Pendiente CON albarán (tramitado sin cerrar el día): también exige anular primero.
+        Assert.IsTrue(AgenciasViewModel.RequiereAnulacionRemota(-1, "2470188878", TipoFlujoTramitacion.RegistrarAlImprimir))
     End Sub
 
     ' Nesto#407: el enlace de seguimiento se calcula con la agencia DEL ENVÍO y sin depender de

@@ -533,6 +533,44 @@ Public Class AgenciaService
         End Using
     End Function
 
+    Public Async Function AnularEnvioRemoto(numeroEnvio As Integer) As Task Implements IAgenciaService.AnularEnvioRemoto
+        Using client As HttpClient = _clienteApiFactory.Crear()
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            ' Cuerpo vacío: el envío lo identifica la ruta. API primero, BD después: si la agencia
+            ' rechaza, el servidor no toca nada y aquí lanzamos con SU motivo tal cual.
+            Dim content As HttpContent = New StringContent(String.Empty, Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync($"EnviosAgencias/{numeroEnvio}/Anular", content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI rechazó la anulación ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+        End Using
+    End Function
+
+    Public Async Function ModificarEnvioRemoto(numeroEnvio As Integer, datos As ModificarEnvioAgenciaDto) As Task(Of TramitarEnvioResultadoDto) Implements IAgenciaService.ModificarEnvioRemoto
+        Using client As HttpClient = _clienteApiFactory.Crear()
+
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+
+            Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(datos), Encoding.UTF8, "application/json")
+            Dim response As HttpResponseMessage = Await client.PostAsync($"EnviosAgencias/{numeroEnvio}/Modificar", content)
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"NestoAPI rechazó la modificación ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+
+            Return JsonConvert.DeserializeObject(Of TramitarEnvioResultadoDto)(cuerpo)
+        End Using
+    End Function
+
     Public Async Function ActualizarSeguimientoEnvio(numeroEnvio As Integer) As Task(Of SeguimientoActualizadoDto) Implements IAgenciaService.ActualizarSeguimientoEnvio
         Using client As HttpClient = _clienteApiFactory.Crear()
 

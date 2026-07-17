@@ -67,14 +67,42 @@ Public Class AgenciaInnovatrans
         End Try
     End Function
 
-    Public Function ModificarEnAgencia(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgenciaConGestionRemota.ModificarEnAgencia
-        ' Pendiente: NestoAPI aún no expone ModificarEnvios. Hasta entonces, anular y volver a tramitar.
-        Return Task.FromResult(RespuestaError("Modificar un envío de Innovatrans ya tramitado todavía no está disponible. Anula y vuelve a tramitar."))
+    Public Async Function ModificarEnAgencia(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgenciaConGestionRemota.ModificarEnAgencia
+        ' Nesto#411 (NestoAPI#317): manda los datos ACTUALES del envío (los que el usuario ha
+        ' corregido) y el servidor los aplica en DTX (misma canalización que el insert) y persiste.
+        ' La etiqueta vuelve reimpresa (lleva CP/población impresos) y se manda a la Zebra.
+        Try
+            Dim datos As New ModificarEnvioAgenciaDto With {
+                .Nombre = envio.Nombre,
+                .Direccion = envio.Direccion,
+                .CodigoPostal = envio.CodPostal,
+                .Poblacion = envio.Poblacion,
+                .Provincia = envio.Provincia,
+                .Telefono = envio.Telefono,
+                .Movil = envio.Movil,
+                .Observaciones = envio.Observaciones
+            }
+            Dim resultado As TramitarEnvioResultadoDto = Await servicio.ModificarEnvioRemoto(envio.Numero, datos).ConfigureAwait(False)
+            Await ImprimirZpl(envio, resultado).ConfigureAwait(False)
+            Return RespuestaCorrecta(envio, $"Envío modificado en la agencia (albarán {resultado.Albaran}); etiqueta reimpresa")
+        Catch ex As Exception
+            Return RespuestaError(ex.Message)
+        End Try
     End Function
 
-    Public Function AnularEnAgencia(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgenciaConGestionRemota.AnularEnAgencia
-        ' Pendiente: NestoAPI aún no expone BorrarEnvios.
-        Return Task.FromResult(RespuestaError("Anular un envío de Innovatrans ya tramitado todavía no está disponible."))
+    Public Async Function AnularEnAgencia(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgenciaConGestionRemota.AnularEnAgencia
+        ' Nesto#411 (NestoAPI#316): anula en DTX; el servidor devuelve el envío a etiqueta PENDIENTE
+        ' (Estado -1, sin albarán). Reflejamos ese estado en el objeto local para que la UI y el
+        ' flujo de borrado vean el envío ya anulado. Si la agencia rechaza (p. ej. ventana de
+        ' edición del día cerrada), NO se toca nada y el motivo llega tal cual.
+        Try
+            Await servicio.AnularEnvioRemoto(envio.Numero).ConfigureAwait(False)
+            envio.CodigoBarras = String.Empty
+            envio.Estado = CShort(-1)
+            Return RespuestaCorrecta(envio, "Envío anulado en la agencia; queda como etiqueta pendiente")
+        Catch ex As Exception
+            Return RespuestaError(ex.Message)
+        End Try
     End Function
 
     Private Async Function ImprimirZpl(envio As EnviosAgencia, resultado As TramitarEnvioResultadoDto) As Task

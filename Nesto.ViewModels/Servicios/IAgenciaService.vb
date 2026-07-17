@@ -44,6 +44,13 @@ Public Interface IAgenciaService
     ' Innovatrans (registrar al imprimir): tramita el envío contra la agencia en el servidor
     ' (POST api/EnviosAgencias/{id}/Tramitar) y devuelve el albarán + bultos + etiqueta ZPL.
     Function TramitarEnvioRemoto(numeroEnvio As Integer) As Task(Of TramitarEnvioResultadoDto)
+    ' Nesto#411 (NestoAPI#316): anula en la agencia un envío YA registrado; el servidor lo devuelve
+    ' a etiqueta pendiente (Estado -1, sin albarán). Lanza con el motivo de la agencia si rechaza
+    ' (p. ej. la ventana de edición del día ya cerró).
+    Function AnularEnvioRemoto(numeroEnvio As Integer) As Task
+    ' Nesto#411 (NestoAPI#317): modifica en la agencia un envío YA registrado (dirección/CP...) y
+    ' devuelve la etiqueta ZPL reimpresa (la etiqueta lleva CP/población impresos).
+    Function ModificarEnvioRemoto(numeroEnvio As Integer, datos As ModificarEnvioAgenciaDto) As Task(Of TramitarEnvioResultadoDto)
     ' Actualiza el estado de un envío a demanda (sin esperar al job de Hangfire de cada 2h).
     Function ActualizarSeguimientoEnvio(numeroEnvio As Integer) As Task(Of SeguimientoActualizadoDto)
     Function ContabilizarReembolso(envio As EnviosAgencia) As Integer
