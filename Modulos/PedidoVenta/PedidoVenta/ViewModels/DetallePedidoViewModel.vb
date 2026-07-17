@@ -284,8 +284,25 @@ Public Class DetallePedidoViewModel
             Return _esGrupoAlmacen
         End Get
         Set(value As Boolean)
-            Dim unused = SetProperty(_esGrupoAlmacen, value)
+            If SetProperty(_esGrupoAlmacen, value) Then
+                RaisePropertyChanged(NameOf(MostrarBotonesFacturacion))
+            End If
         End Set
+    End Property
+
+    ' Nesto#413 (remate de Nesto#410): la VISIBILIDAD de los botones Crear Albarán/Factura estaba
+    ' atada solo a EsGrupoQuePuedeFacturar, así que los usuarios de tienda online (fuera de
+    ' almacén/tiendas) ni siquiera VEÍAN los botones aunque los Can* ya contemplaban el pedido
+    ' online (caso real: Laura con pedido AMZ/STK). El habilitado fino lo siguen decidiendo los
+    ' Can* de cada comando; esto solo decide si se muestran.
+    Public Shared Function DebeMostrarBotonesFacturacion(esGrupoQuePuedeFacturar As Boolean, tieneLineaTiendaOnline As Boolean) As Boolean
+        Return esGrupoQuePuedeFacturar OrElse tieneLineaTiendaOnline
+    End Function
+
+    Public ReadOnly Property MostrarBotonesFacturacion As Boolean
+        Get
+            Return DebeMostrarBotonesFacturacion(EsGrupoQuePuedeFacturar, PedidoTieneLineaTiendaOnline)
+        End Get
     End Property
 
     Private _estaBloqueado As Boolean
@@ -561,6 +578,7 @@ Public Class DetallePedidoViewModel
             RaisePropertyChanged(NameOf(EsSerieCursos))
             RaisePropertyChanged(NameOf(HayLineasEditables))
             RaisePropertyChanged(NameOf(PuedeEditarSelectoresLinea))
+            RaisePropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
             Dim unused2 = CargarInfoPortes()
             InicializarFormaVentaParaLineas()
             InicializarAlmacenParaLineas() ' Carlos 09/12/25: Issue #253/#52
@@ -2411,6 +2429,7 @@ Public Class DetallePedidoViewModel
             RaisePropertyChanged(NameOf(EsSerieCursos))
             RaisePropertyChanged(NameOf(HayLineasEditables))
             RaisePropertyChanged(NameOf(PuedeEditarSelectoresLinea))
+            RaisePropertyChanged(NameOf(MostrarBotonesFacturacion)) ' Nesto#413: depende de las líneas del pedido
             ' Reinicializar selectores cuando cambia la serie (ej: al cambiar a CV)
             InicializarFormaVentaParaLineas()
             InicializarAlmacenParaLineas()

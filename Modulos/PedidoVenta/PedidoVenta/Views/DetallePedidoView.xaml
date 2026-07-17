@@ -193,9 +193,10 @@
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
                                 <!-- Fila 0: Creación de documentos -->
-                                <Button Grid.Row="0" Grid.Column="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
-                                <Button Grid.Row="0" Grid.Column="1" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
-                                <Button Grid.Row="0" Grid.Column="2" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding EsGrupoQuePuedeFacturar, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
+                                <!-- Nesto#413: la visibilidad incluye los pedidos con líneas de tienda online (no solo el grupo almacén/tiendas) -->
+                                <Button Grid.Row="0" Grid.Column="0" Command="{Binding CrearAlbaranVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán</Button>
+                                <Button Grid.Row="0" Grid.Column="1" Command="{Binding CrearFacturaVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Factura</Button>
+                                <Button Grid.Row="0" Grid.Column="2" Command="{Binding CrearAlbaranYFacturaVentaCommand}" Visibility="{Binding MostrarBotonesFacturacion, Converter={StaticResource BooleanToVisibilityConverter}}">Crear Albarán y Factura</Button>
                                 <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
                                     <CheckBox IsChecked="{Binding PapelConMembrete}">Membrete</CheckBox>
                                     <CheckBox IsChecked="{Binding MostrarImagenes}" Margin="8,0,0,0">Imágenes</CheckBox>

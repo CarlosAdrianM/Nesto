@@ -95,6 +95,42 @@ Public Class DetallePedidoViewModelConfirmacionTests
                   End Sub)
     End Sub
 
+    ' Nesto#413 (remate de Nesto#410, caso real Laura con pedido AMZ/STK): la VISIBILIDAD de los
+    ' botones de facturación debe incluir los pedidos con líneas de tienda online, no solo el
+    ' grupo almacén/tiendas. El habilitado fino lo deciden los Can* de cada comando.
+
+    <TestMethod()>
+    Public Sub DebeMostrarBotonesFacturacion_UsuarioFueraDelGrupoConPedidoOnline_True()
+        Assert.IsTrue(DetallePedidoViewModel.DebeMostrarBotonesFacturacion(esGrupoQuePuedeFacturar:=False, tieneLineaTiendaOnline:=True))
+    End Sub
+
+    <TestMethod()>
+    Public Sub DebeMostrarBotonesFacturacion_UsuarioDelGrupo_TrueSiempre()
+        Assert.IsTrue(DetallePedidoViewModel.DebeMostrarBotonesFacturacion(esGrupoQuePuedeFacturar:=True, tieneLineaTiendaOnline:=False))
+    End Sub
+
+    <TestMethod()>
+    Public Sub DebeMostrarBotonesFacturacion_NiGrupoNiOnline_False()
+        Assert.IsFalse(DetallePedidoViewModel.DebeMostrarBotonesFacturacion(esGrupoQuePuedeFacturar:=False, tieneLineaTiendaOnline:=False))
+    End Sub
+
+    <TestMethod()>
+    Public Sub MostrarBotonesFacturacion_UsuarioDelGrupoSinPedido_True()
+        ' El grupo almacén/tiendas ve los botones siempre, haya o no pedido cargado (como antes).
+        Dim vm = CrearViewModel()
+        vm.EsGrupoQuePuedeFacturar = True
+
+        Assert.IsTrue(vm.MostrarBotonesFacturacion)
+    End Sub
+
+    <TestMethod()>
+    Public Sub MostrarBotonesFacturacion_FueraDelGrupoSinPedido_False()
+        Dim vm = CrearViewModel()
+        vm.EsGrupoQuePuedeFacturar = False
+
+        Assert.IsFalse(vm.MostrarBotonesFacturacion)
+    End Sub
+
     <TestMethod()>
     Public Sub ConfirmarSiPlazoNoPermitido_PlazoPermitido_DevuelveTrueSinPreguntar()
         ' Arrange
