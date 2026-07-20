@@ -87,6 +87,35 @@ Public Class RemesasViewModelTests
     End Function
 
     <TestMethod()>
+    Public Async Function CargarMovimientos_PoblaElGridDeEfectos() As Task
+        ' Nesto#340 Fase 1C.14 slice 3: los efectos de la remesa se leen del API, no de EF.
+        Dim movimientos = New List(Of MovimientoRemesaModel) From {
+            New MovimientoRemesaModel With {.Id = 1, .Número = "15191", .Contacto = "0", .Importe = 250.5D},
+            New MovimientoRemesaModel With {.Id = 2, .Número = "26985", .Contacto = "0", .Importe = 100D}
+        }
+        A.CallTo(Function() _servicio.LeerMovimientos(A(Of String).Ignored, 10897)).Returns(Task.FromResult(movimientos))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarMovimientosAsync(10897)
+
+        Assert.AreEqual(2, vm.listaMovimientos.Count)
+        Assert.AreEqual("15191", vm.listaMovimientos.First().Número)
+        Assert.AreEqual(250.5D, vm.listaMovimientos.First().Importe)
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarMovimientos_SiElServicioFalla_DejaElGridVacioYAvisa() As Task
+        A.CallTo(Function() _servicio.LeerMovimientos(A(Of String).Ignored, A(Of Integer).Ignored)) _
+            .Throws(New Exception("API caída"))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarMovimientosAsync(10897)
+
+        Assert.AreEqual(0, vm.listaMovimientos.Count, "El grid no puede quedarse con los datos de la remesa anterior")
+        StringAssert.Contains(vm.mensajeError, "API caída")
+    End Function
+
+    <TestMethod()>
     Public Async Function CargarRemesas_SiElServicioFalla_NoLanzaYDejaMensajeError() As Task
         A.CallTo(Function() _servicio.LeerRemesas(A(Of String).Ignored, A(Of Integer?).Ignored)) _
             .Throws(New Exception("API caída"))

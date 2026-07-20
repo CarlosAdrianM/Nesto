@@ -98,6 +98,18 @@ Public Class RemesasViewModel
         End Try
     End Function
 
+    ' Nesto#340 Fase 1C.14 slice 3: sustituye la lectura EF de DbContext.ExtractoCliente
+    ' (efectos de la remesa, TipoApunte = 3).
+    Public Async Function CargarMovimientosAsync(remesa As Integer) As Task
+        Try
+            Dim movimientos = Await _remesasService.LeerMovimientos(empresaActual, remesa)
+            listaMovimientos = New ObservableCollection(Of MovimientoRemesaModel)(movimientos)
+        Catch ex As Exception
+            listaMovimientos = New ObservableCollection(Of MovimientoRemesaModel)
+            mensajeError = $"No se han podido cargar los movimientos de la remesa: {ex.Message}"
+        End Try
+    End Function
+
     ' Nesto#340 Fase 1C.14 slice 2: sustituye la lectura EF de DbContext.Remesas.
     ' top = numRemesas en la carga normal; Nothing = todas (botón "Ver Todas").
     Public Async Function CargarRemesasAsync(top As Integer?) As Task
@@ -166,8 +178,10 @@ Public Class RemesasViewModel
             _remesaActual = value
             If IsNothing(remesaActual) Then
                 listaMovimientos = Nothing
-            ElseIf DbContext IsNot Nothing Then ' los movimientos siguen en EF (slice 3)
-                listaMovimientos = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual And e.Remesa = remesaActual.Numero And e.TipoApunte = 3)
+            Else
+                ' Nesto#340 Fase 1C.14 slice 3: los movimientos se leen del API (fire-and-forget;
+                ' el error queda en mensajeError).
+                CargarMovimientosAsync(remesaActual.Numero)
             End If
             RaisePropertyChanged("remesaActual")
         End Set
@@ -206,12 +220,12 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-    Private Property _listaMovimientos As ObservableCollection(Of ExtractoCliente)
-    Public Property listaMovimientos As ObservableCollection(Of ExtractoCliente)
+    Private Property _listaMovimientos As ObservableCollection(Of MovimientoRemesaModel)
+    Public Property listaMovimientos As ObservableCollection(Of MovimientoRemesaModel)
         Get
             Return _listaMovimientos
         End Get
-        Set(value As ObservableCollection(Of ExtractoCliente))
+        Set(value As ObservableCollection(Of MovimientoRemesaModel))
             _listaMovimientos = value
             RaisePropertyChanged("listaMovimientos")
         End Set

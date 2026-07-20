@@ -55,4 +55,22 @@ Public Class RemesasService
             Return JsonConvert.DeserializeObject(Of List(Of RemesaModel))(body)
         End Using
     End Function
+
+    ' Nesto#340 Fase 1C.14 slice 3: sustituye la lectura EF de DbContext.ExtractoCliente.
+    Public Async Function LeerMovimientos(empresa As String, remesa As Integer) As Task(Of List(Of MovimientoRemesaModel)) Implements IRemesasService.LeerMovimientos
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Remesas/Movimientos?empresa={Uri.EscapeDataString(empresa)}&remesa={remesa}"
+            Dim response = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener los movimientos de la remesa: {response.StatusCode}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of MovimientoRemesaModel))(body)
+        End Using
+    End Function
 End Class
