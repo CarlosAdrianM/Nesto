@@ -587,6 +587,20 @@
                                 <i:InvokeCommandAction Command="{Binding AbrirEnlaceSeguimientoCommand}" />
                             </i:EventTrigger>
                         </i:Interaction.Triggers>
+                        <!-- Nesto#418: Ctrl+C copiaba la fila entera. El menú contextual copia solo el
+                             nº de pedido. El ContextMenu va en el DataGrid (hereda el DataContext del
+                             ViewModel); el EventSetter de la fila selecciona en el clic derecho, porque
+                             WPF no lo hace y si no el menú actuaría sobre la fila seleccionada antes. -->
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <EventSetter Event="PreviewMouseRightButtonDown" Handler="FilaGrid_PreviewMouseRightButtonDown"/>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copiar nº de pedido" Command="{Binding CopiarNumeroPedidoCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
                             <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>

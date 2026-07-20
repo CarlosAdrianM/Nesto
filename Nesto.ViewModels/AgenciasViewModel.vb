@@ -100,6 +100,7 @@ Public Class AgenciasViewModel
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
         cmdActualizarSeguimiento = New DelegateCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
         cmdPegarCodigoBarras = New DelegateCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
+        CopiarNumeroPedidoCommand = New DelegateCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
 
         factory.Add("ASM", Function() New AgenciaASM(Me))
         'factory.Add("OnTime", Function() New AgenciaOnTime(Me))
@@ -777,6 +778,11 @@ Public Class AgenciasViewModel
 
                 If Not IsNothing(cmdActualizarSeguimiento) Then
                     cmdActualizarSeguimiento.RaiseCanExecuteChanged()
+                End If
+
+                ' Nesto#418: el menú contextual de copiar depende del envío seleccionado.
+                If Not IsNothing(CopiarNumeroPedidoCommand) Then
+                    CopiarNumeroPedidoCommand.RaiseCanExecuteChanged()
                 End If
 
                 ' Nesto#407: el enlace de seguimiento se calcula SIEMPRE (también en Incidentados,
@@ -2577,6 +2583,43 @@ Public Class AgenciasViewModel
         Dim unused = Process.Start(New ProcessStartInfo(EnlaceSeguimientoEnvio) With {
             .UseShellExecute = True
         })
+    End Sub
+
+    ' Nesto#418: en Incidentados el usuario necesita a menudo el nº de pedido para buscarlo en otro
+    ' sitio, y Ctrl+C sobre el grid copia la fila entera (SelectionUnit por defecto = FullRow). Este
+    ' comando deja en el portapapeles SOLO el número. El envío es el seleccionado: la vista fuerza la
+    ' selección en el clic derecho para que el menú actúe sobre la fila pulsada, no sobre la anterior.
+    Public Property CopiarNumeroPedidoCommand As DelegateCommand
+
+    ''' <summary>
+    ''' Texto que se copiaría al portapapeles: el nº de pedido del envío seleccionado, o cadena
+    ''' vacía si no hay envío o no tiene pedido (envíos manuales sin pedido asociado).
+    ''' </summary>
+    Public ReadOnly Property TextoNumeroPedidoParaCopiar As String
+        Get
+            If IsNothing(envioActual) OrElse Not envioActual.Pedido.HasValue Then
+                Return String.Empty
+            End If
+            Return envioActual.Pedido.Value.ToString()
+        End Get
+    End Property
+
+    Private Function CanCopiarNumeroPedido() As Boolean
+        Return TextoNumeroPedidoParaCopiar <> String.Empty
+    End Function
+
+    Private Sub OnCopiarNumeroPedido()
+        Dim texto As String = TextoNumeroPedidoParaCopiar
+        If texto = String.Empty Then
+            Return
+        End If
+        Try
+            Clipboard.SetText(texto)
+            ' El portapapeles no da señal visible: sin esto el usuario no sabe si ha copiado.
+            _dialogService.ShowNotification($"Copiado el nº de pedido {texto}")
+        Catch ex As Exception
+            _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message)
+        End Try
     End Sub
 
     ' Actualiza el estado del envío seleccionado a demanda (NestoAPI consulta el seguimiento de la

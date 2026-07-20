@@ -101,6 +101,16 @@ Public Class Agencias
         Clipboard.SetText(vm.EnlaceSeguimientoEnvio)
     End Sub
 
+    ' Nesto#418: WPF no selecciona la fila al pulsar el botón derecho, así que el menú contextual
+    ' actuaría sobre la fila seleccionada ANTES (copiando el pedido equivocado). Seleccionarla aquí
+    ' es responsabilidad de la vista; el comando de copiar vive en el ViewModel.
+    Private Sub FilaGrid_PreviewMouseRightButtonDown(sender As Object, e As MouseButtonEventArgs)
+        Dim fila As DataGridRow = TryCast(sender, DataGridRow)
+        If fila IsNot Nothing Then
+            fila.IsSelected = True
+        End If
+    End Sub
+
     Private Sub txtNumClienteContabilizar_KeyUp(sender As Object, e As KeyEventArgs) Handles txtNumClienteContabilizar.KeyUp
         If e.Key = Key.Return Then
             btnContabilizarReembolso.Focus()
