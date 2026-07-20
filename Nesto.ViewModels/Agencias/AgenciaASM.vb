@@ -157,11 +157,11 @@ Public Class AgenciaASM
                 Return "El código de error " + numeroError.ToString() + " no está controlado por Nesto"
         End Select
     End Function
-    Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
-        PrefijoCodigoBarras = If(agenciaVM.envioActual.Servicio = 96,
+    Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
+        PrefijoCodigoBarras = If(envio.Servicio = 96,
             PREFIJOCODIGOBARRAS_BUSINESSPARCEL,
-            agenciaVM.agenciaSeleccionada.PrefijoCodigoBarras.ToString)
-        Return PrefijoCodigoBarras + agenciaVM.envioActual.Numero.ToString("D7")
+            agencia.PrefijoCodigoBarras.ToString)
+        Return PrefijoCodigoBarras + envio.Numero.ToString("D7")
     End Function
     Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         Try

@@ -97,8 +97,8 @@ Public Class AgenciaGlovo
         Throw New NotImplementedException()
     End Function
 
-    Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
-        Return agenciaVM.envioActual.Numero.ToString("D7")
+    Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
+        Return envio.Numero.ToString("D7")
     End Function
 
     Public Function EnlaceSeguimiento(envio As EnviosAgencia) As String Implements IAgencia.EnlaceSeguimiento

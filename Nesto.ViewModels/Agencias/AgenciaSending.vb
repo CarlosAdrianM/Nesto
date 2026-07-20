@@ -98,8 +98,8 @@ Public Class AgenciaSending
         'agenciaVM.cmdDescargarImagen.RaiseCanExecuteChanged()
         Return estado
     End Function
-    Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
-        Return agenciaVM.agenciaSeleccionada.PrefijoCodigoBarras.ToString + agenciaVM.envioActual.Numero.ToString("D8")
+    Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
+        Return agencia.PrefijoCodigoBarras.ToString + envio.Numero.ToString("D8")
     End Function
     Private Function CalcularCodigoBarrasBulto(envio As EnviosAgencia, codigoZonaRuta As CodigoRutaZona, bulto As Integer) As String
         Dim resultado As String = String.Format("{0}{1}{2}{3}{4}{5}",

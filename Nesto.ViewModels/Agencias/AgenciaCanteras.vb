@@ -52,7 +52,7 @@ Public Class AgenciaCanteras
         Return If(IsNothing(envio), Nothing, New estadoEnvio)
     End Function
 
-    Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
+    Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
         ' Canteras devuelve el nº de envío por correo. El usuario lo pega manualmente; el
         ' cálculo automático no aplica.
         Return String.Empty

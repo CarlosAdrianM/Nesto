@@ -7,7 +7,10 @@ Public Interface IAgencia
     Function cargarEstado(envio As EnviosAgencia) As XDocument
     Function transformarXMLdeEstado(envio As XDocument) As estadoEnvio
     'Function calcularMensajeError(numeroError As Integer) As String
-    Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String
+    ' NestoAPI#258 slice (b): el código de barras se calcula con los datos del ENVÍO y de SU
+    ' agencia efectiva, sin depender del AgenciasViewModel (antes Sending/ASM usaban
+    ' agenciaSeleccionada de la VENTANA, la misma mezcla que causó el bucle de Nesto#412).
+    Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String
     Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
     ' Carlos 14/02/2020: el parámetro servicio de LlamadaWebService hay que quitarlo cuando EF solucione el error de Numero y Número (solo se usa para coger la empresa)
     Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) ' Devuelve "OK" en caso de que no haya error o el texto del error

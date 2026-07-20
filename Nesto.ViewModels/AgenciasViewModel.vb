@@ -2854,7 +2854,7 @@ Public Class AgenciasViewModel
                     listaEnviosPedido.Add(envioActual)
                 End If
 
-                envioActual.CodigoBarras = agenciaInsercion.calcularCodigoBarras(Me)
+                envioActual.CodigoBarras = agenciaInsercion.calcularCodigoBarras(envioActual, agenciaTransporteInsercion)
                 _servicio.Modificar(envioActual)
 
                 If conEtiquetaRecogida Then

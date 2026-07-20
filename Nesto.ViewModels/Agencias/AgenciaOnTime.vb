@@ -53,8 +53,8 @@ Public Class AgenciaOnTime
 
         Return If(IsNothing(envio), Nothing, estado)
     End Function
-    Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
-        Return agenciaVM.envioActual.Numero.ToString("D7")
+    Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
+        Return envio.Numero.ToString("D7")
     End Function
     Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         nemonico = "OT"

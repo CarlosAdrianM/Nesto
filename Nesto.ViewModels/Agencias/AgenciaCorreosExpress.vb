@@ -438,18 +438,18 @@ Public Class AgenciaCorreosExpress
         Throw New NotImplementedException()
     End Function
 
-    Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
+    Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
         Dim posiciones(14) As Integer
-        Dim numeroEnvioString As String = agenciaVM.envioActual.Numero.ToString("D9")
+        Dim numeroEnvioString As String = envio.Numero.ToString("D9")
 
         ' Posiciones 1 y 2: código del producto (servicio)
-        posiciones(0) = agenciaVM.envioActual.Servicio / 10
-        posiciones(1) = agenciaVM.envioActual.Servicio Mod 10
+        posiciones(0) = envio.Servicio / 10
+        posiciones(1) = envio.Servicio Mod 10
         ' Posiciones 3 a 6: código de cliente etiquetador (lo da Correos Express)
-        posiciones(2) = Val(agenciaVM.envioActual.AgenciasTransporte.PrefijoCodigoBarras(0))
-        posiciones(3) = Val(agenciaVM.envioActual.AgenciasTransporte.PrefijoCodigoBarras(1))
-        posiciones(4) = Val(agenciaVM.envioActual.AgenciasTransporte.PrefijoCodigoBarras(2))
-        posiciones(5) = Val(agenciaVM.envioActual.AgenciasTransporte.PrefijoCodigoBarras(3))
+        posiciones(2) = Val(agencia.PrefijoCodigoBarras(0))
+        posiciones(3) = Val(agencia.PrefijoCodigoBarras(1))
+        posiciones(4) = Val(agencia.PrefijoCodigoBarras(2))
+        posiciones(5) = Val(agencia.PrefijoCodigoBarras(3))
         ' Posiciones 7 a 15: rango de expediciones (Id de EnviosAgencia)
         posiciones(6) = Val(numeroEnvioString(0))
         posiciones(7) = Val(numeroEnvioString(1))

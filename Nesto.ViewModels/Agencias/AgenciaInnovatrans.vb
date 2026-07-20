@@ -166,7 +166,7 @@ Public Class AgenciaInnovatrans
         Return If(IsNothing(envio), Nothing, New estadoEnvio)
     End Function
 
-    Public Function calcularCodigoBarras(agenciaVM As AgenciasViewModel) As String Implements IAgencia.calcularCodigoBarras
+    Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
         ' El albarán lo asigna la plataforma al tramitar (InsertarYEtiquetar); no se calcula en local.
         Return String.Empty
     End Function
