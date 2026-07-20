@@ -2642,15 +2642,7 @@ Public Class PlantillaVentaViewModel
                     numPedido = Await servicio.CrearPedido(pedido)
                 Catch ex As ValidationException
                     crearEx = ex
-                    ' Carlos 12/01/25: Verificar si puede crear sin pasar validación
-                    ' - Dirección o Almacén pueden crear sin importar almacenes
-                    ' - Tiendas puede crear solo si TODAS las líneas están en su almacén
-                    Dim puedeCrearSinPasarValidacion As Boolean =
-                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
-                    configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
-                    (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) AndAlso
-                     pedido.Lineas.All(Function(l) l.almacen = almacenRutaUsuario))
-                    If Not puedeCrearSinPasarValidacion Then
+                    If Not PuedeOmitirValidacion(pedido) Then
                         Throw crearEx
                     End If
                 End Try
@@ -2685,7 +2677,35 @@ Public Class PlantillaVentaViewModel
                     End If
                 End If
 
-                Dim pedidoUnido As PedidoVentaDTO = Await servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido)
+                ' Nesto#416: al ampliar un pedido existente también hay que ofrecer "¿de todas
+                ' formas?" si falla la validación de precios/descuentos (antes solo se hacía al
+                ' crear: el mismo vendedor veía la pregunta o un error seco según el cliente
+                ' tuviera o no un pedido pendiente).
+                Dim unirEx As Exception = Nothing
+                Dim pedidoUnido As PedidoVentaDTO = Nothing
+                Try
+                    pedidoUnido = Await servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido)
+                Catch ex As ValidationException
+                    unirEx = ex
+                    If Not PuedeOmitirValidacion(pedido) Then
+                        Throw
+                    End If
+                End Try
+
+                If unirEx IsNot Nothing Then
+                    Dim mensaje As String = unirEx.Message & vbCrLf & "¿Desea ampliar el pedido de todos modos?"
+                    Dim confirmar As Boolean = Await dialogService.ShowConfirmationAsync("Pedido no válido", mensaje)
+
+                    If confirmar Then
+                        pedido.CreadoSinPasarValidacion = True
+                        ' NestoAPI#324: el servidor propaga el flag de la ampliación al pedido original,
+                        ' que es el que valida al persistir la unión.
+                        pedidoUnido = Await servicio.UnirPedidos(clienteSeleccionado.empresa, PedidoPendienteSeleccionado, pedido)
+                    Else
+                        Throw unirEx
+                    End If
+                End If
+
                 numPedido = pedidoUnido.numero.ToString
             End If
 
@@ -2733,6 +2753,20 @@ Public Class PlantillaVentaViewModel
 
 
     End Sub
+
+    ''' <summary>
+    ''' Nesto#416: ¿este usuario puede saltarse la validación de precios/descuentos?
+    ''' - Dirección o Almacén: siempre.
+    ''' - Tiendas: solo si TODAS las líneas están en su almacén.
+    ''' Se comparte entre crear pedido y ampliar (unir) para que la pregunta "¿de todas formas?"
+    ''' se ofrezca exactamente a los mismos usuarios en los dos flujos.
+    ''' </summary>
+    Private Function PuedeOmitirValidacion(pedido As PedidoVentaDTO) As Boolean
+        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+               configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse
+               (configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS) AndAlso
+                pedido.Lineas.All(Function(l) l.almacen = almacenRutaUsuario))
+    End Function
 
     ''' <summary>
     ''' Nesto#397: las líneas con PICKING ya están preparadas en el almacén y no se pueden

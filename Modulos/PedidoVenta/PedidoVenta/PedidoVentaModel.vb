@@ -269,6 +269,8 @@ Public Class PedidoVentaModel
         Public Property Empresa As String
         Public Property NumeroPedidoOriginal As Integer
         Public Property NumeroPedidoAmpliacion As Integer
+        ' NestoAPI#324: el usuario confirmó "unir de todas formas" tras un fallo de validación
+        Public Property SinPasarValidacion As Boolean
     End Class
 
     Public Class ParametroStringIntPedido

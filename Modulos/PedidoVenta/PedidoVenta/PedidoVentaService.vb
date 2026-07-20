@@ -395,14 +395,15 @@ Public Class PedidoVentaService
         End Using
     End Function
 
-    Public Async Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer) As Task(Of PedidoVentaDTO) Implements IPedidoVentaService.UnirPedidos
+    Public Async Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer, Optional sinPasarValidacion As Boolean = False) As Task(Of PedidoVentaDTO) Implements IPedidoVentaService.UnirPedidos
         Using client As HttpClient = _clienteApiFactory.Crear()
             Dim response As HttpResponseMessage
 
             Dim parametro As New ParametroStringIntInt With {
                 .Empresa = empresa,
                 .NumeroPedidoOriginal = numeroPedidoOriginal,
-                .NumeroPedidoAmpliacion = numeroPedidoAmpliacion
+                .NumeroPedidoAmpliacion = numeroPedidoAmpliacion,
+                .SinPasarValidacion = sinPasarValidacion
             }
 
             Dim content As HttpContent = New StringContent(JsonConvert.SerializeObject(parametro), Encoding.UTF8, "application/json")
@@ -424,6 +425,10 @@ Public Class PedidoVentaService
                     Dim respuestaError = Await response.Content.ReadAsStringAsync()
                     Throw InterpretarRespuestaError(respuestaError)
                 End If
+            Catch ex As ValidationException
+                ' Nesto#416: el Catch genérico de abajo la aplanaba a Exception y se perdía el tipo,
+                ' así que al unir pedidos nunca se ofrecía "¿unir de todas formas?" (sí al crear).
+                Throw
             Catch ex As Exception
                 Throw New Exception(ex.Message)
             Finally

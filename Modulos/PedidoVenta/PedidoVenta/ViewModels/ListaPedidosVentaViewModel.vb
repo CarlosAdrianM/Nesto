@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.ComponentModel.DataAnnotations
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
@@ -178,23 +179,71 @@ Public Class ListaPedidosVentaViewModel
         Set(value As ResumenPedido)
             Dim unused2 = SetProperty(_pedidoPendienteUnir, value)
             If Not IsNothing(value) Then
-                Dim mensajeError As String = String.Format("Se van a unir los pedidos {0} y {1}, manteniendo los datos de cabecera del {0}", value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero)
-                Dim continuar As Boolean
-                dialogService.ShowConfirmation("Faltan datos en el cliente", mensajeError, Sub(r)
-                                                                                               continuar = r.Result = ButtonResult.OK
-                                                                                           End Sub)
-                If continuar Then
-                    Try
-                        Dim unused1 = servicio.UnirPedidos(value.empresa, value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero)
-                        Dim unused = CargarResumenSeleccionado()
-                        dialogService.ShowDialog(String.Format("Se han unido los pedidos {0} y {1} correctamente", value.numero, CType(ListaPedidos.ElementoSeleccionado, ResumenPedido).numero))
-                    Catch ex As Exception
-                        dialogService.ShowError(ex.Message)
-                    End Try
-                End If
+                UnirPedidoSeleccionadoAsync(value)
             End If
         End Set
     End Property
+
+    ''' <summary>
+    ''' Nesto#416: antes esto vivía en el setter y llamaba al servicio SIN Await, así que el Catch
+    ''' no podía saltar nunca y el mensaje "se han unido correctamente" salía SIEMPRE, aunque el
+    ''' servidor hubiera rechazado la unión (los pedidos quedaban sin unir y nadie se enteraba).
+    ''' Además, si el rechazo es por validación de precios/descuentos, ahora se ofrece unir de
+    ''' todas formas a los usuarios autorizados, igual que al crear un pedido.
+    ''' </summary>
+    Friend Async Function UnirPedidoSeleccionadoAsync(pedidoAUnir As ResumenPedido) As Task
+        Dim pedidoDestino As ResumenPedido = TryCast(ListaPedidos.ElementoSeleccionado, ResumenPedido)
+        If IsNothing(pedidoDestino) Then
+            Return
+        End If
+
+        Dim mensajeConfirmacion As String = String.Format("Se van a unir los pedidos {0} y {1}, manteniendo los datos de cabecera del {0}", pedidoAUnir.numero, pedidoDestino.numero)
+        Dim continuar As Boolean
+        dialogService.ShowConfirmation("Unir pedidos", mensajeConfirmacion, Sub(r)
+                                                                                continuar = r.Result = ButtonResult.OK
+                                                                            End Sub)
+        If Not continuar Then
+            Return
+        End If
+
+        Try
+            ' VB no admite Await dentro de un Catch: se guarda la excepción y se decide fuera
+            ' (mismo patrón que PlantillaVentaViewModel al crear el pedido).
+            Dim errorValidacion As ValidationException = Nothing
+            Try
+                Await servicio.UnirPedidos(pedidoAUnir.empresa, pedidoAUnir.numero, pedidoDestino.numero)
+            Catch ex As ValidationException
+                errorValidacion = ex
+            End Try
+
+            If errorValidacion IsNot Nothing Then
+                Dim confirmarSinValidar As Boolean
+                dialogService.ShowConfirmation("Pedido no válido", errorValidacion.Message & vbCrLf & "¿Desea unirlos de todos modos?", Sub(r)
+                                                                                                                                          confirmarSinValidar = r.Result = ButtonResult.OK
+                                                                                                                                      End Sub)
+                If Not confirmarSinValidar Then
+                    Throw errorValidacion
+                End If
+                ' NestoAPI#324: el flag viaja aparte porque aquí se unen dos pedidos EXISTENTES
+                ' (no hay DTO de ampliación donde ponerlo)
+                Await servicio.UnirPedidos(pedidoAUnir.empresa, pedidoAUnir.numero, pedidoDestino.numero, sinPasarValidacion:=True)
+            End If
+
+            ' La unión YA está hecha en el servidor: un fallo al refrescar la vista no puede
+            ' reportarse como si la unión hubiera fallado (sería mentir en la otra dirección).
+            Try
+                Await CargarResumenSeleccionado()
+            Catch exRefresco As Exception
+                ' Se ignora a propósito: el pedido está unido, solo no se ha podido refrescar
+            End Try
+
+            ' Antes usaba ShowDialog(mensaje), que en Prism interpreta el texto como NOMBRE de la
+            ' vista de diálogo (no existe): el aviso de éxito no llegaba a mostrarse bien.
+            dialogService.ShowNotification("Pedidos unidos", String.Format("Se han unido los pedidos {0} y {1} correctamente", pedidoAUnir.numero, pedidoDestino.numero))
+        Catch ex As Exception
+            dialogService.ShowError(ex.Message)
+        End Try
+    End Function
 
     Private _scopedRegionManager As IRegionManager
     Public Property scopedRegionManager As IRegionManager

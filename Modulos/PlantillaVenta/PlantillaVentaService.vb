@@ -295,12 +295,15 @@ Public Class PlantillaVentaService
                         Throw New Exception("Pedido unido no generado")
                     End If
                 Else
-                    Dim respuestaError = response.Content.ReadAsStringAsync().Result
-                    Dim detallesError As JObject = JsonConvert.DeserializeObject(Of Object)(respuestaError)
-                    ' Carlos 21/11/24: Usar HttpErrorHelper para parsear errores del API
-                    Dim contenido As String = HttpErrorHelper.ParsearErrorHttp(detallesError)
-                    Throw New Exception(contenido)
+                    ' NestoAPI#324 / Nesto#416: detectar PEDIDO_VALIDACION_FALLO igual que al CREAR el
+                    ' pedido, para que el ViewModel pueda ofrecer "¿unir de todas formas?". Antes todo
+                    ' error salía como Exception genérica y al ampliar nunca se preguntaba.
+                    Dim respuestaError = Await response.Content.ReadAsStringAsync()
+                    Throw PedidoVentaService.InterpretarRespuestaError(respuestaError)
                 End If
+            Catch ex As ValidationException
+                ' No aplanar: el ViewModel la distingue para preguntar y reintentar
+                Throw
             Catch ex As Exception
                 Throw New Exception(ex.Message)
             Finally

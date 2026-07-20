@@ -15,7 +15,8 @@ Public Interface IPedidoVentaService
     Function CargarEnlacesSeguimiento(empresa As String, numero As Integer) As Task(Of List(Of EnvioAgenciaDTO))
     Function EnviarCobroTarjeta(cobroTarjetaCorreo As String, cobroTarjetaMovil As String, totalPedido As Decimal, pedido As String, empresa As String, cliente As String) As Task(Of String)
     Function CargarPedidosPendientes(empresa As String, cliente As String) As Task(Of ObservableCollection(Of Integer))
-    Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer) As Task(Of PedidoVentaDTO)
+    ' Nesto#416/NestoAPI#324: sinPasarValidacion = el usuario confirmó "unir de todas formas"
+    Function UnirPedidos(empresa As String, numeroPedidoOriginal As Integer, numeroPedidoAmpliacion As Integer, Optional sinPasarValidacion As Boolean = False) As Task(Of PedidoVentaDTO)
     Function CrearAlbaranVenta(empresa As String, numeroPedido As Integer) As Task(Of Integer)
     Function CrearFacturaVenta(empresa As String, numeroPedido As Integer) As Task(Of CrearFacturaResponseDTO)
     Function CargarFactura(empresa As String, numeroFactura As String, Optional papelConMembrete As Boolean = False, Optional mostrarImagenes As Boolean = False) As Task(Of Byte())
