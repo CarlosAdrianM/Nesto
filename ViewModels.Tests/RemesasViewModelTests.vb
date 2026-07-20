@@ -56,4 +56,44 @@ Public Class RemesasViewModelTests
         Assert.AreEqual(0, vm.listaEmpresas.Count)
         StringAssert.Contains(vm.mensajeError, "API caída")
     End Function
+
+    <TestMethod()>
+    Public Async Function CargarRemesas_PoblaElGridYSeleccionaLaPrimera() As Task
+        ' Nesto#340 Fase 1C.14 slice 2: las remesas se leen del API, no de EF.
+        Dim remesas = New List(Of RemesaModel) From {
+            New RemesaModel With {.Numero = 10897, .Importe = 10546.66D, .Banco = "5"},
+            New RemesaModel With {.Numero = 10896, .Importe = 9420.99D, .Banco = "5"}
+        }
+        A.CallTo(Function() _servicio.LeerRemesas(A(Of String).Ignored, 100)).Returns(Task.FromResult(remesas))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarRemesasAsync(100)
+
+        Assert.AreEqual(2, vm.listaRemesas.Count)
+        Assert.AreEqual(10897, vm.remesaActual.Numero)
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarRemesas_SinTop_PideTodasAlServicio() As Task
+        ' El botón "Ver Todas" carga sin límite: el servicio debe recibir top = Nothing.
+        A.CallTo(Function() _servicio.LeerRemesas(A(Of String).Ignored, Nothing)) _
+            .Returns(Task.FromResult(New List(Of RemesaModel)))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarRemesasAsync(Nothing)
+
+        A.CallTo(Function() _servicio.LeerRemesas(A(Of String).Ignored, Nothing)).MustHaveHappenedOnceExactly()
+        Assert.IsNull(vm.remesaActual)
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarRemesas_SiElServicioFalla_NoLanzaYDejaMensajeError() As Task
+        A.CallTo(Function() _servicio.LeerRemesas(A(Of String).Ignored, A(Of Integer?).Ignored)) _
+            .Throws(New Exception("API caída"))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarRemesasAsync(100)
+
+        StringAssert.Contains(vm.mensajeError, "API caída")
+    End Function
 End Class

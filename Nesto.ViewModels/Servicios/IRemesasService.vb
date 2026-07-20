@@ -4,4 +4,6 @@ Imports Nesto.Infrastructure.Models
 Public Interface IRemesasService
     ' Slice 1: empresas para el combo de la cabecera.
     Function LeerEmpresas() As Task(Of List(Of EmpresaModel))
+    ' Slice 2: remesas del grid (top = 100 en la carga inicial; Nothing = botón "Ver Todas").
+    Function LeerRemesas(empresa As String, top As Integer?) As Task(Of List(Of RemesaModel))
 End Interface

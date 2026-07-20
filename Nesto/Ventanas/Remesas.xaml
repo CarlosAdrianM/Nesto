@@ -35,7 +35,7 @@
                             <Button DockPanel.Dock="Bottom" Content="Ver _Todas" Command="{Binding cmdVerTodasLasRemesas}" />
                             <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaRemesas}" SelectedItem="{Binding remesaActual}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
+                                    <DataGridTextColumn Header="Número" Binding="{Binding Numero}" />
                                     <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}"/>
                                     <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}">
                                         <DataGridTextColumn.CellStyle>

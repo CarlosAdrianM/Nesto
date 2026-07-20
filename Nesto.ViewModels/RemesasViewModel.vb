@@ -63,10 +63,9 @@ Public Class RemesasViewModel
         ' Nesto#340 Fase 1C.14 slice 1: las empresas se leen del API (async); el resto sigue en EF.
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
         CargarEmpresasAsync()
+        ' Nesto#340 Fase 1C.14 slice 2: el setter de empresaActual ya carga las remesas por API
+        ' (y los impagados, aún por EF), así que aquí no hace falta repetir las consultas.
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
-        listaRemesas = New ObservableCollection(Of Remesas)(From c In DbContext.Remesas Where c.Empresa = empresaActual Order By c.Número Descending Take numRemesas)
-        remesaActual = listaRemesas.FirstOrDefault
-        listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
         impagadoActual = listaImpagados.FirstOrDefault
         listaTiposRemesa = New ObservableCollection(Of tipoRemesa)
         tipoRemesaActual = New tipoRemesa("B2B", "Profesionales (B2B)")
@@ -96,6 +95,18 @@ Public Class RemesasViewModel
             listaEmpresas = New ObservableCollection(Of EmpresaModel)(empresas)
         Catch ex As Exception
             mensajeError = $"No se han podido cargar las empresas: {ex.Message}"
+        End Try
+    End Function
+
+    ' Nesto#340 Fase 1C.14 slice 2: sustituye la lectura EF de DbContext.Remesas.
+    ' top = numRemesas en la carga normal; Nothing = todas (botón "Ver Todas").
+    Public Async Function CargarRemesasAsync(top As Integer?) As Task
+        Try
+            Dim remesas = Await _remesasService.LeerRemesas(empresaActual, top)
+            listaRemesas = New ObservableCollection(Of RemesaModel)(remesas)
+            remesaActual = listaRemesas.FirstOrDefault
+        Catch ex As Exception
+            mensajeError = $"No se han podido cargar las remesas: {ex.Message}"
         End Try
     End Function
 
@@ -134,24 +145,29 @@ Public Class RemesasViewModel
         End Get
         Set(value As String)
             _empresaActual = value
-            listaRemesas = New ObservableCollection(Of Remesas)(From c In DbContext.Remesas Where c.Empresa = empresaActual Order By c.Número Descending Take numRemesas)
+            ' Nesto#340 Fase 1C.14 slice 2: remesas por API (fire-and-forget; el error queda en mensajeError).
+            CargarRemesasAsync(numRemesas)
             blnPuedeVerTodasLasRemesas = True
-            listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
+            ' Los impagados siguen en EF (slice 4); guard para el ctor de tests, que no crea DbContext.
+            If DbContext IsNot Nothing Then
+                listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
+            End If
             RaisePropertyChanged("empresaActual")
         End Set
     End Property
 
-    Private Property _remesaActual As Remesas
-    Public Property remesaActual As Remesas
+    ' Nesto#340 Fase 1C.14 slice 2: POCO del API en vez de la entidad EF Remesas.
+    Private Property _remesaActual As RemesaModel
+    Public Property remesaActual As RemesaModel
         Get
             Return _remesaActual
         End Get
-        Set(value As Remesas)
+        Set(value As RemesaModel)
             _remesaActual = value
             If IsNothing(remesaActual) Then
                 listaMovimientos = Nothing
-            Else
-                listaMovimientos = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual And e.Remesa = remesaActual.Número And e.TipoApunte = 3)
+            ElseIf DbContext IsNot Nothing Then ' los movimientos siguen en EF (slice 3)
+                listaMovimientos = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual And e.Remesa = remesaActual.Numero And e.TipoApunte = 3)
             End If
             RaisePropertyChanged("remesaActual")
         End Set
@@ -179,12 +195,12 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-    Private Property _listaRemesas As ObservableCollection(Of Remesas)
-    Public Property listaRemesas As ObservableCollection(Of Remesas)
+    Private Property _listaRemesas As ObservableCollection(Of RemesaModel)
+    Public Property listaRemesas As ObservableCollection(Of RemesaModel)
         Get
             Return _listaRemesas
         End Get
-        Set(value As ObservableCollection(Of Remesas))
+        Set(value As ObservableCollection(Of RemesaModel))
             _listaRemesas = value
             RaisePropertyChanged("listaRemesas")
         End Set
@@ -328,7 +344,7 @@ Public Class RemesasViewModel
         Dim listaContenido As List(Of String)
         Dim codigo As String
         codigo = tipoRemesaActual.id
-        Dim nombreFichero As String = Await configuracion.leerParametro(empresaActual, Parametros.Claves.PathNorma19) + CStr(remesaActual.Número) + ".xml"
+        Dim nombreFichero As String = Await configuracion.leerParametro(empresaActual, Parametros.Claves.PathNorma19) + CStr(remesaActual.Numero) + ".xml"
         'Dim nombreFichero As String = "c:\banco\prueba.xml"
         Try
             mensajeError = "Generando fichero..."
@@ -336,7 +352,7 @@ Public Class RemesasViewModel
 
             estaOcupado = True
             Await Task.Run(Sub()
-                               listaContenido = crearFicheroRemesa(remesaActual.Número, codigo, fechaCobro)
+                               listaContenido = crearFicheroRemesa(remesaActual.Numero, codigo, fechaCobro)
                                DbContext.Database.CommandTimeout = 180
                                For Each linea In listaContenido
                                    strContenido += linea
@@ -422,7 +438,8 @@ Public Class RemesasViewModel
         Return blnPuedeVerTodasLasRemesas
     End Function
     Private Sub VerTodasLasRemesas(ByVal param As Object)
-        listaRemesas = New ObservableCollection(Of Remesas)(From c In DbContext.Remesas Where c.Empresa = empresaActual Order By c.Número Descending)
+        ' Nesto#340 Fase 1C.14 slice 2: sin top = todas las remesas, por API.
+        CargarRemesasAsync(Nothing)
         blnPuedeVerTodasLasRemesas = False
     End Sub
 
