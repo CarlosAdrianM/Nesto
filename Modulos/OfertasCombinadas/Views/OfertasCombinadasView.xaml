@@ -166,11 +166,19 @@
                                      cantidad de la fila (config de un grupo o una fila); Regaladas se
                                      guarda en la oferta. Se cobran las más caras a tarifa y se regalan
                                      las más baratas. -->
+                                <!-- Sin "Regalo menor imp." estos dos campos no aplican (el servidor los
+                                     ignora y UnidadesRegaladas tiene mínimo 1): se ocultan para que una
+                                     oferta sin regalo no se lea como un falso "13+1". -->
                                 <DataGridTextColumn Header="Cobradas" Binding="{Binding UnidadesCobradas, UpdateSourceTrigger=PropertyChanged}" Width="65">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="HorizontalAlignment" Value="Right"/>
                                             <Setter Property="ToolTip" Value="Unidades que se cobran (a su tarifa) por cada oferta completa. En un 3+2 ponga 3: la cantidad de la fila se ajusta sola a 5."/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RegalarMenorImporte}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
@@ -179,6 +187,11 @@
                                         <Style TargetType="TextBlock">
                                             <Setter Property="HorizontalAlignment" Value="Right"/>
                                             <Setter Property="ToolTip" Value="Unidades que salen gratis por cada oferta completa (las de menor tarifa del conjunto). En un 3+2 ponga 2. Requiere 'Regalo menor imp.' para más de una."/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RegalarMenorImporte}" Value="False">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
