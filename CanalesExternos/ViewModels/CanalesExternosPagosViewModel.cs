@@ -1,8 +1,8 @@
 ﻿using ControlesUsuario.Dialogs;
 using Microsoft.VisualBasic;
-using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Nesto.Models.Nesto.Models;
+using Nesto.Modulos.Cajas.Interfaces;
+using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
 using Prism.Commands;
@@ -13,7 +13,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Transactions;
 using System.Windows.Input;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
@@ -28,14 +27,14 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         private IDialogService dialogService { get; }
 
         private readonly ICanalesExternosPagosService _servicio;
-        private readonly IConfiguracion _configuracion;
+        private readonly IContabilidadService _contabilidadService;
 
-        public CanalesExternosPagosViewModel(IDialogService dialogService, ICanalesExternosPagosService canalesExternosPagosService, IConfiguracion configuracion)
+        public CanalesExternosPagosViewModel(IDialogService dialogService, ICanalesExternosPagosService canalesExternosPagosService, IContabilidadService contabilidadService)
         {
             Titulo = "Canales Externos Pagos";
             this.dialogService = dialogService;
             _servicio = canalesExternosPagosService;
-            _configuracion = configuracion;
+            _contabilidadService = contabilidadService;
 
             CargarPagosCommand = new DelegateCommand(OnCargarPagos);
             CargarDetallePagoCommand = new DelegateCommand(OnCargarDetallePago);
@@ -184,42 +183,26 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
 
             EstaOcupado = true;
-            const int TIEMPO_ESPERA = 360;
-            TransactionOptions transactionOptions = new()
-            {
-                Timeout = TimeSpan.FromSeconds(TIEMPO_ESPERA + 10) //para asegurarnos que la transacción se deshace aunque prdContabilizar tarde mucho
-            };
-            using TransactionScope scope = new(TransactionScopeOption.Required, transactionOptions);
-            using NestoEntities db = new();
-            db.Database.CommandTimeout = TIEMPO_ESPERA;
-
-            var apuntes = GenerarApuntesContables(PagoSeleccionado);
-            foreach (var apunte in apuntes)
-            {
-                _ = db.PreContabilidad.Add(apunte);
-            }
 
             try
             {
-                await Task.Run(() =>
-                {
-                    _ = db.SaveChanges();
-                    _ = db.prdContabilizar(Constantes.Empresas.EMPRESA_DEFECTO, Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS, _configuracion.usuario);
-                    CargarPagosCommand.Execute(null);
-                });
+                // NestoAPI#322: se contabiliza a través de la API para que líneas + prdContabilizar
+                // vayan en UNA transacción del servidor: si algo falla no quedan apuntes huérfanos
+                // en PreContabilidad y el error queda en ELMAH con el diagnóstico de quién bloquea.
+                // (El flujo antiguo con TransactionScope + Task.Run no cubría el SaveChanges:
+                // faltaba TransactionScopeAsyncFlowOption y los apuntes se confirmaban sueltos.)
+                List<PreContabilidadDTO> apuntes = GenerarApuntesContables(PagoSeleccionado);
+                _ = await _contabilidadService.Contabilizar(apuntes);
+                CargarPagosCommand.Execute(null);
             }
             catch (Exception ex)
             {
-                scope.Dispose();
                 EstaOcupado = false;
-                dialogService.ShowError(DbValidationErrorHelper.ExtraerMensajeError(ex));
+                dialogService.ShowError(ex.Message);
                 return;
             }
 
-
-            scope.Complete();
-
-            // Buscamos los nº de orden y liquidamos 
+            // Buscamos los nº de orden y liquidamos
             // A desarrollar cuando ya todo lo pendiente del proveedor hecho automático
 
             EstaOcupado = false;
@@ -227,19 +210,19 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         }
 
-        internal static List<PreContabilidad> GenerarApuntesContables(PagoCanalExterno pago)
+        internal static List<PreContabilidadDTO> GenerarApuntesContables(PagoCanalExterno pago)
         {
-            var apuntes = new List<PreContabilidad>();
+            var apuntes = new List<PreContabilidadDTO>();
             string nombreMarket = pago.DetallesPago.Any()
                 ? DatosMarkets.Buscar(DatosMarkets.Mercados.Single(m => m.CuentaContablePago == pago.DetallesPago.First().CuentaContablePago).Id).NombreMarket
                 : "sin detalle";
             string documento = "AMZ" + pago.FechaPago.ToString("ddMMyy");
-            DateTime fechaPago = new(pago.FechaPago.Year, pago.FechaPago.Month, pago.FechaPago.Day);
+            DateOnly fechaPago = DateOnly.FromDateTime(pago.FechaPago);
 
             // Asiento 1: Pago (Proveedor + Banco + Diferencia cambio)
             if (pago.Importe != 0)
             {
-                apuntes.Add(new PreContabilidad
+                apuntes.Add(new PreContabilidadDTO
                 {
                     Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                     Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -248,20 +231,20 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                    Nº_Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
+                    Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
                     Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
                     Concepto = string.Format("Pago {0}", nombreMarket),
                     Haber = pago.Importe,
-                    Nº_Documento = documento,
-                    NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    Documento = documento,
+                    FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                    Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                     FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                 });
 
                 decimal importeBanco = pago.ImporteRecibidoBanco != 0
                     ? pago.ImporteRecibidoBanco
                     : pago.Importe;
-                apuntes.Add(new PreContabilidad
+                apuntes.Add(new PreContabilidadDTO
                 {
                     Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                     Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -270,19 +253,19 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                    Nº_Cuenta = BANCO_AMAZON,
+                    Cuenta = BANCO_AMAZON,
                     Concepto = string.Format("Pago {0}", nombreMarket),
                     Debe = importeBanco,
-                    Nº_Documento = documento,
-                    NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    Documento = documento,
+                    FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                    Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                     FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                 });
 
                 decimal diferenciaCambio = importeBanco - pago.Importe;
                 if (diferenciaCambio != 0)
                 {
-                    apuntes.Add(new PreContabilidad
+                    apuntes.Add(new PreContabilidadDTO
                     {
                         Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                         Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -291,13 +274,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         FechaVto = fechaPago,
                         TipoApunte = Constantes.TiposApunte.PAGO,
                         TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                        Nº_Cuenta = diferenciaCambio > 0 ? CUENTA_DIFERENCIA_POSITIVA_CAMBIO : CUENTA_DIFERENCIA_NEGATIVA_CAMBIO,
+                        Cuenta = diferenciaCambio > 0 ? CUENTA_DIFERENCIA_POSITIVA_CAMBIO : CUENTA_DIFERENCIA_NEGATIVA_CAMBIO,
                         Concepto = string.Format("Dif. cambio {0}", nombreMarket),
                         Debe = diferenciaCambio < 0 ? -diferenciaCambio : 0,
                         Haber = diferenciaCambio > 0 ? diferenciaCambio : 0,
-                        Nº_Documento = documento,
-                        NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                        Documento = documento,
+                        FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                        Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                         FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                     });
                 }
@@ -306,7 +289,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             // Asiento 2: Liquidación pagos
             if (pago.TotalDetallePagos != 0)
             {
-                apuntes.Add(new PreContabilidad
+                apuntes.Add(new PreContabilidadDTO
                 {
                     Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                     Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -315,13 +298,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                    Nº_Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
+                    Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
                     Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
                     Concepto = string.Format("Liq. Pagos {0}. Retenido {1}", nombreMarket, (-pago.AjusteRetencion).ToString("C")),
                     Debe = pago.TotalDetallePagos,
-                    Nº_Documento = documento,
-                    NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    Documento = documento,
+                    FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                    Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                     FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                 });
             }
@@ -329,7 +312,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             // Asiento 3: Gastos (proveedor)
             if (-pago.TotalDetalleComisiones - pago.Comision - pago.TotalDetallePromociones - pago.Publicidad != 0)
             {
-                apuntes.Add(new PreContabilidad
+                apuntes.Add(new PreContabilidadDTO
                 {
                     Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                     Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -338,20 +321,20 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                    Nº_Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
+                    Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
                     Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
                     Concepto = string.Format("Gastos {0}", nombreMarket),
                     Haber = -pago.TotalDetalleComisiones - pago.Comision - pago.TotalDetallePromociones - pago.Publicidad,
-                    Nº_Documento = documento,
-                    NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    Documento = documento,
+                    FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                    Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                     FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                 });
             }
 
             if (pago.Comision != 0)
             {
-                apuntes.Add(new PreContabilidad
+                apuntes.Add(new PreContabilidadDTO
                 {
                     Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                     Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -360,12 +343,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                    Nº_Cuenta = CUENTA_COMISIONES,
+                    Cuenta = CUENTA_COMISIONES,
                     Concepto = string.Format("Comisiones Cabecera {0}", nombreMarket),
                     Debe = -pago.Comision,
-                    Nº_Documento = documento,
-                    NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    Documento = documento,
+                    FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                    Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                     FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO,
                     CentroCoste = "CA", // Esto hay que meejorarlo
                     Departamento = "ADM"
@@ -374,7 +357,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
             if (pago.Publicidad != 0)
             {
-                apuntes.Add(new PreContabilidad
+                apuntes.Add(new PreContabilidadDTO
                 {
                     Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                     Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -383,13 +366,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     FechaVto = fechaPago,
                     TipoApunte = Constantes.TiposApunte.PAGO,
                     TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
-                    Nº_Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
+                    Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON,
                     Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
                     Concepto = string.Format("Publicidad {0} {1}", nombreMarket, pago.FacturaPublicidad),
                     Debe = -pago.Publicidad,
-                    Nº_Documento = documento,
-                    NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                    Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                    Documento = documento,
+                    FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                    Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                     FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                 });
             }
@@ -399,7 +382,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 if (detalle.Importe != 0)
                 {
-                    apuntes.Add(new PreContabilidad
+                    apuntes.Add(new PreContabilidadDTO
                     {
                         Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                         Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -408,19 +391,19 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         FechaVto = fechaPago,
                         TipoApunte = Constantes.TiposApunte.PAGO,
                         TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                        Nº_Cuenta = detalle.CuentaContablePago,
+                        Cuenta = detalle.CuentaContablePago,
                         Concepto = string.Format("Liq. Pago Pedido {0}", detalle.ExternalId),
                         Haber = detalle.Importe,
-                        Nº_Documento = documento,
-                        NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                        Documento = documento,
+                        FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                        Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                         FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                     });
                 }
 
                 if (detalle.Comisiones != 0)
                 {
-                    apuntes.Add(new PreContabilidad
+                    apuntes.Add(new PreContabilidadDTO
                     {
                         Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                         Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -429,19 +412,19 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         FechaVto = fechaPago,
                         TipoApunte = Constantes.TiposApunte.PAGO,
                         TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                        Nº_Cuenta = pago.DetallesPago.First().CuentaContableComisiones,
+                        Cuenta = pago.DetallesPago.First().CuentaContableComisiones,
                         Concepto = string.Format("Liq. Comisiones {0}", detalle.ExternalId),
                         Debe = -detalle.Comisiones,
-                        Nº_Documento = documento,
-                        NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                        Documento = documento,
+                        FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                        Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                         FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                     });
                 }
 
                 if (detalle.Promociones != 0)
                 {
-                    apuntes.Add(new PreContabilidad
+                    apuntes.Add(new PreContabilidadDTO
                     {
                         Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
                         Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
@@ -450,12 +433,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         FechaVto = fechaPago,
                         TipoApunte = Constantes.TiposApunte.PAGO,
                         TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                        Nº_Cuenta = pago.DetallesPago.First().CuentaContableComisiones,
+                        Cuenta = pago.DetallesPago.First().CuentaContableComisiones,
                         Concepto = string.Format("Liq. Promociones {0}", detalle.ExternalId),
                         Debe = -detalle.Promociones,
-                        Nº_Documento = documento,
-                        NºDocumentoProv = Strings.Right(pago.PagoExternalId, 20),
-                        Delegación = Constantes.Empresas.DELEGACION_DEFECTO,
+                        Documento = documento,
+                        FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                        Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
                         FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                     });
                 }

@@ -125,7 +125,7 @@ namespace CanalesExternosTests
 
             var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
 
-            var banco = apuntes.First(a => a.Asiento == 1 && a.Nº_Cuenta == "57200013");
+            var banco = apuntes.First(a => a.Asiento == 1 && a.Cuenta == "57200013");
             Assert.AreEqual(100M, banco.Debe);
         }
 
@@ -136,7 +136,7 @@ namespace CanalesExternosTests
 
             var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
 
-            Assert.IsFalse(apuntes.Any(a => a.Nº_Cuenta == "66800001" || a.Nº_Cuenta == "76800000"));
+            Assert.IsFalse(apuntes.Any(a => a.Cuenta == "66800001" || a.Cuenta == "76800000"));
         }
 
         [TestMethod]
@@ -160,10 +160,10 @@ namespace CanalesExternosTests
 
             var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
 
-            var banco = apuntes.First(a => a.Asiento == 1 && a.Nº_Cuenta == "57200013");
+            var banco = apuntes.First(a => a.Asiento == 1 && a.Cuenta == "57200013");
             Assert.AreEqual(89M, banco.Debe, "El banco debe reflejar el importe realmente recibido");
 
-            var dif = apuntes.First(a => a.Nº_Cuenta == "76800000");
+            var dif = apuntes.First(a => a.Cuenta == "76800000");
             Assert.AreEqual(2M, dif.Haber, "Diferencia positiva va al Haber de 768");
             Assert.AreEqual(0M, dif.Debe);
         }
@@ -177,10 +177,10 @@ namespace CanalesExternosTests
 
             var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
 
-            var banco = apuntes.First(a => a.Asiento == 1 && a.Nº_Cuenta == "57200013");
+            var banco = apuntes.First(a => a.Asiento == 1 && a.Cuenta == "57200013");
             Assert.AreEqual(85M, banco.Debe, "El banco debe reflejar el importe realmente recibido");
 
-            var dif = apuntes.First(a => a.Nº_Cuenta == "66800001");
+            var dif = apuntes.First(a => a.Cuenta == "66800001");
             Assert.AreEqual(2M, dif.Debe, "Diferencia negativa va al Debe de 668");
             Assert.AreEqual(0M, dif.Haber);
         }
@@ -224,9 +224,9 @@ namespace CanalesExternosTests
 
             var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
 
-            var banco = apuntes.First(a => a.Asiento == 1 && a.Nº_Cuenta == "57200013");
+            var banco = apuntes.First(a => a.Asiento == 1 && a.Cuenta == "57200013");
             Assert.AreEqual(87M, banco.Debe, "Si ImporteRecibidoBanco es 0, usa Importe como fallback");
-            Assert.IsFalse(apuntes.Any(a => a.Nº_Cuenta == "66800001" || a.Nº_Cuenta == "76800000"),
+            Assert.IsFalse(apuntes.Any(a => a.Cuenta == "66800001" || a.Cuenta == "76800000"),
                 "No debe generar apunte de diferencia de cambio");
         }
 
@@ -242,7 +242,7 @@ namespace CanalesExternosTests
             var liqProveedor = apuntes.First(a => a.Asiento == 2 && a.TipoCuenta == "3");
             Assert.AreEqual(120M, liqProveedor.Debe, "Debe del proveedor = TotalDetallePagos");
 
-            var liqCuenta = apuntes.First(a => a.Asiento == 2 && a.Nº_Cuenta == "55500047");
+            var liqCuenta = apuntes.First(a => a.Asiento == 2 && a.Cuenta == "55500047");
             Assert.AreEqual(120M, liqCuenta.Haber, "Haber de cuenta 555 = importe del detalle");
         }
 
@@ -256,7 +256,7 @@ namespace CanalesExternosTests
             var gastos = apuntes.First(a => a.Asiento == 3 && a.TipoCuenta == "3");
             Assert.IsTrue(gastos.Haber > 0, "Debe generar apunte de gastos al proveedor");
 
-            var comisiones = apuntes.First(a => a.Asiento == 3 && a.Nº_Cuenta == "55500062");
+            var comisiones = apuntes.First(a => a.Asiento == 3 && a.Cuenta == "55500062");
             Assert.AreEqual(20M, comisiones.Debe, "Las comisiones del detalle van al Debe");
         }
 
@@ -270,7 +270,7 @@ namespace CanalesExternosTests
 
             var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
 
-            Assert.IsTrue(apuntes.All(a => a.Nº_Documento == "AMZ150326"));
+            Assert.IsTrue(apuntes.All(a => a.Documento == "AMZ150326"));
         }
 
         [TestMethod]
