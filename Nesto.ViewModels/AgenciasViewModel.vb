@@ -1664,6 +1664,13 @@ Public Class AgenciasViewModel
             Dim albaran = Await _servicioPedidos.CrearAlbaranVenta(envioActual.Empresa, envioActual.Pedido)
             Dim resultadoFactura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
             Dim factura = resultadoFactura.NumeroFactura
+            ' NestoAPI#327: los avisos de facturación (p. ej. NIF no registrado en la AEAT)
+            ' le tienen que saltar al que factura, también desde Agencias.
+            If resultadoFactura?.Avisos IsNot Nothing Then
+                For Each avisoFactura In resultadoFactura.Avisos
+                    _dialogService.ShowError(avisoFactura)
+                Next
+            End If
 
             Dim mensaje = If(factura <> Constantes.PeriodosFacturacion.FIN_DE_MES,
                 $"Pedido {envioActual.Pedido} facturado correctamente en albarán {albaran} y factura {factura}",

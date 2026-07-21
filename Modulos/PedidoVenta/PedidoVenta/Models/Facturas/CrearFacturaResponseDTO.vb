@@ -19,4 +19,11 @@ Public Class CrearFacturaResponseDTO
     ''' Número del pedido facturado
     ''' </summary>
     Public Property NumeroPedido As Integer
+
+    ''' <summary>
+    ''' NestoAPI#327: avisos operativos de la facturación (p. ej. NIF no registrado en la
+    ''' AEAT durante el periodo de gracia hasta el 01/12/2026). La factura SE HA creado;
+    ''' hay que mostrarlos a quien factura.
+    ''' </summary>
+    Public Property Avisos As List(Of String) = New List(Of String)
 End Class

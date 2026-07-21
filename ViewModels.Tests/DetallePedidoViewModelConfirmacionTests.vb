@@ -280,6 +280,44 @@ Public Class DetallePedidoViewModelConfirmacionTests
         A.CallTo(Function() servicio.RestarReembolsoEnvio(A(Of Integer).Ignored, A(Of Decimal).Ignored)).MustNotHaveHappened()
     End Function
 
+    ' NestoAPI#327: los avisos de la facturación (NIF no registrado en la AEAT durante el
+    ' periodo de gracia) le tienen que SALTAR al que factura, en modal.
+
+    <TestMethod()>
+    Public Sub MostrarAvisosFacturacion_ConAvisos_LosMuestraEnModal()
+        Dim mensajesDialogo As New List(Of String)
+        A.CallTo(Sub() dialogService.ShowDialog(
+                    A(Of String).Ignored,
+                    A(Of IDialogParameters).Ignored,
+                    A(Of Action(Of IDialogResult)).Ignored)) _
+         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
+                      If parametros IsNot Nothing AndAlso parametros.ContainsKey("message") Then
+                          mensajesDialogo.Add(parametros.GetValue(Of String)("message"))
+                      End If
+                  End Sub)
+        Dim vm = CrearViewModel()
+
+        vm.MostrarAvisosFacturacion(New CrearFacturaResponseDTO With {
+            .NumeroFactura = "NV2612489",
+            .Avisos = New List(Of String) From {"La factura NV2612489 se ha creado, PERO el NIF..."}})
+
+        Assert.AreEqual(1, mensajesDialogo.Count)
+        StringAssert.Contains(mensajesDialogo.Single(), "NV2612489")
+    End Sub
+
+    <TestMethod()>
+    Public Sub MostrarAvisosFacturacion_SinAvisosONothing_NoMuestraNada()
+        Dim vm = CrearViewModel()
+
+        vm.MostrarAvisosFacturacion(New CrearFacturaResponseDTO With {.NumeroFactura = "NV1"})
+        vm.MostrarAvisosFacturacion(Nothing)
+
+        A.CallTo(Sub() dialogService.ShowDialog(
+                    A(Of String).Ignored,
+                    A(Of IDialogParameters).Ignored,
+                    A(Of Action(Of IDialogResult)).Ignored)).MustNotHaveHappened()
+    End Sub
+
     <TestMethod()>
     Public Sub CrearAlbaranYFactura_SiFallaElAlbaran_NoRecargaNiFactura()
         ' Si el albarán ni siquiera se creó, no hay nada que recargar ni factura que intentar.

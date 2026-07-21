@@ -1568,6 +1568,7 @@ Public Class DetallePedidoViewModel
             cmdCargarPedido.Execute(New ResumenPedido With {.empresa = resultado.Empresa, .numero = pedido.numero})
 
             dialogService.ShowNotification($"Factura {resultado.NumeroFactura} creada correctamente")
+            MostrarAvisosFacturacion(resultado)
             Await ImprimirFactura(resultado.NumeroFactura)
         Catch ex As Exception
             dialogService.ShowError($"No se ha podido crear la factura:\n {ex.Message}")
@@ -1814,6 +1815,7 @@ Public Class DetallePedidoViewModel
                 cmdCargarPedido.Execute(New ResumenPedido With {.empresa = resultado.Empresa, .numero = pedido.numero})
 
                 dialogService.ShowNotification($"Albarán {albaran} y factura {resultado.NumeroFactura} creados correctamente")
+                MostrarAvisosFacturacion(resultado)
                 Await ImprimirFactura(resultado.NumeroFactura)
             Catch exFactura As Exception
                 ' Nesto#421 (caso 922687): el albarán SÍ se creó pero la factura falló. Antes la
@@ -1829,6 +1831,20 @@ Public Class DetallePedidoViewModel
             ' Aquí no llegó a crearse el albarán: no hay nada que recargar.
             dialogService.ShowError($"No se ha podido crear el albarán: {ex.Message}")
         End Try
+    End Sub
+
+    ''' <summary>
+    ''' NestoAPI#327: los avisos de la facturación (p. ej. NIF no registrado en la AEAT) le
+    ''' tienen que SALTAR al que factura — la factura se ha creado, pero a partir del
+    ''' 01/12/2026 no podría y el pedido quedaría retenido. Modal para que no pase de largo.
+    ''' </summary>
+    Friend Sub MostrarAvisosFacturacion(resultado As CrearFacturaResponseDTO)
+        If resultado?.Avisos Is Nothing Then
+            Return
+        End If
+        For Each aviso In resultado.Avisos
+            dialogService.ShowError(aviso)
+        Next
     End Sub
 
     ''' <summary>
