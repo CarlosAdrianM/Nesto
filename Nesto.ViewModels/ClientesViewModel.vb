@@ -1360,7 +1360,14 @@ Public Class ClientesViewModel
         Return ListaPedidos IsNot Nothing
     End Function
     Private Sub CargarPedido(ByVal param As Object)
-        PedidoVentaViewModel.CargarPedido(empresaActual, param.numero, contenedor)
+        ' Nesto#423: el CommandParameter es el SelectedItem del DataGrid y puede no ser un
+        ' ResumenPedido (Nothing si el doble clic cae en la cabecera o en el hueco del grid, o el
+        ' NewItemPlaceholder). El late binding param.numero sobre eso revienta con NRE.
+        Dim pedido = TryCast(param, PedidoVentaModel.ResumenPedido)
+        If pedido Is Nothing Then
+            Return
+        End If
+        PedidoVentaViewModel.CargarPedido(empresaActual, pedido.numero, contenedor)
     End Sub
 
     Public ReadOnly Property AbrirPedidoAction As Action(Of String, Integer)

@@ -65,8 +65,20 @@ namespace Nesto.Infrastructure.Shared
         {
             try
             {
-                return (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly())
+                // Nesto#423: la AssemblyVersion no se bumpea al publicar (solo se bumpea el pubxml
+                // de ClickOnce), así que TODOS los clientes reportaban la misma versión vieja
+                // (1.10.4.*) y no se podía triar por versión real. En .NET moderno no existe
+                // ApplicationDeployment: el launcher de ClickOnce expone la versión del despliegue
+                // en la variable de entorno ClickOnce_CurrentVersion. Fuera de ClickOnce (debug,
+                // ejecución local) se cae a la AssemblyVersion con sufijo para distinguirla.
+                string versionClickOnce = Environment.GetEnvironmentVariable("ClickOnce_CurrentVersion");
+                if (!string.IsNullOrWhiteSpace(versionClickOnce))
+                {
+                    return versionClickOnce;
+                }
+                string versionEnsamblado = (Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly())
                     ?.GetName()?.Version?.ToString();
+                return versionEnsamblado == null ? null : versionEnsamblado + " (sin ClickOnce)";
             }
             catch
             {

@@ -188,4 +188,23 @@ Public Class ClientesViewModelTests
         Assert.AreEqual("No se pudo grabar el CCC", vm.mensajeError)
         Assert.IsTrue(modificado.EsModificado)
     End Sub
+
+    ' Nesto#423: el CommandParameter de CargarPedidoCommand es el SelectedItem del DataGrid de
+    ' ventas y puede llegar Nothing (doble clic en cabecera o hueco del grid) o ser el
+    ' NewItemPlaceholder (que no es un ResumenPedido). El código antiguo hacía param.numero por
+    ' late binding y reventaba con "Object variable or With block variable not set" (NRE de
+    ' Lidia, ELMAH 21/07/26). Ahora se ignora en silencio: no hay pedido que cargar.
+    <TestMethod()>
+    Public Sub CargarPedidoCommand_ConParametroNothing_NoLanza()
+        Dim vm = CrearViewModel()
+
+        vm.CargarPedidoCommand.Execute(Nothing)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CargarPedidoCommand_ConParametroQueNoEsResumenPedido_NoLanza()
+        Dim vm = CrearViewModel()
+
+        vm.CargarPedidoCommand.Execute("NewItemPlaceholder")
+    End Sub
 End Class
