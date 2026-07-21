@@ -8,7 +8,10 @@ Public Interface IPedidoVentaService
     Function cargarListaPedidos(vendedor As String, verTodosLosVendedores As Boolean, mostrarPresupuestos As Boolean) As Task(Of ObservableCollection(Of ResumenPedido))
     Function cargarPedido(empresa As String, numero As Integer) As Task(Of PedidoVentaDTO)
     Function cargarProducto(empresa As String, id As String, cliente As String, contacto As String, cantidad As Short) As Task(Of Producto)
-    Function modificarPedido(pedido As PedidoVentaDTO) As Task
+    ' Nesto#420: devuelve los avisos operativos del servidor (RespuestaModificacionPedidoDTO);
+    ' lista vacía si el PUT responde 204 sin cuerpo. Los llamantes que no los procesan pueden
+    ' seguir haciendo Await sin capturar el resultado.
+    Function modificarPedido(pedido As PedidoVentaDTO) As Task(Of List(Of AvisoPedidoModel))
     Function sacarPickingPedido(empresa As String, numero As Integer) As Task
     Function sacarPickingPedido(cliente As String) As Task
     Function sacarPickingPedido() As Task
@@ -67,4 +70,8 @@ Public Interface IPedidoVentaService
     Function CalcularPortesPost(input As PedidoPortesInputDTO) As Task(Of ResultadoPortesDTO)
     Function CrearEtiquetaPendiente(empresa As String, pedido As Integer, agencia As Integer, retorno As Short) As Task
     Function EliminarEtiquetaPendiente(numeroEnvio As Integer) As Task
+    ' Nesto#420: resta un importe (la comisión quitada) del reembolso de un envío aún no
+    ' tramitado. Devuelve el reembolso resultante. La regla RESTAR (no recalcular) y las
+    ' validaciones (envío tramitado = intocable) viven en el servidor.
+    Function RestarReembolsoEnvio(numeroEnvio As Integer, importe As Decimal) As Task(Of Decimal)
 End Interface

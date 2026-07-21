@@ -1832,6 +1832,43 @@ Public Class DetallePedidoViewModel
     End Sub
 
     ''' <summary>
+    ''' Nesto#420: procesa los avisos operativos que devuelve el PUT del pedido. Para
+    ''' "ReembolsoEnvioSinAjustar" con envío ajustable (pendiente/en curso), ofrece RESTAR la
+    ''' comisión quitada del reembolso del envío — siempre con el visto bueno explícito del
+    ''' usuario, nunca automático (el importe puede estar fijado a mano). Un envío ya
+    ''' TRAMITADO no se puede ajustar (la agencia ya tiene el importe): solo se informa.
+    ''' Tipos de aviso desconocidos se ignoran (forward-compatible).
+    ''' </summary>
+    Friend Async Function ProcesarAvisosModificacion(avisos As List(Of AvisoPedidoModel)) As Task
+        If avisos Is Nothing Then
+            Return
+        End If
+        For Each aviso In avisos.Where(Function(a) a?.Tipo = "ReembolsoEnvioSinAjustar")
+            Dim envioNumero As Integer? = aviso.Datos?("Envio")?.ToObject(Of Integer)()
+            Dim comision As Decimal? = aviso.Datos?("ComisionQuitada")?.ToObject(Of Decimal)()
+            Dim ajustable As Boolean = If(aviso.Datos?("Ajustable")?.ToObject(Of Boolean)(), False)
+
+            If ajustable AndAlso envioNumero.HasValue AndAlso comision.GetValueOrDefault() > 0 Then
+                Dim confirmar = Await dialogService.ShowConfirmationAsync("Reembolso del envío",
+                    aviso.Mensaje & vbCrLf & vbCrLf &
+                    $"¿Restar la comisión ({comision.Value:N2} €) del reembolso del envío {envioNumero.Value}?")
+                If confirmar Then
+                    Try
+                        Dim nuevoReembolso = Await servicio.RestarReembolsoEnvio(envioNumero.Value, comision.Value)
+                        dialogService.ShowNotification("Reembolso ajustado",
+                            $"El reembolso del envío {envioNumero.Value} queda en {nuevoReembolso:N2} €")
+                    Catch ex As Exception
+                        dialogService.ShowError($"No se pudo ajustar el reembolso del envío {envioNumero.Value}: {ex.Message}")
+                    End Try
+                End If
+            Else
+                ' No ajustable (envío ya tramitado) o datos incompletos: informar sin acción.
+                dialogService.ShowError(aviso.Mensaje)
+            End If
+        Next
+    End Function
+
+    ''' <summary>
     ''' Si el plazo del pedido ya no está permitido al cliente (ej: cartera vencida),
     ''' avisa al usuario y pide confirmación antes de seguir con albarán/factura.
     ''' Retorna True si se puede continuar (no había problema, o el usuario confirmó).
@@ -1916,7 +1953,10 @@ Public Class DetallePedidoViewModel
                 RaisePropertyChanged(NameOf(TextoBotonGuardar))
                 Titulo = $"Pedido Venta ({pedido.numero})"
             Else
-                Await servicio.modificarPedido(pedido.Model)
+                ' Nesto#420: procesar también aquí los avisos del guardado (este camino se usa
+                ' al guardar cambios pendientes antes de crear albarán/factura).
+                Dim avisosModificacion = Await servicio.modificarPedido(pedido.Model)
+                Await ProcesarAvisosModificacion(avisosModificacion)
             End If
 
             ' Actualizar snapshot
@@ -2161,8 +2201,9 @@ Public Class DetallePedidoViewModel
                 ' Carlos 04/12/25: Actualizar snapshot después de crear (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
             Else
+                Dim avisosModificacion As List(Of AvisoPedidoModel) = Nothing
                 Try
-                    Await servicio.modificarPedido(pedido.Model)
+                    avisosModificacion = Await servicio.modificarPedido(pedido.Model)
                 Catch ex As ValidationException
                     crearModificarEx = ex
                     ' Carlos 12/01/25: Verificar si puede modificar sin pasar validación
@@ -2186,7 +2227,7 @@ Public Class DetallePedidoViewModel
 
                     If confirmar Then
                         pedido.Model.CreadoSinPasarValidacion = True
-                        Await servicio.modificarPedido(pedido.Model)
+                        avisosModificacion = Await servicio.modificarPedido(pedido.Model)
                     Else
                         Throw crearModificarEx
                     End If
@@ -2196,6 +2237,8 @@ Public Class DetallePedidoViewModel
                 ' Carlos 04/12/25: Actualizar snapshot después de guardar (Issue #254)
                 _snapshotPedidoGuardado = pedido.Model.CrearSnapshot()
                 eventAggregator.GetEvent(Of PedidoModificadoEvent).Publish(pedido.Model)
+                ' Nesto#420: avisos operativos del servidor (p. ej. reembolso del envío sin ajustar)
+                Await ProcesarAvisosModificacion(avisosModificacion)
             End If
 
             ' Issue #135: Gestionar etiqueta de recogida

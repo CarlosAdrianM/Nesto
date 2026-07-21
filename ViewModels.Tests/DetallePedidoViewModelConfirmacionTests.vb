@@ -222,6 +222,64 @@ Public Class DetallePedidoViewModelConfirmacionTests
             "El mensaje debe decir que el albarán 725978 se creó y la factura no. Mensajes: " & String.Join(" || ", mensajesDialogo))
     End Sub
 
+    ' Nesto#420: el aviso ReembolsoEnvioSinAjustar del PUT ofrece restar la comisión quitada
+    ' del reembolso del envío, siempre con el visto bueno explícito del usuario.
+
+    Private Shared Function AvisoReembolso(ajustable As Boolean) As List(Of AvisoPedidoModel)
+        Return New List(Of AvisoPedidoModel) From {
+            New AvisoPedidoModel With {
+                .Tipo = "ReembolsoEnvioSinAjustar",
+                .Mensaje = "Se ha quitado la comisión contra reembolso (3,15 €)...",
+                .Datos = Newtonsoft.Json.Linq.JObject.FromObject(New With {
+                    .Envio = 245812, .Reembolso = 73.86D, .ComisionQuitada = 3.15D, .Ajustable = ajustable})
+            }
+        }
+    End Function
+
+    <TestMethod()>
+    Public Async Function ProcesarAvisos_ReembolsoAjustableYUsuarioConfirma_RestaLaComision() As Task
+        ConfigurarRespuestaConfirmacion(respuestaOk:=True)
+        A.CallTo(Function() servicio.RestarReembolsoEnvio(245812, 3.15D)).Returns(Task.FromResult(70.71D))
+        Dim vm = CrearViewModel()
+
+        Await vm.ProcesarAvisosModificacion(AvisoReembolso(ajustable:=True))
+
+        A.CallTo(Function() servicio.RestarReembolsoEnvio(245812, 3.15D)).MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ProcesarAvisos_UsuarioRechaza_NoTocaElReembolso() As Task
+        ConfigurarRespuestaConfirmacion(respuestaOk:=False)
+        Dim vm = CrearViewModel()
+
+        Await vm.ProcesarAvisosModificacion(AvisoReembolso(ajustable:=True))
+
+        A.CallTo(Function() servicio.RestarReembolsoEnvio(A(Of Integer).Ignored, A(Of Decimal).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ProcesarAvisos_EnvioTramitadoNoAjustable_SoloInformaSinAccion() As Task
+        ' Carlos 21/07/26: un envío ya tramitado no se toca (la agencia ya tiene el importe);
+        ' en todo caso se abona la comisión después. El aviso llega con Ajustable=False.
+        ConfigurarRespuestaConfirmacion(respuestaOk:=True)
+        Dim vm = CrearViewModel()
+
+        Await vm.ProcesarAvisosModificacion(AvisoReembolso(ajustable:=False))
+
+        A.CallTo(Function() servicio.RestarReembolsoEnvio(A(Of Integer).Ignored, A(Of Decimal).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function ProcesarAvisos_TiposDesconocidosONothing_NoHaceNada() As Task
+        Dim vm = CrearViewModel()
+
+        Await vm.ProcesarAvisosModificacion(Nothing)
+        Await vm.ProcesarAvisosModificacion(New List(Of AvisoPedidoModel) From {
+            New AvisoPedidoModel With {.Tipo = "AvisoFuturoDesconocido", .Mensaje = "..."}})
+
+        A.CallTo(Function() servicio.RestarReembolsoEnvio(A(Of Integer).Ignored, A(Of Decimal).Ignored)).MustNotHaveHappened()
+    End Function
+
     <TestMethod()>
     Public Sub CrearAlbaranYFactura_SiFallaElAlbaran_NoRecargaNiFactura()
         ' Si el albarán ni siquiera se creó, no hay nada que recargar ni factura que intentar.

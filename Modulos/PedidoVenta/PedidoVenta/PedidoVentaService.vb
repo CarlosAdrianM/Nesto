@@ -127,7 +127,7 @@ Public Class PedidoVentaService
         End Using
     End Function
 
-    Public Async Function modificarPedido(pedido As PedidoVentaDTO) As Task Implements IPedidoVentaService.modificarPedido
+    Public Async Function modificarPedido(pedido As PedidoVentaDTO) As Task(Of List(Of AvisoPedidoModel)) Implements IPedidoVentaService.modificarPedido
         Using client As HttpClient = _clienteApiFactory.Crear()
 
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
@@ -145,8 +145,20 @@ Public Class PedidoVentaService
                 Dim response As HttpResponseMessage = Await client.PutAsync(urlConsulta, content)
 
                 If response.IsSuccessStatusCode Then
+                    ' Nesto#420: con avisos el PUT devuelve 200 + RespuestaModificacionPedidoDTO;
+                    ' sin avisos, 204 sin cuerpo. Un cuerpo no parseable no rompe el guardado.
                     Dim respuesta As String = Await response.Content.ReadAsStringAsync()
-                    ' Hacer algo con respuesta si es necesario
+                    If Not String.IsNullOrWhiteSpace(respuesta) Then
+                        Try
+                            Dim avisos = JsonConvert.DeserializeObject(Of RespuestaModificacionPedidoModel)(respuesta)
+                            If avisos?.Avisos IsNot Nothing Then
+                                Return avisos.Avisos
+                            End If
+                        Catch
+                            ' Cuerpo inesperado: el pedido YA está guardado, no lo convertimos en error.
+                        End Try
+                    End If
+                    Return New List(Of AvisoPedidoModel)
                 Else
                     Dim respuestaError = Await response.Content.ReadAsStringAsync()
                     Throw InterpretarRespuestaError(respuestaError)
@@ -158,6 +170,38 @@ Public Class PedidoVentaService
                 Throw New Exception("Error al modificar el pedido: " + ex.Message)
             End Try
         End Using
+    End Function
+
+    ' Nesto#420: resta la comisión quitada del reembolso de un envío aún no tramitado.
+    Public Async Function RestarReembolsoEnvio(numeroEnvio As Integer, importe As Decimal) As Task(Of Decimal) Implements IPedidoVentaService.RestarReembolsoEnvio
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim contenido As HttpContent = New StringContent(
+                JsonConvert.SerializeObject(New With {.Importe = importe}), Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync($"EnviosAgencias/{numeroEnvio}/RestarReembolso", contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(ExtraerMensajeError(body))
+            End If
+            Dim resultado As JObject = JsonConvert.DeserializeObject(Of JObject)(body)
+            Return resultado("Reembolso").ToObject(Of Decimal)()
+        End Using
+    End Function
+
+    ' Los BadRequest de Web API llegan como {"Message":"..."}: extraer el texto legible.
+    Private Shared Function ExtraerMensajeError(body As String) As String
+        Try
+            Dim json As JObject = JsonConvert.DeserializeObject(Of JObject)(body)
+            Dim mensaje = json?("Message")?.ToString()
+            If Not String.IsNullOrWhiteSpace(mensaje) Then
+                Return mensaje
+            End If
+        Catch
+        End Try
+        Return body
     End Function
 
     ''' <summary>
