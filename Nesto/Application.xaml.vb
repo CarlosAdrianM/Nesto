@@ -47,7 +47,11 @@ Partial Public Class Application
         ' Los Run/Span de los TextBlock son FrameworkCONTENTElement, no FrameworkElement: sin este
         ' override, un StringFormat=c dentro de un Run sale en dólares (en-US) aunque la línea de
         ' arriba esté puesta (el total de Cartera viva en Remesas; Comisiones lo parcheaba a mano).
-        FrameworkContentElement.LanguageProperty.OverrideMetadata(GetType(FrameworkContentElement), New FrameworkPropertyMetadata(XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)))
+        ' ⚠️ NO usar GetType(FrameworkContentElement): esa clase ya registra la propiedad con
+        ' metadata propia y OverrideMetadata LANZA en el arranque ("PropertyMetadata ya está
+        ' registrado") — fue el crash al abrir de la 1.10.14.1. Sobre el tipo DERIVADO TextElement
+        ' (padre de Run/Span/Bold...) sí está permitido y los Run lo heredan por búsqueda de metadata.
+        FrameworkContentElement.LanguageProperty.OverrideMetadata(GetType(Documents.TextElement), New FrameworkPropertyMetadata(XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)))
 
         ' Manejadores globales: cualquier excepción no controlada se registra en ELMAH (vía NestoAPI)
         ' en lugar de cerrar la aplicación silenciosamente sin dejar rastro.
