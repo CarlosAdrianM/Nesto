@@ -6,19 +6,18 @@ Imports Nesto.Models.Nesto.Models
 Public Class AgenciaGlovo
     Implements IAgencia
 
-    Public Sub New(agencia As AgenciasViewModel)
-        If Not IsNothing(agencia) Then
-            ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(0, "NO")
-            }
+    ' NestoAPI#258 slice (b.2): sin dependencia del AgenciasViewModel (solo servía para saltarse
+    ' la inicialización en tests pasando Nothing; ahora se inicializa siempre).
+    Public Sub New()
+        ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
+            New tipoIdDescripcion(0, "NO")
+        }
 
-            ListaServicios = New ObservableCollection(Of ITarifaAgencia)
-            ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(0, "Urgente")
-            }
-            ListaPaises = rellenarPaises()
-        End If
-
+        ListaServicios = New ObservableCollection(Of ITarifaAgencia)
+        ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
+            New tipoIdDescripcion(0, "Urgente")
+        }
+        ListaPaises = rellenarPaises()
     End Sub
 
     Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
@@ -68,7 +67,7 @@ Public Class AgenciaGlovo
         End Get
     End Property
 
-    Public Sub calcularPlaza(codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+    Public Sub calcularPlaza(codPostal As String, codPais As Integer, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         Throw New NotImplementedException()
     End Sub
 

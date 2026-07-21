@@ -28,7 +28,7 @@ Public Class AgenciaCodigoBarrasTests
 
     <TestMethod()>
     Public Sub Asm_ServicioNormal_PrefijoDeLaAgenciaDelEnvio_MasNumeroEnSieteDigitos()
-        Dim agencia = New AgenciaASM(Nothing)
+        Dim agencia = New AgenciaASM()
 
         Dim codigo = agencia.calcularCodigoBarras(CrearEnvio(246998, servicio:=1), CrearAgencia("9"))
 
@@ -37,7 +37,7 @@ Public Class AgenciaCodigoBarrasTests
 
     <TestMethod()>
     Public Sub Asm_Servicio96BusinessParcel_NoUsaElPrefijoDeLaAgencia()
-        Dim agencia = New AgenciaASM(Nothing)
+        Dim agencia = New AgenciaASM()
 
         Dim codigo = agencia.calcularCodigoBarras(CrearEnvio(246998, servicio:=96), CrearAgencia("9"))
 
@@ -59,7 +59,7 @@ Public Class AgenciaCodigoBarrasTests
     <TestMethod()>
     Public Sub Innovatrans_NoCalculaCodigoEnLocal()
         ' El albarán lo asigna la plataforma al tramitar
-        Dim agencia = New AgenciaInnovatrans(Nothing)
+        Dim agencia = New AgenciaInnovatrans()
 
         Assert.AreEqual(String.Empty, agencia.calcularCodigoBarras(CrearEnvio(1), CrearAgencia("5")))
     End Sub

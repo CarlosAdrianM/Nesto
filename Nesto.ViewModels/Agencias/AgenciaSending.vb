@@ -93,9 +93,9 @@ Public Class AgenciaSending
                 digitalizacion = Nothing
             Next
         Next
-        'agenciaVM.digitalizacionActual = estado.listaDigitalizaciones.LastOrDefault
+        ' NestoAPI#258 slice (b.2): la selección de la digitalización la hace el VM con el
+        ' estadoEnvio devuelto (lo que estas líneas comentadas siempre quisieron hacer).
         estado.listaExpediciones.Add(expedicion)
-        'agenciaVM.cmdDescargarImagen.RaiseCanExecuteChanged()
         Return estado
     End Function
     Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
@@ -111,7 +111,7 @@ Public Class AgenciaSending
         End If
         Return resultado
     End Function
-    Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+    Public Sub calcularPlaza(ByVal codPostal As String, codPais As Integer, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         nemonico = "SD"
         nombrePlaza = "Sending"
         telefonoPlaza = ""

@@ -102,13 +102,14 @@ Public Class AgenciasViewModel
         cmdPegarCodigoBarras = New DelegateCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
         CopiarNumeroPedidoCommand = New DelegateCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
 
-        factory.Add("ASM", Function() New AgenciaASM(Me))
-        'factory.Add("OnTime", Function() New AgenciaOnTime(Me))
-        'factory.Add("Glovo", Function() New AgenciaGlovo(Me))
+        ' NestoAPI#258 slice (b.2): ninguna agencia recibe ya el ViewModel.
+        factory.Add("ASM", Function() New AgenciaASM())
+        'factory.Add("OnTime", Function() New AgenciaOnTime())
+        'factory.Add("Glovo", Function() New AgenciaGlovo())
         factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
         factory.Add("Sending", Function() New AgenciaSending())
         factory.Add("Canteras", Function() New AgenciaCanteras()) ' Nesto#359: envíos manuales a Canarias
-        factory.Add("Innovatrans", Function() New AgenciaInnovatrans(Me)) ' registrar al imprimir (DataTrans, server-side)
+        factory.Add("Innovatrans", Function() New AgenciaInnovatrans()) ' registrar al imprimir (DataTrans, server-side)
 
 
     End Sub
@@ -2036,6 +2037,12 @@ Public Class AgenciasViewModel
         Try
             XMLdeEstado = agenciaEspecifica.cargarEstado(envioActual)
             estadoEnvioCargado = agenciaEspecifica.transformarXMLdeEstado(XMLdeEstado)
+            ' NestoAPI#258 slice (b.2): la selección de la última digitalización la hace el VM
+            ' (antes la seteaba AgenciaASM por dentro, tocando estado del VM). Uniforme para
+            ' todas las agencias: sin digitalizaciones queda Nothing (además evita arrastrar
+            ' la de un envío anterior).
+            digitalizacionActual = estadoEnvioCargado?.listaDigitalizaciones?.LastOrDefault
+            cmdDescargarImagen.RaiseCanExecuteChanged()
             mensajeError = "Estado del envío " + envioActual.Numero.ToString + " cargado correctamente"
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
@@ -2785,7 +2792,9 @@ Public Class AgenciasViewModel
         End If
 
         If estabaPendiente OrElse String.IsNullOrEmpty(envioActual?.Nemonico) Then
-            agenciaInsercion.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
+            ' NestoAPI#258 slice (b.2): el país se pasa como parámetro (antes ASM leía
+            ' paisActual del VM por dentro; mismo valor, ahora explícito en el call site).
+            agenciaInsercion.calcularPlaza(codPostalEnvio, If(paisActual?.Id, 0), envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
         End If
 
         Dim textoConfirmar As String
@@ -2884,7 +2893,7 @@ Public Class AgenciasViewModel
                         .ImporteGasto = If(importeGasto >= 0D, importeGasto, CosteEnvio)
                     End With
                 End If
-                agenciaInsercion.calcularPlaza(codPostalEnvio, envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
+                agenciaInsercion.calcularPlaza(codPostalEnvio, If(paisActual?.Id, 0), envioActual.Nemonico, envioActual.NombrePlaza, envioActual.TelefonoPlaza, envioActual.EmailPlaza)
                 If Not String.IsNullOrEmpty(envioActual.TelefonoPlaza) AndAlso envioActual.TelefonoPlaza.Length > 27 Then
                     envioActual.TelefonoPlaza = Left(envioActual.TelefonoPlaza, 27)
                 End If

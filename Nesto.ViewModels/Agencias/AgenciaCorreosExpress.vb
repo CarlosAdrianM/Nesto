@@ -137,7 +137,7 @@ Public Class AgenciaCorreosExpress
     End Property
 
 
-    Public Sub calcularPlaza(codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+    Public Sub calcularPlaza(codPostal As String, codPais As Integer, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         nemonico = "CE"
         nombrePlaza = "Correos Express"
         telefonoPlaza = "916602444"

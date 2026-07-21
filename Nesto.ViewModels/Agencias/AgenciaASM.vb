@@ -19,50 +19,31 @@ Public Class AgenciaASM
     Private Const PREFIJOCODIGOBARRAS_BUSINESSPARCEL As String = "6119714"
 
 
-    Private ReadOnly agenciaVM As AgenciasViewModel
-
-    Public Sub New(agencia As AgenciasViewModel)
-        If Not IsNothing(agencia) Then
-            ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(0, "Sin Retorno"),
-                New tipoIdDescripcion(1, "Con Retorno"),
-                New tipoIdDescripcion(2, "Retorno Opcional")
-            }
-            ListaServicios = New ObservableCollection(Of ITarifaAgencia) From {
-                New TarifaGLSBaleares(),
-                New TarifaGLSBusinessParcel()
-            }
-            'New TarifaGLSBusinessParcel(),
-
-            'ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
-            '    New tipoIdDescripcion(1, "Courier"),
-            '    New tipoIdDescripcion(37, "Economy"),
-            '    New tipoIdDescripcion(54, "EuroEstándar"),
-            '    New tipoIdDescripcion(74, "EuroBusiness Parcel"),
-            '    New tipoIdDescripcion(76, "EuroBusiness Small Parcel"),
-            '    New tipoIdDescripcion(6, "Carga")
-            '}
-            ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(10, "Marítimo"),
-                New tipoIdDescripcion(18, "Economy")
-            }
-            'New tipoIdDescripcion(3, "ASM24"),
-            'New tipoIdDescripcion(2, "ASM14"),
-
-
-            ListaPaises = rellenarPaises()
-
-            agenciaVM = agencia
-        End If
-
-
-
+    ' NestoAPI#258 slice (b.2): sin dependencia del AgenciasViewModel. Lo que antes hacía a
+    ' través del VM ahora es: errores → Throw (los cazan el Try del VM o el manejador global,
+    ' patrón Sending); digitalización seleccionada → la fija el VM con el estadoEnvio devuelto;
+    ' país → llega como parámetro de calcularPlaza.
+    Public Sub New()
+        ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
+            New tipoIdDescripcion(0, "Sin Retorno"),
+            New tipoIdDescripcion(1, "Con Retorno"),
+            New tipoIdDescripcion(2, "Retorno Opcional")
+        }
+        ListaServicios = New ObservableCollection(Of ITarifaAgencia) From {
+            New TarifaGLSBaleares(),
+            New TarifaGLSBusinessParcel()
+        }
+        ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
+            New tipoIdDescripcion(10, "Marítimo"),
+            New tipoIdDescripcion(18, "Economy")
+        }
+        ListaPaises = rellenarPaises()
     End Sub
 
     ' Funciones
     Public Function cargarEstado(envio As EnviosAgencia) As XDocument Implements IAgencia.cargarEstado
         If IsNothing(envio) Then
-            agenciaVM._dialogService.ShowError("No hay ningún envío seleccionado, no se puede cargar el estado")
+            ' Guard defensivo: el VM ya lo comprueba (y avisa) antes de llamar.
             Return Nothing
         End If
         Identificador = If(envio.Servicio = 96, IDENTIFICADOR_BUSINESSPARCEL, envio.AgenciasTransporte.Identificador)
@@ -120,9 +101,9 @@ Public Class AgenciaASM
                 digitalizacion = Nothing
             Next
         Next
-        agenciaVM.digitalizacionActual = estado.listaDigitalizaciones.LastOrDefault
+        ' NestoAPI#258 slice (b.2): la selección de la digitalización la hace el VM con el
+        ' estadoEnvio devuelto (antes se seteaba aquí agenciaVM.digitalizacionActual).
         estado.listaExpediciones.Add(expedicion)
-        agenciaVM.cmdDescargarImagen.RaiseCanExecuteChanged()
         Return estado
     End Function
     Private Function calcularMensajeError(numeroError As Integer) As String 'Implements IAgencia.calcularMensajeError
@@ -163,7 +144,7 @@ Public Class AgenciaASM
             agencia.PrefijoCodigoBarras.ToString)
         Return PrefijoCodigoBarras + envio.Numero.ToString("D7")
     End Function
-    Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+    Public Sub calcularPlaza(ByVal codPostal As String, codPais As Integer, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         Try
 
             'Comenzamos la llamada
@@ -173,7 +154,7 @@ Public Class AgenciaASM
               "xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">" &
               "<soap:Body>" &
                     "<GetPlazaXCP xmlns=""http://www.asmred.com/"">" &
-                        ("<codPais>" + agenciaVM.paisActual.Id.ToString + "</codPais>") &
+                        ("<codPais>" + codPais.ToString + "</codPais>") &
                         ("<cp>" + codPostal + "</cp>") &
                     "</GetPlazaXCP>" &
                 "</soap:Body>" &
@@ -454,7 +435,10 @@ Public Class AgenciaASM
             Dim codigoRemitente As String = "791/1664"
             Dim codigoTSP = Await GetTSPAsync("34", "28119", envio.Pais, envio.CodPostal, envio.Servicio, envio.Horario)
             Dim inicioCodBarras = Truncar(envio.CodigoBarras, 14)
-            calcularPlaza(envio.CodPostal, envio.Nemonico, envio.NombrePlaza, envio.TelefonoPlaza, envio.EmailPlaza)
+            ' NestoAPI#258 slice (b.2): país del ENVÍO (igual que GetTSPAsync justo arriba). Antes
+            ' leía paisActual de la ventana: en una reimpresión con otro país seleccionado se
+            ' calculaba la plaza del país equivocado (misma familia de bug que Nesto#412).
+            calcularPlaza(envio.CodPostal, envio.Pais, envio.Nemonico, envio.NombrePlaza, envio.TelefonoPlaza, envio.EmailPlaza)
 
             For i = 1 To envio.Bultos
                 'builder.AppendLine("I8,A,034")
@@ -519,7 +503,9 @@ Public Class AgenciaASM
 
             Dim unused = RawPrinterHelper.SendStringToPrinter(puerto, builder.ToString)
         Catch ex As Exception
-            agenciaVM._dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr + ex.ToString)
+            ' NestoAPI#258 slice (b.2): mismo patrón que Sending — se relanza y lo muestra el
+            ' manejador de errores (que además lo deja en ELMAH).
+            Throw New Exception("Se ha producido un error y no se han imprimido las etiquetas:" + vbCr + ex.Message)
         End Try
     End Sub
     Public ReadOnly Property visibilidadSoloImprimir As Visibility Implements IAgencia.visibilidadSoloImprimir

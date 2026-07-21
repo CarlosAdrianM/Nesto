@@ -11,7 +11,9 @@ Public Interface IAgencia
     ' agencia efectiva, sin depender del AgenciasViewModel (antes Sending/ASM usaban
     ' agenciaSeleccionada de la VENTANA, la misma mezcla que causó el bucle de Nesto#412).
     Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String
-    Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
+    ' NestoAPI#258 slice (b.2): el país llega como parámetro (antes ASM leía paisActual del
+    ' AgenciasViewModel). Solo ASM lo usa (GetPlazaXCP de GLS); el resto lo ignora.
+    Sub calcularPlaza(ByVal codPostal As String, codPais As Integer, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String)
     ' Carlos 14/02/2020: el parámetro servicio de LlamadaWebService hay que quitarlo cuando EF solucione el error de Numero y Número (solo se usa para coger la empresa)
     Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) ' Devuelve "OK" en caso de que no haya error o el texto del error
     Sub imprimirEtiqueta(envio As EnviosAgencia)

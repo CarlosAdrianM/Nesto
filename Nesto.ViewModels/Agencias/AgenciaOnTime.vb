@@ -10,27 +10,20 @@ Imports Nesto.Models.Nesto.Models
 Public Class AgenciaOnTime
     Implements IAgencia
 
-    Public Sub New(agencia As AgenciasViewModel)
-        If Not IsNothing(agencia) Then
-            ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(0, "NO"),
-                New tipoIdDescripcion(1, "SI")
-            }
-            'ListaServicios = New ObservableCollection(Of tipoIdDescripcion) From {
-            '    New tipoIdDescripcion(1, "Normal")
-            '}
-            ListaServicios = New ObservableCollection(Of ITarifaAgencia)
-            ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
-                New tipoIdDescripcion(0, ""),
-                New tipoIdDescripcion(1, "Doble ciclo"),
-                New tipoIdDescripcion(2, "14 Horas")
-            }
-
-            ListaPaises = rellenarPaises()
-        End If
-
-
-
+    ' NestoAPI#258 slice (b.2): sin dependencia del AgenciasViewModel (solo servía para saltarse
+    ' la inicialización en tests pasando Nothing; ahora se inicializa siempre).
+    Public Sub New()
+        ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
+            New tipoIdDescripcion(0, "NO"),
+            New tipoIdDescripcion(1, "SI")
+        }
+        ListaServicios = New ObservableCollection(Of ITarifaAgencia)
+        ListaHorarios = New ObservableCollection(Of tipoIdDescripcion) From {
+            New tipoIdDescripcion(0, ""),
+            New tipoIdDescripcion(1, "Doble ciclo"),
+            New tipoIdDescripcion(2, "14 Horas")
+        }
+        ListaPaises = rellenarPaises()
     End Sub
 
     Public ReadOnly Property NumeroCliente As String Implements IAgencia.NumeroCliente
@@ -56,7 +49,7 @@ Public Class AgenciaOnTime
     Public Function calcularCodigoBarras(envio As EnviosAgencia, agencia As AgenciasTransporte) As String Implements IAgencia.calcularCodigoBarras
         Return envio.Numero.ToString("D7")
     End Function
-    Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+    Public Sub calcularPlaza(ByVal codPostal As String, codPais As Integer, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         nemonico = "OT"
         nombrePlaza = "OnTime"
         telefonoPlaza = "902112820"

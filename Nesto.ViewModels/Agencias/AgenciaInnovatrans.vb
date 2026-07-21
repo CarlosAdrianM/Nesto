@@ -13,10 +13,8 @@ Imports Nesto.Models.Nesto.Models
 Public Class AgenciaInnovatrans
     Implements IAgenciaConGestionRemota
 
-    Private ReadOnly agenciaVM As AgenciasViewModel
-
-    Public Sub New(agencia As AgenciasViewModel)
-        agenciaVM = agencia
+    ' NestoAPI#258 slice (b.2): sin dependencia del AgenciasViewModel (el campo nunca se usaba).
+    Public Sub New()
         ListaTiposRetorno = New ObservableCollection(Of tipoIdDescripcion) From {
             New tipoIdDescripcion(0, "NO")
         }
@@ -171,7 +169,7 @@ Public Class AgenciaInnovatrans
         Return String.Empty
     End Function
 
-    Public Sub calcularPlaza(ByVal codPostal As String, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
+    Public Sub calcularPlaza(ByVal codPostal As String, codPais As Integer, ByRef nemonico As String, ByRef nombrePlaza As String, ByRef telefonoPlaza As String, ByRef emailPlaza As String) Implements IAgencia.calcularPlaza
         nemonico = "IN"
         nombrePlaza = "Innovatrans"
         telefonoPlaza = String.Empty

@@ -12,7 +12,7 @@ Public Class AgenciaInnovatransTests
 
     Private Shared Function CrearAgencia() As AgenciaInnovatrans
         ' El constructor guarda el ViewModel pero no lo usa para estas propiedades; Nothing vale.
-        Return New AgenciaInnovatrans(Nothing)
+        Return New AgenciaInnovatrans()
     End Function
 
     <TestMethod()>
