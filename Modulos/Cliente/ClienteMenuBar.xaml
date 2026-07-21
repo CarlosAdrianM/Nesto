@@ -17,6 +17,10 @@
                                 Header="Documentos">
                 <RibbonButton Label="Modelo 347" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirModelo347Command}" />
             </RibbonGroup>
+            <RibbonGroup x:Name="grpCartera"
+                                Header="Cartera">
+                <RibbonButton Label="Extracto Cliente" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirExtractoClienteCommand}" />
+            </RibbonGroup>
         </RibbonTab>
     </Ribbon>
 </UserControl>

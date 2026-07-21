@@ -42,6 +42,7 @@ namespace Nesto.Modulos.Cliente
 
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo);
             AbrirModelo347Command = new DelegateCommand(OnAbrirModelo347);
+            AbrirExtractoClienteCommand = new DelegateCommand(OnAbrirExtractoCliente);
             AnnadirPersonaContactoCommand = new DelegateCommand(OnAnnadirPersonaContacto);
             BorrarPersonaContactoCommand = new DelegateCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
             CrearClienteCommand = new DelegateCommand(OnCrearCliente);
@@ -545,6 +546,13 @@ namespace Nesto.Modulos.Cliente
         private void OnAbrirModelo347()
         {
             RegionManager.RequestNavigate("MainRegion", "Modelo347View");
+        }
+
+        // Nesto#419: ventana de Extracto de Cliente (v1 = consultar pendientes + liquidar)
+        public ICommand AbrirExtractoClienteCommand { get; private set; }
+        private void OnAbrirExtractoCliente()
+        {
+            RegionManager.RequestNavigate("MainRegion", "ExtractoClienteView");
         }
 
         public ICommand AnnadirPersonaContactoCommand { get; private set; }

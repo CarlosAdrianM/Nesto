@@ -12,6 +12,9 @@ namespace Nesto.Modulos.Cliente
         {
             containerRegistry.Register<object, CrearClienteView>("CrearClienteView");
             containerRegistry.Register<object, Modelo347View>("Modelo347View");
+            // Nesto#419: ventana de Extracto de Cliente (v1 = consultar pendientes + liquidar)
+            containerRegistry.Register<object, ExtractoClienteView>("ExtractoClienteView");
+            containerRegistry.Register<IExtractoClienteService, ExtractoClienteService>();
             containerRegistry.RegisterDialog<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
         }
 
