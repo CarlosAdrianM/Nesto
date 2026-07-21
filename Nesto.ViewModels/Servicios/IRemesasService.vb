@@ -8,4 +8,8 @@ Public Interface IRemesasService
     Function LeerRemesas(empresa As String, top As Integer?) As Task(Of List(Of RemesaModel))
     ' Slice 3: efectos incluidos en la remesa seleccionada.
     Function LeerMovimientos(empresa As String, remesa As Integer) As Task(Of List(Of MovimientoRemesaModel))
+    ' Slice 4: asientos de impagados agrupados (grid izquierdo de la pestaña Impagados).
+    Function LeerImpagados(empresa As String, top As Integer?) As Task(Of List(Of impagado))
+    ' Slice 5: movimientos del asiento de impagados seleccionado (grid derecho).
+    Function LeerMovimientosImpagado(empresa As String, asiento As Integer) As Task(Of List(Of MovimientoRemesaModel))
 End Interface

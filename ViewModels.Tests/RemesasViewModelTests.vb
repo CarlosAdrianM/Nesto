@@ -125,4 +125,70 @@ Public Class RemesasViewModelTests
 
         StringAssert.Contains(vm.mensajeError, "API caída")
     End Function
+
+    <TestMethod()>
+    Public Async Function CargarImpagados_PoblaElGridYSeleccionaElPrimero() As Task
+        ' Nesto#340 Fase 1C.14 slice 4: los impagados se leen del API, no del GROUP BY de EF.
+        Dim impagados = New List(Of impagado) From {
+            New impagado With {.asiento = 1195101, .fecha = New Date(2026, 7, 20), .cuenta = 3},
+            New impagado With {.asiento = 1194800, .fecha = New Date(2026, 7, 15), .cuenta = 1}
+        }
+        A.CallTo(Function() _servicio.LeerImpagados(A(Of String).Ignored, 100)).Returns(Task.FromResult(impagados))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarImpagadosAsync(100)
+
+        Assert.AreEqual(2, vm.listaImpagados.Count)
+        Assert.AreEqual(1195101, vm.impagadoActual.asiento)
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarImpagados_SiElServicioFalla_DejaElGridVacioYAvisa() As Task
+        A.CallTo(Function() _servicio.LeerImpagados(A(Of String).Ignored, A(Of Integer?).Ignored)) _
+            .Throws(New Exception("API caída"))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarImpagadosAsync(100)
+
+        Assert.AreEqual(0, vm.listaImpagados.Count)
+        Assert.IsNull(vm.impagadoActual)
+        StringAssert.Contains(vm.mensajeError, "API caída")
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarMovimientosImpagado_PoblaElGridDeDetalle() As Task
+        ' Nesto#340 Fase 1C.14 slice 5: el detalle del asiento se lee del API, no de EF.
+        Dim movimientos = New List(Of MovimientoRemesaModel) From {
+            New MovimientoRemesaModel With {.Id = 7, .Número = "15191", .Contacto = "0",
+                .Importe = 250.5D, .Fecha = New Date(2026, 7, 20)}
+        }
+        A.CallTo(Function() _servicio.LeerMovimientosImpagado(A(Of String).Ignored, 1195101)).Returns(Task.FromResult(movimientos))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarMovimientosImpagadoAsync(1195101)
+
+        Assert.AreEqual(1, vm.listaImpagadosDetalle.Count)
+        Assert.AreEqual("15191", vm.listaImpagadosDetalle.First().Número)
+        Assert.AreEqual(New Date(2026, 7, 20), vm.listaImpagadosDetalle.First().Fecha)
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarMovimientosImpagado_SiElServicioFalla_DejaElGridVacioYAvisa() As Task
+        A.CallTo(Function() _servicio.LeerMovimientosImpagado(A(Of String).Ignored, A(Of Integer).Ignored)) _
+            .Throws(New Exception("API caída"))
+
+        Dim vm = CrearViewModel()
+        Await vm.CargarMovimientosImpagadoAsync(1195101)
+
+        Assert.AreEqual(0, vm.listaImpagadosDetalle.Count, "El grid no puede quedarse con el detalle del asiento anterior")
+        StringAssert.Contains(vm.mensajeError, "API caída")
+    End Function
+
+    <TestMethod()>
+    Public Sub ImpagadoActualNothing_VaciaElDetalle()
+        Dim vm = CrearViewModel()
+        vm.impagadoActual = Nothing
+
+        Assert.IsNull(vm.listaImpagadosDetalle)
+    End Sub
 End Class

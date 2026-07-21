@@ -63,10 +63,10 @@ Public Class RemesasViewModel
         ' Nesto#340 Fase 1C.14 slice 1: las empresas se leen del API (async); el resto sigue en EF.
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
         CargarEmpresasAsync()
-        ' Nesto#340 Fase 1C.14 slice 2: el setter de empresaActual ya carga las remesas por API
-        ' (y los impagados, aún por EF), así que aquí no hace falta repetir las consultas.
+        ' Nesto#340 Fase 1C.14 slices 2 y 4: el setter de empresaActual ya carga remesas e
+        ' impagados por API (async, con selección inicial dentro), así que aquí no hace falta
+        ' repetir las consultas ni seleccionar el primer impagado.
         empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
-        impagadoActual = listaImpagados.FirstOrDefault
         listaTiposRemesa = New ObservableCollection(Of tipoRemesa)
         tipoRemesaActual = New tipoRemesa("B2B", "Profesionales (B2B)")
         listaTiposRemesa.Add(tipoRemesaActual)
@@ -107,6 +107,33 @@ Public Class RemesasViewModel
         Catch ex As Exception
             listaMovimientos = New ObservableCollection(Of MovimientoRemesaModel)
             mensajeError = $"No se han podido cargar los movimientos de la remesa: {ex.Message}"
+        End Try
+    End Function
+
+    ' Nesto#340 Fase 1C.14 slice 4: sustituye el GROUP BY EF de impagados (TipoApunte = 4).
+    ' Selecciona el primer asiento al terminar (antes lo hacía el constructor en síncrono).
+    Public Async Function CargarImpagadosAsync(top As Integer?) As Task
+        Try
+            Dim impagados = Await _remesasService.LeerImpagados(empresaActual, top)
+            listaImpagados = New ObservableCollection(Of impagado)(impagados)
+            impagadoActual = listaImpagados.FirstOrDefault
+        Catch ex As Exception
+            listaImpagados = New ObservableCollection(Of impagado)
+            impagadoActual = Nothing
+            mensajeError = $"No se han podido cargar los impagados: {ex.Message}"
+        End Try
+    End Function
+
+    ' Nesto#340 Fase 1C.14 slice 5: sustituye la lectura EF del detalle del asiento de impagados.
+    Public Async Function CargarMovimientosImpagadoAsync(asiento As Integer) As Task
+        Try
+            Dim movimientos = Await _remesasService.LeerMovimientosImpagado(empresaActual, asiento)
+            listaImpagadosDetalle = New ObservableCollection(Of MovimientoRemesaModel)(movimientos)
+        Catch ex As Exception
+            ' No puede quedarse pintado el detalle del asiento anterior (mismo criterio que
+            ' los movimientos de la remesa).
+            listaImpagadosDetalle = New ObservableCollection(Of MovimientoRemesaModel)
+            mensajeError = $"No se han podido cargar los movimientos del impagado: {ex.Message}"
         End Try
     End Function
 
@@ -157,13 +184,11 @@ Public Class RemesasViewModel
         End Get
         Set(value As String)
             _empresaActual = value
-            ' Nesto#340 Fase 1C.14 slice 2: remesas por API (fire-and-forget; el error queda en mensajeError).
+            ' Nesto#340 Fase 1C.14 slices 2 y 4: remesas e impagados por API (fire-and-forget;
+            ' el error queda en mensajeError).
             CargarRemesasAsync(numRemesas)
             blnPuedeVerTodasLasRemesas = True
-            ' Los impagados siguen en EF (slice 4); guard para el ctor de tests, que no crea DbContext.
-            If DbContext IsNot Nothing Then
-                listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
-            End If
+            CargarImpagadosAsync(numRemesas)
             RaisePropertyChanged("empresaActual")
         End Set
     End Property
@@ -256,12 +281,13 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-    Private Property _listaImpagadosDetalle As ObservableCollection(Of ExtractoCliente)
-    Public Property listaImpagadosDetalle As ObservableCollection(Of ExtractoCliente)
+    ' Nesto#340 Fase 1C.14 slice 5: POCO del API en vez de la entidad EF ExtractoCliente.
+    Private Property _listaImpagadosDetalle As ObservableCollection(Of MovimientoRemesaModel)
+    Public Property listaImpagadosDetalle As ObservableCollection(Of MovimientoRemesaModel)
         Get
             Return _listaImpagadosDetalle
         End Get
-        Set(value As ObservableCollection(Of ExtractoCliente))
+        Set(value As ObservableCollection(Of MovimientoRemesaModel))
             _listaImpagadosDetalle = value
             RaisePropertyChanged("listaImpagadosDetalle")
         End Set
@@ -277,7 +303,9 @@ Public Class RemesasViewModel
             If IsNothing(impagadoActual) Then
                 listaImpagadosDetalle = Nothing
             Else
-                listaImpagadosDetalle = New ObservableCollection(Of ExtractoCliente)(From e In DbContext.ExtractoCliente Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And e.TipoApunte = 4)
+                ' Nesto#340 Fase 1C.14 slice 5: el detalle se lee del API (fire-and-forget;
+                ' el error queda en mensajeError).
+                CargarMovimientosImpagadoAsync(impagadoActual.asiento)
             End If
             RaisePropertyChanged("impagadoActual")
         End Set
@@ -434,8 +462,9 @@ Public Class RemesasViewModel
             End Try
         End If
 
-        listaImpagados = New ObservableCollection(Of impagado)(From c In DbContext.ExtractoCliente Where c.Empresa = empresaActual And c.TipoApunte = "4" Group By c.Asiento, c.Fecha Into Count() Order By Asiento Descending Take numRemesas Select New impagado With {.asiento = Asiento, .fecha = Fecha, .cuenta = Count})
-        impagadoActual = listaImpagados.First
+        ' Nesto#340 Fase 1C.14 slice 4: recarga por API tras contabilizar (selecciona el
+        ' primer asiento dentro; antes usaba .First, que petaba con la lista vacía).
+        Await CargarImpagadosAsync(numRemesas)
 
     End Sub
 

@@ -73,4 +73,46 @@ Public Class RemesasService
             Return JsonConvert.DeserializeObject(Of List(Of MovimientoRemesaModel))(body)
         End Using
     End Function
+
+    ' Nesto#340 Fase 1C.14 slice 4: sustituye el GROUP BY EF de impagados (TipoApunte 4).
+    ' Deserializa sobre la clase impagado existente (asiento/fecha/cuenta): Newtonsoft es
+    ' case-insensitive, así que el DTO {Asiento, Fecha, Cuenta} mapea sin atributos.
+    Public Async Function LeerImpagados(empresa As String, top As Integer?) As Task(Of List(Of impagado)) Implements IRemesasService.LeerImpagados
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Remesas/Impagados?empresa={Uri.EscapeDataString(empresa)}"
+            If top.HasValue Then
+                url += $"&top={top.Value}"
+            End If
+
+            Dim response = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener la lista de impagados: {response.StatusCode}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of impagado))(body)
+        End Using
+    End Function
+
+    ' Nesto#340 Fase 1C.14 slice 5: sustituye la lectura EF del detalle de un asiento de impagados.
+    Public Async Function LeerMovimientosImpagado(empresa As String, asiento As Integer) As Task(Of List(Of MovimientoRemesaModel)) Implements IRemesasService.LeerMovimientosImpagado
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Remesas/Impagados/Movimientos?empresa={Uri.EscapeDataString(empresa)}&asiento={asiento}"
+            Dim response = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener los movimientos del impagado: {response.StatusCode}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of MovimientoRemesaModel))(body)
+        End Using
+    End Function
 End Class

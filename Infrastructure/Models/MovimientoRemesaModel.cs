@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System;
 
 namespace Nesto.Infrastructure.Models
 {
@@ -25,5 +26,8 @@ namespace Nesto.Infrastructure.Models
 
         [JsonProperty("Ccc")]
         public string CCC { get; set; }
+
+        // Slice 5: el grid de detalle de impagados pinta también la fecha del efecto.
+        public DateTime Fecha { get; set; }
     }
 }
