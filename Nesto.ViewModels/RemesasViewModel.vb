@@ -17,6 +17,7 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models
 Imports System.Collections.Specialized
 Imports Unity
+Imports ControlesUsuario.Dialogs
 
 Public Class RemesasViewModel
     Inherits BindableBase
@@ -75,6 +76,9 @@ Public Class RemesasViewModel
         fechaCobro = Today
 
         CrearTareasPlannerCommand = New DelegateCommand(AddressOf OnCrearTareasPlanner, AddressOf CanCrearTareasPlanner)
+        ' NestoAPI#332: pestaña Crear Remesa
+        CargarCandidatosCommand = New DelegateCommand(AddressOf OnCargarCandidatos)
+        CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
     End Sub
 
     ' Constructor para tests: inyecta el servicio API y NO toca EF (Nesto#340 Fase 1C.14).
@@ -84,6 +88,8 @@ Public Class RemesasViewModel
         Me.dialogService = dialogService
         _remesasService = remesasService
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
+        CargarCandidatosCommand = New DelegateCommand(AddressOf OnCargarCandidatos)
+        CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
     End Sub
 
     ' Nesto#340 Fase 1C.14 slice 1: sustituye la lectura EF de DbContext.Empresas.
@@ -137,6 +143,73 @@ Public Class RemesasViewModel
         End Try
     End Function
 
+    ' NestoAPI#332: candidatos a remesa (modo simulación del servidor). Los preseleccionados
+    ' vienen marcados; los retenidos (gating #172) llegan con motivo y sin marcar.
+    Public Async Function CargarCandidatosAsync() As Task
+        Try
+            estaOcupado = True
+            Dim candidatos = Await _remesasService.LeerEfectosCandidatos(empresaActual)
+            For Each candidato In candidatos
+                candidato.Seleccionado = candidato.Preseleccionado
+                AddHandler candidato.PropertyChanged, AddressOf CandidatoCambiado
+            Next
+            ListaCandidatos = New ObservableCollection(Of EfectoCandidatoModel)(candidatos)
+        Catch ex As Exception
+            ListaCandidatos = New ObservableCollection(Of EfectoCandidatoModel)
+            mensajeError = $"No se han podido cargar los efectos candidatos: {ex.Message}"
+        Finally
+            estaOcupado = False
+        End Try
+    End Function
+
+    Private Sub CandidatoCambiado(sender As Object, e As ComponentModel.PropertyChangedEventArgs)
+        If e.PropertyName = NameOf(EfectoCandidatoModel.Seleccionado) Then
+            RaisePropertyChanged(NameOf(ImporteSeleccionado))
+            RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
+            CrearRemesaCommand.RaiseCanExecuteChanged()
+        End If
+    End Sub
+
+    ' NestoAPI#332: crear la remesa con los efectos marcados. El servidor revalida TODO
+    ' (candidatos frescos, gating, neteo) y contabiliza; aquí solo confirmación y refresco.
+    Public Async Function CrearRemesaAsync() As Task
+        Dim seleccionados = ListaCandidatos.Where(Function(c) c.Seleccionado).ToList()
+        If Not seleccionados.Any() Then
+            Return
+        End If
+
+        Dim clientesConNegativos = seleccionados.Where(Function(c) c.ClienteConNegativos) _
+            .Select(Function(c) c.Cliente).Distinct().ToList()
+        If clientesConNegativos.Any() Then
+            mensajeError = "Hay clientes con movimientos negativos pendientes de revisar (liquidar en " &
+                "Extracto de Cliente o desmarcarlos): " & String.Join(", ", clientesConNegativos)
+            Return
+        End If
+
+        Dim importe = seleccionados.Sum(Function(c) c.ImportePendiente)
+        Dim confirmado As Boolean = False
+        dialogService.ShowConfirmation("Crear remesa",
+            $"¿Crear la remesa con {seleccionados.Count} efectos por un total de {importe:C} al banco {BancoRemesa}?",
+            Sub(r) confirmado = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+        If Not confirmado Then
+            Return
+        End If
+
+        Try
+            estaOcupado = True
+            Dim resultado = Await _remesasService.CrearRemesa(empresaActual, BancoRemesa,
+                seleccionados.Select(Function(c) c.Id).ToList())
+            mensajeError = $"Remesa {resultado.NumeroRemesa} creada: {resultado.NumeroEfectos} efectos, {resultado.Importe:C}"
+            ' Refrescar: la remesa nueva aparece en la lista y los efectos salen de candidatos
+            Await CargarRemesasAsync(numRemesas)
+            Await CargarCandidatosAsync()
+        Catch ex As Exception
+            mensajeError = ex.Message
+        Finally
+            estaOcupado = False
+        End Try
+    End Function
+
     ' Nesto#340 Fase 1C.14 slice 2: sustituye la lectura EF de DbContext.Remesas.
     ' top = numRemesas en la carga normal; Nothing = todas (botón "Ver Todas").
     Public Async Function CargarRemesasAsync(top As Integer?) As Task
@@ -144,6 +217,10 @@ Public Class RemesasViewModel
             Dim remesas = Await _remesasService.LeerRemesas(empresaActual, top)
             listaRemesas = New ObservableCollection(Of RemesaModel)(remesas)
             remesaActual = listaRemesas.FirstOrDefault
+            ' NestoAPI#332: banco por defecto para crear remesa = el de la última remesa
+            If String.IsNullOrWhiteSpace(BancoRemesa) Then
+                BancoRemesa = listaRemesas.FirstOrDefault()?.Banco
+            End If
         Catch ex As Exception
             mensajeError = $"No se han podido cargar las remesas: {ex.Message}"
         End Try
@@ -292,6 +369,56 @@ Public Class RemesasViewModel
             RaisePropertyChanged("listaImpagadosDetalle")
         End Set
     End Property
+
+    ' NestoAPI#332: pestaña Crear Remesa
+    Private _listaCandidatos As ObservableCollection(Of EfectoCandidatoModel) = New ObservableCollection(Of EfectoCandidatoModel)
+    Public Property ListaCandidatos As ObservableCollection(Of EfectoCandidatoModel)
+        Get
+            Return _listaCandidatos
+        End Get
+        Set(value As ObservableCollection(Of EfectoCandidatoModel))
+            _listaCandidatos = value
+            RaisePropertyChanged(NameOf(ListaCandidatos))
+            RaisePropertyChanged(NameOf(ImporteSeleccionado))
+            RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
+            CrearRemesaCommand?.RaiseCanExecuteChanged()
+        End Set
+    End Property
+
+    Public ReadOnly Property ImporteSeleccionado As Decimal
+        Get
+            Return If(ListaCandidatos?.Where(Function(c) c.Seleccionado).Sum(Function(c) c.ImportePendiente), 0D)
+        End Get
+    End Property
+
+    Public ReadOnly Property NumeroEfectosSeleccionados As Integer
+        Get
+            Return If(ListaCandidatos Is Nothing, 0, ListaCandidatos.Where(Function(c) c.Seleccionado).Count())
+        End Get
+    End Property
+
+    Private _bancoRemesa As String
+    Public Property BancoRemesa As String
+        Get
+            Return _bancoRemesa
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_bancoRemesa, value)
+        End Set
+    End Property
+
+    Public Property CargarCandidatosCommand As DelegateCommand
+    Public Property CrearRemesaCommand As DelegateCommand
+
+    Private Async Sub OnCargarCandidatos()
+        Await CargarCandidatosAsync()
+    End Sub
+    Private Function CanCrearRemesa() As Boolean
+        Return NumeroEfectosSeleccionados > 0 AndAlso Not String.IsNullOrWhiteSpace(BancoRemesa)
+    End Function
+    Private Async Sub OnCrearRemesa()
+        Await CrearRemesaAsync()
+    End Sub
 
     Private Property _impagadoActual As impagado
     Public Property impagadoActual As impagado

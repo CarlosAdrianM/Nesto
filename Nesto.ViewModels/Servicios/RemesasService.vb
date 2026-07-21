@@ -115,4 +115,53 @@ Public Class RemesasService
             Return JsonConvert.DeserializeObject(Of List(Of MovimientoRemesaModel))(body)
         End Using
     End Function
+
+    ' NestoAPI#332: candidatos a remesa (modo simulación del servidor).
+    Public Async Function LeerEfectosCandidatos(empresa As String) As Task(Of List(Of EfectoCandidatoModel)) Implements IRemesasService.LeerEfectosCandidatos
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim response = Await client.GetAsync($"Remesas/EfectosCandidatos?empresa={Uri.EscapeDataString(empresa)}")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener los efectos candidatos: {ExtraerMensajeError(body)}")
+            End If
+            Return JsonConvert.DeserializeObject(Of List(Of EfectoCandidatoModel))(body)
+        End Using
+    End Function
+
+    ' NestoAPI#332: crea la remesa. El servidor revalida (candidatos frescos, gating #172,
+    ' puerta de neteo) y contabiliza; los BadRequest traen el motivo legible.
+    Public Async Function CrearRemesa(empresa As String, banco As String, efectos As List(Of Integer)) As Task(Of CrearRemesaResponseModel) Implements IRemesasService.CrearRemesa
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim contenido As HttpContent = New StringContent(
+                JsonConvert.SerializeObject(New With {.Empresa = empresa, .Banco = banco, .Efectos = efectos}),
+                Text.Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("Remesas", contenido)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception(ExtraerMensajeError(body))
+            End If
+            Return JsonConvert.DeserializeObject(Of CrearRemesaResponseModel)(body)
+        End Using
+    End Function
+
+    ' Los errores de Web API llegan como {"Message":"..."}: extraer el texto legible.
+    Private Shared Function ExtraerMensajeError(body As String) As String
+        Try
+            Dim json = JsonConvert.DeserializeObject(Of Newtonsoft.Json.Linq.JObject)(body)
+            Dim mensaje = json?("Message")?.ToString()
+            If Not String.IsNullOrWhiteSpace(mensaje) Then
+                Return mensaje
+            End If
+        Catch
+        End Try
+        Return body
+    End Function
 End Class

@@ -155,6 +155,60 @@
                         </DockPanel>
                     </Grid>
                 </TabItem>
+                <TabItem Name="tabCrearRemesa" Header="Crear Remesa">
+                    <!-- NestoAPI#332: candidatos preseleccionados por el servidor (gating de
+                         entrega #172 y puerta de neteo incluidos); el usuario marca/desmarca
+                         y crea. El servidor revalida TODO en el POST. -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="3">
+                            <Button Content="Cargar _candidatos" Command="{Binding CargarCandidatosCommand}" Padding="8,2"/>
+                            <TextBlock Text="Banco:" VerticalAlignment="Center" Margin="15,0,5,0"/>
+                            <TextBox Text="{Binding BancoRemesa, UpdateSourceTrigger=PropertyChanged}" Width="50" VerticalAlignment="Center"/>
+                            <Button Content="Crear _remesa" Command="{Binding CrearRemesaCommand}" Padding="8,2" Margin="15,0,0,0" FontWeight="Bold"/>
+                            <TextBlock VerticalAlignment="Center" Margin="20,0,0,0">
+                                <Run Text="{Binding NumeroEfectosSeleccionados, Mode=OneWay}" FontWeight="Bold"/>
+                                <Run Text=" efectos, "/>
+                                <Run Text="{Binding ImporteSeleccionado, Mode=OneWay, StringFormat=c}" FontWeight="Bold"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding ListaCandidatos}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" ColumnWidth="Auto" SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="Incluir" Binding="{Binding Seleccionado, UpdateSourceTrigger=PropertyChanged}"/>
+                                <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Documento" Binding="{Binding Documento}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Efecto" Binding="{Binding Efecto}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Vencimiento" Binding="{Binding Vencimiento, StringFormat=d}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Importe" Binding="{Binding ImportePendiente, StringFormat=c}" IsReadOnly="True">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style>
+                                            <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="CCC" Binding="{Binding Ccc}" IsReadOnly="True"/>
+                                <DataGridCheckBoxColumn Header="Negativos" Binding="{Binding ClienteConNegativos, Mode=OneWay}" IsReadOnly="True"/>
+                                <DataGridTextColumn Header="Motivo" Binding="{Binding Motivo}" Width="*" IsReadOnly="True"/>
+                            </DataGrid.Columns>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Preseleccionado}" Value="False">
+                                            <Setter Property="Foreground" Value="Gray"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ClienteConNegativos}" Value="True">
+                                            <Setter Property="Foreground" Value="DarkOrange"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Grid>
     </xctk:BusyIndicator>

@@ -191,4 +191,116 @@ Public Class RemesasViewModelTests
 
         Assert.IsNull(vm.listaImpagadosDetalle)
     End Sub
+
+    ' NestoAPI#332: pestaña Crear Remesa (candidatos preseleccionados por el servidor + crear)
+
+    Private Sub ConfirmarSiempre(respuestaOk As Boolean)
+        A.CallTo(Sub() _dialogService.ShowDialog(
+                    A(Of String).Ignored,
+                    A(Of IDialogParameters).Ignored,
+                    A(Of Action(Of IDialogResult)).Ignored)) _
+         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
+                      If callback Is Nothing Then
+                          Return
+                      End If
+                      Dim resultado = A.Fake(Of IDialogResult)
+                      A.CallTo(Function() resultado.Result).Returns(If(respuestaOk, ButtonResult.OK, ButtonResult.Cancel))
+                      callback(resultado)
+                  End Sub)
+    End Sub
+
+    Private Function Candidato(id As Integer, Optional preseleccionado As Boolean = True,
+                               Optional importe As Decimal = 100D, Optional conNegativos As Boolean = False,
+                               Optional cliente As String = "15191") As EfectoCandidatoModel
+        Return New EfectoCandidatoModel With {
+            .Id = id, .Cliente = cliente, .ImportePendiente = importe,
+            .Preseleccionado = preseleccionado, .ClienteConNegativos = conNegativos,
+            .Motivo = If(preseleccionado, Nothing, "Retenido: envíos sin entregar (#172)")}
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarCandidatos_MarcaLosPreseleccionadosYNoLosRetenidos() As Task
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(1), Candidato(2, preseleccionado:=False)}))
+        Dim vm = CrearViewModel()
+
+        Await vm.CargarCandidatosAsync()
+
+        Assert.AreEqual(2, vm.ListaCandidatos.Count)
+        Assert.IsTrue(vm.ListaCandidatos.Single(Function(c) c.Id = 1).Seleccionado)
+        Assert.IsFalse(vm.ListaCandidatos.Single(Function(c) c.Id = 2).Seleccionado, "Los retenidos no vienen marcados")
+        Assert.AreEqual(100D, vm.ImporteSeleccionado)
+        Assert.AreEqual(1, vm.NumeroEfectosSeleccionados)
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_Confirmada_LlamaAlServicioConLosMarcadosYRefresca() As Task
+        ConfirmarSiempre(respuestaOk:=True)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(111, importe:=250.5D), Candidato(222, importe:=90.5D)}))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
+            .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10900, .Importe = 341D, .NumeroEfectos = 2}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, "5",
+            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 2 AndAlso ids.Contains(111) AndAlso ids.Contains(222)))) _
+            .MustHaveHappenedOnceExactly()
+        StringAssert.Contains(vm.mensajeError, "10900")
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)).MustHaveHappenedTwiceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_ClienteConNegativosMarcado_AvisaYNoLlama() As Task
+        ' La puerta de neteo: liquidar en Extracto de Cliente (Nesto#419) o desmarcar
+        ConfirmarSiempre(respuestaOk:=True)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(111, conNegativos:=True, cliente:="15191")}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        StringAssert.Contains(vm.mensajeError, "15191")
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
+            .MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_SiElServidorRechaza_ElMotivoLlegaAlUsuario() As Task
+        ConfirmarSiempre(respuestaOk:=True)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
+            .Throws(New Exception("El efecto 111 ya no es candidato a remesa"))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        StringAssert.Contains(vm.mensajeError, "ya no es candidato")
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_UsuarioCancela_NoLlama() As Task
+        ConfirmarSiempre(respuestaOk:=False)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
+            .MustNotHaveHappened()
+    End Function
 End Class
