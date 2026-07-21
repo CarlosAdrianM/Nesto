@@ -109,6 +109,26 @@ Public Class Agencias
         If fila IsNot Nothing Then
             fila.IsSelected = True
         End If
+
+        ' Nesto#422: además de seleccionar la fila, capturar la CELDA bajo el cursor para que
+        ' el menú ofrezca "Copiar {campo}" con el valor de esa celda. El hit-test es asunto de
+        ' vista; el ViewModel solo recibe nombre y valor.
+        Dim vm = TryCast(DataContext, Nesto.ViewModels.AgenciasViewModel)
+        If vm Is Nothing Then
+            Return
+        End If
+        Dim elemento = TryCast(e.OriginalSource, DependencyObject)
+        While elemento IsNot Nothing AndAlso TypeOf elemento IsNot DataGridCell
+            elemento = Media.VisualTreeHelper.GetParent(elemento)
+        End While
+        Dim celda = TryCast(elemento, DataGridCell)
+        If celda Is Nothing Then
+            vm.EstablecerCampoBajoCursor(Nothing, Nothing)
+            Return
+        End If
+        Dim cabecera As String = TryCast(celda.Column?.Header, String)
+        Dim valor As String = TryCast(celda.Content, TextBlock)?.Text
+        vm.EstablecerCampoBajoCursor(cabecera, valor)
     End Sub
 
     Private Sub txtNumClienteContabilizar_KeyUp(sender As Object, e As KeyEventArgs) Handles txtNumClienteContabilizar.KeyUp

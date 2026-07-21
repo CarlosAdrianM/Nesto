@@ -101,6 +101,10 @@ Public Class AgenciasViewModel
         cmdActualizarSeguimiento = New DelegateCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
         cmdPegarCodigoBarras = New DelegateCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
         CopiarNumeroPedidoCommand = New DelegateCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
+        ' Nesto#422: copiar nº de envío, campo bajo el cursor y envío completo (HTML)
+        CopiarNumeroEnvioCommand = New DelegateCommand(AddressOf OnCopiarNumeroEnvio, AddressOf CanCopiarNumeroEnvio)
+        CopiarCampoCommand = New DelegateCommand(AddressOf OnCopiarCampo, AddressOf CanCopiarCampo)
+        CopiarEnvioCompletoCommand = New DelegateCommand(AddressOf OnCopiarEnvioCompleto, AddressOf CanCopiarEnvioCompleto)
 
         ' NestoAPI#258 slice (b.2): ninguna agencia recibe ya el ViewModel.
         factory.Add("ASM", Function() New AgenciaASM())
@@ -781,10 +785,12 @@ Public Class AgenciasViewModel
                     cmdActualizarSeguimiento.RaiseCanExecuteChanged()
                 End If
 
-                ' Nesto#418: el menú contextual de copiar depende del envío seleccionado.
+                ' Nesto#418/#422: el menú contextual de copiar depende del envío seleccionado.
                 If Not IsNothing(CopiarNumeroPedidoCommand) Then
                     CopiarNumeroPedidoCommand.RaiseCanExecuteChanged()
                 End If
+                CopiarNumeroEnvioCommand?.RaiseCanExecuteChanged()
+                CopiarEnvioCompletoCommand?.RaiseCanExecuteChanged()
 
                 ' Nesto#407: el enlace de seguimiento se calcula SIEMPRE (también en Incidentados,
                 ' donde listaTiposRetorno no está cargada porque ActualizarListas solo corre en las
@@ -2631,6 +2637,123 @@ Public Class AgenciasViewModel
             Clipboard.SetText(texto)
             ' El portapapeles no da señal visible: sin esto el usuario no sabe si ha copiado.
             _dialogService.ShowNotification($"Copiado el nº de pedido {texto}")
+        Catch ex As Exception
+            _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message)
+        End Try
+    End Sub
+
+    ' Nesto#422 (ampliación de Nesto#418): copiar el nº de envío, el campo bajo el cursor o el
+    ' envío completo en HTML con borde de color (mismo formato que el copiado de cabecera de
+    ' DetallePedidoVenta).
+
+    Public Property CopiarNumeroEnvioCommand As DelegateCommand
+
+    Public ReadOnly Property TextoNumeroEnvioParaCopiar As String
+        Get
+            Return If(envioActual?.CodigoBarras?.Trim(), String.Empty)
+        End Get
+    End Property
+
+    Private Function CanCopiarNumeroEnvio() As Boolean
+        Return TextoNumeroEnvioParaCopiar <> String.Empty
+    End Function
+
+    Private Sub OnCopiarNumeroEnvio()
+        Dim texto As String = TextoNumeroEnvioParaCopiar
+        If texto = String.Empty Then
+            Return
+        End If
+        Try
+            Clipboard.SetText(texto)
+            _dialogService.ShowNotification($"Copiado el nº de envío {texto}")
+        Catch ex As Exception
+            _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message)
+        End Try
+    End Sub
+
+    ' Campo bajo el cursor: la vista lo fija en el clic derecho (necesita el hit-test de la
+    ' celda, que es asunto de View); el VM solo guarda nombre y valor y los copia.
+    Private _nombreCampoBajoCursor As String
+    Private _valorCampoBajoCursor As String
+
+    Public Sub EstablecerCampoBajoCursor(nombre As String, valor As String)
+        _nombreCampoBajoCursor = nombre
+        _valorCampoBajoCursor = valor
+        RaisePropertyChanged(NameOf(TextoCopiarCampoBajoCursor))
+        CopiarCampoCommand?.RaiseCanExecuteChanged()
+    End Sub
+
+    Public ReadOnly Property TextoCopiarCampoBajoCursor As String
+        Get
+            Return If(String.IsNullOrWhiteSpace(_nombreCampoBajoCursor),
+                "Copiar campo", $"Copiar {_nombreCampoBajoCursor}")
+        End Get
+    End Property
+
+    Public Property CopiarCampoCommand As DelegateCommand
+
+    Private Function CanCopiarCampo() As Boolean
+        Return Not String.IsNullOrEmpty(_valorCampoBajoCursor)
+    End Function
+
+    Private Sub OnCopiarCampo()
+        If String.IsNullOrEmpty(_valorCampoBajoCursor) Then
+            Return
+        End If
+        Try
+            Clipboard.SetText(_valorCampoBajoCursor)
+            _dialogService.ShowNotification($"Copiado {_nombreCampoBajoCursor}: {_valorCampoBajoCursor}")
+        Catch ex As Exception
+            _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message)
+        End Try
+    End Sub
+
+    Public Property CopiarEnvioCompletoCommand As DelegateCommand
+
+    Private Function CanCopiarEnvioCompleto() As Boolean
+        Return envioActual IsNot Nothing
+    End Function
+
+    ''' <summary>
+    ''' Todos los campos visibles del grid de Incidentados, en texto plano (una línea por
+    ''' campo). Separado del portapapeles para poder testearlo (Clipboard exige STA).
+    ''' </summary>
+    Public ReadOnly Property TextoEnvioCompletoParaCopiar As String
+        Get
+            If envioActual Is Nothing Then
+                Return String.Empty
+            End If
+            Dim lineas As New List(Of String) From {
+                $"Agencia: {envioActual.AgenciasTransporte?.Nombre?.Trim()}",
+                $"Fecha: {envioActual.Fecha:d}",
+                $"Nº Cliente: {envioActual.Cliente?.Trim()}",
+                $"Contacto: {envioActual.Contacto?.Trim()}",
+                $"Pedido: {envioActual.Pedido}",
+                $"Nombre: {envioActual.Nombre?.Trim()}",
+                $"Dirección: {envioActual.Direccion?.Trim()}",
+                $"Población: {envioActual.Poblacion?.Trim()}",
+                $"C.P.: {envioActual.CodPostal?.Trim()}",
+                $"Teléfono: {envioActual.Telefono?.Trim()}",
+                $"Nº Envío: {envioActual.CodigoBarras?.Trim()}"
+            }
+            Return String.Join(vbCrLf, lineas)
+        End Get
+    End Property
+
+    Private Sub OnCopiarEnvioCompleto()
+        Dim texto As String = TextoEnvioCompletoParaCopiar
+        If texto = String.Empty Then
+            Return
+        End If
+        Try
+            ' Mismo formato que el copiado de cabecera de DetallePedidoVenta: HTML con borde
+            ' de color + fallback en texto plano.
+            Dim html As New Text.StringBuilder()
+            Dim unused2 = html.Append(Constantes.Formatos.HTML_CLIENTE_P_TAG)
+            Dim unused1 = html.Append(texto.Replace(vbCrLf, "<br/>"))
+            Dim unused = html.Append("</p>")
+            ClipboardHelper.CopyToClipboard(html.ToString(), texto)
+            _dialogService.ShowNotification("Datos del envío copiados al portapapeles")
         Catch ex As Exception
             _dialogService.ShowError("No se ha podido copiar al portapapeles: " + ex.Message)
         End Try

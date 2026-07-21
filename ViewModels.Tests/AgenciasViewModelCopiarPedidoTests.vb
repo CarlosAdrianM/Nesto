@@ -100,4 +100,73 @@ Public Class AgenciasViewModelCopiarPedidoTests
                       "Con un envío con pedido seleccionado, el menú debe estar habilitado")
     End Sub
 
+    ' Nesto#422 (ampliación de #418): copiar nº de envío, campo bajo el cursor y envío completo
+
+    <TestMethod()>
+    Public Sub TextoNumeroEnvioParaCopiar_ConEnvio_DevuelveElCodigoDeBarras()
+        Dim vm = CrearViewModel()
+        vm.envioActual = New EnviosAgencia With {.Numero = 12345, .CodigoBarras = "61197140234493 "}
+
+        Assert.AreEqual("61197140234493", vm.TextoNumeroEnvioParaCopiar, "Sin el padding de la BD")
+        Assert.IsTrue(vm.CopiarNumeroEnvioCommand.CanExecute())
+    End Sub
+
+    <TestMethod()>
+    Public Sub TextoNumeroEnvioParaCopiar_SinEnvioOSinCodigo_VacioYDeshabilitado()
+        Dim vm = CrearViewModel()
+
+        Assert.AreEqual(String.Empty, vm.TextoNumeroEnvioParaCopiar)
+        Assert.IsFalse(vm.CopiarNumeroEnvioCommand.CanExecute())
+    End Sub
+
+    <TestMethod()>
+    Public Sub CampoBajoCursor_LaVistaLoEstablece_ElMenuMuestraElNombreYSeHabilita()
+        Dim vm = CrearViewModel()
+
+        Assert.AreEqual("Copiar campo", vm.TextoCopiarCampoBajoCursor, "Sin celda: texto genérico")
+        Assert.IsFalse(vm.CopiarCampoCommand.CanExecute())
+
+        vm.EstablecerCampoBajoCursor("Población", "ALGETE")
+
+        Assert.AreEqual("Copiar Población", vm.TextoCopiarCampoBajoCursor)
+        Assert.IsTrue(vm.CopiarCampoCommand.CanExecute())
+
+        vm.EstablecerCampoBajoCursor(Nothing, Nothing)
+        Assert.IsFalse(vm.CopiarCampoCommand.CanExecute(), "Al salir de una celda se deshabilita")
+    End Sub
+
+    <TestMethod()>
+    Public Sub TextoEnvioCompletoParaCopiar_ContieneTodosLosCamposVisiblesDelGrid()
+        Dim vm = CrearViewModel()
+        vm.envioActual = New EnviosAgencia With {
+            .Numero = 12345,
+            .Pedido = 922175,
+            .Cliente = "15191 ",
+            .Contacto = "0",
+            .Nombre = "CLIENTE DE PRUEBA",
+            .Direccion = "CALLE FALSA 123",
+            .Poblacion = "ALGETE",
+            .CodPostal = "28110",
+            .Telefono = "916280000",
+            .CodigoBarras = "61197140234493"
+        }
+
+        Dim texto = vm.TextoEnvioCompletoParaCopiar
+
+        For Each esperado In {"Pedido: 922175", "Nº Cliente: 15191", "CLIENTE DE PRUEBA",
+                              "CALLE FALSA 123", "ALGETE", "C.P.: 28110", "916280000",
+                              "Nº Envío: 61197140234493"}
+            StringAssert.Contains(texto, esperado)
+        Next
+        Assert.IsTrue(vm.CopiarEnvioCompletoCommand.CanExecute())
+    End Sub
+
+    <TestMethod()>
+    Public Sub TextoEnvioCompletoParaCopiar_SinEnvio_VacioYDeshabilitado()
+        Dim vm = CrearViewModel()
+
+        Assert.AreEqual(String.Empty, vm.TextoEnvioCompletoParaCopiar)
+        Assert.IsFalse(vm.CopiarEnvioCompletoCommand.CanExecute())
+    End Sub
+
 End Class

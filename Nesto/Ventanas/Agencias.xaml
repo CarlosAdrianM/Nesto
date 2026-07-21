@@ -598,7 +598,15 @@
                         </DataGrid.RowStyle>
                         <DataGrid.ContextMenu>
                             <ContextMenu>
+                                <!-- Nesto#422: copiar el campo bajo el cursor (el code-behind lo
+                                     captura en el clic derecho), los accesos rápidos y el envío
+                                     completo en HTML con borde de color. -->
+                                <MenuItem Header="{Binding TextoCopiarCampoBajoCursor}" Command="{Binding CopiarCampoCommand}"/>
+                                <Separator/>
                                 <MenuItem Header="Copiar nº de pedido" Command="{Binding CopiarNumeroPedidoCommand}"/>
+                                <MenuItem Header="Copiar nº de envío" Command="{Binding CopiarNumeroEnvioCommand}"/>
+                                <Separator/>
+                                <MenuItem Header="Copiar envío completo" Command="{Binding CopiarEnvioCompletoCommand}"/>
                             </ContextMenu>
                         </DataGrid.ContextMenu>
                         <DataGrid.Columns>
