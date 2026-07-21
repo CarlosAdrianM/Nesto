@@ -89,6 +89,11 @@ Public Class DetallePedidoViewModelConfirmacionTests
                     A(Of IDialogParameters).Ignored,
                     A(Of Action(Of IDialogResult)).Ignored)) _
          .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
+                      ' Nesto#421: ShowError llama a ShowDialog SIN callback; guard para que un
+                      ' test que pase por un error no reviente el host con NullReferenceException.
+                      If callback Is Nothing Then
+                          Return
+                      End If
                       Dim resultado = A.Fake(Of IDialogResult)
                       A.CallTo(Function() resultado.Result).Returns(If(respuestaOk, ButtonResult.OK, ButtonResult.Cancel))
                       callback(resultado)
@@ -174,5 +179,60 @@ Public Class DetallePedidoViewModelConfirmacionTests
 
         ' Assert
         Assert.IsFalse(resultado, "Si el usuario cancela, debe devolver False para abortar la facturación.")
+    End Sub
+
+    ' Nesto#421 (caso real 922687): al crear albarán y factura, el albarán se creó pero la
+    ' factura falló y la pantalla seguía pintando las líneas en estado 1 y activas. El
+    ' reintento decía "no hay líneas para albaranear" y desconcertaba en pleno mostrador.
+
+    <TestMethod()>
+    Public Sub CrearAlbaranYFactura_SiLaFacturaFalla_RecargaElPedidoYAvisaQueElAlbaranSiSeCreo()
+        ' Arrange: todas las confirmaciones responden OK y se capturan los mensajes de diálogo
+        Dim mensajesDialogo As New List(Of String)
+        A.CallTo(Sub() dialogService.ShowDialog(
+                    A(Of String).Ignored,
+                    A(Of IDialogParameters).Ignored,
+                    A(Of Action(Of IDialogResult)).Ignored)) _
+         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
+                      If parametros IsNot Nothing AndAlso parametros.ContainsKey("message") Then
+                          mensajesDialogo.Add(parametros.GetValue(Of String)("message"))
+                      End If
+                      ' ShowError llama a ShowDialog SIN callback: no hay nada que responder.
+                      If callback Is Nothing Then
+                          Return
+                      End If
+                      Dim resultado = A.Fake(Of IDialogResult)
+                      A.CallTo(Function() resultado.Result).Returns(ButtonResult.OK)
+                      callback(resultado)
+                  End Sub)
+
+        Dim vm = CrearViewModel()
+        vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1", .numero = 922687})
+        A.CallTo(Function() servicio.CrearAlbaranVenta("1", 922687)).Returns(Task.FromResult(725978))
+        A.CallTo(Function() servicio.CrearFacturaVenta("1", 922687)) _
+            .Throws(New Exception("Hay lineas que no tienen el visto bueno dado."))
+
+        ' Act
+        vm.CrearAlbaranYFacturaVentaCommand.Execute()
+
+        ' Assert: recarga el pedido (para pintar las líneas en su estado real: albarán, bloqueadas)
+        A.CallTo(Function() servicio.cargarPedido("1", 922687)).MustHaveHappened()
+        ' ...y el error dice explícitamente que el albarán SÍ se creó y cómo reintentar
+        Assert.IsTrue(mensajesDialogo.Any(Function(m) m.Contains("725978") AndAlso m.Contains("NO se pudo crear")),
+            "El mensaje debe decir que el albarán 725978 se creó y la factura no. Mensajes: " & String.Join(" || ", mensajesDialogo))
+    End Sub
+
+    <TestMethod()>
+    Public Sub CrearAlbaranYFactura_SiFallaElAlbaran_NoRecargaNiFactura()
+        ' Si el albarán ni siquiera se creó, no hay nada que recargar ni factura que intentar.
+        ConfigurarRespuestaConfirmacion(respuestaOk:=True)
+        Dim vm = CrearViewModel()
+        vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1", .numero = 922687})
+        A.CallTo(Function() servicio.CrearAlbaranVenta("1", 922687)).Throws(New Exception("boom"))
+
+        vm.CrearAlbaranYFacturaVentaCommand.Execute()
+
+        A.CallTo(Function() servicio.CrearFacturaVenta(A(Of String).Ignored, A(Of Integer).Ignored)).MustNotHaveHappened()
+        A.CallTo(Function() servicio.cargarPedido(A(Of String).Ignored, A(Of Integer).Ignored)).MustNotHaveHappened()
     End Sub
 End Class

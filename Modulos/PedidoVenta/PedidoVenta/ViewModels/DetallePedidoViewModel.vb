@@ -1806,16 +1806,28 @@ Public Class DetallePedidoViewModel
         End If
         Try
             Dim albaran As Integer = Await servicio.CrearAlbaranVenta(pedido.empresa.ToString, pedido.numero.ToString)
-            Dim resultado As CrearFacturaResponseDTO = Await servicio.CrearFacturaVenta(pedido.empresa.ToString, pedido.numero.ToString)
+            Try
+                Dim resultado As CrearFacturaResponseDTO = Await servicio.CrearFacturaVenta(pedido.empresa.ToString, pedido.numero.ToString)
 
-            ' IMPORTANTE: Usar la empresa del resultado, no la original
-            ' Si hubo traspaso a empresa espejo, resultado.Empresa contendrá la empresa correcta
-            cmdCargarPedido.Execute(New ResumenPedido With {.empresa = resultado.Empresa, .numero = pedido.numero})
+                ' IMPORTANTE: Usar la empresa del resultado, no la original
+                ' Si hubo traspaso a empresa espejo, resultado.Empresa contendrá la empresa correcta
+                cmdCargarPedido.Execute(New ResumenPedido With {.empresa = resultado.Empresa, .numero = pedido.numero})
 
-            dialogService.ShowNotification($"Albarán {albaran} y factura {resultado.NumeroFactura} creados correctamente")
-            Await ImprimirFactura(resultado.NumeroFactura)
+                dialogService.ShowNotification($"Albarán {albaran} y factura {resultado.NumeroFactura} creados correctamente")
+                Await ImprimirFactura(resultado.NumeroFactura)
+            Catch exFactura As Exception
+                ' Nesto#421 (caso 922687): el albarán SÍ se creó pero la factura falló. Antes la
+                ' pantalla se quedaba con las líneas pintadas en estado 1 y activas, el usuario
+                ' reintentaba y el "no hay líneas para albaranear" desconcertaba en pleno
+                ' mostrador. Hay que recargar para pintar el estado real (líneas en albarán,
+                ' bloqueadas) y decir explícitamente qué se hizo y qué no.
+                cmdCargarPedido.Execute(New ResumenPedido With {.empresa = pedido.empresa, .numero = pedido.numero})
+                dialogService.ShowError($"El albarán {albaran} se creó correctamente, pero la factura NO se pudo crear: {exFactura.Message}" & vbCrLf &
+                    "Corrija el problema y use 'Crear factura' para reintentar solo la factura.")
+            End Try
         Catch ex As Exception
-            dialogService.ShowError($"No se ha podido crear el albarán o la factura: {ex.Message}")
+            ' Aquí no llegó a crearse el albarán: no hay nada que recargar.
+            dialogService.ShowError($"No se ha podido crear el albarán: {ex.Message}")
         End Try
     End Sub
 
