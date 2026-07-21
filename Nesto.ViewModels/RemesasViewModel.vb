@@ -79,6 +79,8 @@ Public Class RemesasViewModel
         ' NestoAPI#332: pestaña Crear Remesa
         CargarCandidatosCommand = New DelegateCommand(AddressOf OnCargarCandidatos)
         CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
+        MarcarTodosCommand = New DelegateCommand(AddressOf OnMarcarTodos)
+        DesmarcarTodosCommand = New DelegateCommand(AddressOf OnDesmarcarTodos)
     End Sub
 
     ' Constructor para tests: inyecta el servicio API y NO toca EF (Nesto#340 Fase 1C.14).
@@ -90,6 +92,8 @@ Public Class RemesasViewModel
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
         CargarCandidatosCommand = New DelegateCommand(AddressOf OnCargarCandidatos)
         CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
+        MarcarTodosCommand = New DelegateCommand(AddressOf OnMarcarTodos)
+        DesmarcarTodosCommand = New DelegateCommand(AddressOf OnDesmarcarTodos)
     End Sub
 
     ' Nesto#340 Fase 1C.14 slice 1: sustituye la lectura EF de DbContext.Empresas.
@@ -409,9 +413,31 @@ Public Class RemesasViewModel
 
     Public Property CargarCandidatosCommand As DelegateCommand
     Public Property CrearRemesaCommand As DelegateCommand
+    Public Property MarcarTodosCommand As DelegateCommand
+    Public Property DesmarcarTodosCommand As DelegateCommand
 
     Private Async Sub OnCargarCandidatos()
         Await CargarCandidatosAsync()
+    End Sub
+
+    ' Marcar todos respeta las retenciones del servidor: solo marca los preseleccionados (los
+    ' grises retenidos por el gating se pueden marcar uno a uno, como decisión consciente).
+    ' Desmarcar todos desmarca TODO, para empezar de cero y elegir unos pocos.
+    Private Sub OnMarcarTodos()
+        If ListaCandidatos Is Nothing Then
+            Return
+        End If
+        For Each candidato In ListaCandidatos.Where(Function(c) c.Preseleccionado)
+            candidato.Seleccionado = True
+        Next
+    End Sub
+    Private Sub OnDesmarcarTodos()
+        If ListaCandidatos Is Nothing Then
+            Return
+        End If
+        For Each candidato In ListaCandidatos
+            candidato.Seleccionado = False
+        Next
     End Sub
     Private Function CanCrearRemesa() As Boolean
         Return NumeroEfectosSeleccionados > 0 AndAlso Not String.IsNullOrWhiteSpace(BancoRemesa)

@@ -303,4 +303,46 @@ Public Class RemesasViewModelTests
         A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
             .MustNotHaveHappened()
     End Function
+
+    ' Marcar/Desmarcar todos: en una remesa de 100 efectos no se puede ir uno a uno. Marcar
+    ' todos respeta las retenciones del servidor (solo marca preseleccionados); los grises se
+    ' marcan a mano como decisión consciente. Desmarcar todos limpia TODO, también los grises.
+    <TestMethod()>
+    Public Async Function MarcarTodos_MarcaLosPreseleccionadosYRespetaLosRetenidos() As Task
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(1), Candidato(2), Candidato(3, preseleccionado:=False)}))
+        Dim vm = CrearViewModel()
+        Await vm.CargarCandidatosAsync()
+        vm.DesmarcarTodosCommand.Execute()
+        Assert.AreEqual(0, vm.NumeroEfectosSeleccionados, "Precondición: partimos de todo desmarcado")
+
+        vm.MarcarTodosCommand.Execute()
+
+        Assert.AreEqual(2, vm.NumeroEfectosSeleccionados)
+        Assert.IsFalse(vm.ListaCandidatos.Single(Function(c) c.Id = 3).Seleccionado,
+                       "El retenido por el servidor NO se marca en bloque")
+    End Function
+
+    <TestMethod()>
+    Public Async Function DesmarcarTodos_DesmarcaTambienLosRetenidosMarcadosAMano() As Task
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(1), Candidato(2, preseleccionado:=False)}))
+        Dim vm = CrearViewModel()
+        Await vm.CargarCandidatosAsync()
+        vm.ListaCandidatos.Single(Function(c) c.Id = 2).Seleccionado = True
+
+        vm.DesmarcarTodosCommand.Execute()
+
+        Assert.AreEqual(0, vm.NumeroEfectosSeleccionados)
+    End Function
+
+    <TestMethod()>
+    Public Sub MarcarYDesmarcarTodos_SinCandidatosCargados_NoLanzan()
+        Dim vm = CrearViewModel()
+
+        vm.MarcarTodosCommand.Execute()
+        vm.DesmarcarTodosCommand.Execute()
+    End Sub
 End Class

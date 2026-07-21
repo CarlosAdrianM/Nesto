@@ -44,6 +44,10 @@ Partial Public Class Application
     ' can be handled in this file.
     Protected Overrides Sub OnStartup(e As StartupEventArgs)
         FrameworkElement.LanguageProperty.OverrideMetadata(GetType(FrameworkElement), New FrameworkPropertyMetadata(XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)))
+        ' Los Run/Span de los TextBlock son FrameworkCONTENTElement, no FrameworkElement: sin este
+        ' override, un StringFormat=c dentro de un Run sale en dólares (en-US) aunque la línea de
+        ' arriba esté puesta (el total de Cartera viva en Remesas; Comisiones lo parcheaba a mano).
+        FrameworkContentElement.LanguageProperty.OverrideMetadata(GetType(FrameworkContentElement), New FrameworkPropertyMetadata(XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)))
 
         ' Manejadores globales: cualquier excepción no controlada se registra en ELMAH (vía NestoAPI)
         ' en lugar de cerrar la aplicación silenciosamente sin dejar rastro.
