@@ -167,6 +167,12 @@
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Row="0" Margin="3">
                             <StackPanel Orientation="Horizontal">
+                                <!-- NestoAPI#345: hasta qué vencimiento se cargan candidatos.
+                                     Default: propuesta del servidor (hoy + DiasAntelacionRemesa
+                                     del usuario, saltando fines de semana y festivos) -->
+                                <TextBlock Text="Efectos vencidos hasta el" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                <DatePicker SelectedDate="{Binding FechaSeleccionHasta}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                            ToolTip="Se incluyen los efectos con vencimiento hasta esta fecha (los de fecha de hoy siguen fuera)"/>
                                 <Button Content="Cargar _candidatos" Command="{Binding CargarCandidatosCommand}" Padding="8,2"/>
                                 <Button Content="Marcar _todos" Command="{Binding MarcarTodosCommand}" Padding="8,2" Margin="10,0,0,0"
                                         ToolTip="Marca todos los efectos que el servidor propone (los retenidos en gris se marcan uno a uno)"/>
@@ -180,17 +186,14 @@
                                     <Run Text="{Binding ImporteSeleccionado, Mode=OneWay, StringFormat=c}" FontWeight="Bold"/>
                                 </TextBlock>
                             </StackPanel>
-                            <!-- NestoAPI#345: vencimientos de la remesa (viernes cubre sábado y
-                                 domingo; vísperas de festivo) -->
+                            <!-- NestoAPI#345: fechas de cargo de la remesa -->
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                <TextBlock Text="Vencimientos:" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,10,0"/>
-                                <RadioButton GroupName="Vencimientos" Content="Cargar todo el" VerticalAlignment="Center"
-                                             IsChecked="{Binding ForzarFechaUnica}"/>
+                                <CheckBox Content="Respetar el vencimiento de cada efecto (un cargo al banco por fecha; los vencidos se cobran hoy)"
+                                          VerticalAlignment="Center" IsChecked="{Binding RespetarVencimientos}"/>
+                                <TextBlock Text="Fecha de cargo única:" VerticalAlignment="Center" Margin="20,0,5,0"/>
                                 <DatePicker SelectedDate="{Binding FechaCargo}" IsEnabled="{Binding ForzarFechaUnica}"
-                                            VerticalAlignment="Center" Margin="5,0,15,0"
-                                            ToolTip="Nunca anterior a hoy (el servidor la corrige a hoy si lo fuera)"/>
-                                <RadioButton GroupName="Vencimientos" Content="Respetar el vencimiento de cada efecto (un cargo al banco por fecha)"
-                                             VerticalAlignment="Center" IsChecked="{Binding RespetarVencimientos}"/>
+                                            VerticalAlignment="Center"
+                                            ToolTip="Todos los efectos se cargan en esta fecha (default hoy; nunca anterior a hoy). Con la casilla marcada no aplica."/>
                             </StackPanel>
                         </StackPanel>
                         <DataGrid Grid.Row="1" ItemsSource="{Binding ListaCandidatos}" AutoGenerateColumns="False"

@@ -141,10 +141,20 @@ Public Class RemesasViewModel
 
     ' NestoAPI#332: candidatos a remesa (modo simulación del servidor). Los preseleccionados
     ' vienen marcados; los retenidos (gating #172) llegan con motivo y sin marcar.
+    ' NestoAPI#345: la primera vez se propone la fecha "hasta" del servidor (hoy +
+    ' DiasAntelacionRemesa del usuario, saltando fines de semana y festivos).
     Public Async Function CargarCandidatosAsync() As Task
         Try
             estaOcupado = True
-            Dim candidatos = Await _remesasService.LeerEfectosCandidatos(empresaActual)
+            If Not _fechaSeleccionInicializada Then
+                Try
+                    FechaSeleccionHasta = Await _remesasService.LeerFechaCargoPropuesta()
+                Catch
+                    FechaSeleccionHasta = Today ' sin propuesta del servidor: comportamiento clásico
+                End Try
+                _fechaSeleccionInicializada = True
+            End If
+            Dim candidatos = Await _remesasService.LeerEfectosCandidatos(empresaActual, FechaSeleccionHasta)
             For Each candidato In candidatos
                 candidato.Seleccionado = candidato.Preseleccionado
                 AddHandler candidato.PropertyChanged, AddressOf CandidatoCambiado
@@ -200,7 +210,7 @@ Public Class RemesasViewModel
             estaOcupado = True
             Dim resultado = Await _remesasService.CrearRemesa(empresaActual, BancoRemesa,
                 seleccionados.Select(Function(c) c.Id).ToList(),
-                RespetarVencimientos, FechaCargo)
+                RespetarVencimientos, FechaCargo, FechaSeleccionHasta)
             mensajeError = $"Remesa {resultado.NumeroRemesa} creada: {resultado.NumeroEfectos} efectos, {resultado.Importe:C}"
             ' Refrescar: la remesa nueva aparece en la lista y los efectos salen de candidatos
             Await CargarRemesasAsync(numRemesas)
@@ -406,6 +416,19 @@ Public Class RemesasViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_bancoRemesa, value)
+        End Set
+    End Property
+
+    ' NestoAPI#345: hasta qué VENCIMIENTO se cargan candidatos (default: propuesta del servidor
+    ' = hoy + DiasAntelacionRemesa, saltando fines de semana y festivos).
+    Private _fechaSeleccionInicializada As Boolean
+    Private _fechaSeleccionHasta As Date = Today
+    Public Property FechaSeleccionHasta As Date
+        Get
+            Return _fechaSeleccionHasta
+        End Get
+        Set(value As Date)
+            Dim unused = SetProperty(_fechaSeleccionHasta, value)
         End Set
     End Property
 

@@ -13,12 +13,17 @@ Public Interface IRemesasService
     ' Slice 5: movimientos del asiento de impagados seleccionado (grid derecho).
     Function LeerMovimientosImpagado(empresa As String, asiento As Integer) As Task(Of List(Of MovimientoRemesaModel))
     ' NestoAPI#332: candidatos a remesa (modo simulación, con gating #172 y puerta de neteo).
-    Function LeerEfectosCandidatos(empresa As String) As Task(Of List(Of EfectoCandidatoModel))
+    ' NestoAPI#345: hasta = vencimientos incluidos hasta esa fecha (Nothing = solo vencidos a hoy).
+    Function LeerEfectosCandidatos(empresa As String, hasta As Date?) As Task(Of List(Of EfectoCandidatoModel))
+    ' NestoAPI#345: fecha "hasta" propuesta (hoy + DiasAntelacionRemesa del usuario, saltando
+    ' fines de semana y festivos en el servidor).
+    Function LeerFechaCargoPropuesta() As Task(Of Date)
     ' NestoAPI#332: crea la remesa (revalida server-side; lanza Exception con el motivo si no puede).
-    ' NestoAPI#345: respetarVencimientos=True → cada efecto conserva su vencimiento (un cargo por
-    ' fecha); False → todos se fuerzan a fechaCargo (nunca anterior a hoy, el servidor lo asegura).
+    ' NestoAPI#345: respetarVencimientos=True → cada efecto conserva su vencimiento (suelo hoy, un
+    ' cargo por fecha); False → todos a fechaCargo (nunca anterior a hoy, el servidor lo asegura).
+    ' seleccionHasta = la fecha con la que se cargaron los candidatos (el servidor revalida igual).
     Function CrearRemesa(empresa As String, banco As String, efectos As List(Of Integer),
-                         respetarVencimientos As Boolean, fechaCargo As Date) As Task(Of CrearRemesaResponseModel)
+                         respetarVencimientos As Boolean, fechaCargo As Date, seleccionHasta As Date?) As Task(Of CrearRemesaResponseModel)
     ' Slice 6: el fichero SEPA ISO 20022 lo genera el servidor (único call site del SP).
     Function CrearFicheroRemesa(remesa As Integer, codigo As String, fechaCobro As Date) As Task(Of String)
     ' Slice 7: contabiliza las devoluciones del fichero SEPA de impagados del banco.

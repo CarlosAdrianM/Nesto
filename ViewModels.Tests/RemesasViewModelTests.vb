@@ -20,6 +20,7 @@ Public Class RemesasViewModelTests
         _configuracion = A.Fake(Of IConfiguracion)()
         _servicio = A.Fake(Of IRemesasService)()
 
+        A.CallTo(Function() _servicio.LeerFechaCargoPropuesta()).Returns(Task.FromResult(Date.Today))
         A.CallTo(Function() _servicio.LeerEmpresas()) _
             .Returns(Task.FromResult(New List(Of EmpresaModel)))
     End Sub
@@ -220,7 +221,7 @@ Public Class RemesasViewModelTests
 
     <TestMethod()>
     Public Async Function CargarCandidatos_MarcaLosPreseleccionadosYNoLosRetenidos() As Task
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
                 Candidato(1), Candidato(2, preseleccionado:=False)}))
         Dim vm = CrearViewModel()
@@ -237,10 +238,10 @@ Public Class RemesasViewModelTests
     <TestMethod()>
     Public Async Function CrearRemesa_Confirmada_LlamaAlServicioConLosMarcadosYRefresca() As Task
         ConfirmarSiempre(respuestaOk:=True)
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
                 Candidato(111, importe:=250.5D), Candidato(222, importe:=90.5D)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10900, .Importe = 341D, .NumeroEfectos = 2}))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -249,17 +250,17 @@ Public Class RemesasViewModelTests
         Await vm.CrearRemesaAsync()
 
         A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, "5",
-            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 2 AndAlso ids.Contains(111) AndAlso ids.Contains(222)), A(Of Boolean).Ignored, A(Of Date).Ignored)) _
+            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 2 AndAlso ids.Contains(111) AndAlso ids.Contains(222)), A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
             .MustHaveHappenedOnceExactly()
         StringAssert.Contains(vm.mensajeError, "10900")
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)).MustHaveHappenedTwiceExactly()
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)).MustHaveHappenedTwiceExactly()
     End Function
 
     <TestMethod()>
     Public Async Function CrearRemesa_ClienteConNegativosMarcado_AvisaYNoLlama() As Task
         ' La puerta de neteo: liquidar en Extracto de Cliente (Nesto#419) o desmarcar
         ConfirmarSiempre(respuestaOk:=True)
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
                 Candidato(111, conNegativos:=True, cliente:="15191")}))
         Dim vm = CrearViewModel()
@@ -269,16 +270,16 @@ Public Class RemesasViewModelTests
         Await vm.CrearRemesaAsync()
 
         StringAssert.Contains(vm.mensajeError, "15191")
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
             .MustNotHaveHappened()
     End Function
 
     <TestMethod()>
     Public Async Function CrearRemesa_SiElServidorRechaza_ElMotivoLlegaAlUsuario() As Task
         ConfirmarSiempre(respuestaOk:=True)
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
             .Throws(New Exception("El efecto 111 ya no es candidato a remesa"))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -292,7 +293,7 @@ Public Class RemesasViewModelTests
     <TestMethod()>
     Public Async Function CrearRemesa_UsuarioCancela_NoLlama() As Task
         ConfirmarSiempre(respuestaOk:=False)
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -300,7 +301,7 @@ Public Class RemesasViewModelTests
 
         Await vm.CrearRemesaAsync()
 
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
             .MustNotHaveHappened()
     End Function
 
@@ -308,9 +309,9 @@ Public Class RemesasViewModelTests
     Public Async Function CrearRemesa_ConVencimientosRespetados_LosParametrosViajanAlServicio() As Task
         ' NestoAPI#345: el modo de vencimientos y la fecha de cargo tienen que llegar al servidor
         ConfirmarSiempre(respuestaOk:=True)
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10901, .NumeroEfectos = 1}))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -320,7 +321,7 @@ Public Class RemesasViewModelTests
         Await vm.CrearRemesaAsync()
 
         A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, "5",
-            A(Of List(Of Integer)).Ignored, True, A(Of Date).Ignored)).MustHaveHappenedOnceExactly()
+            A(Of List(Of Integer)).Ignored, True, A(Of Date).Ignored, A(Of Date?).Ignored)).MustHaveHappenedOnceExactly()
         Assert.IsFalse(vm.ForzarFechaUnica, "ForzarFechaUnica es el espejo de RespetarVencimientos")
     End Function
 
@@ -329,7 +330,7 @@ Public Class RemesasViewModelTests
     ' marcan a mano como decisión consciente. Desmarcar todos limpia TODO, también los grises.
     <TestMethod()>
     Public Async Function MarcarTodos_MarcaLosPreseleccionadosYRespetaLosRetenidos() As Task
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
                 Candidato(1), Candidato(2), Candidato(3, preseleccionado:=False)}))
         Dim vm = CrearViewModel()
@@ -346,7 +347,7 @@ Public Class RemesasViewModelTests
 
     <TestMethod()>
     Public Async Function DesmarcarTodos_DesmarcaTambienLosRetenidosMarcadosAMano() As Task
-        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
                 Candidato(1), Candidato(2, preseleccionado:=False)}))
         Dim vm = CrearViewModel()

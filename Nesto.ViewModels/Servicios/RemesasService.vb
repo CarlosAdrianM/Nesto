@@ -117,13 +117,18 @@ Public Class RemesasService
     End Function
 
     ' NestoAPI#332: candidatos a remesa (modo simulación del servidor).
-    Public Async Function LeerEfectosCandidatos(empresa As String) As Task(Of List(Of EfectoCandidatoModel)) Implements IRemesasService.LeerEfectosCandidatos
+    ' NestoAPI#345: hasta = vencimientos incluidos hasta esa fecha.
+    Public Async Function LeerEfectosCandidatos(empresa As String, hasta As Date?) As Task(Of List(Of EfectoCandidatoModel)) Implements IRemesasService.LeerEfectosCandidatos
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
             End If
 
-            Dim response = Await client.GetAsync($"Remesas/EfectosCandidatos?empresa={Uri.EscapeDataString(empresa)}")
+            Dim url As String = $"Remesas/EfectosCandidatos?empresa={Uri.EscapeDataString(empresa)}"
+            If hasta.HasValue Then
+                url += $"&hasta={hasta.Value:yyyy-MM-dd}"
+            End If
+            Dim response = Await client.GetAsync(url)
             Dim body As String = Await response.Content.ReadAsStringAsync()
             If Not response.IsSuccessStatusCode Then
                 Throw New Exception($"Error al obtener los efectos candidatos: {ExtraerMensajeError(body)}")
@@ -132,10 +137,27 @@ Public Class RemesasService
         End Using
     End Function
 
+    ' NestoAPI#345: fecha "hasta" propuesta (hoy + DiasAntelacionRemesa del usuario, saltando
+    ' fines de semana y festivos con el gestor del servidor).
+    Public Async Function LeerFechaCargoPropuesta() As Task(Of Date) Implements IRemesasService.LeerFechaCargoPropuesta
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim response = Await client.GetAsync("Remesas/FechaCargoPropuesta")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener la fecha de cargo propuesta: {ExtraerMensajeError(body)}")
+            End If
+            Return JsonConvert.DeserializeObject(Of Date)(body)
+        End Using
+    End Function
+
     ' NestoAPI#332: crea la remesa. El servidor revalida (candidatos frescos, gating #172,
     ' puerta de neteo) y contabiliza; los BadRequest traen el motivo legible.
     Public Async Function CrearRemesa(empresa As String, banco As String, efectos As List(Of Integer),
-                                      respetarVencimientos As Boolean, fechaCargo As Date) As Task(Of CrearRemesaResponseModel) Implements IRemesasService.CrearRemesa
+                                      respetarVencimientos As Boolean, fechaCargo As Date, seleccionHasta As Date?) As Task(Of CrearRemesaResponseModel) Implements IRemesasService.CrearRemesa
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -144,7 +166,8 @@ Public Class RemesasService
             Dim contenido As HttpContent = New StringContent(
                 JsonConvert.SerializeObject(New With {
                     .Empresa = empresa, .Banco = banco, .Efectos = efectos,
-                    .RespetarVencimientos = respetarVencimientos, .FechaCargo = fechaCargo}),
+                    .RespetarVencimientos = respetarVencimientos, .FechaCargo = fechaCargo,
+                    .SeleccionHasta = seleccionHasta}),
                 Text.Encoding.UTF8, "application/json")
             Dim response = Await client.PostAsync("Remesas", contenido)
             Dim body As String = Await response.Content.ReadAsStringAsync()
