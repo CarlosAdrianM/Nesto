@@ -240,7 +240,7 @@ Public Class RemesasViewModelTests
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
                 Candidato(111, importe:=250.5D), Candidato(222, importe:=90.5D)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
             .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10900, .Importe = 341D, .NumeroEfectos = 2}))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -249,7 +249,7 @@ Public Class RemesasViewModelTests
         Await vm.CrearRemesaAsync()
 
         A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, "5",
-            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 2 AndAlso ids.Contains(111) AndAlso ids.Contains(222)))) _
+            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 2 AndAlso ids.Contains(111) AndAlso ids.Contains(222)), A(Of Boolean).Ignored, A(Of Date).Ignored)) _
             .MustHaveHappenedOnceExactly()
         StringAssert.Contains(vm.mensajeError, "10900")
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)).MustHaveHappenedTwiceExactly()
@@ -269,7 +269,7 @@ Public Class RemesasViewModelTests
         Await vm.CrearRemesaAsync()
 
         StringAssert.Contains(vm.mensajeError, "15191")
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
             .MustNotHaveHappened()
     End Function
 
@@ -278,7 +278,7 @@ Public Class RemesasViewModelTests
         ConfirmarSiempre(respuestaOk:=True)
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
             .Throws(New Exception("El efecto 111 ya no es candidato a remesa"))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -300,8 +300,28 @@ Public Class RemesasViewModelTests
 
         Await vm.CrearRemesaAsync()
 
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
             .MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_ConVencimientosRespetados_LosParametrosViajanAlServicio() As Task
+        ' NestoAPI#345: el modo de vencimientos y la fecha de cargo tienen que llegar al servidor
+        ConfirmarSiempre(respuestaOk:=True)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored)) _
+            .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10901, .NumeroEfectos = 1}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        vm.RespetarVencimientos = True
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, "5",
+            A(Of List(Of Integer)).Ignored, True, A(Of Date).Ignored)).MustHaveHappenedOnceExactly()
+        Assert.IsFalse(vm.ForzarFechaUnica, "ForzarFechaUnica es el espejo de RespetarVencimientos")
     End Function
 
     ' Marcar/Desmarcar todos: en una remesa de 100 efectos no se puede ir uno a uno. Marcar

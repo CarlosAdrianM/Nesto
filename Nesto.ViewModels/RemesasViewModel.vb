@@ -183,9 +183,14 @@ Public Class RemesasViewModel
         End If
 
         Dim importe = seleccionados.Sum(Function(c) c.ImportePendiente)
+        ' NestoAPI#345: el modo de vencimientos forma parte de la confirmación, que el usuario
+        ' vea exactamente qué va a pasar con las fechas de cargo.
+        Dim textoVencimientos = If(RespetarVencimientos,
+            "respetando el vencimiento original de cada efecto (un cargo al banco por fecha)",
+            $"con fecha de cargo {FechaCargo:dd/MM/yyyy} para todos los efectos")
         Dim confirmado As Boolean = False
         dialogService.ShowConfirmation("Crear remesa",
-            $"¿Crear la remesa con {seleccionados.Count} efectos por un total de {importe:C} al banco {BancoRemesa}?",
+            $"¿Crear la remesa con {seleccionados.Count} efectos por un total de {importe:C} al banco {BancoRemesa}, {textoVencimientos}?",
             Sub(r) confirmado = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
         If Not confirmado Then
             Return
@@ -194,7 +199,8 @@ Public Class RemesasViewModel
         Try
             estaOcupado = True
             Dim resultado = Await _remesasService.CrearRemesa(empresaActual, BancoRemesa,
-                seleccionados.Select(Function(c) c.Id).ToList())
+                seleccionados.Select(Function(c) c.Id).ToList(),
+                RespetarVencimientos, FechaCargo)
             mensajeError = $"Remesa {resultado.NumeroRemesa} creada: {resultado.NumeroEfectos} efectos, {resultado.Importe:C}"
             ' Refrescar: la remesa nueva aparece en la lista y los efectos salen de candidatos
             Await CargarRemesasAsync(numRemesas)
@@ -400,6 +406,41 @@ Public Class RemesasViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_bancoRemesa, value)
+        End Set
+    End Property
+
+    ' NestoAPI#345: True = cada efecto conserva su vencimiento original (un cargo por fecha);
+    ' False (default, comportamiento de siempre) = todos los efectos a FechaCargo.
+    Private _respetarVencimientos As Boolean
+    Public Property RespetarVencimientos As Boolean
+        Get
+            Return _respetarVencimientos
+        End Get
+        Set(value As Boolean)
+            If SetProperty(_respetarVencimientos, value) Then
+                RaisePropertyChanged(NameOf(ForzarFechaUnica))
+            End If
+        End Set
+    End Property
+
+    ' Espejo de RespetarVencimientos para el par de RadioButtons del XAML (sin converters).
+    Public Property ForzarFechaUnica As Boolean
+        Get
+            Return Not RespetarVencimientos
+        End Get
+        Set(value As Boolean)
+            RespetarVencimientos = Not value
+        End Set
+    End Property
+
+    ' NestoAPI#345: fecha de cargo (default hoy; el servidor no admite fechas pasadas).
+    Private _fechaCargo As Date = Today
+    Public Property FechaCargo As Date
+        Get
+            Return _fechaCargo
+        End Get
+        Set(value As Date)
+            Dim unused = SetProperty(_fechaCargo, value)
         End Set
     End Property
 
