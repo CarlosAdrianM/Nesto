@@ -15,6 +15,9 @@ namespace Nesto.Modulos.Cliente
             // Nesto#419: ventana de Extracto de Cliente (v1 = consultar pendientes + liquidar)
             containerRegistry.Register<object, ExtractoClienteView>("ExtractoClienteView");
             containerRegistry.Register<IExtractoClienteService, ExtractoClienteService>();
+            // Nesto#417: clientes con NIF incorrecto para Verifactu, con corrección rápida
+            containerRegistry.Register<object, ClientesNifIncorrectosView>("ClientesNifIncorrectosView");
+            containerRegistry.Register<INifIncorrectosService, NifIncorrectosService>();
             containerRegistry.RegisterDialog<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
         }
 

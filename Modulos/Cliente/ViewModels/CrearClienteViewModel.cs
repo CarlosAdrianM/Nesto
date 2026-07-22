@@ -43,6 +43,7 @@ namespace Nesto.Modulos.Cliente
             AbrirModuloCommand = new DelegateCommand(OnAbrirModulo);
             AbrirModelo347Command = new DelegateCommand(OnAbrirModelo347);
             AbrirExtractoClienteCommand = new DelegateCommand(OnAbrirExtractoCliente);
+            AbrirNifIncorrectosCommand = new DelegateCommand(OnAbrirNifIncorrectos);
             AnnadirPersonaContactoCommand = new DelegateCommand(OnAnnadirPersonaContacto);
             BorrarPersonaContactoCommand = new DelegateCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
             CrearClienteCommand = new DelegateCommand(OnCrearCliente);
@@ -553,6 +554,13 @@ namespace Nesto.Modulos.Cliente
         private void OnAbrirExtractoCliente()
         {
             RegionManager.RequestNavigate("MainRegion", "ExtractoClienteView");
+        }
+
+        // Nesto#417: clientes con NIF incorrecto para Verifactu, con corrección rápida
+        public ICommand AbrirNifIncorrectosCommand { get; private set; }
+        private void OnAbrirNifIncorrectos()
+        {
+            RegionManager.RequestNavigate("MainRegion", "ClientesNifIncorrectosView");
         }
 
         public ICommand AnnadirPersonaContactoCommand { get; private set; }

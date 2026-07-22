@@ -12,6 +12,8 @@
             <RibbonGroup x:Name="grpMantenimiento"
                                 Header="Mantenimiento">
                 <RibbonButton Label="Crear Cliente" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirModuloCommand}" />
+                <!-- Nesto#417: corrección rápida de NIF incorrectos (Verifactu) -->
+                <RibbonButton Label="NIF incorrectos" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirNifIncorrectosCommand}" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpDocumentos"
                                 Header="Documentos">

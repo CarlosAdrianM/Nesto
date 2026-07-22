@@ -1,0 +1,66 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.ClientesNifIncorrectosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:prism="http://prismlibrary.com/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             mc:Ignorable="d"
+             d:DesignHeight="500" d:DesignWidth="950"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             Background="White">
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Clientes con NIF incorrecto (Verifactu)" FontSize="20" FontWeight="Bold" Margin="0,0,0,4"/>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="Los clientes con pedido pendiente van primero: su factura se bloqueará si no se corrige."
+                           Foreground="DimGray" VerticalAlignment="Center"/>
+                <Button Content="Actualizar" Command="{Binding CargarCommand}" Margin="15,0,0,0" Padding="10,2"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Clientes}" AutoGenerateColumns="False"
+                      SelectedItem="{Binding ClienteSeleccionado}"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single" ColumnWidth="Auto">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <!-- Prioritarios: pedido pendiente de servir o facturar -->
+                            <DataTrigger Binding="{Binding TienePedidoPendiente}" Value="True">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Background" Value="#FFF4E5"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridCheckBoxColumn Header="Pedido pdte." Binding="{Binding TienePedidoPendiente}"/>
+                    <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
+                    <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                    <DataGridTextColumn Header="NIF actual" Binding="{Binding Nif}"/>
+                    <DataGridTextColumn Header="Respuesta AEAT" Binding="{Binding ResultadoAeat}"/>
+                    <DataGridTextColumn Header="Detectado" Binding="{Binding FechaValidacion, StringFormat=d}"/>
+                    <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="NIF correcto:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold"/>
+                    <TextBox Text="{Binding NifNuevo, UpdateSourceTrigger=PropertyChanged}" MinWidth="160"
+                             VerticalContentAlignment="Center" CharacterCasing="Upper"/>
+                    <Button Content="Corregir NIF" Command="{Binding CorregirCommand}" Margin="10,0,0,0" Padding="10,2" FontWeight="Bold"/>
+                    <TextBlock Text="Se valida contra la AEAT y se actualizan ficha, contactos y facturas sin declarar."
+                               Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>
