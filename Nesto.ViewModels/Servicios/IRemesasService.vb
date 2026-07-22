@@ -16,4 +16,10 @@ Public Interface IRemesasService
     Function LeerEfectosCandidatos(empresa As String) As Task(Of List(Of EfectoCandidatoModel))
     ' NestoAPI#332: crea la remesa (revalida server-side; lanza Exception con el motivo si no puede).
     Function CrearRemesa(empresa As String, banco As String, efectos As List(Of Integer)) As Task(Of CrearRemesaResponseModel)
+    ' Slice 6: el fichero SEPA ISO 20022 lo genera el servidor (único call site del SP).
+    Function CrearFicheroRemesa(remesa As Integer, codigo As String, fechaCobro As Date) As Task(Of String)
+    ' Slice 7: contabiliza las devoluciones del fichero SEPA de impagados del banco.
+    Function ContabilizarImpagados(fichero As String) As Task
+    ' Slice 8: efectos del asiento con datos del cliente para las tareas de Planner.
+    Function LeerTareasImpagado(empresa As String, asiento As Integer) As Task(Of List(Of TareaImpagadoModel))
 End Interface

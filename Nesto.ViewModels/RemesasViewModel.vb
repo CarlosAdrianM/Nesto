@@ -3,10 +3,8 @@ Imports System.ComponentModel
 Imports System.Collections.ObjectModel
 Imports System.Windows
 Imports Microsoft.Win32
-Imports Microsoft.Office.Interop
 Imports System.Windows.Controls
 Imports Nesto.Contratos
-Imports Nesto.Models.Nesto.Models
 Imports Prism.Mvvm
 Imports Prism.Commands
 Imports Microsoft.Graph
@@ -24,13 +22,9 @@ Public Class RemesasViewModel
 
     Const numRemesas = 100
 
-    ' Nesto#340: ya no es Shared. El Shared hacía que el DbContext fuera un singleton
-    ' para toda la vida del proceso, con tres problemas: (1) ChangeTracker acumula
-    ' entidades indefinidamente (memory leak); (2) los datos quedan stale frente a
-    ' cambios externos a este cliente; (3) no es thread-safe. Pasar a instancia limita
-    ' esos riesgos a la vida del ViewModel. Eliminar EF de este VM por completo queda
-    ' como paso pendiente del roadmap.
-    Private DbContext As NestoEntities
+    ' Nesto#340 Fase 1C.14 slices 6-8: este VM ya NO usa EF. Todos los accesos a datos
+    ' (lecturas, los 2 SP de remesas/impagados y los datos de las tareas de Planner) van
+    ' por IRemesasService contra NestoAPI.
     Dim empresaDefecto As String = "1" 'mainModel.leerParametro("1", "EmpresaPorDefecto")
     Dim blnPuedeVerTodasLasRemesas As Boolean = True
 
@@ -60,8 +54,6 @@ Public Class RemesasViewModel
         Me.dialogService = dialogService
         Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _remesasService = New RemesasService(configuracion, servicioAutenticacion)
-        DbContext = New NestoEntities
-        ' Nesto#340 Fase 1C.14 slice 1: las empresas se leen del API (async); el resto sigue en EF.
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
         CargarEmpresasAsync()
         ' Nesto#340 Fase 1C.14 slices 2 y 4: el setter de empresaActual ya carga remesas e
@@ -535,25 +527,15 @@ Public Class RemesasViewModel
         Return Not remesaActual Is Nothing
     End Function
     Private Async Sub CrearFicheroRemesa(ByVal param As Object)
-        Dim strContenido As String = String.Empty
-        Dim listaContenido As List(Of String)
         Dim codigo As String
         codigo = tipoRemesaActual.id
         Dim nombreFichero As String = Await configuracion.leerParametro(empresaActual, Parametros.Claves.PathNorma19) + CStr(remesaActual.Numero) + ".xml"
-        'Dim nombreFichero As String = "c:\banco\prueba.xml"
         Try
             mensajeError = "Generando fichero..."
-            DbContext.Database.CommandTimeout = 6000
-
             estaOcupado = True
-            Await Task.Run(Sub()
-                               listaContenido = crearFicheroRemesa(remesaActual.Numero, codigo, fechaCobro)
-                               DbContext.Database.CommandTimeout = 180
-                               For Each linea In listaContenido
-                                   strContenido += linea
-                               Next
-                           End Sub)
-            contenidoFichero = XDocument.Parse(strContenido)
+            ' Nesto#340 Fase 1C.14 slice 6: el XML SEPA lo genera el servidor (único call
+            ' site del SP prdCrearRemesaIso20022); aquí solo se guarda y se copia al portapapeles.
+            contenidoFichero = Await GenerarContenidoFicheroRemesa(codigo)
             contenidoFichero.Save(nombreFichero)
             Dim listaClipboard As StringCollection
             If Clipboard.ContainsFileDropList Then
@@ -600,10 +582,10 @@ Public Class RemesasViewModel
                 contenidoFichero = XDocument.Load(elegirFichero.FileName)
                 estaOcupado = True
                 mensajeError = "Contabilizando..."
-                Await Task.Run(Sub()
-                                   contabilizarImpagados(contenidoFichero.ToString)
-                                   mensajeError = "Impagados contabilizados correctamente"
-                               End Sub)
+                ' Nesto#340 Fase 1C.14 slice 7: contabiliza el servidor (único call site del
+                ' SP prdContabilizarImpagadosSepa).
+                Await _remesasService.ContabilizarImpagados(contenidoFichero.ToString)
+                mensajeError = "Impagados contabilizados correctamente"
             Catch ex As Exception
                 If IsNothing(ex.InnerException) Then
                     mensajeError = ex.Message
@@ -639,56 +621,8 @@ Public Class RemesasViewModel
         blnPuedeVerTodasLasRemesas = False
     End Sub
 
-    'Private _cmdCrearTareasOutlook As ICommand
-    'Public ReadOnly Property cmdCrearTareasOutlook() As ICommand
-    '    Get
-    '        If _cmdCrearTareasOutlook Is Nothing Then
-    '            _cmdCrearTareasOutlook = New RelayCommand(AddressOf CrearTareasOutlook, AddressOf CanCrearTareasOutlook)
-    '        End If
-    '        Return _cmdCrearTareasOutlook
-    '    End Get
-    'End Property
-    'Private Function CanCrearTareasOutlook(ByVal param As Object) As Boolean
-    '    Return Not impagadoActual Is Nothing
-    'End Function
-    'Private Sub CrearTareasOutlook(ByVal param As Object)
-    '    Dim objOL As Outlook.Application
-    '    objOL = New Outlook.Application
-    '    Dim newTask As Outlook.TaskItem
-    '    Dim ruta As New Rutas
-    '    Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
-
-    '    Try
-    '        For Each impagado In impagados
-    '            newTask = objOL.CreateItem(Outlook.OlItemType.olTaskItem)
-    '            If Not IsNothing(newTask) Then
-    '                ruta = (From r In DbContext.Rutas Where r.Empresa = impagado.c.Empresa And r.Número = impagado.c.Ruta).FirstOrDefault
-    '                newTask.Subject = ruta.Descripción.Trim + " - Llamar al cliente " + impagado.e.Número.Trim + "/" + impagado.e.Contacto.Trim +
-    '                    ". Vendedor: " + impagado.c.Vendedor.Trim + ". " + impagado.c.Nombre.Trim + " en " + impagado.c.Dirección.Trim
-    '                newTask.Body = "Ha llegado un impagado de este cliente, con fecha " + impagado.e.Fecha.ToShortDateString + " e importe de " + FormatCurrency(impagado.e.Importe) + " (más gastos)." + vbCrLf +
-    '                    "Motivo: " + impagado.e.Concepto + vbCrLf +
-    '                    "Ruta: " + impagado.c.Ruta + vbCrLf +
-    '                    "Empresa: " + impagado.c.Empresas.Nombre.Trim
-    '                newTask.Assign()
-    '                'If impagado.c.Ruta.Trim = "00" Or impagado.c.Ruta.Trim = "02" Or impagado.c.Ruta.Trim = "03" Then
-    '                '    usuarioTareas = "laura@nuevavision.es"
-    '                'Else
-    '                '    usuarioTareas = "aidarubio@nuevavision.es"
-    '                'End If
-    '                newTask.Recipients.Add(usuarioTareas)
-    '                newTask.Recipients.ResolveAll()
-    '                newTask.Send()
-    '            End If
-    '        Next
-    '        mensajeError = "Tareas del asiento " + CStr(impagadoActual.asiento) + " creadas correctamente"
-    '    Catch ex As Exception
-    '        If IsNothing(ex.InnerException) Then
-    '            mensajeError = ex.Message
-    '        Else
-    '            mensajeError = ex.InnerException.Message
-    '        End If
-    '    End Try
-    'End Sub
+    ' Nesto#340 Fase 1C.14 slice 8: eliminado el comando muerto cmdCrearTareasOutlook (llevaba
+    ' años comentado; su sustituto es CrearTareasPlannerCommand) y su botón inerte del XAML.
 
     Public Property CrearTareasPlannerCommand As DelegateCommand
     Private Function CanCrearTareasPlanner() As Boolean
@@ -734,7 +668,14 @@ Public Class RemesasViewModel
 
         Dim tareasBucket = Await graphClient.Planner.Buckets(bucketId).Tasks.Request().GetAsync(cts.Token)
 
-        Dim impagados = From e In DbContext.ExtractoCliente Join c In DbContext.Clientes On e.Empresa Equals c.Empresa And e.Número Equals c.Nº_Cliente And e.Contacto Equals c.Contacto Where e.Empresa = empresaActual And e.Asiento = impagadoActual.asiento And Not e.Concepto.StartsWith("Gastos Impagado ")
+        ' Nesto#340 Fase 1C.14 slice 8: los datos (efectos + cliente) vienen del API, no de EF.
+        Dim impagados As List(Of TareaImpagadoModel)
+        Try
+            impagados = Await _remesasService.LeerTareasImpagado(empresaActual, impagadoActual.asiento)
+        Catch ex As Exception
+            mensajeError = ex.Message
+            Return
+        End Try
 
         Dim plannerTask As PlannerTask
 
@@ -746,7 +687,7 @@ Public Class RemesasViewModel
                 Next
                 asignadas.ODataType = Nothing
 
-                Dim tituloTarea = String.Format("Impagados cliente {0}", impagado.e.Número.Trim)
+                Dim tituloTarea = String.Format("Impagados cliente {0}", impagado.Cliente)
 
                 Dim detallesAntiguos As PlannerTaskDetails = Nothing
 
@@ -776,7 +717,7 @@ Public Class RemesasViewModel
                 End If
 
                 Dim elementoCheckList As String = String.Format("Fecha {0}, importe {1} (más gastos). {2}.",
-                        impagado.e.Fecha.ToShortDateString, FormatCurrency(impagado.e.Importe), impagado.e.Concepto.Trim)
+                        impagado.Fecha.ToShortDateString, FormatCurrency(impagado.Importe), impagado.Concepto)
                 Dim detalles As PlannerTaskDetails = New PlannerTaskDetails()
                 detalles.Checklist = New PlannerChecklistItems()
                 detalles.Checklist.AddChecklistItem(Left(elementoCheckList, 100))
@@ -789,7 +730,7 @@ Public Class RemesasViewModel
 
                 If IsNothing(detallesAntiguos) Then
                     Dim descripcion As String = String.Format("Llamar al cliente {0}/{1}. Vendedor: {2}. {3} en  {4}. Ruta: {5}. Empresa: {6}.",
-                            impagado.e.Número.Trim(), impagado.e.Contacto.Trim, impagado.c.Vendedor.Trim, impagado.c.Nombre.Trim, impagado.c.Dirección.Trim, impagado.c.Ruta, impagado.c.Empresas.Nombre.Trim)
+                            impagado.Cliente, impagado.Contacto, impagado.Vendedor, impagado.NombreCliente, impagado.Direccion, impagado.Ruta, impagado.NombreEmpresa)
                     detalles.Description = descripcion
                     detalles.PreviewType = PlannerPreviewType.Checklist
                     plannerTask.Details = detalles
@@ -816,13 +757,12 @@ Public Class RemesasViewModel
 #End Region
 
 #Region "Funciones Auxiliares"
-    Private Sub contabilizarImpagados(contenidoFichero As String)
-        DbContext.Database.CommandTimeout = 6000
-        DbContext.prdContabilizarImpagadosSepa(contenidoFichero)
-    End Sub
-
-    Private Function crearFicheroRemesa(remesa As Integer, codigo As String, fechaCobro As Date) As List(Of String)
-        Return DbContext.CrearFicheroRemesa(remesa, codigo, fechaCobro).ToList
+    ' Nesto#340 Fase 1C.14 slice 6: pide el XML SEPA al servidor y lo parsea (si el contenido
+    ' no es XML válido, lanza y el comando muestra el error). Separado del comando para poder
+    ' testearlo sin fichero ni portapapeles.
+    Public Async Function GenerarContenidoFicheroRemesa(codigo As String) As Task(Of XDocument)
+        Dim contenido As String = Await _remesasService.CrearFicheroRemesa(remesaActual.Numero, codigo, fechaCobro)
+        Return XDocument.Parse(contenido)
     End Function
 #End Region
 

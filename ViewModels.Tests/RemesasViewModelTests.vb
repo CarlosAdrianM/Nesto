@@ -345,4 +345,37 @@ Public Class RemesasViewModelTests
         vm.MarcarTodosCommand.Execute()
         vm.DesmarcarTodosCommand.Execute()
     End Sub
+
+    <TestMethod()>
+    Public Async Function GenerarContenidoFicheroRemesa_PideElXmlAlServidorYLoParsea() As Task
+        ' Nesto#340 Fase 1C.14 slice 6: el XML SEPA lo genera el servidor (único call site
+        ' del SP); el VM solo lo parsea para guardarlo y copiarlo al portapapeles.
+        A.CallTo(Function() _servicio.CrearFicheroRemesa(10897, "CORE", A(Of Date).Ignored)) _
+            .Returns(Task.FromResult("<Document><CstmrDrctDbtInitn /></Document>"))
+
+        Dim vm = CrearViewModel()
+        vm.remesaActual = New RemesaModel With {.Numero = 10897}
+
+        Dim doc = Await vm.GenerarContenidoFicheroRemesa("CORE")
+
+        Assert.AreEqual("Document", doc.Root.Name.LocalName)
+        A.CallTo(Function() _servicio.CrearFicheroRemesa(10897, "CORE", A(Of Date).Ignored)) _
+            .MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function GenerarContenidoFicheroRemesa_SiElServidorNoDevuelveXml_Lanza() As Task
+        ' Un contenido corrupto no puede acabar guardado como fichero de remesa: el parseo
+        ' lanza y el comando muestra el error sin tocar el disco.
+        A.CallTo(Function() _servicio.CrearFicheroRemesa(A(Of Integer).Ignored, A(Of String).Ignored, A(Of Date).Ignored)) _
+            .Returns(Task.FromResult("esto no es xml"))
+
+        Dim vm = CrearViewModel()
+        vm.remesaActual = New RemesaModel With {.Numero = 10897}
+
+        Await Assert.ThrowsExceptionAsync(Of Xml.XmlException)(
+            Async Function()
+                Dim unused = Await vm.GenerarContenidoFicheroRemesa("CORE")
+            End Function)
+    End Function
 End Class

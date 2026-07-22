@@ -152,6 +152,64 @@ Public Class RemesasService
         End Using
     End Function
 
+    ' Nesto#340 Fase 1C.14 slice 6: el fichero SEPA lo genera el servidor (único call site del
+    ' SP prdCrearRemesaIso20022). Timeout ampliado: las remesas grandes tardan más que los
+    ' 100 segundos por defecto de HttpClient.
+    Public Async Function CrearFicheroRemesa(remesa As Integer, codigo As String, fechaCobro As Date) As Task(Of String) Implements IRemesasService.CrearFicheroRemesa
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            client.Timeout = TimeSpan.FromMinutes(10)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Remesas/{remesa}/Fichero?codigo={Uri.EscapeDataString(codigo)}&fechaCobro={fechaCobro:yyyy-MM-dd}"
+            Dim response = Await client.GetAsync(url)
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al generar el fichero de la remesa: {ExtraerMensajeError(body)}")
+            End If
+            Return JsonConvert.DeserializeObject(Of String)(body)
+        End Using
+    End Function
+
+    ' Nesto#340 Fase 1C.14 slice 7: contabilizar las devoluciones pasa por el servidor (único
+    ' call site del SP prdContabilizarImpagadosSepa). Mismo timeout ampliado que el fichero.
+    Public Async Function ContabilizarImpagados(fichero As String) As Task Implements IRemesasService.ContabilizarImpagados
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            client.Timeout = TimeSpan.FromMinutes(10)
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim contenido As HttpContent = New StringContent(
+                JsonConvert.SerializeObject(New With {.Fichero = fichero}),
+                Text.Encoding.UTF8, "application/json")
+            Dim response = Await client.PostAsync("Remesas/ContabilizarImpagados", contenido)
+            If Not response.IsSuccessStatusCode Then
+                Dim body As String = Await response.Content.ReadAsStringAsync()
+                Throw New Exception($"Error al contabilizar los impagados: {ExtraerMensajeError(body)}")
+            End If
+        End Using
+    End Function
+
+    ' Nesto#340 Fase 1C.14 slice 8: datos para las tareas de Planner de un asiento de impagados.
+    Public Async Function LeerTareasImpagado(empresa As String, asiento As Integer) As Task(Of List(Of TareaImpagadoModel)) Implements IRemesasService.LeerTareasImpagado
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Remesas/Impagados/Tareas?empresa={Uri.EscapeDataString(empresa)}&asiento={asiento}"
+            Dim response = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener los datos de las tareas del impagado: {response.StatusCode}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of TareaImpagadoModel))(body)
+        End Using
+    End Function
+
     ' Los errores de Web API llegan como {"Message":"..."}: extraer el texto legible.
     Private Shared Function ExtraerMensajeError(body As String) As String
         Try
