@@ -2393,13 +2393,9 @@ Public Class AgenciasViewModel
         Return Not IsNothing(listaEnviosTramitados) AndAlso listaEnviosTramitados.Any
     End Function
     Private Async Sub OnImprimirManifiesto(arg As Object)
-        Dim dataSource As List(Of Informes.ManifiestoAgenciaModel) = Await _servicioInformes.LeerManifiestoAgencia(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
-        Dim listaParametros As New List(Of ReportParameter) From {
-            New ReportParameter("Fecha", fechaFiltro),
-            New ReportParameter("NombreAgencia", agenciaSeleccionada.Nombre)
-        }
-        Dim pdf As Byte() = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-            "Nesto.Informes.ManifiestoAgencia.rdlc", "ManifiestoAgenciaDataSet", dataSource, listaParametros)
+        ' Nesto#340 (RDLC→QuestPDF): el manifiesto lo renderiza el backend (era el último
+        ' informe RDLC pendiente); aquí solo se descarga el PDF y se abre.
+        Dim pdf As Byte() = Await _servicioInformes.DescargarManifiestoAgenciaPdf(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
         Dim fileName As String = Path.GetTempPath + "InformeManifiestoAgencia.pdf"
         File.WriteAllBytes(fileName, pdf)
         Dim unused = Process.Start(New ProcessStartInfo(fileName) With {

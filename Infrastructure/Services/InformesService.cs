@@ -93,6 +93,12 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/ManifiestoAgencia?empresa={Uri.EscapeDataString(empresa)}&agencia={agencia}&fecha={fecha:yyyy-MM-dd}",
                 "el manifiesto de la agencia").ConfigureAwait(false);
 
+        // Nesto#340 (RDLC→QuestPDF): el manifiesto lo renderiza el backend; aquí solo se descarga.
+        public async Task<byte[]> DescargarManifiestoAgenciaPdf(string empresa, int agencia, DateTime fecha)
+            => await GetBytesAsync(
+                $"Informes/ManifiestoAgencia/Pdf?empresa={Uri.EscapeDataString(empresa)}&agencia={agencia}&fecha={fecha:yyyy-MM-dd}",
+                "el PDF del manifiesto de la agencia").ConfigureAwait(false);
+
         public async Task<List<PickingModel>> LeerPicking(int picking, string empresa = "1", int personas = 1)
             => await GetAsync<List<PickingModel>>(
                 $"Informes/Picking?picking={picking}&empresa={Uri.EscapeDataString(empresa)}&personas={personas}",

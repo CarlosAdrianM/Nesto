@@ -24,6 +24,7 @@ namespace Nesto.Infrastructure.Services
         Task<List<MontarKitProductosModel>> LeerMontarKitProductos(int traspaso);
         Task<byte[]> DescargarMontarKitProductosPdf(int traspaso);
         Task<List<ManifiestoAgenciaModel>> LeerManifiestoAgencia(string empresa, int agencia, DateTime fecha);
+        Task<byte[]> DescargarManifiestoAgenciaPdf(string empresa, int agencia, DateTime fecha);
         Task<List<PickingModel>> LeerPicking(int picking, string empresa = "1", int personas = 1);
         Task<int> LeerUltimoPicking();
         Task<List<PackingModel>> LeerPacking(int picking, int personas = 1);
