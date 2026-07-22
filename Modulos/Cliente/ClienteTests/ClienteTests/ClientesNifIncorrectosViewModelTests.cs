@@ -7,6 +7,7 @@ using Nesto.Modulos.Cliente.Models;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace ClienteTests
@@ -133,6 +134,40 @@ namespace ClienteTests
             await vm.CorregirAsync();
 
             A.CallTo(() => servicio.CorregirNif(A<string>.Ignored, A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public async Task MarcarExtranjero_ConTipoYPais_LlamaAlServicioYRefresca()
+        {
+            // NestoAPI#339: un pasaporte no se "corrige" — se marca como identificación
+            // extranjera (tipo L7 + país) y sale de la lista.
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)).Returns(true);
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera("30676", "03", "MA"))
+                .Returns(new ResultadoCorreccionNifModel { Corregido = true, Motivo = "Identificación marcada como extranjera" });
+            var vm = CrearViewModel();
+            vm.ClienteSeleccionado = Fila();
+            vm.TipoIdentificacionSeleccionado = vm.TiposIdentificacion.First(t => t.Codigo == "03");
+            vm.PaisIdentificacion = "ma"; // se normaliza a mayúsculas
+
+            await vm.MarcarExtranjeroAsync();
+
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera("30676", "03", "MA")).MustHaveHappenedOnceExactly();
+            Assert.AreEqual(string.Empty, vm.PaisIdentificacion, "Tras marcar se limpia el país");
+            A.CallTo(() => servicio.LeerNifIncorrectos(null)).MustHaveHappenedTwiceOrMore();
+        }
+
+        [TestMethod]
+        public async Task MarcarExtranjero_SinPais_NoLlamaAlServicio()
+        {
+            var vm = CrearViewModel();
+            vm.ClienteSeleccionado = Fila();
+            vm.TipoIdentificacionSeleccionado = vm.TiposIdentificacion.First();
+            vm.PaisIdentificacion = "";
+
+            await vm.MarcarExtranjeroAsync();
+
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored))
+                .MustNotHaveHappened();
         }
 
         [TestMethod]

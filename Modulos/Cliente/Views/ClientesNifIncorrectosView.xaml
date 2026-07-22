@@ -52,13 +52,28 @@
             </DataGrid>
 
             <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="NIF correcto:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold"/>
-                    <TextBox Text="{Binding NifNuevo, UpdateSourceTrigger=PropertyChanged}" MinWidth="160"
-                             VerticalContentAlignment="Center" CharacterCasing="Upper"/>
-                    <Button Content="Corregir NIF" Command="{Binding CorregirCommand}" Margin="10,0,0,0" Padding="10,2" FontWeight="Bold"/>
-                    <TextBlock Text="Se valida contra la AEAT y se actualizan ficha, contactos y facturas sin declarar."
-                               Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="NIF correcto:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold"/>
+                        <TextBox Text="{Binding NifNuevo, UpdateSourceTrigger=PropertyChanged}" MinWidth="160"
+                                 VerticalContentAlignment="Center" CharacterCasing="Upper"/>
+                        <Button Content="Corregir NIF" Command="{Binding CorregirCommand}" Margin="10,0,0,0" Padding="10,2" FontWeight="Bold"/>
+                        <TextBlock Text="Se valida contra la AEAT y se actualizan ficha, contactos y facturas sin declarar."
+                                   Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                    </StackPanel>
+                    <!-- NestoAPI#339: pasaportes y demás identificaciones extranjeras -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="¿Es extranjero?" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold"/>
+                        <ComboBox ItemsSource="{Binding TiposIdentificacion}" SelectedItem="{Binding TipoIdentificacionSeleccionado}"
+                                  DisplayMemberPath="Descripcion" MinWidth="200" VerticalContentAlignment="Center"/>
+                        <TextBlock Text="País:" VerticalAlignment="Center" Margin="10,0,5,0"/>
+                        <TextBox Text="{Binding PaisIdentificacion, UpdateSourceTrigger=PropertyChanged}" Width="45"
+                                 VerticalContentAlignment="Center" CharacterCasing="Upper" MaxLength="2"
+                                 ToolTip="ISO de 2 letras: FR, MA, GB, UA..."/>
+                        <Button Content="Marcar como extranjero" Command="{Binding MarcarExtranjeroCommand}" Margin="10,0,0,0" Padding="10,2"/>
+                        <TextBlock Text="No se valida contra el censo (no aplica) y la factura se declara con ese tipo y país."
+                                   Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

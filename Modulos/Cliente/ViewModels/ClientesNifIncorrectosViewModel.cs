@@ -35,8 +35,20 @@ namespace Nesto.Modulos.Cliente
             Titulo = "Clientes con NIF incorrecto";
             CargarCommand = new DelegateCommand(async () => await CargarAsync());
             CorregirCommand = new DelegateCommand(async () => await CorregirAsync(), CanCorregir);
+            MarcarExtranjeroCommand = new DelegateCommand(async () => await MarcarExtranjeroAsync(), CanMarcarExtranjero);
             _ = CargarAsync(); // carga inicial al abrir la ventana
         }
+
+        /// <summary>NestoAPI#339: catálogo L7 de la AEAT para identificaciones sin NIF español.</summary>
+        public List<TipoIdentificacionExtranjera> TiposIdentificacion { get; } = new List<TipoIdentificacionExtranjera>
+        {
+            new TipoIdentificacionExtranjera("03", "Pasaporte"),
+            new TipoIdentificacionExtranjera("02", "NIF-IVA intracomunitario"),
+            new TipoIdentificacionExtranjera("04", "Documento oficial del país"),
+            new TipoIdentificacionExtranjera("05", "Certificado de residencia"),
+            new TipoIdentificacionExtranjera("06", "Otro documento probatorio"),
+            new TipoIdentificacionExtranjera("07", "No censado")
+        };
 
         public string Titulo { get; }
 
@@ -57,6 +69,33 @@ namespace Nesto.Modulos.Cliente
                 {
                     NifNuevo = string.Empty;
                     CorregirCommand.RaiseCanExecuteChanged();
+                    MarcarExtranjeroCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private TipoIdentificacionExtranjera _tipoIdentificacionSeleccionado;
+        public TipoIdentificacionExtranjera TipoIdentificacionSeleccionado
+        {
+            get => _tipoIdentificacionSeleccionado;
+            set
+            {
+                if (SetProperty(ref _tipoIdentificacionSeleccionado, value))
+                {
+                    MarcarExtranjeroCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _paisIdentificacion;
+        public string PaisIdentificacion
+        {
+            get => _paisIdentificacion;
+            set
+            {
+                if (SetProperty(ref _paisIdentificacion, value))
+                {
+                    MarcarExtranjeroCommand.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -175,5 +214,62 @@ namespace Nesto.Modulos.Cliente
                 EstaOcupado = false;
             }
         }
+
+        // NestoAPI#339: pasaportes y demás — dejan de validarse contra el censo (no aplica)
+        // y las facturas se declaran con IDOtro (tipo + país) en vez de NIF.
+        public DelegateCommand MarcarExtranjeroCommand { get; }
+        private bool CanMarcarExtranjero() => ClienteSeleccionado != null
+            && TipoIdentificacionSeleccionado != null
+            && !string.IsNullOrWhiteSpace(PaisIdentificacion);
+
+        public async Task MarcarExtranjeroAsync()
+        {
+            if (!CanMarcarExtranjero())
+            {
+                return;
+            }
+            ClienteNifIncorrectoModel cliente = ClienteSeleccionado;
+            string pais = PaisIdentificacion.Trim().ToUpper();
+
+            bool confirmado = _dialogService.ShowConfirmationAnswer("Identificación extranjera",
+                $"¿Marcar la identificación '{cliente.Nif?.Trim()}' del cliente {cliente.Cliente} - " +
+                $"{cliente.Nombre?.Trim()} como {TipoIdentificacionSeleccionado.Descripcion} de {pais}?" + Environment.NewLine +
+                "Dejará de validarse contra el censo de la AEAT (no aplica a identificaciones " +
+                "extranjeras) y las facturas se declararán a Verifactu con ese tipo y país.");
+            if (!confirmado)
+            {
+                return;
+            }
+
+            try
+            {
+                EstaOcupado = true;
+                ResultadoCorreccionNifModel resultado = await _servicio.MarcarIdentificacionExtranjera(
+                    cliente.Cliente, TipoIdentificacionSeleccionado.Codigo, pais);
+                _dialogService.ShowNotification("Identificación extranjera", resultado.Motivo);
+                PaisIdentificacion = string.Empty;
+                await CargarAsync(); // el cliente desaparece de la lista
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+    }
+
+    /// <summary>NestoAPI#339: entrada del catálogo L7 para el combo.</summary>
+    public class TipoIdentificacionExtranjera
+    {
+        public TipoIdentificacionExtranjera(string codigo, string descripcion)
+        {
+            Codigo = codigo;
+            Descripcion = descripcion;
+        }
+        public string Codigo { get; }
+        public string Descripcion { get; }
     }
 }

@@ -76,6 +76,35 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
+        // NestoAPI#339: pasaportes y demás identificaciones extranjeras.
+        public async Task<ResultadoCorreccionNifModel> MarcarIdentificacionExtranjera(string cliente, string tipoIdentificacion, string pais)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
+                HttpContent contenido = new StringContent(
+                    JsonConvert.SerializeObject(new
+                    {
+                        Cliente = cliente?.Trim(),
+                        TipoIdentificacion = tipoIdentificacion?.Trim(),
+                        Pais = pais?.Trim()
+                    }),
+                    Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync("Clientes/MarcarIdentificacionExtranjera", contenido);
+                string body = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception(ExtraerMensaje(body));
+                }
+                return JsonConvert.DeserializeObject<ResultadoCorreccionNifModel>(body);
+            }
+        }
+
         // Los errores de Web API llegan como {"Message":"..."}: extraer el texto legible.
         private static string ExtraerMensaje(string body)
         {
