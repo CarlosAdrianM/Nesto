@@ -69,6 +69,8 @@ Public Class RemesasViewModel
 
         CrearTareasPlannerCommand = New DelegateCommand(AddressOf OnCrearTareasPlanner, AddressOf CanCrearTareasPlanner)
         ' NestoAPI#332: pestaña Crear Remesa
+        ' NestoAPI#345: pedir ya la fecha "hasta" propuesta, que el DatePicker no muestre hoy
+        Dim unusedFecha = InicializarFechaSeleccionAsync()
         CargarCandidatosCommand = New DelegateCommand(AddressOf OnCargarCandidatos)
         CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
         MarcarTodosCommand = New DelegateCommand(AddressOf OnMarcarTodos)
@@ -146,14 +148,7 @@ Public Class RemesasViewModel
     Public Async Function CargarCandidatosAsync() As Task
         Try
             estaOcupado = True
-            If Not _fechaSeleccionInicializada Then
-                Try
-                    FechaSeleccionHasta = Await _remesasService.LeerFechaCargoPropuesta()
-                Catch
-                    FechaSeleccionHasta = Today ' sin propuesta del servidor: comportamiento clásico
-                End Try
-                _fechaSeleccionInicializada = True
-            End If
+            Await InicializarFechaSeleccionAsync()
             Dim candidatos = Await _remesasService.LeerEfectosCandidatos(empresaActual, FechaSeleccionHasta)
             For Each candidato In candidatos
                 candidato.Seleccionado = candidato.Preseleccionado
@@ -419,10 +414,11 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-    ' NestoAPI#345: hasta qué VENCIMIENTO se cargan candidatos (default: propuesta del servidor
-    ' = hoy + DiasAntelacionRemesa, saltando fines de semana y festivos).
+    ' NestoAPI#345: hasta qué VENCIMIENTO se cargan candidatos. Default local = siguiente día
+    ' laborable (sin festivos); la propuesta del SERVIDOR (con DiasAntelacionRemesa y festivos)
+    ' la refina en cuanto responde InicializarFechaSeleccionAsync.
     Private _fechaSeleccionInicializada As Boolean
-    Private _fechaSeleccionHasta As Date = Today
+    Private _fechaSeleccionHasta As Date = ProximoDiaLaborable(Today.AddDays(1))
     Public Property FechaSeleccionHasta As Date
         Get
             Return _fechaSeleccionHasta
@@ -432,9 +428,31 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-    ' NestoAPI#345: True = cada efecto conserva su vencimiento original (un cargo por fecha);
-    ' False (default, comportamiento de siempre) = todos los efectos a FechaCargo.
-    Private _respetarVencimientos As Boolean
+    ' Fallback local sin festivos (solo salta fines de semana): el servidor manda cuando responde.
+    Private Shared Function ProximoDiaLaborable(fecha As Date) As Date
+        While fecha.DayOfWeek = DayOfWeek.Saturday OrElse fecha.DayOfWeek = DayOfWeek.Sunday
+            fecha = fecha.AddDays(1)
+        End While
+        Return fecha
+    End Function
+
+    ' NestoAPI#345: pide al servidor la fecha propuesta (hoy + DiasAntelacionRemesa del usuario,
+    ' saltando fines de semana y festivos). Solo la primera vez; si falla, queda el fallback local.
+    Public Async Function InicializarFechaSeleccionAsync() As Task
+        If _fechaSeleccionInicializada Then
+            Return
+        End If
+        Try
+            FechaSeleccionHasta = Await _remesasService.LeerFechaCargoPropuesta()
+        Catch
+            ' El fallback local (siguiente laborable) ya está puesto
+        End Try
+        _fechaSeleccionInicializada = True
+    End Function
+
+    ' NestoAPI#345: True (DEFAULT, criterio Carlos 22/07) = cada efecto conserva su vencimiento
+    ' original (un cargo por fecha, suelo hoy); False = todos los efectos a FechaCargo.
+    Private _respetarVencimientos As Boolean = True
     Public Property RespetarVencimientos As Boolean
         Get
             Return _respetarVencimientos

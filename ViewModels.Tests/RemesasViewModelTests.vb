@@ -306,6 +306,21 @@ Public Class RemesasViewModelTests
     End Function
 
     <TestMethod()>
+    Public Async Function Defaults_RespetarVencimientosMarcadoYFechaSeleccionLaborable() As Task
+        ' Criterio Carlos 22/07: la casilla viene MARCADA por defecto, y la fecha "hasta" es
+        ' la propuesta del servidor (siguiente laborable), nunca hoy.
+        Dim propuesta As Date = Date.Today.AddDays(3)
+        A.CallTo(Function() _servicio.LeerFechaCargoPropuesta()).Returns(Task.FromResult(propuesta))
+
+        Dim vm = CrearViewModel()
+        Await vm.InicializarFechaSeleccionAsync()
+
+        Assert.IsTrue(vm.RespetarVencimientos, "Respetar vencimientos debe venir marcado por defecto")
+        Assert.IsFalse(vm.ForzarFechaUnica)
+        Assert.AreEqual(propuesta, vm.FechaSeleccionHasta)
+    End Function
+
+    <TestMethod()>
     Public Async Function CrearRemesa_ConVencimientosRespetados_LosParametrosViajanAlServicio() As Task
         ' NestoAPI#345: el modo de vencimientos y la fecha de cargo tienen que llegar al servidor
         ConfirmarSiempre(respuestaOk:=True)
