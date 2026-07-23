@@ -42,16 +42,22 @@ Public Class PlanesVentajasViewModel
     End Sub
 
     Public Async Function CargarDatos() As Task
-        Dim empresaDefecto As String = Await configuracion.leerParametro("1", "EmpresaPorDefecto")
-        ruta = Await configuracion.leerParametro(empresaDefecto, "RutaPlanVentajas")
-        vendedor = Await configuracion.leerParametro(empresaDefecto, "Vendedor")
-        listaEmpresas = New ObservableCollection(Of EmpresaResumenModel)(Await _servicio.LeerEmpresas())
-        listaEstados = New ObservableCollection(Of EstadoPlanVentajasModel)(Await _servicio.LeerEstados())
-        empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
-        barrasGrafico = New ObservableCollection(Of datosGrafico)
-        gaugeGrafico = New ObservableCollection(Of datosGrafico)
-        Await RecargarListaPlanesAsync()
-        planActual = listaPlanes.LastOrDefault
+        Try
+            Dim empresaDefecto As String = Await configuracion.leerParametro("1", "EmpresaPorDefecto")
+            ruta = Await configuracion.leerParametro(empresaDefecto, "RutaPlanVentajas")
+            vendedor = Await configuracion.leerParametro(empresaDefecto, "Vendedor")
+            listaEmpresas = New ObservableCollection(Of EmpresaResumenModel)(Await _servicio.LeerEmpresas())
+            listaEstados = New ObservableCollection(Of EstadoPlanVentajasModel)(Await _servicio.LeerEstados())
+            empresaActual = String.Format("{0,-3}", empresaDefecto) 'para que rellene con espacios en blanco por la derecha
+            barrasGrafico = New ObservableCollection(Of datosGrafico)
+            gaugeGrafico = New ObservableCollection(Of datosGrafico)
+            Await RecargarListaPlanesAsync()
+            planActual = listaPlanes.LastOrDefault
+        Catch ex As Exception
+            ' Nesto#426: sin este catch la excepción quedaba sin observar (UnobservedTaskException
+            ' en el finalizer) y el usuario veía la pantalla vacía sin ninguna explicación.
+            mensajeError = If(ex.InnerException IsNot Nothing, ex.InnerException.Message, ex.Message)
+        End Try
     End Function
 
     Private _empresaActual As String

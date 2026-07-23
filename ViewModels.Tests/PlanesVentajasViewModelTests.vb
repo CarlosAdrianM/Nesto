@@ -331,4 +331,32 @@ Public Class PlanesVentajasViewModelTests
 
 #End Region
 
+#Region "Nesto#426: errores de carga observados y visibles"
+
+    <TestMethod()>
+    Public Async Function CargarDatos_SiElServicioFalla_NoLanzaYDejaMensajeError() As Task
+        ' Caso real 21/07 (usuaria Laura): 500 del servidor al listar planes → la excepción
+        ' quedaba sin observar (UnobservedTaskException) y la pantalla en blanco sin mensaje.
+        A.CallTo(Function() _servicio.ListarPlanes(A(Of String).Ignored, A(Of String).Ignored, A(Of Boolean).Ignored)) _
+            .Throws(New Exception("Error al obtener los planes de ventajas: InternalServerError"))
+        Dim vm = CrearViewModel()
+
+        Await vm.CargarDatos()
+
+        StringAssert.Contains(vm.mensajeError, "planes de ventajas")
+    End Function
+
+    <TestMethod()>
+    Public Async Function CargarDatos_SiFallaLaConfiguracion_NoLanzaYDejaMensajeError() As Task
+        A.CallTo(Function() _configuracion.leerParametro(A(Of String).Ignored, "EmpresaPorDefecto")) _
+            .Throws(New Exception("API caída"))
+        Dim vm = CrearViewModel()
+
+        Await vm.CargarDatos()
+
+        StringAssert.Contains(vm.mensajeError, "API caída")
+    End Function
+
+#End Region
+
 End Class
