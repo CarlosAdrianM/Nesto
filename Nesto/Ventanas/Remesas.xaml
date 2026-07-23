@@ -3,6 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
     xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
@@ -46,7 +47,11 @@
                                         ToolTip="Marca todos los efectos que el servidor propone (los retenidos en gris se marcan uno a uno)"/>
                                 <Button Content="_Desmarcar todos" Command="{Binding DesmarcarTodosCommand}" Padding="8,2" Margin="5,0,0,0"/>
                                 <TextBlock Text="Banco:" VerticalAlignment="Center" Margin="15,0,5,0"/>
-                                <TextBox Text="{Binding BancoRemesa, UpdateSourceTrigger=PropertyChanged}" Width="50" VerticalAlignment="Center"/>
+                                <!-- Nesto#425: combo con el nombre del banco (guarda el código en BancoRemesa) -->
+                                <controles:SelectorBanco Width="180" VerticalAlignment="Center"
+                                                         Empresa="{Binding empresaActual}"
+                                                         Seleccionado="{Binding BancoRemesa, Mode=TwoWay}"
+                                                         VisibilidadEtiqueta="Collapsed"/>
                                 <Button Content="Crear _remesa" Command="{Binding CrearRemesaCommand}" Padding="8,2" Margin="15,0,0,0" FontWeight="Bold"/>
                                 <TextBlock VerticalAlignment="Center" Margin="20,0,0,0">
                                     <Run Text="{Binding NumeroEfectosSeleccionados, Mode=OneWay}" FontWeight="Bold"/>
