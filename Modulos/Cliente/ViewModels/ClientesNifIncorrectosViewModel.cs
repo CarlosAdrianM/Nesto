@@ -96,9 +96,17 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref _paisIdentificacion, value))
                 {
                     MarcarExtranjeroCommand.RaiseCanExecuteChanged();
+                    // Al indicar país, el cliente es EXTRANJERO: "Corregir NIF" (que valida contra
+                    // la AEAT española) deja de tener sentido y se deshabilita.
+                    CorregirCommand.RaiseCanExecuteChanged();
+                    RaisePropertyChanged(nameof(EsClienteEspanol));
                 }
             }
         }
+
+        /// <summary>Sin país indicado, el cliente se trata como español (se corrige el NIF y se
+        /// valida contra la AEAT). Con país, es extranjero (se marca con tipo + país, sin censo).</summary>
+        public bool EsClienteEspanol => string.IsNullOrWhiteSpace(PaisIdentificacion);
 
         private string _nifNuevo;
         public string NifNuevo
@@ -171,7 +179,11 @@ namespace Nesto.Modulos.Cliente
         }
 
         public DelegateCommand CorregirCommand { get; }
-        private bool CanCorregir() => ClienteSeleccionado != null && !string.IsNullOrWhiteSpace(NifNuevo);
+        // Solo el camino ESPAÑOL: hay cliente, NIF nuevo y NO se ha indicado país (si hay país,
+        // es extranjero → se usa "Marcar como extranjero"). Así los dos botones son excluyentes.
+        private bool CanCorregir() => ClienteSeleccionado != null
+            && !string.IsNullOrWhiteSpace(NifNuevo)
+            && string.IsNullOrWhiteSpace(PaisIdentificacion);
 
         public async Task CorregirAsync()
         {

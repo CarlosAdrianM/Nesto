@@ -142,7 +142,7 @@ namespace ClienteTests
             // NestoAPI#339: un pasaporte no se "corrige" — se marca como identificación
             // extranjera (tipo L7 + país) y sale de la lista.
             A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)).Returns(true);
-            A.CallTo(() => servicio.MarcarIdentificacionExtranjera("30676", "03", "MA"))
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera("30676", "03", "MA", A<string>.Ignored))
                 .Returns(new ResultadoCorreccionNifModel { Corregido = true, Motivo = "Identificación marcada como extranjera" });
             var vm = CrearViewModel();
             vm.ClienteSeleccionado = Fila();
@@ -151,7 +151,7 @@ namespace ClienteTests
 
             await vm.MarcarExtranjeroAsync();
 
-            A.CallTo(() => servicio.MarcarIdentificacionExtranjera("30676", "03", "MA")).MustHaveHappenedOnceExactly();
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera("30676", "03", "MA", A<string>.Ignored)).MustHaveHappenedOnceExactly();
             Assert.AreEqual(string.Empty, vm.PaisIdentificacion, "Tras marcar se limpia el país");
             A.CallTo(() => servicio.LeerNifIncorrectos(null)).MustHaveHappenedTwiceOrMore();
         }
@@ -166,8 +166,35 @@ namespace ClienteTests
 
             await vm.MarcarExtranjeroAsync();
 
-            A.CallTo(() => servicio.MarcarIdentificacionExtranjera(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored))
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera(A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<string>.Ignored))
                 .MustNotHaveHappened();
+        }
+
+        // Los dos botones son excluyentes: 'Corregir NIF' (español, valida AEAT) se deshabilita
+        // en cuanto se indica país (extranjero → 'Marcar como extranjero').
+
+        [TestMethod]
+        public void CorregirNif_ConPaisIndicado_SeDeshabilita()
+        {
+            var vm = CrearViewModel();
+            vm.ClienteSeleccionado = Fila();
+            vm.NifNuevo = "IT01579720287";
+            vm.PaisIdentificacion = "IT";
+
+            Assert.IsFalse(vm.CorregirCommand.CanExecute(),
+                "Con país indicado el cliente es extranjero: 'Corregir NIF' no aplica");
+            Assert.IsFalse(vm.EsClienteEspanol);
+        }
+
+        [TestMethod]
+        public void CorregirNif_SinPais_SeHabilitaConNif()
+        {
+            var vm = CrearViewModel();
+            vm.ClienteSeleccionado = Fila();
+            vm.NifNuevo = "90021192C";
+
+            Assert.IsTrue(vm.CorregirCommand.CanExecute(), "Sin país (español) y con NIF, 'Corregir NIF' se habilita");
+            Assert.IsTrue(vm.EsClienteEspanol);
         }
 
         [TestMethod]
