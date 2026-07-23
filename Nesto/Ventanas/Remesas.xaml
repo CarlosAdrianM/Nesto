@@ -3,6 +3,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     xmlns:prism="http://prismlibrary.com/"
+    xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
 
@@ -31,6 +32,19 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="3*"/>
                         </Grid.ColumnDefinitions>
+                        <Grid.Resources>
+                            <!-- NestoAPI#353: el detalle se agrupa por fecha de cargo (remesas
+                                 multi-vencimiento #345), igual que el informe impreso -->
+                            <CollectionViewSource x:Key="MovimientosAgrupados" Source="{Binding listaMovimientos}">
+                                <CollectionViewSource.SortDescriptions>
+                                    <scm:SortDescription PropertyName="Fecha"/>
+                                    <scm:SortDescription PropertyName="Número"/>
+                                </CollectionViewSource.SortDescriptions>
+                                <CollectionViewSource.GroupDescriptions>
+                                    <PropertyGroupDescription PropertyName="Fecha"/>
+                                </CollectionViewSource.GroupDescriptions>
+                            </CollectionViewSource>
+                        </Grid.Resources>
                         <DockPanel Grid.Column="0" Grid.Row="0">
                             <Button DockPanel.Dock="Bottom" Content="Ver _Todas" Command="{Binding cmdVerTodasLasRemesas}" />
                             <DataGrid DockPanel.Dock="Top" ItemsSource="{Binding listaRemesas}" SelectedItem="{Binding remesaActual}" IsReadOnly="True" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*"  CanUserAddRows="False">
@@ -49,12 +63,25 @@
                             </DataGrid>
 
                         </DockPanel>
-                        <DataGrid Grid.Column="1" Grid.Row="0" ItemsSource="{Binding listaMovimientos}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False">
+                        <DataGrid Grid.Column="1" Grid.Row="0" ItemsSource="{Binding Source={StaticResource MovimientosAgrupados}}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False">
+                            <DataGrid.GroupStyle>
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Background="#FFEEEEEE">
+                                                <TextBlock FontWeight="Bold" Margin="3" Text="{Binding Name, StringFormat='Fecha de cargo: {0:dd/MM/yyyy}'}"/>
+                                                <TextBlock FontWeight="Bold" Margin="0,3,3,3" Text="{Binding ItemCount, StringFormat='({0} efectos)'}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </DataGrid.GroupStyle>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Número" Binding="{Binding Número}" />
                                 <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" />
                                 <DataGridTextColumn Header="Nº Documento" Binding="{Binding Nº_Documento}" />
                                 <DataGridTextColumn Header="Efecto" Binding="{Binding Efecto}" />
+                                <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" />
                                 <DataGridTextColumn Header="Concepto" Binding="{Binding Concepto}" Width="3*" />
                                 <DataGridTextColumn Header="Importe" Binding="{Binding Importe, StringFormat=c}">
                                     <DataGridTextColumn.CellStyle>
