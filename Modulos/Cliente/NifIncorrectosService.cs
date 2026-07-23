@@ -77,7 +77,7 @@ namespace Nesto.Modulos.Cliente
         }
 
         // NestoAPI#339: pasaportes y demás identificaciones extranjeras.
-        public async Task<ResultadoCorreccionNifModel> MarcarIdentificacionExtranjera(string cliente, string tipoIdentificacion, string pais)
+        public async Task<ResultadoCorreccionNifModel> MarcarIdentificacionExtranjera(string cliente, string tipoIdentificacion, string pais, string nifNuevo = null)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -92,7 +92,10 @@ namespace Nesto.Modulos.Cliente
                     {
                         Cliente = cliente?.Trim(),
                         TipoIdentificacion = tipoIdentificacion?.Trim(),
-                        Pais = pais?.Trim()
+                        Pais = pais?.Trim(),
+                        // NestoAPI#356: NIF-IVA extranjero completo (opcional): si se indica, se
+                        // propaga a fichas y facturas sin declarar (el char(9) antiguo lo truncaba).
+                        Nif = string.IsNullOrWhiteSpace(nifNuevo) ? null : nifNuevo.Trim()
                     }),
                     Encoding.UTF8, "application/json");
                 HttpResponseMessage response = await client.PostAsync("Clientes/MarcarIdentificacionExtranjera", contenido);

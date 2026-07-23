@@ -18,6 +18,6 @@ namespace Nesto.Modulos.Cliente
 
         /// <summary>NestoAPI#339: marca la identificación como EXTRANJERA (pasaporte...):
         /// deja de validarse contra el censo y las facturas van con IDOtro.</summary>
-        Task<ResultadoCorreccionNifModel> MarcarIdentificacionExtranjera(string cliente, string tipoIdentificacion, string pais);
+        Task<ResultadoCorreccionNifModel> MarcarIdentificacionExtranjera(string cliente, string tipoIdentificacion, string pais, string nifNuevo = null);
     }
 }

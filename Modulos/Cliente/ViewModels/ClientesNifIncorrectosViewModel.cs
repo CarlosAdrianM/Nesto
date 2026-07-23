@@ -230,12 +230,19 @@ namespace Nesto.Modulos.Cliente
             }
             ClienteNifIncorrectoModel cliente = ClienteSeleccionado;
             string pais = PaisIdentificacion.Trim().ToUpper();
+            // NestoAPI#356: si el usuario escribió el NIF-IVA completo en "NIF correcto", se envía
+            // para corregir el que se truncó a 9 caracteres (IT+11 dígitos no cabía en el char(9)).
+            string nifNuevo = string.IsNullOrWhiteSpace(NifNuevo) ? null : NifNuevo.Trim().ToUpper();
 
+            string textoNif = nifNuevo != null
+                ? $"con el NIF-IVA '{nifNuevo}'"
+                : $"con la identificación '{cliente.Nif?.Trim()}'";
             bool confirmado = _dialogService.ShowConfirmationAnswer("Identificación extranjera",
-                $"¿Marcar la identificación '{cliente.Nif?.Trim()}' del cliente {cliente.Cliente} - " +
-                $"{cliente.Nombre?.Trim()} como {TipoIdentificacionSeleccionado.Descripcion} de {pais}?" + Environment.NewLine +
+                $"¿Marcar el cliente {cliente.Cliente} - {cliente.Nombre?.Trim()} como " +
+                $"{TipoIdentificacionSeleccionado.Descripcion} de {pais} {textoNif}?" + Environment.NewLine +
                 "Dejará de validarse contra el censo de la AEAT (no aplica a identificaciones " +
-                "extranjeras) y las facturas se declararán a Verifactu con ese tipo y país.");
+                "extranjeras) y las facturas se declararán a Verifactu con ese tipo y país." +
+                (nifNuevo != null ? Environment.NewLine + "El NIF se corregirá en la ficha y en las facturas pendientes de declarar." : string.Empty));
             if (!confirmado)
             {
                 return;
@@ -245,9 +252,10 @@ namespace Nesto.Modulos.Cliente
             {
                 EstaOcupado = true;
                 ResultadoCorreccionNifModel resultado = await _servicio.MarcarIdentificacionExtranjera(
-                    cliente.Cliente, TipoIdentificacionSeleccionado.Codigo, pais);
+                    cliente.Cliente, TipoIdentificacionSeleccionado.Codigo, pais, nifNuevo);
                 _dialogService.ShowNotification("Identificación extranjera", resultado.Motivo);
                 PaisIdentificacion = string.Empty;
+                NifNuevo = string.Empty;
                 await CargarAsync(); // el cliente desaparece de la lista
             }
             catch (Exception ex)
