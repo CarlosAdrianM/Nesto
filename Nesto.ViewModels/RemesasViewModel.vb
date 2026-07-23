@@ -390,6 +390,12 @@ Public Class RemesasViewModel
                 usuarioTareas = configuracion.LeerParametroSync(empresaActual, "UsuarioAvisoImpagadoDefecto")
                 RaisePropertyChanged(NameOf(usuarioTareas))
             End If
+            ' Nesto#424: Cartera viva es ahora la primera pestaña; al entrar (incluida la
+            ' apertura de la ventana) se cargan los candidatos solos si aún no hay lista.
+            If _pestañaSeleccionada.Header = "Cartera viva" AndAlso
+                (ListaCandidatos Is Nothing OrElse Not ListaCandidatos.Any) Then
+                Dim unused = CargarCandidatosAsync()
+            End If
         End Set
     End Property
 
