@@ -437,6 +437,12 @@ Public Class ListaPedidosVentaViewModel
     End Sub
 
     Private Async Function CargarResumenSeleccionado() As Task
+        ' Nesto#426-patrón: este método se invoca FIRE-AND-FORGET (al seleccionar un pedido en la
+        ' lista y desde el evento SacarPicking, sin Await), así que un fallo interno —p.ej. el
+        ' timeout de CargarPedidosPendientes cuando hay un bloqueo— escapaba como
+        ' UnobservedTaskException (rethrow del finalizer). La navegación al detalle ya se hizo
+        ' arriba; los pendientes son solo un enriquecimiento, así que se ignora con traza.
+        Try
         Dim parameters As New NavigationParameters From {
             {"resumenPedidoParameter", CType(ListaPedidos.ElementoSeleccionado, ResumenPedido)}
         }
@@ -467,6 +473,9 @@ Public Class ListaPedidosVentaViewModel
             RaisePropertyChanged(NameOf(EstaCreandoPedido))
             RaisePropertyChanged(NameOf(EstaCreandoPedidoInvertida))
         End If
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"[ListaPedidos] No se pudo cargar el resumen seleccionado: {ex.Message}")
+        End Try
     End Function
 
     Public Async Function cargarPedidoPorDefecto() As Task(Of ResumenPedido)
