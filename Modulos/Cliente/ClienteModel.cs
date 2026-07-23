@@ -18,6 +18,8 @@ namespace Nesto.Modulos.Cliente
         public string FormaPago { get; set; }
         public string Iban { get; set; }
         public string Nif { get; set; }
+        // NestoAPI#355: país ISO-2 del cliente (default ES lo pone el servidor si viene vacío).
+        public string Pais { get; set; }
         public string Nombre { get; set; }
         public bool Peluqueria { get; set; }
         public string PlazosPago { get; set; }

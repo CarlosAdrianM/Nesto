@@ -307,5 +307,54 @@ namespace ClienteTests
             A.CallTo(() => DialogService.ShowDialog(A<string>._, A<IDialogParameters>._, A<Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
         }
         */
+
+        // NestoAPI#355: país del cliente y su efecto sobre la validación del NIF
+
+        [TestMethod]
+        public void CrearCliente_PorDefecto_ElPaisEsES()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            Assert.AreEqual("ES", vm.ClientePais);
+            Assert.IsFalse(vm.EsPaisExtranjero);
+        }
+
+        [TestMethod]
+        public void CrearCliente_PaisExtranjero_EsPaisExtranjeroEsTrue()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService)
+            {
+                ClientePais = "IT"
+            };
+
+            Assert.IsTrue(vm.EsPaisExtranjero);
+            Assert.IsTrue(vm.NombreIsEnabled, "Cliente extranjero: el nombre siempre editable");
+        }
+
+        [TestMethod]
+        public void CrearCliente_ExtranjeroConNombre_SePuedeAvanzarSinValidarNif()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService)
+            {
+                ClientePais = "IT",
+                ClienteNif = "IT0280027",
+                ClienteNombre = "RPF SRL"
+            };
+
+            Assert.IsTrue(vm.SePuedeAvanzarADatosGenerales,
+                "Con país extranjero y nombre basta para avanzar; no se valida el NIF contra la AEAT");
+        }
+
+        [TestMethod]
+        public void CrearCliente_ExtranjeroSinNombre_NoSePuedeAvanzar()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService)
+            {
+                ClientePais = "IT",
+                ClienteNif = "IT0280027"
+            };
+
+            Assert.IsFalse(vm.SePuedeAvanzarADatosGenerales, "Un cliente extranjero necesita al menos el nombre");
+        }
     }
 }

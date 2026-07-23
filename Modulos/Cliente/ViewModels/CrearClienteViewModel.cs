@@ -317,6 +317,22 @@ namespace Nesto.Modulos.Cliente
                 RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
             }
         }
+        // NestoAPI#355: país ISO-2 del cliente. Default España; si es extranjero, el NIF puede
+        // ser un NIF-IVA intracomunitario y NO se valida contra el censo de la AEAT (que solo
+        // conoce NIF españoles). El SelectorPais guarda aquí el código.
+        private string clientePais = "ES";
+        public string ClientePais {
+            get { return clientePais; }
+            set {
+                SetProperty(ref clientePais, value);
+                NifValidado = false;
+                RaisePropertyChanged(nameof(EsPaisExtranjero));
+                RaisePropertyChanged(nameof(NombreIsEnabled));
+                RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
+            }
+        }
+        public bool EsPaisExtranjero => !string.IsNullOrWhiteSpace(ClientePais)
+            && !string.Equals(ClientePais.Trim(), "ES", StringComparison.OrdinalIgnoreCase);
         private string clienteNombre;
         public string ClienteNombre {
             get {
@@ -434,7 +450,8 @@ namespace Nesto.Modulos.Cliente
         {
             get
             {
-                return NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789ZYX".Contains(ClienteNif.Trim().ToUpper()[0])) ||(ClienteEsContacto && EsUnaModificacion);
+                // NestoAPI#355: cliente extranjero → el nombre siempre editable (no hay censo AEAT que rellene el nombre).
+                return EsPaisExtranjero || NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789ZYX".Contains(ClienteNif.Trim().ToUpper()[0])) ||(ClienteEsContacto && EsUnaModificacion);
             }
         }
         public bool NoTieneDireccion
@@ -501,6 +518,11 @@ namespace Nesto.Modulos.Cliente
         {
             get
             {
+                // NestoAPI#355: cliente extranjero → basta con el nombre (no se valida el NIF contra la AEAT).
+                if (EsPaisExtranjero)
+                {
+                    return !string.IsNullOrWhiteSpace(ClienteNombre);
+                }
                 return (!NombreIsEnabled && !string.IsNullOrWhiteSpace(ClienteNif)) || (NombreIsEnabled && !string.IsNullOrWhiteSpace(ClienteNombre));
             }
         }
@@ -601,6 +623,7 @@ namespace Nesto.Modulos.Cliente
                 FormaPago = ClienteFormaPago,
                 Iban = FormaPagoRecibo ? ClienteIban : "",
                 Nif = ClienteNif,
+                Pais = ClientePais,
                 Nombre = ClienteNombre,
                 PersonasContacto = PersonasContacto,
                 PlazosPago = ClientePlazosPago,
@@ -681,6 +704,7 @@ namespace Nesto.Modulos.Cliente
                 ClienteComentariosRuta = clienteCrear.ComentariosRuta;
                 ClienteEsContacto = clienteCrear.EsContacto;
                 ClienteNif = clienteCrear.Nif;
+                ClientePais = string.IsNullOrWhiteSpace(clienteCrear.Pais) ? "ES" : clienteCrear.Pais;
                 ClienteNombre = clienteCrear.Nombre;
                 ClienteDireccion = clienteCrear.Direccion;
                 ClienteCodigoPostal = clienteCrear.CodigoPostal;
@@ -781,6 +805,16 @@ namespace Nesto.Modulos.Cliente
             {
                 ClienteEstado = 5;
                 ClienteNombre = ClienteNombre?.ToUpper().Trim();
+                NifValidado = true;
+                return;
+            }
+
+            // NestoAPI#355: cliente extranjero → el NIF-IVA no se valida contra el censo español;
+            // se acepta tal cual con el nombre introducido (la validez fiscal la lleva #354/#339).
+            if (EsPaisExtranjero)
+            {
+                ClienteNombre = ClienteNombre?.ToUpper().Trim();
+                ClienteEstado = 5;
                 NifValidado = true;
                 return;
             }
