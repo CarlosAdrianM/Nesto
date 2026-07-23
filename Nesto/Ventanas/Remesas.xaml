@@ -63,7 +63,7 @@
                             </DataGrid>
 
                         </DockPanel>
-                        <DataGrid Grid.Column="1" Grid.Row="0" ItemsSource="{Binding Source={StaticResource MovimientosAgrupados}}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False">
+                        <DataGrid Name="gridDetalleRemesa" Grid.Column="1" Grid.Row="0" ItemsSource="{Binding Source={StaticResource MovimientosAgrupados}, NotifyOnTargetUpdated=True}" Binding.TargetUpdated="GridDetalleRemesa_TargetUpdated" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False">
                             <DataGrid.GroupStyle>
                                 <GroupStyle>
                                     <GroupStyle.HeaderTemplate>
