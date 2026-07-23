@@ -236,6 +236,24 @@ Public Class RemesasService
         End Using
     End Function
 
+    ' NestoAPI#353: el informe de la remesa lo renderiza el backend (QuestPDF); aquí solo
+    ' se descargan los bytes del PDF.
+    Public Async Function DescargarInformeRemesaPdf(empresa As String, remesa As Integer) As Task(Of Byte()) Implements IRemesasService.DescargarInformeRemesaPdf
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim url As String = $"Informes/Remesa/Pdf?empresa={Uri.EscapeDataString(empresa)}&numero={remesa}"
+            Dim response = Await client.GetAsync(url)
+            If Not response.IsSuccessStatusCode Then
+                Dim body As String = Await response.Content.ReadAsStringAsync()
+                Throw New Exception($"Error al descargar el informe de la remesa: {ExtraerMensajeError(body)}")
+            End If
+            Return Await response.Content.ReadAsByteArrayAsync()
+        End Using
+    End Function
+
     ' Los errores de Web API llegan como {"Message":"..."}: extraer el texto legible.
     Private Shared Function ExtraerMensajeError(body As String) As String
         Try

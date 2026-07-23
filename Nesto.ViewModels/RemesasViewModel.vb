@@ -75,6 +75,7 @@ Public Class RemesasViewModel
         CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
         MarcarTodosCommand = New DelegateCommand(AddressOf OnMarcarTodos)
         DesmarcarTodosCommand = New DelegateCommand(AddressOf OnDesmarcarTodos)
+        ImprimirRemesaCommand = New DelegateCommand(AddressOf OnImprimirRemesa, AddressOf CanImprimirRemesa)
     End Sub
 
     ' Constructor para tests: inyecta el servicio API y NO toca EF (Nesto#340 Fase 1C.14).
@@ -88,6 +89,7 @@ Public Class RemesasViewModel
         CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
         MarcarTodosCommand = New DelegateCommand(AddressOf OnMarcarTodos)
         DesmarcarTodosCommand = New DelegateCommand(AddressOf OnDesmarcarTodos)
+        ImprimirRemesaCommand = New DelegateCommand(AddressOf OnImprimirRemesa, AddressOf CanImprimirRemesa)
     End Sub
 
     ' Nesto#340 Fase 1C.14 slice 1: sustituye la lectura EF de DbContext.Empresas.
@@ -201,11 +203,13 @@ Public Class RemesasViewModel
             Return
         End If
 
+        Dim numeroCreado As Integer = 0
         Try
             estaOcupado = True
             Dim resultado = Await _remesasService.CrearRemesa(empresaActual, BancoRemesa,
                 seleccionados.Select(Function(c) c.Id).ToList(),
                 RespetarVencimientos, FechaCargo, FechaSeleccionHasta)
+            numeroCreado = resultado.NumeroRemesa
             mensajeError = $"Remesa {resultado.NumeroRemesa} creada: {resultado.NumeroEfectos} efectos, {resultado.Importe:C}"
             ' Refrescar: la remesa nueva aparece en la lista y los efectos salen de candidatos
             Await CargarRemesasAsync(numRemesas)
@@ -215,7 +219,41 @@ Public Class RemesasViewModel
         Finally
             estaOcupado = False
         End Try
+
+        ' NestoAPI#353: ofrecer imprimir el informe nada más crear la remesa.
+        If numeroCreado > 0 Then
+            Dim imprimir As Boolean = False
+            dialogService.ShowConfirmation("Imprimir remesa",
+                $"¿Desea imprimir la remesa {numeroCreado}?",
+                Sub(r) imprimir = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+            If imprimir Then
+                Await ImprimirRemesaAsync(numeroCreado)
+            End If
+        End If
     End Function
+
+    ' NestoAPI#353: descarga el informe de la remesa (QuestPDF en el backend) y lo abre.
+    ' La acción de abrir es sustituible para que los tests no lancen un visor de PDF real.
+    Public Async Function ImprimirRemesaAsync(remesa As Integer) As Task
+        Try
+            estaOcupado = True
+            Dim pdf As Byte() = Await _remesasService.DescargarInformeRemesaPdf(empresaActual, remesa)
+            Dim fichero As String = IO.Path.Combine(IO.Path.GetTempPath(), $"Remesa_{remesa}.pdf")
+            IO.File.WriteAllBytes(fichero, pdf)
+            AbrirFicheroAccion.Invoke(fichero)
+        Catch ex As Exception
+            mensajeError = $"No se ha podido imprimir la remesa {remesa}: {ex.Message}"
+        Finally
+            estaOcupado = False
+        End Try
+    End Function
+
+    Public Property AbrirFicheroAccion As Action(Of String) = AddressOf AbrirConShell
+    Private Shared Sub AbrirConShell(ruta As String)
+        Dim unused = System.Diagnostics.Process.Start(New System.Diagnostics.ProcessStartInfo(ruta) With {
+            .UseShellExecute = True
+        })
+    End Sub
 
     ' Nesto#340 Fase 1C.14 slice 2: sustituye la lectura EF de DbContext.Remesas.
     ' top = numRemesas en la carga normal; Nothing = todas (botón "Ver Todas").
@@ -292,6 +330,7 @@ Public Class RemesasViewModel
                 ' el error queda en mensajeError).
                 CargarMovimientosAsync(remesaActual.Numero)
             End If
+            ImprimirRemesaCommand?.RaiseCanExecuteChanged()
             RaisePropertyChanged("remesaActual")
         End Set
     End Property
@@ -489,6 +528,14 @@ Public Class RemesasViewModel
     Public Property CrearRemesaCommand As DelegateCommand
     Public Property MarcarTodosCommand As DelegateCommand
     Public Property DesmarcarTodosCommand As DelegateCommand
+    ' NestoAPI#353: imprimir el informe de cualquier remesa desde la pestaña del listado.
+    Public Property ImprimirRemesaCommand As DelegateCommand
+    Private Function CanImprimirRemesa() As Boolean
+        Return remesaActual IsNot Nothing
+    End Function
+    Private Async Sub OnImprimirRemesa()
+        Await ImprimirRemesaAsync(remesaActual.Numero)
+    End Sub
 
     Private Async Sub OnCargarCandidatos()
         Await CargarCandidatosAsync()

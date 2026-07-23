@@ -30,4 +30,7 @@ Public Interface IRemesasService
     Function ContabilizarImpagados(fichero As String) As Task
     ' Slice 8: efectos del asiento con datos del cliente para las tareas de Planner.
     Function LeerTareasImpagado(empresa As String, asiento As Integer) As Task(Of List(Of TareaImpagadoModel))
+    ' NestoAPI#353: informe de la remesa (QuestPDF en el backend): IBAN completo, subtotales
+    ' por fecha de cargo y total general.
+    Function DescargarInformeRemesaPdf(empresa As String, remesa As Integer) As Task(Of Byte())
 End Interface

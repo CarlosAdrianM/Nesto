@@ -23,10 +23,19 @@ Public Class RemesasViewModelTests
         A.CallTo(Function() _servicio.LeerFechaCargoPropuesta()).Returns(Task.FromResult(Date.Today))
         A.CallTo(Function() _servicio.LeerEmpresas()) _
             .Returns(Task.FromResult(New List(Of EmpresaModel)))
+        ' NestoAPI#353: bytes de PDF de mentira para el informe de la remesa.
+        A.CallTo(Function() _servicio.DescargarInformeRemesaPdf(A(Of String).Ignored, A(Of Integer).Ignored)) _
+            .Returns(Task.FromResult(New Byte() {&H25, &H50, &H44, &H46}))
+        _ficherosAbiertos = New List(Of String)
     End Sub
 
+    ' NestoAPI#353: los tests no abren un visor de PDF real; recogen la ruta abierta.
+    Private _ficherosAbiertos As List(Of String)
+
     Private Function CrearViewModel() As RemesasViewModel
-        Return New RemesasViewModel(_configuracion, _dialogService, _servicio)
+        Dim vm = New RemesasViewModel(_configuracion, _dialogService, _servicio)
+        vm.AbrirFicheroAccion = Sub(ruta) _ficherosAbiertos.Add(ruta)
+        Return vm
     End Function
 
     <TestMethod()>
@@ -288,6 +297,102 @@ Public Class RemesasViewModelTests
         Await vm.CrearRemesaAsync()
 
         StringAssert.Contains(vm.mensajeError, "ya no es candidato")
+    End Function
+
+    ' NestoAPI#353: informe de la remesa (imprimir al crear y desde el listado)
+
+    ' Responde OK o Cancel según el título del diálogo (para contestar distinto a la
+    ' confirmación de crear y a la pregunta de imprimir).
+    Private Sub ResponderPorTitulo(respuestas As Dictionary(Of String, Boolean))
+        A.CallTo(Sub() _dialogService.ShowDialog(
+                    A(Of String).Ignored,
+                    A(Of IDialogParameters).Ignored,
+                    A(Of Action(Of IDialogResult)).Ignored)) _
+         .Invokes(Sub(nombre As String, parametros As IDialogParameters, callback As Action(Of IDialogResult))
+                      If callback Is Nothing Then
+                          Return
+                      End If
+                      Dim titulo = parametros.GetValue(Of String)("title")
+                      Dim ok As Boolean = respuestas.ContainsKey(titulo) AndAlso respuestas(titulo)
+                      Dim resultado = A.Fake(Of IDialogResult)
+                      A.CallTo(Function() resultado.Result).Returns(If(ok, ButtonResult.OK, ButtonResult.Cancel))
+                      callback(resultado)
+                  End Sub)
+    End Sub
+
+    <TestMethod()>
+    Public Async Function ImprimirRemesa_DescargaElInformeYLoAbre() As Task
+        Dim vm = CrearViewModel()
+
+        Await vm.ImprimirRemesaAsync(10901)
+
+        A.CallTo(Function() _servicio.DescargarInformeRemesaPdf(A(Of String).Ignored, 10901)) _
+            .MustHaveHappenedOnceExactly()
+        Assert.AreEqual(1, _ficherosAbiertos.Count)
+        StringAssert.EndsWith(_ficherosAbiertos.Single(), "Remesa_10901.pdf")
+    End Function
+
+    <TestMethod()>
+    Public Async Function ImprimirRemesa_SiElServicioFalla_NoLanzaYDejaMensajeError() As Task
+        A.CallTo(Function() _servicio.DescargarInformeRemesaPdf(A(Of String).Ignored, A(Of Integer).Ignored)) _
+            .Throws(New Exception("API caída"))
+        Dim vm = CrearViewModel()
+
+        Await vm.ImprimirRemesaAsync(10901)
+
+        Assert.AreEqual(0, _ficherosAbiertos.Count)
+        StringAssert.Contains(vm.mensajeError, "10901")
+        StringAssert.Contains(vm.mensajeError, "API caída")
+    End Function
+
+    <TestMethod()>
+    Public Sub ImprimirRemesaCommand_SoloActivoConRemesaSeleccionada()
+        Dim vm = CrearViewModel()
+
+        Assert.IsFalse(vm.ImprimirRemesaCommand.CanExecute(), "Sin remesa seleccionada no se puede imprimir")
+
+        vm.remesaActual = New RemesaModel With {.Numero = 10901, .Importe = 86.29D, .Banco = "5"}
+        Assert.IsTrue(vm.ImprimirRemesaCommand.CanExecute())
+    End Sub
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_Confirmada_OfreceImprimirYAbreElInforme() As Task
+        ConfirmarSiempre(respuestaOk:=True)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10900, .Importe = 100D, .NumeroEfectos = 1}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        A.CallTo(Function() _servicio.DescargarInformeRemesaPdf(A(Of String).Ignored, 10900)) _
+            .MustHaveHappenedOnceExactly()
+        Assert.AreEqual(1, _ficherosAbiertos.Count)
+        StringAssert.EndsWith(_ficherosAbiertos.Single(), "Remesa_10900.pdf")
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_UsuarioNoQuiereImprimir_NoDescargaElInforme() As Task
+        ResponderPorTitulo(New Dictionary(Of String, Boolean) From {
+            {"Crear remesa", True}, {"Imprimir remesa", False}})
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10900, .Importe = 100D, .NumeroEfectos = 1}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+            .MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.DescargarInformeRemesaPdf(A(Of String).Ignored, A(Of Integer).Ignored)) _
+            .MustNotHaveHappened()
+        Assert.AreEqual(0, _ficherosAbiertos.Count)
     End Function
 
     <TestMethod()>

@@ -84,8 +84,10 @@
                                     <DatePicker Text="{Binding fechaCobro, Mode=TwoWay}"/>
                                 </StackPanel>
                                 
-                                <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Crear Remesa" Command="{Binding cmdCrearFicheroRemesa}" Margin="0,3" />
-                                
+                                <Button Grid.Row="1" Grid.Column="0" Content="Crear Remesa" Command="{Binding cmdCrearFicheroRemesa}" Margin="0,3,3,3" />
+                                <!-- NestoAPI#353: informe de la remesa seleccionada (QuestPDF en el backend) -->
+                                <Button Grid.Row="1" Grid.Column="1" Content="Imprimir Remesa" Command="{Binding ImprimirRemesaCommand}" Margin="3,3,0,3" />
+
                             </Grid>
 
                         </DockPanel>
