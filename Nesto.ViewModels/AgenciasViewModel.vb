@@ -1668,7 +1668,19 @@ Public Class AgenciasViewModel
 
             ' Crear albarán y factura
             Dim albaran = Await _servicioPedidos.CrearAlbaranVenta(envioActual.Empresa, envioActual.Pedido)
-            Dim resultadoFactura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
+            Dim resultadoFactura As CrearFacturaResponseDTO
+            Try
+                resultadoFactura = Await _servicioPedidos.CrearFacturaVenta(envioActual.Empresa, envioActual.Pedido)
+            Catch exFactura As Exception
+                ' Nesto#421: el albarán SÍ se creó pero la factura falló (igual que en
+                ' DetallePedido). El mensaje tiene que decir explícitamente qué se hizo y qué no,
+                ' para que el usuario reintente SOLO la factura y no se quede confundido pensando
+                ' que no se hizo nada (o que ya estaba albaraneado sin saber por qué).
+                _dialogService.ShowError($"El albarán {albaran} se creó correctamente, pero la factura NO se pudo crear: {exFactura.Message}" & vbCrLf &
+                    "Corrija el problema y reintente SOLO la factura (desde la ventana del pedido o facturación de rutas).")
+                RaiseEvent SolicitarFocoNumeroPedido(Me, EventArgs.Empty)
+                Return
+            End Try
             Dim factura = resultadoFactura.NumeroFactura
             ' NestoAPI#327: los avisos de facturación (p. ej. NIF no registrado en la AEAT)
             ' le tienen que saltar al que factura, también desde Agencias.
