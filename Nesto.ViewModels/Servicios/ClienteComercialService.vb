@@ -1,6 +1,7 @@
 ﻿Imports System.Net.Http
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json
@@ -50,6 +51,26 @@ Public Class ClienteComercialService
             End If
         End Using
 
+    End Function
+
+    ''' <summary>
+    ''' Nesto#340 (1C.8, último resto EF del VM): empresas para el combo de la cabecera.
+    ''' Mismo GET Empresas que usa RemesasService.
+    ''' </summary>
+    Public Async Function LeerEmpresas() As Task(Of List(Of EmpresaModel)) Implements IClienteComercialService.LeerEmpresas
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim response = Await client.GetAsync("Empresas")
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener la lista de empresas: {response.StatusCode}")
+            End If
+
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            Return JsonConvert.DeserializeObject(Of List(Of EmpresaModel))(body)
+        End Using
     End Function
 
     ''' <summary>

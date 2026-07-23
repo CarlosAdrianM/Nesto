@@ -1,7 +1,13 @@
-﻿Imports Nesto.Modulos.PedidoVenta
+﻿Imports Nesto.Infrastructure.Models
+Imports Nesto.Modulos.PedidoVenta
 
 Public Interface IClienteComercialService
     Function ModificarExtractoCliente(extracto As ExtractoClienteDTO) As Task
+    ''' <summary>
+    ''' Nesto#340 (1C.8, último resto EF del VM): empresas para el combo de la cabecera
+    ''' (GET Empresas). Sustituye a DbContext.Empresas en el VM.
+    ''' </summary>
+    Function LeerEmpresas() As Task(Of List(Of EmpresaModel))
     ''' <summary>
     ''' Nesto#340 (1C.8, slice 4): ficha completa del cliente (GET Clientes), incluidos
     ''' VendedoresGrupoProducto y PersonasContacto. Sustituye a DbContext.Clientes en el VM.

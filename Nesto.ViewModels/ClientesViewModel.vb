@@ -12,6 +12,7 @@ Imports ControlesUsuario.Dialogs
 Imports ControlesUsuario.Models
 Imports Microsoft.Win32
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
@@ -35,8 +36,8 @@ Public Class ClientesViewModel
     Inherits BindableBase
     '    Implements IActiveAware
 
-    ' Nesto#340: ya no es Shared (ver RemesasViewModel para la justificación).
-    Private DbContext As NestoEntities
+    ' Nesto#340 (1C.8): VM 100% sin EF — el DbContext se eliminó con el último resto
+    ' (listaEmpresas por API + borrado del código muerto de FamiliasVendedor).
     Public Property configuracion As IConfiguracion
     Private ReadOnly Property contenedor As IUnityContainer
     Private ReadOnly Property dialogService As IDialogService
@@ -48,7 +49,6 @@ Public Class ClientesViewModel
 
     'Dim mainModel As New Nesto.Models.MainModel
     Private ruta As String
-    Private esVendedorDeFamilias As Boolean = False
     Private EsUsuarioAdministracion As Boolean = False
 
 
@@ -263,12 +263,13 @@ Public Class ClientesViewModel
         End Set
     End Property
 
-    Private _listaEmpresas As ObservableCollection(Of Empresas)
-    Public Property listaEmpresas As ObservableCollection(Of Empresas)
+    ' Nesto#340 (1C.8, último resto EF): POCO del API en vez de la entidad EF Empresas.
+    Private _listaEmpresas As ObservableCollection(Of EmpresaModel)
+    Public Property listaEmpresas As ObservableCollection(Of EmpresaModel)
         Get
             Return _listaEmpresas
         End Get
-        Set(value As ObservableCollection(Of Empresas))
+        Set(value As ObservableCollection(Of EmpresaModel))
             _listaEmpresas = value
             RaisePropertyChanged("listaEmpresas")
         End Set
@@ -566,14 +567,9 @@ Public Class ClientesViewModel
         Set(value As String)
             _vendedor = value
             RaisePropertyChanged("vendedor")
-            If vendedor <> "" Then
-                esVendedorDeFamilias = Not IsNothing((From c In DbContext.FamiliasVendedor Where c.Empresa = empresaActual And c.Vendedor = vendedor Take 1).FirstOrDefault)
-            End If
-
-            If esVendedorDeFamilias Then
-                listaCodigosPostalesVendedor = (From c In DbContext.FamiliasVendedor Where c.Empresa = empresaActual And c.Vendedor = vendedor Group By codPostal = c.CodigoPostal Into susClientes = Group Select codPostal).ToList
-            End If
-
+            ' Nesto#340 (1C.8): eliminadas las consultas EF a FamiliasVendedor — alimentaban
+            ' esVendedorDeFamilias/listaCodigosPostalesVendedor, que solo se leían en código
+            ' comentado desde hace años (filtro de clientes por códigos postales).
         End Set
     End Property
 
@@ -735,8 +731,6 @@ Public Class ClientesViewModel
             RaisePropertyChanged("listaTipos")
         End Set
     End Property
-
-    Public Property listaCodigosPostalesVendedor As List(Of String)
 
     ' Nesto#340 (1C.8, slice 5): los avisos de efectos con otro CCC vienen del PUT Clientes/CCCs
     ' como POCO ligero (FechaVto/Concepto/ImportePdte/CCC, lo único que bindea el grid).
@@ -1926,8 +1920,14 @@ Public Class ClientesViewModel
         If DesignerProperties.GetIsInDesignMode(New DependencyObject()) Then
             Return
         End If
-        DbContext = New NestoEntities
-        listaEmpresas = New ObservableCollection(Of Empresas)(From c In DbContext.Empresas)
+        ' Nesto#340 (1C.8, último resto EF): empresas por API; si falla, mensaje y seguimos
+        ' (el resto de la ficha no depende del combo).
+        Try
+            listaEmpresas = New ObservableCollection(Of EmpresaModel)(Await servicio.LeerEmpresas())
+        Catch ex As Exception
+            listaEmpresas = New ObservableCollection(Of EmpresaModel)
+            mensajeError = $"No se han podido cargar las empresas: {ex.Message}"
+        End Try
 
         Dim mainViewModel As New MainViewModel
         Dim empresaDefecto As String = Await mainViewModel.leerParametro("1", "EmpresaPorDefecto")

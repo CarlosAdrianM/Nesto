@@ -28,7 +28,7 @@
             <Label Grid.Column="0" Content="Empresa:" VerticalAlignment="Center" HorizontalAlignment="Right" />
             <Label Grid.Column="2" Content="Nº Cliente:" VerticalAlignment="Center" HorizontalAlignment="Right"/>
             <Label Grid.Column="4" Content="Contacto:" VerticalAlignment="Center" HorizontalAlignment="Right"/>
-            <ComboBox Grid.Column="1" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Número" SelectedValue="{Binding empresaActual}" VerticalAlignment="Center"/>
+            <ComboBox Grid.Column="1" Margin="3" ItemsSource="{Binding listaEmpresas}" DisplayMemberPath="Nombre" SelectedValuePath="Numero" SelectedValue="{Binding empresaActual}" VerticalAlignment="Center"/>
             <TextBox Grid.Column="3" Margin="3" Text="{Binding clienteActual}" SelectionStart="0" SelectionLength="4" Name="txtCliente" VerticalAlignment="Center"/>
             <ComboBox Grid.Column="5" Margin="3" ItemsSource="{Binding listaContactos}" DisplayMemberPath="Contacto" SelectedValuePath="Contacto" SelectedValue="{Binding contactoActual}" VerticalAlignment="Center"/>
             <Button Grid.Column ="6" Content="Guardar Cambios" Command="{Binding cmdGuardar}" VerticalAlignment="Center"/>
