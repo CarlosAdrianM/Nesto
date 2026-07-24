@@ -3,6 +3,7 @@ Imports System.Linq
 Imports System.Threading.Tasks
 Imports FakeItEasy
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Models
 Imports Nesto.ViewModels
 Imports Prism.Services.Dialogs
@@ -242,6 +243,47 @@ Public Class RemesasViewModelTests
         Assert.IsFalse(vm.ListaCandidatos.Single(Function(c) c.Id = 2).Seleccionado, "Los retenidos no vienen marcados")
         Assert.AreEqual(100D, vm.ImporteSeleccionado)
         Assert.AreEqual(1, vm.NumeroEfectosSeleccionados)
+    End Function
+
+    <TestMethod()>
+    Public Async Function ResumenSeleccionado_JuntaNumeroEImporteComoTextoCopiable() As Task
+        ' #1: el XAML bindea este texto a un TextBox de solo lectura para copiar el total.
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(1, importe:=40.66D), Candidato(2, importe:=29.27D)}))
+        Dim vm = CrearViewModel()
+
+        Await vm.CargarCandidatosAsync()
+
+        Assert.AreEqual($"2 efectos, {69.93D:c}", vm.ResumenSeleccionado)
+    End Function
+
+    <TestMethod()>
+    Public Async Function AplicarEfectosLiquidados_ActualizaSoloElEfectoAfectadoYNoPierdeLasMarcas() As Task
+        ' Nesto#419: al liquidar en el Extracto, se actualiza EN SITIO solo el efecto afectado,
+        ' SIN recargar (así no se pierden las marcas que el usuario tuviera hechas).
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(1, importe:=500D, conNegativos:=True, cliente:="15191"),
+                Candidato(2, importe:=100D, conNegativos:=True, cliente:="15191"),
+                Candidato(3, preseleccionado:=False, importe:=80D, cliente:="40227")}))
+        Dim vm = CrearViewModel()
+        Await vm.CargarCandidatosAsync()
+        ' El usuario marca a mano un efecto de otro cliente: trabajo que NO se debe perder.
+        vm.ListaCandidatos.Single(Function(c) c.Id = 3).Seleccionado = True
+
+        vm.AplicarEfectosLiquidados(New EfectosLiquidadosPayload With {
+            .Empresa = "1", .Cliente = "15191", .ClienteSigueConNegativos = False,
+            .NuevosImportesPendientes = New Dictionary(Of Integer, Decimal) From {{1, 300D}, {2, 0D}}})
+
+        ' Efecto 1: importe actualizado en sitio; su cliente ya no tiene negativos (fuera el naranja)
+        Dim efecto1 = vm.ListaCandidatos.Single(Function(c) c.Id = 1)
+        Assert.AreEqual(300D, efecto1.ImportePendiente)
+        Assert.IsFalse(efecto1.ClienteConNegativos)
+        ' Efecto 2: saldado a 0 -> deja de ser candidato
+        Assert.IsFalse(vm.ListaCandidatos.Any(Function(c) c.Id = 2), "El efecto saldado a 0 se quita de la lista")
+        ' Efecto 3 (otro cliente): la marca del usuario se conserva
+        Assert.IsTrue(vm.ListaCandidatos.Single(Function(c) c.Id = 3).Seleccionado, "No se pierde el trabajo del usuario")
     End Function
 
     <TestMethod()>

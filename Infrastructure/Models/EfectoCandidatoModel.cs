@@ -17,11 +17,40 @@ namespace Nesto.Infrastructure.Models
         public string Efecto { get; set; }
         public DateTime Fecha { get; set; }
         public DateTime? Vencimiento { get; set; }
-        public decimal ImportePendiente { get; set; }
         public string Ccc { get; set; }
         public bool Preseleccionado { get; set; }
         public string Motivo { get; set; }
-        public bool ClienteConNegativos { get; set; }
+
+        // ImportePendiente y ClienteConNegativos notifican porque se actualizan EN SITIO cuando
+        // el usuario liquida efectos en el Extracto de Cliente (EfectosLiquidadosEvent): el grid
+        // debe reflejar el nuevo importe y quitar el naranja sin recargar toda la lista.
+        private decimal _importePendiente;
+        public decimal ImportePendiente
+        {
+            get => _importePendiente;
+            set
+            {
+                if (_importePendiente != value)
+                {
+                    _importePendiente = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ImportePendiente)));
+                }
+            }
+        }
+
+        private bool _clienteConNegativos;
+        public bool ClienteConNegativos
+        {
+            get => _clienteConNegativos;
+            set
+            {
+                if (_clienteConNegativos != value)
+                {
+                    _clienteConNegativos = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ClienteConNegativos)));
+                }
+            }
+        }
 
         private bool _seleccionado;
         public bool Seleccionado

@@ -1,7 +1,10 @@
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente;
 using Nesto.Modulos.Cliente.Models;
+using Prism.Events;
+using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -19,6 +22,9 @@ namespace ClienteTests
     {
         private readonly IExtractoClienteService servicio;
         private readonly IDialogService dialogService;
+        // EventAggregator REAL (no fake): GetEvent<T>() devuelve una PubSubEvent concreta difícil
+        // de fingir; con el real, los tests se suscriben y capturan el payload publicado.
+        private readonly IEventAggregator eventAggregator = new EventAggregator();
         private bool respuestaConfirmacion = true;
         private readonly List<string> mensajesDialogo = new List<string>();
 
@@ -47,7 +53,7 @@ namespace ClienteTests
                 });
         }
 
-        private ExtractoClienteViewModel CrearViewModel() => new ExtractoClienteViewModel(servicio, dialogService);
+        private ExtractoClienteViewModel CrearViewModel() => new ExtractoClienteViewModel(servicio, dialogService, eventAggregator);
 
         private static ExtractoClienteModel Movimiento(int id, decimal pendiente, string empresa = "1",
             bool seleccionado = false)
@@ -135,6 +141,58 @@ namespace ClienteTests
 
             A.CallTo(() => servicio.LiquidarEfectos("1", 111, 222)).MustHaveHappenedOnceExactly();
             A.CallTo(() => servicio.LeerExtractoPendiente("15191")).MustHaveHappenedTwiceExactly(); // carga + recarga
+        }
+
+        [TestMethod]
+        public async Task OnNavegar_ConParametroCliente_CargaEseClienteAutomaticamente()
+        {
+            // Nesto#419: al llegar desde el doble clic de Remesas, el cliente viene como parámetro
+            // de navegación y se cargan sus movimientos sin que el usuario teclee nada.
+            A.CallTo(() => servicio.LeerExtractoPendiente("15191")).Returns(new List<ExtractoClienteModel>
+            {
+                Movimiento(1, 500m),
+                Movimiento(2, -200m)
+            });
+            var vm = CrearViewModel();
+            var parametros = new NavigationParameters { { "cliente", "15191" } };
+            var contexto = new NavigationContext(null, new Uri("ExtractoClienteView", UriKind.Relative), parametros);
+
+            vm.OnNavigatedTo(contexto);
+            await Task.Yield(); // dejar terminar el CargarAsync disparado por la navegación
+
+            Assert.AreEqual("15191", vm.ClienteSeleccionado);
+            A.CallTo(() => servicio.LeerExtractoPendiente("15191")).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public async Task Liquidar_PublicaEfectosLiquidadosParaQueRemesasActualiceEnSitio()
+        {
+            // Nesto#419: al liquidar, se avisa a Remesas (pub/sub) con los nuevos importes
+            // pendientes y si el cliente sigue con negativos, para que actualice en sitio SIN
+            // recargar (y no perder las marcas del usuario).
+            A.CallTo(() => servicio.LeerExtractoPendiente("15191")).ReturnsNextFromSequence(
+                new List<ExtractoClienteModel>
+                {
+                    Movimiento(111, 500m, seleccionado: true),
+                    Movimiento(222, -200m, seleccionado: true)
+                },
+                new List<ExtractoClienteModel> { Movimiento(111, 300m) }); // tras liquidar, sin negativos
+            _ = A.CallTo(() => servicio.LiquidarEfectos("1", 111, 222))
+                .Returns(new ResultadoLiquidacionModel { Exito = true, ImportePdteOrigen = 300m, ImportePdteDestino = 0m });
+            EfectosLiquidadosPayload capturado = null;
+            eventAggregator.GetEvent<EfectosLiquidadosEvent>().Subscribe(p => capturado = p);
+            var vm = CrearViewModel();
+            vm.ClienteSeleccionado = "15191";
+            await vm.CargarAsync();
+
+            await vm.LiquidarAsync();
+
+            Assert.IsNotNull(capturado, "Debe publicarse EfectosLiquidadosEvent");
+            Assert.AreEqual("1", capturado.Empresa);
+            Assert.AreEqual("15191", capturado.Cliente);
+            Assert.AreEqual(300m, capturado.NuevosImportesPendientes[111]);
+            Assert.AreEqual(0m, capturado.NuevosImportesPendientes[222]);
+            Assert.IsFalse(capturado.ClienteSigueConNegativos, "Ya no quedan negativos tras liquidar");
         }
 
         [TestMethod]

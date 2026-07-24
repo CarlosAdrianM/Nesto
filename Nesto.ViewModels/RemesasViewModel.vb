@@ -7,11 +7,14 @@ Imports System.Windows.Controls
 Imports Nesto.Contratos
 Imports Prism.Mvvm
 Imports Prism.Commands
+Imports Prism.Events
+Imports Prism.Regions
 Imports Microsoft.Graph
 Imports Prism.Services.Dialogs
 Imports Azure.Identity
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.Models
 Imports System.Collections.Specialized
 Imports Unity
@@ -31,6 +34,8 @@ Public Class RemesasViewModel
     Private ReadOnly dialogService As IDialogService
     ' Nesto#340 Fase 1C.14: servicio API que va sustituyendo los accesos EF de este VM.
     Private ReadOnly _remesasService As IRemesasService
+    ' Nesto#419: para abrir la ventana de Extracto de Cliente (misma MainRegion, como pestaña).
+    Private ReadOnly _regionManager As IRegionManager
 
     Public Structure tipoRemesa
         Public Sub New(
@@ -54,6 +59,11 @@ Public Class RemesasViewModel
         Me.dialogService = dialogService
         Dim servicioAutenticacion = container.Resolve(Of IServicioAutenticacion)()
         _remesasService = New RemesasService(configuracion, servicioAutenticacion)
+        _regionManager = container.Resolve(Of IRegionManager)()
+        ' Nesto#419: escuchar las liquidaciones del Extracto de Cliente para actualizar en sitio
+        ' los efectos afectados (suscripción débil por defecto; se limpia sola al cerrar la vista).
+        container.Resolve(Of IEventAggregator)().GetEvent(Of EfectosLiquidadosEvent) _
+            .Subscribe(AddressOf AplicarEfectosLiquidados, ThreadOption.UIThread)
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
         CargarEmpresasAsync()
         ' Nesto#340 Fase 1C.14 slices 2 y 4: el setter de empresaActual ya carga remesas e
@@ -169,8 +179,56 @@ Public Class RemesasViewModel
         If e.PropertyName = NameOf(EfectoCandidatoModel.Seleccionado) Then
             RaisePropertyChanged(NameOf(ImporteSeleccionado))
             RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
+            RaisePropertyChanged(NameOf(ResumenSeleccionado))
             CrearRemesaCommand.RaiseCanExecuteChanged()
         End If
+    End Sub
+
+    ' Nesto#419: el usuario liquidó efectos en el Extracto de Cliente. Actualizamos EN SITIO solo
+    ' los efectos afectados (importe pendiente y el naranja de negativos), SIN recargar candidatos,
+    ' para no perder las marcas que el usuario tuviera hechas. Un efecto saldado a 0 deja de ser
+    ' candidato y se quita; el resto de la selección se conserva intacto.
+    Public Sub AplicarEfectosLiquidados(payload As EfectosLiquidadosPayload)
+        If payload Is Nothing OrElse ListaCandidatos Is Nothing OrElse payload.NuevosImportesPendientes Is Nothing Then
+            Return
+        End If
+        Dim huboCambios = False
+        For Each par In payload.NuevosImportesPendientes
+            Dim candidato = ListaCandidatos.FirstOrDefault(Function(c) c.Id = par.Key)
+            If candidato Is Nothing Then
+                Continue For
+            End If
+            If par.Value = 0D Then
+                RemoveHandler candidato.PropertyChanged, AddressOf CandidatoCambiado
+                ListaCandidatos.Remove(candidato)
+            Else
+                candidato.ImportePendiente = par.Value
+            End If
+            huboCambios = True
+        Next
+        ' El resaltado naranja depende de si el cliente sigue teniendo negativos; puede cambiar.
+        For Each candidato In ListaCandidatos.Where(Function(c) String.Equals(If(c.Cliente?.Trim(), ""), payload.Cliente, StringComparison.Ordinal)).ToList()
+            candidato.ClienteConNegativos = payload.ClienteSigueConNegativos
+        Next
+        If huboCambios Then
+            RaisePropertyChanged(NameOf(ImporteSeleccionado))
+            RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
+            RaisePropertyChanged(NameOf(ResumenSeleccionado))
+            CrearRemesaCommand?.RaiseCanExecuteChanged()
+        End If
+    End Sub
+
+    ' Nesto#419: doble clic en un efecto (típicamente uno naranja, con negativos que liquidar) abre
+    ' el Extracto de Cliente cargado con ese cliente, como pestaña en la misma región. Al liquidar
+    ' allí, EfectosLiquidadosEvent actualiza este efecto en sitio (AplicarEfectosLiquidados).
+    Public Sub AbrirExtractoCliente(candidatoSeleccionado As Object)
+        Dim candidato = TryCast(candidatoSeleccionado, EfectoCandidatoModel)
+        If candidato Is Nothing OrElse String.IsNullOrWhiteSpace(candidato.Cliente) OrElse _regionManager Is Nothing Then
+            Return
+        End If
+        Dim parametros As New NavigationParameters()
+        parametros.Add("cliente", candidato.Cliente.Trim())
+        _regionManager.RequestNavigate("MainRegion", "ExtractoClienteView", parametros)
     End Sub
 
     ' NestoAPI#332: crear la remesa con los efectos marcados. El servidor revalida TODO
@@ -433,6 +491,7 @@ Public Class RemesasViewModel
             RaisePropertyChanged(NameOf(ListaCandidatos))
             RaisePropertyChanged(NameOf(ImporteSeleccionado))
             RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
+            RaisePropertyChanged(NameOf(ResumenSeleccionado))
             CrearRemesaCommand?.RaiseCanExecuteChanged()
         End Set
     End Property
@@ -446,6 +505,14 @@ Public Class RemesasViewModel
     Public ReadOnly Property NumeroEfectosSeleccionados As Integer
         Get
             Return If(ListaCandidatos Is Nothing, 0, ListaCandidatos.Where(Function(c) c.Seleccionado).Count())
+        End Get
+    End Property
+
+    ' Resumen de la selección como texto plano copiable (Ctrl+C / botón derecho): el XAML lo
+    ' bindea a un TextBox de solo lectura para poder seleccionar y copiar el importe total.
+    Public ReadOnly Property ResumenSeleccionado As String
+        Get
+            Return $"{NumeroEfectosSeleccionados} efectos, {ImporteSeleccionado:c}"
         End Get
     End Property
 

@@ -5,8 +5,13 @@
     xmlns:prism="http://prismlibrary.com/"
     xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
     xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+    xmlns:local="clr-namespace:Nesto.Views"
     prism:ViewModelLocator.AutoWireViewModel="True">
 
+    <UserControl.Resources>
+        <!-- #3: total en € por grupo (fecha de cargo) en la cabecera del detalle -->
+        <local:SumaImporteGrupoConverter x:Key="sumaImporteGrupo"/>
+    </UserControl.Resources>
 
     <xctk:BusyIndicator IsBusy="{Binding estaOcupado}" BusyContent="Espere, por favor...">
         <Grid>
@@ -53,11 +58,13 @@
                                                          Seleccionado="{Binding BancoRemesa, Mode=TwoWay}"
                                                          VisibilidadEtiqueta="Collapsed"/>
                                 <Button Content="Crear _remesa" Command="{Binding CrearRemesaCommand}" Padding="8,2" Margin="15,0,0,0" FontWeight="Bold"/>
-                                <TextBlock VerticalAlignment="Center" Margin="20,0,0,0">
-                                    <Run Text="{Binding NumeroEfectosSeleccionados, Mode=OneWay}" FontWeight="Bold"/>
-                                    <Run Text=" efectos, "/>
-                                    <Run Text="{Binding ImporteSeleccionado, Mode=OneWay, StringFormat=c}" FontWeight="Bold"/>
-                                </TextBlock>
+                                <!-- #1: TextBox de solo lectura (no TextBlock) para poder seleccionar
+                                     y copiar el total con Ctrl+C o botón derecho (texto plano) -->
+                                <TextBox VerticalAlignment="Center" Margin="20,0,0,0" IsReadOnly="True"
+                                         BorderThickness="0" Background="Transparent" FontWeight="Bold"
+                                         Cursor="IBeam" IsTabStop="False"
+                                         Text="{Binding ResumenSeleccionado, Mode=OneWay}"
+                                         ToolTip="Seleccione y copie el total (Ctrl+C o botón derecho)"/>
                             </StackPanel>
                             <!-- NestoAPI#345: fechas de cargo de la remesa -->
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
@@ -69,8 +76,12 @@
                                             ToolTip="Todos los efectos se cargan en esta fecha (default hoy; nunca anterior a hoy). Con la casilla marcada no aplica."/>
                             </StackPanel>
                         </StackPanel>
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding ListaCandidatos}" AutoGenerateColumns="False"
-                                  CanUserAddRows="False" ColumnWidth="Auto" SelectionMode="Single">
+                        <!-- #2: doble clic en un efecto (naranja/con negativos) abre el Extracto
+                             de Cliente cargado con ese cliente para liquidar -->
+                        <DataGrid Grid.Row="1" Name="gridCandidatos" ItemsSource="{Binding ListaCandidatos}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" ColumnWidth="Auto" SelectionMode="Single"
+                                  MouseDoubleClick="GridCandidatos_MouseDoubleClick"
+                                  ToolTip="Doble clic en un efecto para abrir el Extracto del cliente y liquidar">
                             <DataGrid.Columns>
                                 <DataGridCheckBoxColumn Header="Incluir" Binding="{Binding Seleccionado, UpdateSourceTrigger=PropertyChanged}"/>
                                 <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" IsReadOnly="True"/>
@@ -151,7 +162,10 @@
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" Background="#FFEEEEEE">
                                                 <TextBlock FontWeight="Bold" Margin="3" Text="{Binding Name, StringFormat='Fecha de cargo: {0:dd/MM/yyyy}'}"/>
-                                                <TextBlock FontWeight="Bold" Margin="0,3,3,3" Text="{Binding ItemCount, StringFormat='({0} efectos)'}"/>
+                                                <!-- #3: además del nº de efectos, el importe total del grupo -->
+                                                <TextBlock FontWeight="Bold" Margin="0,3,3,3">
+                                                    <Run Text="("/><Run Text="{Binding ItemCount, Mode=OneWay}"/><Run Text=" efectos - "/><Run Text="{Binding Items, Converter={StaticResource sumaImporteGrupo}, Mode=OneWay}"/><Run Text=")"/>
+                                                </TextBlock>
                                             </StackPanel>
                                         </DataTemplate>
                                     </GroupStyle.HeaderTemplate>

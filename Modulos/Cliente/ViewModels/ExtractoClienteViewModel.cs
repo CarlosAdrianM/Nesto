@@ -1,7 +1,10 @@
 using ControlesUsuario.Dialogs;
+using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente.Models;
 using Prism.Commands;
+using Prism.Events;
 using Prism.Mvvm;
+using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -18,21 +21,41 @@ namespace Nesto.Modulos.Cliente
     /// (NestoAPI#333; la lógica y las validaciones viven en la API, aquí solo se pinta y se
     /// pide). Driver: el paso de revisión de #332 exige poder liquidar antes de remesar.
     /// </summary>
-    public class ExtractoClienteViewModel : BindableBase
+    public class ExtractoClienteViewModel : BindableBase, INavigationAware
     {
         private readonly IExtractoClienteService _servicio;
         private readonly IDialogService _dialogService;
+        private readonly IEventAggregator _eventAggregator;
 
-        public ExtractoClienteViewModel(IExtractoClienteService servicio, IDialogService dialogService)
+        public ExtractoClienteViewModel(IExtractoClienteService servicio, IDialogService dialogService,
+            IEventAggregator eventAggregator)
         {
             _servicio = servicio;
             _dialogService = dialogService;
+            _eventAggregator = eventAggregator;
             Titulo = "Extracto de Cliente";
             CargarCommand = new DelegateCommand(OnCargar, CanCargar);
             LiquidarCommand = new DelegateCommand(OnLiquidar, CanLiquidar);
         }
 
         public string Titulo { get; }
+
+        // Nesto#419: al navegar aquí desde Remesas (doble clic en un efecto) se recibe el cliente
+        // como parámetro y se cargan sus movimientos automáticamente. IsNavigationTarget = true
+        // reutiliza la MISMA pestaña de Extracto y le cambia el cliente, en vez de abrir otra.
+        public void OnNavigatedTo(NavigationContext navigationContext)
+        {
+            string cliente = navigationContext?.Parameters?.GetValue<string>("cliente");
+            if (!string.IsNullOrWhiteSpace(cliente))
+            {
+                ClienteSeleccionado = cliente.Trim();
+                _ = CargarAsync();
+            }
+        }
+
+        public bool IsNavigationTarget(NavigationContext navigationContext) => true;
+
+        public void OnNavigatedFrom(NavigationContext navigationContext) { }
 
         private string _clienteSeleccionado;
         public string ClienteSeleccionado
@@ -163,6 +186,22 @@ namespace Nesto.Modulos.Cliente
                     $"Movimiento {origen.Id}: quedan {resultado.ImportePdteOrigen:C} pendientes. " +
                     $"Movimiento {destino.Id}: quedan {resultado.ImportePdteDestino:C} pendientes.");
                 await CargarAsync(); // refrescar pendientes (los saldados a 0 desaparecen)
+
+                // Avisar a la ventana de Remesas para que actualice EN SITIO esos efectos (sin
+                // recargar candidatos, que perdería las marcas del usuario). Se envían los nuevos
+                // importes pendientes y si el cliente sigue teniendo negativos (Movimientos ya
+                // está refrescado por CargarAsync).
+                _eventAggregator?.GetEvent<EfectosLiquidadosEvent>().Publish(new EfectosLiquidadosPayload
+                {
+                    Empresa = origen.Empresa?.Trim(),
+                    Cliente = ClienteSeleccionado?.Trim(),
+                    NuevosImportesPendientes = new Dictionary<int, decimal>
+                    {
+                        [origen.Id] = resultado.ImportePdteOrigen,
+                        [destino.Id] = resultado.ImportePdteDestino
+                    },
+                    ClienteSigueConNegativos = Movimientos.Any(m => m.ImportePendiente < 0)
+                });
             }
             catch (Exception ex)
             {
