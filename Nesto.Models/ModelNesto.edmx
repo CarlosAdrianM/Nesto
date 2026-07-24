@@ -181,7 +181,7 @@
           <Property Name="Vendedor" Type="char" MaxLength="3" />
           <Property Name="Comentarios" Type="nvarchar(max)" />
           <Property Name="CodPostal" Type="char" MaxLength="15" />
-          <Property Name="CIF/NIF" Type="char" MaxLength="9" />
+          <Property Name="CIF/NIF" Type="varchar" MaxLength="20" />
           <Property Name="Provincia" Type="char" MaxLength="30" />
           <Property Name="Estado" Type="smallint" />
           <Property Name="IVA" Type="char" MaxLength="3" />
@@ -443,7 +443,7 @@
           <Property Name="Liquidado" Type="int" />
           <Property Name="FormaPago" Type="char" MaxLength="3" Nullable="false" />
           <Property Name="Remesa" Type="int" />
-          <Property Name="CIF/NIF" Type="char" MaxLength="9" />
+          <Property Name="CIF/NIF" Type="varchar" MaxLength="20" />
           <Property Name="CCC" Type="char" MaxLength="3" />
           <Property Name="Ruta" Type="char" MaxLength="3" />
           <Property Name="Origen" Type="char" MaxLength="3" />
@@ -3277,7 +3277,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Type="String" Name="Vendedor" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Type="String" Name="Comentarios" MaxLength="Max" FixedLength="false" Unicode="true" />
           <Property Type="String" Name="CodPostal" MaxLength="15" FixedLength="true" Unicode="false" />
-          <Property Type="String" Name="CIF_NIF" MaxLength="9" FixedLength="true" Unicode="false" />
+          <Property Type="String" Name="CIF_NIF" MaxLength="20" FixedLength="false" Unicode="false" />
           <Property Type="String" Name="Provincia" MaxLength="30" FixedLength="true" Unicode="false" />
           <Property Type="Int16" Name="Estado" />
           <Property Type="String" Name="IVA" MaxLength="3" FixedLength="true" Unicode="false" />
@@ -3822,7 +3822,7 @@ FROM [dbo].[vstLinPedidoVtaConVendedor] AS [vstLinPedidoVtaConVendedor]</Definin
           <Property Name="Liquidado" Type="Int32" />
           <Property Name="FormaPago" Type="String" Nullable="false" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="Remesa" Type="Int32" />
-          <Property Name="CIF_NIF" Type="String" MaxLength="9" FixedLength="true" Unicode="false" />
+          <Property Name="CIF_NIF" Type="String" MaxLength="20" FixedLength="false" Unicode="false" />
           <Property Name="CCC" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="Ruta" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />
           <Property Name="Origen" Type="String" MaxLength="3" FixedLength="true" Unicode="false" />

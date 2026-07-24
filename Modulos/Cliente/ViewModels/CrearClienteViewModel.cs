@@ -811,10 +811,12 @@ namespace Nesto.Modulos.Cliente
 
             // NestoAPI#355: cliente extranjero → el NIF-IVA no se valida contra el censo español;
             // se acepta tal cual con el nombre introducido (la validez fiscal la lleva #354/#339).
+            // Estado 8 = no profesional / público final (los extranjeros se dan de alta así, no como
+            // "primera visita" 5, que era heredado por error de la rama del "sin NIF").
             if (EsPaisExtranjero)
             {
                 ClienteNombre = ClienteNombre?.ToUpper().Trim();
-                ClienteEstado = 5;
+                ClienteEstado = 8;
                 NifValidado = true;
                 return;
             }
