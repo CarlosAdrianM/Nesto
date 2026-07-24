@@ -258,6 +258,12 @@ Public Class AgenciasViewModel
                 If Not IsNothing(value) Then
                     agenciaEspecifica = factory(value.Nombre).Invoke
                     numClienteContabilizar = agenciaEspecifica.NumeroCliente
+                    ' Las listas de la agencia (tipos de retorno, países, servicios, horarios) se
+                    ' pueblan SIEMPRE al seleccionarla, no solo en algunas pestañas. Antes en
+                    ' TRAMITADOS no se llamaba a ActualizarListas: listaTiposRetorno quedaba a
+                    ' Nothing y "Rehusado" fallaba con un aviso FALSO ("seleccione una agencia y un
+                    ' envío") aunque estuvieran seleccionados (y el combo de retorno salía vacío).
+                    ActualizarListas()
                     cmdPegarCodigoBarras?.RaiseCanExecuteChanged()
                     If String.IsNullOrEmpty(PestannaNombre) Then
                         Return

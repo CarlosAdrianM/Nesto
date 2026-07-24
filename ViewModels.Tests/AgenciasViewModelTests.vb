@@ -224,6 +224,35 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(2, viewModel.agenciaSeleccionada.Numero)
     End Sub
 
+    <TestMethod()>
+    Public Sub AgenciaViewModel_EnTramitados_AlSeleccionarAgencia_SePueblaListaTiposRetorno()
+        ' Bug: en la pestaña Tramitados NO se llamaba a ActualizarListas al seleccionar agencia, así
+        ' que listaTiposRetorno quedaba a Nothing y "Rehusado" fallaba con un aviso falso ("seleccione
+        ' una agencia y un envío") aunque hubiera envío y agencia seleccionados.
+        'arrange
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1  "
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(New ObservableCollection(Of Empresas) From {empresa})
+        Dim pedido = New CabPedidoVta With {.Empresa = "1  ", .Número = 1, .Clientes = New Clientes()}
+        A.CallTo(Function() servicio.CargarPedidoPorFactura(A(Of String).Ignored)).Returns(pedido)
+        Dim agencia = A.Fake(Of AgenciasTransporte)
+        agencia.Empresa = "1  "
+        agencia.Numero = 2
+        agencia.Nombre = "ASM"
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.PestannaNombre = Pestannas.TRAMITADOS
+
+        'act
+        viewModel.cmdCargarDatos.Execute()
+
+        'assert
+        Assert.IsNotNull(viewModel.agenciaSeleccionada, "Debe seleccionarse la agencia")
+        Assert.IsNotNull(viewModel.listaTiposRetorno,
+            "En Tramitados listaTiposRetorno debe poblarse al seleccionar agencia; si no, Rehusado da un aviso falso")
+    End Sub
+
     '<TestMethod>
     'Public Sub AgenciaViewModel_AlCargarDatos_ConfiguraLaAgencia()
     ' YA NO SE CARGA LA AGENCIA POR RUTA, SINO QUE SELECCIONAMOS LA DE MENOR COSTE POR BULTOS Y PESO
