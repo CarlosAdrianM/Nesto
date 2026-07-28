@@ -29,6 +29,58 @@ namespace ClienteTests
             DialogService = A.Fake<IDialogService>();
         }
 
+        // Nesto#436: país de la dirección (puede diferir del fiscal)
+
+        [TestMethod]
+        public void CambiarElPaisFiscal_ArrastraElPaisDeLaDireccion_PeroNoAlReves()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            vm.ClientePais = "DE";
+            Assert.AreEqual("DE", vm.ClientePaisDireccion, "Por defecto la dirección está en el país fiscal");
+
+            vm.ClientePaisDireccion = "FR"; // fiscal Alemania, vive en Francia
+            Assert.AreEqual("FR", vm.ClientePaisDireccion);
+            Assert.AreEqual("DE", vm.ClientePais, "Cambiar el país de la dirección no toca el fiscal");
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task BuscarSugerencias_UsaElPaisDeLaDireccion()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.ClientePaisDireccion = "IT";
+
+            vm.ClienteDireccionCalleNumero = "Via Roma 1";
+            await System.Threading.Tasks.Task.Delay(700); // debounce de 350 ms
+
+            A.CallTo(() => Servicio.BuscarSugerenciasDireccion("Via Roma 1", A<string>.Ignored, "IT"))
+                .MustHaveHappened();
+        }
+
+        [TestMethod]
+        public async System.Threading.Tasks.Task AplicarSugerenciaDireccion_ConPaisEnElDetalle_AjustaElPaisDeLaDireccion()
+        {
+            A.CallTo(() => Servicio.LeerDetalleDireccion("ChIJ777", A<string>.Ignored))
+                .Returns(new DireccionDetalleModel
+                {
+                    Calle = "Via Roma",
+                    Numero = "1",
+                    CodigoPostal = "20121",
+                    Poblacion = "Milano",
+                    Pais = "Italia",
+                    PaisIso = "IT"
+                });
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            await vm.AplicarSugerenciaDireccionAsync(new SugerenciaDireccionModel { PlaceId = "ChIJ777" });
+
+            Assert.AreEqual("IT", vm.ClientePaisDireccion);
+            Assert.AreEqual("Via Roma, 1", vm.ClienteDireccionCalleNumero);
+            Assert.AreEqual("20121", vm.ClienteCodigoPostal);
+            Assert.IsTrue(vm.DireccionVerificadaPorGoogle);
+            Assert.AreEqual("MILANO", vm.PoblacionGoogle);
+        }
+
         // Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI)
 
         [TestMethod]

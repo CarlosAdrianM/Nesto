@@ -121,6 +121,16 @@
                                     </StackPanel>
                                 </Border>
                             </Popup>
+                            <!-- Nesto#436: país de la DIRECCIÓN (puede diferir del fiscal: un alemán
+                                 que vive en Francia). Por defecto sigue al país fiscal; manda en el
+                                 combo de sugerencias y en la validación de la dirección. -->
+                            <StackPanel Grid.Column="4" Grid.Row="1" Orientation="Horizontal" Margin="6,0,0,0" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <TextBlock VerticalAlignment="Center" Margin="0,0,3,0" ToolTip="País de la dirección (puede ser distinto del país fiscal)">País</TextBlock>
+                                <controles:SelectorPais MinWidth="140" VerticalAlignment="Center"
+                                                        Seleccionado="{Binding ClientePaisDireccion, Mode=TwoWay}"
+                                                        VisibilidadEtiqueta="Collapsed"
+                                                        ToolTip="País de la dirección (puede ser distinto del país fiscal)"/>
+                            </StackPanel>
                             <TextBlock Grid.Column="1" Grid.Row="3" TextAlignment="Right" ToolTip="Piso, puerta, nombre comercial, etc. Ejemplo: 1ºC, Esc. 4, Estética Pepita" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}">Dirección (resto de información)</TextBlock>
                             <TextBox Name="txtDireccionAdicional" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteDireccionAdicional, UpdateSourceTrigger=PropertyChanged}" GotFocus="txtDireccionAdicional_GotFocus" KeyUp="txtDireccionAdicional_KeyUp" Visibility="{Binding NoTieneDireccion, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBox>
                             <TextBlock Grid.Column="1" Grid.Row="5" TextAlignment="Right">Código Postal</TextBlock>

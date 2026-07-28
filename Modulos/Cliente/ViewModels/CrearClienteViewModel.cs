@@ -206,7 +206,7 @@ namespace Nesto.Modulos.Cliente
                     HaySugerenciasDireccion = false;
                     return;
                 }
-                var sugerencias = await Servicio.BuscarSugerenciasDireccion(texto.Trim(), sessionTokenDireccion);
+                var sugerencias = await Servicio.BuscarSugerenciasDireccion(texto.Trim(), sessionTokenDireccion, ClientePaisDireccion);
                 if (token.IsCancellationRequested)
                 {
                     return; // el usuario siguió tecleando: esta respuesta ya está obsoleta
@@ -245,6 +245,12 @@ namespace Nesto.Modulos.Cliente
                     DireccionVerificadaPorGoogle = true;
                     PoblacionGoogle = detalle.Poblacion?.ToUpper().Trim();
                     ProvinciaGoogle = detalle.Provincia?.ToUpper().Trim();
+                }
+                if (!string.IsNullOrWhiteSpace(detalle.PaisIso))
+                {
+                    // Nesto#436: el país real de la dirección elegida manda (el flag de aplicando
+                    // evita que el setter relance la búsqueda)
+                    ClientePaisDireccion = detalle.PaisIso.Trim().ToUpper();
                 }
             }
             catch
@@ -326,9 +332,33 @@ namespace Nesto.Modulos.Cliente
             set {
                 SetProperty(ref clientePais, value);
                 NifValidado = false;
+                // Nesto#436: por defecto la dirección está en el país fiscal; si difieren (fiscal
+                // Alemania, vive en Francia) el usuario cambia el selector de país de la dirección.
+                ClientePaisDireccion = value;
                 RaisePropertyChanged(nameof(EsPaisExtranjero));
                 RaisePropertyChanged(nameof(NombreIsEnabled));
                 RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
+            }
+        }
+
+        // Nesto#436: país ISO-2 de la DIRECCIÓN (puede diferir del fiscal). Manda en el
+        // autocompletado de Places y en ValidarDatosGenerales; al cambiarlo se relanza la búsqueda
+        // en el país nuevo.
+        private string clientePaisDireccion = "ES";
+        public string ClientePaisDireccion
+        {
+            get { return clientePaisDireccion; }
+            set
+            {
+                if (SetProperty(ref clientePaisDireccion, value) && !aplicandoSugerenciaDireccion)
+                {
+                    CerrarSugerenciasDireccion();
+                    if (!string.IsNullOrWhiteSpace(ClienteDireccionCalleNumero))
+                    {
+                        DireccionVerificadaPorGoogle = false;
+                        BuscarSugerenciasDireccionConDebounce(ClienteDireccionCalleNumero);
+                    }
+                }
             }
         }
         public bool EsPaisExtranjero => !string.IsNullOrWhiteSpace(ClientePais)
@@ -751,7 +781,7 @@ namespace Nesto.Modulos.Cliente
 
             try
             {
-                RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono, DireccionVerificadaPorGoogle);
+                RespuestaDatosGeneralesClientes respuesta = await Servicio.ValidarDatosGenerales(ClienteDireccionCalleNumero, ClienteCodigoPostal, ClienteTelefono, DireccionVerificadaPorGoogle, ClientePaisDireccion);
                 respuesta.ClientesMismoTelefono = respuesta.ClientesMismoTelefono.Where(c => c.Cliente != ClienteNumero).ToList();
                 if (respuesta.ClientesMismoTelefono.Count > 0)
                 {
@@ -769,14 +799,16 @@ namespace Nesto.Modulos.Cliente
                 // si la dirección viene verificada de Google, SU población/provincia son las
                 // correctas para la ficha (importa para las agencias de transporte). La ruta y
                 // los vendedores siguen saliendo de nuestra tabla de CPs.
+                // Nesto#436: en direcciones extranjeras la tabla de CPs no da población/provincia
+                // (vienen null del servidor): se conserva lo que hubiera (lo de Google o lo tecleado).
                 ClientePoblacion = Strings.Left(
                     DireccionVerificadaPorGoogle && !string.IsNullOrWhiteSpace(PoblacionGoogle)
                         ? PoblacionGoogle
-                        : respuesta.Poblacion, 30);
+                        : respuesta.Poblacion ?? ClientePoblacion, 30);
                 ClienteProvincia = DireccionVerificadaPorGoogle && !string.IsNullOrWhiteSpace(ProvinciaGoogle)
                     ? ProvinciaGoogle
-                    : respuesta.Provincia;
-                ClienteRuta = respuesta.Ruta;
+                    : respuesta.Provincia ?? ClienteProvincia;
+                ClienteRuta = respuesta.Ruta ?? ClienteRuta;
                 ClienteTelefono = respuesta.TelefonoFormateado;
                 if (!esUnaModificacion || ClienteCodigoPostal != respuesta.CodigoPostal)
                 {

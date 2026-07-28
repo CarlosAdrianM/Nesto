@@ -163,7 +163,7 @@ namespace Nesto.Modulos.Cliente
             return respuesta;
         }
 
-        public async Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false)
+        public async Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false, string pais = null)
         {
             RespuestaDatosGeneralesClientes respuesta;
 
@@ -184,7 +184,9 @@ namespace Nesto.Modulos.Cliente
                     string urlConsulta = "Clientes/ComprobarDatosGenerales?direccion=" + direccion
                         + "&codigoPostal=" + codigoPostal
                         + "&telefono=" + telefono
-                        + "&direccionVerificada=" + direccionVerificada.ToString().ToLower();
+                        + "&direccionVerificada=" + direccionVerificada.ToString().ToLower()
+                        // Nesto#436: país de la dirección (ISO-2); sin él el servidor asume España
+                        + (string.IsNullOrWhiteSpace(pais) ? string.Empty : "&pais=" + Uri.EscapeDataString(pais.Trim()));
 
 
                     response = await client.GetAsync(urlConsulta);
@@ -311,7 +313,7 @@ namespace Nesto.Modulos.Cliente
 
         // NestoAPI#306 / Nesto#409: autocompletado de direcciones. Best-effort: si falla (Places
         // sin habilitar, red...) devuelve vacío/null y el usuario sigue tecleando a mano.
-        public async Task<System.Collections.Generic.List<SugerenciaDireccionModel>> BuscarSugerenciasDireccion(string texto, string sessionToken)
+        public async Task<System.Collections.Generic.List<SugerenciaDireccionModel>> BuscarSugerenciasDireccion(string texto, string sessionToken, string pais = null)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -320,8 +322,9 @@ namespace Nesto.Modulos.Cliente
                 {
                     return new System.Collections.Generic.List<SugerenciaDireccionModel>();
                 }
+                string parametroPais = string.IsNullOrWhiteSpace(pais) ? string.Empty : $"&pais={Uri.EscapeDataString(pais.Trim())}";
                 HttpResponseMessage response = await client.GetAsync(
-                    $"Direcciones/Sugerencias?texto={Uri.EscapeDataString(texto ?? string.Empty)}&sessionToken={Uri.EscapeDataString(sessionToken ?? string.Empty)}");
+                    $"Direcciones/Sugerencias?texto={Uri.EscapeDataString(texto ?? string.Empty)}&sessionToken={Uri.EscapeDataString(sessionToken ?? string.Empty)}{parametroPais}");
                 if (!response.IsSuccessStatusCode)
                 {
                     return new System.Collections.Generic.List<SugerenciaDireccionModel>();

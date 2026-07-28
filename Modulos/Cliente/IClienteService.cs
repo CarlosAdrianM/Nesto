@@ -10,13 +10,16 @@ namespace Nesto.Modulos.Cliente
         Task<RespuestaNifNombreCliente> ValidarNif(string nif, string nombre);
         // direccionVerificada=true cuando dirección y CP vienen del combo de Places (Nesto#409):
         // el servidor se salta el geocoding y solo normaliza para la BD.
-        Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false);
+        // pais (Nesto#436): ISO-2 del país de la DIRECCIÓN; para país != ES el servidor no valida
+        // contra la tabla española de CPs ni geocodifica.
+        Task<RespuestaDatosGeneralesClientes> ValidarDatosGenerales(string direccion, string codigoPostal, string telefono, bool direccionVerificada = false, string pais = null);
         Task<RespuestaDatosBancoCliente> ValidarDatosPago(string formaPago, string plazosPago, string iban);
         Task<Clientes> CrearCliente(ClienteCrear cliente);
         Task<Clientes> ModificarCliente(ClienteCrear cliente);
         Task<ClienteCrear> LeerClienteCrear(string empresa, string cliente, string contacto);
-        // NestoAPI#306 / Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI)
-        Task<List<SugerenciaDireccionModel>> BuscarSugerenciasDireccion(string texto, string sessionToken);
+        // NestoAPI#306 / Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI).
+        // pais (Nesto#436): ISO-2 donde buscar; vacío = España.
+        Task<List<SugerenciaDireccionModel>> BuscarSugerenciasDireccion(string texto, string sessionToken, string pais = null);
         Task<DireccionDetalleModel> LeerDetalleDireccion(string placeId, string sessionToken);
     }
 
@@ -36,5 +39,9 @@ namespace Nesto.Modulos.Cliente
         public string Poblacion { get; set; }
         public string Provincia { get; set; }
         public string DireccionFormateada { get; set; }
+        /// <summary>Nesto#436: nombre del país de la dirección ("Italia").</summary>
+        public string Pais { get; set; }
+        /// <summary>Nesto#436: ISO-2 del país ("IT"), para no asumir España en la ficha.</summary>
+        public string PaisIso { get; set; }
     }
 }
