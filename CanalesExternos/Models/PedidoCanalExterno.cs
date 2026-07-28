@@ -66,7 +66,9 @@ namespace Nesto.Modulos.CanalesExternos
             {
                 if (string.IsNullOrEmpty(NumeroFactura))
                 {
-                    return string.Empty;
+                    // OMITIDA = cliente de factura simplificada (Amazon/tienda/público final):
+                    // el servidor no la sube (NestoAPI#366).
+                    return EstadoFacturaAmazon == "OMITIDA" ? "no se sube (simplificada)" : string.Empty;
                 }
                 string icono = EstadoFacturaAmazon switch
                 {

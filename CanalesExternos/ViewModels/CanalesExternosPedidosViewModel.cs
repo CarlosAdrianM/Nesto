@@ -550,9 +550,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private IEnumerable<PedidoCanalExterno> PedidosConFacturaPendiente()
         {
+            // Las OMITIDA son pedidos de clientes de factura simplificada (Amazon/tienda/público
+            // final): el servidor no las sube, así que el lote no las intenta.
             return (ListaPedidos?.Lista ?? new ObservableCollection<IFiltrableItem>())
                 .OfType<PedidoCanalExterno>()
-                .Where(p => p.PedidoNestoId != 0 && !p.FacturaSubida);
+                .Where(p => p.PedidoNestoId != 0 && !p.FacturaSubida && p.EstadoFacturaAmazon != "OMITIDA");
         }
 
         private async Task<string> FacturarYSubirPedidoAsync(PedidoCanalExterno pedidoExterno)
