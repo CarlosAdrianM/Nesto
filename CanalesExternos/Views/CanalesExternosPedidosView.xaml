@@ -31,10 +31,12 @@
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Fecha" Binding="{Binding Pedido.fecha}" IsReadOnly="True" />
                         <DataGridTextColumn x:Name="colComentarios" Header="Comentarios" Binding="{Binding Pedido.comentarios}" IsReadOnly="True" Width="*"/>
+                        <DataGridTextColumn Header="Factura" Binding="{Binding EtiquetaFactura}" IsReadOnly="True"/>
                         <DataGridTemplateColumn>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <DockPanel>
+                                        <Button DockPanel.Dock="Bottom" Command="{Binding Path=DataContext.FacturarYSubirCommand,RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" CommandParameter="{Binding}" Content="Subir Factura" ToolTip="Factura el pedido de Nesto (si no lo está) y sube el PDF de la factura a Amazon"/>
                                         <Button DockPanel.Dock="Bottom" Command="{Binding Path=DataContext.CrearEtiquetaCommand,RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" CommandParameter="{Binding}" Content="Crear Etiqueta"/>
                                         <Button DockPanel.Dock="Top" Command="{Binding Path=DataContext.CrearPedidoCommand,RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" CommandParameter="{Binding}" Content="Crear Pedido"/>
                                     </DockPanel>
@@ -52,7 +54,10 @@
                     <TextBlock DockPanel.Dock="Left" Text="Nº Máximo de pedidos:"></TextBlock>
                     <xctk:IntegerUpDown DockPanel.Dock="Right" Value="{Binding NumeroMaxPedidos}"></xctk:IntegerUpDown>
                 </DockPanel>
-                <Button Grid.Row="5" Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
+                <UniformGrid Grid.Row="5" Columns="2">
+                    <Button Command="{Binding CargarPedidosCommand}">Volver a cargar</Button>
+                    <Button Command="{Binding FacturarYSubirPendientesCommand}" ToolTip="Factura (si hace falta) y sube a Amazon las facturas de todos los pedidos cargados que aún no la tienen subida">Subir facturas pendientes</Button>
+                </UniformGrid>
             </Grid>
         </xctk:BusyIndicator>
         <Grid Grid.Column="1" >

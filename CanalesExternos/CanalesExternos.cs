@@ -34,6 +34,7 @@ namespace Nesto.Modulos.CanalesExternos
 
             // Registrar servicios
             containerRegistry.Register<IPoisonPillsService, PoisonPillsService>();
+            containerRegistry.Register<IFacturasAmazonService, FacturasAmazonService>(); // Nesto#434
         }
     }
 }

@@ -11,7 +11,10 @@ using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
+using Nesto.Modulos.CanalesExternos.Interfaces;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using ControlesUsuario.Models;
 using Unity;
 
@@ -32,13 +35,16 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         private Dictionary<string, ICanalExternoPedidos> _factory = new Dictionary<string, ICanalExternoPedidos>();
         private readonly IUnityContainer _container;
 
-        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container)
+        private readonly IFacturasAmazonService _facturasAmazonService;
+
+        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container, IFacturasAmazonService facturasAmazonService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
             DialogService = dialogService;
             PedidoVentaService = pedidoVentaService;
             _container = container;
+            _facturasAmazonService = facturasAmazonService;
 
             Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion));
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
@@ -103,6 +109,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             CrearPedidoCommand.RaiseCanExecuteChanged();
             CrearEtiquetaCommand.RaiseCanExecuteChanged();
             ConfirmarEnvioCommand.RaiseCanExecuteChanged();
+            FacturarYSubirCommand.RaiseCanExecuteChanged();
         }
 
         #region "Propiedades Nesto"
@@ -338,6 +345,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 ListaPedidos.Lista = new ObservableCollection<IFiltrableItem>(await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos));
                 ListaPedidos.ListaOriginal = ListaPedidos.Lista;
                 CrearPedidoCommand.RaiseCanExecuteChanged();
+                await CargarEstadosFacturasAsync(); // Nesto#434: pinta la columna Factura
             } catch (Exception ex)
             {
                 EstaOcupado = false;
@@ -348,7 +356,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 EstaOcupado = false;
                 CrearPedidoCommand.RaiseCanExecuteChanged();
             }
-            
+
         }
 
         public DelegateCommand<object> ConfirmarEnvioCommand { get; private set; }
@@ -451,6 +459,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     resultado += "\nCompletado el proceso";
                 }
                 CrearEtiquetaCommand.RaiseCanExecuteChanged();
+                FacturarYSubirCommand.RaiseCanExecuteChanged();
+                FacturarYSubirPendientesCommand.RaiseCanExecuteChanged();
                 DialogService.ShowNotification("Crear Pedido", resultado);
             } catch(Exception ex)
             {
@@ -460,6 +470,141 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 EstaOcupado = false;
             }
+        }
+
+        // Nesto#434: facturar el pedido de Nesto (si no lo está) y subir la factura PDF a Amazon.
+        // Todo el trabajo lo hace NestoAPI (#366); aquí solo se llama y se pinta el resultado.
+        private bool EsCanalAmazon => CanalSeleccionado is CanalExternoPedidosAmazon;
+
+        public DelegateCommand<PedidoCanalExterno> FacturarYSubirCommand { get; private set; }
+        private bool CanFacturarYSubir(PedidoCanalExterno pedidoExterno)
+        {
+            return EsCanalAmazon && pedidoExterno != null && pedidoExterno.PedidoNestoId != 0;
+        }
+        private async void OnFacturarYSubirAsync(PedidoCanalExterno pedidoExterno)
+        {
+            string accion = pedidoExterno.FacturaSubida
+                ? $"¿Volver a subir la factura del pedido {pedidoExterno.PedidoNestoId} a Amazon (reemplaza la anterior)?"
+                : $"¿Facturar el pedido {pedidoExterno.PedidoNestoId} (si no lo está) y subir la factura a Amazon?";
+            if (!DialogService.ShowConfirmationAnswer("Subir factura a Amazon", accion))
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                string resultado = await FacturarYSubirPedidoAsync(pedidoExterno);
+                DialogService.ShowNotification("Subir factura a Amazon", resultado);
+            }
+            catch (Exception ex)
+            {
+                DialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+                FacturarYSubirPendientesCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        public DelegateCommand FacturarYSubirPendientesCommand { get; private set; }
+        private bool CanFacturarYSubirPendientes()
+        {
+            return EsCanalAmazon && PedidosConFacturaPendiente().Any();
+        }
+        private async void OnFacturarYSubirPendientesAsync()
+        {
+            List<PedidoCanalExterno> pendientes = PedidosConFacturaPendiente().ToList();
+            if (!DialogService.ShowConfirmationAnswer("Subir facturas a Amazon",
+                $"Se van a facturar (si no lo están) y subir a Amazon las facturas de {pendientes.Count} pedidos. ¿Continuar?"))
+            {
+                return;
+            }
+            StringBuilder resumen = new();
+            try
+            {
+                EstaOcupado = true;
+                for (int i = 0; i < pendientes.Count; i++)
+                {
+                    try
+                    {
+                        resumen.AppendLine(await FacturarYSubirPedidoAsync(pendientes[i]));
+                    }
+                    catch (Exception ex)
+                    {
+                        resumen.AppendLine($"Pedido {pendientes[i].PedidoNestoId}: ERROR - {ex.Message}");
+                    }
+                    if (i < pendientes.Count - 1)
+                    {
+                        await Task.Delay(3100); // rate limit de Amazon: 1 subida cada 3 s
+                    }
+                }
+            }
+            finally
+            {
+                EstaOcupado = false;
+                FacturarYSubirPendientesCommand.RaiseCanExecuteChanged();
+            }
+            DialogService.ShowNotification("Subir facturas a Amazon", resumen.ToString());
+        }
+
+        private IEnumerable<PedidoCanalExterno> PedidosConFacturaPendiente()
+        {
+            return (ListaPedidos?.Lista ?? new ObservableCollection<IFiltrableItem>())
+                .OfType<PedidoCanalExterno>()
+                .Where(p => p.PedidoNestoId != 0 && !p.FacturaSubida);
+        }
+
+        private async Task<string> FacturarYSubirPedidoAsync(PedidoCanalExterno pedidoExterno)
+        {
+            SubirFacturaAmazonResponse respuesta = await _facturasAmazonService.FacturarYSubirAsync(
+                pedidoExterno.Pedido.empresa, pedidoExterno.PedidoNestoId);
+            pedidoExterno.NumeroFactura = respuesta.NumeroFactura;
+            pedidoExterno.EstadoFacturaAmazon = respuesta.Estado;
+            string resultado = $"Pedido {respuesta.Pedido}: factura {respuesta.NumeroFactura} subida a Amazon ({respuesta.MarketplaceId})";
+            if (respuesta.Avisos != null && respuesta.Avisos.Any())
+            {
+                resultado += "\n  " + string.Join("\n  ", respuesta.Avisos);
+            }
+            return resultado;
+        }
+
+        // Al recargar la lista se pregunta a la API qué pedidos tienen ya factura subida, para
+        // pintar la columna Factura y que el lote solo coja los pendientes. Si falla, no rompe
+        // la carga (el estado se queda vacío).
+        private async Task CargarEstadosFacturasAsync()
+        {
+            if (!EsCanalAmazon)
+            {
+                return;
+            }
+            List<PedidoCanalExterno> conPedido = (ListaPedidos?.Lista ?? new ObservableCollection<IFiltrableItem>())
+                .OfType<PedidoCanalExterno>()
+                .Where(p => p.PedidoNestoId != 0)
+                .ToList();
+            if (!conPedido.Any())
+            {
+                return;
+            }
+            try
+            {
+                string empresa = conPedido.First().Pedido?.empresa ?? Constantes.Empresas.EMPRESA_DEFECTO;
+                Dictionary<int, FacturaSubidaAmazon> subidas = await _facturasAmazonService
+                    .ConsultarSubidasAsync(empresa, conPedido.Select(p => p.PedidoNestoId));
+                foreach (PedidoCanalExterno pedido in conPedido)
+                {
+                    if (subidas.TryGetValue(pedido.PedidoNestoId, out FacturaSubidaAmazon subida))
+                    {
+                        pedido.NumeroFactura = subida.NumeroFactura;
+                        pedido.EstadoFacturaAmazon = subida.Estado;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.WriteLine("[AmazonDiag] No se pudo cargar el estado de facturas subidas: " + ex.Message);
+            }
+            FacturarYSubirPendientesCommand.RaiseCanExecuteChanged();
         }
 
         // Nesto#374: abrir el pedido de Nesto asignado (doble clic en la fila de la lista).
@@ -484,6 +629,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             CrearPedidoCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearPedidoAsync, CanCrearPedido);
             ConfirmarEnvioCommand = new DelegateCommand<object>(OnConfirmarEnvioAsync, CanConfirmarEnvio);
             AbrirPedidoNestoCommand = new DelegateCommand<PedidoCanalExterno>(OnAbrirPedidoNesto, CanAbrirPedidoNesto);
+            FacturarYSubirCommand = new DelegateCommand<PedidoCanalExterno>(OnFacturarYSubirAsync, CanFacturarYSubir);
+            FacturarYSubirPendientesCommand = new DelegateCommand(OnFacturarYSubirPendientesAsync, CanFacturarYSubirPendientes);
         }
         
         async void OnCanalSeleccionadoHaCambiadoAsync(object sender, EventArgs e)
@@ -494,6 +641,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 ListaPedidos.Lista = new ObservableCollection<IFiltrableItem>(await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos));
                 ListaPedidos.ListaOriginal = ListaPedidos.Lista;
                 CrearPedidoCommand.RaiseCanExecuteChanged();
+                await CargarEstadosFacturasAsync(); // Nesto#434: pinta la columna Factura
             } catch (Exception ex)
             {
                 DialogService.ShowError(ex.Message);
