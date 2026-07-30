@@ -440,6 +440,13 @@ Public Class AgenciaASM
             ' calculaba la plaza del país equivocado (misma familia de bug que Nesto#412).
             calcularPlaza(envio.CodPostal, envio.Pais, envio.Nemonico, envio.NombrePlaza, envio.TelefonoPlaza, envio.EmailPlaza)
 
+            ' Nesto#437: ListaServicios solo tiene las tarifas GLS actuales; un envío con un
+            ' servicio histórico (o de otra agencia) reventaba el Single con "Sequence contains
+            ' no matching element" y no se podía imprimir la etiqueta. La etiqueta sale igual,
+            ' con el id del servicio si no conocemos su nombre.
+            Dim tarifaServicio = ListaServicios.FirstOrDefault(Function(x) x.ServicioId = envio.Servicio)
+            Dim nombreServicio As String = If(tarifaServicio IsNot Nothing, tarifaServicio.NombreServicio, "Servicio " & envio.Servicio.ToString)
+
             For i = 1 To envio.Bultos
                 'builder.AppendLine("I8,A,034")
                 'builder.AppendLine("N")
@@ -487,7 +494,7 @@ Public Class AgenciaASM
                 Dim unused15 = builder.AppendLine("^FO300,450^APN,1,1^FD-----^FS")
                 Dim unused14 = builder.AppendLine("^FO300,470^GB775,0,2,B,3^FS")
                 Dim unused13 = builder.AppendLine("^FO300,475^ATN,10,10^FDCOURIER^FS")
-                Dim unused12 = builder.AppendLine("^FO300,510^ATN,10,10^FD" & ListaServicios.Single(Function(x) x.ServicioId = envio.Servicio).NombreServicio & " (" & envio.Horario.ToString & ")^FS")
+                Dim unused12 = builder.AppendLine("^FO300,510^ATN,10,10^FD" & nombreServicio & " (" & envio.Horario.ToString & ")^FS")
                 Dim unused11 = builder.AppendLine("^FO300,530^AVN,200,200^FD" & envio.Nemonico & "^FS")
                 Dim unused10 = builder.AppendLine("^FO300,720^AUN,50,50^FD" & envio.NombrePlaza & "^FS")
                 Dim unused9 = builder.AppendLine("^FO300,770^AUN,50,50^FD" & envio.CodPostal & "^FS")
