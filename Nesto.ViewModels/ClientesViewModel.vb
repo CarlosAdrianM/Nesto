@@ -1460,6 +1460,17 @@ Public Class ClientesViewModel
                 Next
             End If
 
+            ' Nesto#438: los efectos solo viajan si su suma coincide con el importe a cobrar.
+            ' Si el usuario cambió el importe a mano (o la selección incluye abonos y la suma
+            ' no cuadra), el enlace va SIN efectos (importe libre): mandar lista e importe
+            ' incoherentes era un 400 seguro del servidor ("la suma de los efectos no
+            ' coincide con el importe total") sin pista de qué corregir.
+            Dim sumaEfectos As Decimal = If(efectosSeleccionados Is Nothing, 0D,
+                efectosSeleccionados.Sum(Function(l) l.ImportePendiente))
+            If efectos.Any() AndAlso sumaEfectos <> ImporteReclamarDeuda Then
+                efectos.Clear()
+            End If
+
             Dim solicitud = New With {
                 .Empresa = clienteActivo?.empresa.Trim(),
                 .Cliente = clienteActivo?.cliente.Trim(),
