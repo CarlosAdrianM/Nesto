@@ -2,6 +2,7 @@ using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos;
+using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.ViewModels;
 using Nesto.Modulos.PedidoVenta;
 using Prism.Regions;
@@ -26,7 +27,8 @@ namespace CanalesExternosTests
                 A.Fake<IConfiguracion>(),
                 A.Fake<IDialogService>(),
                 A.Fake<IPedidoVentaService>(),
-                A.Fake<IUnityContainer>());
+                A.Fake<IUnityContainer>(),
+                A.Fake<IFacturasAmazonService>());
         }
 
         [TestMethod]
