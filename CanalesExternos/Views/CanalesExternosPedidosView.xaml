@@ -9,6 +9,11 @@
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" xmlns:controlesusuario="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
              mc:Ignorable="d" Loaded="UserControl_Loaded">
 
+    <UserControl.Resources>
+        <!-- Nesto#439: badge de pedido Amazon Business -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
@@ -28,7 +33,29 @@
                 <ComboBox Grid.Row="0" ItemsSource="{Binding Factory}" DisplayMemberPath="Key" SelectedValuePath="Value" SelectedValue="{Binding CanalSeleccionado}"></ComboBox>
                 <controlesusuario:BarraFiltro Grid.Row="1" Name="txtFiltro" ListaItems="{Binding ListaPedidos}" ItemSeleccionado="{Binding ListaPedidos.ElementoSeleccionado}" Etiqueta="{Binding ListaPedidos.Filtro}"></controlesusuario:BarraFiltro>
                 <DataGrid Grid.Row="2" x:Name="dgPedidos" MouseDoubleClick="dgPedidos_MouseDoubleClick" ToolTip="Doble clic en los comentarios para abrir el pedido de Nesto asignado" ItemsSource="{Binding ListaPedidos.Lista}" SelectedItem="{Binding ListaPedidos.ElementoSeleccionado}" AutoGenerateColumns="False" IsReadOnly="True">
+                    <DataGrid.RowStyle>
+                        <!-- Nesto#439: los pedidos de cliente empresarial (Amazon Business) se resaltan -->
+                        <Style TargetType="DataGridRow">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding EsPedidoEmpresa}" Value="True">
+                                    <Setter Property="Background" Value="#FFE3F2FD"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
                     <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="B2B" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border Background="#FF1E88E5" CornerRadius="8" Padding="6,1" Margin="2"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Visibility="{Binding EsPedidoEmpresa, Converter={StaticResource BoolToVis}}"
+                                            ToolTip="Pedido de cliente empresarial (Amazon Business)">
+                                        <TextBlock Text="EMPRESA" Foreground="White" FontWeight="Bold" FontSize="10"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Fecha" Binding="{Binding Pedido.fecha}" IsReadOnly="True" />
                         <DataGridTextColumn x:Name="colComentarios" Header="Comentarios" Binding="{Binding Pedido.comentarios}" IsReadOnly="True" Width="*"/>
                         <DataGridTextColumn Header="Factura" Binding="{Binding EtiquetaFactura}" IsReadOnly="True"/>

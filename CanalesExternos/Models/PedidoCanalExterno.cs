@@ -29,6 +29,10 @@ namespace Nesto.Modulos.CanalesExternos
         public PedidoVentaDTO Pedido { get; set; }
         public string Almacen { get; set; }
 
+        // Nesto#439: pedido de cliente empresarial (Amazon Business, IsBusinessOrder de SP-API).
+        // Solo lo informa Amazon; en el resto de canales queda a false y el badge no se pinta.
+        public bool EsPedidoEmpresa { get; set; }
+
         // Nesto#434: estado de la factura subida a Amazon. Con INPC (solo estas propiedades)
         // para que la columna del grid se refresque al subir sin recargar la lista.
         private string _numeroFactura;

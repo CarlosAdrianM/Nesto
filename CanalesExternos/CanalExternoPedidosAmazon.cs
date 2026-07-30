@@ -129,6 +129,10 @@ namespace Nesto.Modulos.CanalesExternos
 
                 pedidoSalida.comentarios += telefonoCliente != null ? telefonoCliente.ToUpper() + "\r\n" : "";
                 pedidoSalida.comentarios += "Cumplimiento por " + (order.FulfillmentChannel == FulfillmentChannelEnum.AFN ? "Amazon" : "Nueva Visión") + "\r\n";
+                if (order.IsBusinessOrder == true)
+                {
+                    pedidoSalida.comentarios += "*** PEDIDO AMAZON BUSINESS (cliente empresarial) ***\r\n";
+                }
                 if (!string.IsNullOrWhiteSpace(order.SellerOrderId) && order.SellerOrderId != order.AmazonOrderId)
                 {
                     pedidoSalida.comentarios += "N/ Pedido: " + order.SellerOrderId + "\r\n";
@@ -170,6 +174,7 @@ namespace Nesto.Modulos.CanalesExternos
                     pedidoExterno.Pedido.iva = IVA_EXPORTACION;
                 }
                 pedidoExterno.Almacen = order.FulfillmentChannel == FulfillmentChannelEnum.AFN ? ALMACEN_AMAZON : ALMACEN_NV;
+                pedidoExterno.EsPedidoEmpresa = order.IsBusinessOrder == true;
 
                 PrepagoDTO prepago = new PrepagoDTO
                 {
