@@ -28,7 +28,8 @@ namespace CanalesExternosTests
                 A.Fake<IDialogService>(),
                 A.Fake<IPedidoVentaService>(),
                 A.Fake<IUnityContainer>(),
-                A.Fake<IFacturasAmazonService>());
+                A.Fake<IFacturasAmazonService>(),
+                A.Fake<IClientesPorTelefonoService>());
         }
 
         [TestMethod]

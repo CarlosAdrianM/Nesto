@@ -37,7 +37,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private readonly IFacturasAmazonService _facturasAmazonService;
 
-        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container, IFacturasAmazonService facturasAmazonService)
+        public CanalesExternosPedidosViewModel(IRegionManager regionManager, IConfiguracion configuracion, IDialogService dialogService, IPedidoVentaService pedidoVentaService, IUnityContainer container, IFacturasAmazonService facturasAmazonService, IClientesPorTelefonoService clientesPorTelefonoService)
         {
             RegionManager = regionManager;
             Configuracion = configuracion;
@@ -47,7 +47,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             _facturasAmazonService = facturasAmazonService;
 
             Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion));
-            Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion));
+            Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
             
             CrearComandos();

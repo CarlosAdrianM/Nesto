@@ -32,10 +32,12 @@ namespace Nesto.Modulos.CanalesExternos
         private decimal PORCENTAJE_IVA_REDUCIDO = 1.10M;
 
         private IConfiguracion configuracion;
+        private readonly Interfaces.IClientesPorTelefonoService clientesPorTelefono;
 
-        public CanalExternoPedidosAmazon(IConfiguracion configuracion)
+        public CanalExternoPedidosAmazon(IConfiguracion configuracion, Interfaces.IClientesPorTelefonoService clientesPorTelefono)
         {
             this.configuracion = configuracion;
+            this.clientesPorTelefono = clientesPorTelefono;
         }
 
         public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
@@ -46,7 +48,7 @@ namespace Nesto.Modulos.CanalesExternos
 
 
             ObservableCollection<PedidoCanalExterno> listaNesto = new ObservableCollection<PedidoCanalExterno>();
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 foreach (Order order in listaAmazon)
                 {
@@ -74,7 +76,10 @@ namespace Nesto.Modulos.CanalesExternos
                     {
                         CambioDivisas = 1;
                     }
-                    PedidoCanalExterno pedidoExterno = TransformarPedido(order);
+                    // Nesto#340: la búsqueda por teléfono va por la API (sin EF), fuera del
+                    // CultureInfoScope de TransformarPedido para no cruzar un await con él
+                    Interfaces.ClientePorTelefono cliente = await BuscarClienteAsync(order.ShippingAddress?.Phone).ConfigureAwait(false);
+                    PedidoCanalExterno pedidoExterno = TransformarPedido(order, cliente);
                     pedidoExterno.Observaciones = "Phone:";
                     pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoFijo) ? " " + pedidoExterno.TelefonoFijo : "";
                     pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
@@ -93,7 +98,7 @@ namespace Nesto.Modulos.CanalesExternos
             throw new NotImplementedException();
         }
 
-        private PedidoCanalExterno TransformarPedido(Order order)
+        private PedidoCanalExterno TransformarPedido(Order order, Interfaces.ClientePorTelefono cliente)
         {
             using (new CultureInfoScope("en-US"))
             {
@@ -104,14 +109,13 @@ namespace Nesto.Modulos.CanalesExternos
                 pedidoSalida.empresa = "1";
                 pedidoSalida.origen = "1";
                 string telefonoCliente = order.ShippingAddress?.Phone;
-                Clientes cliente = BuscarCliente(telefonoCliente);
-                pedidoSalida.cliente = cliente.Nº_Cliente;
+                pedidoSalida.cliente = cliente.Cliente;
                 pedidoSalida.contacto = cliente.Contacto;
                 pedidoSalida.contactoCobro = cliente.ContactoCobro;
                 pedidoSalida.vendedor = cliente.Vendedor;
                 pedidoSalida.comentarioPicking = cliente.ComentarioPicking;
 
-                pedidoSalida.iva = cliente.IVA;
+                pedidoSalida.iva = cliente.Iva;
                 string numeroOrderAmazon = order.AmazonOrderId;
                 if (order.FulfillmentChannel == FulfillmentChannelEnum.AFN)
                 {
@@ -195,31 +199,41 @@ namespace Nesto.Modulos.CanalesExternos
             }
         }
 
-        private Clientes BuscarCliente(string telefonoCliente)
+        // Nesto#340: la búsqueda por teléfono va por GET api/Clientes/PorTelefono (el filtro de
+        // empresa por defecto y Estado >= 0 lo aplica el servidor). Si la API falla, el pedido
+        // sale con el cliente genérico de Amazon, igual que cuando no hay coincidencias.
+        private async Task<Interfaces.ClientePorTelefono> BuscarClienteAsync(string telefonoCliente)
         {
-            Clientes CLIENTE_AMAZON = new Clientes
+            Interfaces.ClientePorTelefono CLIENTE_AMAZON = new()
             {
-                Nº_Cliente = "32624",
+                Cliente = "32624",
                 Contacto = "0",
-                ContactoDefecto = "0",
                 ContactoCobro = "0",
                 Vendedor = "NV",
-                IVA = "G21"
+                Iva = "G21"
             };
 
-            Telefono telefono = new(telefonoCliente, true);
-            List<Clientes> listaPosiblesClientes = new();
-            using (NestoEntities db = new NestoEntities())
-            {                
-                foreach (string t in telefono.TodosLosTelefonos)
-                {
-                    var clientesEncontrados = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.Estado >= 0 && c.Teléfono.Contains(t));
-                    listaPosiblesClientes.AddRange(clientesEncontrados);
-                }                
-            }
-            if (listaPosiblesClientes.Any())
+            if (string.IsNullOrWhiteSpace(telefonoCliente))
             {
-                return listaPosiblesClientes.First();
+                return CLIENTE_AMAZON;
+            }
+
+            Telefono telefono = new(telefonoCliente, true);
+            foreach (string t in telefono.TodosLosTelefonos)
+            {
+                try
+                {
+                    var encontrados = await clientesPorTelefono.BuscarClientesPorTelefonoAsync(t).ConfigureAwait(false);
+                    if (encontrados.Count > 0)
+                    {
+                        return encontrados[0];
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AmazonApiOrdersService.LogDiag($"BuscarClienteAsync: fallo buscando '{t}' en la API ({ex.Message}); se usa el cliente genérico");
+                    break;
+                }
             }
 
             return CLIENTE_AMAZON;
