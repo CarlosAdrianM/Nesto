@@ -1,3 +1,4 @@
+using FikaAmazonAPI.AmazonSpApiSDK.Models.Orders;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace CanalesExternosTests
@@ -5,6 +6,48 @@ namespace CanalesExternosTests
     [TestClass]
     public class AmazonApiOrdersServiceTests
     {
+        // Nesto#441: solo se consulta GetOrderAddress (rate limit muy bajo) para pedidos que
+        // aún no están registrados en Nesto; el resto se omite o sale de la caché de sesión.
+
+        [TestMethod]
+        public void EstaRegistradoEnNesto_SellerOrderIdNumericoDistintoDelDeAmazon_True()
+        {
+            var order = new Order { AmazonOrderId = "402-1463498-4511504", SellerOrderId = "923456" };
+
+            Assert.IsTrue(AmazonApiOrdersService.EstaRegistradoEnNesto(order));
+        }
+
+        [TestMethod]
+        public void EstaRegistradoEnNesto_SinSellerOrderId_False()
+        {
+            var order = new Order { AmazonOrderId = "402-1463498-4511504", SellerOrderId = null };
+
+            Assert.IsFalse(AmazonApiOrdersService.EstaRegistradoEnNesto(order));
+        }
+
+        [TestMethod]
+        public void EstaRegistradoEnNesto_SellerOrderIdIgualAlDeAmazon_False()
+        {
+            // Amazon devuelve SellerOrderId = AmazonOrderId mientras el vendedor no informa otro
+            var order = new Order { AmazonOrderId = "402-1463498-4511504", SellerOrderId = "402-1463498-4511504" };
+
+            Assert.IsFalse(AmazonApiOrdersService.EstaRegistradoEnNesto(order));
+        }
+
+        [TestMethod]
+        public void EstaRegistradoEnNesto_SellerOrderIdNoNumerico_False()
+        {
+            var order = new Order { AmazonOrderId = "402-1463498-4511504", SellerOrderId = "WEB-1234" };
+
+            Assert.IsFalse(AmazonApiOrdersService.EstaRegistradoEnNesto(order));
+        }
+
+        [TestMethod]
+        public void EstaRegistradoEnNesto_OrderNull_False()
+        {
+            Assert.IsFalse(AmazonApiOrdersService.EstaRegistradoEnNesto(null));
+        }
+
         // Respuesta representativa de open.er-api.com (base EUR). El valor de cada
         // divisa son "unidades por 1 EUR", igual que el atributo rate del BCE.
         private const string RespuestaOk =

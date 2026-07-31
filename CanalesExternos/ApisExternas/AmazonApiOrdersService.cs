@@ -23,6 +23,44 @@ public class AmazonApiOrdersService
     // Marketplace ID de amazon.ae (Emiratos �rabes Unidos).
     internal const string MARKETPLACE_AE = "A2VIGQ35RCS4UG";
 
+    // Nesto#441: GetOrderAddress tiene un rate limit muy bajo y las direcciones de un
+    // pedido no cambian: se cachean por sesi�n para que las recargas no repitan el N+1.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, Address> _cacheDirecciones = new();
+
+    // Nesto#441: un pedido con SellerOrderId num�rico ya tiene pedido en Nesto; su direcci�n
+    // solo se usa para pintar el grid, as� que no compensa el GetOrderAddress.
+    internal static bool EstaRegistradoEnNesto(Order order) =>
+        !string.IsNullOrWhiteSpace(order?.SellerOrderId) &&
+        order.SellerOrderId != order.AmazonOrderId &&
+        int.TryParse(order.SellerOrderId, out _);
+
+    private static async Task CompletarDirecciones(AmazonConnection conexion, List<Order> orders, string consulta)
+    {
+        int consultadas = 0, deCache = 0, omitidas = 0;
+        foreach (var order in orders)
+        {
+            if (EstaRegistradoEnNesto(order))
+            {
+                omitidas++;
+                continue;
+            }
+            if (_cacheDirecciones.TryGetValue(order.AmazonOrderId, out Address direccionCacheada))
+            {
+                order.ShippingAddress = direccionCacheada;
+                deCache++;
+                continue;
+            }
+            var address = await conexion.Orders.GetOrderAddressAsync(order.AmazonOrderId).ConfigureAwait(false);
+            order.ShippingAddress = address.ShippingAddress;
+            if (address.ShippingAddress != null)
+            {
+                _cacheDirecciones[order.AmazonOrderId] = address.ShippingAddress;
+            }
+            consultadas++;
+        }
+        LogDiag($"{consulta}: direcciones -> {consultadas} consultadas a Amazon, {deCache} de cach�, {omitidas} omitidas (ya registradas en Nesto)");
+    }
+
     // Construye la lista de MarketplaceIds para las consultas de pedidos.
     private static List<string> ConstruirMarketplaceIds()
     {
@@ -136,11 +174,7 @@ public class AmazonApiOrdersService
             var conexion = AmazonApiOrdersService.ConexionAmazon();
             var orders = await conexion.Orders.GetOrdersAsync(searchOrderList).ConfigureAwait(false);
             LogResultadoConsulta("MFN (Unshipped/PartiallyShipped)", searchOrderList, orders);
-            foreach (var orderAdresss in orders)
-            {
-                var address = await conexion.Orders.GetOrderAddressAsync(orderAdresss.AmazonOrderId).ConfigureAwait(false);
-                orderAdresss.ShippingAddress = address.ShippingAddress;
-            }
+            await CompletarDirecciones(conexion, orders, "MFN").ConfigureAwait(false);
             return orders;
         }
         catch (Exception ex)
@@ -188,11 +222,7 @@ public class AmazonApiOrdersService
             var conexion = AmazonApiOrdersService.ConexionAmazon();
             var orders = await conexion.Orders.GetOrdersAsync(searchOrderList).ConfigureAwait(false);
             LogResultadoConsulta("FBA (Shipped/AFN)", searchOrderList, orders);
-            foreach (var orderAdresss in orders)
-            {
-                var address = await conexion.Orders.GetOrderAddressAsync(orderAdresss.AmazonOrderId).ConfigureAwait(false);
-                orderAdresss.ShippingAddress = address.ShippingAddress;
-            }
+            await CompletarDirecciones(conexion, orders, "FBA").ConfigureAwait(false);
             return orders;
         }
         catch (Exception ex)
