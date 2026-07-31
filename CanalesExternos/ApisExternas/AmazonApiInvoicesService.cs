@@ -267,6 +267,8 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                         case "ie": return "Irlanda";
                         case "be": return "Bélgica";
                         case "uk": return "UK";
+                        case "ae": return "Emiratos Árabes Unidos";
+                        case "sa": return "Arabia Saudí";
                     }
                 }
             }
