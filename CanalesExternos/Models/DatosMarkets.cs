@@ -84,7 +84,7 @@ namespace Nesto.Modulos.CanalesExternos.Models
                     },
                     new Mercado
                     {
-                        Id = "A17E79C6D8DUNQ",
+                        Id = "A17E79C6D8DWNP",
                         NombreMarket = "Amazon.sa",
                         CuentaContablePago = "55500087",
                         CuentaContableComision = "55500088"
