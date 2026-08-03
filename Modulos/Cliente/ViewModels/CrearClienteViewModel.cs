@@ -44,6 +44,7 @@ namespace Nesto.Modulos.Cliente
             AbrirModelo347Command = new DelegateCommand(OnAbrirModelo347);
             AbrirExtractoClienteCommand = new DelegateCommand(OnAbrirExtractoCliente);
             AbrirNifIncorrectosCommand = new DelegateCommand(OnAbrirNifIncorrectos);
+            AbrirCodigosPostalesCommand = new DelegateCommand(OnAbrirCodigosPostales, CanAbrirCodigosPostales);
             AnnadirPersonaContactoCommand = new DelegateCommand(OnAnnadirPersonaContacto);
             BorrarPersonaContactoCommand = new DelegateCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
             CrearClienteCommand = new DelegateCommand(OnCrearCliente);
@@ -613,6 +614,18 @@ namespace Nesto.Modulos.Cliente
         private void OnAbrirNifIncorrectos()
         {
             RegionManager.RequestNavigate("MainRegion", "ClientesNifIncorrectosView");
+        }
+
+        // Nesto#442: mantenimiento de códigos postales, solo Dirección y Tienda online
+        public ICommand AbrirCodigosPostalesCommand { get; private set; }
+        private bool CanAbrirCodigosPostales()
+        {
+            return Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION)
+                || Configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE);
+        }
+        private void OnAbrirCodigosPostales()
+        {
+            RegionManager.RequestNavigate("MainRegion", "MantenimientoCodigosPostalesView");
         }
 
         public ICommand AnnadirPersonaContactoCommand { get; private set; }

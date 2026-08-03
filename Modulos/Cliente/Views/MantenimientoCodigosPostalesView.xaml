@@ -1,0 +1,132 @@
+<UserControl x:Class="Nesto.Modulos.Cliente.MantenimientoCodigosPostalesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:prism="http://prismlibrary.com/"
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             mc:Ignorable="d"
+             d:DesignHeight="550" d:DesignWidth="950"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             Background="White">
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Trabajando...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Text="Mantenimiento de Códigos Postales" FontSize="20" FontWeight="Bold" Margin="0,0,0,4"/>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                <TextBlock Text="Código postal o población:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox Text="{Binding Filtro, UpdateSourceTrigger=PropertyChanged}" MinWidth="200"
+                         VerticalContentAlignment="Center">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Return" Command="{Binding BuscarCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
+                <Button Content="Buscar" Command="{Binding BuscarCommand}" Margin="10,0,0,0" Padding="15,2" FontWeight="Bold"/>
+                <TextBlock Text="Los CPs sin país aparecen con la columna País vacía: son los que hay que corregir."
+                           Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="2" ItemsSource="{Binding Resultados}" AutoGenerateColumns="False"
+                      SelectedItem="{Binding Seleccionado}"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single" ColumnWidth="Auto">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <!-- Sin país: es lo que esta ventana viene a arreglar -->
+                            <DataTrigger Binding="{Binding Pais}" Value="{x:Null}">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Background" Value="#FFF4E5"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Código Postal" Binding="{Binding Numero}"/>
+                    <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="*"/>
+                    <DataGridTextColumn Header="Provincia" Binding="{Binding Provincia}"/>
+                    <DataGridTextColumn Header="Ruta" Binding="{Binding Ruta}"/>
+                    <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}"/>
+                    <DataGridTextColumn Header="País" Binding="{Binding Pais}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Border Grid.Row="3" BorderBrush="LightGray" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0"
+                    IsEnabled="{Binding HaySeleccion}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Población:" VerticalAlignment="Center" Width="80"/>
+                            <TextBox Text="{Binding PoblacionEdicion, UpdateSourceTrigger=PropertyChanged}" MinWidth="220"
+                                     VerticalContentAlignment="Center" CharacterCasing="Upper"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Provincia:" VerticalAlignment="Center" Width="80"/>
+                            <TextBox Text="{Binding ProvinciaEdicion, UpdateSourceTrigger=PropertyChanged}" MinWidth="220"
+                                     VerticalContentAlignment="Center" CharacterCasing="Upper"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Ruta:" VerticalAlignment="Center" Width="80"/>
+                            <TextBox Text="{Binding RutaEdicion, UpdateSourceTrigger=PropertyChanged}" Width="60"
+                                     VerticalContentAlignment="Center"/>
+                            <TextBlock Text="(00 = clientes extranjeros / sin ruta)" Foreground="DimGray"
+                                       VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="Vendedor:" VerticalAlignment="Center" Width="80"/>
+                            <controles:SelectorVendedor Configuracion="{Binding Configuracion}" Empresa="{Binding Empresa}"
+                                                        Seleccionado="{Binding VendedorEdicion, Mode=TwoWay}" Etiqueta=""
+                                                        MinWidth="220"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <TextBlock Text="País:" VerticalAlignment="Center" Width="80"/>
+                            <controles:SelectorPais Seleccionado="{Binding PaisEdicion, Mode=TwoWay}"
+                                                    VisibilidadEtiqueta="Collapsed" Width="220" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button Content="Guardar" Command="{Binding GuardarCommand}" Margin="80,12,0,0" Padding="20,3"
+                                FontWeight="Bold" HorizontalAlignment="Left"/>
+                    </StackPanel>
+
+                    <!-- Vendedores por grupo de producto (VendedoresCodigoPostalGrupoProducto) -->
+                    <StackPanel Grid.Column="2">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Vendedores por grupo de producto" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <Button Content="Añadir" Command="{Binding AnnadirVendedorGrupoCommand}" Margin="10,0,0,0" Padding="10,1"/>
+                        </StackPanel>
+                        <TextBlock Text="Ej.: PEL = peluquería. Si un grupo no está en la lista, usa el vendedor general del CP."
+                                   Foreground="DimGray" TextWrapping="Wrap" Margin="0,2,0,4"/>
+                        <DataGrid ItemsSource="{Binding VendedoresGrupoProducto}" AutoGenerateColumns="False"
+                                  CanUserAddRows="False" MinHeight="90" MaxHeight="160" ColumnWidth="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Grupo" Binding="{Binding GrupoProducto, UpdateSourceTrigger=PropertyChanged}" Width="80"/>
+                                <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+                                <DataGridTemplateColumn Header="">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="Quitar"
+                                                    Command="{Binding DataContext.BorrarVendedorGrupoCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                    CommandParameter="{Binding}" Padding="8,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

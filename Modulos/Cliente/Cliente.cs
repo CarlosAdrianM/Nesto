@@ -18,6 +18,9 @@ namespace Nesto.Modulos.Cliente
             // Nesto#417: clientes con NIF incorrecto para Verifactu, con corrección rápida
             containerRegistry.Register<object, ClientesNifIncorrectosView>("ClientesNifIncorrectosView");
             containerRegistry.Register<INifIncorrectosService, NifIncorrectosService>();
+            // Nesto#442: mantenimiento de códigos postales (país, ruta, vendedores)
+            containerRegistry.Register<object, MantenimientoCodigosPostalesView>("MantenimientoCodigosPostalesView");
+            containerRegistry.Register<ICodigosPostalesService, CodigosPostalesService>();
             containerRegistry.RegisterDialog<NotificacionTelefonoView, NotificacionTelefonoViewModel>();
         }
 

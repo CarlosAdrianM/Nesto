@@ -14,6 +14,8 @@
                 <RibbonButton Label="Crear Cliente" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirModuloCommand}" />
                 <!-- Nesto#417: corrección rápida de NIF incorrectos (Verifactu) -->
                 <RibbonButton Label="NIF incorrectos" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirNifIncorrectosCommand}" />
+                <!-- Nesto#442: mantenimiento de códigos postales (solo Dirección y Tienda online) -->
+                <RibbonButton Label="Códigos Postales" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirCodigosPostalesCommand}" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpDocumentos"
                                 Header="Documentos">
