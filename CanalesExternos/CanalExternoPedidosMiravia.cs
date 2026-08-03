@@ -11,19 +11,20 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using static Nesto.Infrastructure.Shared.Constantes;
-using Clientes = Nesto.Models.Nesto.Models.Clientes;
 
 namespace Nesto.Modulos.CanalesExternos
 {
     internal class CanalExternoPedidosMiravia : ICanalExternoPedidos
     {
         private readonly IConfiguracion _configuracion;
+        private readonly Interfaces.IClientesPorTelefonoService clientesPorTelefono;
 
         private const string FORMA_VENTA_MIRAVIA = "BLT";
 
-        public CanalExternoPedidosMiravia(IConfiguracion configuracion)
+        public CanalExternoPedidosMiravia(IConfiguracion configuracion, Interfaces.IClientesPorTelefonoService clientesPorTelefono)
         {
             _configuracion = configuracion;
+            this.clientesPorTelefono = clientesPorTelefono;
         }
         public async Task<string> ConfirmarPedido(PedidoCanalExterno pedido)
         {
@@ -37,22 +38,21 @@ namespace Nesto.Modulos.CanalesExternos
 
         public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
         {
-            var listaMiravia = MiraviaApiOrderService.GetOrders(fechaDesde, numeroMaxPedidos);
+            var listaMiravia = await Task.Run(() => MiraviaApiOrderService.GetOrders(fechaDesde, numeroMaxPedidos));
 
             ObservableCollection<PedidoCanalExterno> listaNesto = new ObservableCollection<PedidoCanalExterno>();
-            await Task.Run(() =>
+            foreach (Order order in listaMiravia)
             {
-                foreach (Order order in listaMiravia)
-                {
-
-                    PedidoCanalExterno pedidoExterno = TransformarPedido(order);
-                    pedidoExterno.Observaciones = "Phone:";
-                    pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoFijo) ? " " + pedidoExterno.TelefonoFijo : "";
-                    pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
-                    pedidoExterno.Observaciones += " " + pedidoExterno.PedidoCanalId;
-                    listaNesto.Add(pedidoExterno);
-                }
-            });
+                // Nesto#340: la búsqueda por teléfono va por la API (sin EF), patrón de
+                // CanalExternoPedidosAmazon
+                Interfaces.ClientePorTelefono cliente = await BuscarClienteAsync(order.AddressBilling?.Phone).ConfigureAwait(false);
+                PedidoCanalExterno pedidoExterno = TransformarPedido(order, cliente);
+                pedidoExterno.Observaciones = "Phone:";
+                pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoFijo) ? " " + pedidoExterno.TelefonoFijo : "";
+                pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
+                pedidoExterno.Observaciones += " " + pedidoExterno.PedidoCanalId;
+                listaNesto.Add(pedidoExterno);
+            }
 
             return listaNesto;
         }
@@ -79,37 +79,46 @@ namespace Nesto.Modulos.CanalesExternos
             throw new NotImplementedException();
         }
 
-        private Clientes BuscarCliente(string telefonoCliente)
+        // Nesto#340: la búsqueda por teléfono va por GET api/Clientes/PorTelefono (el filtro de
+        // empresa por defecto y Estado >= 0 lo aplica el servidor). Si la API falla, el pedido
+        // sale con el cliente genérico de Miravia, igual que cuando no hay coincidencias.
+        private async Task<Interfaces.ClientePorTelefono> BuscarClienteAsync(string telefonoCliente)
         {
-            Clientes CLIENTE_MIRAVIA = new Clientes
+            Interfaces.ClientePorTelefono CLIENTE_MIRAVIA = new()
             {
-                Nº_Cliente = "31517",
+                Cliente = "31517",
                 Contacto = "0",
-                ContactoDefecto = "0",
                 ContactoCobro = "0",
                 Vendedor = "NV",
-                IVA = "G21"
+                Iva = "G21"
             };
 
-            Telefono telefono = new(telefonoCliente, true);
-            List<Clientes> listaPosiblesClientes = new();
-            using (NestoEntities db = new NestoEntities())
+            if (string.IsNullOrWhiteSpace(telefonoCliente))
             {
-                foreach (string t in telefono.TodosLosTelefonos)
-                {
-                    var clientesEncontrados = db.Clientes.Where(c => c.Empresa == Constantes.Empresas.EMPRESA_DEFECTO && c.Estado >= 0 && c.Teléfono.Contains(t));
-                    listaPosiblesClientes.AddRange(clientesEncontrados);
-                }
+                return CLIENTE_MIRAVIA;
             }
-            if (listaPosiblesClientes.Any())
+
+            Telefono telefono = new(telefonoCliente, true);
+            foreach (string t in telefono.TodosLosTelefonos)
             {
-                return listaPosiblesClientes.First();
+                try
+                {
+                    var encontrados = await clientesPorTelefono.BuscarClientesPorTelefonoAsync(t).ConfigureAwait(false);
+                    if (encontrados.Count > 0)
+                    {
+                        return encontrados[0];
+                    }
+                }
+                catch (Exception)
+                {
+                    break;
+                }
             }
 
             return CLIENTE_MIRAVIA;
         }
 
-        private PedidoCanalExterno TransformarPedido(Order order)
+        private PedidoCanalExterno TransformarPedido(Order order, Interfaces.ClientePorTelefono cliente)
         {
             decimal orderTotal = Convert.ToDecimal(order.Price);
             PedidoCanalExterno pedidoExterno = new PedidoCanalExterno();
@@ -118,14 +127,13 @@ namespace Nesto.Modulos.CanalesExternos
             pedidoSalida.empresa = Constantes.Empresas.EMPRESA_DEFECTO;
             pedidoSalida.origen = Constantes.Empresas.EMPRESA_DEFECTO;
             string telefonoCliente = order.AddressBilling.Phone;
-            Clientes cliente = BuscarCliente(telefonoCliente);
-            pedidoSalida.cliente = cliente.Nº_Cliente;
+            pedidoSalida.cliente = cliente.Cliente;
             pedidoSalida.contacto = cliente.Contacto;
             pedidoSalida.contactoCobro = cliente.ContactoCobro;
             pedidoSalida.vendedor = cliente.Vendedor;
             pedidoSalida.comentarioPicking = cliente.ComentarioPicking;
 
-            pedidoSalida.iva = cliente.IVA;
+            pedidoSalida.iva = cliente.Iva;
             string numeroOrderMiravia = order.OrderId.ToString(); // ¿OrderId or OrderNumber?
 
             pedidoSalida.comentarios = numeroOrderMiravia + " \r\n";

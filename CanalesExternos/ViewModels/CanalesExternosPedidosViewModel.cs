@@ -46,7 +46,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             _container = container;
             _facturasAmazonService = facturasAmazonService;
 
-            Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion));
+            Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion, clientesPorTelefonoService));
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService));
             Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
             
