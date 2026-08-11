@@ -239,12 +239,28 @@ Public Class RemesasViewModel
             Return
         End If
 
+        ' NestoAPI#380: la puerta de neteo INFORMA pero no obliga. Caso real: un pago a cuenta
+        ' de -30 € de un curso de septiembre no debe impedir girar un efecto de 450 € que no
+        ' tiene nada que ver. Si el usuario confirma, la remesa se crea sin liquidar y el
+        ' flag viaja al servidor (que sin él sigue bloqueando).
+        Dim aceptarClientesConNegativos As Boolean = False
         Dim clientesConNegativos = seleccionados.Where(Function(c) c.ClienteConNegativos) _
             .Select(Function(c) c.Cliente).Distinct().ToList()
         If clientesConNegativos.Any() Then
-            mensajeError = "Hay clientes con movimientos negativos pendientes de revisar (liquidar en " &
-                "Extracto de Cliente o desmarcarlos): " & String.Join(", ", clientesConNegativos)
-            Return
+            Dim continuarSinLiquidar As Boolean = False
+            dialogService.ShowConfirmation("Clientes con movimientos negativos",
+                "Estos clientes tienen movimientos negativos pendientes (pagos a cuenta, abonos): " &
+                String.Join(", ", clientesConNegativos) & "." & vbCrLf &
+                "Puede liquidarlos en el Extracto de Cliente (doble clic en el efecto naranja) o " &
+                "crear la remesa sin liquidarlos." & vbCrLf & vbCrLf &
+                "¿Crear la remesa SIN liquidar esos movimientos?",
+                Sub(r) continuarSinLiquidar = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+            If Not continuarSinLiquidar Then
+                mensajeError = "Remesa cancelada: liquide los movimientos negativos en Extracto de " &
+                    "Cliente o desmarque los efectos de esos clientes."
+                Return
+            End If
+            aceptarClientesConNegativos = True
         End If
 
         Dim importe = seleccionados.Sum(Function(c) c.ImportePendiente)
@@ -266,7 +282,7 @@ Public Class RemesasViewModel
             estaOcupado = True
             Dim resultado = Await _remesasService.CrearRemesa(empresaActual, BancoRemesa,
                 seleccionados.Select(Function(c) c.Id).ToList(),
-                RespetarVencimientos, FechaCargo, FechaSeleccionHasta)
+                RespetarVencimientos, FechaCargo, FechaSeleccionHasta, aceptarClientesConNegativos)
             numeroCreado = resultado.NumeroRemesa
             mensajeError = $"Remesa {resultado.NumeroRemesa} creada: {resultado.NumeroEfectos} efectos, {resultado.Importe:C}"
             ' Refrescar: la remesa nueva aparece en la lista y los efectos salen de candidatos

@@ -22,8 +22,11 @@ Public Interface IRemesasService
     ' NestoAPI#345: respetarVencimientos=True → cada efecto conserva su vencimiento (suelo hoy, un
     ' cargo por fecha); False → todos a fechaCargo (nunca anterior a hoy, el servidor lo asegura).
     ' seleccionHasta = la fecha con la que se cargaron los candidatos (el servidor revalida igual).
+    ' NestoAPI#380: aceptarClientesConNegativos=True → el usuario ha confirmado el aviso de
+    ' clientes con movimientos negativos y quiere remesar SIN liquidarlos.
     Function CrearRemesa(empresa As String, banco As String, efectos As List(Of Integer),
-                         respetarVencimientos As Boolean, fechaCargo As Date, seleccionHasta As Date?) As Task(Of CrearRemesaResponseModel)
+                         respetarVencimientos As Boolean, fechaCargo As Date, seleccionHasta As Date?,
+                         aceptarClientesConNegativos As Boolean) As Task(Of CrearRemesaResponseModel)
     ' Slice 6: el fichero SEPA ISO 20022 lo genera el servidor (único call site del SP).
     Function CrearFicheroRemesa(remesa As Integer, codigo As String, fechaCobro As Date) As Task(Of String)
     ' Slice 7: contabiliza las devoluciones del fichero SEPA de impagados del banco.

@@ -157,7 +157,8 @@ Public Class RemesasService
     ' NestoAPI#332: crea la remesa. El servidor revalida (candidatos frescos, gating #172,
     ' puerta de neteo) y contabiliza; los BadRequest traen el motivo legible.
     Public Async Function CrearRemesa(empresa As String, banco As String, efectos As List(Of Integer),
-                                      respetarVencimientos As Boolean, fechaCargo As Date, seleccionHasta As Date?) As Task(Of CrearRemesaResponseModel) Implements IRemesasService.CrearRemesa
+                                      respetarVencimientos As Boolean, fechaCargo As Date, seleccionHasta As Date?,
+                                      aceptarClientesConNegativos As Boolean) As Task(Of CrearRemesaResponseModel) Implements IRemesasService.CrearRemesa
         Using client As HttpClient = _clienteApiFactory.Crear()
             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
@@ -167,7 +168,8 @@ Public Class RemesasService
                 JsonConvert.SerializeObject(New With {
                     .Empresa = empresa, .Banco = banco, .Efectos = efectos,
                     .RespetarVencimientos = respetarVencimientos, .FechaCargo = fechaCargo,
-                    .SeleccionHasta = seleccionHasta}),
+                    .SeleccionHasta = seleccionHasta,
+                    .AceptarClientesConNegativos = aceptarClientesConNegativos}),
                 Text.Encoding.UTF8, "application/json")
             Dim response = Await client.PostAsync("Remesas", contenido)
             Dim body As String = Await response.Content.ReadAsStringAsync()

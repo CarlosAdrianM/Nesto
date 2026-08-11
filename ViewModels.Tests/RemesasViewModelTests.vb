@@ -292,7 +292,7 @@ Public Class RemesasViewModelTests
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
                 Candidato(111, importe:=250.5D), Candidato(222, importe:=90.5D)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10900, .Importe = 341D, .NumeroEfectos = 2}))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -300,17 +300,20 @@ Public Class RemesasViewModelTests
 
         Await vm.CrearRemesaAsync()
 
+        ' NestoAPI#380: sin clientes con negativos, el flag de aceptación viaja en False
         A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, "5",
-            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 2 AndAlso ids.Contains(111) AndAlso ids.Contains(222)), A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 2 AndAlso ids.Contains(111) AndAlso ids.Contains(222)), A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, False)) _
             .MustHaveHappenedOnceExactly()
         StringAssert.Contains(vm.mensajeError, "10900")
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)).MustHaveHappenedTwiceExactly()
     End Function
 
     <TestMethod()>
-    Public Async Function CrearRemesa_ClienteConNegativosMarcado_AvisaYNoLlama() As Task
-        ' La puerta de neteo: liquidar en Extracto de Cliente (Nesto#419) o desmarcar
-        ConfirmarSiempre(respuestaOk:=True)
+    Public Async Function CrearRemesa_ClienteConNegativosYUsuarioRechaza_NoLlama() As Task
+        ' NestoAPI#380: la puerta de neteo ya no es obligatoria — pide confirmación. Si el
+        ' usuario NO confirma, se cancela (liquidar en Extracto de Cliente o desmarcar).
+        ResponderPorTitulo(New Dictionary(Of String, Boolean) From {
+            {"Clientes con movimientos negativos", False}})
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
                 Candidato(111, conNegativos:=True, cliente:="15191")}))
@@ -320,9 +323,33 @@ Public Class RemesasViewModelTests
 
         Await vm.CrearRemesaAsync()
 
-        StringAssert.Contains(vm.mensajeError, "15191")
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+        StringAssert.Contains(vm.mensajeError, "liquide")
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_ClienteConNegativosAceptado_LlamaConElFlag() As Task
+        ' NestoAPI#380 (caso real): un pago a cuenta de -30 € de un curso de septiembre no debe
+        ' obligar a liquidar para girar un efecto de 450 €. El usuario confirma el aviso y el
+        ' flag viaja al servidor (que sin él seguiría bloqueando).
+        ResponderPorTitulo(New Dictionary(Of String, Boolean) From {
+            {"Clientes con movimientos negativos", True}, {"Crear remesa", True}, {"Imprimir remesa", False}})
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(111, conNegativos:=True, cliente:="15191")}))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
+            .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10902, .Importe = 450D, .NumeroEfectos = 1}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored,
+            A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, True)) _
+            .MustHaveHappenedOnceExactly()
+        StringAssert.Contains(vm.mensajeError, "10902")
     End Function
 
     <TestMethod()>
@@ -330,7 +357,7 @@ Public Class RemesasViewModelTests
         ConfirmarSiempre(respuestaOk:=True)
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .Throws(New Exception("El efecto 111 ya no es candidato a remesa"))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -402,7 +429,7 @@ Public Class RemesasViewModelTests
         ConfirmarSiempre(respuestaOk:=True)
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10900, .Importe = 100D, .NumeroEfectos = 1}))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -422,7 +449,7 @@ Public Class RemesasViewModelTests
             {"Crear remesa", True}, {"Imprimir remesa", False}})
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10900, .Importe = 100D, .NumeroEfectos = 1}))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -430,7 +457,7 @@ Public Class RemesasViewModelTests
 
         Await vm.CrearRemesaAsync()
 
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .MustHaveHappenedOnceExactly()
         A.CallTo(Function() _servicio.DescargarInformeRemesaPdf(A(Of String).Ignored, A(Of Integer).Ignored)) _
             .MustNotHaveHappened()
@@ -448,7 +475,7 @@ Public Class RemesasViewModelTests
 
         Await vm.CrearRemesaAsync()
 
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .MustNotHaveHappened()
     End Function
 
@@ -473,7 +500,7 @@ Public Class RemesasViewModelTests
         ConfirmarSiempre(respuestaOk:=True)
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
             .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {Candidato(111)}))
-        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored)) _
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10901, .NumeroEfectos = 1}))
         Dim vm = CrearViewModel()
         vm.BancoRemesa = "5"
@@ -483,7 +510,7 @@ Public Class RemesasViewModelTests
         Await vm.CrearRemesaAsync()
 
         A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, "5",
-            A(Of List(Of Integer)).Ignored, True, A(Of Date).Ignored, A(Of Date?).Ignored)).MustHaveHappenedOnceExactly()
+            A(Of List(Of Integer)).Ignored, True, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)).MustHaveHappenedOnceExactly()
         Assert.IsFalse(vm.ForzarFechaUnica, "ForzarFechaUnica es el espejo de RespetarVencimientos")
     End Function
 
