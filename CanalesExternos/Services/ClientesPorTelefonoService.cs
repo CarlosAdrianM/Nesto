@@ -55,6 +55,22 @@ namespace Nesto.Modulos.CanalesExternos.Services
             return JsonConvert.DeserializeObject<List<ClientePorTelefono>>(cuerpo) ?? new List<ClientePorTelefono>();
         }
 
+        public async Task<int> BuscarPedidoPorReferenciaCanalAsync(string referencia)
+        {
+            if (string.IsNullOrWhiteSpace(referencia))
+            {
+                return 0;
+            }
+            using HttpClient client = await CrearClienteAsync();
+            HttpResponseMessage respuesta = await client.GetAsync($"PedidosVenta/PorReferenciaCanal?referencia={Uri.EscapeDataString(referencia.Trim())}");
+            string cuerpo = await respuesta.Content.ReadAsStringAsync();
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                throw new Exception($"Error {(int)respuesta.StatusCode} al buscar el pedido por referencia: {cuerpo}");
+            }
+            return JsonConvert.DeserializeObject<int>(cuerpo);
+        }
+
         private async Task<HttpClient> CrearClienteAsync()
         {
             HttpClient client = new()

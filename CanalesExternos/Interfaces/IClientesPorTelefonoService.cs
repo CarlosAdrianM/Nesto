@@ -28,5 +28,9 @@ namespace Nesto.Modulos.CanalesExternos.Interfaces
         // Nesto#340: búsqueda por NIF (exacto y, si no hay, Contains) para los pedidos de
         // Prestashop; el filtro de principales activos lo aplica el servidor
         Task<List<ClientePorTelefono>> BuscarClientesPorNifAsync(string nif);
+        // Nesto#340: nº del pedido Nesto cuyos Comentarios empiezan por la referencia del canal
+        // (GET api/PedidosVenta/PorReferenciaCanal); 0 = no hay. Antes lo resolvía
+        // PrestashopService con EF.
+        Task<int> BuscarPedidoPorReferenciaCanalAsync(string referencia);
     }
 }

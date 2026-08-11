@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
-using Nesto.Models.Nesto.Models;
 
 namespace Nesto.Modulos.CanalesExternos.ApisExternas
 {
@@ -214,16 +213,9 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
             pedidoPrestashop.Cliente = xmlCliente;
             pedidoPrestashop.Pais = xmlPais;
             pedidoPrestashop.Provincia = xmlProvincia;
-
-            using (NestoEntities db = new NestoEntities())
-            {
-                string referencia = xmlPedido.Element("reference").Value;
-                int? pedidoNesto = db.CabPedidoVta.Where(c => c.Comentarios.StartsWith(referencia)).FirstOrDefault()?.Número;
-                if (pedidoNesto != null && pedidoNesto != 0)
-                {
-                    pedidoPrestashop.PedidoNestoId = (int)pedidoNesto;
-                }
-            }            
+            // Nesto#340: el PedidoNestoId lo resuelve el llamante por la API
+            // (api/PedidosVenta/PorReferenciaCanal); este servicio queda como cliente puro
+            // de la API de Prestashop, sin EF.
 
             return pedidoPrestashop;
         }

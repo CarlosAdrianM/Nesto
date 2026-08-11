@@ -43,8 +43,9 @@ namespace Nesto.Modulos.CanalesExternos
             foreach (var urlPedido in listaPrestashop)
             {
                 PedidoPrestashop pedidoPrestashop = await servicio.CargarPedidoAsync(urlPedido);
-                // Nesto#340: la búsqueda por NIF va por la API (sin EF), patrón de
-                // CanalExternoPedidosAmazon/Miravia
+                // Nesto#340: la búsqueda por NIF y el nº de pedido Nesto van por la API (sin EF),
+                // patrón de CanalExternoPedidosAmazon/Miravia
+                pedidoPrestashop.PedidoNestoId = await BuscarPedidoNestoIdAsync(pedidoPrestashop).ConfigureAwait(false);
                 Interfaces.ClientePorTelefono cliente = await BuscarClienteAsync(pedidoPrestashop.Direccion.Element("dni")?.Value).ConfigureAwait(false);
                 PedidoCanalExterno pedidoExterno = TransformarPedido(pedidoPrestashop, cliente);
                 pedidoExterno.Observaciones = "Phone:";
@@ -181,6 +182,22 @@ namespace Nesto.Modulos.CanalesExternos
 
             return pedidoExterno;
         }
+        // Nesto#340: el nº de pedido Nesto (la referencia del canal al principio de Comentarios)
+        // va por GET api/PedidosVenta/PorReferenciaCanal; antes lo resolvía PrestashopService con
+        // EF. API caída → 0, igual que cuando no hay coincidencias.
+        private async Task<int> BuscarPedidoNestoIdAsync(PedidoPrestashop pedidoPrestashop)
+        {
+            try
+            {
+                string referencia = pedidoPrestashop.Pedido.Element("reference")?.Value;
+                return await clientesLookup.BuscarPedidoPorReferenciaCanalAsync(referencia).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        }
+
         // Nesto#340: la búsqueda por NIF va por GET api/Clientes/PorNif (el servidor aplica el
         // exacto-y-si-no-Contains sobre principales activos, como el EF viejo). Si la API falla,
         // el pedido sale con el cliente genérico de la tienda online, igual que sin coincidencias.
