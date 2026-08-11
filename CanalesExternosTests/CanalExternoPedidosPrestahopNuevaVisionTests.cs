@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos;
+using Nesto.Modulos.CanalesExternos.Interfaces;
 
 namespace CanalesExternosTests
 {
@@ -10,12 +11,13 @@ namespace CanalesExternosTests
     {
         CanalExternoPedidosPrestashopNuevaVision canal;
         IConfiguracion configuracion = A.Fake<IConfiguracion>();
+        IClientesPorTelefonoService clientesLookup = A.Fake<IClientesPorTelefonoService>();
 
         [TestInitialize]
         public void Initialize()
         {
-            
-            canal = new CanalExternoPedidosPrestashopNuevaVision(configuracion);
+
+            canal = new CanalExternoPedidosPrestashopNuevaVision(configuracion, clientesLookup);
         }
 
         [TestMethod]

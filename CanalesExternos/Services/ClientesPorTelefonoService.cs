@@ -39,6 +39,22 @@ namespace Nesto.Modulos.CanalesExternos.Services
             return JsonConvert.DeserializeObject<List<ClientePorTelefono>>(cuerpo) ?? new List<ClientePorTelefono>();
         }
 
+        public async Task<List<ClientePorTelefono>> BuscarClientesPorNifAsync(string nif)
+        {
+            if (string.IsNullOrWhiteSpace(nif))
+            {
+                return new List<ClientePorTelefono>();
+            }
+            using HttpClient client = await CrearClienteAsync();
+            HttpResponseMessage respuesta = await client.GetAsync($"Clientes/PorNif?nif={Uri.EscapeDataString(nif.Trim())}");
+            string cuerpo = await respuesta.Content.ReadAsStringAsync();
+            if (!respuesta.IsSuccessStatusCode)
+            {
+                throw new Exception($"Error {(int)respuesta.StatusCode} al buscar clientes por NIF: {cuerpo}");
+            }
+            return JsonConvert.DeserializeObject<List<ClientePorTelefono>>(cuerpo) ?? new List<ClientePorTelefono>();
+        }
+
         private async Task<HttpClient> CrearClienteAsync()
         {
             HttpClient client = new()

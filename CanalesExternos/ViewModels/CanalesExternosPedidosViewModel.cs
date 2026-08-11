@@ -48,7 +48,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
             Factory.Add("Miravia", new CanalExternoPedidosMiravia(configuracion, clientesPorTelefonoService));
             Factory.Add("Amazon", new CanalExternoPedidosAmazon(configuracion, clientesPorTelefonoService));
-            Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion));
+            Factory.Add("PrestashopNV", new CanalExternoPedidosPrestashopNuevaVision(configuracion, clientesPorTelefonoService));
             
             CrearComandos();
 

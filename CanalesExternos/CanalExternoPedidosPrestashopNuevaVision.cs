@@ -1,7 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Models;
-using Nesto.Models.Nesto.Models;
 using Nesto.Modulos.CanalesExternos.ApisExternas;
 using System;
 using System.Collections.Generic;
@@ -27,10 +26,12 @@ namespace Nesto.Modulos.CanalesExternos
         private const string FORMA_PAGO_MIRAVIA = "Miravia";
 
         private string formaVenta = "WEB";
+        private readonly Interfaces.IClientesPorTelefonoService clientesLookup;
 
-        public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion)
+        public CanalExternoPedidosPrestashopNuevaVision(IConfiguracion configuracion, Interfaces.IClientesPorTelefonoService clientesLookup)
         {
             this.configuracion = configuracion;
+            this.clientesLookup = clientesLookup;
         }
         public async Task<ObservableCollection<PedidoCanalExterno>> GetAllPedidosAsync(DateTime fechaDesde, int numeroMaxPedidos)
         {
@@ -42,7 +43,10 @@ namespace Nesto.Modulos.CanalesExternos
             foreach (var urlPedido in listaPrestashop)
             {
                 PedidoPrestashop pedidoPrestashop = await servicio.CargarPedidoAsync(urlPedido);
-                PedidoCanalExterno pedidoExterno = TransformarPedido(pedidoPrestashop);
+                // Nesto#340: la búsqueda por NIF va por la API (sin EF), patrón de
+                // CanalExternoPedidosAmazon/Miravia
+                Interfaces.ClientePorTelefono cliente = await BuscarClienteAsync(pedidoPrestashop.Direccion.Element("dni")?.Value).ConfigureAwait(false);
+                PedidoCanalExterno pedidoExterno = TransformarPedido(pedidoPrestashop, cliente);
                 pedidoExterno.Observaciones = "Phone:";
                 pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoFijo) ? " " + pedidoExterno.TelefonoFijo : "";
                 pedidoExterno.Observaciones += !string.IsNullOrEmpty(pedidoExterno.TelefonoMovil) ? " " + pedidoExterno.TelefonoMovil : "";
@@ -53,7 +57,7 @@ namespace Nesto.Modulos.CanalesExternos
             return listaNesto;
         }
 
-        private PedidoCanalExterno TransformarPedido(PedidoPrestashop pedidoEntrada)
+        private PedidoCanalExterno TransformarPedido(PedidoPrestashop pedidoEntrada, Interfaces.ClientePorTelefono cliente)
         {
             PedidoCanalExterno pedidoExterno = new();
             PedidoVentaDTO pedidoSalida = new()
@@ -61,14 +65,13 @@ namespace Nesto.Modulos.CanalesExternos
                 empresa = EMPRESA_DEFECTO,
                 origen = EMPRESA_DEFECTO
             };
-            Clientes cliente = BuscarCliente(pedidoEntrada.Direccion.Element("dni")?.Value);
-            pedidoSalida.cliente = cliente.Nº_Cliente;
+            pedidoSalida.cliente = cliente.Cliente;
             pedidoSalida.contacto = cliente.ContactoDefecto;
             pedidoSalida.contactoCobro = cliente.ContactoCobro;
             pedidoSalida.vendedor = cliente.Vendedor;
             pedidoSalida.comentarioPicking = cliente.ComentarioPicking;
 
-            pedidoSalida.iva = cliente.IVA;
+            pedidoSalida.iva = cliente.Iva;
             pedidoSalida.comentarios = pedidoEntrada.Pedido.Element("reference").Value + " \r\n";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("firstname").Value.ToString().ToUpper() + " ";
             pedidoSalida.comentarios += pedidoEntrada.Direccion.Element("lastname").Value.ToString().ToUpper() + "\r\n";
@@ -178,16 +181,19 @@ namespace Nesto.Modulos.CanalesExternos
 
             return pedidoExterno;
         }
-        private Clientes BuscarCliente(string dniCliente)
+        // Nesto#340: la búsqueda por NIF va por GET api/Clientes/PorNif (el servidor aplica el
+        // exacto-y-si-no-Contains sobre principales activos, como el EF viejo). Si la API falla,
+        // el pedido sale con el cliente genérico de la tienda online, igual que sin coincidencias.
+        private async Task<Interfaces.ClientePorTelefono> BuscarClienteAsync(string dniCliente)
         {
-            Clientes CLIENTE_TIENDA_ONLINE = new()
+            Interfaces.ClientePorTelefono CLIENTE_TIENDA_ONLINE = new()
             {
-                Nº_Cliente = "31517",
+                Cliente = "31517",
                 Contacto = "0",
                 ContactoDefecto = "0",
                 ContactoCobro = "0",
                 Vendedor = "NV",
-                IVA = "G21"
+                Iva = "G21"
             };
 
             dniCliente = LimpiarDni(dniCliente);
@@ -196,14 +202,17 @@ namespace Nesto.Modulos.CanalesExternos
                 return CLIENTE_TIENDA_ONLINE;
             }
 
-            using (NestoEntities db = new())
+            try
             {
-                Clientes clienteEncontrado = db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Equals(dniCliente)).SingleOrDefault();
-                clienteEncontrado ??= db.Clientes.Where(c => c.Empresa == EMPRESA_DEFECTO && c.ClientePrincipal == true && c.Estado >= 0 && c.CIF_NIF.Contains(dniCliente)).FirstOrDefault();
-                if (clienteEncontrado != null)
+                var encontrados = await clientesLookup.BuscarClientesPorNifAsync(dniCliente).ConfigureAwait(false);
+                if (encontrados.Count > 0)
                 {
-                    return clienteEncontrado;
+                    return encontrados[0];
                 }
+            }
+            catch (Exception)
+            {
+                // API caída: mejor el cliente genérico que tumbar la carga de pedidos
             }
 
             return CLIENTE_TIENDA_ONLINE;
