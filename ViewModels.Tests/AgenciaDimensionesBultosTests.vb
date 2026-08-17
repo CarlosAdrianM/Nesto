@@ -19,11 +19,6 @@ Public Class AgenciaDimensionesBultosTests
     End Sub
 
     <TestMethod()>
-    Public Sub Sending_NoExigeDimensionesBultos()
-        Assert.IsFalse(New AgenciaSending().DimensionesBultosObligatorias)
-    End Sub
-
-    <TestMethod()>
     Public Sub ComponerCuerpoCorreo_ConDimensiones_IncluyeMedidasBultosYPeso()
         Dim envio As New EnviosAgencia With {
             .Cliente = "15191",

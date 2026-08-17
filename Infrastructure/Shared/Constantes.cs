@@ -6,8 +6,10 @@ namespace Nesto.Infrastructure.Shared
     {
         public class Agencias
         {
-            public const string AGENCIA_DEFECTO = "Sending";
-            public const string AGENCIA_INTERNACIONAL = "Sending"; // String.Empty para no usar ninguna
+            // Nesto#443 (17/08/26): Sending eliminada por desuso; ASM/GLS pasa a ser la agencia
+            // por defecto y la del cambio automático en pedidos internacionales (decisión Carlos).
+            public const string AGENCIA_DEFECTO = "ASM";
+            public const string AGENCIA_INTERNACIONAL = "ASM"; // String.Empty para no usar ninguna
             public const string AGENCIA_REEMBOLSOS = "Correos Express"; // String.Empty para no usar ninguna
             public const int ESTADO_INICIAL_ENVIO = 0;
             public const int ESTADO_TRAMITADO_ENVIO = 1;

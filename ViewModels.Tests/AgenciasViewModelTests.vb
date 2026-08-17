@@ -929,7 +929,7 @@ Public Class AgenciaViewModelTests
         Dim agencia1 = A.Fake(Of AgenciasTransporte)
         agencia1.Empresa = "1"
         agencia1.Numero = 1
-        agencia1.Nombre = "Sending"
+        agencia1.Nombre = "ASM" ' Nesto#443: la agencia por defecto ya no es Sending
         agencia1.Ruta = "YYY"
         Dim agencia2 = A.Fake(Of AgenciasTransporte)
         agencia2.Empresa = "1"

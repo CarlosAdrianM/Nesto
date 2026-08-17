@@ -111,7 +111,7 @@ Public Class AgenciasViewModel
         'factory.Add("OnTime", Function() New AgenciaOnTime())
         'factory.Add("Glovo", Function() New AgenciaGlovo())
         factory.Add("Correos Express", Function() New AgenciaCorreosExpress())
-        factory.Add("Sending", Function() New AgenciaSending())
+        ' Nesto#443: Sending eliminada por desuso (agencia 10; sus envíos históricos siguen viéndose)
         factory.Add("Canteras", Function() New AgenciaCanteras()) ' Nesto#359: envíos manuales a Canarias
         factory.Add("Innovatrans", Function() New AgenciaInnovatrans()) ' registrar al imprimir (DataTrans, server-side)
 
@@ -169,19 +169,6 @@ Public Class AgenciasViewModel
             Else
                 agenciasVM.EnvioPendienteSeleccionado.Servicio = 90 ' Internacional monobulto
             End If
-        ElseIf agenciasVM.EnvioPendienteSeleccionado.Agencia = 10 Then  'Sending
-            Dim codigoAlfaEtiqueta As String = String.Empty
-            If etiqueta.PaisISO = "ES" Then
-                codigoAlfaEtiqueta = "034"
-            ElseIf etiqueta.PaisISO = "PT" Then
-                codigoAlfaEtiqueta = "035"
-            End If
-            Dim pais As Pais = agenciasVM.listaPaises.SingleOrDefault(Function(p) p.CodigoAlfa = codigoAlfaEtiqueta)
-            If Not IsNothing(pais) Then
-                agenciasVM.EnvioPendienteSeleccionado.Pais = pais.Id
-            End If
-            agenciasVM.EnvioPendienteSeleccionado.Horario = agenciasVM.listaHorarios.FirstOrDefault().id
-            agenciasVM.EnvioPendienteSeleccionado.Servicio = agenciasVM.listaServicios.FirstOrDefault().ServicioId
         ElseIf agenciasVM.EnvioPendienteSeleccionado.Agencia = 1 Then ' GLS
             agenciasVM.EnvioPendienteSeleccionado.Servicio = 96 'BusinessParcel
             agenciasVM.EnvioPendienteSeleccionado.Horario = 18

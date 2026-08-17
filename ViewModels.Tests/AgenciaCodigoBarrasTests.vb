@@ -17,14 +17,7 @@ Public Class AgenciaCodigoBarrasTests
         Return New AgenciasTransporte With {.PrefijoCodigoBarras = prefijo}
     End Function
 
-    <TestMethod()>
-    Public Sub Sending_PrefijoDeLaAgenciaDelEnvio_MasNumeroEnOchoDigitos()
-        Dim agencia = New AgenciaSending()
-
-        Dim codigo = agencia.calcularCodigoBarras(CrearEnvio(1234), CrearAgencia("3"))
-
-        Assert.AreEqual("300001234", codigo)
-    End Sub
+    ' Nesto#443: el test de Sending se eliminó con la agencia (sin uso desde febrero/26).
 
     <TestMethod()>
     Public Sub Asm_ServicioNormal_PrefijoDeLaAgenciaDelEnvio_MasNumeroEnSieteDigitos()
