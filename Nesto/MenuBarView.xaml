@@ -137,6 +137,13 @@
                 <RibbonButton Label="Premio Deuda" LargeImageSource="/Images/Premios.png" Command="{Binding RatioDeudaCommand}" />
             </RibbonGroup>
 
+            <!-- NestoAPI#350: balances calculados por el servidor (sustituyen a los del Nesto
+                 viejo). Mismo público que Ventas del grupo: dirección. -->
+            <RibbonGroup x:Name="grpContabilidad" Header="Contabilidad" Visibility="{Binding VentasEmpresasVisible}">
+                <RibbonButton Label="Balance Pymes" LargeImageSource="/Icono2_NV_256x256.ico" Command="{Binding BalancePymesCommand}" />
+                <RibbonButton Label="PyG Pymes" LargeImageSource="/Icono2_NV_256x256.ico" Command="{Binding PerdidasGananciasCommand}" />
+            </RibbonGroup>
+
             <RibbonGroup x:Name="grpFechas" Header="Fechas">
                 <StackPanel>
                     <RibbonComboBox VerticalAlignment="Top" HorizontalAlignment="Stretch">

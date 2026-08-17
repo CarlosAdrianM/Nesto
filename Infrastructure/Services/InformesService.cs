@@ -48,6 +48,12 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/DetalleRapports/Pdf?fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}&listaVendedores={Uri.EscapeDataString(listaVendedores ?? string.Empty)}",
                 "el PDF del detalle de rapports").ConfigureAwait(false);
 
+        // NestoAPI#350: balances y cuentas de resultados (BPY, PGP...) generados por el servidor.
+        public async Task<byte[]> DescargarBalancePdf(string empresa, string numero, DateTime desde, DateTime hasta)
+            => await GetBytesAsync(
+                $"Informes/Balance/Pdf?empresa={Uri.EscapeDataString(empresa)}&numero={Uri.EscapeDataString(numero)}&desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}",
+                "el PDF del balance").ConfigureAwait(false);
+
         public async Task<List<ExtractoContableModel>> LeerExtractoContable(string empresa, string cuenta, DateTime fechaDesde, DateTime fechaHasta)
             => await GetAsync<List<ExtractoContableModel>>(
                 $"Informes/ExtractoContable?empresa={Uri.EscapeDataString(empresa)}&cuenta={Uri.EscapeDataString(cuenta)}&fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}",

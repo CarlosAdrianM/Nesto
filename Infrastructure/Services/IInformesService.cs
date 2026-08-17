@@ -15,6 +15,10 @@ namespace Nesto.Infrastructure.Services
         Task<byte[]> DescargarControlPedidosPdf();
         Task<List<DetalleRapportsModel>> LeerDetalleRapports(DateTime fechaDesde, DateTime fechaHasta, string listaVendedores);
         Task<byte[]> DescargarDetalleRapportsPdf(DateTime fechaDesde, DateTime fechaHasta, string listaVendedores);
+
+        /// <summary>NestoAPI#350: balance o cuenta de resultados (BPY, PGP...) calculado por el
+        /// servidor desde las tablas Balances/LinBalance, con el periodo y su año anterior.</summary>
+        Task<byte[]> DescargarBalancePdf(string empresa, string numero, DateTime desde, DateTime hasta);
         Task<List<ExtractoContableModel>> LeerExtractoContable(string empresa, string cuenta, DateTime fechaDesde, DateTime fechaHasta);
         Task<byte[]> DescargarExtractoContablePdf(string empresa, string cuenta, DateTime fechaDesde, DateTime fechaHasta);
         Task<List<UbicacionesInventarioModel>> LeerUbicacionesInventario(string empresa = "1");

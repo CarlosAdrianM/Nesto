@@ -40,6 +40,8 @@ Public Class MenuBarViewModel
         RapportCommand = New DelegateCommand(AddressOf OnRapport)
         ClientesFichaCommand = New DelegateCommand(AddressOf OnClientesFicha)
         ControlPedidosCommand = New DelegateCommand(AddressOf OnControlPedidos)
+        BalancePymesCommand = New DelegateCommand(Sub() GenerarInformeBalance("BPY", "BalancePymes"))
+        PerdidasGananciasCommand = New DelegateCommand(Sub() GenerarInformeBalance("PGP", "PerdidasGananciasPymes"))
         InventarioCommand = New DelegateCommand(AddressOf OnInventario)
         PickingCommand = New DelegateCommand(AddressOf OnPicking)
         PackingCommand = New DelegateCommand(AddressOf OnPacking)
@@ -172,6 +174,9 @@ Public Class MenuBarViewModel
     Public Property VendedoresClientesCommand As ICommand
     Public Property VendedoresPlanVentajasCommand As ICommand
     Public Property ParametrosCommand As ICommand
+    ' NestoAPI#350: balances y cuentas de resultados calculados por el servidor
+    Public Property BalancePymesCommand As ICommand
+    Public Property PerdidasGananciasCommand As ICommand
 
 #End Region
 
@@ -387,6 +392,34 @@ Public Class MenuBarViewModel
         ' Año Actual vs. Año Anterior; ya no se renderiza el RDLC en local.
         Dim pdf As Byte() = Await _servicioInformes.DescargarResumenVentasPdf(FechaDesde, FechaHasta, SoloFacturas)
         Dim fileName As String = Path.GetTempPath + "InformeVentas.pdf"
+        File.WriteAllBytes(fileName, pdf)
+        Process.Start(New ProcessStartInfo(fileName) With {
+            .UseShellExecute = True
+        })
+    End Sub
+
+    ' NestoAPI#350: balances y cuentas de resultados (BPY, PGP...) calculados por el servidor
+    ' desde las tablas Balances/LinBalance (sustituye a los informes del Nesto viejo). Fechas:
+    ' "Actual" = año en curso hasta hoy; "Anterior" = año pasado completo; "Personalizar" = las
+    ' fechas elegidas. Siempre empresa 1: los balances solo están definidos para ella.
+    Private Async Sub GenerarInformeBalance(numeroBalance As String, nombreFichero As String)
+        Dim fechaDesde As Date
+        Dim fechaHasta As Date
+        Select Case OpcionesFechas
+            Case "Anterior"
+                fechaDesde = New Date(Today.Year - 1, 1, 1)
+                fechaHasta = New Date(Today.Year - 1, 12, 31)
+            Case "Personalizar"
+                fechaDesde = FechaInformeInicial
+                fechaHasta = FechaInformeFinal
+            Case Else ' Actual
+                fechaDesde = New Date(Today.Year, 1, 1)
+                fechaHasta = Today
+        End Select
+
+        Dim pdf As Byte() = Await _servicioInformes.DescargarBalancePdf(
+            Constantes.Empresas.EMPRESA_DEFECTO, numeroBalance, fechaDesde, fechaHasta)
+        Dim fileName As String = Path.GetTempPath + nombreFichero + ".pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
             .UseShellExecute = True
