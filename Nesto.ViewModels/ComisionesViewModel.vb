@@ -18,7 +18,6 @@ Imports Application = System.Windows.Application
 Public Class ComisionesViewModel
     Inherits BindableBase
 
-    'Private Shared DbContext As NestoEntities = New NestoEntities
     Private container As IUnityContainer
     Private configuracion As IConfiguracion
     Private ReadOnly _dialogService As IDialogService
@@ -71,9 +70,6 @@ Public Class ComisionesViewModel
         datosCargados = True
 
         Try
-            'If DbContext.Database.Connection.State = System.Data.ConnectionState.Open Then
-            '    DbContext.Database.Connection.Close()
-            'End If
             listaVendedores = New ObservableCollection(Of VendedorDTO)((Await _servicio.LeerVendedores()).Where(Function(c) c.Estado = 0 OrElse c.Estado = 4 OrElse c.Estado = 2 OrElse c.Estado = 9))
         Catch ex As Exception
             DialogService.ShowError(ex.Message)
