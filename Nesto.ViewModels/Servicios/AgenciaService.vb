@@ -50,15 +50,16 @@ Public Class AgenciaService
         End Try
     End Sub
 
+    ' ===== Nesto#340 (Agencias, slice A1.b): los listados vienen de la API =====
+    ' GET api/EnviosAgencias/... replica los filtros EXACTOS que tenían estas consultas EF
+    ' (con tests server-side). Se deserializa sobre la ENTIDAD EnviosAgencia (POCO del EDMX)
+    ' con la agencia estampada como navegación mínima: el VM y el XAML (Binding
+    ' AgenciasTransporte.Nombre) no cambian, y el DbContext desaparece de los listados.
+    ' Las entidades caerán con el EDMX al final de #340.
+
     Public Function CargarListaPendientes() As IEnumerable(Of EnvioAgenciaWrapper) Implements IAgenciaService.CargarListaPendientes
-        Using contexto = New NestoEntities()
-            Dim lista As List(Of EnviosAgencia) = contexto.EnviosAgencia.Where(Function(e) e.Estado < 0).ToList
-            Dim listaWrapper As New List(Of EnvioAgenciaWrapper)
-            For Each envio In lista
-                listaWrapper.Add(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio))
-            Next
-            Return listaWrapper
-        End Using
+        Return LeerListadoEnvios("EnviosAgencias/Pendientes").
+            Select(Function(envio) EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)).ToList()
     End Function
 
     Public Function GetEnvioById(Id As Integer) As EnviosAgencia Implements IAgenciaService.GetEnvioById
@@ -83,73 +84,106 @@ Public Class AgenciaService
     End Function
 
     Public Function CargarListaReembolsos(empresa As String, agencia As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaReembolsos
-        Using contexto = New NestoEntities
-            Return New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia Where e.Empresa = empresa And e.Agencia = agencia And e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO And e.Reembolso <> 0 And e.FechaPagoReembolso Is Nothing)
-        End Using
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
+            $"EnviosAgencias/Reembolsos?empresa={Uri.EscapeDataString(empresa?.Trim())}&agencia={agencia}"))
     End Function
 
     Public Function CargarListaRetornos(empresa As String, agencia As Integer, tipoDeRetornoExcluido As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaRetornos
-        Using contexto = New NestoEntities
-            Return New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia Where e.Empresa = empresa And e.Agencia = agencia And e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO And e.Retorno <> tipoDeRetornoExcluido And e.FechaRetornoRecibido Is Nothing Order By e.Fecha)
-        End Using
-    End Function
-
-    Private Function CargarListaEnviosTramitadosGenerica(contexto As NestoEntities, empresa As String) As IQueryable(Of EnviosAgencia)
-        ' >= TRAMITADO para incluir también Entregado (2) e Incidentado (3) en la pestaña de tramitados
-        ' (#387): se distinguen por la columna Estado coloreada. Antes era "= TRAMITADO".
-        Return From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresa And e.Estado >= Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
+            $"EnviosAgencias/Retornos?empresa={Uri.EscapeDataString(empresa?.Trim())}&agencia={agencia}&tipoRetornoExcluido={tipoDeRetornoExcluido}"))
     End Function
 
     ' #387: envíos INCIDENTADOS (estado temporal), sin filtro de fecha. Es un estado de paso: deben
     ' avanzar a Entregado o a Devuelto, y en ambos casos salen de esta lista. Los Devueltos (terminales)
     ' NO se incluyen aquí a propósito: se quedarían para siempre y la lista crecería sin fin.
     Public Function CargarListaIncidentados(empresa As String) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaIncidentados
-        Using contexto = New NestoEntities
-            Return New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresa And e.Estado = Constantes.Agencias.ESTADO_INCIDENTADO_ENVIO Order By e.Fecha Descending)
-        End Using
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
+            $"EnviosAgencias/Incidentados?empresa={Uri.EscapeDataString(empresa?.Trim())}"))
     End Function
+
+    ' >= TRAMITADO server-side para incluir también Entregado (2) e Incidentado (3) en la pestaña
+    ' de tramitados (#387): se distinguen por la columna Estado coloreada.
     Public Function CargarListaEnviosTramitados(empresa As String, agencia As Integer, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosTramitados
-        Using contexto = New NestoEntities
-            Dim respuestaGenerica = CargarListaEnviosTramitadosGenerica(contexto, empresa)
-            Dim respuesta = New ObservableCollection(Of EnviosAgencia)(From e In respuestaGenerica Where e.Agencia = agencia AndAlso e.Fecha = fechaFiltro)
-            Return respuesta
-        End Using
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
+            $"EnviosAgencias/Tramitados?empresa={Uri.EscapeDataString(empresa?.Trim())}&agencia={agencia}&fecha={fechaFiltro:yyyy-MM-dd}"))
     End Function
 
     Public Function CargarListaEnviosTramitadosPorFecha(empresa As String, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosTramitadosPorFecha
-        Using contexto = New NestoEntities
-            Dim respuestaGenerica = CargarListaEnviosTramitadosGenerica(contexto, empresa)
-            Dim respuesta = New ObservableCollection(Of EnviosAgencia)(From e In respuestaGenerica Where e.Fecha = fechaFiltro)
-            Return respuesta
-        End Using
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
+            $"EnviosAgencias/Tramitados?empresa={Uri.EscapeDataString(empresa?.Trim())}&fecha={fechaFiltro:yyyy-MM-dd}"))
     End Function
 
     Public Function CargarListaEnvios(agencia As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnvios
-        Using contexto = New NestoEntities
-            Dim respuesta As New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Agencia = agencia And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO Order By e.Numero)
-            If Not IsNothing(respuesta) Then
-                For Each envio In respuesta
-                    contexto.Entry(envio).Reference(Function(e) e.Empresas).Load()
-                Next
-            End If
-            Return respuesta
-        End Using
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
+            $"EnviosAgencias/EnCurso?agencia={agencia}"))
     End Function
 
     Public Function CargarListaEnviosTramitadosPorCliente(empresa As String, clienteFiltro As String) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosTramitadosPorCliente
-        Using contexto = New NestoEntities
-            Dim respuestaGenerica = CargarListaEnviosTramitadosGenerica(contexto, empresa)
-            Dim respuesta = New ObservableCollection(Of EnviosAgencia)(From e In respuestaGenerica Where e.Cliente = clienteFiltro)
-            Return respuesta
-        End Using
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
+            $"EnviosAgencias/Tramitados?empresa={Uri.EscapeDataString(empresa?.Trim())}&cliente={Uri.EscapeDataString(clienteFiltro?.Trim())}"))
     End Function
 
     Public Function CargarListaEnviosTramitadosPorNombre(empresa As String, nombreFiltro As String) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosTramitadosPorNombre
-        Using contexto = New NestoEntities
-            Dim respuestaGenerica = CargarListaEnviosTramitadosGenerica(contexto, empresa)
-            Dim respuesta = New ObservableCollection(Of EnviosAgencia)(From e In respuestaGenerica Where e.Nombre.Contains(nombreFiltro) OrElse e.Direccion.Contains(nombreFiltro) OrElse e.Telefono.Contains(nombreFiltro) OrElse e.Movil.Contains(nombreFiltro))
-            Return respuesta
-        End Using
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
+            $"EnviosAgencias/Tramitados?empresa={Uri.EscapeDataString(empresa?.Trim())}&texto={Uri.EscapeDataString(nombreFiltro)}"))
+    End Function
+
+    ' Descarga y mapeo común de los listados: DTO del API → entidad POCO con la navegación
+    ' mínima que usan los grids (AgenciasTransporte.Nombre). Síncrono a propósito: los setters
+    ' del VM que consumen estos métodos son síncronos (mismo patrón que las reglas de Cajas).
+    Private Function LeerListadoEnvios(ruta As String) As List(Of EnviosAgencia)
+        Return Task.Run(Async Function() As Task(Of List(Of EnviosAgencia))
+                            Using client As HttpClient = _clienteApiFactory.Crear()
+                                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                                End If
+                                Dim response As HttpResponseMessage = Await client.GetAsync(ruta)
+                                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                                If Not response.IsSuccessStatusCode Then
+                                    Throw New Exception($"No se pudieron cargar los envíos ({CInt(response.StatusCode)}): {cuerpo}")
+                                End If
+                                Dim dtos = JsonConvert.DeserializeObject(Of List(Of EnvioAgenciaListadoDTO))(cuerpo)
+                                Return dtos.Select(Function(dto) AEnvioAgencia(dto)).ToList()
+                            End Using
+                        End Function).GetAwaiter().GetResult()
+    End Function
+
+    Private Shared Function AEnvioAgencia(dto As EnvioAgenciaListadoDTO) As EnviosAgencia
+        Return New EnviosAgencia With {
+            .Numero = dto.Numero,
+            .Empresa = dto.Empresa,
+            .Agencia = dto.Agencia,
+            .Cliente = dto.Cliente,
+            .Contacto = dto.Contacto,
+            .Pedido = dto.Pedido,
+            .Estado = dto.Estado,
+            .Fecha = dto.Fecha,
+            .Servicio = CByte(dto.Servicio),
+            .Horario = CByte(dto.Horario),
+            .Bultos = CByte(dto.Bultos),
+            .Retorno = CByte(dto.Retorno),
+            .Nombre = dto.Nombre,
+            .Direccion = dto.Direccion,
+            .CodPostal = dto.CodPostal,
+            .Poblacion = dto.Poblacion,
+            .Provincia = dto.Provincia,
+            .Telefono = dto.Telefono,
+            .Movil = dto.Movil,
+            .Email = dto.Email,
+            .Observaciones = dto.Observaciones,
+            .Atencion = dto.Atencion,
+            .Reembolso = dto.Reembolso,
+            .FechaPagoReembolso = dto.FechaPagoReembolso,
+            .ImporteGasto = dto.ImporteGasto,
+            .CodigoBarras = dto.CodigoBarras,
+            .Pais = dto.Pais,
+            .FechaEntrega = dto.FechaEntrega,
+            .ImporteAsegurado = dto.ImporteAsegurado,
+            .Peso = dto.Peso,
+            .RowVersion = dto.RowVersion,
+            .AgenciasTransporte = New AgenciasTransporte With {
+                .Empresa = dto.Empresa, .Numero = dto.Agencia, .Nombre = dto.NombreAgencia}
+        }
     End Function
 
     Public Function CargarListaAgencias(empresa As String) As ObservableCollection(Of AgenciasTransporte) Implements IAgenciaService.CargarListaAgencias
@@ -680,4 +714,42 @@ Public Class AgenciaService
         End Using
     End Function
 
+End Class
+
+' Nesto#340 (Agencias, slice A1.b): contrato de los GET api/EnviosAgencias/* de listados
+' (EnvioAgenciaListadoDTO del API). Se mapea de inmediato a la entidad EnviosAgencia, así que
+' no sale de este fichero.
+Friend Class EnvioAgenciaListadoDTO
+    Public Property Numero As Integer
+    Public Property Empresa As String
+    Public Property Agencia As Integer
+    Public Property NombreAgencia As String
+    Public Property Cliente As String
+    Public Property Contacto As String
+    Public Property Pedido As Integer?
+    Public Property Estado As Short
+    Public Property Fecha As Date
+    Public Property Servicio As Short
+    Public Property Horario As Short
+    Public Property Bultos As Short
+    Public Property Retorno As Short
+    Public Property Nombre As String
+    Public Property Direccion As String
+    Public Property CodPostal As String
+    Public Property Poblacion As String
+    Public Property Provincia As String
+    Public Property Telefono As String
+    Public Property Movil As String
+    Public Property Email As String
+    Public Property Observaciones As String
+    Public Property Atencion As String
+    Public Property Reembolso As Decimal
+    Public Property FechaPagoReembolso As Date?
+    Public Property ImporteGasto As Decimal
+    Public Property CodigoBarras As String
+    Public Property Pais As Integer
+    Public Property FechaEntrega As Date?
+    Public Property ImporteAsegurado As Decimal
+    Public Property Peso As Decimal
+    Public Property RowVersion As Byte()
 End Class
