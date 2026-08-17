@@ -142,6 +142,8 @@
             <RibbonGroup x:Name="grpContabilidad" Header="Contabilidad" Visibility="{Binding VentasEmpresasVisible}">
                 <RibbonButton Label="Balance Pymes" LargeImageSource="/Icono2_NV_256x256.ico" Command="{Binding BalancePymesCommand}" />
                 <RibbonButton Label="PyG Pymes" LargeImageSource="/Icono2_NV_256x256.ico" Command="{Binding PerdidasGananciasCommand}" />
+                <!-- Agregado de las empresas 1 y 3 (sin eliminar operaciones cruzadas) -->
+                <RibbonCheckBox Label="Incluir Global" IsChecked="{Binding IncluirGlobalEnBalances}" />
             </RibbonGroup>
 
             <RibbonGroup x:Name="grpFechas" Header="Fechas">

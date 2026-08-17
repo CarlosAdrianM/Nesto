@@ -178,6 +178,18 @@ Public Class MenuBarViewModel
     Public Property BalancePymesCommand As ICommand
     Public Property PerdidasGananciasCommand As ICommand
 
+    ' NestoAPI#350: sumar la empresa Global (3) a los balances. OJO: es un AGREGADO de los
+    ' mayores de ambas empresas, no un consolidado (las operaciones cruzadas no se eliminan).
+    Private _incluirGlobalEnBalances As Boolean
+    Public Property IncluirGlobalEnBalances As Boolean
+        Get
+            Return _incluirGlobalEnBalances
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_incluirGlobalEnBalances, value)
+        End Set
+    End Property
+
 #End Region
 
 #Region "Inicialización"
@@ -417,8 +429,11 @@ Public Class MenuBarViewModel
                 fechaHasta = Today
         End Select
 
+        Dim empresas As String = If(IncluirGlobalEnBalances,
+            Constantes.Empresas.EMPRESA_DEFECTO & "," & Constantes.Empresas.EMPRESA_ESPEJO.Trim(),
+            Constantes.Empresas.EMPRESA_DEFECTO)
         Dim pdf As Byte() = Await _servicioInformes.DescargarBalancePdf(
-            Constantes.Empresas.EMPRESA_DEFECTO, numeroBalance, fechaDesde, fechaHasta)
+            empresas, numeroBalance, fechaDesde, fechaHasta)
         Dim fileName As String = Path.GetTempPath + nombreFichero + ".pdf"
         File.WriteAllBytes(fileName, pdf)
         Process.Start(New ProcessStartInfo(fileName) With {
