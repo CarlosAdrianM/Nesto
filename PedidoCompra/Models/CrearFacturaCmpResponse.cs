@@ -7,5 +7,8 @@
         public bool Exito { get; set; }
         public int Factura { get; set; }
         public int Pedido { get; set; }
+        /// <summary>NestoAPI#384: la factura del proveedor ya estaba contabilizada y el
+        /// servidor no ha creado nada (idempotencia al reintentar tras un error).</summary>
+        public bool YaExistia { get; set; }
     }
 }

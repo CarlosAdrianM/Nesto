@@ -730,6 +730,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (respuesta.CrearFacturas)
                 {
                     CrearFacturaCmpResponse response = new();
+                    int facturasCreadas = 0;
+                    int facturasYaExistian = 0; // NestoAPI#384: idempotencia al reintentar
                     foreach (PreContabilidadDTO? linea in respuesta.Lineas.Where(r => r.TipoApunte == Constantes.TiposApunte.FACTURA && r.TipoCuenta == Constantes.TiposCuenta.PROVEEDOR))
                     {
                         PedidoCompraDTO pedido = CrearPedidoDesdePreContabilidad(linea);
@@ -744,11 +746,25 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         );
                         if (!response.Exito)
                         {
-                            throw new Exception("No se ha podido crear la factura");
+                            // NestoAPI#384: el servidor es idempotente — al volver a pulsar el
+                            // botón, las ya contabilizadas se saltan y solo se crean las que faltan.
+                            throw new Exception($"No se ha podido crear la factura del documento {linea.Documento}. " +
+                                "Las anteriores quedaron contabilizadas: vuelva a pulsar el botón y se crearán " +
+                                "solo las que faltan (no se duplican).");
+                        }
+                        if (response.YaExistia)
+                        {
+                            facturasYaExistian++;
+                        }
+                        else
+                        {
+                            facturasCreadas++;
                         }
                     }
                     respuesta.Lineas = respuesta.Lineas.Where(l => l.TipoApunte != Constantes.TiposApunte.FACTURA).ToList();
-                    textoMensajeFinal = $"Facturas creadas correctamente:\nÚltimo pedido: {response.Pedido}\nÚltima factura: {response.Factura}\nÚltimo asiento: {response.AsientoFactura}";
+                    textoMensajeFinal = $"Facturas creadas: {facturasCreadas}" +
+                        (facturasYaExistian > 0 ? $" ({facturasYaExistian} ya estaban contabilizadas y no se han duplicado)" : string.Empty) +
+                        $"\nÚltimo pedido: {response.Pedido}\nÚltima factura: {response.Factura}\nÚltimo asiento: {response.AsientoFactura}";
                 }
                 else
                 {
