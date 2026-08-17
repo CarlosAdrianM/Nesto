@@ -256,6 +256,26 @@ Public Class RemesasService
         End Using
     End Function
 
+    ' NestoAPI#380 (ajuste 17/08/26): reutiliza el GET del Extracto de Cliente (pendiente del
+    ' cliente en todas las empresas) y filtra aquí los negativos — es lo único que necesita el
+    ' aviso previo a crear la remesa.
+    Public Async Function LeerNegativosPendientes(cliente As String) As Task(Of List(Of NegativoPendienteModel)) Implements IRemesasService.LeerNegativosPendientes
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización")
+            End If
+
+            Dim response = Await client.GetAsync($"ExtractosCliente?cliente={Uri.EscapeDataString(If(cliente?.Trim(), String.Empty))}")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"Error al obtener los movimientos negativos del cliente {cliente?.Trim()}: {ExtraerMensajeError(body)}")
+            End If
+            Dim movimientos = JsonConvert.DeserializeObject(Of List(Of NegativoPendienteModel))(body)
+            Return If(movimientos, New List(Of NegativoPendienteModel)()).
+                Where(Function(m) m.ImportePendiente < 0).ToList()
+        End Using
+    End Function
+
     ' Los errores de Web API llegan como {"Message":"..."}: extraer el texto legible.
     Private Shared Function ExtraerMensajeError(body As String) As String
         Try

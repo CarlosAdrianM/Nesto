@@ -310,8 +310,9 @@ Public Class RemesasViewModelTests
 
     <TestMethod()>
     Public Async Function CrearRemesa_ClienteConNegativosYUsuarioRechaza_NoLlama() As Task
-        ' NestoAPI#380: la puerta de neteo ya no es obligatoria — pide confirmación. Si el
-        ' usuario NO confirma, se cancela (liquidar en Extracto de Cliente o desmarcar).
+        ' NestoAPI#380 + ajuste 17/08/26: cancelar el aviso significa "voy a liquidar primero"
+        ' y el mensaje lo dice — NUNCA sugiere desmarcar efectos (eso dejaría recibos sin ir
+        ' al banco, justo lo que no puede pasar).
         ResponderPorTitulo(New Dictionary(Of String, Boolean) From {
             {"Clientes con movimientos negativos", False}})
         A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
@@ -323,9 +324,72 @@ Public Class RemesasViewModelTests
 
         Await vm.CrearRemesaAsync()
 
-        StringAssert.Contains(vm.mensajeError, "liquide")
+        StringAssert.Contains(vm.mensajeError, "Liquide")
+        StringAssert.Contains(vm.mensajeError, "irán al banco igualmente")
+        Assert.IsFalse(vm.mensajeError.Contains("desmarque"), "No se debe sugerir desmarcar efectos: dejaría recibos sin remesar")
         A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
             .MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_ClienteConNegativos_ElAvisoMuestraElDetalleYAceptarCreaConElFlag() As Task
+        ' Ajuste 17/08/26 (caso real 38429): una señal de -162 € de un curso que se facturará en
+        ' septiembre no debe liquidarse contra estos recibos, pero el recibo de 119,79 € SÍ tiene
+        ' que ir al banco. El aviso muestra el detalle del negativo (importe, concepto, fecha)
+        ' para decidir con criterio, deja claro que los recibos se remesarán igualmente, y al
+        ' aceptar la remesa se crea con el flag.
+        Dim mensajes As New Dictionary(Of String, String)
+        ResponderPorTitulo(New Dictionary(Of String, Boolean) From {
+            {"Clientes con movimientos negativos", True}, {"Crear remesa", True}, {"Imprimir remesa", False}},
+            mensajes)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(111, importe:=119.79D, conNegativos:=True, cliente:="38429")}))
+        A.CallTo(Function() _servicio.LeerNegativosPendientes("38429")) _
+            .Returns(Task.FromResult(New List(Of NegativoPendienteModel) From {
+                New NegativoPendienteModel With {.Cliente = "38429", .ImportePendiente = -162D,
+                    .Concepto = "S/Pago a cuenta reserva est. avanzada", .Fecha = New Date(2026, 7, 31)}}))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
+            .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10920, .Importe = 119.79D, .NumeroEfectos = 1}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        Dim aviso = mensajes("Clientes con movimientos negativos")
+        StringAssert.Contains(aviso, "162")
+        StringAssert.Contains(aviso, "S/Pago a cuenta reserva est. avanzada")
+        StringAssert.Contains(aviso, "31/07/2026")
+        StringAssert.Contains(aviso, "IGUALMENTE")
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, True)) _
+            .MustHaveHappenedOnceExactly()
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_ElDetalleDeNegativosFalla_ElAvisoSaleIgualYNoImpideCrear() As Task
+        ' El detalle es best-effort: si el API falla, el aviso sale con el código del cliente
+        ' y la remesa se puede crear igualmente.
+        Dim mensajes As New Dictionary(Of String, String)
+        ResponderPorTitulo(New Dictionary(Of String, Boolean) From {
+            {"Clientes con movimientos negativos", True}, {"Crear remesa", True}, {"Imprimir remesa", False}},
+            mensajes)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(111, conNegativos:=True, cliente:="38429")}))
+        A.CallTo(Function() _servicio.LeerNegativosPendientes(A(Of String).Ignored)) _
+            .Throws(New Exception("API caída"))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored)) _
+            .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10920, .Importe = 100D, .NumeroEfectos = 1}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+
+        Await vm.CrearRemesaAsync()
+
+        StringAssert.Contains(mensajes("Clientes con movimientos negativos"), "38429 (sin detalle disponible)")
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, True)) _
+            .MustHaveHappenedOnceExactly()
     End Function
 
     <TestMethod()>
@@ -372,7 +436,10 @@ Public Class RemesasViewModelTests
 
     ' Responde OK o Cancel según el título del diálogo (para contestar distinto a la
     ' confirmación de crear y a la pregunta de imprimir).
-    Private Sub ResponderPorTitulo(respuestas As Dictionary(Of String, Boolean))
+    ' mensajes (opcional): recoge el texto mostrado en cada diálogo, por título, para poder
+    ' asertar sobre el contenido del aviso (p. ej. el detalle de los negativos, 17/08/26).
+    Private Sub ResponderPorTitulo(respuestas As Dictionary(Of String, Boolean),
+                                   Optional mensajes As Dictionary(Of String, String) = Nothing)
         A.CallTo(Sub() _dialogService.ShowDialog(
                     A(Of String).Ignored,
                     A(Of IDialogParameters).Ignored,
@@ -382,6 +449,9 @@ Public Class RemesasViewModelTests
                           Return
                       End If
                       Dim titulo = parametros.GetValue(Of String)("title")
+                      If mensajes IsNot Nothing Then
+                          mensajes(titulo) = parametros.GetValue(Of String)("message")
+                      End If
                       Dim ok As Boolean = respuestas.ContainsKey(titulo) AndAlso respuestas(titulo)
                       Dim resultado = A.Fake(Of IDialogResult)
                       A.CallTo(Function() resultado.Result).Returns(If(ok, ButtonResult.OK, ButtonResult.Cancel))

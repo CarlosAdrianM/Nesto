@@ -231,6 +231,27 @@ Public Class RemesasViewModel
         _regionManager.RequestNavigate("MainRegion", "ExtractoClienteView", parametros)
     End Sub
 
+    ' Detalle de los negativos por cliente para el aviso previo a crear la remesa (ajuste
+    ' 17/08/26). Si el API falla o no hay detalle, el aviso sale igual con el código del
+    ' cliente: cargar el detalle NUNCA puede impedir crear la remesa.
+    Private Async Function ComponerDetalleNegativos(clientes As List(Of String)) As Task(Of String)
+        Dim lineas As New List(Of String)
+        For Each codigoCliente In clientes
+            Dim detalleCliente As String = Nothing
+            Try
+                Dim negativos = Await _remesasService.LeerNegativosPendientes(codigoCliente)
+                If negativos IsNot Nothing AndAlso negativos.Any() Then
+                    detalleCliente = String.Join(vbCrLf, negativos.Select(
+                        Function(n) $"    {codigoCliente}  {n.ImportePendiente:C}  {n.Concepto?.Trim()} ({n.Fecha:dd/MM/yyyy})"))
+                End If
+            Catch
+                ' Best-effort: sin detalle se avisa igual.
+            End Try
+            lineas.Add(If(detalleCliente, $"    {codigoCliente} (sin detalle disponible)"))
+        Next
+        Return String.Join(vbCrLf, lineas)
+    End Function
+
     ' NestoAPI#332: crear la remesa con los efectos marcados. El servidor revalida TODO
     ' (candidatos frescos, gating, neteo) y contabiliza; aquí solo confirmación y refresco.
     Public Async Function CrearRemesaAsync() As Task
@@ -239,25 +260,30 @@ Public Class RemesasViewModel
             Return
         End If
 
-        ' NestoAPI#380: la puerta de neteo INFORMA pero no obliga. Caso real: un pago a cuenta
-        ' de -30 € de un curso de septiembre no debe impedir girar un efecto de 450 € que no
-        ' tiene nada que ver. Si el usuario confirma, la remesa se crea sin liquidar y el
-        ' flag viaja al servidor (que sin él sigue bloqueando).
+        ' NestoAPI#380: la puerta de neteo INFORMA pero no obliga. Ajuste 17/08/26 (caso real
+        ' 38429: señal de -162 € de un curso que se factura en septiembre + recibo de 119,79 €
+        ' que SÍ debe ir al banco): el aviso muestra QUÉ es cada negativo para decidir con
+        ' criterio, y decida lo que decida el usuario sobre liquidar, los recibos seleccionados
+        ' tienen que poder remesarse — cancelar aquí significa "voy a liquidar primero", nunca
+        ' "dejo recibos sin ir al banco".
         Dim aceptarClientesConNegativos As Boolean = False
         Dim clientesConNegativos = seleccionados.Where(Function(c) c.ClienteConNegativos) _
             .Select(Function(c) c.Cliente).Distinct().ToList()
         If clientesConNegativos.Any() Then
+            Dim detalleNegativos As String = Await ComponerDetalleNegativos(clientesConNegativos)
             Dim continuarSinLiquidar As Boolean = False
             dialogService.ShowConfirmation("Clientes con movimientos negativos",
-                "Estos clientes tienen movimientos negativos pendientes (pagos a cuenta, abonos): " &
-                String.Join(", ", clientesConNegativos) & "." & vbCrLf &
-                "Puede liquidarlos en el Extracto de Cliente (doble clic en el efecto naranja) o " &
-                "crear la remesa sin liquidarlos." & vbCrLf & vbCrLf &
+                "Estos clientes tienen movimientos negativos pendientes:" & vbCrLf &
+                detalleNegativos & vbCrLf & vbCrLf &
+                "Si continúa, los recibos seleccionados se remesarán al banco IGUALMENTE y los " &
+                "negativos quedarán pendientes para liquidarlos cuando corresponda (doble clic " &
+                "en el efecto naranja abre el Extracto de Cliente)." & vbCrLf & vbCrLf &
                 "¿Crear la remesa SIN liquidar esos movimientos?",
                 Sub(r) continuarSinLiquidar = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
             If Not continuarSinLiquidar Then
-                mensajeError = "Remesa cancelada: liquide los movimientos negativos en Extracto de " &
-                    "Cliente o desmarque los efectos de esos clientes."
+                mensajeError = "Remesa no creada. Liquide los negativos en el Extracto de Cliente " &
+                    "(doble clic en el efecto naranja) y vuelva a pulsar Crear remesa; si no quiere " &
+                    "liquidarlos, pulse Crear remesa y acepte el aviso: los recibos irán al banco igualmente."
                 Return
             End If
             aceptarClientesConNegativos = True

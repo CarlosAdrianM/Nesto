@@ -36,4 +36,7 @@ Public Interface IRemesasService
     ' NestoAPI#353: informe de la remesa (QuestPDF en el backend): IBAN completo, subtotales
     ' por fecha de cargo y total general.
     Function DescargarInformeRemesaPdf(empresa As String, remesa As Integer) As Task(Of Byte())
+    ' NestoAPI#380 (ajuste 17/08/26): movimientos negativos pendientes de un cliente, para que
+    ' el aviso previo a crear la remesa muestre el detalle y el usuario decida con criterio.
+    Function LeerNegativosPendientes(cliente As String) As Task(Of List(Of NegativoPendienteModel))
 End Interface

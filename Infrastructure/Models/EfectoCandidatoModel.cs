@@ -76,4 +76,19 @@ namespace Nesto.Infrastructure.Models
         public decimal Importe { get; set; }
         public int NumeroEfectos { get; set; }
     }
+
+    /// <summary>
+    /// NestoAPI#380 (ajuste 17/08/26, caso real 38429): movimiento negativo pendiente de un
+    /// cliente, para que el aviso previo a crear la remesa muestre QUÉ es cada negativo (una
+    /// señal de un curso que se facturará en septiembre no se liquida contra estos recibos;
+    /// un abono de mercancía devuelta sí puede interesar) y el usuario decida con criterio.
+    /// Se deserializa del ExtractoClienteDTO del API (GET ExtractosCliente?cliente=...).
+    /// </summary>
+    public class NegativoPendienteModel
+    {
+        public string Cliente { get; set; }
+        public DateTime Fecha { get; set; }
+        public string Concepto { get; set; }
+        public decimal ImportePendiente { get; set; }
+    }
 }
