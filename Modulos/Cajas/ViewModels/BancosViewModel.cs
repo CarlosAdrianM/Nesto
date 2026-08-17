@@ -712,14 +712,22 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     return;
                 }
 
-                ReglaContabilizacionResponse? respuesta = reglaContabilizable.ApuntesContabilizar(
-                    ApuntesBancoSeleccionados?
+                // NestoAPI#384/#386 (caso real 17/08/26, IsBusy pillado): las reglas hacen
+                // llamadas HTTP síncronas por dentro (Task.Run + GetResult). Ejecutarlas EN el
+                // hilo de UI podía interbloquear la ventana si la autorización necesitaba
+                // refrescar el token (el hilo de UI esperaba algo que necesitaba al hilo de UI).
+                // Se materializan las selecciones (colecciones enlazadas a la UI) y la regla
+                // corre en un hilo de pool: la UI queda libre y el finally siempre llega.
+                List<ApunteBancarioDTO>? apuntesBancoSeleccionados = ApuntesBancoSeleccionados?
                     .Where(b => b.EstadoPunteo != EstadoPunteo.CompletamentePunteado)
-                    .Select(b => b.Model),
-                    ApuntesContabilidadSeleccionados?
+                    .Select(b => b.Model).ToList();
+                List<ContabilidadDTO>? apuntesContabilidadSeleccionados = ApuntesContabilidadSeleccionados?
                     .Where(c => c.EstadoPunteo != EstadoPunteo.CompletamentePunteado)
-                    .Select(c => c.Model),
-                    BancoSeleccionado.Banco);
+                    .Select(c => c.Model).ToList();
+                BancoDTO bancoRegla = BancoSeleccionado.Banco;
+                ReglaContabilizacionResponse? respuesta = await Task.Run(() =>
+                    reglaContabilizable.ApuntesContabilizar(
+                        apuntesBancoSeleccionados, apuntesContabilidadSeleccionados, bancoRegla));
 
                 if (respuesta is null)
                 {
