@@ -65,7 +65,10 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <controles:SelectorCliente Grid.Row="0" Name="txtSelectorCliente" Empresa="1" Cliente="{Binding Path=DataContext.clienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Contacto="{Binding DataContext.contactoSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Etiqueta=""></controles:SelectorCliente>
+            <StackPanel Grid.Row="0">
+                <controles:SelectorCliente Name="txtSelectorCliente" Empresa="1" Cliente="{Binding Path=DataContext.clienteSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" Contacto="{Binding DataContext.contactoSeleccionado, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, RelativeSource={RelativeSource AncestorType=UserControl}}" ClienteCompleto="{Binding DataContext.ClienteCompleto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" Etiqueta=""></controles:SelectorCliente>
+                <controles:ListaTelefonos Etiqueta="Tel.: " Telefonos="{Binding DataContext.ClienteCompleto.telefono, RelativeSource={RelativeSource AncestorType=UserControl}}" Margin="0,3,0,0" />
+            </StackPanel>
             <StackPanel Grid.Row="1">
                 <Button Content="Resumir rapports" Command="{Binding GenerarResumenCommand}" />
 

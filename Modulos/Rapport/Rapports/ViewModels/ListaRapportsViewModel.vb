@@ -84,8 +84,21 @@ Public Class ListaRapportsViewModel
             cmdCargarListaRapports.RaiseCanExecuteChanged()
             CopiarSeguimientosCommand.RaiseCanExecuteChanged()
             If _clienteSeleccionado = String.Empty Then
+                ClienteCompleto = Nothing
                 cmdCargarListaRapports.Execute(Nothing) ' Por fecha
             End If
+        End Set
+    End Property
+
+    Private _clienteCompleto As Object
+    ''' <summary>Nesto#444: ficha completa del cliente del selector de la izquierda, para
+    ''' mostrar sus teléfonos directamente, sin cargar ni crear ningún rapport.</summary>
+    Public Property ClienteCompleto As Object
+        Get
+            Return _clienteCompleto
+        End Get
+        Set(value As Object)
+            Dim unused = SetProperty(_clienteCompleto, value)
         End Set
     End Property
 

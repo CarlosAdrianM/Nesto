@@ -47,9 +47,7 @@
         <TextBlock Grid.Row="3" Text="Población: ">            
             <Run Text="{Binding ClienteCompleto.poblacionConCodigoPostal,Mode=OneWay}"></Run>
         </TextBlock>
-        <TextBlock Grid.Row="4" Text="Teléfono: " MouseRightButtonUp="TextBlock_MouseRightButtonUp" >
-            <Run Text="{Binding ClienteCompleto.telefono}"></Run>
-        </TextBlock>
+        <controles:ListaTelefonos Grid.Row="4" Etiqueta="Teléfono: " Telefonos="{Binding ClienteCompleto.telefono}" />
         <TextBox Grid.Row="5" Text="{Binding ClienteCompleto.comentarios}" TextWrapping="WrapWithOverflow" IsEnabled="False" Style="{StaticResource campoComentarios}" ></TextBox>
         <StackPanel Grid.Row="6" Orientation="Horizontal">
             <TextBlock Text="Fecha: "></TextBlock>
