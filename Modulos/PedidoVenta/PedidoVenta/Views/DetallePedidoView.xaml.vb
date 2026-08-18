@@ -442,7 +442,8 @@ Public Class DetallePedidoView
     End Sub
 
     Private Sub grdLineas_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles grdLineas.MouseDoubleClick
-        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
+        ' Nesto#435: e.OriginalSource puede ser un Run (no es Visual) y GetParent lanzaba.
+        Dim src As DependencyObject = Nesto.Infrastructure.Shared.ArbolVisualHelper.ObtenerPadreSeguro(e.OriginalSource)
 
         If IsNothing(src) Then
             Return
@@ -454,7 +455,8 @@ Public Class DetallePedidoView
     End Sub
 
     Private Sub grdLineasCabecera_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles grdLineasCabecera.MouseDoubleClick
-        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
+        ' Nesto#435: e.OriginalSource puede ser un Run (no es Visual) y GetParent lanzaba.
+        Dim src As DependencyObject = Nesto.Infrastructure.Shared.ArbolVisualHelper.ObtenerPadreSeguro(e.OriginalSource)
 
         If IsNothing(src) Then
             Return

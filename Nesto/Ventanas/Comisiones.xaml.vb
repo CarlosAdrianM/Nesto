@@ -17,44 +17,36 @@ Partial Public Class Comisiones
     End Sub
 
     Private Sub dgrFamilias_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrFamilias.MouseDoubleClick
-        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
-        If IsNothing(src) Then
-            Return
-        End If
-        If src.[GetType]() = GetType(ScrollContentPresenter) Then
+        If EsDobleClickSobreElCuerpo(e.OriginalSource) Then
             DataContext.cmdAbrirPedido.Execute(dgrFamilias.SelectedItem)
         End If
     End Sub
 
     Private Sub dgrFechas_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrFechas.MouseDoubleClick
-        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
-        If IsNothing(src) Then
-            Return
-        End If
-        If src.[GetType]() = GetType(ScrollContentPresenter) Then
+        If EsDobleClickSobreElCuerpo(e.OriginalSource) Then
             DataContext.cmdAbrirPedido.Execute(dgrFechas.SelectedItem)
         End If
     End Sub
 
     Private Sub dgrGrupos_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrGrupos.MouseDoubleClick
-        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
-        If IsNothing(src) Then
-            Return
-        End If
-        If src.[GetType]() = GetType(ScrollContentPresenter) Then
+        If EsDobleClickSobreElCuerpo(e.OriginalSource) Then
             DataContext.cmdAbrirPedido.Execute(dgrGrupos.SelectedItem)
         End If
     End Sub
 
     Private Sub dgrPendientesEntregar_MouseDoubleClick(sender As Object, e As MouseButtonEventArgs) Handles dgrPendientesEntregar.MouseDoubleClick
-        Dim src As DependencyObject = VisualTreeHelper.GetParent(DirectCast(e.OriginalSource, DependencyObject))
-        If IsNothing(src) Then
-            Return
-        End If
-        If src.[GetType]() = GetType(ScrollContentPresenter) Then
+        If EsDobleClickSobreElCuerpo(e.OriginalSource) Then
             DataContext.cmdAbrirPedido.Execute(dgrPendientesEntregar.SelectedItem)
         End If
     End Sub
+
+    ' Nesto#435: el doble clic puede caer sobre un Run (el texto de la celda), que es un
+    ' ContentElement y NO un Visual: VisualTreeHelper.GetParent lanza InvalidOperationException
+    ' y tiraba la aplicación (ELMAH 26/07 ×2). ArbolVisualHelper admite ambos mundos.
+    Private Shared Function EsDobleClickSobreElCuerpo(originalSource As Object) As Boolean
+        Dim padre As DependencyObject = Nesto.Infrastructure.Shared.ArbolVisualHelper.ObtenerPadreSeguro(originalSource)
+        Return padre IsNot Nothing AndAlso padre.GetType() = GetType(ScrollContentPresenter)
+    End Function
 
     Private Async Sub Comisiones_Loaded(sender As Object, e As RoutedEventArgs) Handles MyBase.Loaded
         Dim viewModel As ComisionesViewModel = CType(Me.DataContext, ComisionesViewModel)
