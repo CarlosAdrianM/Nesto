@@ -177,15 +177,18 @@ namespace ControlesUsuario
 
         private async void UserControl_Loaded(object sender, RoutedEventArgs e)
         {
+            // Nesto#446: el foco se ponía DESPUÉS de los dos awaits a la API (~2 segundos),
+            // cuando el usuario ya estaba escribiendo, y se lo robaba — peor aún si otro
+            // SelectorCliente cargaba en segundo plano (el del detalle de Rapports). Foco
+            // inmediato, y solo si el usuario no está ya escribiendo en otro TextBox.
+            if (IsKeyboardFocusWithin || Keyboard.FocusedElement is not System.Windows.Controls.Primitives.TextBoxBase)
+            {
+                txtFiltro.Focus();
+            }
 
             SelectorClienteViewModel vm = DataContext as SelectorClienteViewModel;
             await vm.CargarVendedor(Empresa);
             await vm.CargarPreferencias(Empresa); // Nesto#388: estado inicial del panel de contactos
-
-            // Para poner el foco en el primer control
-            //TraversalRequest tRequest = new TraversalRequest(FocusNavigationDirection.Next);
-            //this.MoveFocus(tRequest);
-            txtFiltro.Focus();
         }
 
         #endregion
