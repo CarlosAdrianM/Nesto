@@ -370,7 +370,13 @@ Public Class ListaRapportsViewModel
         Set(value As SeguimientoClienteDTO)
             Try
                 SyncLock _syncLock
-                    Dim unused = SetProperty(_rapportSeleccionado, value)
+                    ' Nesto#445: al desmontar/remontar la pestaña o recargar la lista, el
+                    ' DataGrid empuja Nothing (o reasigna el mismo rapport) por el binding;
+                    ' si eso vaciara la región de detalle se perdería el rapport a medio
+                    ' escribir. Solo se navega cuando se selecciona de verdad OTRO rapport.
+                    If Not SetProperty(_rapportSeleccionado, value) OrElse value Is Nothing Then
+                        Exit Property
+                    End If
                     Application.Current.Dispatcher.Invoke(Sub()
                                                               Dim parameters As New NavigationParameters From {
                                                                   {"rapportParameter", rapportSeleccionado}

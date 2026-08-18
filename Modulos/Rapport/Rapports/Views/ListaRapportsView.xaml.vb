@@ -13,7 +13,16 @@ Partial Public Class ListaRapportsView
 
     End Sub
 
+    ' Nesto#445: MainRegion es un TabControl, así que Loaded salta CADA VEZ que se vuelve a
+    ' la pestaña, no solo al abrir el módulo. Recargar aquí machacaba la lista, la selección
+    ' y el rapport a medio escribir al volver de otra ventana. Solo carga inicial.
+    Private _cargaInicialHecha As Boolean
+
     Private Async Sub ListaRapportsView_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+        If _cargaInicialHecha Then
+            Exit Sub
+        End If
+        _cargaInicialHecha = True
         Dim unused1 = DataContext.cmdCargarListaRapports.Execute(Nothing)
         Dim unused = txtSelectorCliente.Focus()
     End Sub
