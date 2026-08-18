@@ -8,6 +8,7 @@ using Prism.Services.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using ControlesUsuario.Models;
+using System.Threading.Tasks;
 using Unity;
 
 namespace PedidoVentaTests
@@ -15,6 +16,23 @@ namespace PedidoVentaTests
     [TestClass]
     public class DetallePedidoViewModelTests
     {
+        [TestMethod]
+        public async Task ModificarPedidoAsync_SinPedidoCargado_NoLanzaExcepcion()
+        {
+            // Nesto#447: pulsar "Modificar" sin pedido cargado (carga a medias o teardown)
+            // lanzaba un NullReferenceException en el prólogo del método (fuera del Try) que,
+            // al ser un comando async void, escapaba a DispatcherUnhandledException y tiraba
+            // la aplicación entera (ELMAH 17/08/26, usuario Santiago).
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(
+                A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), A.Fake<IPedidoVentaService>(),
+                A.Fake<IEventAggregator>(), A.Fake<IDialogService>(), A.Fake<IUnityContainer>(),
+                A.Fake<IServicioAutenticacion>());
+
+            await vm.ModificarPedidoAsync(); // vm.pedido es null: no debe lanzar
+
+            Assert.IsNull(vm.pedido);
+        }
+
         [TestMethod]
         public void DetallePedidoViewModel_siAplicaDescuentoEsFalse_noTieneEnCuentaElDescuentoProducto()
         {

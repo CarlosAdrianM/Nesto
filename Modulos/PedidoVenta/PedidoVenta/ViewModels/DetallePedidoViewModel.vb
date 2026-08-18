@@ -2127,6 +2127,16 @@ Public Class DetallePedidoViewModel
         End Set
     End Property
     Private Async Sub OnModificarPedido()
+        Await ModificarPedidoAsync()
+    End Sub
+
+    ''' <summary>Nesto#447: cuerpo del comando como Function (Task) para que las excepciones
+    ''' sean observables (en un Async Sub escapan al DispatcherUnhandledException y tiran la
+    ''' aplicación, como el NRE de ELMAH del 17/08 al pulsar Modificar sin pedido cargado).</summary>
+    Public Async Function ModificarPedidoAsync() As Task
+        If IsNothing(pedido) OrElse IsNothing(pedido.Model) OrElse IsNothing(pedido.Model.Lineas) Then
+            Exit Function ' sin pedido cargado no hay nada que modificar
+        End If
         textoBusyIndicator = "Modificando pedido..."
         estaBloqueado = True
 
@@ -2269,7 +2279,7 @@ Public Class DetallePedidoViewModel
             CrearFacturaVentaCommand.RaiseCanExecuteChanged()
             CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
         End Try
-    End Sub
+    End Function
 
     Private Async Function GestionarEtiquetaRecogida() As Task
         Dim etiquetaExistente = ListaEnlacesSeguimiento?.FirstOrDefault(Function(e) e.Retorno > 0)
