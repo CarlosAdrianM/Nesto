@@ -968,6 +968,11 @@ Public Class PedidoVentaService
             Dim response = Await client.PostAsync("EnviosAgencias/CrearEtiquetaPendiente", content)
 
             If Not response.IsSuccessStatusCode Then
+                ' Nesto#427: el 409 del servidor viene sin cuerpo; con el mensaje crudo el usuario
+                ' no sabía qué hacer.
+                If response.StatusCode = Net.HttpStatusCode.Conflict Then
+                    Throw New Exception("Ya existe una etiqueta pendiente para este pedido; gestiónala desde la pantalla de Agencias.")
+                End If
                 Dim respuesta = Await response.Content.ReadAsStringAsync()
                 Throw New Exception("No se pudo crear la etiqueta pendiente: " & respuesta)
             End If

@@ -8,6 +8,8 @@ using Prism.Services.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Models;
 using ControlesUsuario.Models;
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Unity;
 
@@ -31,6 +33,52 @@ namespace PedidoVentaTests
             await vm.ModificarPedidoAsync(); // vm.pedido es null: no debe lanzar
 
             Assert.IsNull(vm.pedido);
+        }
+
+        // Nesto#427: desmarcar "Recoger Producto" borraba SIN confirmación la etiqueta de
+        // recogida pendiente, perdiendo en silencio dirección/reembolso personalizados si la
+        // etiqueta se creó a mano en la pantalla de Agencias.
+        private static DetallePedidoViewModel PrepararVmConEtiquetaPendiente(
+            IPedidoVentaService servicio, ButtonResult respuestaUsuario)
+        {
+            IDialogService dialogService = A.Fake<IDialogService>();
+            A.CallTo(() => dialogService.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<Action<IDialogResult>>._))
+                .Invokes(call => call.GetArgument<Action<IDialogResult>>(2)(new DialogResult(respuestaUsuario)));
+
+            DetallePedidoViewModel vm = new DetallePedidoViewModel(
+                A.Fake<IRegionManager>(), A.Fake<IConfiguracion>(), servicio,
+                A.Fake<IEventAggregator>(), dialogService, A.Fake<IUnityContainer>(),
+                A.Fake<IServicioAutenticacion>());
+            vm.pedido = new PedidoVentaWrapper(new PedidoVentaDTO());
+            vm.ListaEnlacesSeguimiento = new List<PedidoVentaModel.EnvioAgenciaDTO>
+            {
+                new PedidoVentaModel.EnvioAgenciaDTO { Numero = 123, Retorno = 1, Estado = -1 }
+            };
+            vm.RecogerProducto = false;
+            return vm;
+        }
+
+        [TestMethod]
+        public async Task GestionarEtiquetaRecogida_SiElUsuarioNoConfirma_NoBorraLaEtiquetaYRestauraLaCasilla()
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            DetallePedidoViewModel vm = PrepararVmConEtiquetaPendiente(servicio, ButtonResult.Cancel);
+
+            await vm.GestionarEtiquetaRecogida();
+
+            A.CallTo(() => servicio.EliminarEtiquetaPendiente(A<int>._)).MustNotHaveHappened();
+            Assert.IsTrue(vm.RecogerProducto, "al cancelar, la casilla debe volver a su estado (la etiqueta sigue existiendo)");
+        }
+
+        [TestMethod]
+        public async Task GestionarEtiquetaRecogida_SiElUsuarioConfirma_BorraLaEtiqueta()
+        {
+            IPedidoVentaService servicio = A.Fake<IPedidoVentaService>();
+            DetallePedidoViewModel vm = PrepararVmConEtiquetaPendiente(servicio, ButtonResult.OK);
+
+            await vm.GestionarEtiquetaRecogida();
+
+            A.CallTo(() => servicio.EliminarEtiquetaPendiente(123)).MustHaveHappenedOnceExactly();
         }
 
         [TestMethod]

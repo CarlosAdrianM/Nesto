@@ -2281,7 +2281,7 @@ Public Class DetallePedidoViewModel
         End Try
     End Function
 
-    Private Async Function GestionarEtiquetaRecogida() As Task
+    Public Async Function GestionarEtiquetaRecogida() As Task
         Dim etiquetaExistente = ListaEnlacesSeguimiento?.FirstOrDefault(Function(e) e.Retorno > 0)
         Dim teniaRecogida = etiquetaExistente IsNot Nothing
 
@@ -2294,6 +2294,18 @@ Public Class DetallePedidoViewModel
                 dialogService.ShowError("Error al crear etiqueta de recogida: " & ex.Message)
             End Try
         ElseIf Not RecogerProducto AndAlso teniaRecogida AndAlso etiquetaExistente.Estado < 0 Then
+            ' Nesto#427: la etiqueta pendiente puede haberse creado a mano en la pantalla de
+            ' Agencias con dirección o reembolso personalizados (el DTO no los trae, así que no
+            ' se puede distinguir): borrarla sin preguntar perdía esos datos en silencio y al
+            ' remarcar la casilla se creaba una nueva con los datos por defecto.
+            Dim confirmado As Boolean = Await dialogService.ShowConfirmationAsync(
+                "Eliminar etiqueta de recogida",
+                $"Se va a eliminar la etiqueta de recogida pendiente {etiquetaExistente.Numero} ({etiquetaExistente.AgenciaNombre}).{vbCrLf}" &
+                $"Si se creó a mano con dirección o reembolso personalizados, esos datos se perderán.{vbCrLf}¿Eliminarla?")
+            If Not confirmado Then
+                RecogerProducto = True ' la etiqueta se queda: la casilla vuelve a su estado
+                Return
+            End If
             ' Eliminar etiqueta pendiente de recogida
             Try
                 Await servicio.EliminarEtiquetaPendiente(etiquetaExistente.Numero)
