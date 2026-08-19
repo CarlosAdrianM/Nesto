@@ -417,17 +417,14 @@ Public Class MenuBarViewModel
     Private Async Sub GenerarInformeBalance(numeroBalance As String, nombreFichero As String)
         Dim fechaDesde As Date
         Dim fechaHasta As Date
-        Select Case OpcionesFechas
-            Case "Anterior"
-                fechaDesde = New Date(Today.Year - 1, 1, 1)
-                fechaHasta = New Date(Today.Year - 1, 12, 31)
-            Case "Personalizar"
-                fechaDesde = FechaInformeInicial
-                fechaHasta = FechaInformeFinal
-            Case Else ' Actual
-                fechaDesde = New Date(Today.Year, 1, 1)
-                fechaHasta = Today
-        End Select
+        If OpcionesFechas = "Personalizar" Then
+            fechaDesde = FechaInformeInicial
+            fechaHasta = FechaInformeFinal
+        Else
+            Dim fechas = CalcularFechasBalance(OpcionesFechas, Today)
+            fechaDesde = fechas.Desde
+            fechaHasta = fechas.Hasta
+        End If
 
         Dim empresas As String = If(IncluirGlobalEnBalances,
             Constantes.Empresas.EMPRESA_DEFECTO & "," & Constantes.Empresas.EMPRESA_ESPEJO.Trim(),
@@ -440,6 +437,18 @@ Public Class MenuBarViewModel
             .UseShellExecute = True
         })
     End Sub
+
+    ' Petición Carlos 19/08/26: los balances se piden a mes CERRADO. "Actual" = del 1 de enero
+    ' al último día del mes anterior; "Anterior" = del 1 de enero al último día de dos meses
+    ' atrás (hoy 19/08/26: Actual 01/01/26-31/07/26, Anterior 01/01/26-30/06/26). Si el cierre
+    ' cae en el año pasado (enero/febrero), el 1 de enero se toma del AÑO del propio cierre
+    ' (en enero: Actual = año pasado completo; Anterior = hasta el 30/11 del año pasado).
+    Public Shared Function CalcularFechasBalance(opcion As String, hoy As Date) As (Desde As Date, Hasta As Date)
+        Dim mesesCerrados As Integer = If(opcion = "Anterior", 2, 1)
+        Dim primeroDeEsteMes As New Date(hoy.Year, hoy.Month, 1)
+        Dim hasta As Date = primeroDeEsteMes.AddMonths(1 - mesesCerrados).AddDays(-1)
+        Return (New Date(hasta.Year, 1, 1), hasta)
+    End Function
 
     Private Async Sub GenerarInformeRapports(FechaDesde As Date, FechaHasta As Date)
         Dim cadenaVendedores As String

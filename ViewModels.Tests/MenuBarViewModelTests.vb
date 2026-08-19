@@ -366,4 +366,55 @@ Public Class MenuBarViewModelTests
 
 #End Region
 
+#Region "CalcularFechasBalance (balances a mes cerrado, 19/08/26)"
+
+    ' Petición Carlos 19/08/26: "Actual" = 1 de enero → último día del mes anterior;
+    ' "Anterior" = 1 de enero → último día de dos meses atrás.
+
+    <TestMethod()>
+    Public Sub CalcularFechasBalance_Actual_LlegaHastaFinDelMesAnterior()
+        Dim fechas = MenuBarViewModel.CalcularFechasBalance("Actual", New Date(2026, 8, 19))
+
+        Assert.AreEqual(New Date(2026, 1, 1), fechas.Desde)
+        Assert.AreEqual(New Date(2026, 7, 31), fechas.Hasta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularFechasBalance_Anterior_LlegaHastaFinDeDosMesesAtras()
+        Dim fechas = MenuBarViewModel.CalcularFechasBalance("Anterior", New Date(2026, 8, 19))
+
+        Assert.AreEqual(New Date(2026, 1, 1), fechas.Desde)
+        Assert.AreEqual(New Date(2026, 6, 30), fechas.Hasta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularFechasBalance_ActualEnEnero_EsElAnoPasadoCompleto()
+        ' El último mes cerrado es diciembre del año pasado: el 1 de enero se toma del año
+        ' del cierre, no del año en curso (si no, el rango quedaría invertido).
+        Dim fechas = MenuBarViewModel.CalcularFechasBalance("Actual", New Date(2027, 1, 15))
+
+        Assert.AreEqual(New Date(2026, 1, 1), fechas.Desde)
+        Assert.AreEqual(New Date(2026, 12, 31), fechas.Hasta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularFechasBalance_AnteriorEnEnero_LlegaHastaFinDeNoviembreDelAnoPasado()
+        Dim fechas = MenuBarViewModel.CalcularFechasBalance("Anterior", New Date(2027, 1, 15))
+
+        Assert.AreEqual(New Date(2026, 1, 1), fechas.Desde)
+        Assert.AreEqual(New Date(2026, 11, 30), fechas.Hasta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub CalcularFechasBalance_FinDeMesConDistintasLongitudes_CalculaElUltimoDiaReal()
+        ' Marzo tiene 31 y febrero 28 (2026 no es bisiesto): comprueba el AddDays(-1).
+        Dim actual = MenuBarViewModel.CalcularFechasBalance("Actual", New Date(2026, 4, 10))
+        Dim anterior = MenuBarViewModel.CalcularFechasBalance("Anterior", New Date(2026, 4, 10))
+
+        Assert.AreEqual(New Date(2026, 3, 31), actual.Hasta)
+        Assert.AreEqual(New Date(2026, 2, 28), anterior.Hasta)
+    End Sub
+
+#End Region
+
 End Class
