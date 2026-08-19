@@ -358,7 +358,10 @@
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
-                                <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="Nombre" IsEnabled="{Binding NoHayProductosEnElPedido}"></ComboBox>
+                                <!-- Nesto#430 (slice 1): el almacén se puede cambiar también con el pedido empezado.
+                                     El setter refresca stocks/colores/fechas conservando cantidades (mismo camino
+                                     que la entrega urgente) y avisa de las líneas sin stock en el nuevo almacén. -->
+                                <ComboBox ItemsSource="{Binding listaAlmacenes}" SelectedItem="{Binding almacenSeleccionado}" DisplayMemberPath="Nombre"></ComboBox>
                             </StackPanel>
                         </Grid>
 

@@ -237,6 +237,21 @@ Public Class PlantillaVentaViewModel
                                                                          End If
                                                                          linea.stockActualizado = True
                                                                      Next
+                                                                     ' Nesto#430 (slice 1): con el pedido empezado, las líneas son instancias
+                                                                     ' nuevas tras el refresh: hay que refrescar las vistas del pedido y avisar
+                                                                     ' (sin bloquear) de las líneas que se quedan sin stock suficiente en el
+                                                                     ' nuevo almacén; su color rojo/ámbar ya lo pinta colorStock solo.
+                                                                     RaisePropertyChanged(NameOf(hayProductosEnElPedido))
+                                                                     RaisePropertyChanged(NameOf(NoHayProductosEnElPedido))
+                                                                     RaisePropertyChanged(NameOf(listaProductosPedido))
+                                                                     RaisePropertyChanged(NameOf(baseImponiblePedido))
+                                                                     RaisePropertyChanged(NameOf(baseImponibleParaPortes))
+                                                                     Dim sinStock As List(Of LineaPlantillaVenta) = LineasConFaltaDeStock(nuevosStocks)
+                                                                     If sinStock.Any() Then
+                                                                         dialogService.ShowNotification("Cambio de almacén",
+                                                                             $"Ojo: {sinStock.Count} línea(s) del pedido no tienen stock suficiente en {value.Nombre}:" & vbCrLf &
+                                                                             String.Join(vbCrLf, sinStock.Take(10).Select(Function(l) $"- {l.producto?.Trim()} {l.texto?.Trim()}: pedidas {l.cantidad + l.cantidadOferta}, disponibles {l.cantidadDisponible}")))
+                                                                     End If
                                                                      estaOcupado = False
                                                                      Dim fechaPuente = Await ObtenerFechaMinimaEntregaAsync()
                                                                      fechaMinimaEntrega = fechaPuente
@@ -279,6 +294,20 @@ Public Class PlantillaVentaViewModel
     ''' - Servir junto DESMARCADO: estado 0 nunca es sobre pedido; las demás son sobre pedido si no
     '''   hay stock suficiente en el almacén del pedido (irán en otra entrega).
     ''' </summary>
+    ''' <summary>
+    ''' Nesto#430 (slice 1): líneas del pedido cuya cantidad (normal + oferta) supera el stock
+    ''' disponible del almacén seleccionado. Se usa para AVISAR tras cambiar de almacén con el
+    ''' pedido empezado — sin bloquear: el color de cada línea ya refleja la falta.
+    ''' </summary>
+    Public Shared Function LineasConFaltaDeStock(lineas As IEnumerable(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
+        If lineas Is Nothing Then
+            Return New List(Of LineaPlantillaVenta)
+        End If
+        Return lineas.Where(Function(l) Not l.esLineaPortes AndAlso
+                                l.cantidad + l.cantidadOferta > 0 AndAlso
+                                l.cantidadDisponible < l.cantidad + l.cantidadOferta).ToList()
+    End Function
+
     Friend Shared Function EsSobrePedidoParaPortes(linea As LineaPlantillaVenta, servirJunto As Boolean) As Boolean
         If servirJunto Then
             Return False
