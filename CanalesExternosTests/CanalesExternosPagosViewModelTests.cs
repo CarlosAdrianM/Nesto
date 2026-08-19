@@ -23,7 +23,7 @@ namespace CanalesExternosTests
                     new DetallePagoCanalExterno
                     {
                         ExternalId = "ORDER-001",
-                        CuentaContablePago = "55500047",
+                        CuentaContablePago = "44000047",
                         CuentaContableComisiones = "55500062",
                         Importe = 120M,
                         Comisiones = -20M
@@ -52,7 +52,7 @@ namespace CanalesExternosTests
                     new DetallePagoCanalExterno
                     {
                         ExternalId = "ORDER-SE-001",
-                        CuentaContablePago = "55500072",
+                        CuentaContablePago = "44000072",
                         CuentaContableComisiones = "55500073",
                         Importe = 100M,
                         Comisiones = -13M
@@ -242,8 +242,8 @@ namespace CanalesExternosTests
             var liqProveedor = apuntes.First(a => a.Asiento == 2 && a.TipoCuenta == "3");
             Assert.AreEqual(120M, liqProveedor.Debe, "Debe del proveedor = TotalDetallePagos");
 
-            var liqCuenta = apuntes.First(a => a.Asiento == 2 && a.Cuenta == "55500047");
-            Assert.AreEqual(120M, liqCuenta.Haber, "Haber de cuenta 555 = importe del detalle");
+            var liqCuenta = apuntes.First(a => a.Asiento == 2 && a.Cuenta == "44000047");
+            Assert.AreEqual(120M, liqCuenta.Haber, "Haber de la cuenta 440 = importe del detalle");
         }
 
         [TestMethod]
@@ -253,11 +253,48 @@ namespace CanalesExternosTests
 
             var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
 
-            var gastos = apuntes.First(a => a.Asiento == 3 && a.TipoCuenta == "3");
+            var gastos = apuntes.First(a => a.Asiento == 3 && a.TipoCuenta == "3" && a.Cuenta == "869");
             Assert.IsTrue(gastos.Haber > 0, "Debe generar apunte de gastos al proveedor");
 
-            var comisiones = apuntes.First(a => a.Asiento == 3 && a.Cuenta == "55500062");
-            Assert.AreEqual(20M, comisiones.Debe, "Las comisiones del detalle van al Debe");
+            // NestoAPI#390: las comisiones ya no van a la 555; son un pago a cuenta al 999
+            var comisiones = apuntes.First(a => a.Asiento == 3 && a.Cuenta == "999");
+            Assert.AreEqual("3", comisiones.TipoCuenta, "El pago a cuenta va con TipoCuenta proveedor");
+            Assert.AreEqual(20M, comisiones.Debe, "Las comisiones del detalle van al Debe del 999");
+        }
+
+        [TestMethod]
+        public void GenerarApuntes_Promociones_VanALaCuentaDePagoDelMarketplace()
+        {
+            // NestoAPI#390: la promoción es menos ingreso del pedido, no una comisión
+            // facturable. Amazon liquida el precio SIN promo y la descuenta aparte, así
+            // que debe ir a la cuenta de pago (440) para que el pedido salde por OrderId.
+            var pago = CrearPagoEUR(100M);
+            pago.DetallesPago.First().Promociones = -5M;
+
+            var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
+
+            var promo = apuntes.Single(a => a.Asiento == 3 && a.Cuenta == "44000047");
+            Assert.AreEqual(5M, promo.Debe, "La promoción va al Debe de la cuenta de pago");
+            Assert.IsTrue(promo.Concepto.Contains("ORDER-001"), "El concepto lleva el OrderId para el matching");
+
+            var pagoACuenta = apuntes.Single(a => a.Cuenta == "999");
+            Assert.AreEqual(20M, pagoACuenta.Debe, "Al 999 van solo las comisiones, sin promociones");
+            Assert.IsFalse(apuntes.Any(a => a.Cuenta == "55500062"),
+                "La cuenta 555 de comisiones no debe recibir ningún apunte (NestoAPI#390)");
+
+            var asiento3 = apuntes.Where(a => a.Asiento == 3).ToList();
+            Assert.AreEqual(asiento3.Sum(a => a.Debe), asiento3.Sum(a => a.Haber), "El asiento 3 debe cuadrar");
+        }
+
+        [TestMethod]
+        public void GenerarApuntes_SinComisionesNiPromociones_NoGeneraPagoACuenta999()
+        {
+            var pago = CrearPagoEUR(100M);
+            pago.DetallesPago.First().Comisiones = 0M;
+
+            var apuntes = CanalesExternosPagosViewModel.GenerarApuntesContables(pago);
+
+            Assert.IsFalse(apuntes.Any(a => a.Cuenta == "999"));
         }
 
         // === Tests de documento y concepto ===

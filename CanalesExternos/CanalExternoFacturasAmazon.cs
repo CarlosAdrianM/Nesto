@@ -461,14 +461,17 @@ namespace Nesto.Modulos.CanalesExternos
         }
 
         /// <summary>
-        /// 22 cuentas 555 = 11 marketplaces × 2 (Pago + Comisión). Miravia (572) queda fuera.
+        /// Cuentas del cuadre por marketplace: las de pago (440, deudores Amazon; antes 555)
+        /// y las 555 de comisión en extinción (NestoAPI#390: se listan mientras drenan;
+        /// las comisiones nuevas van a la cartera del proveedor 999). Miravia (572) queda fuera.
         /// </summary>
         internal static List<ResumenSaldoCuentaDto> ConstruirListaCuentas555()
         {
             var lista = new List<ResumenSaldoCuentaDto>();
             foreach (var m in DatosMarkets.Mercados)
             {
-                if (!string.IsNullOrEmpty(m.CuentaContablePago) && m.CuentaContablePago.StartsWith("555"))
+                if (!string.IsNullOrEmpty(m.CuentaContablePago)
+                    && (m.CuentaContablePago.StartsWith("440") || m.CuentaContablePago.StartsWith("555")))
                 {
                     lista.Add(new ResumenSaldoCuentaDto
                     {
@@ -553,26 +556,15 @@ namespace Nesto.Modulos.CanalesExternos
 
         internal object ConstruirRequest(FacturaCanalExterno factura, string pathPdf = null)
         {
-            // Si conocemos el marketplace, liquidamos automáticamente el extracto del proveedor 999
-            // contra la cuenta corriente del marketplace (CuentaContableComision en DatosMarkets).
-            // Para facturas sin marketplace (AGL Multiple) no se puede liquidar automáticamente.
-            string contrapartida = null;
-            bool crearPago = false;
-            if (!string.IsNullOrEmpty(factura.MarketplaceId))
-            {
-                var mercado = DatosMarkets.Mercados.FirstOrDefault(m => m.Id == factura.MarketplaceId);
-                if (mercado != null && !string.IsNullOrEmpty(mercado.CuentaContableComision))
-                {
-                    contrapartida = mercado.CuentaContableComision;
-                    crearPago = true;
-                }
-            }
-
+            // NestoAPI#390: la factura de comisiones ya NO se paga automáticamente contra
+            // la cuenta 555 del marketplace. Queda pendiente en la cartera del proveedor
+            // 999 (ExtractoProveedor); las liquidaciones de la ventana de pagos le abonan
+            // pagos a cuenta y la compensación se hace en cartera.
             return new
             {
                 Pedido = ConstruirPedido(factura, pathPdf),
-                CrearPago = crearPago,
-                ContraPartidaPago = contrapartida,
+                CrearPago = false,
+                ContraPartidaPago = (string)null,
                 Documento = factura.InvoiceId
             };
         }

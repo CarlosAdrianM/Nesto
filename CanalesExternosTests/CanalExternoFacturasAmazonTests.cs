@@ -108,18 +108,18 @@ namespace CanalesExternosTests
         }
 
         [TestMethod]
-        public void ConstruirRequest_ConMarketplaceConCuentaComision_CreaPagoAutomatico()
+        public void ConstruirRequest_ConMarketplace_TampocoCreaPago()
         {
-            // Amazon.es tiene CuentaContableComision configurada en DatosMarkets,
-            // así que se crea el pago automáticamente para liquidar el extracto del proveedor 999.
+            // NestoAPI#390: la factura de comisiones queda pendiente en la cartera del
+            // proveedor 999; ya no se paga automáticamente contra la 555 del marketplace.
             var factura = CrearFactura(invoiceId: "INV-ES");
 
             var request = AJson(CrearCanal().ConstruirRequest(factura));
 
-            Assert.AreEqual(true, (bool)request["CrearPago"]);
+            Assert.AreEqual(false, (bool)request["CrearPago"]);
             Assert.AreEqual("INV-ES", (string)request["Documento"]);
-            Assert.IsFalse(string.IsNullOrEmpty((string)request["ContraPartidaPago"]),
-                "Con marketplace liquidable debe propagarse la cuenta de contrapartida");
+            Assert.IsTrue(string.IsNullOrEmpty((string)request["ContraPartidaPago"]),
+                "No debe propagarse contrapartida: la factura queda pendiente en cartera");
         }
 
         [TestMethod]

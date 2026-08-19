@@ -401,27 +401,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                     });
                 }
 
-                if (detalle.Comisiones != 0)
-                {
-                    apuntes.Add(new PreContabilidadDTO
-                    {
-                        Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
-                        Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
-                        Asiento = 3,
-                        Fecha = fechaPago,
-                        FechaVto = fechaPago,
-                        TipoApunte = Constantes.TiposApunte.PAGO,
-                        TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                        Cuenta = pago.DetallesPago.First().CuentaContableComisiones,
-                        Concepto = string.Format("Liq. Comisiones {0}", detalle.ExternalId),
-                        Debe = -detalle.Comisiones,
-                        Documento = documento,
-                        FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
-                        Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
-                        FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
-                    });
-                }
 
+                // NestoAPI#390: la promoción es menos ingreso del pedido, NO una comisión
+                // facturable (la factura mensual de Amazon no la incluye). Va a la cuenta
+                // de pago del marketplace, la misma del prepago y la liquidación, para que
+                // el grupo del pedido salde exacto por AmazonOrderId: Amazon liquida el
+                // precio SIN promo y la descuenta aquí (prepago - liq. + promo = 0).
                 if (detalle.Promociones != 0)
                 {
                     apuntes.Add(new PreContabilidadDTO
@@ -433,7 +418,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         FechaVto = fechaPago,
                         TipoApunte = Constantes.TiposApunte.PAGO,
                         TipoCuenta = Constantes.TiposCuenta.CUENTA_CONTABLE,
-                        Cuenta = pago.DetallesPago.First().CuentaContableComisiones,
+                        Cuenta = detalle.CuentaContablePago,
                         Concepto = string.Format("Liq. Promociones {0}", detalle.ExternalId),
                         Debe = -detalle.Promociones,
                         Documento = documento,
@@ -442,6 +427,34 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
                     });
                 }
+            }
+
+            // NestoAPI#390: las comisiones que Amazon descuenta en la liquidación ya no
+            // van a la cuenta 555 del marketplace: son un pago a cuenta al proveedor 999
+            // (Amazon EU), que es quien emite la factura mensual de comisiones
+            // (SubirFacturas la deja pendiente en su cartera). La compensación
+            // factura-pagos se hace en ExtractoProveedor, con los residuos a la vista.
+            decimal comisionesDetalle = -pago.TotalDetalleComisiones;
+            if (comisionesDetalle != 0)
+            {
+                apuntes.Add(new PreContabilidadDTO
+                {
+                    Empresa = Constantes.Empresas.EMPRESA_DEFECTO,
+                    Diario = Constantes.DiariosContables.DIARIO_PAGO_REEMBOLSOS,
+                    Asiento = 3,
+                    Fecha = fechaPago,
+                    FechaVto = fechaPago,
+                    TipoApunte = Constantes.TiposApunte.PAGO,
+                    TipoCuenta = Constantes.TiposCuenta.PROVEEDOR,
+                    Cuenta = Constantes.Proveedores.Especiales.PROVEEDOR_AMAZON_EU,
+                    Contacto = Constantes.Proveedores.Especiales.CONTACTO_PROVEEDOR_AMAZON,
+                    Concepto = string.Format("Liq. comisiones {0}", nombreMarket),
+                    Debe = comisionesDetalle,
+                    Documento = documento,
+                    FacturaProveedor = Strings.Right(pago.PagoExternalId, 20),
+                    Delegacion = Constantes.Empresas.DELEGACION_DEFECTO,
+                    FormaVenta = Constantes.Empresas.FORMA_VENTA_DEFECTO
+                });
             }
 
             return apuntes;

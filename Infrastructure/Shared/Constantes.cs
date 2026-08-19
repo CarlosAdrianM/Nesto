@@ -171,6 +171,10 @@ namespace Nesto.Infrastructure.Shared
             {
                 public const string PROVEEDOR_AMAZON = "869";
                 public const string CONTACTO_PROVEEDOR_AMAZON = "0";
+                // NestoAPI#390: Amazon EU S.à r.l. es el proveedor de las facturas de
+                // comisiones (SubirFacturas); las liquidaciones le pagan a cuenta y la
+                // compensación se hace en su cartera (ExtractoProveedor).
+                public const string PROVEEDOR_AMAZON_EU = "999";
             }
         }
         public class Rapports
