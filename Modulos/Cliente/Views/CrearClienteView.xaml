@@ -39,8 +39,13 @@
                                      BackButtonVisibility="Hidden" Enter="DatosFiscales_Enter">
 
                         <Grid>
+                            <!-- Nesto#431: el País va en su propia fila Auto con separadores de 3
+                                 (como NIF/Nombre), en vez de pegado al NIF colgando de la fila
+                                 elástica superior con VerticalAlignment=Bottom. -->
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="3"/>
                                 <RowDefinition Height="Auto"/>
@@ -55,14 +60,14 @@
                             </Grid.ColumnDefinitions>
                             <!-- NestoAPI#355: país del cliente. Si no es ES, el NIF es un NIF-IVA
                                  extranjero y NO se valida contra la AEAT. -->
-                            <TextBlock Grid.Column="1" Grid.Row="0" TextAlignment="Right" VerticalAlignment="Bottom">País</TextBlock>
-                            <controles:SelectorPais Grid.Column="3" Grid.Row="0" VerticalAlignment="Bottom"
+                            <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right" VerticalAlignment="Center">País</TextBlock>
+                            <controles:SelectorPais Grid.Column="3" Grid.Row="1"
                                                     Seleccionado="{Binding ClientePais, Mode=TwoWay}"
                                                     VisibilidadEtiqueta="Collapsed"/>
-                            <TextBlock Grid.Column="1" Grid.Row="1" TextAlignment="Right">NIF</TextBlock>
-                            <TextBox Name="txtNif" Grid.Column="3" Grid.Row="1" Text="{Binding ClienteNif, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding NifSinValidar}" KeyUp="TxtNif_KeyUp" GotFocus="TxtNif_GotFocus" PreviewMouseUp="TxtNif_PreviewMouseUp"></TextBox>
-                            <TextBlock Grid.Column="1" Grid.Row="3" Visibility="{Binding NombreIsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" TextAlignment="Right">Nombre Fiscal</TextBlock>
-                            <TextBox Name="txtNombre" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteNombre, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding NombreIsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" KeyUp="TxtNombre_KeyUp" GotFocus="TxtNombre_GotFocus" PreviewMouseUp="TxtNombre_PreviewMouseUp"></TextBox>
+                            <TextBlock Grid.Column="1" Grid.Row="3" TextAlignment="Right" VerticalAlignment="Center">NIF</TextBlock>
+                            <TextBox Name="txtNif" Grid.Column="3" Grid.Row="3" Text="{Binding ClienteNif, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding NifSinValidar}" KeyUp="TxtNif_KeyUp" GotFocus="TxtNif_GotFocus" PreviewMouseUp="TxtNif_PreviewMouseUp"></TextBox>
+                            <TextBlock Grid.Column="1" Grid.Row="5" Visibility="{Binding NombreIsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" TextAlignment="Right" VerticalAlignment="Center">Nombre Fiscal</TextBlock>
+                            <TextBox Name="txtNombre" Grid.Column="3" Grid.Row="5" Text="{Binding ClienteNombre, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding NombreIsEnabled, Converter={StaticResource BooleanToVisibilityConverter}}" KeyUp="TxtNombre_KeyUp" GotFocus="TxtNombre_GotFocus" PreviewMouseUp="TxtNombre_PreviewMouseUp"></TextBox>
                         </Grid>
                     </xctk:WizardPage>
                     <xctk:WizardPage x:Name="DatosGenerales" 
