@@ -17,6 +17,9 @@ namespace Nesto.Modulos.Cliente.Models
         public DateTime FechaValidacion { get; set; }
         public string Vendedor { get; set; }
         public bool TienePedidoPendiente { get; set; }
+        /// <summary>NestoAPI#354: ISO-2 del país si el NIF parece un NIF-IVA intracomunitario
+        /// (IT0280027 → IT). La pantalla preselecciona tipo 02 + país con esta sugerencia.</summary>
+        public string PaisIntracomunitarioSugerido { get; set; }
     }
 
     /// <summary>

@@ -8,6 +8,7 @@ using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cliente
@@ -36,6 +37,7 @@ namespace Nesto.Modulos.Cliente
             CargarCommand = new DelegateCommand(async () => await CargarAsync());
             CorregirCommand = new DelegateCommand(async () => await CorregirAsync(), CanCorregir);
             MarcarExtranjeroCommand = new DelegateCommand(async () => await MarcarExtranjeroAsync(), CanMarcarExtranjero);
+            MarcarNoCensadoCommand = new DelegateCommand(async () => await MarcarNoCensadoAsync(), () => ClienteSeleccionado != null);
             _ = CargarAsync(); // carga inicial al abrir la ventana
         }
 
@@ -68,8 +70,24 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref _clienteSeleccionado, value))
                 {
                     NifNuevo = string.Empty;
+                    // NestoAPI#354: si el NIF parece un NIF-IVA intracomunitario, se preseleccionan
+                    // tipo 02 + país para que "Marcar como extranjero" sea un clic. Solo es una
+                    // sugerencia: el usuario puede cambiarla o ignorarla. Sin sugerencia se limpia,
+                    // para no arrastrar el país de la fila anterior.
+                    string sugerido = value?.PaisIntracomunitarioSugerido;
+                    if (!string.IsNullOrWhiteSpace(sugerido))
+                    {
+                        TipoIdentificacionSeleccionado = TiposIdentificacion.First(t => t.Codigo == "02");
+                        PaisIdentificacion = sugerido;
+                    }
+                    else
+                    {
+                        TipoIdentificacionSeleccionado = null;
+                        PaisIdentificacion = string.Empty;
+                    }
                     CorregirCommand.RaiseCanExecuteChanged();
                     MarcarExtranjeroCommand.RaiseCanExecuteChanged();
+                    MarcarNoCensadoCommand.RaiseCanExecuteChanged();
                 }
             }
         }
@@ -268,6 +286,53 @@ namespace Nesto.Modulos.Cliente
                 _dialogService.ShowNotification("Identificación extranjera", resultado.Motivo);
                 PaisIdentificacion = string.Empty;
                 NifNuevo = string.Empty;
+                await CargarAsync(); // el cliente desaparece de la lista
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        /// <summary>NestoAPI#391: catálogo L7, tipo 07 "no censado".</summary>
+        internal const string TIPO_NO_CENSADO = "07";
+        internal const string PAIS_ESPANA = "ES";
+
+        // NestoAPI#391: cliente español al que se facturó por error y cuyo NIF real no se puede
+        // conseguir (ni contactarle). La factura y su rectificativa tienen que declararse a
+        // Verifactu igualmente; con la marca 07 van con IDOtro (que la AEAT no valida contra el
+        // censo) y dejan de rechazarse a diario. Un clic: 07 + ES, sin pedir tipo ni país.
+        public DelegateCommand MarcarNoCensadoCommand { get; }
+
+        public async Task MarcarNoCensadoAsync()
+        {
+            if (ClienteSeleccionado == null)
+            {
+                return;
+            }
+            ClienteNifIncorrectoModel cliente = ClienteSeleccionado;
+
+            bool confirmado = _dialogService.ShowConfirmationAnswer("Cliente no censado",
+                $"¿Marcar el cliente {cliente.Cliente} - {cliente.Nombre?.Trim()} como NO CENSADO " +
+                $"con la identificación '{cliente.Nif?.Trim()}'?" + Environment.NewLine +
+                "Solo para cuando NO se puede conseguir el NIF real (si se puede, usa 'Corregir NIF'). " +
+                "Dejará de validarse contra el censo y sus facturas pendientes se declararán a " +
+                "Verifactu como destinatario no censado (IDOtro tipo 07).");
+            if (!confirmado)
+            {
+                return;
+            }
+
+            try
+            {
+                EstaOcupado = true;
+                ResultadoCorreccionNifModel resultado = await _servicio.MarcarIdentificacionExtranjera(
+                    cliente.Cliente, TIPO_NO_CENSADO, PAIS_ESPANA, null);
+                _dialogService.ShowNotification("Cliente no censado", resultado.Motivo);
                 await CargarAsync(); // el cliente desaparece de la lista
             }
             catch (Exception ex)

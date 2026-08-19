@@ -46,6 +46,8 @@
                     <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}"/>
                     <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
                     <DataGridTextColumn Header="NIF actual" Binding="{Binding Nif}"/>
+                    <!-- NestoAPI#354: si el NIF parece un NIF-IVA intracomunitario, el país sugerido -->
+                    <DataGridTextColumn Header="País sug." Binding="{Binding PaisIntracomunitarioSugerido}"/>
                     <DataGridTextColumn Header="Respuesta AEAT" Binding="{Binding ResultadoAeat}"/>
                     <DataGridTextColumn Header="Detectado" Binding="{Binding FechaValidacion, StringFormat=d}"/>
                     <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}"/>
@@ -87,6 +89,15 @@
                     </StackPanel>
                     <TextBlock Text="El cliente extranjero no se valida contra el censo español; su factura se declara a Verifactu con ese tipo y país. Los de la UE se declaran solos por su país."
                                Foreground="DimGray" TextWrapping="Wrap" Margin="138,2,0,0"/>
+
+                    <!-- Camino NO CENSADO (NestoAPI#391): error humano sin NIF real alcanzable. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <TextBlock Text="Sin NIF real" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="Bold"
+                                   Width="130"/>
+                        <Button Content="Marcar como no censado" Command="{Binding MarcarNoCensadoCommand}" Padding="10,2" FontWeight="Bold" MinWidth="140"/>
+                        <TextBlock Text="Último recurso: si no hay forma de conseguir el NIF real, las facturas pendientes se declaran como destinatario no censado (IDOtro 07) y dejan de rechazarse."
+                                   Foreground="DimGray" VerticalAlignment="Center" Margin="15,0,0,0" TextWrapping="Wrap" MaxWidth="620"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

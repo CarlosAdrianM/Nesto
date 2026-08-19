@@ -50,8 +50,37 @@ namespace ClienteTests
         private ClientesNifIncorrectosViewModel CrearViewModel()
             => new ClientesNifIncorrectosViewModel(servicio, configuracion, dialogService);
 
-        private static ClienteNifIncorrectoModel Fila(string cliente = "30676", string nif = "90021192")
-            => new ClienteNifIncorrectoModel { Cliente = cliente, Nombre = "ANA ISABEL", Nif = nif };
+        private static ClienteNifIncorrectoModel Fila(string cliente = "30676", string nif = "90021192",
+            string paisSugerido = null)
+            => new ClienteNifIncorrectoModel { Cliente = cliente, Nombre = "ANA ISABEL", Nif = nif, PaisIntracomunitarioSugerido = paisSugerido };
+
+        // NestoAPI#354: la sugerencia de NIF-IVA intracomunitario preselecciona tipo 02 + país
+        // para que "Marcar como extranjero" sea un clic. La decisión sigue siendo humana.
+
+        [TestMethod]
+        public void SeleccionarClienteConSugerencia_PreseleccionaTipo02YPais()
+        {
+            var vm = CrearViewModel();
+
+            vm.ClienteSeleccionado = Fila(cliente: "41777", nif: "IT0280027", paisSugerido: "IT");
+
+            Assert.AreEqual("02", vm.TipoIdentificacionSeleccionado?.Codigo);
+            Assert.AreEqual("IT", vm.PaisIdentificacion);
+            Assert.IsTrue(vm.MarcarExtranjeroCommand.CanExecute(), "Con la preselección, marcar es un clic");
+        }
+
+        [TestMethod]
+        public void SeleccionarClienteSinSugerencia_LimpiaTipoYPais()
+        {
+            var vm = CrearViewModel();
+            vm.ClienteSeleccionado = Fila(cliente: "41777", nif: "IT0280027", paisSugerido: "IT");
+
+            vm.ClienteSeleccionado = Fila(cliente: "30676", nif: "90021192");
+
+            Assert.IsNull(vm.TipoIdentificacionSeleccionado, "No debe arrastrar el tipo de la fila anterior");
+            Assert.AreEqual(string.Empty, vm.PaisIdentificacion, "No debe arrastrar el país de la fila anterior");
+            Assert.IsFalse(vm.MarcarExtranjeroCommand.CanExecute());
+        }
 
         [TestMethod]
         public async Task Cargar_Administracion_VeTodosLosClientes()
@@ -96,6 +125,52 @@ namespace ClienteTests
 
             Assert.AreEqual(0, vm.Clientes.Count);
             A.CallTo(() => servicio.LeerNifIncorrectos(A<string>.Ignored)).MustNotHaveHappened();
+        }
+
+        // NestoAPI#391: "Marcar como no censado" — un clic para el error humano sin NIF real
+        // alcanzable: 07 + ES por debajo, reutilizando el circuito de la marca extranjera.
+
+        [TestMethod]
+        public async Task MarcarNoCensado_ConExito_LlamaConTipo07EspanaYRefrescaLaLista()
+        {
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)).Returns(true);
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera("9093", "07", "ES", null))
+                .Returns(new ResultadoCorreccionNifModel { Corregido = true, Motivo = "Cliente marcado como NO CENSADO" });
+            var vm = CrearViewModel();
+            vm.ClienteSeleccionado = Fila(cliente: "9093", nif: "1000000");
+
+            await vm.MarcarNoCensadoAsync();
+
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera("9093", "07", "ES", null))
+                .MustHaveHappenedOnceExactly();
+            // Refresca para que el cliente desaparezca de la lista
+            A.CallTo(() => servicio.LeerNifIncorrectos(null)).MustHaveHappenedTwiceOrMore();
+        }
+
+        [TestMethod]
+        public async Task MarcarNoCensado_SiElUsuarioCancela_NoLlamaAlServicio()
+        {
+            A.CallTo(() => configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)).Returns(true);
+            respuestaConfirmacion = false;
+            var vm = CrearViewModel();
+            vm.ClienteSeleccionado = Fila(cliente: "9093", nif: "1000000");
+
+            await vm.MarcarNoCensadoAsync();
+
+            A.CallTo(() => servicio.MarcarIdentificacionExtranjera(
+                A<string>.Ignored, A<string>.Ignored, A<string>.Ignored, A<string>.Ignored))
+                .MustNotHaveHappened();
+        }
+
+        [TestMethod]
+        public void MarcarNoCensado_SinClienteSeleccionado_EstaDeshabilitado()
+        {
+            var vm = CrearViewModel();
+
+            Assert.IsFalse(vm.MarcarNoCensadoCommand.CanExecute());
+
+            vm.ClienteSeleccionado = Fila();
+            Assert.IsTrue(vm.MarcarNoCensadoCommand.CanExecute());
         }
 
         [TestMethod]
