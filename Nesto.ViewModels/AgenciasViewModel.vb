@@ -24,6 +24,7 @@ Imports Nesto.Modulos.Cajas.Interfaces
 Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
+Imports Newtonsoft.Json
 Imports PdfiumViewer
 Imports Prism.Commands
 Imports Prism.Ioc
@@ -1506,6 +1507,7 @@ Public Class AgenciasViewModel
         End If
 
         Dim envioATramitar = envioActual ' Capturar referencia
+        Dim excepcionTramitacion As Exception = Nothing
 
         ' Issue #135: Convertir sentinel de reembolso antes de enviar a la agencia
         If envioATramitar.Reembolso < 0 Then
@@ -1539,8 +1541,16 @@ Public Class AgenciasViewModel
                 mensajeError = respuesta.TextoRespuestaError
             End If
         Catch ex As Exception
+            ' Nesto#448: este Catch se tragaba las excepciones de la tramitación (caso
+            ' "Sequence contains no matching elements" de ASM). Se registra en ELMAH fuera
+            ' del Try (VB no permite Await dentro de un Catch, patrón AjustarAgenciaConServidor).
             mensajeError = ex.Message
+            excepcionTramitacion = ex
         End Try
+
+        If excepcionTramitacion IsNot Nothing Then
+            Await RegistrarErrorAgenciaEnElmah(excepcionTramitacion, "AgenciasViewModel.Tramitar")
+        End If
 
         RaisePropertyChanged(NameOf(listaReembolsos))
         RaisePropertyChanged(NameOf(mensajeError))
@@ -2974,10 +2984,16 @@ Public Class AgenciasViewModel
         '    agenciaSeleccionada = servicio.CargarAgenciaPorNombreYCuentaReembolsos(Constantes.Empresas.EMPRESA_ESPEJO, agenciaSeleccionada.CuentaReembolsos, agenciaSeleccionada.Nombre)
         'End If
 
-        ' Carlos: 08/02/20: la transacción vale para hacer el dispose si no coge código de barras
+        ' Carlos 08/02/20: la transacción valía para hacer el dispose si no cogía código de barras.
+        ' Nesto#340 (Agencias, slice A2): Insertar/Modificar/Borrar van por la API y ya no hay
+        ' transacción local que revertir. Se sustituye por COMPENSACIÓN explícita: si algo falla,
+        ' el envío recién insertado se borra, y el preexistente (pendiente/ampliación) se restaura
+        ' con la foto tomada aquí (los campos de plaza recalculados antes de este punto se
+        ' incluyen en la foto; son metadatos recalculables e inocuos).
         Dim success As Boolean = False
-        Using transaction As New TransactionScope()
-            Try
+        Dim fotoEnvioPreexistente As String = If(esAmpliacion,
+            JsonConvert.SerializeObject(envioActual, _jsonFotoEnvio), Nothing)
+        Try
                 If estabaPendiente Then
                     envioActual.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO
                     envioActual.Bultos = bultos
@@ -3073,23 +3089,20 @@ Public Class AgenciasViewModel
                 End If
 
                 If Not IsNothing(envioActual.CodigoBarras) Then
-                    transaction.Complete()
-                    success = True ' Marcamos correctas las transacciones
+                    success = True
                 Else
-                    transaction.Dispose()
+                    CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
                     success = False
                 End If
 
             Catch ex As Exception
-                transaction.Dispose()
+                CompensarInsercionFallida(esAmpliacion, fotoEnvioPreexistente)
                 _dialogService.ShowError("Se ha producido un error y no se han grabado los datos: " + vbCr + DbValidationErrorHelper.ExtraerMensajeError(ex))
             End Try
 
             If Not success Then
                 _dialogService.ShowError("Se ha producido un error y no se ha creado la etiqueta correctamente")
             End If
-
-        End Using ' finaliza la transacción
 
         ' Tramitar primero (agencias clásicas): el CodigoBarras ya está, así que notificamos al cliente
         ' aquí (este punto cubre tanto "Insertar Envío" como "Insertar e Imprimir"). En las de "imprimir
@@ -3099,6 +3112,33 @@ Public Class AgenciasViewModel
            agenciaInsercion.FlujoTramitacion <> TipoFlujoTramitacion.RegistrarAlImprimir Then
             NotificarEntregaAgencia(envioActual)
         End If
+    End Sub
+
+    ' Nesto#340 (Agencias, slice A2): compensación del antiguo rollback de InsertarRegistro.
+    ' Best-effort: si la propia compensación fallara, el error original ya se ha mostrado y el
+    ' envío queda a la vista en las listas para arreglarlo a mano.
+    Private Shared ReadOnly _jsonFotoEnvio As New JsonSerializerSettings With {
+        .ContractResolver = New ContractResolverSinNavegaciones()
+    }
+
+    Private Sub CompensarInsercionFallida(esAmpliacion As Boolean, fotoEnvioPreexistente As String)
+        Try
+            If Not esAmpliacion Then
+                ' Envío NUEVO: si llegó a insertarse, se borra y se quita de las listas (antes el
+                ' rollback dejaba además un fantasma en las listas; esto lo mejora).
+                If envioActual IsNot Nothing AndAlso envioActual.Numero <> 0 Then
+                    _servicio.Borrar(envioActual.Numero)
+                    Dim unused1 = listaEnvios.Remove(envioActual)
+                    Dim unused = listaEnviosPedido.Remove(envioActual)
+                End If
+            ElseIf Not String.IsNullOrEmpty(fotoEnvioPreexistente) Then
+                ' Pendiente/ampliación: se restaura la foto previa en la BD.
+                Dim restaurado = JsonConvert.DeserializeObject(Of EnviosAgencia)(fotoEnvioPreexistente)
+                _servicio.Modificar(restaurado)
+                envioActual.RowVersion = restaurado.RowVersion
+            End If
+        Catch
+        End Try
     End Sub
 
     ' Manda al cliente el correo "Pedido entregado a la agencia" (su cuerpo incluye el enlace de
@@ -3185,6 +3225,19 @@ Public Class AgenciasViewModel
         End If
     End Sub
 
+    ' Nesto#448: registro en ELMAH de excepciones de Agencias que los Catch locales capturan
+    ' (el gestor global no las ve porque nunca llegan a escapar). Best-effort: nunca lanza.
+    Private Shared Async Function RegistrarErrorAgenciaEnElmah(ex As Exception, contexto As String) As Task
+        Try
+            Dim servicioErrores = ContainerLocator.Container?.Resolve(Of IServicioRegistroErrores)()
+            If servicioErrores IsNot Nothing Then
+                Await servicioErrores.RegistrarErrorAsync(ex, contexto)
+            End If
+        Catch
+            ' Si falla el registro, se ignora.
+        End Try
+    End Function
+
     ' Registra una entrada informativa del shadow en ELMAH (server-side, visible en producción).
     ' Nunca lanza: el registro de diagnóstico no debe afectar al flujo real.
     Private Shared Async Function RegistrarShadowEnElmah(mensaje As String) As Task
@@ -3225,6 +3278,7 @@ Public Class AgenciasViewModel
 
         ' Iniciamos transacción
         Dim success As Boolean = False
+        Dim detalleError As String = Nothing
         Using transaction As New TransactionScope()
             Using DbContext As New NestoEntities
                 Dim numeroEnvio As Integer = envio.Numero ' porque no me deja usar envio en una lambda
@@ -3307,22 +3361,26 @@ Public Class AgenciasViewModel
                     success = True
 
                 Catch ex As Exception
-                    'DbContext.DeleteObject(lineaInsertar) 'Lo suyo sería hacer una transacción con todo
-                    'DbContext.SaveChanges()
                     transaction.Dispose()
                     success = False
+                    ' Nesto#448: el Catch tragaba la excepción (mensaje genérico y nada en ELMAH,
+                    ' así que el gestor centralizado nunca la veía). Se muestra el detalle y se
+                    ' registra server-side.
+                    detalleError = DbValidationErrorHelper.ExtraerMensajeError(ex)
+                    Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.modificarEnvio")
                     listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
                     envioActual = listaEnviosTramitados.FirstOrDefault
                 End Try
 
                 ' Comprobamos que las transacciones sean correctas
                 If success Then
-                    ' Reset the context since the operation succeeded. 
+                    ' Reset the context since the operation succeeded.
                     Dim unused = DbContext.SaveChanges()
                     envio = envioEncontrado
                     RaisePropertyChanged(NameOf(listaEnviosTramitados))
                 Else
-                    _dialogService.ShowError("Se ha producido un error y no se grabado los datos")
+                    _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr +
+                                             If(detalleError, "(sin detalle)"))
                 End If
             End Using ' cerramos el contexto breve
         End Using ' Cerramos la transaccion
@@ -3350,6 +3408,7 @@ Public Class AgenciasViewModel
 
         ' Iniciamos transacción
         Dim success As Boolean = False
+        Dim detalleError As String = Nothing
         Using transaction As New TransactionScope()
             Using DbContext As New NestoEntities
 
@@ -3433,20 +3492,20 @@ Public Class AgenciasViewModel
                     End If
 
                 Catch ex As Exception
-                    'DbContext.DeleteObject(lineaInsertar) 'Lo suyo sería hacer una transacción con todo
-                    'DbContext.SaveChanges()
                     transaction.Dispose()
                     success = False
-                    'listaEnviosTramitados = New ObservableCollection(Of EnviosAgencia)(From e In DbContext.EnviosAgencia Where e.Empresa = empresaSeleccionada.Número And e.Fecha = fechaFiltro And e.Estado = ESTADO_TRAMITADO_ENVIO Order By e.Fecha Descending)
-                    'envioActual = listaEnviosTramitados.FirstOrDefault
+                    ' Nesto#448: mismo tratamiento que en modificarEnvio — detalle + ELMAH.
+                    detalleError = DbValidationErrorHelper.ExtraerMensajeError(ex)
+                    Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.contabilizarModificacionReembolso")
                 End Try
 
                 ' Comprobamos que las transacciones sean correctas
                 If success Then
-                    ' Reset the context since the operation succeeded. 
+                    ' Reset the context since the operation succeeded.
                     Dim unused = DbContext.SaveChanges()
                 Else
-                    _dialogService.ShowError("Se ha producido un error y no se han grabado los datos")
+                    _dialogService.ShowError("Se ha producido un error y no se han grabado los datos:" + vbCr +
+                                             If(detalleError, "(sin detalle)"))
                     Return -1
                 End If
             End Using ' Cerramos contexto breve

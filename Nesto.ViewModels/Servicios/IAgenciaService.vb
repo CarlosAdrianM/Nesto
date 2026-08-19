@@ -4,7 +4,7 @@ Imports Nesto.Models.Nesto.Models
 
 Public Interface IAgenciaService
     Function CargarListaPendientes() As IEnumerable(Of EnvioAgenciaWrapper)
-    Function GetEnvioById(Id As Integer) As EnviosAgencia
+    ' Nesto#340 (A2): GetEnvioById eliminado — no lo llamaba nadie.
     Function Insertar(envio As EnviosAgencia) As EnviosAgencia
     Sub Modificar(envio As EnviosAgencia)
     Sub Borrar(Id As Integer)

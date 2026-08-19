@@ -26,25 +26,56 @@ Public Class AgenciaService
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
+    ' ===== Nesto#340 (Agencias, slice A2): el CRUD de envíos va por la API =====
+    ' La entidad viaja SIN navegaciones (ContractResolverSinNavegaciones): una navegación
+    ' estampada (p. ej. la AgenciasTransporte de los listados A1.b) haría que el servidor
+    ' intentara insertarla como entidad nueva. El PUT devuelve la RowVersion refrescada para
+    ' encadenar modificaciones sobre el mismo objeto sin recargar; el DELETE lleva
+    ' permitirEnCurso=true (paridad con el borrado EF antiguo, que no tenía guarda de estado)
+    ' y borra también la historia de seguimiento en el servidor.
+
+    Private Shared ReadOnly _jsonSinNavegaciones As New JsonSerializerSettings With {
+        .ContractResolver = New ContractResolverSinNavegaciones()
+    }
+
     Public Sub Modificar(envio As EnviosAgencia) Implements IAgenciaService.Modificar
-        Using context As New NestoEntities
-            Dim unused1 = context.EnviosAgencia.Attach(envio)
-            context.Entry(envio).State = EntityState.Modified
-            Dim unused = context.SaveChanges()
-        End Using
+        Dim rowVersionNueva As Byte() = Task.Run(
+            Async Function() As Task(Of Byte())
+                Using client As HttpClient = _clienteApiFactory.Crear()
+                    If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                        Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                    End If
+                    Dim json As String = JsonConvert.SerializeObject(envio, _jsonSinNavegaciones)
+                    Dim content As HttpContent = New StringContent(json, Encoding.UTF8, "application/json")
+                    Dim response As HttpResponseMessage = Await client.PutAsync($"EnviosAgencias/{envio.Numero}", content)
+                    Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                    If Not response.IsSuccessStatusCode Then
+                        Throw New Exception($"No se pudo modificar el envío {envio.Numero} ({CInt(response.StatusCode)}): {cuerpo}")
+                    End If
+                    Dim refrescado = JsonConvert.DeserializeAnonymousType(cuerpo, New With {Key .RowVersion = CType(Nothing, Byte())})
+                    Return refrescado?.RowVersion
+                End Using
+            End Function).GetAwaiter().GetResult()
+        If rowVersionNueva IsNot Nothing Then
+            envio.RowVersion = rowVersionNueva
+        End If
     End Sub
 
     Public Sub Borrar(Id As Integer) Implements IAgenciaService.Borrar
         Try
-            Using DbContext As New NestoEntities
-                Dim historias As List(Of EnviosHistoria) = (From h In DbContext.EnviosHistoria Where h.NumeroEnvio = Id).ToList
-                For Each historia In historias
-                    Dim unused2 = DbContext.EnviosHistoria.Remove(historia)
-                Next
-                Dim envioActual = DbContext.EnviosAgencia.Single(Function(e) e.Numero = Id)
-                Dim unused1 = DbContext.EnviosAgencia.Remove(envioActual)
-                Dim unused = DbContext.SaveChanges()
-            End Using
+            Task.Run(
+                Async Function() As Task
+                    Using client As HttpClient = _clienteApiFactory.Crear()
+                        If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                            Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                        End If
+                        Dim response As HttpResponseMessage = Await client.DeleteAsync($"EnviosAgencias/{Id}?permitirEnCurso=true")
+                        If Not response.IsSuccessStatusCode Then
+                            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                            Throw New Exception($"No se pudo borrar el envío {Id} ({CInt(response.StatusCode)}): {cuerpo}")
+                        End If
+                    End Using
+                End Function).GetAwaiter().GetResult()
         Catch ex As Exception
             _dialogService.ShowError(ex.Message)
         End Try
@@ -62,19 +93,32 @@ Public Class AgenciaService
             Select(Function(envio) EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio)).ToList()
     End Function
 
-    Public Function GetEnvioById(Id As Integer) As EnviosAgencia Implements IAgenciaService.GetEnvioById
-        Using contexto = New NestoEntities
-            Return contexto.EnviosAgencia.Include("Empresas").Single(Function(e) e.Numero = Id)
-        End Using
-    End Function
-
     Public Function Insertar(envio As EnviosAgencia) As EnviosAgencia Implements IAgenciaService.Insertar
-        Using contexto As New NestoEntities
-            Dim unused1 = contexto.EnviosAgencia.Add(envio)
-            Dim unused = contexto.SaveChanges()
-            contexto.Entry(envio).Reference(Function(e) e.AgenciasTransporte).Load()
-            contexto.Entry(envio).Reference(Function(e) e.Empresas).Load()
-        End Using
+        Dim creado As EnviosAgencia = Task.Run(
+            Async Function() As Task(Of EnviosAgencia)
+                Using client As HttpClient = _clienteApiFactory.Crear()
+                    If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                        Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                    End If
+                    Dim json As String = JsonConvert.SerializeObject(envio, _jsonSinNavegaciones)
+                    Dim content As HttpContent = New StringContent(json, Encoding.UTF8, "application/json")
+                    Dim response As HttpResponseMessage = Await client.PostAsync("EnviosAgencias", content)
+                    Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                    If Not response.IsSuccessStatusCode Then
+                        Throw New Exception($"No se pudo insertar el envío ({CInt(response.StatusCode)}): {cuerpo}")
+                    End If
+                    Return JsonConvert.DeserializeObject(Of EnviosAgencia)(cuerpo)
+                End Using
+            End Function).GetAwaiter().GetResult()
+
+        ' El Insertar EF mutaba el MISMO objeto (identity + referencias cargadas): se replica
+        ' copiando lo generado por la BD y estampando las navegaciones que usan los consumidores.
+        envio.Numero = creado.Numero
+        envio.RowVersion = creado.RowVersion
+        envio.FechaModificacion = creado.FechaModificacion
+        envio.AgenciasTransporte = CargarAgencia(envio.Agencia)
+        envio.Empresas = CargarListaEmpresas().FirstOrDefault(Function(e) e.Número?.Trim() = envio.Empresa?.Trim())
+        Return envio
     End Function
 
     Public Function CargarPedido(empresa As String, numeroPedido As Integer?) As CabPedidoVta Implements IAgenciaService.CargarPedido
@@ -132,23 +176,44 @@ Public Class AgenciaService
     ' mínima que usan los grids (AgenciasTransporte.Nombre). Síncrono a propósito: los setters
     ' del VM que consumen estos métodos son síncronos (mismo patrón que las reglas de Cajas).
     Private Function LeerListadoEnvios(ruta As String) As List(Of EnviosAgencia)
-        Return Task.Run(Async Function() As Task(Of List(Of EnviosAgencia))
-                            Using client As HttpClient = _clienteApiFactory.Crear()
-                                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
-                                End If
-                                Dim response As HttpResponseMessage = Await client.GetAsync(ruta)
-                                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
-                                If Not response.IsSuccessStatusCode Then
-                                    Throw New Exception($"No se pudieron cargar los envíos ({CInt(response.StatusCode)}): {cuerpo}")
-                                End If
-                                Dim dtos = JsonConvert.DeserializeObject(Of List(Of EnvioAgenciaListadoDTO))(cuerpo)
-                                Return dtos.Select(Function(dto) AEnvioAgencia(dto)).ToList()
-                            End Using
-                        End Function).GetAwaiter().GetResult()
+        Dim dtos As List(Of EnvioAgenciaListadoDTO) =
+            Task.Run(Async Function() As Task(Of List(Of EnvioAgenciaListadoDTO))
+                         Using client As HttpClient = _clienteApiFactory.Crear()
+                             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                             End If
+                             Dim response As HttpResponseMessage = Await client.GetAsync(ruta)
+                             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                             If Not response.IsSuccessStatusCode Then
+                                 Throw New Exception($"No se pudieron cargar los envíos ({CInt(response.StatusCode)}): {cuerpo}")
+                             End If
+                             Return JsonConvert.DeserializeObject(Of List(Of EnvioAgenciaListadoDTO))(cuerpo)
+                         End Using
+                     End Function).GetAwaiter().GetResult()
+
+        ' Nesto#448: la navegación AgenciasTransporte se estampa COMPLETA. La mínima de A1.b
+        ' solo llevaba el Nombre, y los flujos de tramitación y contabilización consumen más
+        ' campos (Identificador para el uidcliente de ASM/Correos Express, CuentaReembolsos...).
+        Dim agencias As Dictionary(Of String, AgenciasTransporte) = CargarDiccionarioAgencias()
+        Return dtos.Select(Function(dto) AEnvioAgencia(dto, agencias)).ToList()
     End Function
 
-    Private Shared Function AEnvioAgencia(dto As EnvioAgenciaListadoDTO) As EnviosAgencia
+    Private Function CargarDiccionarioAgencias() As Dictionary(Of String, AgenciasTransporte)
+        Using contexto = New NestoEntities
+            Return contexto.AgenciasTransporte.ToList().
+                ToDictionary(Function(a) ClaveAgencia(a.Empresa, a.Numero))
+        End Using
+    End Function
+
+    Private Shared Function ClaveAgencia(empresa As String, numero As Integer) As String
+        Return $"{empresa?.Trim()}|{numero}"
+    End Function
+
+    Private Shared Function AEnvioAgencia(dto As EnvioAgenciaListadoDTO, agencias As Dictionary(Of String, AgenciasTransporte)) As EnviosAgencia
+        Dim agencia As AgenciasTransporte = Nothing
+        If agencias IsNot Nothing Then
+            Dim unused = agencias.TryGetValue(ClaveAgencia(dto.Empresa, dto.Agencia), agencia)
+        End If
         Return New EnviosAgencia With {
             .Numero = dto.Numero,
             .Empresa = dto.Empresa,
@@ -180,9 +245,18 @@ Public Class AgenciaService
             .FechaEntrega = dto.FechaEntrega,
             .ImporteAsegurado = dto.ImporteAsegurado,
             .Peso = dto.Peso,
+            .Vendedor = dto.Vendedor,
+            .FechaFactura = dto.FechaFactura,
+            .Usuario = dto.Usuario,
+            .FechaModificacion = dto.FechaModificacion,
+            .FechaRetornoRecibido = dto.FechaRetornoRecibido,
+            .NombrePlaza = dto.NombrePlaza,
+            .Nemonico = dto.Nemonico,
+            .TelefonoPlaza = dto.TelefonoPlaza,
+            .EmailPlaza = dto.EmailPlaza,
             .RowVersion = dto.RowVersion,
-            .AgenciasTransporte = New AgenciasTransporte With {
-                .Empresa = dto.Empresa, .Numero = dto.Agencia, .Nombre = dto.NombreAgencia}
+            .AgenciasTransporte = If(agencia, New AgenciasTransporte With {
+                .Empresa = dto.Empresa, .Numero = dto.Agencia, .Nombre = dto.NombreAgencia})
         }
     End Function
 
@@ -716,6 +790,23 @@ Public Class AgenciaService
 
 End Class
 
+' Nesto#340 (Agencias, slice A2): excluye las propiedades de navegación al serializar entidades
+' del EDMX hacia la API. Las navegaciones son las únicas propiedades Overridable de las
+' entidades generadas, así que el criterio es genérico y aguanta columnas nuevas sin tocar nada.
+Friend Class ContractResolverSinNavegaciones
+    Inherits Newtonsoft.Json.Serialization.DefaultContractResolver
+
+    Protected Overrides Function CreateProperty(member As Reflection.MemberInfo, memberSerialization As MemberSerialization) As Newtonsoft.Json.Serialization.JsonProperty
+        Dim propiedad = MyBase.CreateProperty(member, memberSerialization)
+        Dim info = TryCast(member, Reflection.PropertyInfo)
+        Dim getter = info?.GetGetMethod()
+        If getter IsNot Nothing AndAlso getter.IsVirtual AndAlso Not getter.IsFinal Then
+            propiedad.ShouldSerialize = Function(o) False
+        End If
+        Return propiedad
+    End Function
+End Class
+
 ' Nesto#340 (Agencias, slice A1.b): contrato de los GET api/EnviosAgencias/* de listados
 ' (EnvioAgenciaListadoDTO del API). Se mapea de inmediato a la entidad EnviosAgencia, así que
 ' no sale de este fichero.
@@ -751,5 +842,15 @@ Friend Class EnvioAgenciaListadoDTO
     Public Property FechaEntrega As Date?
     Public Property ImporteAsegurado As Decimal
     Public Property Peso As Decimal
+    ' Nesto#448: columnas que faltaban — sin ellas, Modificar machacaba estos campos a NULL.
+    Public Property Vendedor As String
+    Public Property FechaFactura As Date?
+    Public Property Usuario As String
+    Public Property FechaModificacion As Date
+    Public Property FechaRetornoRecibido As Date?
+    Public Property NombrePlaza As String
+    Public Property Nemonico As String
+    Public Property TelefonoPlaza As String
+    Public Property EmailPlaza As String
     Public Property RowVersion As Byte()
 End Class
