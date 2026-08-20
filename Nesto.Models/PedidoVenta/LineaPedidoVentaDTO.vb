@@ -13,6 +13,9 @@ Public Class LineaPedidoVentaDTO
     Public Property Factura As String
     Public Property fechaEntrega() As Date
     Public Property formaVenta() As String
+    ' NestoAPI#352: grupo por el que comisiona la línea. En inmovilizado (tipoLinea 3) lo elige
+    ' quien mete el pedido (se pregunta al guardar); en productos lo resuelve el servidor.
+    Public Property GrupoProducto() As String
     Public Property id() As Integer
     Public Property iva() As String
     Public Property oferta() As Integer?

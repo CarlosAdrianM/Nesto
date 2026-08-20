@@ -15,6 +15,8 @@ Public Class PedidoVenta
         containerRegistry.RegisterDialog(Of FacturarRutasPopup, FacturarRutasPopupViewModel)
         containerRegistry.RegisterDialog(Of ErroresFacturacionRutasPopup, ErroresFacturacionRutasPopupViewModel)
         containerRegistry.RegisterDialog(Of CopiarFacturaView, CopiarFacturaViewModel)
+        ' NestoAPI#352: pregunta el grupo de comisión de las líneas de inmovilizado al guardar
+        containerRegistry.RegisterDialog(Of SelectorGrupoComisionDialog, SelectorGrupoComisionDialogViewModel)
 
         ' Registrar servicios del módulo
         Dim unused1 = containerRegistry.RegisterSingleton(Of Services.IServicioFacturacionRutas, Services.ServicioFacturacionRutas)

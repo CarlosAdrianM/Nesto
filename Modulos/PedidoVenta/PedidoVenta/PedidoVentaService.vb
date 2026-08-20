@@ -951,6 +951,18 @@ Public Class PedidoVentaService
         End Using
     End Function
 
+    ' NestoAPI#352: grupos de producto para el diálogo del grupo de comisión del inmovilizado.
+    Public Async Function LeerGruposProducto() As Task(Of List(Of GrupoProductoDTO)) Implements IPedidoVentaService.LeerGruposProducto
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim response = Await client.GetAsync($"PedidosVenta/GruposProducto?empresa={Constantes.Empresas.EMPRESA_DEFECTO}")
+            Dim body As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"No se pudieron cargar los grupos de producto ({CInt(response.StatusCode)}): {body}")
+            End If
+            Return JsonConvert.DeserializeObject(Of List(Of GrupoProductoDTO))(body)
+        End Using
+    End Function
+
     Public Async Function CrearEtiquetaPendiente(empresa As String, pedido As Integer, agencia As Integer, retorno As Short) As Task Implements IPedidoVentaService.CrearEtiquetaPendiente
         Using client As HttpClient = _clienteApiFactory.Crear()
 

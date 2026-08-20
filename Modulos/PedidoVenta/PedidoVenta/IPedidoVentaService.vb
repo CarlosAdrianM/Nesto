@@ -69,6 +69,9 @@ Public Interface IPedidoVentaService
     Function CalcularPortes(empresa As String, pedido As Integer) As Task(Of ResultadoPortesDTO)
     Function CalcularPortesPost(input As PedidoPortesInputDTO) As Task(Of ResultadoPortesDTO)
     Function CrearEtiquetaPendiente(empresa As String, pedido As Integer, agencia As Integer, retorno As Short) As Task
+    ' NestoAPI#352: grupos de producto (tabla GruposProducto vía API) para el diálogo que
+    ' pregunta por cuál comisiona una línea de inmovilizado.
+    Function LeerGruposProducto() As Task(Of List(Of GrupoProductoDTO))
     Function EliminarEtiquetaPendiente(numeroEnvio As Integer) As Task
     ' Nesto#420: resta un importe (la comisión quitada) del reembolso de un envío aún no
     ' tramitado. Devuelve el reembolso resultante. La regla RESTAR (no recalcular) y las

@@ -2126,6 +2126,48 @@ Public Class DetallePedidoViewModel
             Dim unused = SetProperty(_cmdModificarPedido, value)
         End Set
     End Property
+    ' NestoAPI#352: tipo de línea 3 = inmovilizado (mismo valor que Constantes.TiposLineaVenta
+    ' .INMOVILIZADO del servidor; el cliente no tiene la constante).
+    Private Const TIPO_LINEA_INMOVILIZADO As Byte = 3
+
+    ''' <summary>
+    ''' NestoAPI#352 (decisión Carlos 20/08/26): las líneas de inmovilizado comisionan por el
+    ''' grupo que elige quien mete el pedido — el servidor rechaza la línea sin grupo (la
+    ''' comisión nunca sale vacía en silencio). Antes de guardar, se pregunta el grupo (combo
+    ''' con los de GruposProducto) para cada línea de inmovilizado NUEVA sin grupo. Devuelve
+    ''' False si el usuario cancela alguna: el guardado se aborta sin tocar nada.
+    ''' </summary>
+    Public Async Function PedirGrupoParaInmovilizados() As Task(Of Boolean)
+        Dim sinGrupo = pedido.Model.Lineas.Where(
+            Function(l) l.tipoLinea.HasValue AndAlso l.tipoLinea.Value = TIPO_LINEA_INMOVILIZADO AndAlso
+                String.IsNullOrWhiteSpace(l.GrupoProducto) AndAlso
+                (pedido.numero = 0 OrElse l.id = 0)).ToList()
+        If Not sinGrupo.Any() Then
+            Return True
+        End If
+
+        Dim grupos As List(Of GrupoProductoDTO) = Await servicio.LeerGruposProducto()
+        For Each linea In sinGrupo
+            Dim descripcionLinea As String = If(String.IsNullOrWhiteSpace(linea.texto), linea.Producto, linea.texto.Trim())
+            Dim grupoElegido As String = Nothing
+            Dim parametrosDialogo As New DialogParameters From {
+                {"mensaje", $"La línea de inmovilizado '{descripcionLinea}' tiene que comisionar por un grupo de producto. ¿Por cuál comisiona?"},
+                {"grupos", grupos}
+            }
+            dialogService.ShowDialog("SelectorGrupoComisionDialog", parametrosDialogo,
+                Sub(r)
+                    If r.Result = ButtonResult.OK Then
+                        grupoElegido = r.Parameters.GetValue(Of String)("grupo")
+                    End If
+                End Sub)
+            If String.IsNullOrWhiteSpace(grupoElegido) Then
+                Return False
+            End If
+            linea.GrupoProducto = grupoElegido
+        Next
+        Return True
+    End Function
+
     Private Async Sub OnModificarPedido()
         Await ModificarPedidoAsync()
     End Sub
@@ -2137,6 +2179,13 @@ Public Class DetallePedidoViewModel
         If IsNothing(pedido) OrElse IsNothing(pedido.Model) OrElse IsNothing(pedido.Model.Lineas) Then
             Exit Function ' sin pedido cargado no hay nada que modificar
         End If
+
+        ' NestoAPI#352: las líneas de inmovilizado comisionan por el grupo que elige quien mete
+        ' el pedido; el servidor las rechaza sin grupo. Se pregunta AQUÍ, antes de guardar.
+        If Not Await PedirGrupoParaInmovilizados() Then
+            Exit Function ' el usuario canceló la elección: no se guarda nada
+        End If
+
         textoBusyIndicator = "Modificando pedido..."
         estaBloqueado = True
 
