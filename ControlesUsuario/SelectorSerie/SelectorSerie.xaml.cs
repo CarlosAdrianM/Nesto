@@ -83,6 +83,16 @@ namespace ControlesUsuario
             var codigoTrim = codigo?.Trim();
             var item = ListaSeries.FirstOrDefault(s => s.Codigo?.Trim() == codigoTrim);
 
+            // Verifactu NestoAPI#39 (20/08/26): un pedido antiguo puede venir en una serie
+            // RETIRADA de la lista (p. ej. DV). Se añade como entrada de solo-visualización para
+            // que el combo la muestre y NO resetee la serie del pedido (lección de los
+            // selectores que machacaban campos, Nesto#254). Para pedidos nuevos no aparece.
+            if (item == null && !string.IsNullOrEmpty(codigoTrim))
+            {
+                item = new SerieItem { Codigo = codigoTrim, Nombre = "(serie histórica)" };
+                ListaSeries.Add(item);
+            }
+
             if (item != null && comboSerie.SelectedItem != item)
             {
                 comboSerie.SelectedItem = item;
@@ -148,13 +158,14 @@ namespace ControlesUsuario
         /// </summary>
         private void CargarSeries()
         {
+            // Verifactu NestoAPI#39 (20/08/26): VC y DV retiradas — no se ofrecen para pedidos
+            // nuevos (DV deja de usarse; sus abonos van por RV). Los pedidos históricos en
+            // series retiradas se siguen MOSTRANDO gracias al alta dinámica de SincronizarComboBox.
             ListaSeries = new ObservableCollection<SerieItem>
             {
                 new SerieItem { Codigo = "NV", Nombre = "Nueva Visión" },
                 new SerieItem { Codigo = "CV", Nombre = "Cursos" },
-                new SerieItem { Codigo = "UL", Nombre = "Unión Láser" },
-                new SerieItem { Codigo = "VC", Nombre = "Visnú Cosméticos" },
-                new SerieItem { Codigo = "DV", Nombre = "Deuda Vencida" }
+                new SerieItem { Codigo = "UL", Nombre = "Unión Láser" }
             };
         }
 

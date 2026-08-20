@@ -52,15 +52,15 @@ namespace ControlesUsuario.Services
             }
         }
 
+        // Verifactu NestoAPI#39 (20/08/26): VC y DV retiradas (DV deja de usarse; sus abonos
+        // van por la serie rectificativa RV). Este fallback debe ser espejo del GetSeries del API.
         private List<SerieItem> GetSeriesDefault()
         {
             return new List<SerieItem>
             {
                 new SerieItem { Codigo = "NV", Nombre = "Nueva Visión" },
                 new SerieItem { Codigo = "CV", Nombre = "Cursos" },
-                new SerieItem { Codigo = "UL", Nombre = "Unión Láser" },
-                new SerieItem { Codigo = "VC", Nombre = "Visnú Cosméticos" },
-                new SerieItem { Codigo = "DV", Nombre = "Deuda Vencida" }
+                new SerieItem { Codigo = "UL", Nombre = "Unión Láser" }
             };
         }
     }
