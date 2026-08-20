@@ -1,4 +1,5 @@
-﻿Imports Prism.Regions
+﻿Imports Prism.Ioc
+Imports Prism.Regions
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
 Imports System.ComponentModel
@@ -105,7 +106,40 @@ Partial Class MainWindow
         Catch ex As Exception
             ' Las novedades nunca deben impedir arrancar Nesto
         End Try
+
+        Await ComprobarAlmacenTitular()
     End Sub
+
+    ' Caso real 20/08/26: quien se cambia el almacén de pedidos temporalmente (Tienda Online:
+    ' AMZ para FBA ↔ ALG para cubrir rutas) puede olvidarse de volver. El servidor captura el
+    ' almacén TITULAR al primer cambio, y aquí, al arrancar, si el activo difiere del titular
+    ' se ofrece restaurarlo. Solo en máquinas SIN parámetros automáticos por nombre de sede
+    ' (en las de sede ALG*/REI*... el arranque ya machaca el almacén y no hay nada que ofrecer).
+    ' Best-effort: nunca debe impedir arrancar Nesto.
+    Private Async Function ComprobarAlmacenTitular() As System.Threading.Tasks.Task
+        Try
+            Dim delegacionDeMaquina As String = Strings.Left(Maquina, 3)
+            If Constantes.Sedes.ListaSedes.Select(Function(s) s.Codigo).Contains(delegacionDeMaquina) Then
+                Return
+            End If
+            Dim servicio = ContainerLocator.Container.Resolve(Of ControlesUsuario.Services.IServicioParametrosEditables)()
+            Dim editables = Await servicio.LeerEditables()
+            Dim almacen = editables?.FirstOrDefault(Function(p) p.Clave = Parametros.Claves.AlmacenPedidoVta)
+            If almacen Is Nothing OrElse String.IsNullOrWhiteSpace(almacen.ValorTitular) OrElse
+                almacen.ValorTitular = almacen.ValorActual Then
+                Return
+            End If
+            Dim respuesta = MessageBox.Show(
+                $"Tu almacén de pedidos titular es {almacen.ValorTitular}, pero tienes activo {almacen.ValorActual}." &
+                vbCrLf & vbCrLf & $"¿Quieres volver a {almacen.ValorTitular}?",
+                "Almacén de pedidos", MessageBoxButton.YesNo, MessageBoxImage.Question)
+            If respuesta = MessageBoxResult.Yes Then
+                Dim unused = Await servicio.Cambiar(almacen.Clave, almacen.ValorTitular)
+            End If
+        Catch ex As Exception
+            ' Best-effort: sin conexión o sin permisos, no se molesta ni se rompe el arranque
+        End Try
+    End Function
 
     Private Sub ActualizarMaquinaYDelegacion()
         Maquina = RdpClientInfo.GetCurrentClientName()

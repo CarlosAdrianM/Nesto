@@ -392,7 +392,15 @@ Public Class MenuBarViewModel
         textoMensaje += $"Almacen pedidos en {almacenPedidoVta}" + vbCr
         textoMensaje += $"Almacen reposicion en {almacenRepo}" + vbCr
         textoMensaje += $"Almacen inventario en {almacenInventario}" + vbCr
-        MessageBox.Show(textoMensaje, "Parametros usuario")
+        ' Caso real 20/08/26: ya no es un MessageBox de solo lectura — la ventana muestra además
+        ' los parámetros que el SERVIDOR declare editables para este usuario (p. ej. Tienda
+        ' Online puede cambiarse el almacén de pedidos entre AMZ y ALG), con combo y validación.
+        Dim dialogService = _container.Resolve(Of Prism.Services.Dialogs.IDialogService)()
+        Dim parametrosDialogo As New Prism.Services.Dialogs.DialogParameters From {
+            {"informacion", textoMensaje}
+        }
+        dialogService.ShowDialog("ParametrosUsuarioDialog", parametrosDialogo, Sub(r)
+                                                                              End Sub)
     End Sub
 
 #End Region

@@ -201,6 +201,10 @@ Partial Public Class Application
         ' Carlos 09/12/25: Issue #245 - Registrar servicio de series para SelectorSerie
         Dim unused36 = containerRegistry.RegisterSingleton(GetType(IServicioSeries), GetType(ServicioSeries))
 
+        ' Caso real 20/08/26: parámetros que el propio usuario puede cambiarse (Tienda Online
+        ' alterna AMZ/ALG según facture FBA o rutas). El catálogo vive en NestoAPI.
+        Dim unusedParametrosEditables = containerRegistry.RegisterSingleton(GetType(IServicioParametrosEditables), GetType(ServicioParametrosEditables))
+
         ' Carlos 11/12/25: Issue #258 - Registrar servicio de cuentas contables para CuentaContableBehavior
         Dim unused37 = containerRegistry.Register(GetType(IServicioCuentaContable), GetType(ServicioCuentaContable))
 
@@ -221,6 +225,8 @@ Partial Public Class Application
         containerRegistry.RegisterDialog(Of SelectorProductoDuplicadoDialog, SelectorProductoDuplicadoDialogViewModel)
         ' Nesto#372: diálogo "Qué hay de nuevo" (popup tras actualizar + Herramientas → Ayuda → Novedades)
         containerRegistry.RegisterDialog(Of NovedadesDialog, NovedadesDialogViewModel)
+        ' Caso real 20/08/26: ventana de parámetros de usuario (sustituye al MessageBox del menú)
+        containerRegistry.RegisterDialog(Of ParametrosUsuarioDialog, ParametrosUsuarioDialogViewModel)
     End Sub
 
     Protected Overrides Function CreateShell() As Window
