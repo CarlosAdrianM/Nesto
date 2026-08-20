@@ -654,9 +654,20 @@ namespace Nesto.Modules.Producto.ViewModels
             try
             {
                 List<string> listaDeProductos = ProductosResultadoBusqueda.Lista.Select(item => (item as ProductoModel).Producto).ToList();
-                List<Informes.FilaEtiquetasModel> dataSource = await _servicioInformes.LeerEtiquetasTienda(listaDeProductos, EtiquetaPrimera);
-                byte[] pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
-                    "Nesto.Informes.EtiquetasTienda.rdlc", "FilaEtiquetasDataSet", dataSource);
+                // Nesto#340 (Fase 2): con el flag por usuario MotorPdfEtiquetasTienda="QuestPDF"
+                // el PDF lo genera NestoAPI; si no (o ante cualquier fallo leyendo el parámetro),
+                // el RDLC local de siempre. Papel FÍSICO precortado: validar antes de extender.
+                byte[] pdf;
+                if (await UsarQuestPdfEtiquetas())
+                {
+                    pdf = await _servicioInformes.DescargarEtiquetasTiendaPdf(listaDeProductos, EtiquetaPrimera);
+                }
+                else
+                {
+                    List<Informes.FilaEtiquetasModel> dataSource = await _servicioInformes.LeerEtiquetasTienda(listaDeProductos, EtiquetaPrimera);
+                    pdf = Nesto.Infrastructure.Services.RenderizadorInformes.RenderizarPdf(
+                        "Nesto.Informes.EtiquetasTienda.rdlc", "FilaEtiquetasDataSet", dataSource);
+                }
                 string fileName = Path.GetTempPath() + "InformeEtiquetasTienda.pdf";
                 File.WriteAllBytes(fileName, pdf);
                 _ = Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true });
@@ -670,6 +681,22 @@ namespace Nesto.Modules.Producto.ViewModels
                 EstaCargandoProductos = false;
             }
 
+        }
+
+        // Mismo patrón que MotorPdfExtractoContable/MotorPdfPicking: ante cualquier fallo al
+        // leer el parámetro se usa RDLC (comportamiento actual), para no romper la impresión.
+        private async Task<bool> UsarQuestPdfEtiquetas()
+        {
+            try
+            {
+                string motor = await _configuracion.leerParametro(
+                    Constantes.Empresas.EMPRESA_DEFECTO, Parametros.Claves.MotorPdfEtiquetasTienda);
+                return string.Equals(motor, "QuestPDF", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public DelegateCommand MontarKitCommand { get; private set; }

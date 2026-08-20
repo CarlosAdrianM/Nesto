@@ -143,6 +143,17 @@ namespace Nesto.Infrastructure.Services
             return await FilaEtiquetasModel.ComponerAsync(etiquetas, etiquetaPrimera).ConfigureAwait(false);
         }
 
+        // Nesto#340 (Fase 2): el PDF lo genera NestoAPI (QuestPDF) con la misma composición
+        // (huecos por hoja empezada, QR de la tienda, PVP público). Se consume tras el flag
+        // por usuario MotorPdfEtiquetasTienda; sin él, el RDLC local de siempre.
+        public async Task<byte[]> DescargarEtiquetasTiendaPdf(List<string> productos, int etiquetaPrimera)
+        {
+            string csv = Uri.EscapeDataString(string.Join(",", productos ?? new List<string>()));
+            return await GetBytesAsync(
+                $"Informes/EtiquetasTienda/Pdf?productos={csv}&etiquetaPrimera={etiquetaPrimera}",
+                "el PDF de las etiquetas de tienda").ConfigureAwait(false);
+        }
+
         public async Task<PedidoCompraModel> LeerPedidoCompra(string empresa, int pedido)
         {
             using (var client = new HttpClient())

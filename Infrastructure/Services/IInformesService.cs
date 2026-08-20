@@ -38,5 +38,8 @@ namespace Nesto.Infrastructure.Services
         Task<byte[]> DescargarPedidoCompraPdf(string empresa, int pedido);
         Task<byte[]> DescargarPedidoCompraExcel(string empresa, int pedido);
         Task<List<FilaEtiquetasModel>> LeerEtiquetasTienda(List<string> productos, int etiquetaPrimera);
+        /// <summary>Nesto#340 (Fase 2): PDF de etiquetas de tienda generado por NestoAPI
+        /// (QuestPDF), tras el flag por usuario MotorPdfEtiquetasTienda.</summary>
+        Task<byte[]> DescargarEtiquetasTiendaPdf(List<string> productos, int etiquetaPrimera);
     }
 }
