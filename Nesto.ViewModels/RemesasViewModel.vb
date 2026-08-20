@@ -260,6 +260,35 @@ Public Class RemesasViewModel
             Return
         End If
 
+        ' Fallo 20/08/26 (caso real 3028653): un efecto retenido por el gating de entrega se
+        ' puede FORZAR — el usuario marca la fila gris y confirma aquí; el servidor solo acepta
+        ' los que su selector marca Forzable. Los no forzables (IBAN roto, estado bloqueado,
+        ' envío DEVUELTO) se avisan ANTES de molestar con más diálogos.
+        Dim noForzables = seleccionados.Where(Function(c) Not c.Preseleccionado AndAlso Not c.Forzable).ToList()
+        If noForzables.Any() Then
+            mensajeError = "Estos efectos están retenidos y NO se pueden forzar: " &
+                String.Join("; ", noForzables.Select(Function(c) $"{c.Documento} ({c.Motivo})")) &
+                ". Desmárquelos para crear la remesa."
+            Return
+        End If
+        Dim forzables = seleccionados.Where(Function(c) Not c.Preseleccionado AndAlso c.Forzable).ToList()
+        If forzables.Any() Then
+            Dim detalleForzados = String.Join(vbCrLf,
+                forzables.Select(Function(c) $"  • {c.Documento} de {c.Cliente}, {c.ImportePendiente:C}: {c.Motivo}"))
+            Dim confirmarForzados As Boolean = False
+            dialogService.ShowConfirmation("Forzar efectos retenidos",
+                "Estos efectos están retenidos porque su envío no consta entregado:" & vbCrLf &
+                detalleForzados & vbCrLf & vbCrLf &
+                "¿Remesarlos al banco IGUALMENTE?",
+                Sub(r) confirmarForzados = r.Result = Prism.Services.Dialogs.ButtonResult.OK)
+            If Not confirmarForzados Then
+                mensajeError = "Remesa no creada. Desmarque los efectos retenidos o acepte el aviso para forzarlos."
+                Return
+            End If
+        End If
+        Dim efectosForzados As List(Of Integer) =
+            If(forzables.Any(), forzables.Select(Function(c) c.Id).ToList(), Nothing)
+
         ' NestoAPI#380: la puerta de neteo INFORMA pero no obliga. Ajuste 17/08/26 (caso real
         ' 38429: señal de -162 € de un curso que se factura en septiembre + recibo de 119,79 €
         ' que SÍ debe ir al banco): el aviso muestra QUÉ es cada negativo para decidir con
@@ -308,7 +337,8 @@ Public Class RemesasViewModel
             estaOcupado = True
             Dim resultado = Await _remesasService.CrearRemesa(empresaActual, BancoRemesa,
                 seleccionados.Select(Function(c) c.Id).ToList(),
-                RespetarVencimientos, FechaCargo, FechaSeleccionHasta, aceptarClientesConNegativos)
+                RespetarVencimientos, FechaCargo, FechaSeleccionHasta, aceptarClientesConNegativos,
+                efectosForzados)
             numeroCreado = resultado.NumeroRemesa
             mensajeError = $"Remesa {resultado.NumeroRemesa} creada: {resultado.NumeroEfectos} efectos, {resultado.Importe:C}"
             ' Refrescar: la remesa nueva aparece en la lista y los efectos salen de candidatos

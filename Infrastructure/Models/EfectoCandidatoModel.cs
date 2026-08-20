@@ -21,6 +21,13 @@ namespace Nesto.Infrastructure.Models
         public bool Preseleccionado { get; set; }
         public string Motivo { get; set; }
 
+        /// <summary>
+        /// Fallo 20/08/26 (NestoAPI): true = la retención es del gating de entrega (envío sin
+        /// confirmar o incidentado) y el usuario puede forzar el efecto marcándolo — viaja al
+        /// servidor en EfectosForzados. IBAN roto, estado bloqueado o DEVUELTO no son forzables.
+        /// </summary>
+        public bool Forzable { get; set; }
+
         // ImportePendiente y ClienteConNegativos notifican porque se actualizan EN SITIO cuando
         // el usuario liquida efectos en el Extracto de Cliente (EfectosLiquidadosEvent): el grid
         // debe reflejar el nuevo importe y quitar el naranja sin recargar toda la lista.

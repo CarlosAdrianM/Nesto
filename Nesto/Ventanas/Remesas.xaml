@@ -81,7 +81,7 @@
                         <DataGrid Grid.Row="1" Name="gridCandidatos" ItemsSource="{Binding ListaCandidatos}" AutoGenerateColumns="False"
                                   CanUserAddRows="False" ColumnWidth="Auto" SelectionMode="Single"
                                   MouseDoubleClick="GridCandidatos_MouseDoubleClick"
-                                  ToolTip="Doble clic en un efecto para abrir el Extracto del cliente y liquidar">
+                                  ToolTip="Doble clic en un efecto para abrir el Extracto del cliente y liquidar. Los retenidos por entrega pendiente (en gris) se pueden marcar a mano para FORZARLOS en la remesa.">
                             <DataGrid.Columns>
                                 <DataGridCheckBoxColumn Header="Incluir" Binding="{Binding Seleccionado, UpdateSourceTrigger=PropertyChanged}"/>
                                 <DataGridTextColumn Header="Cliente" Binding="{Binding Cliente}" IsReadOnly="True"/>

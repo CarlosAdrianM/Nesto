@@ -24,9 +24,12 @@ Public Interface IRemesasService
     ' seleccionHasta = la fecha con la que se cargaron los candidatos (el servidor revalida igual).
     ' NestoAPI#380: aceptarClientesConNegativos=True → el usuario ha confirmado el aviso de
     ' clientes con movimientos negativos y quiere remesar SIN liquidarlos.
+    ' Fallo 20/08/26: efectosForzados = efectos retenidos por el gating de entrega que el
+    ' usuario ha confirmado remesar igualmente (solo los Forzable; Nothing = ninguno).
     Function CrearRemesa(empresa As String, banco As String, efectos As List(Of Integer),
                          respetarVencimientos As Boolean, fechaCargo As Date, seleccionHasta As Date?,
-                         aceptarClientesConNegativos As Boolean) As Task(Of CrearRemesaResponseModel)
+                         aceptarClientesConNegativos As Boolean,
+                         Optional efectosForzados As List(Of Integer) = Nothing) As Task(Of CrearRemesaResponseModel)
     ' Slice 6: el fichero SEPA ISO 20022 lo genera el servidor (único call site del SP).
     Function CrearFicheroRemesa(remesa As Integer, codigo As String, fechaCobro As Date) As Task(Of String)
     ' Slice 7: contabiliza las devoluciones del fichero SEPA de impagados del banco.

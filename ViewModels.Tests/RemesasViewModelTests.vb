@@ -222,10 +222,12 @@ Public Class RemesasViewModelTests
 
     Private Function Candidato(id As Integer, Optional preseleccionado As Boolean = True,
                                Optional importe As Decimal = 100D, Optional conNegativos As Boolean = False,
-                               Optional cliente As String = "15191") As EfectoCandidatoModel
+                               Optional cliente As String = "15191",
+                               Optional forzable As Boolean = False) As EfectoCandidatoModel
         Return New EfectoCandidatoModel With {
             .Id = id, .Cliente = cliente, .ImportePendiente = importe,
             .Preseleccionado = preseleccionado, .ClienteConNegativos = conNegativos,
+            .Forzable = forzable,
             .Motivo = If(preseleccionado, Nothing, "Retenido: envíos sin entregar (#172)")}
     End Function
 
@@ -414,6 +416,73 @@ Public Class RemesasViewModelTests
             A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, True)) _
             .MustHaveHappenedOnceExactly()
         StringAssert.Contains(vm.mensajeError, "10902")
+    End Function
+
+    ' Fallo 20/08/26 (caso real 3028653): un efecto retenido por el gating de entrega se puede
+    ' FORZAR — el usuario marca la fila gris, confirma el aviso y el id viaja en EfectosForzados.
+    ' Los no forzables (IBAN, DEVUELTO...) se avisan y no se llama al servidor.
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_EfectoForzableMarcado_ConfirmaYViajaEnEfectosForzados() As Task
+        Dim mensajes As New Dictionary(Of String, String)
+        ResponderPorTitulo(New Dictionary(Of String, Boolean) From {
+            {"Forzar efectos retenidos", True}, {"Crear remesa", True}, {"Imprimir remesa", False}}, mensajes)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(111), Candidato(222, preseleccionado:=False, forzable:=True)}))
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored, A(Of List(Of Integer)).Ignored)) _
+            .Returns(Task.FromResult(New CrearRemesaResponseModel With {.NumeroRemesa = 10930, .Importe = 200D, .NumeroEfectos = 2}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+        vm.ListaCandidatos.Single(Function(c) c.Id = 222).Seleccionado = True ' el usuario marca la fila gris
+
+        Await vm.CrearRemesaAsync()
+
+        StringAssert.Contains(mensajes("Forzar efectos retenidos"), "IGUALMENTE")
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, "5",
+            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 2),
+            A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored,
+            A(Of List(Of Integer)).That.Matches(Function(ids) ids.Count = 1 AndAlso ids.Contains(222)))) _
+            .MustHaveHappenedOnceExactly()
+        StringAssert.Contains(vm.mensajeError, "10930")
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_EfectoForzableMarcadoPeroRechazado_NoLlama() As Task
+        ResponderPorTitulo(New Dictionary(Of String, Boolean) From {
+            {"Forzar efectos retenidos", False}, {"Crear remesa", True}})
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(222, preseleccionado:=False, forzable:=True)}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+        vm.ListaCandidatos.Single().Seleccionado = True
+
+        Await vm.CrearRemesaAsync()
+
+        StringAssert.Contains(vm.mensajeError, "Desmarque")
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored, A(Of List(Of Integer)).Ignored)) _
+            .MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function CrearRemesa_EfectoNoForzableMarcado_AvisaSinLlamarNiPreguntarMas() As Task
+        ConfirmarSiempre(respuestaOk:=True)
+        A.CallTo(Function() _servicio.LeerEfectosCandidatos(A(Of String).Ignored, A(Of Date?).Ignored)) _
+            .Returns(Task.FromResult(New List(Of EfectoCandidatoModel) From {
+                Candidato(333, preseleccionado:=False, forzable:=False)}))
+        Dim vm = CrearViewModel()
+        vm.BancoRemesa = "5"
+        Await vm.CargarCandidatosAsync()
+        vm.ListaCandidatos.Single().Seleccionado = True
+
+        Await vm.CrearRemesaAsync()
+
+        StringAssert.Contains(vm.mensajeError, "NO se pueden forzar")
+        A.CallTo(Function() _servicio.CrearRemesa(A(Of String).Ignored, A(Of String).Ignored, A(Of List(Of Integer)).Ignored, A(Of Boolean).Ignored, A(Of Date).Ignored, A(Of Date?).Ignored, A(Of Boolean).Ignored, A(Of List(Of Integer)).Ignored)) _
+            .MustNotHaveHappened()
     End Function
 
     <TestMethod()>
