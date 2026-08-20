@@ -61,24 +61,24 @@ Public Class AgenciaService
         End If
     End Sub
 
+    ' Consolidación A2 (20/08/26): esto TRAGABA la excepción (ShowError y devolver como si nada)
+    ' y los llamadores quitaban el envío de las listas aunque el DELETE hubiera fallado en el
+    ' servidor — el grid mentía (mismo patrón que el falso "Etiqueta creada"). Ahora LANZA y
+    ' cada llamador decide: mostrar el error sin tocar las listas, o tolerarlo si procede.
     Public Sub Borrar(Id As Integer) Implements IAgenciaService.Borrar
-        Try
-            Task.Run(
-                Async Function() As Task
-                    Using client As HttpClient = _clienteApiFactory.Crear()
-                        If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
-                            Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
-                        End If
-                        Dim response As HttpResponseMessage = Await client.DeleteAsync($"EnviosAgencias/{Id}?permitirEnCurso=true")
-                        If Not response.IsSuccessStatusCode Then
-                            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
-                            Throw New Exception($"No se pudo borrar el envío {Id} ({CInt(response.StatusCode)}): {cuerpo}")
-                        End If
-                    End Using
-                End Function).GetAwaiter().GetResult()
-        Catch ex As Exception
-            _dialogService.ShowError(ex.Message)
-        End Try
+        Task.Run(
+            Async Function() As Task
+                Using client As HttpClient = _clienteApiFactory.Crear()
+                    If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                        Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                    End If
+                    Dim response As HttpResponseMessage = Await client.DeleteAsync($"EnviosAgencias/{Id}?permitirEnCurso=true")
+                    If Not response.IsSuccessStatusCode Then
+                        Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                        Throw New Exception($"No se pudo borrar el envío {Id} ({CInt(response.StatusCode)}): {cuerpo}")
+                    End If
+                End Using
+            End Function).GetAwaiter().GetResult()
     End Sub
 
     ' ===== Nesto#340 (Agencias, slice A1.b): los listados vienen de la API =====

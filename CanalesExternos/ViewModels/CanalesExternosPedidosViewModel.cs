@@ -422,11 +422,26 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 {
                     etiqueta.Reembolso = pedido.Pedido.Total;
                 }
-                
-                AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion, DialogService);
+
+                // Fallo 20/08/26: aquí se mostraba "Etiqueta creada" INCONDICIONALMENTE — si el
+                // guardado fallaba (p. ej. el POST del A2 rechazado por el servidor), el usuario
+                // veía el éxito y la etiqueta no existía. Además el async void no tenía catch:
+                // una excepción del flujo (p. ej. "Agencia no contemplada") tumbaba el proceso.
+                bool etiquetaCreada = AgenciasViewModel.CrearEtiquetaPendiente(etiqueta, RegionManager, Configuracion, DialogService);
 
                 EstaOcupado = false;
-                DialogService.ShowNotification("Crear Etiqueta", "Etiqueta creada");
+                if (etiquetaCreada)
+                {
+                    DialogService.ShowNotification("Crear Etiqueta", "Etiqueta creada");
+                }
+                else
+                {
+                    DialogService.ShowError("La etiqueta NO se ha creado. Revise el error mostrado y, si persiste, créela desde la pantalla de Agencias.");
+                }
+            }
+            catch (Exception ex)
+            {
+                DialogService.ShowError($"La etiqueta NO se ha creado: {ex.Message}");
             }
             finally
             {

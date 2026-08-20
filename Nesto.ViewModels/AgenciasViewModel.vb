@@ -132,7 +132,12 @@ Public Class AgenciasViewModel
     ' Carlos 26/10/17 -> estas propiedades "envio" habría que quitarlas y crear EnvioAgenciaWrapper donde
     ' tengamos todas esas propiedades con un PropertyChanged y change tracking
 
-    Public Shared Sub CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService)
+    ' Fallo 20/08/26 (etiquetas desde CanalesExternos): esto devolvía Sub y el llamador mostraba
+    ' "Etiqueta creada" SIEMPRE — el guardado traga la excepción (muestra su diálogo) y el falso
+    ' éxito hacía perder tiempo a los compañeros buscando una etiqueta que no existía. Ahora
+    ' devuelve si se guardó DE VERDAD: el Insertar estampa en el envío el Numero generado por la
+    ' BD (identity), así que Numero > 0 = insertado.
+    Public Shared Function CrearEtiquetaPendiente(etiqueta As EnvioAgenciaWrapper, regionManager As IRegionManager, configuracion As IConfiguracion, dialogService As IDialogService) As Boolean
         Dim servicioAutenticacion = ContainerLocator.Container.Resolve(Of IServicioAutenticacion)()
         Dim agenciasVM = New AgenciasViewModel(regionManager, New AgenciaService(configuracion, dialogService, servicioAutenticacion), configuracion, dialogService, New PedidoVentaService(configuracion, servicioAutenticacion), servicioAutenticacion)
         'Dim agenciasVM = container.Resolve(Of AgenciasViewModel)()
@@ -178,7 +183,8 @@ Public Class AgenciasViewModel
         End If
 
         agenciasVM.GuardarEnvioPendienteCommand.Execute()
-    End Sub
+        Return agenciasVM.EnvioPendienteSeleccionado IsNot Nothing AndAlso agenciasVM.EnvioPendienteSeleccionado.Numero > 0
+    End Function
 
     Private _titulo As String
     Public Property Titulo As String
@@ -1843,7 +1849,14 @@ Public Class AgenciasViewModel
             End If
         End If
 
-        _servicio.Borrar(envioActual.Numero)
+        ' Consolidación A2 (20/08/26): si el DELETE falla en el servidor, NO se toca el grid
+        ' (antes el envío desaparecía de la lista aunque siguiera vivo en la BD).
+        Try
+            _servicio.Borrar(envioActual.Numero)
+        Catch ex As Exception
+            _dialogService.ShowError(ex.Message)
+            Return
+        End Try
         Dim copiaEnvio = envioActual
         Dim unused1 = listaEnviosPedido.Remove(copiaEnvio)
         Dim unused = listaEnvios.Remove(copiaEnvio)
@@ -1888,8 +1901,16 @@ Public Class AgenciasViewModel
         If String.IsNullOrWhiteSpace(numeroEnvio) Then
             Return
         End If
+        Dim codigoPrevio As String = envioActual.CodigoBarras
         envioActual.CodigoBarras = numeroEnvio.Trim()
-        _servicio.Modificar(envioActual)
+        ' Consolidación A2 (20/08/26): si el PUT falla, revertir el código en memoria — si no,
+        ' el grid enseña un nº de envío que la BD no tiene y CanExecute se queda bloqueado.
+        Try
+            _servicio.Modificar(envioActual)
+        Catch ex As Exception
+            envioActual.CodigoBarras = codigoPrevio
+            _dialogService.ShowError($"No se pudo guardar el nº de envío: {ex.Message}")
+        End Try
         cmdPegarCodigoBarras.RaiseCanExecuteChanged()
         RaisePropertyChanged(NameOf(envioActual))
     End Sub
@@ -2366,7 +2387,12 @@ Public Class AgenciasViewModel
             Return
         End If
 
-        _servicio.Modificar(envioActual)
+        ' Consolidación A2 (20/08/26): sin este Try, el PUT fallido escapaba al handler global.
+        Try
+            _servicio.Modificar(envioActual)
+        Catch ex As Exception
+            _dialogService.ShowError($"No se pudo modificar el envío: {ex.Message}")
+        End Try
     End Sub
 
 
@@ -2534,7 +2560,14 @@ Public Class AgenciasViewModel
         '    EnvioPendienteSeleccionado = Nothing
         'End If
 
-        _servicio.Borrar(envioBorrar.Numero)
+        ' Consolidación A2 (20/08/26): si el DELETE falla, la etiqueta pendiente sigue en la BD
+        ' y debe seguir viéndose en la lista.
+        Try
+            _servicio.Borrar(envioBorrar.Numero)
+        Catch ex As Exception
+            _dialogService.ShowError(ex.Message)
+            Return
+        End Try
         Dim unused = listaPendientes.Remove(envioBorrar)
         If Not listaPendientes.Any Then
             EnvioPendienteSeleccionado = Nothing
@@ -3085,7 +3118,16 @@ Public Class AgenciasViewModel
                         .Vendedor = envioActual.Vendedor
                     }
                     Dim unused1 = _servicio.Insertar(envioEtiquetaRetorno)
-                    _servicio.Borrar(envioEtiquetaRetorno.Numero)
+                    ' El insert+delete solo consume un número del contador: si el DELETE falla, la
+                    ' tramitación del envío principal NO se aborta (llegaría al Catch general, que
+                    ' COMPENSARÍA el envío bueno); se registra para limpiar la fila a mano.
+                    Try
+                        _servicio.Borrar(envioEtiquetaRetorno.Numero)
+                    Catch ex As Exception
+                        RegistrarIncidenciaAgencia(
+                            $"No se pudo borrar la etiqueta de retorno {envioEtiquetaRetorno.Numero} (solo consume contador): {ex.Message}",
+                            "InsertarRegistro/etiquetaRetorno")
+                    End Try
                 End If
 
                 If Not IsNothing(envioActual.CodigoBarras) Then
