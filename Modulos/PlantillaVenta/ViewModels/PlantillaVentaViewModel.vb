@@ -2995,10 +2995,19 @@ Public Class PlantillaVentaViewModel
     End Function
 
     ''' <summary>
-    ''' Sincroniza las listas de productos y regalos del ViewModel al Estado.
-    ''' Necesario antes de llamar a Estado.ToPedidoVentaDTO() o guardar borrador.
+    ''' Sincroniza al Estado lo que el usuario ha tocado en la pantalla: las listas de productos
+    ''' y regalos, y los dos checkboxes que NO bindean contra Estado.
+    '''
+    ''' MariaJose 21/08/26: desmarcaba "Servir junto" en la plantilla, la pantalla lo mostraba
+    ''' desmarcado, pero el pedido (y el borrador) salían con servirJunto=True. Los checkboxes
+    ''' "Servir junto" y "Mantener junto" bindean contra direccionEntregaSeleccionada, mientras
+    ''' que ToPedidoVentaDTO() y el borrador leen Estado.ServirJunto/MantenerJunto, que solo se
+    ''' rellenaban al SELECCIONAR la dirección. Desmarcar despues no llegaba nunca al Estado.
+    ''' CrearBorradorDesdeEstadoActual ya traía MantenerJunto a mano, pero PrepararPedido no
+    ''' traía ninguno de los dos: por eso el pedido de verdad tambien salía mal.
+    ''' Se sincronizan aquí, que es el único punto por el que pasan las dos rutas.
     ''' </summary>
-    Private Sub SincronizarListasAlEstado()
+    Friend Sub SincronizarListasAlEstado()
         ' Sincronizar productos
         Estado.LineasProducto = New List(Of LineaPlantillaVenta)
         If listaProductosPedido IsNot Nothing Then
@@ -3013,6 +3022,12 @@ Public Class PlantillaVentaViewModel
             For Each regalo In ListaProductosBonificables.Where(Function(r) r.cantidad > 0)
                 Estado.LineasRegalo.Add(regalo)
             Next
+        End If
+
+        ' Los dos checkboxes bindean contra direccionEntregaSeleccionada, no contra Estado
+        If direccionEntregaSeleccionada IsNot Nothing Then
+            Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
+            Estado.ServirJunto = direccionEntregaSeleccionada.servirJunto
         End If
     End Sub
 
@@ -3334,13 +3349,8 @@ Public Class PlantillaVentaViewModel
     ''' Issue #287: Usa SincronizarListasAlEstado() y lee todo desde Estado.
     ''' </summary>
     Private Function CrearBorradorDesdeEstadoActual(Optional mensajeError As String = Nothing) As BorradorPlantillaVenta
-        ' Sincronizar listas al Estado primero
+        ' Sincroniza listas y los checkboxes con binding directo (MantenerJunto y ServirJunto)
         SincronizarListasAlEstado()
-
-        ' Sincronizar campos que tienen binding directo a otros objetos (no a Estado)
-        If direccionEntregaSeleccionada IsNot Nothing Then
-            Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
-        End If
 
         Dim borrador As New BorradorPlantillaVenta With {
             .FechaCreacion = DateTime.Now,
