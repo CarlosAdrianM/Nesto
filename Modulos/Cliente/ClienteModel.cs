@@ -52,6 +52,12 @@ namespace Nesto.Modulos.Cliente
         public short? EstadoCliente { get; set; }
         public string Empresa { get; set; }
         public string Contacto { get; set; }
+        // NestoAPI#388: true = el NIF NO se ha contrastado con el censo de la AEAT (certificado
+        // caducado); solo se ha comprobado el formato. Nada se cachea como validado.
+        public bool SinVerificar { get; set; }
+        // NestoAPI#388: true = el nombre lo iba a poner el censo (persona jurídica) y no se ha
+        // podido consultar. Hay que DESBLOQUEAR el campo y que lo escriba el usuario.
+        public bool NombreLoDebeEscribirElUsuario { get; set; }
     }
     public class RespuestaDatosGeneralesClientes
     {

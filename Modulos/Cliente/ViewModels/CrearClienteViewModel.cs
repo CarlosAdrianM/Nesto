@@ -320,6 +320,10 @@ namespace Nesto.Modulos.Cliente
             set {
                 SetProperty(ref clienteNif, value);
                 NifValidado = false;
+                // NestoAPI#388: NIF nuevo, censo por preguntar. Si no se reseteara, una vez caído
+                // en modo degradado el campo del nombre seguiría abierto el resto de la sesión
+                // aunque ya se hubiera importado el certificado renovado.
+                NombreLoDebeEscribirElUsuario = false;
                 //RaisePropertyChanged(nameof(NombreIsEnabled));
                 RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
             }
@@ -477,12 +481,29 @@ namespace Nesto.Modulos.Cliente
         {
             get { return !NifValidado || string.IsNullOrWhiteSpace(ClienteNif); }
         }
+        // NestoAPI#388: el censo de la AEAT no ha podido decirnos la razón social (certificado
+        // caducado), así que el nombre lo tiene que escribir el usuario aunque sea un CIF.
+        private bool nombreLoDebeEscribirElUsuario;
+        public bool NombreLoDebeEscribirElUsuario
+        {
+            get { return nombreLoDebeEscribirElUsuario; }
+            set
+            {
+                // Solo se refresca la vista si el valor cambia de verdad: al teclear el NIF esto
+                // se pone a false en cada pulsación y no debe generar notificaciones de más.
+                if (SetProperty(ref nombreLoDebeEscribirElUsuario, value))
+                {
+                    RaisePropertyChanged(nameof(NombreIsEnabled));
+                }
+            }
+        }
         public bool NombreIsEnabled
         {
             get
             {
                 // NestoAPI#355: cliente extranjero → el nombre siempre editable (no hay censo AEAT que rellene el nombre).
-                return EsPaisExtranjero || NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789ZYX".Contains(ClienteNif.Trim().ToUpper()[0])) ||(ClienteEsContacto && EsUnaModificacion);
+                // NestoAPI#388: certificado de la AEAT caducado → tampoco hay censo que lo rellene, así que se desbloquea.
+                return EsPaisExtranjero || NombreLoDebeEscribirElUsuario || NifValidado || string.IsNullOrWhiteSpace(ClienteNif) || (!string.IsNullOrWhiteSpace(ClienteNif) && "0123456789ZYX".Contains(ClienteNif.Trim().ToUpper()[0])) ||(ClienteEsContacto && EsUnaModificacion);
             }
         }
         public bool NoTieneDireccion
@@ -878,6 +899,25 @@ namespace Nesto.Modulos.Cliente
                 {
                     ClienteNif = respuesta.NifFormateado;
                 }
+
+                // NestoAPI#388: el certificado de la AEAT está caducado y el nombre lo tenía que
+                // traer el censo (persona jurídica, campo bloqueado). No hay razón social que
+                // adoptar: se desbloquea el campo, se avisa y NO se pasa de página — el usuario
+                // escribe el nombre y vuelve a darle a siguiente.
+                if (respuesta.NombreLoDebeEscribirElUsuario)
+                {
+                    NombreLoDebeEscribirElUsuario = true;
+                    ClienteNombre = string.Empty;
+                    NifValidado = false;
+                    DialogService.ShowError("No se ha podido consultar el nombre en Hacienda (el certificado de la AEAT está caducado). Escriba usted el nombre fiscal del cliente y pulse siguiente de nuevo.");
+                    return;
+                }
+
+                // NestoAPI#388: el censo ha vuelto a contestar (certificado renovado importado),
+                // así que el nombre vuelve a ponerlo Hacienda y el campo a esconderse. Sin esto,
+                // un Nesto abierto desde antes de la renovación se quedaría mandando a la AEAT el
+                // nombre tecleado a mano, que casi nunca coincide literalmente con el censal.
+                NombreLoDebeEscribirElUsuario = false;
                 ClienteNombre = respuesta.NombreFormateado;
                 ClienteEsContacto = respuesta.ExisteElCliente;
                 if (respuesta.ExisteElCliente)

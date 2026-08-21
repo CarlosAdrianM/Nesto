@@ -408,5 +408,83 @@ namespace ClienteTests
 
             Assert.IsFalse(vm.SePuedeAvanzarADatosGenerales, "Un cliente extranjero necesita al menos el nombre");
         }
+
+        // NestoAPI#388: con el certificado de la AEAT caducado el censo no puede decirnos la
+        // razon social, asi que el campo del nombre (oculto para las personas juridicas) tiene
+        // que aparecer para que lo escriba el usuario. Sin esto, el wizard mandaba "UNDEFINED"
+        // y ese acababa siendo el nombre del cliente.
+        [TestMethod]
+        public void CrearCliente_CertificadoAeatCaducado_DesbloqueaElNombreAunqueSeaUnCif()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.ClienteNif = "B111";
+            Assert.IsFalse(vm.NombreIsEnabled, "De partida, el nombre de una persona juridica lo pone el censo");
+
+            vm.NombreLoDebeEscribirElUsuario = true;
+
+            Assert.IsTrue(vm.NombreIsEnabled, "Sin censo al que preguntar, lo escribe el usuario");
+        }
+
+        [TestMethod]
+        public void CrearCliente_AlMarcarQueElNombreLoEscribeElUsuario_AvisaALaVista()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.ClienteNif = "B111";
+            int vecesSeHaLlamado = 0;
+            vm.PropertyChanged += delegate (object sender, PropertyChangedEventArgs e)
+            {
+                if (e.PropertyName == nameof(vm.NombreIsEnabled))
+                {
+                    vecesSeHaLlamado++;
+                }
+            };
+
+            vm.NombreLoDebeEscribirElUsuario = true;
+
+            Assert.AreEqual(1, vecesSeHaLlamado, "El TextBox del nombre esta oculto por binding: hay que refrescarlo");
+        }
+
+        // NestoAPI#388: al importar el certificado renovado todo tiene que volver a ser como
+        // antes SIN reiniciar Nesto. Si el flag se quedara pegado, el wizard seguiria mandando a
+        // la AEAT el nombre tecleado a mano (que casi nunca coincide con el censal) y el alta se
+        // rechazaria.
+        [TestMethod]
+        public void CrearCliente_TrasElModoDegradado_AlCambiarElNifVuelveABloquearseElNombre()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.ClienteNif = "B111";
+            vm.NombreLoDebeEscribirElUsuario = true;
+            Assert.IsTrue(vm.NombreIsEnabled);
+
+            vm.ClienteNif = "B222";
+
+            Assert.IsFalse(vm.NombreLoDebeEscribirElUsuario, "NIF nuevo, censo por preguntar");
+            Assert.IsFalse(vm.NombreIsEnabled, "El nombre vuelve a ponerlo Hacienda");
+        }
+
+        // NestoAPI#388: secuencia completa del alta de una S.L. con el certificado caducado.
+        // Al teclear el CIF el campo Nombre se esconde (lo pone el censo) pero Siguiente SI se
+        // puede pulsar; tras la respuesta en modo degradado el campo reaparece vacio y Siguiente
+        // se bloquea hasta que el usuario escribe el nombre.
+        [TestMethod]
+        public void CrearCliente_SlConCertificadoCaducado_SecuenciaCompletaDelAlta()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            vm.ClienteNif = "B12345674";
+            Assert.IsFalse(vm.NombreIsEnabled, "Con un CIF el nombre lo pone el censo: se esconde");
+            Assert.IsTrue(vm.SePuedeAvanzarADatosGenerales, "Pero se puede pulsar Siguiente, que es lo que dispara la consulta");
+
+            // Respuesta del servidor en modo degradado
+            vm.NombreLoDebeEscribirElUsuario = true;
+            vm.ClienteNombre = string.Empty;
+
+            Assert.IsTrue(vm.NombreIsEnabled, "Sin censo, el campo reaparece para que lo escriba el usuario");
+            Assert.IsFalse(vm.SePuedeAvanzarADatosGenerales, "Y no se puede seguir con el nombre vacio");
+
+            vm.ClienteNombre = "PELUQUERIA EJEMPLO SL";
+
+            Assert.IsTrue(vm.SePuedeAvanzarADatosGenerales, "Con el nombre escrito a mano, el alta continua");
+        }
     }
 }
