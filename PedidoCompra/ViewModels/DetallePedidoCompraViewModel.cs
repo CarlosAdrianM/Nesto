@@ -1,7 +1,6 @@
 ﻿using Azure.Identity;
 using ControlesUsuario.Dialogs;
 using Microsoft.Graph;
-using Microsoft.Reporting.NETCore;
 using Nesto.Informes;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;

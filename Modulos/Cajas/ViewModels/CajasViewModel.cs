@@ -1,7 +1,6 @@
 ﻿using ControlesUsuario;
 using ControlesUsuario.Dialogs;
 using ControlesUsuario.Models;
-using Microsoft.Reporting.NETCore;
 using Nesto.Informes;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;

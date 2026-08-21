@@ -12,7 +12,6 @@ Imports System.Windows
 Imports System.Windows.Controls
 Imports System.Windows.Input
 Imports ControlesUsuario.Dialogs
-Imports Microsoft.Reporting.NETCore
 Imports Microsoft.Win32
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models

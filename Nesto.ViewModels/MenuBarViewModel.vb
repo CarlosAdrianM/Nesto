@@ -1,8 +1,7 @@
-Imports System.IO
+﻿Imports System.IO
 Imports System.Reflection
 Imports System.Windows
 Imports System.Windows.Input
-Imports Microsoft.Reporting.NETCore
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
