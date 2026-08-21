@@ -7,43 +7,13 @@
     <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="ControlPedidos.rdlc" />
-    <None Remove="DetalleRapports.rdlc" />
-    <None Remove="EtiquetasTienda.rdlc" />
-    <None Remove="ExtractoContable.rdlc" />
-    <None Remove="KitsQueSePuedenMontar.rdlc" />
-    <None Remove="ManifiestoAgencia.rdlc" />
-    <None Remove="MontarKitProductos.rdlc" />
-    <None Remove="Packing.rdlc" />
-    <None Remove="PedidoCompra.rdlc" />
-    <None Remove="Picking.rdlc" />
-    <None Remove="ResumenVentas.rdlc" />
-    <None Remove="UbicacionesInventario.rdlc" />
-  </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="ControlPedidos.rdlc" />
-    <EmbeddedResource Include="EtiquetasTienda.rdlc" />
-    <EmbeddedResource Include="ExtractoContable.rdlc" />
-    <EmbeddedResource Include="KitsQueSePuedenMontar.rdlc" />
-    <EmbeddedResource Include="ManifiestoAgencia.rdlc" />
-    <EmbeddedResource Include="MontarKitProductos.rdlc" />
-    <EmbeddedResource Include="Packing.rdlc" />
-    <EmbeddedResource Include="PedidoCompra.rdlc" />
-    <EmbeddedResource Include="Picking.rdlc" />
-    <EmbeddedResource Include="UbicacionesInventario.rdlc" />
-  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="DetalleRapports.rdlc" />
-    <EmbeddedResource Include="ResumenVentas.rdlc" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />

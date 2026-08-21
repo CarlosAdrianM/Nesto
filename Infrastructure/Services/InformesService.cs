@@ -1,4 +1,4 @@
-using Nesto.Informes;
+﻿using Nesto.Informes;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
 using System;
@@ -128,24 +128,6 @@ namespace Nesto.Infrastructure.Services
                 $"Informes/Packing/Pdf?picking={picking}&personas={personas}",
                 "el PDF del packing").ConfigureAwait(false);
 
-        public async Task<List<FilaEtiquetasModel>> LeerEtiquetasTienda(List<string> productos, int etiquetaPrimera)
-        {
-            if (productos == null || productos.Count == 0)
-            {
-                return await FilaEtiquetasModel.ComponerAsync(new List<EtiquetasTiendaModel>(), etiquetaPrimera).ConfigureAwait(false);
-            }
-
-            string csv = Uri.EscapeDataString(string.Join(",", productos));
-            var etiquetas = await GetAsync<List<EtiquetasTiendaModel>>(
-                $"Informes/EtiquetasTienda?productos={csv}",
-                "las etiquetas de tienda").ConfigureAwait(false);
-
-            return await FilaEtiquetasModel.ComponerAsync(etiquetas, etiquetaPrimera).ConfigureAwait(false);
-        }
-
-        // Nesto#340 (Fase 2): el PDF lo genera NestoAPI (QuestPDF) con la misma composición
-        // (huecos por hoja empezada, QR de la tienda, PVP público). Se consume tras el flag
-        // por usuario MotorPdfEtiquetasTienda; sin él, el RDLC local de siempre.
         public async Task<byte[]> DescargarEtiquetasTiendaPdf(List<string> productos, int etiquetaPrimera)
         {
             string csv = Uri.EscapeDataString(string.Join(",", productos ?? new List<string>()));

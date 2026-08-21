@@ -1,4 +1,4 @@
-using Nesto.Informes;
+﻿using Nesto.Informes;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -37,9 +37,8 @@ namespace Nesto.Infrastructure.Services
         Task<PedidoCompraModel> LeerPedidoCompra(string empresa, int pedido);
         Task<byte[]> DescargarPedidoCompraPdf(string empresa, int pedido);
         Task<byte[]> DescargarPedidoCompraExcel(string empresa, int pedido);
-        Task<List<FilaEtiquetasModel>> LeerEtiquetasTienda(List<string> productos, int etiquetaPrimera);
         /// <summary>Nesto#340 (Fase 2): PDF de etiquetas de tienda generado por NestoAPI
-        /// (QuestPDF), tras el flag por usuario MotorPdfEtiquetasTienda.</summary>
+        /// (QuestPDF). Unico camino desde el 21/08/26; el RDLC local se elimino.</summary>
         Task<byte[]> DescargarEtiquetasTiendaPdf(List<string> productos, int etiquetaPrimera);
     }
 }

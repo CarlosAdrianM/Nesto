@@ -66,6 +66,5 @@
     <PackageReference Include="Prism.Wpf">
       <Version>8.1.97</Version>
     </PackageReference>
-    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.26" />
   </ItemGroup>
 </Project>

@@ -27,13 +27,12 @@
             public const string ImpresoraAgenciaGLS = "ImpresoraAgenciaGLS";
             public const string ImpresoraBolsas = "ImpresoraBolsas";
             public const string ImpresoraCodBarras = "ImpresoraCodBarras";
-            // Nesto#340 (retirada de flags 20/08/26): MotorPdfExtractoContable, MotorPdfPedidoCompra
-            // y MotorPdfPicking se retiraron — llevaban semanas al 100% en QuestPDF (defecto
+            // Nesto#340 (retirada de flags 20/08 y 21/08/26): MotorPdfExtractoContable, MotorPdfPedidoCompra,
+            // MotorPdfPicking y MotorPdfEtiquetasTienda se retiraron — llevaban semanas al 100% en QuestPDF (defecto
             // incluido) y el camino RDLC era código muerto. Queda solo el de etiquetas, en validación.
             // Motor de las etiquetas de precio de la tienda: "RDLC" (por defecto, render local)
             // o "QuestPDF" (descarga de NestoAPI). Es papel FÍSICO de etiquetas precortadas:
             // validar contra el papel real antes de extender usuario a usuario (Nesto#340).
-            public const string MotorPdfEtiquetasTienda = "MotorPdfEtiquetasTienda";
             public const string PathNorma19 = "PathNorma19";
             public const string PathNorma43 = "PathNorma43";
             public const string PathNormaFB500 = "PathNormaFB500";

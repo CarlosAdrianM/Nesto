@@ -237,7 +237,6 @@
       <Version>8.1.97</Version>
     </PackageReference>
     <PackageReference Include="PrismRibbonRegionAdapter" Version="0.22.0" />
-    <PackageReference Include="ReportViewerCore.NETCore" Version="15.1.26" />
 	  <PackageReference Include="PdfiumViewer" Version="2.13.0" />
 	  <PackageReference Include="PdfiumViewer.Native.x86_64.v8-xfa" Version="2018.4.8.256" />
   </ItemGroup>
