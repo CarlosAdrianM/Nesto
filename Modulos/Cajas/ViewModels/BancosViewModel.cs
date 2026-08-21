@@ -74,9 +74,17 @@ namespace Nesto.Modulos.Cajas.ViewModels
             DeshacerUltimaConciliacionCommand = new DelegateCommand(OnDeshacerUltimaConciliacion);
             DeshacerConciliacionAnteriorCommand = new DelegateCommand(OnDeshacerConciliacionAnterior, CanDeshacerConciliacionAnterior);
 
+            // Caso real 21/08/26: las reglas corren dentro de un Task.Run (NestoAPI#384/#386,
+            // para que sus llamadas HTTP sincronas no interbloqueen la ventana), pero varias le
+            // PREGUNTAN COSAS AL USUARIO. WPF no puede crear una Window fuera del hilo de UI, asi
+            // que Prism fallaba al resolver IDialogWindow: "An unexpected error occured while
+            // resolving 'Prism.Services.Dialogs.IDialogWindow'". Se les pasa el servicio envuelto
+            // para que sus dialogos salgan siempre en el hilo bueno.
+            IDialogService dialogServiceReglas = new DialogServiceEnHiloUi(_dialogService);
+
             _reglasContabilizacion =
             [
-                new ReglaFinanciacionLineaRiesgo(_dialogService, _recursosHumanosService),
+                new ReglaFinanciacionLineaRiesgo(dialogServiceReglas, _recursosHumanosService),
                 new ReglaAdelantosNomina(),
                 new ReglaComisionesBanco(),
                 new ReglaComunidadPropietariosAlcobendas(),
@@ -91,9 +99,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 new ReglaAsociacionEsteticistas(),
                 new ReglaAyuntamientoAlgete(),
                 new ReglaAyuntamientoAlcobendas(),
-                new ReglaAyuntamientoMadrid(_dialogService),
+                new ReglaAyuntamientoMadrid(dialogServiceReglas),
                 new ReglaMiraviaComision(),
-                new ReglaInteresesAplazamientoConfirming(_dialogService),
+                new ReglaInteresesAplazamientoConfirming(dialogServiceReglas),
                 new ReglaComisionRemesaRecibos(_bancosService),
                 new ReglaPagoProveedor(_bancosService),
                 new ReglaGastoPeriodico(_contabilidadService)
