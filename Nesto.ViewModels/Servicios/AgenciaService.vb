@@ -175,6 +175,52 @@ Public Class AgenciaService
     ' Descarga y mapeo común de los listados: DTO del API → entidad POCO con la navegación
     ' mínima que usan los grids (AgenciasTransporte.Nombre). Síncrono a propósito: los setters
     ' del VM que consumen estos métodos son síncronos (mismo patrón que las reglas de Cajas).
+    ' ===== Nesto#340 (Agencias, slice A3): el PEDIDO va por la API =====
+    ' Sustituye a los 4 CargarPedido* que devolvian la entidad CabPedidoVta con Include de
+    ' Clientes y de sus personas de contacto. El endpoint devuelve exactamente esos datos y SIN
+    ' RECORTAR: Agencias compara Empresa, Nº_Cliente y Contacto sin Trim contra listas que aun
+    ' vienen de EF con el padding de la BD.
+    '
+    ' 404 se traduce a Nothing, que es lo que devolvia EF cuando no encontraba el pedido: los
+    ' caminos de "no encontrado" del ViewModel siguen funcionando igual.
+
+    Public Function LeerPedidoParaAgencia(empresa As String, numeroPedido As Integer?) As PedidoAgenciaModel
+        If numeroPedido Is Nothing Then
+            Return Nothing
+        End If
+        Return LeerPedido($"PedidosVenta/ParaAgencia?empresa={Uri.EscapeDataString(If(empresa, String.Empty))}&numero={numeroPedido.Value}")
+    End Function
+
+    Public Function LeerPedidoParaAgenciaPorNumero(numeroPedido As Integer, incluirEspejo As Boolean) As PedidoAgenciaModel
+        Return LeerPedido($"PedidosVenta/ParaAgencia?numero={numeroPedido}&incluirEspejo={incluirEspejo.ToString().ToLowerInvariant()}")
+    End Function
+
+    Public Function LeerPedidoParaAgenciaPorFactura(numeroFactura As String) As PedidoAgenciaModel
+        If String.IsNullOrWhiteSpace(numeroFactura) Then
+            Return Nothing
+        End If
+        Return LeerPedido($"PedidosVenta/ParaAgencia?factura={Uri.EscapeDataString(numeroFactura.Trim())}")
+    End Function
+
+    Private Function LeerPedido(ruta As String) As PedidoAgenciaModel
+        Return Task.Run(Async Function() As Task(Of PedidoAgenciaModel)
+                            Using client As HttpClient = _clienteApiFactory.Crear()
+                                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                                End If
+                                Dim response As HttpResponseMessage = Await client.GetAsync(ruta)
+                                If response.StatusCode = Net.HttpStatusCode.NotFound Then
+                                    Return Nothing
+                                End If
+                                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                                If Not response.IsSuccessStatusCode Then
+                                    Throw New Exception($"No se pudo cargar el pedido ({CInt(response.StatusCode)}): {cuerpo}")
+                                End If
+                                Return JsonConvert.DeserializeObject(Of PedidoAgenciaModel)(cuerpo)
+                            End Using
+                        End Function).GetAwaiter().GetResult()
+    End Function
+
     Private Function LeerListadoEnvios(ruta As String) As List(Of EnviosAgencia)
         Dim dtos As List(Of EnvioAgenciaListadoDTO) =
             Task.Run(Async Function() As Task(Of List(Of EnvioAgenciaListadoDTO))
