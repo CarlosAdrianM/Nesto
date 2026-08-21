@@ -331,7 +331,7 @@ Public Class ComisionesViewModel
                 SetProperty(_incluirAlbaranes, value)
                 RaisePropertyChanged("MostrarPanelAntiguo")
                 RaisePropertyChanged("MostrarPanelComisionAnual")
-                CalcularComisionAsync()
+                RecalcularComisionAsync()
             End If
         End Set
     End Property
@@ -346,7 +346,7 @@ Public Class ComisionesViewModel
                 SetProperty(_incluirPicking, value)
                 RaisePropertyChanged("MostrarPanelAntiguo")
                 RaisePropertyChanged("MostrarPanelComisionAnual")
-                CalcularComisionAsync()
+                RecalcularComisionAsync()
             End If
         End Set
     End Property
@@ -396,8 +396,31 @@ Public Class ComisionesViewModel
 #End Region
 
     Private Async Function CalcularComisionAsync() As Task
+        ' ELMAH 21/08/26 (MariaJose): sin vendedor seleccionado esto reventaba con
+        ' NullReferenceException al evaluar vendedorActual.Vendedor. vendedorActual sale de
+        ' listaVendedores.FirstOrDefault, que puede venir vacia. El resto del ViewModel ya lo
+        ' comprueba (p. ej. ActualizarListadosAgrupadosAsync); aqui faltaba.
+        If vendedorActual Is Nothing Then
+            ComisionAnualResumenActual = Nothing
+            Return
+        End If
         ComisionAnualResumenActual = Await CalcularComisionAnual(vendedorActual.Vendedor, fechaDesde.Year, fechaDesde.Month, IncluirAlbaranes, IncluirPicking)
     End Function
+
+    ''' <summary>
+    ''' ELMAH 21/08/26: los dos checkbox (IncluirAlbaranes e IncluirPicking) llamaban a
+    ''' CalcularComisionAsync SIN Await desde el setter. Un Task lanzado y olvidado se traga la
+    ''' excepcion hasta que la recoge el finalizador, asi que el usuario no veia NADA y el error
+    ''' llegaba a ELMAH como 'A Task's exception(s) were not observed', sin pista de donde salia.
+    ''' Mismo patron que CargarDatosVendedorAsync: Async Sub con su Try y su aviso al usuario.
+    ''' </summary>
+    Private Async Sub RecalcularComisionAsync()
+        Try
+            Await CalcularComisionAsync()
+        Catch ex As Exception
+            DialogService.ShowError(ex.Message)
+        End Try
+    End Sub
 
 
     Private Async Function CalcularComisionAnual(vendedor As String, anno As Integer, mes As Integer, incluirAlbaranes As Boolean, incluirPicking As Boolean) As Task(Of ComisionAnualResumen)
