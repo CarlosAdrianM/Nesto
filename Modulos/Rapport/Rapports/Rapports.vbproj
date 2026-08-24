@@ -98,6 +98,7 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Azure.Identity" Version="1.13.2" />
     <PackageReference Include="Extended.Wpf.Toolkit">
       <Version>5.0.0</Version>

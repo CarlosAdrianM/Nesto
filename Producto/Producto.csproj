@@ -66,6 +66,7 @@
     </Resource>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.3</Version>
