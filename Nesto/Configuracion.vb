@@ -167,13 +167,20 @@ Public Class Configuracion
     End Function
 
     Public Function UsuarioEnGrupo(grupo As String) As Boolean Implements IConfiguracion.UsuarioEnGrupo
-        Dim yourDomain As String = System.Environment.UserDomainName
-        Using ctx As New PrincipalContext(ContextType.Domain, yourDomain)
-            Using grp = GroupPrincipal.FindByIdentity(ctx, IdentityType.Name, grupo)
-                Dim isInRole As Boolean = Not IsNothing(grp) AndAlso grp.GetMembers(True).Any(Function(m) m.SamAccountName.ToLower = usuario.ToLower.Replace(yourDomain.ToLower + "\", String.Empty))
-                Return isInRole
+        Try
+            Dim yourDomain As String = System.Environment.UserDomainName
+            Using ctx As New PrincipalContext(ContextType.Domain, yourDomain)
+                Using grp = GroupPrincipal.FindByIdentity(ctx, IdentityType.Name, grupo)
+                    Dim isInRole As Boolean = Not IsNothing(grp) AndAlso grp.GetMembers(True).Any(Function(m) m.SamAccountName.ToLower = usuario.ToLower.Replace(yourDomain.ToLower + "\", String.Empty))
+                    Return isInRole
+                End Using
             End Using
-        End Using
+        Catch ex As Exception
+            ' El controlador de dominio puede no estar disponible momentáneamente (LDAP caído/timeout).
+            ' No debe tumbar la app (arranque del MenuBar, apertura de DetallePedidoVenta, CanExecute en cada requery...).
+            System.Diagnostics.Debug.WriteLine($"UsuarioEnGrupo('{grupo}') falló, se asume False: {ex.Message}")
+            Return False
+        End Try
     End Function
 
 End Class
