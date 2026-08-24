@@ -168,12 +168,14 @@ Public Class AgenciaViewModelTests
             empresa
         }
         A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
-        Dim pedido = New CabPedidoVta With {
+        Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1  ",
             .Número = 1,
-            .Clientes = New Clientes()
+            .Clientes = New ClienteAgenciaModel()
         }
-        A.CallTo(Function() servicio.CargarPedidoPorFactura(A(Of String).Ignored)).Returns(pedido)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorFactura(A(Of String).Ignored)).Returns(pedido)
+        ' ActualizarPedidoSeleccionado relee el pedido por empresa+numero.
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
         Dim agencia = A.Fake(Of AgenciasTransporte)
         agencia.Empresa = "1  "
         agencia.Numero = 2
@@ -200,12 +202,14 @@ Public Class AgenciaViewModelTests
             empresa
         }
         A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
-        Dim pedido = New CabPedidoVta With {
+        Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1  ",
             .Número = 1,
-            .Clientes = New Clientes()
+            .Clientes = New ClienteAgenciaModel()
         }
-        A.CallTo(Function() servicio.CargarPedidoPorFactura(A(Of String).Ignored)).Returns(pedido)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorFactura(A(Of String).Ignored)).Returns(pedido)
+        ' ActualizarPedidoSeleccionado relee el pedido por empresa+numero.
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
         Dim agencia = A.Fake(Of AgenciasTransporte)
         agencia.Empresa = "1  "
         agencia.Numero = 2
@@ -234,8 +238,10 @@ Public Class AgenciaViewModelTests
         Dim empresa = A.Fake(Of Empresas)
         empresa.Número = "1  "
         A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(New ObservableCollection(Of Empresas) From {empresa})
-        Dim pedido = New CabPedidoVta With {.Empresa = "1  ", .Número = 1, .Clientes = New Clientes()}
-        A.CallTo(Function() servicio.CargarPedidoPorFactura(A(Of String).Ignored)).Returns(pedido)
+        Dim pedido = New PedidoAgenciaModel With {.Empresa = "1  ", .Número = 1, .Clientes = New ClienteAgenciaModel()}
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorFactura(A(Of String).Ignored)).Returns(pedido)
+        ' ActualizarPedidoSeleccionado relee el pedido por empresa+numero.
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
         Dim agencia = A.Fake(Of AgenciasTransporte)
         agencia.Empresa = "1  "
         agencia.Numero = 2
@@ -259,13 +265,13 @@ Public Class AgenciaViewModelTests
 
     '    A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
     '    A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("36")
-    '    Dim pedido = New CabPedidoVta With {
+    '    Dim pedido = New PedidoAgenciaModel With {
     '        .Empresa = "1",
     '        .Número = 36,
-    '        .Clientes = New Clientes(),
+    '        .Clientes = New ClienteAgenciaModel(),
     '        .Ruta = "XXX" ' El Pedido sale por ruta XXX, eso es importante
     '    }
-    '    A.CallTo(Function() servicio.CargarPedidoPorNumero(A(Of Integer).Ignored)).Returns(pedido)
+    '    A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(A(Of Integer).Ignored, True)).Returns(pedido)
     '    Dim empresa1 = A.Fake(Of Empresas)
     '    empresa1.Número = "1"
     '    Dim empresa2 = A.Fake(Of Empresas)
@@ -315,12 +321,14 @@ Public Class AgenciaViewModelTests
         }
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia})
         A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
-        Dim pedido = New CabPedidoVta With {
+        Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1  ",
             .Número = 12345,
-            .Clientes = New Clientes()
+            .Clientes = New ClienteAgenciaModel()
         }
-        A.CallTo(Function() servicio.CargarPedidoPorNumero(A(Of Integer).Ignored)).Returns(pedido)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(A(Of Integer).Ignored, True)).Returns(pedido)
+        ' ActualizarPedidoSeleccionado relee el pedido por empresa+numero.
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
         A.CallTo(Function() servicio.CargarAgenciaPorRuta(A(Of String).Ignored, A(Of String).Ignored)).Returns(agencia)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
 
@@ -666,10 +674,10 @@ Public Class AgenciaViewModelTests
             empresa
         }
         A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
-        Dim pedido = New CabPedidoVta With {
+        Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1  ",
             .Número = 1,
-            .Clientes = New Clientes()
+            .Clientes = New ClienteAgenciaModel()
         }
         'A.CallTo(Sub() dialogService.
         '             ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).
@@ -782,10 +790,9 @@ Public Class AgenciaViewModelTests
         Dim listaEmpresas = New ObservableCollection(Of Empresas) From {
             empresa
         }
-        Dim pedido = New CabPedidoVta With {
+        Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1",
             .Número = 12345,
-            .Ruta = "XXX",
             .Nº_Cliente = "1",
             .Contacto = "0"
         }
@@ -801,8 +808,10 @@ Public Class AgenciaViewModelTests
             .CodPostal = "28001",
             .Teléfono = "911234567"
         }
-        pedido.Clientes = cliente
-        A.CallTo(Function() servicio.CargarPedidoPorNumero(12345, False)).Returns(pedido)
+        pedido.Clientes = ClienteAgencia(cliente)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(12345, False)).Returns(pedido)
+        ' ActualizarPedidoSeleccionado relee el pedido por empresa+numero.
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
         A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(listaEmpresas)
         Dim agencia1 = A.Fake(Of AgenciasTransporte)
         agencia1.Empresa = "1"
@@ -864,7 +873,7 @@ Public Class AgenciaViewModelTests
     '    Dim pedido = A.Fake(Of CabPedidoVta)
     '    pedido.Empresa = "1"
     '    pedido.Ruta = "XXX"
-    '    A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+    '    A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(123456, True)).Returns(pedido)
     '    viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
     '    viewModel.PestañaSeleccionada = New TabItem With {.Name = Pestannas.PEDIDOS}
     '    viewModel.cmdCargarDatos.Execute()
@@ -904,7 +913,7 @@ Public Class AgenciaViewModelTests
     '    pedido.Ruta = "YYY"
     '    pedido.IVA = "G21"
     '    A.CallTo(Function() servicio.CargarLineasPedidoSinPicking(123456)).Returns(New List(Of LinPedidoVta) From {New LinPedidoVta With {.Total = 1}})
-    '    A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+    '    A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(123456, True)).Returns(pedido)
     '    A.CallTo(Function() servicio.CargarEnvio("1", 123456)).Returns(Nothing)
     '    viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
     '    viewModel.PestannaNombre = Pestannas.PEDIDOS
@@ -939,13 +948,14 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "YYY")).Returns(agencia1)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
         A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(New Clientes With {.CodPostal = "28110"})
-        Dim pedido = A.Fake(Of CabPedidoVta)
-        pedido.Empresa = "1"
-        pedido.Número = 123456
-        pedido.Ruta = "YYY"
-        pedido.IVA = "G21"
+        Dim pedido = New PedidoAgenciaModel With {
+            .Empresa = "1",
+            .Número = 123456
+        }
         'A.CallTo(Function() servicio.CargarLineasPedidoSinPicking(123456)).Returns(New List(Of LinPedidoVta) From {New LinPedidoVta With {.Total = 1}})
-        A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(123456, True)).Returns(pedido)
+        ' ActualizarPedidoSeleccionado relee el pedido por empresa+numero.
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
         viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
         viewModel.PestannaNombre = Pestannas.PEDIDOS
         viewModel.cmdCargarDatos.Execute()
@@ -990,7 +1000,7 @@ Public Class AgenciaViewModelTests
     '    pedido.Número = 123456
     '    pedido.IVA = "G21"
     '    pedido.Ruta = "XXX"
-    '    A.CallTo(Function() servicio.CargarPedidoPorNumero(123456)).Returns(pedido)
+    '    A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(123456, True)).Returns(pedido)
     '    viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService)
     '    viewModel.PestannaNombre = Pestannas.PEDIDOS
     '    viewModel.cmdCargarDatos.Execute()
@@ -1096,16 +1106,15 @@ Public Class AgenciaViewModelTests
             .CodPostal = "28110",
             .Teléfono = "911234567"
         }
-        Dim pedido = New CabPedidoVta With {
+        Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1",
             .Número = 12345,
-            .Ruta = "NNN",
             .Nº_Cliente = "1",
             .Contacto = "0",
-            .Clientes = cliente
+            .Clientes = ClienteAgencia(cliente)
         }
-        A.CallTo(Function() servicio.CargarPedidoPorNumero(A(Of Integer).Ignored)).Returns(pedido)
-        A.CallTo(Function() servicio.CargarPedido("1", 12345)).Returns(pedido)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(A(Of Integer).Ignored, True)).Returns(pedido)
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia("1", 12345)).Returns(pedido)
         A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(cliente)
         A.CallTo(Function() servicio.ImporteReembolso("1", 12345)).Returns(Task.FromResult(0D))
         A.CallTo(Function() servicioPedidos.DebeImprimirDocumento(A(Of String).Ignored)).Returns(Task.FromResult(False))
@@ -1168,10 +1177,9 @@ Public Class AgenciaViewModelTests
         }
         A.CallTo(Function() servicio.CargarListaPendientes()).Returns(listaEnvios)
 
-        Dim pedido = New CabPedidoVta With {
+        Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1",
             .Número = 12345,
-            .Ruta = "XXX",
             .Nº_Cliente = "1",
             .Contacto = "0"
         }
@@ -1187,8 +1195,10 @@ Public Class AgenciaViewModelTests
             .CodPostal = "07001",
             .Teléfono = "911234567"
         }
-        pedido.Clientes = cliente
-        A.CallTo(Function() servicio.CargarPedidoPorNumero(12345, False)).Returns(pedido)
+        pedido.Clientes = ClienteAgencia(cliente)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(12345, False)).Returns(pedido)
+        ' ActualizarPedidoSeleccionado relee el pedido por empresa+numero.
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
 
         Dim agencia = New AgenciasTransporte With {
             .Empresa = "1",
@@ -1219,6 +1229,22 @@ Public Class AgenciaViewModelTests
         viewModel.cmdCargarDatos.Execute()
     End Sub
 
+    ''' <summary>
+    ''' Nesto#340 (A3): los fixtures siguen construyendo la entidad Clientes porque otros mocks
+    ''' (CargarCliente...) la siguen necesitando; el pedido, en cambio, ya lleva el POCO. Esta
+    ''' proyeccion evita repetir el mapeo en cada test.
+    ''' </summary>
+    Private Shared Function ClienteAgencia(cliente As Clientes) As ClienteAgenciaModel
+        Return New ClienteAgenciaModel With {
+            .Nombre = cliente.Nombre,
+            .Dirección = cliente.Dirección,
+            .Población = cliente.Población,
+            .Provincia = cliente.Provincia,
+            .CodPostal = cliente.CodPostal,
+            .Teléfono = cliente.Teléfono
+        }
+    End Function
+
     Private Sub CrearViewModelConUnEnvioEnLaListaDePedidos()
         A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
         A.CallTo(Function() configuracion.leerParametro("1", "UltNumPedidoVta")).Returns("12345     ")
@@ -1238,10 +1264,9 @@ Public Class AgenciaViewModelTests
         }
         A.CallTo(Function() servicio.CargarListaEnviosPedido(A(Of String).Ignored, A(Of Integer).Ignored)).Returns(listaEnvios)
 
-        Dim pedido = New CabPedidoVta With {
+        Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1",
             .Número = 12345,
-            .Ruta = "XXX",
             .Nº_Cliente = "1",
             .Contacto = "0"
         }
@@ -1257,8 +1282,10 @@ Public Class AgenciaViewModelTests
             .CodPostal = "28001",
             .Teléfono = "911234567"
         }
-        pedido.Clientes = cliente
-        A.CallTo(Function() servicio.CargarPedidoPorNumero(12345, False)).Returns(pedido)
+        pedido.Clientes = ClienteAgencia(cliente)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(12345, False)).Returns(pedido)
+        ' ActualizarPedidoSeleccionado relee el pedido por empresa+numero.
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, A(Of Nullable(Of Integer)).Ignored)).Returns(pedido)
 
         Dim agencia = A.Fake(Of AgenciasTransporte)
         agencia.Empresa = "1"

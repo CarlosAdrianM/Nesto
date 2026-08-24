@@ -8,7 +8,10 @@ Public Interface IAgenciaService
     Function Insertar(envio As EnviosAgencia) As EnviosAgencia
     Sub Modificar(envio As EnviosAgencia)
     Sub Borrar(Id As Integer)
-    Function CargarPedido(empresa As String, numeroPedido As Integer?) As CabPedidoVta
+    ' Nesto#340 (A3): el pedido de Agencias ya no es la entidad EF CabPedidoVta, sino un POCO
+    ' que viene de GET api/PedidosVenta/ParaAgencia. Los cuatro modos cubren los cuatro caminos
+    ' que antes iban por EF (por empresa+numero, por numero, por factura y por texto de cliente).
+    Function LeerPedidoParaAgencia(empresa As String, numeroPedido As Integer?) As PedidoAgenciaModel
     Function CargarListaReembolsos(empresa As String, agencia As Integer) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaRetornos(empresa As String, agencia As Integer, tipoDeRetorno As Integer) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnviosTramitados(empresa As String, agencia As Integer, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia)
@@ -21,10 +24,11 @@ Public Interface IAgenciaService
     Function CargarListaEnviosPedido(empresa As String, pedido As Integer) As ObservableCollection(Of EnviosAgencia)
     Function CargarAgencia(agencia As Integer) As AgenciasTransporte
     Function CargarListaHistoriaEnvio(envio As Integer) As ObservableCollection(Of EnviosHistoria)
-    Function CargarPedidoPorNumero(pedido As Integer) As CabPedidoVta
-    Function CargarPedidoPorNumero(pedido As Integer, espejo As Boolean) As CabPedidoVta
-    Function CargarPedidoPorFactura(numeroPedido As String) As CabPedidoVta
-    Function CargarClientePorUnDato(empresa As String, datoABuscar As String) As Clientes
+    Function LeerPedidoParaAgenciaPorNumero(numeroPedido As Integer, incluirEspejo As Boolean) As PedidoAgenciaModel
+    Function LeerPedidoParaAgenciaPorFactura(numeroFactura As String) As PedidoAgenciaModel
+    ' Sustituye a CargarClientePorUnDato + navegar cliente.CabPedidoVta (que reventaba con
+    ' ObjectDisposedException porque el contexto ya estaba cerrado). Ahora es una sola llamada.
+    Function LeerPedidoParaAgenciaPorTextoCliente(empresa As String, texto As String) As PedidoAgenciaModel
     Function CargarMultiusuario(empresa As String, multiusuario As Integer) As MultiUsuarios
     Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double?
     Function CargarListaEmpresas() As ObservableCollection(Of Empresas)

@@ -121,12 +121,6 @@ Public Class AgenciaService
         Return envio
     End Function
 
-    Public Function CargarPedido(empresa As String, numeroPedido As Integer?) As CabPedidoVta Implements IAgenciaService.CargarPedido
-        Using contexto = New NestoEntities
-            Return contexto.CabPedidoVta.Include("Clientes").Include("Clientes.PersonasContactoCliente").SingleOrDefault(Function(p) p.Empresa = empresa AndAlso p.Número = numeroPedido)
-        End Using
-    End Function
-
     Public Function CargarListaReembolsos(empresa As String, agencia As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaReembolsos
         Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(
             $"EnviosAgencias/Reembolsos?empresa={Uri.EscapeDataString(empresa?.Trim())}&agencia={agencia}"))
@@ -184,22 +178,34 @@ Public Class AgenciaService
     ' 404 se traduce a Nothing, que es lo que devolvia EF cuando no encontraba el pedido: los
     ' caminos de "no encontrado" del ViewModel siguen funcionando igual.
 
-    Public Function LeerPedidoParaAgencia(empresa As String, numeroPedido As Integer?) As PedidoAgenciaModel
+    Public Function LeerPedidoParaAgencia(empresa As String, numeroPedido As Integer?) As PedidoAgenciaModel Implements IAgenciaService.LeerPedidoParaAgencia
         If numeroPedido Is Nothing Then
             Return Nothing
         End If
         Return LeerPedido($"PedidosVenta/ParaAgencia?empresa={Uri.EscapeDataString(If(empresa, String.Empty))}&numero={numeroPedido.Value}")
     End Function
 
-    Public Function LeerPedidoParaAgenciaPorNumero(numeroPedido As Integer, incluirEspejo As Boolean) As PedidoAgenciaModel
+    Public Function LeerPedidoParaAgenciaPorNumero(numeroPedido As Integer, incluirEspejo As Boolean) As PedidoAgenciaModel Implements IAgenciaService.LeerPedidoParaAgenciaPorNumero
         Return LeerPedido($"PedidosVenta/ParaAgencia?numero={numeroPedido}&incluirEspejo={incluirEspejo.ToString().ToLowerInvariant()}")
     End Function
 
-    Public Function LeerPedidoParaAgenciaPorFactura(numeroFactura As String) As PedidoAgenciaModel
+    Public Function LeerPedidoParaAgenciaPorFactura(numeroFactura As String) As PedidoAgenciaModel Implements IAgenciaService.LeerPedidoParaAgenciaPorFactura
         If String.IsNullOrWhiteSpace(numeroFactura) Then
             Return Nothing
         End If
         Return LeerPedido($"PedidosVenta/ParaAgencia?factura={Uri.EscapeDataString(numeroFactura.Trim())}")
+    End Function
+
+    ' Sustituye a CargarClientePorUnDato + navegar cliente.CabPedidoVta. Esos dos pasos hacian
+    ' lazy loading sobre un DbContext ya cerrado por su Using, asi que lanzaban
+    ' ObjectDisposedException en cuanto la busqueda SI encontraba cliente. Ahora es una consulta
+    ' server-side: busca el cliente por nombre/direccion/telefono y devuelve su pedido mas
+    ' reciente, con los mismos criterios que tenia el original.
+    Public Function LeerPedidoParaAgenciaPorTextoCliente(empresa As String, texto As String) As PedidoAgenciaModel Implements IAgenciaService.LeerPedidoParaAgenciaPorTextoCliente
+        If String.IsNullOrWhiteSpace(texto) Then
+            Return Nothing
+        End If
+        Return LeerPedido($"PedidosVenta/ParaAgencia?empresa={Uri.EscapeDataString(If(empresa, String.Empty))}&textoCliente={Uri.EscapeDataString(texto)}")
     End Function
 
     Private Function LeerPedido(ruta As String) As PedidoAgenciaModel
@@ -327,36 +333,6 @@ Public Class AgenciaService
     Public Function CargarListaHistoriaEnvio(envio As Integer) As ObservableCollection(Of EnviosHistoria) Implements IAgenciaService.CargarListaHistoriaEnvio
         Using contexto = New NestoEntities
             Return New ObservableCollection(Of EnviosHistoria)(From h In contexto.EnviosHistoria Where h.NumeroEnvio = envio)
-        End Using
-    End Function
-
-    Public Function CargarPedidoPorNumero(pedido As Integer) As CabPedidoVta Implements IAgenciaService.CargarPedidoPorNumero
-        Using contexto = New NestoEntities
-            Return (From c In contexto.CabPedidoVta.Include("Clientes").Include("Clientes.PersonasContactoCliente") Where c.Número = pedido).FirstOrDefault
-        End Using
-    End Function
-
-    Public Function CargarPedidoPorNumero(pedido As Integer, espejo As Boolean) As CabPedidoVta Implements IAgenciaService.CargarPedidoPorNumero
-        If espejo Then
-            Return CargarPedidoPorNumero(pedido)
-        Else
-            Using contexto = New NestoEntities
-                Return contexto.CabPedidoVta.Include("Clientes").Include("Clientes.PersonasContactoCliente").FirstOrDefault(Function(c) c.Número = pedido And c.Empresa <> Constantes.Empresas.EMPRESA_ESPEJO)
-            End Using
-        End If
-    End Function
-
-    Public Function CargarPedidoPorFactura(numeroPedido As String) As CabPedidoVta Implements IAgenciaService.CargarPedidoPorFactura
-        Using contexto = New NestoEntities
-            'Return (From c In contexto.CabPedidoVta Join l In contexto.LinPedidoVta On c.Empresa Equals l.Empresa And c.Número Equals l.Número Where l.Nº_Factura = numeroPedido Select c).FirstOrDefault
-            Dim pedido = contexto.LinPedidoVta.Where(Function(l) l.Nº_Factura = numeroPedido).Select(Function(l) l.Número).FirstOrDefault
-            Return contexto.CabPedidoVta.Include("Clientes").Include("Clientes.PersonasContactoCliente").Where(Function(c) c.Número = pedido).FirstOrDefault
-        End Using
-    End Function
-
-    Public Function CargarClientePorUnDato(empresa As String, datoABuscar As String) As Clientes Implements IAgenciaService.CargarClientePorUnDato
-        Using contexto = New NestoEntities
-            Return (From c In contexto.Clientes Where c.Empresa = empresa AndAlso (c.Nombre.Contains(datoABuscar) OrElse c.Dirección.Contains(datoABuscar) OrElse c.Teléfono.Contains(datoABuscar))).FirstOrDefault
         End Using
     End Function
 

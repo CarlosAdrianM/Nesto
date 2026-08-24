@@ -388,12 +388,15 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private _pedidoSeleccionado As CabPedidoVta
-    Public Property pedidoSeleccionado As CabPedidoVta
+    ' Nesto#340 (A3): ya no es la entidad EF CabPedidoVta sino el POCO que sirve la API. Los
+    ' nombres de las propiedades del modelo son los mismos que los de la entidad a proposito,
+    ' asi que ni el XAML ni el resto del ViewModel cambian.
+    Private _pedidoSeleccionado As PedidoAgenciaModel
+    Public Property pedidoSeleccionado As PedidoAgenciaModel
         Get
             Return _pedidoSeleccionado
         End Get
-        Set(value As CabPedidoVta)
+        Set(value As PedidoAgenciaModel)
             Dim unused1 = SetProperty(_pedidoSeleccionado, value)
 
             If Not IsNothing(cmdInsertar) Then
@@ -407,7 +410,7 @@ Public Class AgenciasViewModel
     Private Async Function ActualizarPedidoSeleccionado() As Task
         If Not IsNothing(pedidoSeleccionado) Then
             Try
-                Dim cliente = _servicio.CargarPedido(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número).Clientes
+                Dim cliente = _servicio.LeerPedidoParaAgencia(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número).Clientes
                 reembolso = Await _servicio.ImporteReembolso(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
                 bultos = 1
                 nombreEnvio = If(cliente.Nombre IsNot Nothing, cliente.Nombre.Trim, "")
@@ -978,13 +981,13 @@ Public Class AgenciasViewModel
         End Get
         Set(value As String)
             Dim unused3 = SetProperty(_numeroPedido, value)
-            Dim pedidoAnterior As CabPedidoVta
+            Dim pedidoAnterior As PedidoAgenciaModel
             pedidoAnterior = pedidoSeleccionado
             Dim pedidoNumerico As Integer
             If Integer.TryParse(numeroPedido, pedidoNumerico) Then ' si el pedido es numérico
-                Dim pedidoBuscado As CabPedidoVta = _servicio.CargarPedidoPorNumero(pedidoNumerico, False)
+                Dim pedidoBuscado As PedidoAgenciaModel = _servicio.LeerPedidoParaAgenciaPorNumero(pedidoNumerico, False)
                 pedidoSeleccionado = If(IsNothing(pedidoBuscado) OrElse IsNothing(pedidoBuscado.Empresa),
-                    _servicio.CargarPedidoPorNumero(pedidoNumerico),
+                    _servicio.LeerPedidoParaAgenciaPorNumero(pedidoNumerico, True),
                     pedidoBuscado)
             Else ' si no es numérico (es una factura, lo tratamos como un cobro)
                 pedidoSeleccionado = CalcularPedidoTexto(numeroPedido)
@@ -1020,21 +1023,17 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
-    Private Function CalcularPedidoTexto(numeroPedido As String) As CabPedidoVta
-        Dim pedidoEncontrado As CabPedidoVta = _servicio.CargarPedidoPorFactura(numeroPedido)
-        '
+    ' Nesto#340 (A3): los dos caminos van ya por la API. El segundo sustituye a
+    ' CargarClientePorUnDato + navegar cliente.CabPedidoVta, que hacia lazy loading sobre un
+    ' DbContext ya cerrado y lanzaba ObjectDisposedException justo cuando SI encontraba cliente.
+    Private Function CalcularPedidoTexto(numeroPedido As String) As PedidoAgenciaModel
+        Dim pedidoEncontrado As PedidoAgenciaModel = _servicio.LeerPedidoParaAgenciaPorFactura(numeroPedido)
+
         If Not IsNothing(pedidoEncontrado) Then
             Return pedidoEncontrado
         End If
 
-        Dim clienteEncontrado = _servicio.CargarClientePorUnDato(empresaSeleccionada.Número, numeroPedido)
-
-        If IsNothing(clienteEncontrado) Then
-            Return Nothing
-        End If
-
-        pedidoEncontrado = clienteEncontrado.CabPedidoVta.OrderByDescending(Function(c) c.Número).FirstOrDefault
-        Return pedidoEncontrado
+        Return _servicio.LeerPedidoParaAgenciaPorTextoCliente(empresaSeleccionada.Número, numeroPedido)
     End Function
 
     Private _numeroMultiusuario As Integer
@@ -2877,6 +2876,14 @@ Public Class AgenciasViewModel
         Dim correo As New CorreoCliente(listaPersonas)
         Return correo.CorreoAgencia
     End Function
+
+    ' Nesto#340 (A3): misma eleccion de correo para las personas de contacto que ya no vienen de
+    ' EF. El criterio sigue viviendo solo en CorreoCliente.
+    Public Function correoUnico(listaPersonas As List(Of PersonaContactoAgenciaModel)) As String
+        Dim correo As New CorreoCliente(
+            listaPersonas.Select(Function(p) New PersonaContactoCorreo(p.Cargo, p.CorreoElectrónico)))
+        Return correo.CorreoAgencia
+    End Function
     'Public Function importeReembolso(pedidoSeleccionado As CabPedidoVta) As Decimal
 
     '    ' Miramos la deuda que tenga en su extracto. 
@@ -3197,7 +3204,7 @@ Public Class AgenciasViewModel
         Dim unused = _servicio.EnviarCorreoEntregaAgencia(EnvioAgenciaWrapper.EnvioAgenciaAWrapper(envio))
     End Sub
 
-    Private Function buscarEnvioPendiente(pedidoSeleccionado As CabPedidoVta) As EnviosAgencia
+    Private Function buscarEnvioPendiente(pedidoSeleccionado As PedidoAgenciaModel) As EnviosAgencia
         Dim envio As EnviosAgencia = _servicio.CargarEnvio(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número)
         Return envio
     End Function
@@ -3554,7 +3561,7 @@ Public Class AgenciasViewModel
 
         Return asiento
     End Function
-    Private Function buscarPedidoAmpliacion(pedido As CabPedidoVta) As EnviosAgencia
+    Private Function buscarPedidoAmpliacion(pedido As PedidoAgenciaModel) As EnviosAgencia
         Dim direccion = If(Not String.IsNullOrWhiteSpace(direccionEnvio), direccionEnvio, pedido.Clientes.Dirección)
         Dim pedidoEncontrado As EnviosAgencia = _servicio.CargarEnvioPorClienteYDireccion(pedido.Nº_Cliente, pedido.Contacto, direccion)
         If IsNothing(pedidoEncontrado) Then
@@ -3616,7 +3623,7 @@ Public Class AgenciasViewModel
             Return
         End If
 
-        Dim pedido As CabPedidoVta = _servicio.CargarPedido(empresaSeleccionada.Número, numeroPedido)
+        Dim pedido As PedidoAgenciaModel = _servicio.LeerPedidoParaAgencia(empresaSeleccionada.Número, numeroPedido)
 
         If IsNothing(pedido) Then
             _dialogService.ShowError("No se encuentra el pedido " + numeroPedido.ToString)
