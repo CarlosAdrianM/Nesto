@@ -1,4 +1,5 @@
-﻿Imports System.DirectoryServices.AccountManagement
+﻿Imports System.Collections
+Imports System.DirectoryServices.AccountManagement
 Imports System.Globalization
 Imports System.Net.Http
 Imports System.Text
@@ -166,18 +167,37 @@ Public Class Configuracion
 
     End Function
 
+    ''' <summary>
+    ''' Nesto#450: respuestas ya calculadas de UsuarioEnGrupo. La pertenencia a un grupo del
+    ''' dominio no cambia mientras la aplicación está abierta, y esta función se llama desde
+    ''' CanExecute de varios comandos: WPF los reevalúa en CADA CommandManager.RequerySuggested,
+    ''' o sea con cada tecla y cada clic. Sin caché eso son cientos de consultas LDAP por sesión.
+    '''
+    ''' Solo se cachean los aciertos: un fallo (dominio no disponible) NO se guarda, para que al
+    ''' volver el controlador la respuesta se corrija sola sin reiniciar la aplicación.
+    ''' </summary>
+    Private Shared ReadOnly _gruposComprobados As New Concurrent.ConcurrentDictionary(Of String, Boolean)
+
     Public Function UsuarioEnGrupo(grupo As String) As Boolean Implements IConfiguracion.UsuarioEnGrupo
+        Dim cacheado As Boolean
+        If _gruposComprobados.TryGetValue(grupo, cacheado) Then
+            Return cacheado
+        End If
+
         Try
             Dim yourDomain As String = System.Environment.UserDomainName
             Using ctx As New PrincipalContext(ContextType.Domain, yourDomain)
                 Using grp = GroupPrincipal.FindByIdentity(ctx, IdentityType.Name, grupo)
                     Dim isInRole As Boolean = Not IsNothing(grp) AndAlso grp.GetMembers(True).Any(Function(m) m.SamAccountName.ToLower = usuario.ToLower.Replace(yourDomain.ToLower + "\", String.Empty))
+                    _gruposComprobados(grupo) = isInRole
                     Return isInRole
                 End Using
             End Using
         Catch ex As Exception
             ' El controlador de dominio puede no estar disponible momentáneamente (LDAP caído/timeout).
             ' No debe tumbar la app (arranque del MenuBar, apertura de DetallePedidoVenta, CanExecute en cada requery...).
+            ' NO se cachea: si se guardara el False, el usuario se quedaría sin permisos toda la
+            ' sesión aunque el dominio volviera a los dos segundos.
             System.Diagnostics.Debug.WriteLine($"UsuarioEnGrupo('{grupo}') falló, se asume False: {ex.Message}")
             Return False
         End Try
