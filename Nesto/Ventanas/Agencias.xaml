@@ -612,6 +612,18 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Agencia" Binding="{Binding AgenciasTransporte.Nombre}" Width="Auto"/>
                             <DataGridTextColumn Header="Fecha" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
+                            <!-- NestoAPI#259: el texto del estado tal cual lo da la agencia
+                                 ("DISPONIBLE PARA RECOGER", la incidencia de GLS...). Evita una pestaña
+                                 por estado y agencia: la incidencia se distingue aquí de un vistazo. -->
+                            <DataGridTextColumn Header="Incidencia" Binding="{Binding DetalleEstado}" Width="Auto">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Foreground" Value="#B34700"/>
+                                        <Setter Property="ToolTip" Value="{Binding DetalleEstado}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
                             <DataGridTextColumn Header="Contacto" Binding="{Binding Contacto}" Width="Auto"/>
                             <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="Auto"/>

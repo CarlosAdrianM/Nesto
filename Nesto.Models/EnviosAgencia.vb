@@ -53,6 +53,7 @@ Namespace Nesto.Models
         Public Property RowVersion As Byte()
         Public Property ImporteAsegurado As Decimal
         Public Property Peso As Decimal
+        Public Property DetalleEstado As String
 
         Public Overridable Property Clientes As Clientes
         Public Overridable Property Empresas As Empresas

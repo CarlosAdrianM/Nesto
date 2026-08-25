@@ -162,6 +162,20 @@ Public Class AgenciasViewModelCopiarPedidoTests
     End Sub
 
     <TestMethod()>
+    Public Sub TextoEnvioCompletoParaCopiar_IncluyeLaEtiquetaDeLaIncidencia()
+        ' NestoAPI#259: al copiar un envío incidentado para pasárselo a otra persona (o a la
+        ' agencia), el motivo es justo el dato que hace falta.
+        Dim vm = CrearViewModel()
+        vm.envioActual = New EnviosAgencia With {
+            .Numero = 247975,
+            .CodigoBarras = "6544316001",
+            .DetalleEstado = "DISPONIBLE PARA RECOGER"
+        }
+
+        StringAssert.Contains(vm.TextoEnvioCompletoParaCopiar, "Incidencia: DISPONIBLE PARA RECOGER")
+    End Sub
+
+    <TestMethod()>
     Public Sub TextoEnvioCompletoParaCopiar_SinEnvio_VacioYDeshabilitado()
         Dim vm = CrearViewModel()
 

@@ -2768,6 +2768,7 @@ Public Class AgenciasViewModel
             Dim lineas As New List(Of String) From {
                 $"Agencia: {envioActual.AgenciasTransporte?.Nombre?.Trim()}",
                 $"Fecha: {envioActual.Fecha:d}",
+                $"Incidencia: {envioActual.DetalleEstado?.Trim()}",
                 $"Nº Cliente: {envioActual.Cliente?.Trim()}",
                 $"Contacto: {envioActual.Contacto?.Trim()}",
                 $"Pedido: {envioActual.Pedido}",
