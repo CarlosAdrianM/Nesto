@@ -449,7 +449,64 @@ Public Class AgenciaService
 
     End Function
 
+    ' ===== Nesto#340 (Agencias, slice A4.1): cerrar el envío y contabilizar su reembolso =====
+    ' El servidor hace las dos cosas en una transacción (POST .../ConfirmarTramitacion) y estampa el
+    ' usuario del asiento desde el JWT. Mientras se rueda, un parámetro de usuario decide el camino:
+    ' sin fila (o con otro valor) se sigue usando el Entity Framework de siempre, que se queda intacto
+    ' debajo. Protocolo de pies de plomo acordado el 20/08/26 tras los 3 sustos de A2.
+    Friend Const CLAVE_TRAMITAR_POR_API As String = "TramitarEnvioPorApi"
+    Private Const VALOR_TRAMITAR_POR_API As String = "API"
+
+    Private Function TramitarPorApi() As Boolean
+        Try
+            Dim valor As String = Task.Run(Function() configuracion.leerParametro(
+                Constantes.Empresas.EMPRESA_DEFECTO, CLAVE_TRAMITAR_POR_API)).GetAwaiter().GetResult()
+            Return String.Equals(valor?.Trim(), VALOR_TRAMITAR_POR_API, StringComparison.OrdinalIgnoreCase)
+        Catch
+            ' Si no se puede leer el parámetro, el camino seguro es el de siempre.
+            Return False
+        End Try
+    End Function
+
     Public Function TramitarEnvio(envio As EnviosAgencia) As String Implements IAgenciaService.TramitarEnvio
+        If TramitarPorApi() Then
+            Return TramitarEnvioPorApi(envio)
+        End If
+        Return TramitarEnvioConEntityFramework(envio)
+    End Function
+
+    ''' <summary>
+    ''' Cierra el envío en el servidor. Devuelve el mismo tipo de mensaje que el camino antiguo
+    ''' porque el ViewModel decide por su contenido (busca la palabra "Error").
+    ''' </summary>
+    Private Function TramitarEnvioPorApi(envio As EnviosAgencia) As String
+        Try
+            Return Task.Run(Async Function() As Task(Of String)
+                                Using client As HttpClient = _clienteApiFactory.Crear()
+                                    If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                        Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                                    End If
+                                    Dim response As HttpResponseMessage = Await client.PostAsync(
+                                        $"EnviosAgencias/{envio.Numero}/ConfirmarTramitacion", New StringContent(String.Empty, Encoding.UTF8, "application/json"))
+                                    Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                                    If Not response.IsSuccessStatusCode Then
+                                        Throw New Exception(cuerpo)
+                                    End If
+                                    Dim resultado = JsonConvert.DeserializeObject(Of ResultadoTramitacionEnvioModel)(cuerpo)
+                                    ' El servidor ya ha cambiado estado y fechas: se reflejan en la
+                                    ' entidad que el ViewModel tiene en la mano para no recargar.
+                                    envio.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO
+                                    envio.Fecha = Today
+                                    envio.FechaEntrega = Today.AddDays(1)
+                                    Return resultado.Mensaje
+                                End Using
+                            End Function).GetAwaiter().GetResult()
+        Catch ex As Exception
+            Return $"Error al tramitar pedido {envio.Pedido}: {ex.Message}"
+        End Try
+    End Function
+
+    Private Function TramitarEnvioConEntityFramework(envio As EnviosAgencia) As String
         Dim success As Boolean = False
 
         Using transaction As New TransactionScope()
