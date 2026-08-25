@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Services;
@@ -123,6 +123,47 @@ namespace PedidoVentaTests
 
             Assert.AreEqual(4, resultado.Length);
             Assert.AreEqual(5, resultado[0]);
+        }
+
+        // ===== NestoAPI#405: no se puede pedir un picking mientras hay otro en marcha =====
+
+        [TestMethod]
+        public void SacarPicking_MientrasSeEstaSacandoOtro_ElBotonSeDeshabilita()
+        {
+            // El 25/08/2026 el picking tardo 2 min 47 s (lo normal son 5-7 s), el usuario penso
+            // que no habia pasado nada y pulso otra vez 3 segundos despues. Las dos ejecuciones se
+            // solaparon, cada una reservo sus ubicaciones y el packing salio con el DOBLE.
+            // El BusyIndicator solo TAPABA la ventana: el comando seguia habilitado.
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(A<string>.Ignored)).Returns(true);
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+
+            Assert.IsTrue(vm.cmdSacarPicking.CanExecute(null), "En reposo el boton tiene que estar activo");
+
+            vm.estaSacandoPicking = true;
+
+            Assert.IsFalse(vm.cmdSacarPicking.CanExecute(null), "Con un picking en marcha NO se puede pedir otro");
+        }
+
+        [TestMethod]
+        public void SacarPicking_AlTerminar_ElBotonVuelveAHabilitarse()
+        {
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(A<string>.Ignored)).Returns(true);
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+            vm.estaSacandoPicking = true;
+
+            vm.estaSacandoPicking = false;
+
+            Assert.IsTrue(vm.cmdSacarPicking.CanExecute(null), "Terminado el picking se puede volver a sacar");
+        }
+
+        [TestMethod]
+        public void SacarPicking_UsuarioSinPermiso_SigueDeshabilitadoAunqueNoHayaPickingEnMarcha()
+        {
+            // La guarda nueva se suma a la de siempre, no la sustituye.
+            A.CallTo(() => _configuracion.UsuarioEnGrupo(A<string>.Ignored)).Returns(false);
+            var vm = CrearViewModel(A.Fake<IInformesService>());
+
+            Assert.IsFalse(vm.cmdSacarPicking.CanExecute(null));
         }
     }
 }

@@ -110,6 +110,10 @@ Public Class PickingPopupViewModel
         End Get
         Set(ByVal value As Boolean)
             SetProperty(_estaSacandoPicking, value)
+            ' NestoAPI#405: el BusyIndicator solo TAPA la ventana; el comando seguía habilitado y
+            ' se podía volver a pulsar. Hay que reevaluar el CanExecute para que el botón quede
+            ' deshabilitado de verdad mientras el picking está en marcha.
+            _cmdSacarPicking?.RaiseCanExecuteChanged()
         End Set
     End Property
 
@@ -269,8 +273,22 @@ Public Class PickingPopupViewModel
             SetProperty(_cmdSacarPicking, value)
         End Set
     End Property
+    ''' <summary>
+    ''' NestoAPI#405: mientras se está sacando un picking NO se puede volver a pedir otro.
+    '''
+    ''' El 25/08/2026 el picking tardó 2 min 47 s (lo normal son 5-7 s), el usuario pensó que no
+    ''' había pasado nada y pulsó otra vez 3 segundos después. Las dos ejecuciones se solaparon y
+    ''' cada una reservó sus ubicaciones: el packing salió con el DOBLE de unidades.
+    '''
+    ''' Esto es solo la primera capa, y la más floja: no cubre abrir otra ventana de Nesto ni a
+    ''' dos personas distintas. De eso se encarga el applock del servidor (GestorPicking), que es
+    ''' quien de verdad garantiza que solo se saque un picking a la vez.
+    '''
+    ''' El orden de las condiciones importa: la comprobación local va PRIMERO para no consultar a
+    ''' Active Directory en cada reevaluación del CanExecute (Nesto#450).
+    ''' </summary>
     Private Function CanSacarPicking(arg As PedidoVentaDTO) As Boolean
-        Return configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
+        Return Not estaSacandoPicking AndAlso configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN)
     End Function
     Private Async Sub OnSacarPicking(pedidoPicking As PedidoVentaDTO)
         Try
