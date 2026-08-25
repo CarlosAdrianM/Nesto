@@ -307,6 +307,7 @@ Public Class AgenciaService
             .TelefonoPlaza = dto.TelefonoPlaza,
             .EmailPlaza = dto.EmailPlaza,
             .RowVersion = dto.RowVersion,
+            .DetalleEstado = dto.DetalleEstado,
             .AgenciasTransporte = If(agencia, New AgenciasTransporte With {
                 .Empresa = dto.Empresa, .Numero = dto.Agencia, .Nombre = dto.NombreAgencia})
         }
@@ -932,4 +933,7 @@ Friend Class EnvioAgenciaListadoDTO
     Public Property TelefonoPlaza As String
     Public Property EmailPlaza As String
     Public Property RowVersion As Byte()
+    ' NestoAPI#259: motivo del estado tal y como lo da la agencia. Lo escribe el poll de
+    ' seguimiento del servidor; aqui es de solo lectura y alimenta la columna "Incidencia".
+    Public Property DetalleEstado As String
 End Class
