@@ -339,22 +339,57 @@ namespace Nesto.Modulos.CanalesExternos.ApisExternas
                     var idPedidoElement = xmlPedido.Descendants("id").FirstOrDefault();
                     if (idPedidoElement != null && int.TryParse(idPedidoElement.Value, out int idPedido))
                     {
-                        // Crear un nuevo XML para <order_history> con los datos necesarios
-                        var orderCarrierXml = new XElement("prestashop",
-                            new XElement("order_carrier",
-                                new XElement("id_order", idPedido),
-                                new XElement("id_carrier", agenciaId),
-                                new XElement("tracking_number", numeroSeguimiento)
-                            )
-                        );
-                        // Actualizar el estado del pedido haciendo un POST a <order_histories>
-                        var updateOrderUrl = $"{baseUrl}/order_carriers";
+                        // Nesto#454: el pedido YA TIENE su fila en order_carriers (Prestashop la crea
+                        // al nacer el pedido). Lo correcto es ACTUALIZARLA, no crear otra con POST,
+                        // que era el apaño de cuando el webservice de Prestashop 1.7 no admitía
+                        // PATCH y no llegó a funcionar nunca. Con Prestashop 8 el índice del API ya
+                        // expone patch/put por recurso (requiere concederlos a la clave en
+                        // Parámetros avanzados → Webservice).
+                        var carriersUrl = $"{baseUrl}/order_carriers?filter[id_order]={idPedido}&display=full";
+                        var carriersResponse = await client.GetAsync(carriersUrl);
+                        if (!carriersResponse.IsSuccessStatusCode)
+                        {
+                            return false;
+                        }
+
+                        var carriersXml = XElement.Parse(await carriersResponse.Content.ReadAsStringAsync());
+                        // Si el POST antiguo llegó a colar filas duplicadas, la original es la de
+                        // menor id, que es la que Prestashop muestra en el pedido.
+                        var orderCarrier = carriersXml.Descendants("order_carrier")
+                            .OrderBy(oc => (int?)oc.Element("id") ?? int.MaxValue)
+                            .FirstOrDefault();
+                        var idOrderCarrier = (int?)orderCarrier?.Element("id");
+                        if (orderCarrier == null || idOrderCarrier == null)
+                        {
+                            return false;
+                        }
+
+                        orderCarrier.SetElementValue("id_carrier", agenciaId);
+                        orderCarrier.SetElementValue("tracking_number", numeroSeguimiento);
+                        // Los atributos xlink:href del GET no se aceptan al escribir
+                        foreach (var elemento in orderCarrier.DescendantsAndSelf())
+                        {
+                            elemento.RemoveAttributes();
+                        }
+                        var orderCarrierXml = new XElement("prestashop", orderCarrier);
+
+                        // sendemail=1: Prestashop avisa al cliente del cambio de transportista con
+                        // el número de seguimiento (correo "en tránsito")
+                        var updateOrderUrl = $"{baseUrl}/order_carriers/{idOrderCarrier}";
                         if (mandarCorreo)
                         {
                             updateOrderUrl += "?sendemail=1";
                         }
                         var updateOrderContent = new StringContent(orderCarrierXml.ToString(), Encoding.UTF8, "application/xml");
-                        var updateOrderResponse = await client.PostAsync(updateOrderUrl, updateOrderContent);
+
+                        // PATCH (parcial, lo natural en Prestashop 8); si la clave solo tiene PUT
+                        // concedido, se reintenta con PUT y el recurso completo que acabamos de leer
+                        var updateOrderResponse = await client.PatchAsync(updateOrderUrl, updateOrderContent);
+                        if (!updateOrderResponse.IsSuccessStatusCode)
+                        {
+                            updateOrderContent = new StringContent(orderCarrierXml.ToString(), Encoding.UTF8, "application/xml");
+                            updateOrderResponse = await client.PutAsync(updateOrderUrl, updateOrderContent);
+                        }
 
                         if (updateOrderResponse.IsSuccessStatusCode)
                         {
