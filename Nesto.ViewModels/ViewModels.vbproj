@@ -8,6 +8,9 @@
     <Platforms>x64</Platforms>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="ViewModels.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\ControlesUsuario\ControlesUsuario.csproj" />
     <ProjectReference Include="..\Informes\Informes.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />

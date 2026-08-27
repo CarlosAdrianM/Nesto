@@ -1,10 +1,12 @@
-﻿Imports System.Collections.ObjectModel
+Imports System.Collections.ObjectModel
 Imports System.Data.Entity
 Imports System.Net.Http
 Imports System.Text
 Imports System.Transactions
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Infrastructure.Models
+Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
@@ -18,12 +20,22 @@ Public Class AgenciaService
     Private ReadOnly _dialogService As IDialogService
     Private ReadOnly _servicioAutenticacion As IServicioAutenticacion
     Private ReadOnly _clienteApiFactory As IClienteApiFactory
+    Private ReadOnly _servicioAgencias As IServicioAgenciasMantenimiento
 
     Public Sub New(configuracion As IConfiguracion, dialogService As IDialogService, servicioAutenticacion As IServicioAutenticacion)
         Me.configuracion = configuracion
         _dialogService = dialogService
         _servicioAutenticacion = servicioAutenticacion
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
+        ' Se reutiliza el cliente que ya existía de api/Agencias en vez de escribir otro:
+        ' un único sitio que sepa hablar con ese endpoint.
+        _servicioAgencias = New AgenciasMantenimientoService(_clienteApiFactory)
+    End Sub
+
+    ''' <summary>Solo para tests (InternalsVisibleTo "ViewModels.Tests"): permite falsear la
+    ''' lectura de agencias sin levantar la API ni la configuración.</summary>
+    Friend Sub New(servicioAgencias As IServicioAgenciasMantenimiento)
+        _servicioAgencias = servicioAgencias
     End Sub
 
     ' ===== Nesto#340 (Agencias, slice A2): el CRUD de envíos va por la API =====
@@ -250,11 +262,56 @@ Public Class AgenciaService
         Return dtos.Select(Function(dto) AEnvioAgencia(dto, agencias)).ToList()
     End Function
 
+    ' ===== Nesto#340 (Agencias, slice A1): las agencias se leen de la API, no de EF =====
+    ' Son datos maestros que apenas cambian (13 filas) y antes se releían de la base de datos en
+    ' CADA listado y en CADA envío insertado. Contra la API eso serían N llamadas HTTP, así que se
+    ' cachean unos minutos: acota la ventana de desfase si alguien da de alta una agencia desde la
+    ' ventana de mantenimiento, sin pagar una llamada por envío.
+    Private Shared ReadOnly _duracionCacheAgencias As TimeSpan = TimeSpan.FromMinutes(5)
+    Private _agenciasCacheadas As List(Of AgenciasTransporte)
+    Private _agenciasCacheadasHasta As Date
+
+    Private Function CargarTodasLasAgencias() As List(Of AgenciasTransporte)
+        If _agenciasCacheadas IsNot Nothing AndAlso Date.Now < _agenciasCacheadasHasta Then
+            Return _agenciasCacheadas
+        End If
+
+        Dim agencias As List(Of AgenciaMantenimiento) =
+            Task.Run(Function() _servicioAgencias.LeerAgencias()).GetAwaiter().GetResult()
+
+        _agenciasCacheadas = agencias.Select(AddressOf AAgenciaTransporte).ToList()
+        _agenciasCacheadasHasta = Date.Now.Add(_duracionCacheAgencias)
+        Return _agenciasCacheadas
+    End Function
+
+    ''' <summary>
+    ''' Compara como lo hacía SQL Server, que es de donde venían antes estas agencias: ignorando el
+    ''' relleno de los char y sin distinguir mayúsculas. La API devuelve los campos ya recortados y
+    ''' los llamantes siguen pasando valores con padding (Empresa es char(3)), así que un "=" pelado
+    ''' dejaría de encontrar la agencia sin dar ningún error. Es el mismo tropiezo de Nesto#254.
+    ''' </summary>
+    Private Shared Function CampoIgual(valorAgencia As String, valorBuscado As String) As Boolean
+        Return String.Equals(If(valorAgencia, "").Trim(), If(valorBuscado, "").Trim(),
+                             StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Shared Function AAgenciaTransporte(dto As AgenciaMantenimiento) As AgenciasTransporte
+        ' Usuario y FechaModificacion no viajan en el DTO: son de auditoría y no los mira nadie
+        ' de los que consumen estas agencias. Las navegaciones tampoco, a propósito.
+        Return New AgenciasTransporte With {
+            .Numero = dto.Numero,
+            .Empresa = dto.Empresa,
+            .Nombre = dto.Nombre,
+            .Ruta = dto.Ruta,
+            .Identificador = dto.Identificador,
+            .PrefijoCodigoBarras = dto.PrefijoCodigoBarras,
+            .CuentaReembolsos = dto.CuentaReembolsos
+        }
+    End Function
+
     Private Function CargarDiccionarioAgencias() As Dictionary(Of String, AgenciasTransporte)
-        Using contexto = New NestoEntities
-            Return contexto.AgenciasTransporte.ToList().
-                ToDictionary(Function(a) ClaveAgencia(a.Empresa, a.Numero))
-        End Using
+        Return CargarTodasLasAgencias().
+            ToDictionary(Function(a) ClaveAgencia(a.Empresa, a.Numero))
     End Function
 
     Private Shared Function ClaveAgencia(empresa As String, numero As Integer) As String
@@ -314,9 +371,8 @@ Public Class AgenciaService
     End Function
 
     Public Function CargarListaAgencias(empresa As String) As ObservableCollection(Of AgenciasTransporte) Implements IAgenciaService.CargarListaAgencias
-        Using contexto = New NestoEntities
-            Return New ObservableCollection(Of AgenciasTransporte)(From c In contexto.AgenciasTransporte Where c.Empresa = empresa)
-        End Using
+        Return New ObservableCollection(Of AgenciasTransporte)(
+            CargarTodasLasAgencias().Where(Function(c) CampoIgual(c.Empresa, empresa)))
     End Function
 
     Public Function CargarListaEnviosPedido(empresa As String, pedido As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosPedido
@@ -326,9 +382,9 @@ Public Class AgenciaService
     End Function
 
     Public Function CargarAgencia(agencia As Integer) As AgenciasTransporte Implements IAgenciaService.CargarAgencia
-        Using contexto = New NestoEntities
-            Return contexto.AgenciasTransporte.Where(Function(a) a.Numero = agencia).SingleOrDefault
-        End Using
+        ' Se mantiene SingleOrDefault (y no First): hoy el número de agencia es único entre
+        ' empresas, y si algún día dejara de serlo conviene que salte en vez de elegir una a dedo.
+        Return CargarTodasLasAgencias().SingleOrDefault(Function(a) a.Numero = agencia)
     End Function
 
     Public Function CargarListaHistoriaEnvio(envio As Integer) As ObservableCollection(Of EnviosHistoria) Implements IAgenciaService.CargarListaHistoriaEnvio
@@ -382,9 +438,10 @@ Public Class AgenciaService
     End Function
 
     Public Function CargarAgenciaPorNombreYCuentaReembolsos(empresa As String, cuentaReembolsos As String, nombreAgencia As String) As AgenciasTransporte Implements IAgenciaService.CargarAgenciaPorNombreYCuentaReembolsos
-        Using contexto = New NestoEntities
-            Return contexto.AgenciasTransporte.SingleOrDefault(Function(a) a.Empresa = empresa AndAlso a.CuentaReembolsos = cuentaReembolsos AndAlso a.Nombre = nombreAgencia)
-        End Using
+        Return CargarTodasLasAgencias().SingleOrDefault(
+            Function(a) CampoIgual(a.Empresa, empresa) AndAlso
+                        CampoIgual(a.CuentaReembolsos, cuentaReembolsos) AndAlso
+                        CampoIgual(a.Nombre, nombreAgencia))
     End Function
 
     Public Function CargarEnvio(empresa As String, pedido As Integer) As EnviosAgencia Implements IAgenciaService.CargarEnvio
@@ -414,11 +471,10 @@ Public Class AgenciaService
     End Function
 
     Public Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte Implements IAgenciaService.CargarAgenciaPorRuta
-        Using contexto = New NestoEntities
-            Return If(empresa.Trim = Constantes.Empresas.EMPRESA_DEFECTO,
-                contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Ruta = ruta),
-                contexto.AgenciasTransporte.FirstOrDefault(Function(a) a.Empresa = empresa AndAlso a.Nombre = Constantes.Agencias.AGENCIA_REEMBOLSOS))
-        End Using
+        Dim agencias As List(Of AgenciasTransporte) = CargarTodasLasAgencias()
+        Return If(empresa.Trim = Constantes.Empresas.EMPRESA_DEFECTO,
+            agencias.FirstOrDefault(Function(a) CampoIgual(a.Empresa, empresa) AndAlso CampoIgual(a.Ruta, ruta)),
+            agencias.FirstOrDefault(Function(a) CampoIgual(a.Empresa, empresa) AndAlso CampoIgual(a.Nombre, Constantes.Agencias.AGENCIA_REEMBOLSOS)))
     End Function
 
     Public Function CargarCliente(empresa As String, cliente As String, contacto As String) As Clientes Implements IAgenciaService.CargarCliente
