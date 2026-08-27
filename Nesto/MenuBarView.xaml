@@ -85,6 +85,7 @@
                 <RibbonButton Label="Remesas" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesRemesasCommand}" />
                 <RibbonButton Label="Agencias" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesAgenciasCommand}" />
                 <RibbonButton Label="Mant. agencias" LargeImageSource="/Images/Cliente.png" Command="{Binding AgenciasMantenimientoCommand}" />
+                <RibbonButton Label="Mant. familias" LargeImageSource="/Images/Familias.png" Command="{Binding FamiliasMantenimientoCommand}" />
             </RibbonGroup>
         </RibbonTab>
 

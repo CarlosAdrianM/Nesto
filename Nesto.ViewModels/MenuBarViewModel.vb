@@ -48,6 +48,7 @@ Public Class MenuBarViewModel
         ClientesRemesasCommand = New DelegateCommand(AddressOf OnClientesRemesas)
         ClientesAgenciasCommand = New DelegateCommand(AddressOf OnClientesAgencias)
         AgenciasMantenimientoCommand = New DelegateCommand(AddressOf OnAgenciasMantenimiento)
+        FamiliasMantenimientoCommand = New DelegateCommand(AddressOf OnFamiliasMantenimiento)
         RatioDeudaCommand = New DelegateCommand(AddressOf OnRatioDeuda)
         VideosCommand = New DelegateCommand(AddressOf OnVideos)
         NovedadesCommand = New DelegateCommand(AddressOf OnNovedades)
@@ -166,6 +167,7 @@ Public Class MenuBarViewModel
     Public Property ClientesRemesasCommand As ICommand
     Public Property ClientesAgenciasCommand As ICommand
     Public Property AgenciasMantenimientoCommand As ICommand
+    Public Property FamiliasMantenimientoCommand As ICommand
     Public Property RatioDeudaCommand As ICommand
     Public Property VideosCommand As ICommand
     Public Property NovedadesCommand As ICommand
@@ -313,6 +315,11 @@ Public Class MenuBarViewModel
     ' Nesto#340: mantenimiento de agencias (alta de Innovatrans, editar campos, fuel, cuarentena)
     Private Sub OnAgenciasMantenimiento()
         NavegarAVista("AgenciasMantenimiento")
+    End Sub
+
+    ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
+    Private Sub OnFamiliasMantenimiento()
+        NavegarAVista("FamiliasMantenimiento")
     End Sub
 
     Private Sub OnRatioDeuda()

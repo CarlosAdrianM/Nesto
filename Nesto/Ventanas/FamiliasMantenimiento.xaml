@@ -1,0 +1,53 @@
+<UserControl x:Class="FamiliasMantenimiento" Name="FamiliasMantenimiento"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+    prism:ViewModelLocator.AutoWireViewModel="True">
+
+    <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Espere, por favor...">
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                <TextBlock Text="Mantenimiento de familias"
+                           FontSize="16" FontWeight="Bold" Margin="0,0,0,4"/>
+                <TextBlock TextWrapping="Wrap" Foreground="#555" Margin="0,0,0,10"
+                           Text="Marca las familias que se venden al público al MISMO precio que al profesional (sin el descuento del 30 %). Al guardar, los productos de esas familias se republican en la tienda con el precio nuevo."/>
+                <controles:SelectorEmpresa Configuracion="{Binding configuracion}"
+                                           Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}"
+                                           Etiqueta="Empresa:" HorizontalAlignment="Left"/>
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="Buscar:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                <TextBox Text="{Binding Filtro, UpdateSourceTrigger=PropertyChanged}"
+                         Width="220" VerticalAlignment="Center"/>
+                <CheckBox Content="Ver solo las marcadas" IsChecked="{Binding SoloMarcadas}"
+                          VerticalAlignment="Center" Margin="15,0,0,0"/>
+            </StackPanel>
+
+            <DataGrid Grid.Row="2" ItemsSource="{Binding FamiliasFiltradas}" AutoGenerateColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False" HeadersVisibility="Column">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Familia" Binding="{Binding Numero}" Width="140" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Descripción" Binding="{Binding Descripcion}" Width="*" IsReadOnly="True"/>
+                    <DataGridCheckBoxColumn Header="Público = profesional"
+                                            Binding="{Binding PublicoIgualQueProfesional, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="150"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                <Button Content="Guardar" Command="{Binding GuardarCommand}"
+                        Width="120" Height="30"/>
+            </StackPanel>
+        </Grid>
+    </xctk:BusyIndicator>
+</UserControl>

@@ -149,6 +149,13 @@ Partial Public Class Application
                 Return New AgenciasMantenimientoService(factory)
             End Function)
 
+        ' NestoAPI#406: mantenimiento de familias (marcar "público igual que profesional")
+        Dim unusedFamilias = containerRegistry.RegisterSingleton(Of IServicioFamiliasMantenimiento)(
+            Function(provider)
+                Dim factory = provider.Resolve(Of IClienteApiFactory)()
+                Return New FamiliasMantenimientoService(factory)
+            End Function)
+
         Dim unused25 = containerRegistry.Register(GetType(IPlantillaVenta), GetType(PlantillaVenta))
         Dim unused24 = containerRegistry.Register(GetType(IPlantillaVentaService), GetType(PlantillaVentaService))
         ' Issue #286: Borradores de PlantillaVenta
@@ -295,6 +302,7 @@ Partial Public Class Application
         ViewModelLocationProvider.Register(GetType(SelectorCliente).ToString, GetType(SelectorClienteViewModel))
         ViewModelLocationProvider.Register(GetType(SelectorProveedor).ToString, GetType(SelectorProveedorViewModel))
         ViewModelLocationProvider.Register(GetType(AgenciasMantenimiento).ToString, GetType(AgenciasMantenimientoViewModel))
+        ViewModelLocationProvider.Register(GetType(FamiliasMantenimiento).ToString, GetType(FamiliasMantenimientoViewModel))
     End Sub
 
     Protected Overrides Sub OnInitialized()

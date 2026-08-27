@@ -151,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\Cliente.png" />
+    <Resource Include="Images\Familias.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\ControlPedidos.png" />

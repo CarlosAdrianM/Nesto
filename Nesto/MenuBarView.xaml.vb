@@ -28,6 +28,7 @@ Public Class MenuBarView
         viewModel.RegistrarTipoVista("Remesas", GetType(Remesas))
         viewModel.RegistrarTipoVista("Agencias", GetType(Agencias))
         viewModel.RegistrarTipoVista("AgenciasMantenimiento", GetType(AgenciasMantenimiento))
+        viewModel.RegistrarTipoVista("FamiliasMantenimiento", GetType(FamiliasMantenimiento))
         viewModel.RegistrarTipoVista("Deuda", GetType(Deuda))
         viewModel.RegistrarTipoVista("Comisiones", GetType(Comisiones))
         viewModel.RegistrarTipoVista("ClienteComercial", GetType(ClienteComercial))
