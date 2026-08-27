@@ -280,27 +280,33 @@ namespace Nesto.Modulos.CanalesExternos
             return resultado;
         }
 
-        // Mapeo seguimiento -> (transportista de Prestashop, nº de seguimiento), por agencia.
+        // Mapeo seguimiento -> (transportista de Prestashop, tracking), por agencia.
         // Para soportar una agencia basta con una fila: el token que identifica su enlace, su id de
-        // transportista en Prestashop y cómo extraer el nº de seguimiento del enlace. Antes era un
-        // if/else que solo contemplaba CEX y Sending y lanzaba NotImplementedException para el resto
-        // (Innovatrans, GLS...). GLS e Innovatrans comparten el transportista genérico 160 de Prestashop.
+        // transportista en Prestashop y qué tracking mandar. NestoAPI#417: para el transportista
+        // genérico 160 (GLS/Innovatrans), cuya plantilla de URL en Prestashop está vacía
+        // ("https://@"), viaja el ENLACE completo sin esquema — mandar el número pelado dejaba al
+        // cliente un seguimiento muerto. CEX/Sending tienen transportista propio con plantilla y
+        // siguen con el número extraído de siempre.
         private static readonly (string Token, string AgenciaId, Func<string, string> ExtraerNumero)[] MapeoSeguimiento =
         {
             ("correosexpress", "105", s => DespuesDe(s, "=", ultima: false)),
             ("sending",        "103", s => DespuesDe(s, "=", ultima: true)),
-            ("gls-spain.es",   "160", s => Entre(s, "/e/", "/")),                 // https://mygls.gls-spain.es/e/{albaran}/{cp}
-            ("tip-sa.com",     "160", s => DespuesDe(s, "028040028040", ultima: false)), // .../datos_env.php?id=028040028040{albaran}
+            ("gls-spain.es",   "160", s => SinEsquema(s)),
+            ("tip-sa.com",     "160", s => SinEsquema(s)),
         };
 
         // NestoAPI#258 slice (a): si el servidor ya mandó los identificadores por canal del último
         // envío (los declara la agencia en NestoAPI), se usan directamente. El parseo del enlace
-        // queda como fallback para envíos sin esos datos.
+        // queda como fallback para envíos sin esos datos. NestoAPI#417: el tracking preferido es
+        // TrackingPrestashop (el enlace hecho); NumeroSeguimiento queda para servidores antiguos.
         internal static DatosEnvioConfirmarPrestashop LeerDatosEnvio(PedidoCanalExterno pedido)
         {
             var envio = pedido?.UltimoEnvio;
-            return !string.IsNullOrWhiteSpace(envio?.TransportistaPrestashop) && !string.IsNullOrWhiteSpace(envio.NumeroSeguimiento)
-                ? new DatosEnvioConfirmarPrestashop { AgenciaId = envio.TransportistaPrestashop, NumeroSeguimiento = envio.NumeroSeguimiento }
+            string tracking = !string.IsNullOrWhiteSpace(envio?.TrackingPrestashop)
+                ? envio.TrackingPrestashop
+                : envio?.NumeroSeguimiento;
+            return !string.IsNullOrWhiteSpace(envio?.TransportistaPrestashop) && !string.IsNullOrWhiteSpace(tracking)
+                ? new DatosEnvioConfirmarPrestashop { AgenciaId = envio.TransportistaPrestashop, NumeroSeguimiento = tracking }
                 : LeerDatosEnvio(pedido?.UltimoSeguimiento);
         }
 
@@ -327,24 +333,20 @@ namespace Nesto.Modulos.CanalesExternos
             throw new NotImplementedException($"No se reconoce la agencia del enlace de seguimiento: {seguimiento}");
         }
 
+        private static string SinEsquema(string url)
+        {
+            // La plantilla del transportista genérico de Prestashop antepone "https://" al tracking.
+            return url != null && url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                ? url.Substring("https://".Length)
+                : url;
+        }
+
         private static string DespuesDe(string texto, string marca, bool ultima)
         {
             int i = ultima
                 ? texto.LastIndexOf(marca, StringComparison.OrdinalIgnoreCase)
                 : texto.IndexOf(marca, StringComparison.OrdinalIgnoreCase);
             return i < 0 ? null : texto.Substring(i + marca.Length);
-        }
-
-        private static string Entre(string texto, string desde, string hasta)
-        {
-            int i = texto.IndexOf(desde, StringComparison.OrdinalIgnoreCase);
-            if (i < 0)
-            {
-                return null;
-            }
-            i += desde.Length;
-            int j = texto.IndexOf(hasta, i, StringComparison.OrdinalIgnoreCase);
-            return j < 0 ? texto.Substring(i) : texto.Substring(i, j - i);
         }
 
         public async Task<ICollection<LineaPedidoVentaDTO>> GetLineas(PedidoCanalExterno pedido)

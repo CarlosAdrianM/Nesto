@@ -81,25 +81,27 @@ namespace CanalesExternosTests
         }
 
         [TestMethod]
-        public void LeerDatosEnvio_Gls_DevuelveTransportista160YAlbaran()
+        public void LeerDatosEnvio_Gls_DevuelveTransportista160YEnlaceSinEsquema()
         {
-            // GLS: https://mygls.gls-spain.es/e/{albaran}/{cp} -> transportista genérico 160
+            // NestoAPI#417: el transportista genérico 160 tiene la plantilla de URL vacía en
+            // Prestashop ("https://@"), así que el número pelado dejaba al cliente un seguimiento
+            // muerto. Viaja el ENLACE completo sin esquema (la plantilla antepone el https://).
             var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(
                 "https://mygls.gls-spain.es/e/6119714024595/28001");
 
             Assert.AreEqual("160", datos.AgenciaId);
-            Assert.AreEqual("6119714024595", datos.NumeroSeguimiento);
+            Assert.AreEqual("mygls.gls-spain.es/e/6119714024595/28001", datos.NumeroSeguimiento);
         }
 
         [TestMethod]
-        public void LeerDatosEnvio_Innovatrans_DevuelveTransportista160YAlbaran()
+        public void LeerDatosEnvio_Innovatrans_DevuelveTransportista160YEnlaceSinEsquema()
         {
-            // Innovatrans (antes lanzaba NotImplementedException): id fijo 028040028040 + albarán.
+            // NestoAPI#417: mismo caso que GLS — comparten el transportista genérico 160.
             var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(
                 "https://aplicaciones.tip-sa.com/cliente/datos_env.php?id=0280400280406522393001");
 
             Assert.AreEqual("160", datos.AgenciaId);
-            Assert.AreEqual("6522393001", datos.NumeroSeguimiento);
+            Assert.AreEqual("aplicaciones.tip-sa.com/cliente/datos_env.php?id=0280400280406522393001", datos.NumeroSeguimiento);
         }
 
         [TestMethod]
@@ -129,6 +131,28 @@ namespace CanalesExternosTests
 
             Assert.AreEqual("160", datos.AgenciaId);
             Assert.AreEqual("6522393001", datos.NumeroSeguimiento);
+        }
+
+        [TestMethod]
+        public void LeerDatosEnvio_ConTrackingDelServidor_ElTrackingGanaAlNumero()
+        {
+            // NestoAPI#417: el servidor manda el tracking YA HECHO (enlace sin esquema para el
+            // transportista genérico); el número pelado queda para servidores antiguos.
+            var pedido = new PedidoCanalExterno
+            {
+                UltimoSeguimiento = "https://url-que-no-se-sabe-parsear.com/x/1",
+                UltimoEnvio = new Nesto.Modulos.PedidoVenta.PedidoVentaModel.EnvioAgenciaDTO
+                {
+                    TransportistaPrestashop = "160",
+                    NumeroSeguimiento = "61197140248079",
+                    TrackingPrestashop = "mygls.gls-spain.es/e/61197140248079/31010"
+                }
+            };
+
+            var datos = CanalExternoPedidosPrestashopNuevaVision.LeerDatosEnvio(pedido);
+
+            Assert.AreEqual("160", datos.AgenciaId);
+            Assert.AreEqual("mygls.gls-spain.es/e/61197140248079/31010", datos.NumeroSeguimiento);
         }
 
         [TestMethod]

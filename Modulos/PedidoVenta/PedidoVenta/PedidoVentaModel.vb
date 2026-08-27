@@ -261,6 +261,9 @@ Public Class PedidoVentaModel
         ' servidor; los canales (Prestashop/Amazon) confirman envíos con esto sin parsear el enlace.
         Public Property NumeroSeguimiento As String
         Public Property TransportistaPrestashop As String
+        ' NestoAPI#417: lo que debe viajar como tracking a Prestashop (para el transportista
+        ' genérico 160 es el ENLACE completo sin esquema; para CEX/Sending, el número pelado)
+        Public Property TrackingPrestashop As String
         Public Property CarrierNameAmazon As String
         Public Property ShippingMethodAmazon As String
     End Class
