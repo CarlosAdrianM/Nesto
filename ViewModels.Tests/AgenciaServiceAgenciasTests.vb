@@ -1,4 +1,4 @@
-Imports System.Collections.Generic
+﻿Imports System.Collections.Generic
 Imports System.Threading.Tasks
 Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
@@ -104,4 +104,44 @@ Public Class AgenciaServiceAgenciasTests
 
         A.CallTo(Function() clienteApi.LeerAgencias()).MustHaveHappenedOnceExactly()
     End Sub
+
+    <TestMethod()>
+    Public Sub LasAgencias_LlevanLaEmpresaConElRellenoDelCharDeLaBD()
+        ' Regresión del 28/08/2026. La API devuelve Empresa recortada ("1"), pero el resto de Nesto
+        ' la compara con "=" pelado contra otros char(3) que siguen viniendo de Entity Framework con
+        ' su relleno: CabPedidoVta.Empresa, Empresas.Número... Al día siguiente de empezar a leer las
+        ' agencias de la API, imprimir CUALQUIER etiqueta reventaba en ConfigurarAgenciaPedido:
+        '
+        '     listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso ...)
+        '     -> "Sequence contains no matching element"   ("1" <> "1  ")
+        '
+        ' Y dos FirstOrDefault del mismo estilo fallaban CALLADOS, sin dar ningún error.
+        Dim servicio = CrearServicio(Agencia(1, "1", "GLS"))
+
+        Dim agenciaLeida = servicio.CargarAgencia(1)
+
+        Assert.AreEqual("1  ", agenciaLeida.Empresa,
+            "La entidad tiene que llevar el mismo relleno que cuando la leía Entity Framework")
+    End Sub
+
+    <TestMethod()>
+    Public Sub LasAgencias_ConLaEmpresaRellena_CasanConUnaComparacionPelada()
+        ' El caso real: el "=" que hay en AgenciasViewModel comparando contra CabPedidoVta.Empresa.
+        Dim servicio = CrearServicio(Agencia(1, "1", "GLS"), Agencia(8, "3", "Correos Express"))
+        Dim empresaDelPedido As String = "1  "        ' char(3), tal cual llega de EF
+
+        Dim agencias = servicio.CargarListaAgencias(empresaDelPedido)
+        Dim encontrada = agencias.SingleOrDefault(Function(a) a.Empresa = empresaDelPedido AndAlso a.Numero = 1)
+
+        Assert.IsNotNull(encontrada, "Con la empresa recortada este Single no encontraba nada y reventaba")
+        Assert.AreEqual("GLS", encontrada.Nombre)
+    End Sub
+
+    <TestMethod()>
+    Public Sub LasAgencias_SinEmpresa_NoSeInventanEspacios()
+        Dim servicio = CrearServicio(Agencia(1, Nothing, "GLS"))
+
+        Assert.IsNull(servicio.CargarAgencia(1).Empresa)
+    End Sub
+
 End Class

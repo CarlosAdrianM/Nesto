@@ -1,4 +1,4 @@
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.Data.Entity
 Imports System.Net.Http
 Imports System.Text
@@ -295,12 +295,36 @@ Public Class AgenciaService
                              StringComparison.OrdinalIgnoreCase)
     End Function
 
+    ''' <summary>
+    ''' Empresa es char(3) en la base de datos y la API la devuelve RECORTADA ("1"), pero el resto
+    ''' de Nesto la compara con "=" pelado contra otros char(3) que siguen viniendo de Entity
+    ''' Framework con su relleno ("1  "): CabPedidoVta.Empresa, Empresas.Número... Si la agencia
+    ''' llegara recortada, esas comparaciones dejarían de casar.
+    '''
+    ''' Pasó el 28/08/2026, al día siguiente de que las agencias empezaran a leerse de la API: al
+    ''' imprimir CUALQUIER etiqueta reventaba ConfigurarAgenciaPedido con "Sequence contains no
+    ''' matching element". Y lo peor no era eso, sino los dos FirstOrDefault que fallaban CALLADOS
+    ''' (entre ellos el ajuste del comparador del servidor: Innovatrans no se habría elegido nunca).
+    '''
+    ''' Por eso la entidad se devuelve con el mismo relleno que tenía cuando la leía EF: así todos
+    ''' los consumidores se comportan igual que antes del cambio, incluidos los que no avisan.
+    '''
+    ''' Se aplica igual a EnviosAgencia.Empresa, que también es char(3) y también llega recortado
+    ''' desde el slice A2: AgenciasViewModel hace listaEmpresas.Single(e.Número = envio.Empresa)
+    ''' al seleccionar un envío, y ahí pasaba exactamente lo mismo.
+    ''' </summary>
+    Private Const LONGITUD_EMPRESA As Integer = 3
+
+    Private Shared Function ComoCharDeLaBD(valor As String, longitud As Integer) As String
+        Return If(valor Is Nothing, Nothing, valor.Trim().PadRight(longitud))
+    End Function
+
     Private Shared Function AAgenciaTransporte(dto As AgenciaMantenimiento) As AgenciasTransporte
         ' Usuario y FechaModificacion no viajan en el DTO: son de auditoría y no los mira nadie
         ' de los que consumen estas agencias. Las navegaciones tampoco, a propósito.
         Return New AgenciasTransporte With {
             .Numero = dto.Numero,
-            .Empresa = dto.Empresa,
+            .Empresa = ComoCharDeLaBD(dto.Empresa, LONGITUD_EMPRESA),
             .Nombre = dto.Nombre,
             .Ruta = dto.Ruta,
             .Identificador = dto.Identificador,
@@ -325,7 +349,7 @@ Public Class AgenciaService
         End If
         Return New EnviosAgencia With {
             .Numero = dto.Numero,
-            .Empresa = dto.Empresa,
+            .Empresa = ComoCharDeLaBD(dto.Empresa, LONGITUD_EMPRESA),
             .Agencia = dto.Agencia,
             .Cliente = dto.Cliente,
             .Contacto = dto.Contacto,
@@ -366,7 +390,7 @@ Public Class AgenciaService
             .RowVersion = dto.RowVersion,
             .DetalleEstado = dto.DetalleEstado,
             .AgenciasTransporte = If(agencia, New AgenciasTransporte With {
-                .Empresa = dto.Empresa, .Numero = dto.Agencia, .Nombre = dto.NombreAgencia})
+                .Empresa = ComoCharDeLaBD(dto.Empresa, LONGITUD_EMPRESA), .Numero = dto.Agencia, .Nombre = dto.NombreAgencia})
         }
     End Function
 

@@ -310,6 +310,9 @@ Public Class AgenciasViewModel
                 ' Incluimos ex.Message porque el catch tapa cualquier fallo del setter, no solo
                 ' los de factory desconocida. Sin él, bugs como una .Single sobre lista vacía
                 ' se confunden con "agencia no implementada" (publicación 1.10.5.1 con Canteras).
+                ' Nesto#448: este Catch tapa el error para el gestor global, así que si no se
+                ' registra aquí NO aparece en ELMAH. Pasó el 28/08/2026 con el relleno de Empresa.
+                Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.agenciaSeleccionada")
                 _dialogService.ShowError("Error al seleccionar la agencia " + value.Nombre + ": " + ex.Message)
                 RaisePropertyChanged(NameOf(agenciaSeleccionada))
             End Try
@@ -464,6 +467,9 @@ Public Class AgenciasViewModel
                     agenciaSeleccionada = listaAgencias.Single(Function(a) a.Numero = agenciaConfigurar.Numero)
                 End If
             Catch ex As Exception
+                ' Este Catch no enseña nada: deja los campos del envío en blanco y el usuario ni
+                ' se entera de que ha fallado algo. Como mínimo, que quede en ELMAH (Nesto#448).
+                Dim unused9 = RegistrarErrorAgenciaEnElmah(ex, "AgenciasViewModel.pedidoSeleccionado")
                 reembolso = 0
                 bultos = 1
                 nombreEnvio = String.Empty
