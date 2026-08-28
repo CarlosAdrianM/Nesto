@@ -696,7 +696,8 @@ namespace Nesto.Modules.Producto.ViewModels
         public ObservableCollection<CategoriaSecundariaModel> CategoriasSecundarias { get; } = new();
 
         private List<SubgrupoProductoModel> _todosLosSubgrupos = new();
-        private SubgrupoProductoModel _subgrupoPrincipal;
+        private string _grupoPrincipal;
+        private string _subgrupoPrincipal;
 
         public ObservableCollection<string> GruposWeb { get; } = new();
         public ObservableCollection<SubgrupoProductoModel> SubgruposDelGrupoWeb { get; } = new();
@@ -767,18 +768,13 @@ namespace Nesto.Modules.Producto.ViewModels
                     }
                 }
 
-                // El Subgrupo de la ficha llega como DESCRIPCIÓN, no como código, así que el código
-                // se resuelve buscándolo en el catálogo. Si no se encontrara, se enseña lo que hay
-                // y no se excluye nada: no pasa nada grave, solo que la principal podría añadirse
-                // también como secundaria.
-                string grupoFicha = ProductoActual?.Grupo?.Trim();
-                string descripcionSubgrupoFicha = ProductoActual?.Subgrupo?.Trim();
-                _subgrupoPrincipal = _todosLosSubgrupos.FirstOrDefault(sg =>
-                    string.Equals(sg.Grupo?.Trim(), grupoFicha, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(sg.Nombre?.Trim(), descripcionSubgrupoFicha, StringComparison.OrdinalIgnoreCase));
-                CategoriaPrincipalTexto = _subgrupoPrincipal != null
-                    ? _subgrupoPrincipal.Descripcion
-                    : $"{grupoFicha} — {descripcionSubgrupoFicha}";
+                // La ficha trae el código del subgrupo aparte de su descripción, así que la
+                // principal se identifica por código y no emparejando textos.
+                _grupoPrincipal = ProductoActual?.Grupo?.Trim();
+                _subgrupoPrincipal = ProductoActual?.SubgrupoCodigo?.Trim();
+                CategoriaPrincipalTexto = string.IsNullOrEmpty(_subgrupoPrincipal)
+                    ? $"{_grupoPrincipal} — {ProductoActual?.Subgrupo?.Trim()}"
+                    : $"{_grupoPrincipal}/{_subgrupoPrincipal} — {ProductoActual?.Subgrupo?.Trim()}";
 
                 CategoriasSecundarias.Clear();
                 foreach (CategoriaSecundariaModel categoria in await _servicio.LeerCategoriasSecundarias(productoId))
@@ -807,7 +803,9 @@ namespace Nesto.Modules.Producto.ViewModels
             }
             foreach (SubgrupoProductoModel subgrupo in _todosLosSubgrupos
                 .Where(sg => string.Equals(sg.Grupo?.Trim(), GrupoWebSeleccionado.Trim(), StringComparison.OrdinalIgnoreCase))
-                .Where(sg => _subgrupoPrincipal == null || sg != _subgrupoPrincipal)
+                // La principal no se puede añadir como secundaria de sí misma
+                .Where(sg => !(string.Equals(sg.Grupo?.Trim(), _grupoPrincipal, StringComparison.OrdinalIgnoreCase)
+                            && string.Equals(sg.Subgrupo?.Trim(), _subgrupoPrincipal, StringComparison.OrdinalIgnoreCase)))
                 .OrderBy(sg => sg.Nombre))
             {
                 SubgruposDelGrupoWeb.Add(subgrupo);

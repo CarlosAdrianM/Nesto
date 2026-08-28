@@ -22,6 +22,10 @@ namespace Nesto.Modules.Producto.Models
         public bool EsKit { get => ProductosKit != null && ProductosKit.Any(); }
         public short Estado { get; set; }
         public string Grupo { get; set; }
+        // Grupo es el CÓDIGO y Subgrupo la DESCRIPCIÓN (así viaja en el bus y no se puede
+        // renombrar). El código del subgrupo va aparte: es lo que identifica de verdad la
+        // categoría principal en la pestaña Web (Nesto#456).
+        public string SubgrupoCodigo { get; set; }
         public string Subgrupo { get; set; }
         public string UrlEnlace { get; set; }
         public string UrlFoto { get; set; }

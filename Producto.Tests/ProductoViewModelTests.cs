@@ -237,7 +237,8 @@ namespace Producto.Tests
             {
                 Producto = "41269",
                 Grupo = "COS",
-                Subgrupo = "Cremas"        // OJO: la ficha trae la DESCRIPCIÓN, no el código
+                SubgrupoCodigo = "CRE",    // el código viene de la ficha, no se adivina
+                Subgrupo = "Cremas"        // Subgrupo es la DESCRIPCIÓN (así viaja en el bus)
             });
             servicio = fake;
             return sut;
@@ -263,13 +264,35 @@ namespace Producto.Tests
         [TestMethod]
         public void ProductoViewModel_LaCategoriaPrincipalSeVeConSuCodigo()
         {
-            // La ficha solo trae la descripción del subgrupo; el código se resuelve del catálogo
-            // para que la principal se lea igual que las secundarias.
+            // Se lee igual que las secundarias, con el código delante, y sale del propio DTO.
             var sut = CrearViewModelConCategorias(out _);
 
             sut.ReferenciaBuscar = "41269";
 
             Assert.AreEqual("COS/CRE — Cremas", sut.CategoriaPrincipalTexto);
+        }
+
+        [TestMethod]
+        public void ProductoViewModel_SiLaFichaNoTraeCodigoDeSubgrupo_SeEnsenaLoQueHaya()
+        {
+            // Producto a medio dar de alta, sin subgrupo: la pestaña tiene que abrirse igual.
+            var sut = CrearViewModelConContextualesMockeados(out _, out IProductoService fake);
+            A.CallTo(() => fake.LeerSubgruposProducto()).Returns(new List<SubgrupoProductoModel>
+            {
+                new SubgrupoProductoModel { Grupo = "COS", Subgrupo = "OFE", Nombre = "Ofertas Estética" }
+            });
+            A.CallTo(() => fake.LeerProducto("41269")).Returns(new ProductoModel
+            {
+                Producto = "41269",
+                Grupo = "COS",
+                SubgrupoCodigo = null,
+                Subgrupo = null
+            });
+
+            sut.ReferenciaBuscar = "41269";
+
+            Assert.AreEqual("COS — ", sut.CategoriaPrincipalTexto);
+            Assert.AreEqual(1, sut.GruposWeb.Count);
         }
 
         [TestMethod]
