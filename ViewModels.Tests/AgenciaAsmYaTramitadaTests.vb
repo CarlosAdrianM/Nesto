@@ -32,6 +32,36 @@ Public Class AgenciaAsmYaTramitadaTests
     End Sub
 
     <TestMethod()>
+    Public Sub RespuestaYaTramitada_ElCodigoPeladoTambienCuenta()
+        ' GLS contesta el mismo -33 de dos maneras: con su texto (257 veces en la tabla de
+        ' llamadas) y con el codigo pelado, "Error -33" (3 veces, todas el 05/08/2026).
+        Dim agencia As New AgenciaASM()
+        Assert.IsTrue(agencia.RespuestaYaTramitada("Error -33"))
+        Assert.IsTrue(agencia.RespuestaYaTramitada("ERROR  -33"))
+        Assert.IsTrue(agencia.RespuestaYaTramitada("  error-33  "))
+    End Sub
+
+    <TestMethod()>
+    Public Sub RespuestaYaTramitada_OtroCodigoQueEmpiezaIgual_NoCuenta()
+        ' El patron va anclado a proposito: -330 o -331 son errores distintos, y perdonarlos
+        ' cerraria en Nesto un envio que la agencia no acepto.
+        Dim agencia As New AgenciaASM()
+        Assert.IsFalse(agencia.RespuestaYaTramitada("Error -330"))
+        Assert.IsFalse(agencia.RespuestaYaTramitada("Error -133"))
+        Assert.IsFalse(agencia.RespuestaYaTramitada("Error -119"))
+        Assert.IsFalse(agencia.RespuestaYaTramitada("No se ha podido conectar. Error -33 en el log"))
+    End Sub
+
+    <TestMethod()>
+    Public Sub RespuestaYaTramitada_YaExisteElAlbaran_NO_SePerdona_DeMomento()
+        ' Decision consciente, no un olvido: "Ya existe el albaran" salio 10 veces entre
+        ' jun/2024 y jun/2025 y ninguna desde entonces. Suena a lo mismo, pero podria ser el -70
+        ' ("ya se ha enviado este pedido para esta fecha y cliente"), que es otra cosa. Hasta que
+        ' GLS lo confirme, se queda como error. Si algun dia se anade, este test cambia de signo.
+        Assert.IsFalse(New AgenciaASM().RespuestaYaTramitada("Ya existe el albaran"))
+    End Sub
+
+    <TestMethod()>
     Public Sub RespuestaYaTramitada_OtrosErroresSiguenSiendoErrores()
         ' Ojo con pasarse de listo: un error de verdad NO puede colarse como "ya tramitada", o se
         ' cerraría en Nesto un envío que la agencia nunca aceptó.

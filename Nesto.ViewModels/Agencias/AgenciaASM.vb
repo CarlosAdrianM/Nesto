@@ -683,13 +683,32 @@ Public Class AgenciaASM
     ''' Se compara ignorando mayusculas Y acentos porque el texto llega de dos sitios distintos:
     ''' el nodo Error del web service (sin acentos) y calcularMensajeError(-33) (con ellos).
     ''' </summary>
+    ''' <summary>Solo el codigo -33 pelado, anclado: "Error -330" es otro error distinto.</summary>
+    Private Shared ReadOnly _codigoYaExistePelado As New Regex("^error\s*-0*33$", RegexOptions.IgnoreCase Or RegexOptions.Compiled)
+
     Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada
         If String.IsNullOrWhiteSpace(respuesta) Then
             Return False
         End If
-        Return CultureInfo.InvariantCulture.CompareInfo.IndexOf(
-            respuesta, "ya existe el codigo de barras",
-            CompareOptions.IgnoreCase Or CompareOptions.IgnoreNonSpace) >= 0
+
+        Dim texto As String = respuesta.Trim()
+
+        If CultureInfo.InvariantCulture.CompareInfo.IndexOf(
+            texto, "ya existe el codigo de barras",
+            CompareOptions.IgnoreCase Or CompareOptions.IgnoreNonSpace) >= 0 Then
+            Return True
+        End If
+
+        ' GLS contesta el MISMO -33 de dos maneras: con su texto (257 veces en
+        ' AgenciasLlamadasWeb) y con el codigo pelado, "Error -33" (3 veces, todas el
+        ' 05/08/2026). Las dos significan que la expedicion ya esta registrada.
+        Return _codigoYaExistePelado.IsMatch(texto)
+
+        ' NO se perdona "Ya existe el albaran" (10 veces entre jun/2024 y jun/2025, ninguna
+        ' desde entonces). Suena a lo mismo, pero no esta confirmado que lo sea: podria ser el
+        ' -70 ("ya se ha enviado este pedido para esta fecha y cliente"), que es otra cosa.
+        ' Colar un error de verdad aqui cerraria en Nesto un envio que la agencia NO acepto.
+        ' Preguntar a GLS antes de anadirlo.
     End Function
 
     Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
