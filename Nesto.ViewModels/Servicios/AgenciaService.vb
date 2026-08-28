@@ -11,6 +11,7 @@ Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
 Imports Newtonsoft.Json
+Imports Prism.Ioc
 Imports Prism.Services.Dialogs
 
 Public Class AgenciaService
@@ -583,7 +584,24 @@ Public Class AgenciaService
                                 End Using
                             End Function).GetAwaiter().GetResult()
         Catch ex As Exception
+            ' Nesto#448: aqui la excepcion se convierte en TEXTO de retorno, asi que el Catch del
+            ' ViewModel no llega a verla y su registro en ELMAH nunca se ejecuta. Si no se registra
+            ' aqui, el fallo se queda SOLO en el dialogo que ve el usuario.
+            ' Paso el 28/08/2026: el error del Limit1 solo constaba por el lado del servidor.
+            Dim unused = RegistrarErrorEnElmah(ex, "AgenciaService.TramitarEnvioPorApi")
             Return $"Error al tramitar pedido {envio.Pedido}: {ex.Message}"
+        End Try
+    End Function
+
+    ' Best-effort: registrar el error nunca puede romper el flujo ni tapar el error de verdad.
+    Private Shared Async Function RegistrarErrorEnElmah(ex As Exception, contexto As String) As Task
+        Try
+            Dim servicioErrores = ContainerLocator.Container?.Resolve(Of IServicioRegistroErrores)()
+            If servicioErrores IsNot Nothing Then
+                Await servicioErrores.RegistrarErrorAsync(ex, contexto)
+            End If
+        Catch
+            ' Si falla el registro, se ignora.
         End Try
     End Function
 
