@@ -1,4 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.Globalization
 Imports System.IO
 Imports System.Net
 Imports System.Text
@@ -670,8 +671,25 @@ Public Class AgenciaASM
         End Get
     End Property
 
+    ''' <summary>
+    ''' GLS contesta "Ya existe el codigo de barras" (error -33) cuando la expedicion YA esta
+    ''' registrada. Eso NO es un fallo: es exactamente el estado al que queremos llegar. Tratarlo
+    ''' como error dejaba el envio metido en GLS pero SIN cerrar en Nesto, y el reintento volvia a
+    ''' chocar con el mismo -33, asi que no habia forma de recuperarlo salvo a mano.
+    '''
+    ''' Paso el 28/08/2026: 15 envios entraron en GLS a la primera, el cierre en Nesto fallo por
+    ''' otro motivo, y los 15 se quedaron registrados en la agencia y abiertos en Nesto.
+    '''
+    ''' Se compara ignorando mayusculas Y acentos porque el texto llega de dos sitios distintos:
+    ''' el nodo Error del web service (sin acentos) y calcularMensajeError(-33) (con ellos).
+    ''' </summary>
     Public Function RespuestaYaTramitada(respuesta As String) As Boolean Implements IAgencia.RespuestaYaTramitada
-        Return False
+        If String.IsNullOrWhiteSpace(respuesta) Then
+            Return False
+        End If
+        Return CultureInfo.InvariantCulture.CompareInfo.IndexOf(
+            respuesta, "ya existe el codigo de barras",
+            CompareOptions.IgnoreCase Or CompareOptions.IgnoreNonSpace) >= 0
     End Function
 
     Public ReadOnly Property ListaPaises As ObservableCollection(Of Pais) Implements IAgencia.ListaPaises
