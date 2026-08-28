@@ -44,7 +44,11 @@ namespace Nesto.Modules.Producto.ViewModels
         private string _referenciaBuscar;
         public bool EsDelGrupoCompras { get; }
         public bool EsDelGrupoTiendas { get; }
+        public bool EsDelGrupoTiendaOnline { get; }
         public bool EsDeGrupoPermitido => EsDelGrupoCompras || EsDelGrupoTiendas;
+        // La pestaña Web la mantienen Compras y Tienda Online. Tiendas NO: son las tiendas
+        // físicas, y esto es cosa de la tienda online.
+        public bool PuedeEditarDatosWeb => EsDelGrupoCompras || EsDelGrupoTiendaOnline;
         public string AlmacenDefecto { get; set; }
 
 
@@ -69,6 +73,12 @@ namespace Nesto.Modules.Producto.ViewModels
             CorrigeVideoProductoCommand = new DelegateCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
             GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
             GuardarGruposComisionablesCommand = new DelegateCommand(OnGuardarGruposComisionables, () => ProductoActual != null);
+            GuardarExclusivoProfesionalCommand = new DelegateCommand(OnGuardarExclusivoProfesional, () => ProductoActual != null);
+            AnnadirCategoriaSecundariaCommand = new DelegateCommand(OnAnnadirCategoriaSecundaria, () => SubgrupoWebSeleccionado != null);
+            QuitarCategoriaSecundariaCommand = new DelegateCommand(OnQuitarCategoriaSecundaria, () => CategoriaSecundariaSeleccionada != null);
+            SubirCategoriaSecundariaCommand = new DelegateCommand(OnSubirCategoriaSecundaria, CanSubirCategoriaSecundaria);
+            BajarCategoriaSecundariaCommand = new DelegateCommand(OnBajarCategoriaSecundaria, CanBajarCategoriaSecundaria);
+            GuardarCategoriasSecundariasCommand = new DelegateCommand(OnGuardarCategoriasSecundarias, () => ProductoActual != null);
             ImprimirEtiquetasProductoCommand = new DelegateCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
             MontarKitCommand = new DelegateCommand(OnMontarKit, CanMontarKit);
             SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
@@ -77,6 +87,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
             EsDelGrupoCompras = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.COMPRAS);
             EsDelGrupoTiendas = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS);
+            EsDelGrupoTiendaOnline = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDA_ON_LINE);
         }
 
         public async Task CargarProducto(string productoId)
@@ -118,6 +129,11 @@ namespace Nesto.Modules.Producto.ViewModels
                     PestannaSeleccionada = Pestannas.Filtros;
                 }
                 ProductosKit = await _servicio.LeerKitsContienePertenece(productoId);
+                // NestoAPI#421: la casilla refleja lo que hay en la ficha. No guarda al cargar:
+                // se guarda con su botón, como los grupos comisionables.
+                ExclusivoProfesional = ProductoActual.ExclusivoProfesional;
+                GuardarExclusivoProfesionalCommand.RaiseCanExecuteChanged();
+                await CargarCategoriasWebAsync(productoId);
                 await CargarGruposComisionablesAsync(productoId);
                 if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
                 {
@@ -642,6 +658,255 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
+
+        // NestoAPI#421 / prestashop-nestosync#19: "exclusivo profesional" es un dato de la ficha,
+        // NO se deduce de las categorías. Los subgrupos EP* (COS/EPC, APA/EXP, PEL/EXP...) son
+        // categorías navegables normales y sus productos se venden al público con normalidad.
+        private bool _exclusivoProfesional;
+        public bool ExclusivoProfesional
+        {
+            get => _exclusivoProfesional;
+            set => SetProperty(ref _exclusivoProfesional, value);
+        }
+
+        public DelegateCommand GuardarExclusivoProfesionalCommand { get; private set; }
+        private async void OnGuardarExclusivoProfesional()
+        {
+            try
+            {
+                await _servicio.GuardarExclusivoProfesional(ProductoActual.Producto, ExclusivoProfesional);
+                ProductoActual.ExclusivoProfesional = ExclusivoProfesional;
+                _dialogService.ShowNotification(ExclusivoProfesional
+                    ? "El producto deja de venderse al público en la tienda online"
+                    : "El producto vuelve a venderse al público en la tienda online");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        // Nesto#456 / NestoAPI#414: categorías comerciales SECUNDARIAS del producto en la tienda
+        // online. La principal (Grupo/Subgrupo de la ficha) se ve arriba en solo lectura, para que
+        // no haya duda de qué es principal y qué secundario.
+        //
+        // Se muestran siempre con el código delante ("COS/OFE — Ofertas Estética"): quien mantiene
+        // esto son Laura y Enrique, no informática, y con una lista plana de descripciones no hay
+        // manera de saber de qué grupo cuelga cada una.
+        public ObservableCollection<CategoriaSecundariaModel> CategoriasSecundarias { get; } = new();
+
+        private List<SubgrupoProductoModel> _todosLosSubgrupos = new();
+        private SubgrupoProductoModel _subgrupoPrincipal;
+
+        public ObservableCollection<string> GruposWeb { get; } = new();
+        public ObservableCollection<SubgrupoProductoModel> SubgruposDelGrupoWeb { get; } = new();
+
+        private string _categoriaPrincipalTexto;
+        public string CategoriaPrincipalTexto
+        {
+            get => _categoriaPrincipalTexto;
+            set => SetProperty(ref _categoriaPrincipalTexto, value);
+        }
+
+        private string _grupoWebSeleccionado;
+        public string GrupoWebSeleccionado
+        {
+            get => _grupoWebSeleccionado;
+            set
+            {
+                if (SetProperty(ref _grupoWebSeleccionado, value))
+                {
+                    RellenarSubgruposDelGrupo();
+                }
+            }
+        }
+
+        private SubgrupoProductoModel _subgrupoWebSeleccionado;
+        public SubgrupoProductoModel SubgrupoWebSeleccionado
+        {
+            get => _subgrupoWebSeleccionado;
+            set
+            {
+                if (SetProperty(ref _subgrupoWebSeleccionado, value))
+                {
+                    AnnadirCategoriaSecundariaCommand.RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        private CategoriaSecundariaModel _categoriaSecundariaSeleccionada;
+        public CategoriaSecundariaModel CategoriaSecundariaSeleccionada
+        {
+            get => _categoriaSecundariaSeleccionada;
+            set
+            {
+                if (SetProperty(ref _categoriaSecundariaSeleccionada, value))
+                {
+                    RefrescarComandosDeCategorias();
+                }
+            }
+        }
+
+        private async Task CargarCategoriasWebAsync(string productoId)
+        {
+            // En su propio try: que no se pueda cargar la pestaña Web no puede impedir abrir la
+            // ficha del producto, que es para lo que la mayoría entra aquí.
+            try
+            {
+                if (!_todosLosSubgrupos.Any())
+                {
+                    _todosLosSubgrupos = await _servicio.LeerSubgruposProducto();
+                    GruposWeb.Clear();
+                    foreach (string grupo in _todosLosSubgrupos
+                        .Select(sg => sg.Grupo?.Trim())
+                        .Where(g => !string.IsNullOrEmpty(g))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(g => g))
+                    {
+                        GruposWeb.Add(grupo);
+                    }
+                }
+
+                // El Subgrupo de la ficha llega como DESCRIPCIÓN, no como código, así que el código
+                // se resuelve buscándolo en el catálogo. Si no se encontrara, se enseña lo que hay
+                // y no se excluye nada: no pasa nada grave, solo que la principal podría añadirse
+                // también como secundaria.
+                string grupoFicha = ProductoActual?.Grupo?.Trim();
+                string descripcionSubgrupoFicha = ProductoActual?.Subgrupo?.Trim();
+                _subgrupoPrincipal = _todosLosSubgrupos.FirstOrDefault(sg =>
+                    string.Equals(sg.Grupo?.Trim(), grupoFicha, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(sg.Nombre?.Trim(), descripcionSubgrupoFicha, StringComparison.OrdinalIgnoreCase));
+                CategoriaPrincipalTexto = _subgrupoPrincipal != null
+                    ? _subgrupoPrincipal.Descripcion
+                    : $"{grupoFicha} — {descripcionSubgrupoFicha}";
+
+                CategoriasSecundarias.Clear();
+                foreach (CategoriaSecundariaModel categoria in await _servicio.LeerCategoriasSecundarias(productoId))
+                {
+                    CategoriasSecundarias.Add(categoria);
+                }
+                CategoriaSecundariaSeleccionada = null;
+                GrupoWebSeleccionado = null;
+                RellenarSubgruposDelGrupo();
+                RefrescarComandosDeCategorias();
+                GuardarCategoriasSecundariasCommand.RaiseCanExecuteChanged();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError("No se han podido cargar las categorías web: " + ex.Message);
+            }
+        }
+
+        private void RellenarSubgruposDelGrupo()
+        {
+            SubgruposDelGrupoWeb.Clear();
+            SubgrupoWebSeleccionado = null;
+            if (string.IsNullOrEmpty(GrupoWebSeleccionado))
+            {
+                return;
+            }
+            foreach (SubgrupoProductoModel subgrupo in _todosLosSubgrupos
+                .Where(sg => string.Equals(sg.Grupo?.Trim(), GrupoWebSeleccionado.Trim(), StringComparison.OrdinalIgnoreCase))
+                .Where(sg => _subgrupoPrincipal == null || sg != _subgrupoPrincipal)
+                .OrderBy(sg => sg.Nombre))
+            {
+                SubgruposDelGrupoWeb.Add(subgrupo);
+            }
+        }
+
+        private void RefrescarComandosDeCategorias()
+        {
+            QuitarCategoriaSecundariaCommand.RaiseCanExecuteChanged();
+            SubirCategoriaSecundariaCommand.RaiseCanExecuteChanged();
+            BajarCategoriaSecundariaCommand.RaiseCanExecuteChanged();
+        }
+
+        public DelegateCommand AnnadirCategoriaSecundariaCommand { get; private set; }
+        private void OnAnnadirCategoriaSecundaria()
+        {
+            SubgrupoProductoModel elegido = SubgrupoWebSeleccionado;
+            if (elegido == null)
+            {
+                return;
+            }
+            if (CategoriasSecundarias.Any(c => c.EsLaMisma(elegido.Grupo, elegido.Subgrupo)))
+            {
+                _dialogService.ShowNotification($"El producto ya está en {elegido.Descripcion}");
+                return;
+            }
+            CategoriasSecundarias.Add(new CategoriaSecundariaModel
+            {
+                Grupo = elegido.Grupo?.Trim(),
+                Subgrupo = elegido.Subgrupo?.Trim(),
+                DescripcionSubgrupo = elegido.Nombre?.Trim()
+            });
+            RefrescarComandosDeCategorias();
+        }
+
+        public DelegateCommand QuitarCategoriaSecundariaCommand { get; private set; }
+        private void OnQuitarCategoriaSecundaria()
+        {
+            if (CategoriaSecundariaSeleccionada == null)
+            {
+                return;
+            }
+            _ = CategoriasSecundarias.Remove(CategoriaSecundariaSeleccionada);
+            CategoriaSecundariaSeleccionada = null;
+        }
+
+        public DelegateCommand SubirCategoriaSecundariaCommand { get; private set; }
+        private bool CanSubirCategoriaSecundaria()
+        {
+            return CategoriaSecundariaSeleccionada != null
+                && CategoriasSecundarias.IndexOf(CategoriaSecundariaSeleccionada) > 0;
+        }
+        private void OnSubirCategoriaSecundaria()
+        {
+            MoverCategoriaSecundaria(-1);
+        }
+
+        public DelegateCommand BajarCategoriaSecundariaCommand { get; private set; }
+        private bool CanBajarCategoriaSecundaria()
+        {
+            int indice = CategoriaSecundariaSeleccionada == null
+                ? -1
+                : CategoriasSecundarias.IndexOf(CategoriaSecundariaSeleccionada);
+            return indice >= 0 && indice < CategoriasSecundarias.Count - 1;
+        }
+        private void OnBajarCategoriaSecundaria()
+        {
+            MoverCategoriaSecundaria(1);
+        }
+
+        private void MoverCategoriaSecundaria(int desplazamiento)
+        {
+            CategoriaSecundariaModel seleccionada = CategoriaSecundariaSeleccionada;
+            int indice = CategoriasSecundarias.IndexOf(seleccionada);
+            int destino = indice + desplazamiento;
+            if (indice < 0 || destino < 0 || destino >= CategoriasSecundarias.Count)
+            {
+                return;
+            }
+            CategoriasSecundarias.Move(indice, destino);
+            CategoriaSecundariaSeleccionada = seleccionada;   // el orden es lo que viaja: no se pierde el foco
+            RefrescarComandosDeCategorias();
+        }
+
+        public DelegateCommand GuardarCategoriasSecundariasCommand { get; private set; }
+        private async void OnGuardarCategoriasSecundarias()
+        {
+            try
+            {
+                await _servicio.GuardarCategoriasSecundarias(ProductoActual.Producto, CategoriasSecundarias.ToList());
+                _dialogService.ShowNotification(CategoriasSecundarias.Any()
+                    ? "Categorías web guardadas. El producto se republica en unos minutos"
+                    : "El producto se queda sin categorías secundarias en la web");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
 
         public DelegateCommand ImprimirEtiquetasProductoCommand { get; private set; }
         private bool CanImprimirEtiquetasProducto()

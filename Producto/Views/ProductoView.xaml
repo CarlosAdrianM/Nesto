@@ -601,6 +601,78 @@
                     <Button Grid.Row="2" Grid.Column="1" Margin="3" Command="{Binding MontarKitCommand}" IsEnabled="{Binding ProductoActual.EsKit}">Montar kit</Button>
                 </Grid>
             </TabItem>
+            <!-- NestoAPI#421 y Nesto#456: todo lo que este producto es EN LA TIENDA ONLINE. Se
+                 llama Web y no Tienda porque las tiendas físicas no pintan nada aquí. Solo la ven
+                 Compras y Tienda Online (el API exige además usuario autenticado). -->
+            <TabItem Header="Web" Visibility="{Binding PuedeEditarDatosWeb, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10" MaxWidth="700" HorizontalAlignment="Left">
+
+                        <!-- NestoAPI#421: la marca es un dato de la ficha y NO se deduce de las
+                             categorías. Los subgrupos EP* (COS/EPC, APA/EXP, PEL/EXP...) son
+                             categorías navegables normales cuyos productos SÍ se venden al público. -->
+                        <GroupBox Header="Exclusivo profesional" Padding="8">
+                            <StackPanel>
+                                <TextBlock TextWrapping="Wrap" Margin="0,0,0,8"
+                                           Text="En la tienda online el producto se sigue viendo, pero quien no sea profesional no ve el precio ni puede comprarlo: le sale un aviso para crear cuenta. No tiene nada que ver con la categoría del producto: un producto de un subgrupo &quot;Exclusivo Profesional&quot; se vende al público con toda normalidad si esta casilla está desmarcada." />
+                                <CheckBox Content="No vender al público (solo profesionales)"
+                                          IsChecked="{Binding ExclusivoProfesional}" Margin="0,2"/>
+                                <Button Content="Guardar" Command="{Binding GuardarExclusivoProfesionalCommand}"
+                                        Margin="0,10,0,0" Padding="10,3" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Nesto#456 / NestoAPI#414: categorías comerciales secundarias. Se ven con
+                             el código delante ("COS/OFE — Ofertas Estética") a propósito: quien
+                             mantiene esto necesita saber de qué grupo cuelga cada categoría. -->
+                        <GroupBox Header="Categorías web" Padding="8" Margin="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock TextWrapping="Wrap" Margin="0,0,0,8"
+                                           Text="Categorías adicionales en las que aparece el producto en la web, además de la suya de siempre. El orden importa: viaja a la tienda tal cual se ve aquí. Si se quitan todas, la web retira del producto las categorías secundarias." />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Categoría principal (la de la ficha): " FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding CategoriaPrincipalTexto}"/>
+                                </StackPanel>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ListBox Grid.Column="0" Height="160"
+                                             ItemsSource="{Binding CategoriasSecundarias}"
+                                             SelectedItem="{Binding CategoriaSecundariaSeleccionada}"
+                                             DisplayMemberPath="Descripcion"/>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <Button Content="Subir" Command="{Binding SubirCategoriaSecundariaCommand}"
+                                                Margin="0,0,0,4" Padding="10,3"/>
+                                        <Button Content="Bajar" Command="{Binding BajarCategoriaSecundariaCommand}"
+                                                Margin="0,0,0,4" Padding="10,3"/>
+                                        <Button Content="Quitar" Command="{Binding QuitarCategoriaSecundariaCommand}"
+                                                Margin="0,8,0,0" Padding="10,3"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <ComboBox Width="90" ItemsSource="{Binding GruposWeb}"
+                                              SelectedItem="{Binding GrupoWebSeleccionado}"/>
+                                    <ComboBox Width="380" Margin="6,0,0,0"
+                                              ItemsSource="{Binding SubgruposDelGrupoWeb}"
+                                              SelectedItem="{Binding SubgrupoWebSeleccionado}"
+                                              DisplayMemberPath="Descripcion"/>
+                                    <Button Content="Añadir" Command="{Binding AnnadirCategoriaSecundariaCommand}"
+                                            Margin="6,0,0,0" Padding="10,3"/>
+                                </StackPanel>
+
+                                <Button Content="Guardar categorías" Command="{Binding GuardarCategoriasSecundariasCommand}"
+                                        Margin="0,10,0,0" Padding="10,3" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
             <!-- NestoAPI#249: grupos alternativos por los que puede comisionar el producto.
                  Solo la ve el grupo Compras (el PUT de la API exige además usuario autenticado). -->
             <TabItem Header="Comisiones" Visibility="{Binding EsDelGrupoCompras, Converter={StaticResource BooleanToVisibilityConverter}}">

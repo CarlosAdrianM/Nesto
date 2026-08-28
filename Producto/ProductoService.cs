@@ -31,14 +31,7 @@ namespace Nesto.Modules.Producto
         // NestoAPI#249: grupos de producto distintos (derivados de los subgrupos, que ya expone la API).
         public async Task<List<string>> LeerGruposProducto()
         {
-            using HttpClient client = _clienteApiFactory.Crear();
-            HttpResponseMessage response = await client.GetAsync("Productos/Subgrupos");
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception("No se han podido cargar los grupos de producto");
-            }
-            string resultado = await response.Content.ReadAsStringAsync();
-            List<SubgrupoGrupoDto> subgrupos = JsonConvert.DeserializeObject<List<SubgrupoGrupoDto>>(resultado);
+            List<SubgrupoProductoModel> subgrupos = await LeerSubgruposProducto();
             return subgrupos
                 .Select(s => s.Grupo?.Trim())
                 .Where(g => !string.IsNullOrEmpty(g))
@@ -47,9 +40,50 @@ namespace Nesto.Modules.Producto
                 .ToList();
         }
 
-        private class SubgrupoGrupoDto
+        // Nesto#456: el catálogo entero de subgrupos con su grupo y su descripción, para poder
+        // elegir categorías secundarias viendo de dónde cuelga cada una.
+        public async Task<List<SubgrupoProductoModel>> LeerSubgruposProducto()
         {
-            public string Grupo { get; set; }
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.GetAsync("Productos/Subgrupos");
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("No se han podido cargar los subgrupos de producto");
+            }
+            string resultado = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<SubgrupoProductoModel>>(resultado)
+                ?? new List<SubgrupoProductoModel>();
+        }
+
+        // Nesto#456: categorías secundarias del producto, en el orden en que viajan a la web.
+        public async Task<List<CategoriaSecundariaModel>> LeerCategoriasSecundarias(string producto)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.GetAsync($"ProductosCategoriasSecundarias/{producto}");
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("No se han podido cargar las categorías web del producto " + producto);
+            }
+            string resultado = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<CategoriaSecundariaModel>>(resultado)
+                ?? new List<CategoriaSecundariaModel>();
+        }
+
+        // Nesto#456: el PUT reemplaza la lista COMPLETA y el orden es la posición, así que añadir,
+        // quitar y reordenar son la misma llamada. La API reencola el producto para republicarlo.
+        public async Task GuardarCategoriasSecundarias(string producto, List<CategoriaSecundariaModel> categorias)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            var cuerpo = (categorias ?? new List<CategoriaSecundariaModel>())
+                .Select(c => new { c.Grupo, c.Subgrupo })
+                .ToList();
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PutAsync($"ProductosCategoriasSecundarias/{producto}", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                string detalle = await response.Content.ReadAsStringAsync();
+                throw new Exception("No se han podido guardar las categorías web: " + detalle);
+            }
         }
 
         // NestoAPI#249: grupos alternativos por los que puede comisionar el producto (además del de ficha).
@@ -76,6 +110,21 @@ namespace Nesto.Modules.Producto
             {
                 string detalle = await response.Content.ReadAsStringAsync();
                 throw new Exception("No se han podido guardar los grupos comisionables: " + detalle);
+            }
+        }
+
+        // NestoAPI#421: marca o desmarca "exclusivo profesional" en la ficha del producto. La API
+        // se encarga de encolarlo para que la tienda online se entere del cambio.
+        public async Task GuardarExclusivoProfesional(string producto, bool exclusivoProfesional)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            var dto = new { Empresa = EmpresaDefecto, Producto = producto, ExclusivoProfesional = exclusivoProfesional };
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(dto), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PutAsync("Productos/ExclusivoProfesional", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                string detalle = await response.Content.ReadAsStringAsync();
+                throw new Exception("No se ha podido guardar el exclusivo profesional: " + detalle);
             }
         }
 

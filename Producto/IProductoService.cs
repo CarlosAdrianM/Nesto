@@ -33,5 +33,11 @@ namespace Nesto.Modules.Producto
         Task<List<string>> LeerGruposProducto();
         Task<List<string>> LeerGruposComisionables(string producto);
         Task GuardarGruposComisionables(string producto, List<string> grupos);
+        // NestoAPI#421: marca de "exclusivo profesional" de la ficha (pestaña Tienda).
+        Task GuardarExclusivoProfesional(string producto, bool exclusivoProfesional);
+        // Nesto#456: categorías secundarias del producto en la tienda online (pestaña Web).
+        Task<List<SubgrupoProductoModel>> LeerSubgruposProducto();
+        Task<List<CategoriaSecundariaModel>> LeerCategoriasSecundarias(string producto);
+        Task GuardarCategoriasSecundarias(string producto, List<CategoriaSecundariaModel> categorias);
     }
 }

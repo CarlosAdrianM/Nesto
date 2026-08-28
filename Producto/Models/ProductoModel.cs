@@ -26,6 +26,9 @@ namespace Nesto.Modules.Producto.Models
         public string UrlEnlace { get; set; }
         public string UrlFoto { get; set; }
         public bool RoturaStockProveedor { get; set; }
+        // NestoAPI#421: el producto se ve en la tienda online, pero sin precio ni botón de
+        // compra para quien no sea profesional. Es un dato de la ficha, no de sus categorías.
+        public bool ExclusivoProfesional { get; set; }
         public string CodigoBarras { get; set; }
         public int Stock => Stocks?.Sum(s => s.Stock) ?? 0;
         
