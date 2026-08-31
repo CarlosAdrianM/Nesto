@@ -29,7 +29,6 @@ Public Interface IAgenciaService
     ' Sustituye a CargarClientePorUnDato + navegar cliente.CabPedidoVta (que reventaba con
     ' ObjectDisposedException porque el contexto ya estaba cerrado). Ahora es una sola llamada.
     Function LeerPedidoParaAgenciaPorTextoCliente(empresa As String, texto As String) As PedidoAgenciaModel
-    Function CargarMultiusuario(empresa As String, multiusuario As Integer) As MultiUsuarios
     Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double?
     Function CargarListaEmpresas() As ObservableCollection(Of Empresas)
     ''' <summary>Nesto#340 (slice A3): Agencias solo comprueba que el cliente EXISTE y esta de

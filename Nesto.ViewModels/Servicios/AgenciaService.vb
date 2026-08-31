@@ -442,16 +442,43 @@ Public Class AgenciaService
         Return CargarTodasLasAgencias().SingleOrDefault(Function(a) a.Numero = agencia)
     End Function
 
+    ''' <summary>
+    ''' Nesto#340 (slice A3): el historial de cambios del envio lo sirve
+    ''' GET api/EnviosAgencias/{id}/Historia. Era la unica consulta de Nesto sobre
+    ''' EnviosHistoria, y la tabla ni siquiera estaba en el EDMX del servidor hasta el
+    ''' 31/08/2026.
+    '''
+    ''' SOLO LECTURA. Las ESCRITURAS del historial siguen en AgenciasViewModel, dentro de las
+    ''' transacciones de contabilizacion de reembolsos, y se migraran con ellas.
+    '''
+    ''' El servidor ordena por numero (identity), o sea por orden de los hechos. Esta consulta
+    ''' no ordenaba y el orden lo decidia el plan de SQL Server.
+    ''' </summary>
     Public Function CargarListaHistoriaEnvio(envio As Integer) As ObservableCollection(Of EnviosHistoria) Implements IAgenciaService.CargarListaHistoriaEnvio
-        Using contexto = New NestoEntities
-            Return New ObservableCollection(Of EnviosHistoria)(From h In contexto.EnviosHistoria Where h.NumeroEnvio = envio)
-        End Using
-    End Function
+        Dim filas As List(Of EnvioHistoriaModel) =
+            Task.Run(Async Function() As Task(Of List(Of EnvioHistoriaModel))
+                         Using client As HttpClient = _clienteApiFactory.Crear()
+                             If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                 Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                             End If
+                             Dim response As HttpResponseMessage = Await client.GetAsync($"EnviosAgencias/{envio}/Historia")
+                             Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                             If Not response.IsSuccessStatusCode Then
+                                 Throw New Exception($"No se pudo cargar el historial del envío {envio} ({CInt(response.StatusCode)}): {cuerpo}")
+                             End If
+                             Return JsonConvert.DeserializeObject(Of List(Of EnvioHistoriaModel))(cuerpo)
+                         End Using
+                     End Function).GetAwaiter().GetResult()
 
-    Public Function CargarMultiusuario(empresa As String, multiusuario As Integer) As MultiUsuarios Implements IAgenciaService.CargarMultiusuario
-        Using contexto = New NestoEntities
-            Return (From m In contexto.MultiUsuarios Where m.Empresa = empresa And m.Número = multiusuario).FirstOrDefault
-        End Using
+        Return New ObservableCollection(Of EnviosHistoria)(filas.Select(Function(f) New EnviosHistoria With {
+            .Numero = f.Numero,
+            .NumeroEnvio = f.NumeroEnvio,
+            .Campo = f.Campo,
+            .ValorAnterior = f.ValorAnterior,
+            .Observaciones = f.Observaciones,
+            .Usuario = f.Usuario,
+            .FechaModificacion = f.FechaModificacion
+        }))
     End Function
 
     Public Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double? Implements IAgenciaService.CalcularSumaContabilidad

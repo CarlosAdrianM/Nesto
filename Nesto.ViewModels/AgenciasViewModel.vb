@@ -1042,26 +1042,6 @@ Public Class AgenciasViewModel
         Return _servicio.LeerPedidoParaAgenciaPorTextoCliente(empresaSeleccionada.Número, numeroPedido)
     End Function
 
-    Private _numeroMultiusuario As Integer
-    Public Property numeroMultiusuario As Integer
-        Get
-            Return _numeroMultiusuario
-        End Get
-        Set(value As Integer)
-            Dim unused = SetProperty(_numeroMultiusuario, value)
-            multiusuario = _servicio.CargarMultiusuario(empresaSeleccionada.Número, numeroMultiusuario)
-        End Set
-    End Property
-
-    Private _multiusuario As MultiUsuarios
-    Public Property multiusuario As MultiUsuarios
-        Get
-            Return _multiusuario
-        End Get
-        Set(value As MultiUsuarios)
-            Dim unused = SetProperty(_multiusuario, value)
-        End Set
-    End Property
 
     Private _pestannaNombre As String
     Public Property PestannaNombre As String
