@@ -2221,8 +2221,7 @@ Public Class AgenciasViewModel
         End If
 
         ' Comprobamos si existe el cliente
-        Dim cliente As Clientes = _servicio.CargarClientePrincipal(empresaSeleccionada.Número, numClienteContabilizar)
-        If IsNothing(cliente) Then
+        If Not _servicio.ExisteClientePrincipalActivo(empresaSeleccionada.Número, numClienteContabilizar) Then
             _dialogService.ShowError("El cliente " + numClienteContabilizar + " no existe en " + empresaSeleccionada.Nombre)
             Return
         End If

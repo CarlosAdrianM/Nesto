@@ -467,10 +467,29 @@ Public Class AgenciaService
         End Using
     End Function
 
-    Public Function CargarClientePrincipal(empresa As String, cliente As String) As Clientes Implements IAgenciaService.CargarClientePrincipal
-        Using contexto = New NestoEntities
-            Return (From c In contexto.Clientes Where c.Empresa = empresa And c.Nº_Cliente = cliente And c.ClientePrincipal = True And c.Estado >= Constantes.Clientes.ESTADO_NORMAL).FirstOrDefault
-        End Using
+    ''' <summary>
+    ''' Nesto#340 (slice A3): lo contesta GET api/Clientes/ExistePrincipalActivo.
+    '''
+    ''' Antes se traia la ficha entera del cliente para mirar unicamente si era Nothing. El
+    ''' endpoint lleva el MISMO filtro de estado que tenia esta consulta (cliente de alta), que
+    ''' no es un detalle: el GET api/Clientes de toda la vida NO filtra por estado, y
+    ''' reutilizarlo habria dejado contabilizar reembolsos contra clientes dados de baja.
+    ''' </summary>
+    Public Function ExisteClientePrincipalActivo(empresa As String, cliente As String) As Boolean Implements IAgenciaService.ExisteClientePrincipalActivo
+        Dim ruta As String = $"Clientes/ExistePrincipalActivo?empresa={Uri.EscapeDataString(If(empresa, String.Empty))}&cliente={Uri.EscapeDataString(If(cliente, String.Empty))}"
+        Return Task.Run(Async Function() As Task(Of Boolean)
+                            Using client As HttpClient = _clienteApiFactory.Crear()
+                                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                                End If
+                                Dim response As HttpResponseMessage = Await client.GetAsync(ruta)
+                                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                                If Not response.IsSuccessStatusCode Then
+                                    Throw New Exception($"No se pudo comprobar el cliente {cliente} ({CInt(response.StatusCode)}): {cuerpo}")
+                                End If
+                                Return JsonConvert.DeserializeObject(Of Boolean)(cuerpo)
+                            End Using
+                        End Function).GetAwaiter().GetResult()
     End Function
 
 

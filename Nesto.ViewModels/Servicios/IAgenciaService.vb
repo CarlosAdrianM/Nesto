@@ -32,7 +32,9 @@ Public Interface IAgenciaService
     Function CargarMultiusuario(empresa As String, multiusuario As Integer) As MultiUsuarios
     Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double?
     Function CargarListaEmpresas() As ObservableCollection(Of Empresas)
-    Function CargarClientePrincipal(empresa As String, cliente As String) As Clientes
+    ''' <summary>Nesto#340 (slice A3): Agencias solo comprueba que el cliente EXISTE y esta de
+    ''' alta, asi que se pregunta eso y no se trae la ficha entera.</summary>
+    Function ExisteClientePrincipalActivo(empresa As String, cliente As String) As Boolean
     Function HayAlgunaLineaConPicking(empresa As String, pedido As Integer) As Boolean
     Function CargarAgenciaPorNombreYCuentaReembolsos(empresa As String, cuentaReembolsos As String, nombreAgencia As String) As AgenciasTransporte
     Function CargarEnvio(empresa As String, pedido As Integer) As EnviosAgencia
