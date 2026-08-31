@@ -1,4 +1,4 @@
-Imports System.Collections.Generic
+﻿Imports System.Collections.Generic
 Imports System.Threading.Tasks
 Imports ControlesUsuario.Dialogs
 Imports FakeItEasy
@@ -67,6 +67,48 @@ Public Class FamiliasMantenimientoViewModelTests
         A.CallTo(Function() _servicio.GuardarFamilia(A(Of FamiliaMantenimiento).That.Matches(Function(f) f.Numero = "Staleks"))).
             MustHaveHappenedOnceExactly()
         A.CallTo(Function() _servicio.GuardarFamilia(A(Of FamiliaMantenimiento).That.Matches(Function(f) f.Numero = "Lisap"))).
+            MustNotHaveHappened()
+    End Function
+
+    ''' <summary>
+    ''' Regresion del 31/08/2026. Newtonsoft deserializa asignando la PROPIEDAD, y el setter de
+    ''' PublicoIgualQueProfesional marca Modificada: las familias que llegaban del servidor YA
+    ''' MARCADAS se daban por modificadas sin que nadie las hubiera tocado.
+    '''
+    ''' Efecto real: abrir la pantalla, marcar UNA familia y guardar mandaba al servidor las 6
+    ''' que estaban marcadas, y el aviso decia "Guardadas 6 familia(s)". Eso es lo que hizo
+    ''' pensar que se habian encolado los productos de todas ellas.
+    '''
+    ''' No se republico el catalogo de las otras cinco solo porque la API ignora los PUT que no
+    ''' cambian nada. Sin esa guarda habrian sido 1.064 productos republicados por marcar una
+    ''' casilla.
+    '''
+    ''' Los tests que ya habia no lo cazaban porque cargaban todas las familias SIN marcar.
+    ''' </summary>
+    <TestMethod()>
+    Public Async Function Familias_QueYaVenianMarcadas_NoSeGuardanSiNadieLasToca() As Task
+        Dim vm = CrearViewModel(Familia("Staleks", "Staleks", True), Familia("Cursos", "Cursos", True))
+        Await vm.CargarAsync()
+
+        Assert.IsFalse(vm.Familias.Any(Function(f) f.Modificada),
+                       "Cargar del servidor no es modificar")
+
+        Await vm.GuardarAsync()
+
+        A.CallTo(Function() _servicio.GuardarFamilia(A(Of FamiliaMantenimiento).Ignored)).MustNotHaveHappened()
+    End Function
+
+    <TestMethod()>
+    Public Async Function Familias_ConOtrasYaMarcadas_SoloSeGuardaLaQueSeToca() As Task
+        Dim vm = CrearViewModel(Familia("Staleks", "Staleks", True), Familia("Cursos", "Cursos", False))
+        Await vm.CargarAsync()
+
+        vm.Familias.Single(Function(f) f.Numero = "Cursos").PublicoIgualQueProfesional = True
+        Await vm.GuardarAsync()
+
+        A.CallTo(Function() _servicio.GuardarFamilia(A(Of FamiliaMantenimiento).That.Matches(Function(f) f.Numero = "Cursos"))).
+            MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.GuardarFamilia(A(Of FamiliaMantenimiento).That.Matches(Function(f) f.Numero = "Staleks"))).
             MustNotHaveHappened()
     End Function
 

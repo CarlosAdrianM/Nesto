@@ -1,4 +1,4 @@
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models
@@ -129,6 +129,18 @@ Public Class FamiliasMantenimientoViewModel
             EstaOcupado = True
             Dim empresa = If(String.IsNullOrWhiteSpace(empresaSeleccionada), Constantes.Empresas.EMPRESA_DEFECTO, empresaSeleccionada)
             Dim lista = Await _servicio.LeerFamilias(empresa.Trim())
+
+            ' Cargar NO es modificar. Newtonsoft deserializa asignando la PROPIEDAD, y el setter de
+            ' PublicoIgualQueProfesional marca Modificada: las familias que ya venian marcadas
+            ' llegaban dadas por modificadas sin que nadie las hubiera tocado. Efecto (31/08/2026):
+            ' abrir la pantalla, marcar UNA familia y guardar mandaba al servidor las 6 que estaban
+            ' marcadas, y el aviso decia "Guardadas 6 familia(s)". No republico el catalogo de las
+            ' otras cinco solo porque la API ignora los PUT que no cambian nada; si no, habrian
+            ' sido 1.064 productos republicados por marcar una casilla.
+            For Each familia In lista
+                familia.Modificada = False
+            Next
+
             Familias = New ObservableCollection(Of FamiliaMantenimiento)(lista)
         Catch ex As Exception
             _dialogService.ShowError($"No se han podido cargar las familias: {ex.Message}")
