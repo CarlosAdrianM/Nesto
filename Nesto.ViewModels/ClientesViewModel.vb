@@ -69,14 +69,20 @@ Public Class ClientesViewModel
         ' Este ViewModel se usa con dos Views y eso es un desastre.
         ' Deberíamos separarlo en dos ViewModels diferentes, uno para Clientes y otro para ClientesComercial
         '***************************
-        cargarDatos()
         configuracion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IConfiguracion))
         _servicioAutenticacion = Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IServicioAutenticacion))
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
         ' Nesto#340 (1C.8, slice 4): actualizarCliente carga la ficha por la API en las dos vistas,
-        ' así que el servicio también hace falta en este constructor. cargarDatos no lo usa hasta
-        ' después de su primer Await, cuando ya está asignado.
+        ' así que el servicio también hace falta en este constructor.
         servicio = New ClienteComercialService(configuracion, servicioAutenticacion)
+
+        ' cargarDatos va AL FINAL, y no es un detalle de estilo: antes se llamaba lo PRIMERO,
+        ' confiando en que "no usa el servicio hasta después de su primer Await". Eso dejó de ser
+        ' cierto al pasar las empresas a la API (#340 1C.8): la primera línea de cargarDatos es
+        ' `Await servicio.LeerEmpresas()`, y la LLAMADA se evalúa ANTES de que el Await suspenda.
+        ' Con servicio a Nothing, abrir Clientes -> Ficha daba "Object reference not set to an
+        ' instance of an object" y el combo de empresas se quedaba vacío (31/08/2026).
+        cargarDatos()
     End Sub
 
     Public Sub New(configuracion As IConfiguracion, contenedor As IUnityContainer, dialogService As IDialogService, servicio As IClienteComercialService, servicioRapports As IRapportService, servicioAutenticacion As IServicioAutenticacion)
@@ -1933,12 +1939,38 @@ Public Class ClientesViewModel
         End If
         ' Nesto#340 (1C.8, último resto EF): empresas por API; si falla, mensaje y seguimos
         ' (el resto de la ficha no depende del combo).
+        Dim errorEmpresas As Exception = Nothing
         Try
             listaEmpresas = New ObservableCollection(Of EmpresaModel)(Await servicio.LeerEmpresas())
         Catch ex As Exception
             listaEmpresas = New ObservableCollection(Of EmpresaModel)
             mensajeError = $"No se han podido cargar las empresas: {ex.Message}"
+            ' (VB no permite Await dentro de un Catch, por eso se registra fuera del Try.)
+            errorEmpresas = ex
         End Try
+
+        ' Este fallo se quedaba SOLO en el mensaje de pantalla y no llegaba a ELMAH, asi que
+        ' llevaba tiempo ocurriendo sin que nadie se enterase. Un error que el usuario ve y
+        ' nosotros no es peor que uno que revienta.
+        If errorEmpresas IsNot Nothing Then
+            Try
+                ' Los dos contenedores no son el mismo tipo (IUnityContainer vs
+                ' IContainerProvider de Prism), asi que no se pueden juntar en un If ternario.
+                ' Y hace falta el segundo: en el constructor sin parametros -que es justo el
+                ' camino que fallaba- 'contenedor' viene a Nothing.
+                Dim servicioErrores As IServicioRegistroErrores
+                If contenedor IsNot Nothing Then
+                    servicioErrores = contenedor.Resolve(Of IServicioRegistroErrores)()
+                Else
+                    servicioErrores = CType(Prism.Ioc.ContainerLocator.Container.Resolve(GetType(IServicioRegistroErrores)), IServicioRegistroErrores)
+                End If
+                If servicioErrores IsNot Nothing Then
+                    Await servicioErrores.RegistrarErrorAsync(errorEmpresas, "ClientesViewModel.cargarDatos (empresas)")
+                End If
+            Catch
+                ' El registro de errores nunca debe empeorar lo que ya ha fallado.
+            End Try
+        End If
 
         Dim mainViewModel As New MainViewModel
         Dim empresaDefecto As String = Await mainViewModel.leerParametro("1", "EmpresaPorDefecto")
