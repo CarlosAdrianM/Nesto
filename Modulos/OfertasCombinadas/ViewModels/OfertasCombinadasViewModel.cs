@@ -1,4 +1,4 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using ControlesUsuario.Services;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
@@ -20,6 +20,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 {
     public delegate void NuevaOfertaCombinadaCreadaHandler(OfertaCombinadaWrapper nuevoItem);
     public delegate void NuevaOfertaFamiliaCreadaHandler(OfertaPermitidaFamiliaWrapper nuevoItem);
+    public delegate void NuevaCampanaCreadaHandler(CampanaWrapper nuevoItem);
+    public delegate void NuevaOfertaProductoCreadaHandler(OfertaProductoWrapper nuevoItem);
     public delegate void NuevaOfertaEscalonadaCreadaHandler(OfertaEscalonadaWrapper nuevoItem);
 
     public class OfertasCombinadasViewModel : ViewModelBase
@@ -41,6 +43,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             OfertasCombinadas = new ObservableCollection<OfertaCombinadaWrapper>();
             OfertasFamilia = new ObservableCollection<OfertaPermitidaFamiliaWrapper>();
             OfertasEscalonadas = new ObservableCollection<OfertaEscalonadaWrapper>();
+            Campanas = new ObservableCollection<CampanaWrapper>();
+            ResumenCampanas = new ObservableCollection<ResumenCampanaModel>();
+            OfertasProducto = new ObservableCollection<OfertaProductoWrapper>();
 
             CargarCommand = new DelegateCommand(async () => await OnCargar());
             NuevaOfertaCombinadaCommand = new DelegateCommand(OnNuevaOfertaCombinada);
@@ -59,6 +64,15 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             EliminarProductoEscalonadoCommand = new DelegateCommand<object>(OnEliminarProductoEscalonado);
             NuevoTramoCommand = new DelegateCommand(OnNuevoTramo, () => OfertaEscalonadaSeleccionada != null);
             EliminarTramoCommand = new DelegateCommand<object>(OnEliminarTramo);
+
+            NuevaCampanaCommand = new DelegateCommand(OnNuevaCampana);
+            GuardarCampanaCommand = new DelegateCommand<object>(async (o) => await OnGuardarCampana(o as CampanaWrapper));
+            EliminarCampanaCommand = new DelegateCommand<object>(async (o) => await OnEliminarCampana(o as CampanaWrapper));
+            CerrarCampanaCommand = new DelegateCommand(async () => await OnCerrarCampana(), () => CampanaSeleccionada != null);
+            BorrarCampanaCommand = new DelegateCommand(async () => await OnBorrarCampana(), () => CampanaSeleccionada != null);
+            NuevaOfertaProductoCommand = new DelegateCommand(OnNuevaOfertaProducto);
+            GuardarOfertaProductoCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaProducto(o as OfertaProductoWrapper));
+            EliminarOfertaProductoCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaProducto(o as OfertaProductoWrapper));
 
             NuevoDetalleCommand = new DelegateCommand(OnNuevoDetalle, () => OfertaCombinadaSeleccionada != null);
             NuevoDetalleAlternativoCommand = new DelegateCommand(OnNuevoDetalleAlternativo, () => DetalleSeleccionado != null);
@@ -205,6 +219,106 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             }
         }
 
+        // Campañas (tab 4, NestoAPI#423)
+        private ObservableCollection<CampanaWrapper> _campanas;
+        public ObservableCollection<CampanaWrapper> Campanas
+        {
+            get => _campanas;
+            set => SetProperty(ref _campanas, value);
+        }
+
+        // Las caducadas se ocultan por defecto: la lista es el histórico entero de campañas y
+        // llenarla de las del año pasado esconde las que están vivas.
+        private bool _incluirCampanasCaducadas;
+        public bool IncluirCampanasCaducadas
+        {
+            get => _incluirCampanasCaducadas;
+            set
+            {
+                if (SetProperty(ref _incluirCampanasCaducadas, value))
+                {
+                    _ = OnCargarCampanas();
+                }
+            }
+        }
+
+        // Los nombres de campana que existen, con sus recuentos. Llena el desplegable y, sobre
+        // todo, ensena los numeros ANTES de operar en bloque.
+        private ObservableCollection<ResumenCampanaModel> _resumenCampanas;
+        public ObservableCollection<ResumenCampanaModel> ResumenCampanas
+        {
+            get => _resumenCampanas;
+            set => SetProperty(ref _resumenCampanas, value);
+        }
+
+        private ResumenCampanaModel _campanaSeleccionada;
+        public ResumenCampanaModel CampanaSeleccionada
+        {
+            get => _campanaSeleccionada;
+            set
+            {
+                if (SetProperty(ref _campanaSeleccionada, value))
+                {
+                    ((DelegateCommand)CerrarCampanaCommand).RaiseCanExecuteChanged();
+                    ((DelegateCommand)BorrarCampanaCommand).RaiseCanExecuteChanged();
+                }
+            }
+        }
+
+        // Ofertas "6+2" de producto (pestana nueva)
+        private ObservableCollection<OfertaProductoWrapper> _ofertasProducto;
+        public ObservableCollection<OfertaProductoWrapper> OfertasProducto
+        {
+            get => _ofertasProducto;
+            set => SetProperty(ref _ofertasProducto, value);
+        }
+
+        // Las caducadas se esconden por defecto: la lista es el historico entero y las del ano
+        // pasado taparian las que estan vivas.
+        private bool _incluirOfertasProductoCaducadas;
+        public bool IncluirOfertasProductoCaducadas
+        {
+            get => _incluirOfertasProductoCaducadas;
+            set
+            {
+                if (SetProperty(ref _incluirOfertasProductoCaducadas, value))
+                {
+                    _ = OnCargarOfertasProducto();
+                }
+            }
+        }
+
+        // Por defecto se ven TODOS los descuentos de tarifa, no solo los que llevan fechas o
+        // audiencia. Los que hay que mantener hoy (las rebajas metidas antes de que existieran las
+        // campanas) no llevan ni lo uno ni lo otro: esconderlos obligaria a seguir borrandolos por
+        // SQL, que es justo lo que esta pantalla viene a evitar.
+        private bool _soloCampanas;
+        public bool SoloCampanas
+        {
+            get => _soloCampanas;
+            set
+            {
+                if (SetProperty(ref _soloCampanas, value))
+                {
+                    _ = OnCargarCampanas();
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// NestoAPI#423: a quien se le publica el descuento en la tienda. El 3 ("solo publico") NO
+        /// esta y no es un olvido: lo prohibe CK_DescuentosProducto_Audiencia, porque el motor de
+        /// precios no mira la audiencia y le descontaria igual al profesional en el pedido — la
+        /// tienda diria una cosa y Nesto cobraria otra.
+        /// </summary>
+        public List<AudienciaCampanaOpcion> AudienciasCampana { get; } = new List<AudienciaCampanaOpcion>
+        {
+            new AudienciaCampanaOpcion { Valor = 0, Texto = "No va a la web" },
+            new AudienciaCampanaOpcion { Valor = 1, Texto = "Solo profesionales" },
+            new AudienciaCampanaOpcion { Valor = 2, Texto = "Profesionales y publico" }
+        };
+
         // Texto pegado con las referencias separadas por comas, espacios o saltos de línea.
         private string _referenciasTexto;
         public string ReferenciasTexto
@@ -238,9 +352,21 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ICommand NuevoTramoCommand { get; }
         public ICommand EliminarTramoCommand { get; }
 
+        public ICommand NuevaCampanaCommand { get; }
+        public ICommand GuardarCampanaCommand { get; }
+        public ICommand EliminarCampanaCommand { get; }
+        public ICommand CerrarCampanaCommand { get; }
+        public ICommand BorrarCampanaCommand { get; }
+
+        public ICommand NuevaOfertaProductoCommand { get; }
+        public ICommand GuardarOfertaProductoCommand { get; }
+        public ICommand EliminarOfertaProductoCommand { get; }
+
         public event NuevaOfertaCombinadaCreadaHandler NuevaOfertaCombinadaCreada;
         public event NuevaOfertaFamiliaCreadaHandler NuevaOfertaFamiliaCreada;
         public event NuevaOfertaEscalonadaCreadaHandler NuevaOfertaEscalonadaCreada;
+        public event NuevaCampanaCreadaHandler NuevaCampanaCreada;
+        public event NuevaOfertaProductoCreadaHandler NuevaOfertaProductoCreada;
 
         #endregion
 
@@ -262,6 +388,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 OfertasCombinadas.Clear();
                 OfertasFamilia.Clear();
                 OfertasEscalonadas.Clear();
+                Campanas.Clear();
+                OfertasProducto.Clear();
                 DetallesOfertaSeleccionada = null;
                 OfertaEscalonadaSeleccionada = null;
 
@@ -282,6 +410,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 {
                     OfertasEscalonadas.Add(new OfertaEscalonadaWrapper(item));
                 }
+
+                await CargarCampanas();
+                await CargarOfertasProducto();
             }
             catch (Exception ex)
             {
@@ -297,7 +428,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             return OfertasCombinadas.Any(o => o.HaCambiado || o.Id == 0)
                 || OfertasFamilia.Any(o => o.HaCambiado || o.NOrden == 0)
-                || OfertasEscalonadas.Any(o => o.HaCambiado || o.Id == 0);
+                || OfertasEscalonadas.Any(o => o.HaCambiado || o.Id == 0)
+                || Campanas.Any(o => o.HaCambiado || o.Id == 0)
+                || OfertasProducto.Any(o => o.HaCambiado || o.NOrden == 0);
         }
 
         private void OnNuevaOfertaCombinada()
@@ -747,6 +880,189 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             }
         }
 
+
+        /// <summary>
+        /// Cerrar una campana entera: le pone fecha de fin y deja de aplicarse. Es la operacion
+        /// PREFERIBLE al borrado —deja traza de que hubo campana, permite consultarla despues y se
+        /// deshace quitando la fecha—, asi que es la que se ofrece primero.
+        /// </summary>
+        private async Task OnCerrarCampana()
+        {
+            ResumenCampanaModel campana = CampanaSeleccionada;
+            if (campana == null) return;
+
+            bool confirmacion = _dialogService.ShowConfirmationAnswer(
+                "Cerrar campana",
+                $"Se pondra fecha de fin a las {campana.Filas} filas de '{campana.Campana}', " +
+                $"de las que {campana.FilasQueViajan} se anuncian en la tienda. " +
+                "Dejaran de aplicarse en los pedidos y se retiraran de la web. Continuar?");
+            if (!confirmacion) return;
+
+            try
+            {
+                EstaCargando = true;
+                ResultadoOperacionCampanaModel resultado = await _service.CerrarCampana(campana.Campana);
+                _dialogService.ShowNotification(
+                    $"Campana cerrada: {resultado.FilasAfectadas} filas, {resultado.ProductosEncolados} productos a republicar");
+                await CargarCampanas();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        /// <summary>
+        /// Borrar la campana entera. Es lo que el 31/08/2026 hubo que hacer con un DELETE por SQL
+        /// sobre una ventana de cinco minutos del reloj. Se avisa de que no hay vuelta atras porque
+        /// aqui NO la hay: las filas desaparecen.
+        /// </summary>
+        private async Task OnBorrarCampana()
+        {
+            ResumenCampanaModel campana = CampanaSeleccionada;
+            if (campana == null) return;
+
+            bool confirmacion = _dialogService.ShowConfirmationAnswer(
+                "Borrar campana",
+                $"Se BORRARAN las {campana.Filas} filas de '{campana.Campana}'. Esto no se puede deshacer. " +
+                "Si solo quieres que deje de aplicarse, usa Cerrar campana, que si es reversible. Continuar?");
+            if (!confirmacion) return;
+
+            try
+            {
+                EstaCargando = true;
+                ResultadoOperacionCampanaModel resultado = await _service.DeleteCampanaPorNombre(campana.Campana);
+                _dialogService.ShowNotification(
+                    $"Campana borrada: {resultado.FilasAfectadas} filas, {resultado.ProductosEncolados} productos a republicar");
+                CampanaSeleccionada = null;
+                await CargarCampanas();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        #endregion
+
+        #region Ofertas de producto ("6+2")
+
+        private async Task OnCargarOfertasProducto()
+        {
+            try
+            {
+                EstaCargando = true;
+                await CargarOfertasProducto();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        private async Task CargarOfertasProducto()
+        {
+            OfertasProducto.Clear();
+            var ofertas = await _service.GetOfertasProducto(IncluirOfertasProductoCaducadas);
+            foreach (var item in ofertas ?? new List<OfertaProductoModel>())
+            {
+                OfertasProducto.Add(new OfertaProductoWrapper(item));
+            }
+        }
+
+        // 6+2 de salida: es con diferencia la oferta mas comun, y es la que pedia el correo que
+        // origino esta pestana.
+        private void OnNuevaOfertaProducto()
+        {
+            var nuevo = new OfertaProductoWrapper { CantidadConPrecio = 6, CantidadRegalo = 2 };
+            OfertasProducto.Add(nuevo);
+            NuevaOfertaProductoCreada?.Invoke(nuevo);
+        }
+
+        private async Task OnGuardarOfertaProducto(OfertaProductoWrapper oferta)
+        {
+            if (oferta == null) return;
+
+            // Solo lo que se ve a simple vista: los solapes de fechas y que el producto exista
+            // los comprueba la API, que es la unica que puede.
+            if (string.IsNullOrWhiteSpace(oferta.Producto))
+            {
+                _dialogService.ShowError("Debe introducir el producto.");
+                return;
+            }
+            if (oferta.CantidadConPrecio < 1 || oferta.CantidadRegalo < 1)
+            {
+                _dialogService.ShowError("Las cantidades tienen que ser al menos 1.");
+                return;
+            }
+
+            try
+            {
+                EstaCargando = true;
+                OfertaProductoModel aGuardar = oferta.AModelo();
+
+                OfertaProductoModel resultado = oferta.NOrden == 0
+                    ? await _service.CreateOfertaProducto(aGuardar)
+                    : await _service.UpdateOfertaProducto(oferta.NOrden, aGuardar);
+
+                oferta.ActualizarDesdeServidor(resultado);
+                _dialogService.ShowNotification($"Oferta de {resultado.Producto} guardada");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        private async Task OnEliminarOfertaProducto(OfertaProductoWrapper oferta)
+        {
+            if (oferta == null) return;
+
+            if (oferta.NOrden == 0)
+            {
+                OfertasProducto.Remove(oferta);
+                return;
+            }
+
+            bool confirmacion = _dialogService.ShowConfirmationAnswer(
+                "Eliminar oferta",
+                $"Se eliminara la oferta {oferta.Resumen} del producto {oferta.Producto}. " +
+                "Los pedidos que la lleven dejaran de estar autorizados. Continuar?");
+            if (!confirmacion) return;
+
+            try
+            {
+                EstaCargando = true;
+                await _service.DeleteOfertaProducto(oferta.NOrden);
+                OfertasProducto.Remove(oferta);
+                _dialogService.ShowNotification("Oferta eliminada");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
         #endregion
 
         #region Ofertas por Familia
@@ -826,6 +1142,135 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 await _service.DeleteOfertaPermitidaFamilia(oferta.NOrden);
                 OfertasFamilia.Remove(oferta);
                 _dialogService.ShowNotification("Oferta por familia eliminada");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        #endregion
+
+        #region Campanas (NestoAPI#423)
+
+        // Se recarga sola al cambiar el filtro de caducadas, sin tocar el resto de pestanas: es
+        // una consulta distinta al servidor, no un filtro en memoria.
+        private async Task OnCargarCampanas()
+        {
+            try
+            {
+                EstaCargando = true;
+                await CargarCampanas();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        private async Task CargarCampanas()
+        {
+            Campanas.Clear();
+            ResumenCampanas.Clear();
+            foreach (var resumen in await _service.GetNombresDeCampana() ?? new List<ResumenCampanaModel>())
+            {
+                ResumenCampanas.Add(resumen);
+            }
+
+            var campanas = await _service.GetCampanas(IncluirCampanasCaducadas, SoloCampanas);
+            foreach (var item in campanas ?? new List<CampanaModel>())
+            {
+                Campanas.Add(new CampanaWrapper(item));
+            }
+        }
+
+        private void OnNuevaCampana()
+        {
+            // Audiencia 2 (profesional y publico) y vigente desde hoy: es lo que se quiere el 99 %
+            // de las veces, y lo que menos sorprende si alguien guarda sin mirar.
+            var nuevo = new CampanaWrapper
+            {
+                AudienciaOferta = 2,
+                FechaDesde = DateTime.Today
+            };
+            Campanas.Add(nuevo);
+            NuevaCampanaCreada?.Invoke(nuevo);
+        }
+
+        private async Task OnGuardarCampana(CampanaWrapper campana)
+        {
+            if (campana == null) return;
+
+            // Las validaciones de verdad estan en la API (es la unica que puede comprobar solapes
+            // y niveles del motor de precios). Aqui solo se atajan las dos que se ven a simple
+            // vista, para no gastar una llamada en decir lo obvio.
+            bool tieneProducto = !string.IsNullOrWhiteSpace(campana.Producto);
+            bool tieneFamilia = !string.IsNullOrWhiteSpace(campana.Familia);
+            if (tieneProducto == tieneFamilia)
+            {
+                _dialogService.ShowError("La campana tiene que ser de un producto O de una familia, no de las dos cosas ni de ninguna.");
+                return;
+            }
+            if (campana.DescuentoPorcentaje <= 0)
+            {
+                _dialogService.ShowError("El descuento tiene que ser mayor que cero.");
+                return;
+            }
+
+            try
+            {
+                EstaCargando = true;
+
+                var aGuardar = campana.AModelo();
+
+                CampanaModel resultado = campana.Id == 0
+                    ? await _service.CreateCampana(aGuardar)
+                    : await _service.UpdateCampana(campana.Id, aGuardar);
+
+                campana.ActualizarDesdeServidor(resultado);
+                _dialogService.ShowNotification(campana.Id == 0
+                    ? "Campana creada"
+                    : "Campana guardada. Los productos se republicaran en los proximos minutos");
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+            finally
+            {
+                EstaCargando = false;
+            }
+        }
+
+        private async Task OnEliminarCampana(CampanaWrapper campana)
+        {
+            if (campana == null) return;
+
+            if (campana.Id == 0)
+            {
+                Campanas.Remove(campana);
+                return;
+            }
+
+            var confirmacion = _dialogService.ShowConfirmationAnswer(
+                "Eliminar campana",
+                $"Se eliminara la campana de '{campana.Ambito}'. Los productos volveran a su precio normal en la tienda. Continuar?");
+            if (!confirmacion) return;
+
+            try
+            {
+                EstaCargando = true;
+                await _service.DeleteCampana(campana.Id);
+                Campanas.Remove(campana);
+                _dialogService.ShowNotification("Campana eliminada. Los productos se republicaran en los proximos minutos");
             }
             catch (Exception ex)
             {
@@ -1508,6 +1953,305 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _filtroProducto;
             set { if (SetProperty(ref _filtroProducto, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        public string Usuario { get; set; }
+        public DateTime FechaModificacion { get; set; }
+
+        private bool _haCambiado;
+        public bool HaCambiado
+        {
+            get => _haCambiado;
+            set => SetProperty(ref _haCambiado, value);
+        }
+    }
+
+    /// <summary>
+    /// NestoAPI#423: una campana en la rejilla. El usuario teclea PORCENTAJES (20 = 20 %) porque
+    /// es como se habla de una campana; la tabla y la API trabajan en tanto por uno (0,20). La
+    /// conversion vive aqui, en un solo sitio: meter un 20 en la columna equivocada seria un
+    /// 2.000 % de descuento.
+    /// </summary>
+    public class CampanaWrapper : BindableBase
+    {
+        private bool _rastreandoCambios = true;
+
+        public CampanaWrapper() { }
+
+        public CampanaWrapper(CampanaModel model)
+        {
+            _rastreandoCambios = false;
+            Volcar(model);
+            _rastreandoCambios = true;
+            HaCambiado = false;
+        }
+
+        public void ActualizarDesdeServidor(CampanaModel model)
+        {
+            _rastreandoCambios = false;
+            Volcar(model);
+            _rastreandoCambios = true;
+            HaCambiado = false;
+        }
+
+        private void Volcar(CampanaModel model)
+        {
+            Id = model.Id;
+            Producto = model.Producto;
+            Familia = model.Familia;
+            Grupo = model.Grupo;
+            DescuentoPorcentaje = model.Descuento * 100M;
+            DescuentoPublicoPorcentaje = model.DescuentoPublico.HasValue
+                ? model.DescuentoPublico.Value * 100M
+                : (decimal?)null;
+            AudienciaOferta = model.AudienciaOferta;
+            FechaDesde = model.FechaDesde;
+            FechaHasta = model.FechaHasta;
+            Campana = model.Campana;
+            Vigente = model.Vigente;
+            Usuario = model.Usuario;
+            FechaModificacion = model.FechaModificacion;
+        }
+
+        public CampanaModel AModelo()
+        {
+            return new CampanaModel
+            {
+                Id = Id,
+                Producto = string.IsNullOrWhiteSpace(Producto) ? null : Producto.Trim(),
+                Familia = string.IsNullOrWhiteSpace(Familia) ? null : Familia.Trim(),
+                Grupo = string.IsNullOrWhiteSpace(Grupo) ? null : Grupo.Trim(),
+                Descuento = DescuentoPorcentaje / 100M,
+                DescuentoPublico = DescuentoPublicoPorcentaje.HasValue
+                    ? DescuentoPublicoPorcentaje.Value / 100M
+                    : (decimal?)null,
+                AudienciaOferta = AudienciaOferta,
+                FechaDesde = FechaDesde,
+                FechaHasta = FechaHasta,
+                Campana = string.IsNullOrWhiteSpace(Campana) ? null : Campana.Trim()
+            };
+        }
+
+        public int Id { get; set; }
+
+        /// <summary>A que se aplica, para los mensajes y para ordenar de un vistazo.</summary>
+        public string Ambito => !string.IsNullOrWhiteSpace(Familia)
+            ? (string.IsNullOrWhiteSpace(Grupo) ? Familia : $"{Familia} / {Grupo}")
+            : Producto;
+
+        private string _producto;
+        public string Producto
+        {
+            get => _producto;
+            set { if (SetProperty(ref _producto, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Ambito)); }
+        }
+
+        private string _familia;
+        public string Familia
+        {
+            get => _familia;
+            set { if (SetProperty(ref _familia, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Ambito)); }
+        }
+
+        private string _grupo;
+        public string Grupo
+        {
+            get => _grupo;
+            set { if (SetProperty(ref _grupo, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Ambito)); }
+        }
+
+        // El usuario teclea 20 para un 20 %.
+        private decimal _descuentoPorcentaje;
+        public decimal DescuentoPorcentaje
+        {
+            get => _descuentoPorcentaje;
+            set { if (SetProperty(ref _descuentoPorcentaje, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        // Vacio = el publico se lleva el mismo porcentaje que el profesional.
+        private decimal? _descuentoPublicoPorcentaje;
+        public decimal? DescuentoPublicoPorcentaje
+        {
+            get => _descuentoPublicoPorcentaje;
+            set { if (SetProperty(ref _descuentoPublicoPorcentaje, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private byte _audienciaOferta;
+        public byte AudienciaOferta
+        {
+            get => _audienciaOferta;
+            set { if (SetProperty(ref _audienciaOferta, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private DateTime? _fechaDesde;
+        public DateTime? FechaDesde
+        {
+            get => _fechaDesde;
+            set { if (SetProperty(ref _fechaDesde, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private DateTime? _fechaHasta;
+        public DateTime? FechaHasta
+        {
+            get => _fechaHasta;
+            set { if (SetProperty(ref _fechaHasta, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private string _campana;
+        public string Campana
+        {
+            get => _campana;
+            set { if (SetProperty(ref _campana, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private bool _vigente;
+        public bool Vigente
+        {
+            get => _vigente;
+            set => SetProperty(ref _vigente, value);
+        }
+
+        public string Usuario { get; set; }
+        public DateTime FechaModificacion { get; set; }
+
+        private bool _haCambiado;
+        public bool HaCambiado
+        {
+            get => _haCambiado;
+            set => SetProperty(ref _haCambiado, value);
+        }
+    }
+
+    /// <summary>NestoAPI#423: una opcion del desplegable de audiencia de las campanas.</summary>
+    public class AudienciaCampanaOpcion
+    {
+        public byte Valor { get; set; }
+        public string Texto { get; set; }
+    }
+
+    /// <summary>
+    /// Una oferta "6+2" en la rejilla. A diferencia de las campanas, aqui no hay conversion de
+    /// unidades: las cantidades son las que son.
+    /// </summary>
+    public class OfertaProductoWrapper : BindableBase
+    {
+        private bool _rastreandoCambios = true;
+
+        public OfertaProductoWrapper() { }
+
+        public OfertaProductoWrapper(OfertaProductoModel model)
+        {
+            _rastreandoCambios = false;
+            Volcar(model);
+            _rastreandoCambios = true;
+            HaCambiado = false;
+        }
+
+        public void ActualizarDesdeServidor(OfertaProductoModel model)
+        {
+            _rastreandoCambios = false;
+            Volcar(model);
+            _rastreandoCambios = true;
+            HaCambiado = false;
+        }
+
+        private void Volcar(OfertaProductoModel model)
+        {
+            NOrden = model.NOrden;
+            Producto = model.Producto;
+            ProductoNombre = model.ProductoNombre;
+            CantidadConPrecio = model.CantidadConPrecio;
+            CantidadRegalo = model.CantidadRegalo;
+            Denegar = model.Denegar;
+            FiltroProducto = model.FiltroProducto;
+            FechaDesde = model.FechaDesde;
+            FechaHasta = model.FechaHasta;
+            Vigente = model.Vigente;
+            Usuario = model.Usuario;
+            FechaModificacion = model.FechaModificacion;
+        }
+
+        public OfertaProductoModel AModelo()
+        {
+            return new OfertaProductoModel
+            {
+                NOrden = NOrden,
+                Producto = Producto?.Trim(),
+                CantidadConPrecio = CantidadConPrecio,
+                CantidadRegalo = CantidadRegalo,
+                Denegar = Denegar,
+                FiltroProducto = string.IsNullOrWhiteSpace(FiltroProducto) ? null : FiltroProducto.Trim(),
+                FechaDesde = FechaDesde,
+                FechaHasta = FechaHasta
+            };
+        }
+
+        public int NOrden { get; set; }
+
+        /// <summary>Como se lee la oferta: "6+2".</summary>
+        public string Resumen => $"{CantidadConPrecio}+{CantidadRegalo}";
+
+        private string _producto;
+        public string Producto
+        {
+            get => _producto;
+            set { if (SetProperty(ref _producto, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private string _productoNombre;
+        public string ProductoNombre
+        {
+            get => _productoNombre;
+            set => SetProperty(ref _productoNombre, value);
+        }
+
+        private short _cantidadConPrecio;
+        public short CantidadConPrecio
+        {
+            get => _cantidadConPrecio;
+            set { if (SetProperty(ref _cantidadConPrecio, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Resumen)); }
+        }
+
+        private short _cantidadRegalo;
+        public short CantidadRegalo
+        {
+            get => _cantidadRegalo;
+            set { if (SetProperty(ref _cantidadRegalo, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Resumen)); }
+        }
+
+        private bool _denegar;
+        public bool Denegar
+        {
+            get => _denegar;
+            set { if (SetProperty(ref _denegar, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private string _filtroProducto;
+        public string FiltroProducto
+        {
+            get => _filtroProducto;
+            set { if (SetProperty(ref _filtroProducto, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private DateTime? _fechaDesde;
+        public DateTime? FechaDesde
+        {
+            get => _fechaDesde;
+            set { if (SetProperty(ref _fechaDesde, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private DateTime? _fechaHasta;
+        public DateTime? FechaHasta
+        {
+            get => _fechaHasta;
+            set { if (SetProperty(ref _fechaHasta, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        private bool _vigente;
+        public bool Vigente
+        {
+            get => _vigente;
+            set => SetProperty(ref _vigente, value);
         }
 
         public string Usuario { get; set; }

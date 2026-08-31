@@ -1,4 +1,4 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Models;
 using Newtonsoft.Json;
@@ -233,6 +233,182 @@ namespace Nesto.Modulos.OfertasCombinadas.Services
         #endregion
 
         #region Ofertas Permitidas por Familia
+
+        #region Campañas (NestoAPI#423)
+
+        // El usuario NO viaja en la query: la API lo saca del JWT con UsuarioAuditoriaHelper, que
+        // es lo correcto (nadie puede firmar una campaña con el nombre de otro).
+
+        public async Task<List<CampanaModel>> GetCampanas(bool incluirCaducadas = false, bool soloCampanas = false)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpResponseMessage response = await client.GetAsync($"Campanas?incluirCaducadas={incluirCaducadas}&soloCampanas={soloCampanas}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<CampanaModel>>(contenido) ?? new List<CampanaModel>();
+        }
+
+        public async Task<CampanaModel> CreateCampana(CampanaModel campana)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(campana), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PostAsync("Campanas", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<CampanaModel>(contenido);
+        }
+
+        public async Task<CampanaModel> UpdateCampana(int id, CampanaModel campana)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(campana), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PutAsync($"Campanas/{id}", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<CampanaModel>(contenido);
+        }
+
+        public async Task DeleteCampana(int id)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpResponseMessage response = await client.DeleteAsync($"Campanas/{id}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+        }
+
+
+        public async Task<List<ResumenCampanaModel>> GetNombresDeCampana()
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpResponseMessage response = await client.GetAsync("Campanas/Nombres");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<ResumenCampanaModel>>(contenido) ?? new List<ResumenCampanaModel>();
+        }
+
+        // Cerrar es preferible a borrar: deja traza de que hubo campana y es reversible.
+        public async Task<ResultadoOperacionCampanaModel> CerrarCampana(string nombre, DateTime? fechaFin = null)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            string url = $"Campanas/PorNombre/{Uri.EscapeDataString(nombre ?? string.Empty)}/Cerrar";
+            if (fechaFin.HasValue)
+            {
+                url += $"?fechaFin={fechaFin.Value:yyyy-MM-dd}";
+            }
+            HttpContent content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PutAsync(url, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<ResultadoOperacionCampanaModel>(contenido);
+        }
+
+        public async Task<ResultadoOperacionCampanaModel> DeleteCampanaPorNombre(string nombre)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpResponseMessage response = await client.DeleteAsync(
+                $"Campanas/PorNombre/{Uri.EscapeDataString(nombre ?? string.Empty)}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<ResultadoOperacionCampanaModel>(contenido);
+        }
+
+        #endregion
+
+
+        #region Ofertas de producto ("6+2")
+
+        public async Task<List<OfertaProductoModel>> GetOfertasProducto(bool incluirCaducadas = false)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpResponseMessage response = await client.GetAsync(
+                $"OfertasPermitidasProducto?incluirCaducadas={incluirCaducadas}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<OfertaProductoModel>>(contenido) ?? new List<OfertaProductoModel>();
+        }
+
+        public async Task<OfertaProductoModel> CreateOfertaProducto(OfertaProductoModel oferta)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(oferta), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PostAsync("OfertasPermitidasProducto", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<OfertaProductoModel>(contenido);
+        }
+
+        public async Task<OfertaProductoModel> UpdateOfertaProducto(int nOrden, OfertaProductoModel oferta)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(oferta), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PutAsync($"OfertasPermitidasProducto/{nOrden}", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+            string contenido = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<OfertaProductoModel>(contenido);
+        }
+
+        public async Task DeleteOfertaProducto(int nOrden)
+        {
+            using HttpClient client = await CrearClienteAutenticado();
+
+            HttpResponseMessage response = await client.DeleteAsync($"OfertasPermitidasProducto/{nOrden}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception(await GetErrorMessage(response));
+            }
+        }
+
+        #endregion
 
         public async Task<List<OfertaPermitidaFamiliaModel>> GetOfertasPermitidasFamilia(string empresa)
         {

@@ -1,4 +1,5 @@
-using Nesto.Modulos.OfertasCombinadas.Models;
+﻿using Nesto.Modulos.OfertasCombinadas.Models;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -17,6 +18,21 @@ namespace Nesto.Modulos.OfertasCombinadas.Interfaces
         Task<OfertaEscalonadaModel> CreateOfertaEscalonada(OfertaEscalonadaCreateModel oferta);
         Task<OfertaEscalonadaModel> UpdateOfertaEscalonada(int id, OfertaEscalonadaCreateModel oferta);
         Task<OfertaEscalonadaModel> DeleteOfertaEscalonada(int id);
+
+        // NestoAPI#423: campañas comerciales (descuentos de tarifa con fechas y audiencia).
+        Task<List<CampanaModel>> GetCampanas(bool incluirCaducadas = false, bool soloCampanas = false);
+        Task<CampanaModel> CreateCampana(CampanaModel campana);
+        Task<CampanaModel> UpdateCampana(int id, CampanaModel campana);
+        Task DeleteCampana(int id);
+        Task<List<ResumenCampanaModel>> GetNombresDeCampana();
+        Task<ResultadoOperacionCampanaModel> CerrarCampana(string nombre, DateTime? fechaFin = null);
+        Task<ResultadoOperacionCampanaModel> DeleteCampanaPorNombre(string nombre);
+
+        // Ofertas "6+2" de un producto concreto (las generales; las de un cliente van en su ficha).
+        Task<List<OfertaProductoModel>> GetOfertasProducto(bool incluirCaducadas = false);
+        Task<OfertaProductoModel> CreateOfertaProducto(OfertaProductoModel oferta);
+        Task<OfertaProductoModel> UpdateOfertaProducto(int nOrden, OfertaProductoModel oferta);
+        Task DeleteOfertaProducto(int nOrden);
 
         Task<List<OfertaPermitidaFamiliaModel>> GetOfertasPermitidasFamilia(string empresa);
         Task<OfertaPermitidaFamiliaModel> CreateOfertaPermitidaFamilia(OfertaPermitidaFamiliaCreateModel oferta);
