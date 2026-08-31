@@ -33,8 +33,6 @@ Public Interface IAgenciaService
     Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double?
     Function CargarListaEmpresas() As ObservableCollection(Of Empresas)
     Function CargarClientePrincipal(empresa As String, cliente As String) As Clientes
-    Function CargarLineasPedidoPendientes(pedido As Integer) As List(Of LinPedidoVta)
-    Function CargarLineasPedidoSinPicking(pedido As Integer) As List(Of LinPedidoVta)
     Function HayAlgunaLineaConPicking(empresa As String, pedido As Integer) As Boolean
     Function CargarAgenciaPorNombreYCuentaReembolsos(empresa As String, cuentaReembolsos As String, nombreAgencia As String) As AgenciasTransporte
     Function CargarEnvio(empresa As String, pedido As Integer) As EnviosAgencia

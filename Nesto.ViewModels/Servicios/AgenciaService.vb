@@ -240,6 +240,36 @@ Public Class AgenciaService
                         End Function).GetAwaiter().GetResult()
     End Function
 
+    ''' <summary>
+    ''' Nesto#340 (slice A3): las dos preguntas que Agencias le hacia a las lineas del pedido
+    ''' (HayAlgunaLineaConPicking y EsTodoElPedidoOnline) las contesta ahora el servidor. Eran
+    ''' las dos ultimas consultas de este servicio que abrian un NestoEntities sobre LinPedidoVta.
+    '''
+    ''' No se cachea a proposito: el picking de un pedido cambia mientras el almacen trabaja, y
+    ''' justo por eso se pregunta. Son dos llamadas por tramitacion, las mismas dos consultas que
+    ''' hacia antes.
+    '''
+    ''' La empresa se manda TAL CUAL llega, con su relleno de char(3) si lo trae: la comparacion
+    ''' la hace SQL Server, que lo ignora. Es la ventaja de que el filtro se quede en el servidor
+    ''' y no aqui, donde &quot;1&quot; y &quot;1  &quot; no casan (Nesto#254).
+    ''' </summary>
+    Private Function LeerSituacionLineas(empresa As String, pedido As Integer) As SituacionLineasPedidoModel
+        Dim ruta As String = $"PedidosVenta/ParaAgencia/SituacionLineas?empresa={Uri.EscapeDataString(If(empresa, String.Empty))}&numero={pedido}"
+        Return Task.Run(Async Function() As Task(Of SituacionLineasPedidoModel)
+                            Using client As HttpClient = _clienteApiFactory.Crear()
+                                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                                End If
+                                Dim response As HttpResponseMessage = Await client.GetAsync(ruta)
+                                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                                If Not response.IsSuccessStatusCode Then
+                                    Throw New Exception($"No se pudo consultar la situación del pedido {pedido} ({CInt(response.StatusCode)}): {cuerpo}")
+                                End If
+                                Return JsonConvert.DeserializeObject(Of SituacionLineasPedidoModel)(cuerpo)
+                            End Using
+                        End Function).GetAwaiter().GetResult()
+    End Function
+
     Private Function LeerListadoEnvios(ruta As String) As List(Of EnviosAgencia)
         Dim dtos As List(Of EnvioAgenciaListadoDTO) =
             Task.Run(Async Function() As Task(Of List(Of EnvioAgenciaListadoDTO))
@@ -443,23 +473,13 @@ Public Class AgenciaService
         End Using
     End Function
 
-    Public Function CargarLineasPedidoPendientes(pedido As Integer) As List(Of LinPedidoVta) Implements IAgenciaService.CargarLineasPedidoPendientes
-        Using contexto = New NestoEntities
-            Return (From l In contexto.LinPedidoVta Where l.Número = pedido And l.Estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE).ToList
-        End Using
-    End Function
 
-    Public Function CargarLineasPedidoSinPicking(pedido As Integer) As List(Of LinPedidoVta) Implements IAgenciaService.CargarLineasPedidoSinPicking
-        Using contexto = New NestoEntities
-            Return (From l In contexto.LinPedidoVta Where l.Número = pedido And l.Picking <> 0 And l.Estado = Constantes.LineasPedido.ESTADO_SIN_FACTURAR).ToList
-        End Using
-    End Function
 
+    ''' <summary>
+    ''' Nesto#340 (slice A3): lo contesta el servidor. Ver LeerSituacionLineas.
+    ''' </summary>
     Public Function HayAlgunaLineaConPicking(empresa As String, pedido As Integer) As Boolean Implements IAgenciaService.HayAlgunaLineaConPicking
-        Using contexto = New NestoEntities
-            Dim lineaConPicking = contexto.LinPedidoVta.FirstOrDefault(Function(l) l.Empresa = empresa AndAlso l.Número = pedido AndAlso l.Estado <= Constantes.LineasPedido.ESTADO_SIN_FACTURAR AndAlso l.Estado >= Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE AndAlso l.Picking <> 0)
-            Return Not IsNothing(lineaConPicking)
-        End Using
+        Return LeerSituacionLineas(empresa, pedido).TieneAlgunaLineaConPicking
     End Function
 
     Public Function CargarAgenciaPorNombreYCuentaReembolsos(empresa As String, cuentaReembolsos As String, nombreAgencia As String) As AgenciasTransporte Implements IAgenciaService.CargarAgenciaPorNombreYCuentaReembolsos
@@ -478,6 +498,7 @@ Public Class AgenciaService
             Return respuesta
         End Using
     End Function
+
 
     Public Function CargarExtractoCliente(empresa As String, cliente As String, positivos As Boolean) As ObservableCollection(Of ExtractoCliente) Implements IAgenciaService.CargarExtractoCliente
         Using contexto = New NestoEntities
@@ -771,12 +792,11 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ''' <summary>
+    ''' Nesto#340 (slice A3): lo contesta el servidor. Ver LeerSituacionLineas.
+    ''' </summary>
     Public Function EsTodoElPedidoOnline(empresa As String, pedido As Integer) As Boolean Implements IAgenciaService.EsTodoElPedidoOnline
-        Using contexto = New NestoEntities
-            Dim lineas = contexto.LinPedidoVta.Where(Function(l) l.Empresa = empresa AndAlso l.Número = pedido)
-            Dim todoOnline = lineas.All(Function(l) Constantes.FormasVenta.FORMAS_ONLINE.Contains(l.Forma_Venta))
-            Return todoOnline
-        End Using
+        Return LeerSituacionLineas(empresa, pedido).EsTodoOnline
     End Function
 
     Public Async Function GuardarLlamadaAgencia(respuesta As RespuestaAgencia) As Task Implements IAgenciaService.GuardarLlamadaAgencia
