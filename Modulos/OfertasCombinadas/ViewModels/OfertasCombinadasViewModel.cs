@@ -70,6 +70,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             EliminarCampanaCommand = new DelegateCommand<object>(async (o) => await OnEliminarCampana(o as CampanaWrapper));
             CerrarCampanaCommand = new DelegateCommand(async () => await OnCerrarCampana(), () => CampanaSeleccionada != null);
             BorrarCampanaCommand = new DelegateCommand(async () => await OnBorrarCampana(), () => CampanaSeleccionada != null);
+            QuitarFiltroCampanaCommand = new DelegateCommand(() => CampanaSeleccionada = null, () => CampanaSeleccionada != null);
             NuevaOfertaProductoCommand = new DelegateCommand(OnNuevaOfertaProducto);
             GuardarOfertaProductoCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaProducto(o as OfertaProductoWrapper));
             EliminarOfertaProductoCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaProducto(o as OfertaProductoWrapper));
@@ -259,8 +260,15 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (SetProperty(ref _campanaSeleccionada, value))
                 {
+                    // La rejilla tiene que ENSENAR lo que la operacion en bloque va a tocar. Sin
+                    // esto, el boton de "Borrar campana" queda al lado de una lista con TODAS las
+                    // filas, y da la impresion de que se las va a llevar todas por delante.
+                    AplicarFiltroDeCampana();
                     ((DelegateCommand)CerrarCampanaCommand).RaiseCanExecuteChanged();
                     ((DelegateCommand)BorrarCampanaCommand).RaiseCanExecuteChanged();
+                    ((DelegateCommand)QuitarFiltroCampanaCommand).RaiseCanExecuteChanged();
+                    RaisePropertyChanged(nameof(HayFiltroDeCampana));
+                    RaisePropertyChanged(nameof(TextoDelFiltro));
                 }
             }
         }
@@ -287,6 +295,21 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 }
             }
         }
+
+        /// <summary>
+        /// Todas las filas tal como llegaron del servidor. `Campanas` es lo que se ve, que puede
+        /// ser un subconjunto si hay filtro; esta es la lista de la que se parte para filtrar sin
+        /// tener que volver a pedirlas.
+        /// </summary>
+        private readonly List<CampanaWrapper> _todasLasCampanas = new List<CampanaWrapper>();
+
+        public bool HayFiltroDeCampana => CampanaSeleccionada != null;
+
+        /// <summary>Lo que se ensena junto al boton de quitar el filtro, para que se vea que la
+        /// rejilla NO esta mostrando todo.</summary>
+        public string TextoDelFiltro => CampanaSeleccionada == null
+            ? string.Empty
+            : $"Viendo solo la campana '{CampanaSeleccionada.Campana}'";
 
         // Por defecto se ven TODOS los descuentos de tarifa, no solo los que llevan fechas o
         // audiencia. Los que hay que mantener hoy (las rebajas metidas antes de que existieran las
@@ -357,6 +380,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ICommand EliminarCampanaCommand { get; }
         public ICommand CerrarCampanaCommand { get; }
         public ICommand BorrarCampanaCommand { get; }
+        public ICommand QuitarFiltroCampanaCommand { get; }
 
         public ICommand NuevaOfertaProductoCommand { get; }
         public ICommand GuardarOfertaProductoCommand { get; }
@@ -1178,17 +1202,45 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 
         private async Task CargarCampanas()
         {
-            Campanas.Clear();
             ResumenCampanas.Clear();
             foreach (var resumen in await _service.GetNombresDeCampana() ?? new List<ResumenCampanaModel>())
             {
                 ResumenCampanas.Add(resumen);
             }
 
+            _todasLasCampanas.Clear();
             var campanas = await _service.GetCampanas(IncluirCampanasCaducadas, SoloCampanas);
             foreach (var item in campanas ?? new List<CampanaModel>())
             {
-                Campanas.Add(new CampanaWrapper(item));
+                _todasLasCampanas.Add(new CampanaWrapper(item));
+            }
+
+            // Si la campana que estaba filtrada ya no existe (se acaba de borrar), se quita el
+            // filtro solo: dejarlo puesto ensenaria una rejilla vacia sin explicar por que.
+            if (CampanaSeleccionada != null &&
+                !ResumenCampanas.Any(r => string.Equals(r.Campana, CampanaSeleccionada.Campana, StringComparison.OrdinalIgnoreCase)))
+            {
+                CampanaSeleccionada = null;
+            }
+
+            AplicarFiltroDeCampana();
+        }
+
+        /// <summary>
+        /// Deja en `Campanas` lo que el usuario tiene que ver: todo, o solo las filas de la
+        /// campana elegida.
+        /// </summary>
+        private void AplicarFiltroDeCampana()
+        {
+            Campanas.Clear();
+
+            IEnumerable<CampanaWrapper> aMostrar = CampanaSeleccionada == null
+                ? _todasLasCampanas
+                : _todasLasCampanas.Where(c => string.Equals(c.Campana, CampanaSeleccionada.Campana, StringComparison.OrdinalIgnoreCase));
+
+            foreach (CampanaWrapper campana in aMostrar)
+            {
+                Campanas.Add(campana);
             }
         }
 
@@ -1201,6 +1253,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 AudienciaOferta = 2,
                 FechaDesde = DateTime.Today
             };
+            _todasLasCampanas.Add(nuevo);
             Campanas.Add(nuevo);
             NuevaCampanaCreada?.Invoke(nuevo);
         }
@@ -1256,7 +1309,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 
             if (campana.Id == 0)
             {
-                Campanas.Remove(campana);
+                _ = _todasLasCampanas.Remove(campana);
+                _ = Campanas.Remove(campana);
                 return;
             }
 
@@ -1269,7 +1323,8 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 EstaCargando = true;
                 await _service.DeleteCampana(campana.Id);
-                Campanas.Remove(campana);
+                _ = _todasLasCampanas.Remove(campana);
+                _ = Campanas.Remove(campana);
                 _dialogService.ShowNotification("Campana eliminada. Los productos se republicaran en los proximos minutos");
             }
             catch (Exception ex)

@@ -392,6 +392,132 @@ namespace Nesto.Modulos.OfertasCombinadasTests
 
         #endregion
 
+        #region El filtro por campana
+
+        private void ConfigurarDosCampanas()
+        {
+            A.CallTo(() => _service.GetNombresDeCampana()).Returns(Task.FromResult(new List<ResumenCampanaModel>
+            {
+                new ResumenCampanaModel { Campana = "Rebajas verano 2026", Filas = 2 },
+                new ResumenCampanaModel { Campana = "Black Friday 2026", Filas = 1 }
+            }));
+            A.CallTo(() => _service.GetCampanas(A<bool>._, A<bool>._)).Returns(Task.FromResult(new List<CampanaModel>
+            {
+                new CampanaModel { Id = 1, Producto = "44166", Campana = "Rebajas verano 2026" },
+                new CampanaModel { Id = 2, Producto = "44167", Campana = "Rebajas verano 2026" },
+                new CampanaModel { Id = 3, Producto = "44168", Campana = "Black Friday 2026" },
+                new CampanaModel { Id = 4, Producto = "44169" }   // sin campana
+            }));
+        }
+
+        /// <summary>
+        /// EL FALLO QUE REPORTO CARLOS (31/08/2026): elegir una campana en el desplegable no
+        /// filtraba la rejilla. El boton de "Borrar campana" quedaba al lado de una lista con
+        /// TODAS las filas —las de esa campana y las que no—, asi que daba miedo pulsarlo: parecia
+        /// que se las iba a llevar todas por delante.
+        /// </summary>
+        [TestMethod]
+        public async Task AlElegirCampana_LaRejillaEnsenaSoloLasFilasDeEsaCampana()
+        {
+            ConfigurarDosCampanas();
+            var vm = CrearViewModel();
+            vm.CargarCommand.Execute(null);
+            await Task.Delay(80);
+            Assert.AreEqual(4, vm.Campanas.Count, "Sin filtro se ven las cuatro");
+
+            vm.CampanaSeleccionada = vm.ResumenCampanas.Single(r => r.Campana == "Rebajas verano 2026");
+
+            Assert.AreEqual(2, vm.Campanas.Count);
+            CollectionAssert.AreEquivalent(new[] { "44166", "44167" },
+                vm.Campanas.Select(c => c.Producto).ToList());
+        }
+
+        [TestMethod]
+        public async Task QuitarFiltro_VuelveAVerlasTodas()
+        {
+            ConfigurarDosCampanas();
+            var vm = CrearViewModel();
+            vm.CargarCommand.Execute(null);
+            await Task.Delay(80);
+            vm.CampanaSeleccionada = vm.ResumenCampanas.First(r => r.Campana == "Black Friday 2026");
+            Assert.AreEqual(1, vm.Campanas.Count);
+
+            vm.QuitarFiltroCampanaCommand.Execute(null);
+
+            Assert.AreEqual(4, vm.Campanas.Count);
+            Assert.IsNull(vm.CampanaSeleccionada);
+        }
+
+        [TestMethod]
+        public void QuitarFiltro_SinFiltroPuesto_EstaDeshabilitado()
+        {
+            var vm = CrearViewModel();
+
+            Assert.IsFalse(vm.QuitarFiltroCampanaCommand.CanExecute(null));
+        }
+
+        // Que se vea que la rejilla esta filtrada: el boton de borrar esta justo al lado.
+        [TestMethod]
+        public async Task ConFiltroPuesto_SeAvisaDeQueNoSeEstaViendoTodo()
+        {
+            ConfigurarDosCampanas();
+            var vm = CrearViewModel();
+            vm.CargarCommand.Execute(null);
+            await Task.Delay(80);
+
+            Assert.IsFalse(vm.HayFiltroDeCampana);
+            Assert.AreEqual(string.Empty, vm.TextoDelFiltro);
+
+            vm.CampanaSeleccionada = vm.ResumenCampanas.First(r => r.Campana == "Black Friday 2026");
+
+            Assert.IsTrue(vm.HayFiltroDeCampana);
+            StringAssert.Contains(vm.TextoDelFiltro, "Black Friday 2026");
+        }
+
+        // Una campana nueva a mano tiene que verse aunque haya filtro puesto: si no, el usuario
+        // pulsa "Nueva campana" y no aparece nada.
+        [TestMethod]
+        public async Task NuevaCampana_ConFiltroPuesto_SeVeIgualmente()
+        {
+            ConfigurarDosCampanas();
+            var vm = CrearViewModel();
+            vm.CargarCommand.Execute(null);
+            await Task.Delay(80);
+            vm.CampanaSeleccionada = vm.ResumenCampanas.First(r => r.Campana == "Black Friday 2026");
+
+            vm.NuevaCampanaCommand.Execute(null);
+
+            Assert.AreEqual(2, vm.Campanas.Count, "La del filtro mas la nueva");
+        }
+
+        /// <summary>
+        /// Tras borrar la campana entera, el filtro apuntaria a algo que ya no existe y la rejilla
+        /// se quedaria vacia sin explicar por que. Se quita solo.
+        /// </summary>
+        [TestMethod]
+        public async Task SiLaCampanaFiltradaDejaDeExistir_ElFiltroSeQuitaSolo()
+        {
+            ConfigurarDosCampanas();
+            var vm = CrearViewModel();
+            vm.CargarCommand.Execute(null);
+            await Task.Delay(80);
+            vm.CampanaSeleccionada = vm.ResumenCampanas.First(r => r.Campana == "Black Friday 2026");
+
+            // Como si se hubiera borrado: ya no esta entre las que devuelve el servidor.
+            A.CallTo(() => _service.GetNombresDeCampana()).Returns(Task.FromResult(new List<ResumenCampanaModel>
+            {
+                new ResumenCampanaModel { Campana = "Rebajas verano 2026", Filas = 2 }
+            }));
+
+            vm.CargarCommand.Execute(null);
+            await Task.Delay(80);
+
+            Assert.IsNull(vm.CampanaSeleccionada);
+            Assert.AreEqual(4, vm.Campanas.Count, "Sin filtro, se ven todas otra vez");
+        }
+
+        #endregion
+
         #region Detalles de la rejilla
 
         [TestMethod]

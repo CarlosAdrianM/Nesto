@@ -1012,6 +1012,18 @@
                                     ToolTip="BORRA todas las filas de la campaña. No se puede deshacer: si solo quieres que deje de aplicarse, usa Cerrar campaña.">
                                 Borrar campaña
                             </Button>
+                            <Button Command="{Binding QuitarFiltroCampanaCommand}"
+                                    Padding="10,5" Margin="5,0,0,0"
+                                    ToolTip="Vuelve a ver todas las filas, no solo las de la campaña elegida">
+                                Ver todas
+                            </Button>
+                            <!-- Que se vea NEGRO SOBRE BLANCO que la rejilla esta filtrada: el
+                                 boton de borrar esta justo al lado y no puede haber duda de a que
+                                 filas alcanza. -->
+                            <TextBlock Text="{Binding TextoDelFiltro}"
+                                       VerticalAlignment="Center" Margin="12,0,0,0"
+                                       FontWeight="Bold" Foreground="#B00000"
+                                       Visibility="{Binding HayFiltroDeCampana, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                         </StackPanel>
 
                         <DataGrid x:Name="dgCampanas"
