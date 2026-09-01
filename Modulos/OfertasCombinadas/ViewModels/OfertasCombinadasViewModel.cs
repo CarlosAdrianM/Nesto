@@ -12,8 +12,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Data;
 using System.Windows.Input;
 
 namespace Nesto.Modulos.OfertasCombinadas.ViewModels
@@ -154,7 +157,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ObservableCollection<OfertaCombinadaWrapper> OfertasCombinadas
         {
             get => _ofertasCombinadas;
-            set => SetProperty(ref _ofertasCombinadas, value);
+            set { if (SetProperty(ref _ofertasCombinadas, value) && !string.IsNullOrWhiteSpace(FiltroOfertasCombinadas)) AplicarFiltro(value, FiltroOfertasCombinadas, CoincideOfertaCombinada); }
         }
 
         private OfertaCombinadaWrapper _ofertaCombinadaSeleccionada;
@@ -196,7 +199,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ObservableCollection<OfertaPermitidaFamiliaWrapper> OfertasFamilia
         {
             get => _ofertasFamilia;
-            set => SetProperty(ref _ofertasFamilia, value);
+            set { if (SetProperty(ref _ofertasFamilia, value) && !string.IsNullOrWhiteSpace(FiltroOfertasFamilia)) AplicarFiltro(value, FiltroOfertasFamilia, CoincideOfertaFamilia); }
         }
 
         // Ofertas Escalonadas (tab 3)
@@ -204,7 +207,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ObservableCollection<OfertaEscalonadaWrapper> OfertasEscalonadas
         {
             get => _ofertasEscalonadas;
-            set => SetProperty(ref _ofertasEscalonadas, value);
+            set { if (SetProperty(ref _ofertasEscalonadas, value) && !string.IsNullOrWhiteSpace(FiltroOfertasEscalonadas)) AplicarFiltro(value, FiltroOfertasEscalonadas, CoincideOfertaEscalonada); }
         }
 
         private OfertaEscalonadaWrapper _ofertaEscalonadaSeleccionada;
@@ -227,7 +230,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ObservableCollection<CampanaWrapper> Campanas
         {
             get => _campanas;
-            set => SetProperty(ref _campanas, value);
+            set { if (SetProperty(ref _campanas, value) && !string.IsNullOrWhiteSpace(FiltroCampanas)) AplicarFiltro(value, FiltroCampanas, CoincideCampana); }
         }
 
         // Las caducadas se ocultan por defecto: la lista es el histórico entero de campañas y
@@ -280,8 +283,93 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public ObservableCollection<OfertaProductoWrapper> OfertasProducto
         {
             get => _ofertasProducto;
-            set => SetProperty(ref _ofertasProducto, value);
+            set { if (SetProperty(ref _ofertasProducto, value) && !string.IsNullOrWhiteSpace(FiltroOfertasProducto)) AplicarFiltro(value, FiltroOfertasProducto, CoincideOfertaProducto); }
         }
+
+        #region Filtro de texto por pestana (peticion 01/09/26)
+
+        // La ventana ya junta cientos de filas entre pestanas y va a crecer: un filtro de texto
+        // por pestana, EN LOCAL (ICollectionView sobre la coleccion ya cargada, sin volver a la
+        // API), que ignora mayusculas y acentos. Al recargar una coleccion, su setter reengancha
+        // el filtro vigente: la vista por defecto es de la instancia y se pierde al sustituirla.
+
+        private string _filtroOfertasCombinadas;
+        public string FiltroOfertasCombinadas
+        {
+            get => _filtroOfertasCombinadas;
+            set { if (SetProperty(ref _filtroOfertasCombinadas, value)) AplicarFiltro(OfertasCombinadas, value, CoincideOfertaCombinada); }
+        }
+
+        private string _filtroOfertasFamilia;
+        public string FiltroOfertasFamilia
+        {
+            get => _filtroOfertasFamilia;
+            set { if (SetProperty(ref _filtroOfertasFamilia, value)) AplicarFiltro(OfertasFamilia, value, CoincideOfertaFamilia); }
+        }
+
+        private string _filtroOfertasEscalonadas;
+        public string FiltroOfertasEscalonadas
+        {
+            get => _filtroOfertasEscalonadas;
+            set { if (SetProperty(ref _filtroOfertasEscalonadas, value)) AplicarFiltro(OfertasEscalonadas, value, CoincideOfertaEscalonada); }
+        }
+
+        private string _filtroCampanas;
+        public string FiltroCampanas
+        {
+            get => _filtroCampanas;
+            set { if (SetProperty(ref _filtroCampanas, value)) AplicarFiltro(Campanas, value, CoincideCampana); }
+        }
+
+        private string _filtroOfertasProducto;
+        public string FiltroOfertasProducto
+        {
+            get => _filtroOfertasProducto;
+            set { if (SetProperty(ref _filtroOfertasProducto, value)) AplicarFiltro(OfertasProducto, value, CoincideOfertaProducto); }
+        }
+
+        internal static bool CoincideOfertaCombinada(OfertaCombinadaWrapper oferta, string filtro) =>
+            Contiene(oferta.Nombre, filtro);
+
+        internal static bool CoincideOfertaFamilia(OfertaPermitidaFamiliaWrapper oferta, string filtro) =>
+            Contiene(oferta.Familia, filtro) || Contiene(oferta.FamiliaDescripcion, filtro) || Contiene(oferta.FiltroProducto, filtro);
+
+        internal static bool CoincideOfertaEscalonada(OfertaEscalonadaWrapper oferta, string filtro) =>
+            Contiene(oferta.Nombre, filtro);
+
+        internal static bool CoincideCampana(CampanaWrapper campana, string filtro) =>
+            Contiene(campana.Campana, filtro) || Contiene(campana.Producto, filtro)
+            || Contiene(campana.Familia, filtro) || Contiene(campana.Grupo, filtro);
+
+        internal static bool CoincideOfertaProducto(OfertaProductoWrapper oferta, string filtro) =>
+            Contiene(oferta.Producto, filtro) || Contiene(oferta.ProductoNombre, filtro) || Contiene(oferta.FiltroProducto, filtro);
+
+        private static bool Contiene(string texto, string filtro) =>
+            !string.IsNullOrEmpty(texto) &&
+            CultureInfo.InvariantCulture.CompareInfo.IndexOf(texto, filtro, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
+
+        // OJO: GetDefaultView CREA la vista si no existe, y la vista es afin al hilo que la
+        // crea. Por eso los setters de las colecciones solo llaman aqui cuando HAY filtro: crear
+        // la vista en balde ataria la coleccion a un hilo (y en tests sin Dispatcher, cualquier
+        // recarga posterior desde otro hilo revienta con NotSupportedException).
+        internal static void AplicarFiltro<T>(ObservableCollection<T> coleccion, string filtro, Func<T, string, bool> coincide)
+        {
+            if (coleccion == null)
+            {
+                return;
+            }
+            ICollectionView vista = CollectionViewSource.GetDefaultView(coleccion);
+            if (vista == null)
+            {
+                return;
+            }
+            string texto = filtro?.Trim();
+            vista.Filter = string.IsNullOrEmpty(texto)
+                ? (Predicate<object>)null
+                : o => o is T fila && coincide(fila, texto);
+        }
+
+        #endregion
 
         // Las caducadas se esconden por defecto: la lista es el historico entero y las del ano
         // pasado taparian las que estan vivas.
