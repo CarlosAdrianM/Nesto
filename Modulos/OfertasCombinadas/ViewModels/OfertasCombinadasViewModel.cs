@@ -79,7 +79,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             NuevoDetalleAlternativoCommand = new DelegateCommand(OnNuevoDetalleAlternativo, () => DetalleSeleccionado != null);
             EliminarDetalleCommand = new DelegateCommand<object>(OnEliminarDetalle);
 
-            Titulo = "Ofertas Combinadas";
+            // Nesto#459: la ventana ya tiene de todo (combinadas, por familia, escalonadas,
+            // campanas y ofertas de producto): el nombre historico se quedaba corto.
+            Titulo = "Ofertas y descuentos";
             Empresa = Constantes.Empresas.EMPRESA_DEFECTO;
             _soloActivas = true;
 
@@ -1272,9 +1274,11 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 _dialogService.ShowError("La campana tiene que ser de un producto O de una familia, no de las dos cosas ni de ninguna.");
                 return;
             }
-            if (campana.DescuentoPorcentaje <= 0)
+            // NestoAPI#437: una fila puede llevar descuento, precio fijo o las dos cosas — pero
+            // alguna de las dos, que una campana que no hace nada no es una campana.
+            if (campana.DescuentoPorcentaje <= 0 && !(campana.PrecioFijo > 0))
             {
-                _dialogService.ShowError("El descuento tiene que ser mayor que cero.");
+                _dialogService.ShowError("La campana tiene que llevar un descuento o un precio fijo mayor que cero.");
                 return;
             }
 
@@ -2059,6 +2063,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             DescuentoPublicoPorcentaje = model.DescuentoPublico.HasValue
                 ? model.DescuentoPublico.Value * 100M
                 : (decimal?)null;
+            PrecioFijo = model.PrecioFijo;
             AudienciaOferta = model.AudienciaOferta;
             FechaDesde = model.FechaDesde;
             FechaHasta = model.FechaHasta;
@@ -2080,6 +2085,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 DescuentoPublico = DescuentoPublicoPorcentaje.HasValue
                     ? DescuentoPublicoPorcentaje.Value / 100M
                     : (decimal?)null,
+                PrecioFijo = PrecioFijo,
                 AudienciaOferta = AudienciaOferta,
                 FechaDesde = FechaDesde,
                 FechaHasta = FechaHasta,
@@ -2129,6 +2135,15 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         {
             get => _descuentoPublicoPorcentaje;
             set { if (SetProperty(ref _descuentoPublicoPorcentaje, value) && _rastreandoCambios) HaCambiado = true; }
+        }
+
+        // NestoAPI#437: en euros, sin conversion (a diferencia de los descuentos). Vacio = sin
+        // precio fijo. Solo filas de producto; el servidor rechaza familia/grupo con precio.
+        private decimal? _precioFijo;
+        public decimal? PrecioFijo
+        {
+            get => _precioFijo;
+            set { if (SetProperty(ref _precioFijo, value) && _rastreandoCambios) HaCambiado = true; }
         }
 
         private byte _audienciaOferta;

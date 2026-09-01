@@ -12,10 +12,10 @@
                         Header="Proveedores">
             <RibbonGroup x:Name="grpMantenimientos"
                             Header="Mantenimientos">
-                <RibbonButton Label="Ofertas Combinadas"
+                <RibbonButton Label="Ofertas y descuentos"
                               LargeImageSource="/Nesto;component/Images/OfertasCombinadas.png"
                               Command="{Binding AbrirModuloOfertasCombinadasCommand}"
-                              ToolTip="Gestion de ofertas combinadas y ofertas por familia (solo grupo COMPRAS)"/>
+                              ToolTip="Gestion de ofertas y descuentos: combinadas, por familia, escalonadas, campañas y ofertas de producto (solo grupo COMPRAS)"/>
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

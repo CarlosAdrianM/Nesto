@@ -36,7 +36,7 @@
                           VerticalAlignment="Center"
                           Margin="10,0,0,0"
                           ToolTip="Mostrar solo ofertas vigentes (FechaDesde &lt;= hoy y FechaHasta nula o >= hoy)"/>
-                <TextBlock Text="Mantenimiento de Ofertas Combinadas"
+                <TextBlock Text="Mantenimiento de Ofertas y descuentos"
                            VerticalAlignment="Center" FontWeight="Bold" Margin="20,0,0,0"/>
             </StackPanel>
 
@@ -1122,6 +1122,26 @@
                                             <Setter Property="HorizontalAlignment" Value="Right"/>
                                             <Setter Property="Margin" Value="2,0,5,0"/>
                                             <Setter Property="ToolTip" Value="Vacío = el público se lleva el mismo porcentaje que el profesional"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                    <DataGridTextColumn.EditingElementStyle>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                                        </Style>
+                                    </DataGridTextColumn.EditingElementStyle>
+                                </DataGridTextColumn>
+
+                                <!-- NestoAPI#437: precio fijo de tarifa ("este producto a 10 €"). Solo
+                                     filas de producto (el motor no lee precios de familia/grupo) y el
+                                     que menos cobre manda: se aplica si es menor que el precio calculado. -->
+                                <DataGridTextColumn Header="Precio fijo" Binding="{Binding PrecioFijo, UpdateSourceTrigger=LostFocus, StringFormat=N2, TargetNullValue=''}" Width="80">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                                            <Setter Property="Margin" Value="2,0,5,0"/>
+                                            <Setter Property="ToolTip" Value="Este producto a X € (en euros, no en %). Solo filas de producto; se aplica si es menor que el precio que saldría sin él"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                     <DataGridTextColumn.EditingElementStyle>

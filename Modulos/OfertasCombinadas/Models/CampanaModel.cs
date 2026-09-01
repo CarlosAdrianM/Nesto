@@ -33,6 +33,13 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         /// <summary>En tanto por uno, como en la tabla: 0,20 = 20 %.</summary>
         public decimal Descuento { get; set; }
 
+        /// <summary>
+        /// NestoAPI#437: precio fijo de tarifa ("este producto a 10 €"). Solo en filas de
+        /// PRODUCTO (el motor de precios no lee precios fijos de familia/grupo; el servidor lo
+        /// rechaza) y solo se aplica si es menor que el precio que saldría sin él.
+        /// </summary>
+        public decimal? PrecioFijo { get; set; }
+
         /// <summary>Nulo = el público hereda el mismo porcentaje que el profesional.</summary>
         public decimal? DescuentoPublico { get; set; }
 

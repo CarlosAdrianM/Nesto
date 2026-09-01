@@ -158,6 +158,35 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             A.CallTo(() => _service.CreateCampana(A<CampanaModel>._)).MustNotHaveHappened();
         }
 
+        /// <summary>
+        /// NestoAPI#437: una fila puede llevar precio fijo SIN descuento ("este producto a 10 €").
+        /// Antes la validación local exigía descuento &gt; 0 y esa fila no se podía ni guardar.
+        /// </summary>
+        [TestMethod]
+        public async Task GuardarCampana_SoloPrecioFijo_EsValidaYLlamaAlServicio()
+        {
+            A.CallTo(() => _service.CreateCampana(A<CampanaModel>._))
+                .Returns(Task.FromResult(new CampanaModel { Id = 778, Producto = "44166", PrecioFijo = 10M }));
+            var vm = CrearViewModel();
+            var campana = new CampanaWrapper { Producto = "44166", DescuentoPorcentaje = 0M, PrecioFijo = 10M };
+
+            vm.GuardarCampanaCommand.Execute(campana);
+            await Task.Delay(50);
+
+            A.CallTo(() => _service.CreateCampana(A<CampanaModel>.That.Matches(
+                    m => m.PrecioFijo == 10M && m.Descuento == 0M)))
+                .MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void CampanaWrapper_PrecioFijo_ViajaEnEurosSinLaConversionDeLosDescuentos()
+        {
+            var wrapper = new CampanaWrapper(new CampanaModel { Producto = "44166", PrecioFijo = 9.95M, Descuento = 0.10M });
+
+            Assert.AreEqual(9.95M, wrapper.PrecioFijo, "En euros tal cual, no como los % (x100)");
+            Assert.AreEqual(9.95M, wrapper.AModelo().PrecioFijo);
+        }
+
         [TestMethod]
         public async Task GuardarCampana_Nueva_CreaYSeQuedaConLoQueDevuelveElServidor()
         {
