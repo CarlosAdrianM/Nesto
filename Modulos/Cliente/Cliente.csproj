@@ -66,6 +66,10 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\crear_cliente.png" />
+    <Resource Include="Images\NifIncorrectos.png" />
+    <Resource Include="Images\CodigosPostales.png" />
+    <Resource Include="Images\Modelo347.png" />
+    <Resource Include="Images\ExtractoCliente.png" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ControlesUsuario\ControlesUsuario.csproj" />

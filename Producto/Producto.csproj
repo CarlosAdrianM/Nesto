@@ -56,6 +56,7 @@
     <Resource Include="Images\FichaProducto.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Images\Diarios.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\BuscarProducto.png">

@@ -13,17 +13,17 @@
                                 Header="Mantenimiento">
                 <RibbonButton Label="Crear Cliente" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirModuloCommand}" />
                 <!-- Nesto#417: corrección rápida de NIF incorrectos (Verifactu) -->
-                <RibbonButton Label="NIF incorrectos" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirNifIncorrectosCommand}" />
+                <RibbonButton Label="NIF incorrectos" LargeImageSource="Images/NifIncorrectos.png" Command="{Binding AbrirNifIncorrectosCommand}" />
                 <!-- Nesto#442: mantenimiento de códigos postales (solo Dirección y Tienda online) -->
-                <RibbonButton Label="Códigos Postales" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirCodigosPostalesCommand}" />
+                <RibbonButton Label="Códigos Postales" LargeImageSource="Images/CodigosPostales.png" Command="{Binding AbrirCodigosPostalesCommand}" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpDocumentos"
                                 Header="Documentos">
-                <RibbonButton Label="Modelo 347" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirModelo347Command}" />
+                <RibbonButton Label="Modelo 347" LargeImageSource="Images/Modelo347.png" Command="{Binding AbrirModelo347Command}" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpCartera"
                                 Header="Cartera">
-                <RibbonButton Label="Extracto Cliente" LargeImageSource="Images/crear_cliente.png" Command="{Binding AbrirExtractoClienteCommand}" />
+                <RibbonButton Label="Extracto Cliente" LargeImageSource="Images/ExtractoCliente.png" Command="{Binding AbrirExtractoClienteCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

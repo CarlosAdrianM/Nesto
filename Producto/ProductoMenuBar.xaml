@@ -15,7 +15,7 @@
             </RibbonGroup>
             <RibbonGroup x:Name="grpReposicion"
                                 Header="Reposición">
-                <RibbonButton Label="Diarios" LargeImageSource="Images/FichaProducto.png" Command="{Binding AbrirModuloReposicionCommand}" />
+                <RibbonButton Label="Diarios" LargeImageSource="Images/Diarios.png" Command="{Binding AbrirModuloReposicionCommand}" />
             </RibbonGroup>
         </RibbonTab>
     </Ribbon>

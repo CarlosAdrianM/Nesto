@@ -81,10 +81,10 @@
             <RibbonGroup x:Name="grpClientesMantenimiento"
                                     Header="Mantenimiento">
                 <RibbonButton Label="Ficha" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesFichaCommand}" />
-                <RibbonButton Label="Alquileres" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesAlquileresCommand}" />
-                <RibbonButton Label="Remesas" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesRemesasCommand}" />
-                <RibbonButton Label="Agencias" LargeImageSource="/Images/Cliente.png" Command="{Binding ClientesAgenciasCommand}" />
-                <RibbonButton Label="Mant. agencias" LargeImageSource="/Images/Cliente.png" Command="{Binding AgenciasMantenimientoCommand}" />
+                <RibbonButton Label="Alquileres" LargeImageSource="/Images/Alquileres.png" Command="{Binding ClientesAlquileresCommand}" />
+                <RibbonButton Label="Remesas" LargeImageSource="/Images/Remesas.png" Command="{Binding ClientesRemesasCommand}" />
+                <RibbonButton Label="Agencias" LargeImageSource="/Images/Agencias.png" Command="{Binding ClientesAgenciasCommand}" />
+                <RibbonButton Label="Mant. agencias" LargeImageSource="/Images/AgenciasMantenimiento.png" Command="{Binding AgenciasMantenimientoCommand}" />
                 <RibbonButton Label="Mant. familias" LargeImageSource="/Images/Familias.png" Command="{Binding FamiliasMantenimientoCommand}" />
             </RibbonGroup>
         </RibbonTab>
@@ -92,11 +92,11 @@
         <RibbonTab x:Name="tabVendedores"
                               Header="Vendedores">
             <RibbonGroup x:Name="grpVendedoresCliente" Header="Clientes">
-                <RibbonButton Label="Ficha" LargeImageSource="/Images/Cliente.png" Command="{Binding VendedoresClientesCommand}" />
-                <RibbonButton Label="Planes de Ventajas" LargeImageSource="/Images/Cliente.png" Command="{Binding VendedoresPlanVentajasCommand}" />
+                <RibbonButton Label="Ficha" LargeImageSource="/Images/ClientesVendedor.png" Command="{Binding VendedoresClientesCommand}" />
+                <RibbonButton Label="Planes de Ventajas" LargeImageSource="/Images/PlanesVentajas.png" Command="{Binding VendedoresPlanVentajasCommand}" />
             </RibbonGroup>
             <RibbonGroup x:Name="grpVendedoresComisiones" Header="Comisiones">
-                <RibbonButton Label="Comisiones" LargeImageSource="/Images/Cliente.png" Command="{Binding VendedoresComisionesCommand}" />
+                <RibbonButton Label="Comisiones" LargeImageSource="/Images/Comisiones.png" Command="{Binding VendedoresComisionesCommand}" />
             </RibbonGroup>
         </RibbonTab>
 

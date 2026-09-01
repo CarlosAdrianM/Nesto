@@ -41,6 +41,8 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\CanalesExternosPagos.png" />
+    <Resource Include="Images\CanalesExternosFacturas.png" />
+    <Resource Include="Images\CanalesExternosCuadre.png" />
     <Resource Include="Images\Prestashop.png" />
   </ItemGroup>
   <ItemGroup>

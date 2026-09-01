@@ -152,6 +152,13 @@
   <ItemGroup>
     <Resource Include="Images\Cliente.png" />
     <Resource Include="Images\Familias.png" />
+    <Resource Include="Images\Alquileres.png" />
+    <Resource Include="Images\Remesas.png" />
+    <Resource Include="Images\Agencias.png" />
+    <Resource Include="Images\AgenciasMantenimiento.png" />
+    <Resource Include="Images\ClientesVendedor.png" />
+    <Resource Include="Images\PlanesVentajas.png" />
+    <Resource Include="Images\Comisiones.png" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\ControlPedidos.png" />

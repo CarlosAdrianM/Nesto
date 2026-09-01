@@ -32,6 +32,8 @@
     <Resource Include="Images\Cajas.png">
       <CopyToOutputDirectory></CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Images\Bancos.png" />
+    <Resource Include="Images\MayorCuenta.png" />
   </ItemGroup>
 
 </Project>
