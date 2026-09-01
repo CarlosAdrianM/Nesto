@@ -133,6 +133,42 @@ namespace ControlesUsuario
 
 
 
+        /// <summary>
+        /// Nesto#458 (opt-in, por defecto null = sin filtro): código de vendedor cuyo EQUIPO de
+        /// ventas llena el combo (GET Vendedores?empresa=X&amp;vendedor=Y, que incluye al propio
+        /// vendedor), en vez de todos los vendedores. El filtro es cosmético: la garantía de
+        /// permisos vive en el servidor.
+        /// </summary>
+        public string FiltrarPorEquipoDe
+        {
+            get { return (string)GetValue(FiltrarPorEquipoDeProperty); }
+            set { SetValue(FiltrarPorEquipoDeProperty, value); }
+        }
+
+        public static readonly DependencyProperty FiltrarPorEquipoDeProperty =
+            DependencyProperty.Register("FiltrarPorEquipoDe", typeof(string),
+              typeof(SelectorVendedor),
+                new FrameworkPropertyMetadata(null, new PropertyChangedCallback(OnFiltrarPorEquipoDeChanged)));
+
+        private static void OnFiltrarPorEquipoDeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            ((SelectorVendedor)d).cargarDatos();
+        }
+
+        /// <summary>
+        /// Nesto#458: con el filtro de equipo puesto, añade el vendedor genérico (NV) a la lista.
+        /// El NV es cosa del JEFE de ventas: un vendedor raso no lo tiene entre sus opciones.
+        /// </summary>
+        public bool IncluirGenerico
+        {
+            get { return (bool)GetValue(IncluirGenericoProperty); }
+            set { SetValue(IncluirGenericoProperty, value); }
+        }
+
+        public static readonly DependencyProperty IncluirGenericoProperty =
+            DependencyProperty.Register("IncluirGenerico", typeof(bool),
+              typeof(SelectorVendedor), new FrameworkPropertyMetadata(false));
+
         public string Etiqueta
         {
             get { return (string)GetValue(EtiquetaProperty); }
@@ -212,7 +248,12 @@ namespace ControlesUsuario
                 try
                 {
                     string urlConsulta = "Vendedores?empresa=" + Empresa;
-                    
+                    // Nesto#458: con filtro, la API devuelve el equipo del vendedor (él incluido)
+                    bool filtradoPorEquipo = !string.IsNullOrWhiteSpace(FiltrarPorEquipoDe);
+                    if (filtradoPorEquipo)
+                    {
+                        urlConsulta += "&vendedor=" + Uri.EscapeDataString(FiltrarPorEquipoDe.Trim());
+                    }
 
                     response = await client.GetAsync(urlConsulta);
 
@@ -220,6 +261,11 @@ namespace ControlesUsuario
                     {
                         string resultado = await response.Content.ReadAsStringAsync();
                         listaVendedores = JsonConvert.DeserializeObject<ObservableCollection<Vendedor>>(resultado);
+                        if (filtradoPorEquipo && IncluirGenerico
+                            && !listaVendedores.Any(v => string.Equals(v.vendedor?.Trim(), "NV", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            listaVendedores.Add(new Vendedor { vendedor = "NV", nombre = "Genérico (sin vendedor)" });
+                        }
                         if (Seleccionado != null)
                         {
                             vendedorSeleccionado = listaVendedores.Where(l => l.vendedor == Seleccionado.Trim()).SingleOrDefault();

@@ -51,6 +51,12 @@ Public Class ClientesViewModel
     Private ruta As String
     Private EsUsuarioAdministracion As Boolean = False
 
+    ' Nesto#458: la GARANTÍA de quién puede cambiar estado/vendedor vive en el servidor
+    ' (ValidadorCambioClienteComercial). Esto de aquí es solo que no se pueda ni intentar:
+    ' filtrar el combo al equipo y deshabilitar con el motivo a la vista.
+    Private EsOficinaComercial As Boolean = False
+    Private EquipoUsuario As New List(Of String)
+
 
     Public Structure tipoIdDescripcion
         Public Sub New(
@@ -230,8 +236,71 @@ Public Class ClientesViewModel
         Set(value As ClienteJson)
             _clienteServidor = value
             RaisePropertyChanged("clienteServidor")
+            ' Nesto#458: el permiso depende de quién lleva el cliente que se está mirando
+            RaisePropertyChanged(NameOf(PuedeEditarComercial))
+            RaisePropertyChanged(NameOf(MotivoComercialBloqueado))
         End Set
     End Property
+
+    Private _esJefeDeVentas As Boolean
+    Public Property EsJefeDeVentas As Boolean
+        Get
+            Return _esJefeDeVentas
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_esJefeDeVentas, value)
+        End Set
+    End Property
+
+    ''' <summary>Nesto#458: vendedor cuyo equipo filtra el combo. Nothing = sin filtro (oficina).</summary>
+    Private _filtroEquipoVendedores As String
+    Public Property FiltroEquipoVendedores As String
+        Get
+            Return _filtroEquipoVendedores
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_filtroEquipoVendedores, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Nesto#458: si el usuario puede tocar estado/vendedor DEL CLIENTE QUE MIRA. La oficina
+    ''' siempre; un vendedor, solo si el cliente lo lleva alguien de su conjunto (su equipo, y NV
+    ''' únicamente para los jefes). Espejo de la regla del servidor, que es quien manda.
+    ''' </summary>
+    Public ReadOnly Property PuedeEditarComercial As Boolean
+        Get
+            If EsOficinaComercial OrElse String.IsNullOrWhiteSpace(FiltroEquipoVendedores) Then
+                Return True
+            End If
+            Dim actual As String = clienteServidor?.vendedor?.Trim()
+            If String.IsNullOrWhiteSpace(actual) Then
+                Return True
+            End If
+            Return ConjuntoEquipoComercial().Contains(actual, StringComparer.OrdinalIgnoreCase)
+        End Get
+    End Property
+
+    Public ReadOnly Property MotivoComercialBloqueado As String
+        Get
+            If PuedeEditarComercial Then
+                Return Nothing ' sin tooltip cuando se puede editar
+            End If
+            Return $"El cliente lo lleva {clienteServidor?.vendedor?.Trim()}, que no es de tu equipo: no puedes cambiarlo"
+        End Get
+    End Property
+
+    Private Function ConjuntoEquipoComercial() As List(Of String)
+        Dim conjunto As New List(Of String)(EquipoUsuario)
+        If Not String.IsNullOrWhiteSpace(vendedor) Then
+            conjunto.Add(vendedor.Trim())
+        End If
+        ' El genérico NV es cosa del JEFE: un vendedor raso solo toca sus propios clientes
+        If EsJefeDeVentas Then
+            conjunto.Add(Constantes.Vendedores.VENDEDOR_POR_DEFECTO)
+        End If
+        Return conjunto
+    End Function
 
     Private _deudaSeleccionada As ExtractoClienteDTO
     Public Property DeudaSeleccionada As ExtractoClienteDTO
@@ -1981,7 +2050,26 @@ Public Class ClientesViewModel
         If Not IsNothing(configuracion) Then
             EsUsuarioAdministracion = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION)
             RaisePropertyChanged(NameOf(PuedeElegirMotorPagos))
+            ' Nesto#458: mismos grupos "de oficina" que el servidor no restringe
+            EsOficinaComercial = EsUsuarioAdministracion OrElse
+                configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION) OrElse
+                configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.INFORMATICA)
         End If
+
+        ' Nesto#458: para un vendedor, el combo se filtra a su equipo (más NV si es jefe)
+        If Not EsOficinaComercial AndAlso Not String.IsNullOrWhiteSpace(vendedor) Then
+            Try
+                Dim equipo As List(Of VendedorDTO) = Await servicio.LeerVendedoresEquipo(empresaActual, vendedor.Trim())
+                EquipoUsuario = equipo.Select(Function(v) v.Vendedor?.Trim()).
+                    Where(Function(v) Not String.IsNullOrWhiteSpace(v)).ToList()
+                EsJefeDeVentas = EquipoUsuario.Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1
+                FiltroEquipoVendedores = vendedor.Trim()
+            Catch
+                ' Sin equipo resoluble el combo se queda sin filtrar; el servidor sigue mandando
+            End Try
+        End If
+        RaisePropertyChanged(NameOf(PuedeEditarComercial))
+        RaisePropertyChanged(NameOf(MotivoComercialBloqueado))
 
         Dim motorPagosParametro As String = Await configuracion.leerParametro(Constantes.Empresas.EMPRESA_DEFECTO, "MotorPagos")
         If Not String.IsNullOrWhiteSpace(motorPagosParametro) Then

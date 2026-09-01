@@ -1,6 +1,7 @@
 ﻿Imports System.Net.Http
 Imports System.Text
 Imports Nesto.Infrastructure.Contracts
+Imports Nesto.Models
 Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Modulos.PedidoVenta
@@ -128,6 +129,20 @@ Public Class ClienteComercialService
             End If
             Dim respuesta As String = Await response.Content.ReadAsStringAsync()
             Return If(JsonConvert.DeserializeObject(Of List(Of EstadoCCCModel))(respuesta), New List(Of EstadoCCCModel))
+        End Using
+    End Function
+
+    Public Async Function LeerVendedoresEquipo(empresa As String, vendedor As String) As Task(Of List(Of VendedorDTO)) Implements IClienteComercialService.LeerVendedoresEquipo
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Dim urlConsulta As String = "Vendedores?empresa=" + Uri.EscapeDataString(If(empresa?.Trim(), String.Empty)) +
+                "&vendedor=" + Uri.EscapeDataString(If(vendedor?.Trim(), String.Empty))
+            Dim response As HttpResponseMessage = Await client.GetAsync(urlConsulta)
+            If Not response.IsSuccessStatusCode Then
+                ' Sin equipo resoluble el combo se queda sin filtrar: el servidor sigue mandando.
+                Return New List(Of VendedorDTO)
+            End If
+            Dim respuesta As String = Await response.Content.ReadAsStringAsync()
+            Return If(JsonConvert.DeserializeObject(Of List(Of VendedorDTO))(respuesta), New List(Of VendedorDTO))
         End Using
     End Function
 

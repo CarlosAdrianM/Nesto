@@ -1,4 +1,5 @@
 ﻿Imports Nesto.Infrastructure.Models
+Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta
 
 Public Interface IClienteComercialService
@@ -29,4 +30,10 @@ Public Interface IClienteComercialService
     ''' Sustituye a DbContext.SaveChanges en el VM.
     ''' </summary>
     Function GuardarCCCs(peticion As GuardarCCCsRequest) As Task(Of GuardarCCCsRespuesta)
+    ''' <summary>
+    ''' Nesto#458: el equipo de ventas de un vendedor a fecha de hoy (GET Vendedores?empresa=X
+    ''' &amp;vendedor=Y; incluye al propio vendedor). Para filtrar el combo de la ventana; la
+    ''' garantía de permisos vive en el servidor.
+    ''' </summary>
+    Function LeerVendedoresEquipo(empresa As String, vendedor As String) As Task(Of List(Of VendedorDTO))
 End Interface
