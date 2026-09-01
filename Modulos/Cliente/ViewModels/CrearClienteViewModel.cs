@@ -718,6 +718,7 @@ namespace Nesto.Modulos.Cliente
                     {
                         DialogService.ShowNotification("Cliente Creado", "Se ha creado correctamente el cliente " + clienteCreado.Nº_Cliente.Trim() + "/" + clienteCreado.Contacto.Trim());
                         EventAggregator.GetEvent<ClienteCreadoEvent>().Publish(clienteCreado);
+                        await OfrecerCopiarDatosDelPrincipal(clienteCreado);
                     }
                 }
                 
@@ -730,7 +731,38 @@ namespace Nesto.Modulos.Cliente
             } catch (Exception ex)
             {
                 DialogService.ShowError(ex.Message);
-            }           
+            }
+        }
+
+        /// <summary>
+        /// Nesto#460 / NestoAPI#438: al crear un CONTACTO de un cliente existente, ofrecer traerse
+        /// las personas de contacto y los CCC del principal. Es lo que antes el vendedor pedía a
+        /// administración por correo y se copiaba a mano. Solo aplica a contactos nuevos: un
+        /// cliente nuevo no tiene principal del que copiar, y en una modificación no pinta nada.
+        /// La copia la hace el servidor y es idempotente: aceptar dos veces no duplica.
+        /// </summary>
+        private async Task OfrecerCopiarDatosDelPrincipal(Clientes clienteCreado)
+        {
+            if (!ClienteEsContacto)
+            {
+                return;
+            }
+            if (!DialogService.ShowConfirmationAnswer("Copiar datos del principal",
+                "¿Desea copiar las personas de contacto y los CCC del contacto principal al nuevo contacto?"))
+            {
+                return;
+            }
+            try
+            {
+                string resumen = await Servicio.CopiarDatosDelPrincipal(
+                    clienteCreado.Empresa?.Trim(), clienteCreado.Nº_Cliente?.Trim(), clienteCreado.Contacto?.Trim());
+                DialogService.ShowNotification("Datos copiados", resumen);
+            }
+            catch (Exception ex)
+            {
+                // El contacto YA está creado: el fallo de la copia no debe parecer un fallo del alta.
+                DialogService.ShowError("El contacto se ha creado, pero no se han podido copiar los datos del principal: " + ex.Message);
+            }
         }
         #endregion
         public ICommand LimpiarDireccionCommand { get; private set; }

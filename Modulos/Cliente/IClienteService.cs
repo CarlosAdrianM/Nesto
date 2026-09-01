@@ -16,6 +16,9 @@ namespace Nesto.Modulos.Cliente
         Task<RespuestaDatosBancoCliente> ValidarDatosPago(string formaPago, string plazosPago, string iban);
         Task<Clientes> CrearCliente(ClienteCrear cliente);
         Task<Clientes> ModificarCliente(ClienteCrear cliente);
+        /// <summary>Nesto#460 / NestoAPI#438: copia personas de contacto y CCC del principal al
+        /// contacto indicado. Devuelve el resumen para enseñar ("2 personas y 1 cuenta copiadas").</summary>
+        Task<string> CopiarDatosDelPrincipal(string empresa, string cliente, string contacto);
         Task<ClienteCrear> LeerClienteCrear(string empresa, string cliente, string contacto);
         // NestoAPI#306 / Nesto#409: autocompletado de direcciones (Google Places vía NestoAPI).
         // pais (Nesto#436): ISO-2 donde buscar; vacío = España.

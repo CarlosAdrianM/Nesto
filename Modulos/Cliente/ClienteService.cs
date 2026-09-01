@@ -69,6 +69,41 @@ namespace Nesto.Modulos.Cliente
             return respuesta;
         }
 
+        /// <summary>
+        /// Nesto#460 / NestoAPI#438: lo que antes se pedía a administración por correo al crear un
+        /// contacto. El endpoint es idempotente: repetir la llamada no duplica nada.
+        /// </summary>
+        public async Task<string> CopiarDatosDelPrincipal(string empresa, string cliente, string contacto)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.BaseAddress = new Uri(configuracion.servidorAPI);
+
+                if (!await _servicioAutenticacion.ConfigurarAutorizacion(client))
+                {
+                    throw new UnauthorizedAccessException("No se pudo configurar la autorización");
+                }
+
+                HttpContent content = new StringContent(
+                    JsonConvert.SerializeObject(new { Empresa = empresa, Cliente = cliente, Contacto = contacto }),
+                    Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync("Clientes/CopiarDatosDelPrincipal", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    string textoError = await response.Content.ReadAsStringAsync();
+                    JObject requestException = JsonConvert.DeserializeObject<JObject>(textoError);
+                    throw new Exception(HttpErrorHelper.ParsearErrorHttp(requestException));
+                }
+
+                string resultado = await response.Content.ReadAsStringAsync();
+                JObject respuesta = JsonConvert.DeserializeObject<JObject>(resultado);
+                int personas = respuesta.Value<int>("PersonasCopiadas");
+                int cuentas = respuesta.Value<int>("CccsCopiados");
+                return $"Se han copiado {personas} persona(s) de contacto y {cuentas} cuenta(s) bancaria(s) del contacto principal";
+            }
+        }
+
         public async Task<ClienteCrear> LeerClienteCrear(string empresa, string cliente, string contacto)
         {
             ClienteCrear respuesta;
