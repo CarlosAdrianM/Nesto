@@ -1923,12 +1923,14 @@ Public Class PlantillaVentaViewModel
                 If response.IsSuccessStatusCode Then
                     Dim cadenaJson As String = Await response.Content.ReadAsStringAsync()
                     Dim datosPrecio = JsonConvert.DeserializeObject(Of PrecioProductoDTO)(cadenaJson)
+                    ' 02/09/26: un descuento que era el calculado sigue al calculado (p.ej. al acabar
+                    ' las rebajas); el manual por encima se conserva. Ver DescuentoTrasRecalcular.
+                    Dim descuentoProductoAnterior As Decimal = arg.descuentoProducto
                     arg.precio = datosPrecio.precio
                     arg.descuentoProducto = datosPrecio.descuento
                     arg.aplicarDescuento = datosPrecio.aplicarDescuento
-                    If arg.descuento < arg.descuentoProducto OrElse Not arg.aplicarDescuento Then
-                        arg.descuento = IIf(arg.aplicarDescuento, arg.descuentoProducto, 0)
-                    End If
+                    arg.descuento = LineaPlantillaVenta.DescuentoTrasRecalcular(
+                        arg.descuento, descuentoProductoAnterior, datosPrecio.descuento, datosPrecio.aplicarDescuento)
                 Else
                     dialogService.ShowError("Se ha producido un error al cargar el precio y los descuentos especiales")
                 End If
@@ -3528,6 +3530,7 @@ Public Class PlantillaVentaViewModel
             Dim lineasCargadas As Integer = 0
             Dim lineasActualizadas As Integer = 0
 
+            Dim lineasConDescuentoCalculado As New List(Of LineaPlantillaVenta)
             If tieneLineasProducto Then
                 For Each lineaBorrador In borrador.LineasProducto
                     ' Buscar si el producto ya está en la plantilla del cliente
@@ -3543,8 +3546,14 @@ Public Class PlantillaVentaViewModel
                         lineaExistente.cantidad = lineaBorrador.cantidad
                         lineaExistente.cantidadOferta = lineaBorrador.cantidadOferta
                         lineaExistente.precio = lineaBorrador.precio
+                        ' 02/09/26: se restaura también el calculado, que es lo que permite saber
+                        ' después si el descuento era del servidor (y recalcularlo) o manual
+                        lineaExistente.descuentoProducto = lineaBorrador.descuentoProducto
                         lineaExistente.descuento = lineaBorrador.descuento
                         lineaExistente.aplicarDescuento = lineaBorrador.aplicarDescuento
+                        If lineaExistente.descuentoEsElCalculado Then
+                            lineasConDescuentoCalculado.Add(lineaExistente)
+                        End If
                         ' Nesto#371: restaurar la personalización de la 2ª unidad de oferta
                         lineaExistente.personalizarOferta = lineaBorrador.personalizarOferta
                         lineaExistente.precioOferta = lineaBorrador.precioOferta
@@ -3557,9 +3566,18 @@ Public Class PlantillaVentaViewModel
                         lineaBorrador.stockActualizado = False ' Marcar que el stock puede no estar actualizado
                         ListaFiltrableProductos?.ListaOriginal?.Add(lineaBorrador)
                         lineasCargadas += 1
+                        If lineaBorrador.descuentoEsElCalculado Then
+                            lineasConDescuentoCalculado.Add(lineaBorrador)
+                        End If
                     End If
                 Next
             End If
+
+            ' 02/09/26: los descuentos que puso el servidor cuando se guardó el borrador pueden
+            ' haber caducado (rebajas borradas): se vuelven a pedir. Los manuales no se tocan.
+            For Each lineaARecalcular In lineasConDescuentoCalculado
+                cmdActualizarPrecioProducto.Execute(lineaARecalcular)
+            Next
 
             ' Issue #286: Los regalos (Ganavisiones) se restaurarán en CargarProductosBonificablesAsync
             ' cuando el usuario navegue a esa página. Solo guardamos el conteo para el mensaje.

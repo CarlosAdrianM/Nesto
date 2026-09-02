@@ -11,6 +11,64 @@ namespace PlantillaVentaTests
     [TestClass]
     public class LineaPlantillaVentaTests
     {
+        #region DescuentoTrasRecalcular (02/09/26: rebajas caducadas en un borrador)
+
+        [TestMethod]
+        public void DescuentoTrasRecalcular_ElQueEraElCalculado_SigueAlCalculado()
+        {
+            // El borrador se guardó con el 30 % de las rebajas (descuento = descuentoProducto).
+            // Al borrar las rebajas el servidor calcula 0: la línea debe bajar a 0, no quedarse
+            // con un 30 % "manual" que el servidor rechaza.
+            decimal resultado = LineaPlantillaVenta.DescuentoTrasRecalcular(
+                descuentoActual: 0.30m, descuentoProductoAnterior: 0.30m, descuentoProductoNuevo: 0m, aplicarDescuento: true);
+
+            Assert.AreEqual(0m, resultado);
+        }
+
+        [TestMethod]
+        public void DescuentoTrasRecalcular_ElQueEraElCalculado_SubeSiElNuevoEsMayor()
+        {
+            decimal resultado = LineaPlantillaVenta.DescuentoTrasRecalcular(0.10m, 0.10m, 0.25m, true);
+
+            Assert.AreEqual(0.25m, resultado);
+        }
+
+        [TestMethod]
+        public void DescuentoTrasRecalcular_ManualPorEncimaDelCalculado_SeConserva()
+        {
+            // El vendedor tecleó un 20 % con el calculado a 0: sigue siendo su decisión
+            decimal resultado = LineaPlantillaVenta.DescuentoTrasRecalcular(0.20m, 0m, 0m, true);
+
+            Assert.AreEqual(0.20m, resultado);
+        }
+
+        [TestMethod]
+        public void DescuentoTrasRecalcular_ManualPorDebajoDelCalculado_SubeAlCalculado()
+        {
+            // Comportamiento de siempre: nunca se ofrece menos de lo que calcula el servidor
+            decimal resultado = LineaPlantillaVenta.DescuentoTrasRecalcular(0.05m, 0m, 0.15m, true);
+
+            Assert.AreEqual(0.15m, resultado);
+        }
+
+        [TestMethod]
+        public void DescuentoTrasRecalcular_SinAplicarDescuento_Cero()
+        {
+            decimal resultado = LineaPlantillaVenta.DescuentoTrasRecalcular(0.30m, 0.30m, 0.30m, false);
+
+            Assert.AreEqual(0m, resultado);
+        }
+
+        [TestMethod]
+        public void DescuentoEsElCalculado_SoloSiCoincideYNoEsCero()
+        {
+            Assert.IsTrue(new LineaPlantillaVenta { descuento = 0.30m, descuentoProducto = 0.30m }.descuentoEsElCalculado);
+            Assert.IsFalse(new LineaPlantillaVenta { descuento = 0.30m, descuentoProducto = 0m }.descuentoEsElCalculado, "manual");
+            Assert.IsFalse(new LineaPlantillaVenta { descuento = 0m, descuentoProducto = 0m }.descuentoEsElCalculado, "sin descuento: nada que recalcular");
+        }
+
+        #endregion
+
         #region colorStock Tests
 
         [TestMethod]

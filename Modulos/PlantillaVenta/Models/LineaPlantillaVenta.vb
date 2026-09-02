@@ -217,6 +217,38 @@ Public Class LineaPlantillaVenta
         End Set
     End Property
     Public Property descuentoProducto As Decimal
+
+    ''' <summary>
+    ''' El descuento que debe quedar en la línea cuando el servidor recalcula el descuento del
+    ''' producto. Regla: un descuento que ERA el calculado sigue al calculado (si las rebajas se
+    ''' acaban, baja con ellas); uno manual por encima del calculado se conserva; uno por debajo
+    ''' sube al calculado; sin aplicar descuento, cero.
+    '''
+    ''' 02/09/26: la plantilla conservaba el 30 % de las rebajas de verano en un borrador
+    ''' guardado con ellas activas, y al mandarlo tras borrarlas el servidor lo rechazaba como
+    ''' descuento manual no autorizado.
+    ''' </summary>
+    Public Shared Function DescuentoTrasRecalcular(descuentoActual As Decimal, descuentoProductoAnterior As Decimal,
+                                                   descuentoProductoNuevo As Decimal, aplicarDescuento As Boolean) As Decimal
+        If Not aplicarDescuento Then
+            Return 0
+        End If
+        If descuentoActual = descuentoProductoAnterior OrElse descuentoActual < descuentoProductoNuevo Then
+            Return descuentoProductoNuevo
+        End If
+        Return descuentoActual
+    End Function
+
+    ''' <summary>
+    ''' El descuento de esta línea es el que calculó el servidor (no lo tecleó nadie). Es el que
+    ''' hay que recalcular al restaurar un borrador, porque puede haber caducado.
+    ''' </summary>
+    Public ReadOnly Property descuentoEsElCalculado As Boolean
+        Get
+            Return descuentoProducto <> 0 AndAlso descuento = descuentoProducto
+        End Get
+    End Property
+
     Public Property clasificacionMasVendidos As Integer
     ' Nesto#390: notificante para que al cambiar la preferencia de almacenes (toggle) se
     ' refresquen los textos derivados sin recargar la plantilla entera.
