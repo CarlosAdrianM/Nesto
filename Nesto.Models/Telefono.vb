@@ -5,14 +5,17 @@ Public Class Telefono
     Dim stringSeparators() As String = {"/"}
 
     Public Sub New(listaTelefonos As String, Optional quitarPrefijos As Boolean = False)
-        If IsNothing(listaTelefonos) Then
+        ' 02/09/26: con la cadena VACÍA ("", el teléfono en blanco de una ficha) el Replace de VB
+        ' devuelve Nothing, el Split no se ejecutaba y `telefonos` se quedaba a Nothing: el primer
+        ' MovilUnico/FijoUnico reventaba con NullReference (ClientesViewModel.CargarDeudas, MariaJose).
+        If String.IsNullOrWhiteSpace(listaTelefonos) Then
             Return
         End If
         listaTelefonos = Replace(listaTelefonos, "(", String.Empty)
         listaTelefonos = Replace(listaTelefonos, ")", String.Empty)
         listaTelefonos = Replace(listaTelefonos, " ", String.Empty)
         listaTelefonos = Replace(listaTelefonos, "-", String.Empty)
-        telefonos = listaTelefonos?.Split(stringSeparators, StringSplitOptions.RemoveEmptyEntries)
+        telefonos = If(listaTelefonos?.Split(stringSeparators, StringSplitOptions.RemoveEmptyEntries), New String() {})
         If quitarPrefijos Then
             For t = 0 To telefonos.Length - 1
                 If telefonos(t).StartsWith("+") OrElse telefonos(t).StartsWith("00") Then

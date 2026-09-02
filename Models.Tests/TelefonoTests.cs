@@ -55,6 +55,23 @@ namespace Models.Tests
         }
 
         [TestMethod]
+        public void Telefono_ConCadenaVacia_NoRevienta()
+        {
+            // 02/09/26: el teléfono en blanco de una ficha ("" en vez de null) tumbaba
+            // ClientesViewModel.CargarDeudas con NullReference dentro de MovilUnico
+            Telefono vacio = new Telefono("");
+            Telefono soloEspacios = new Telefono("   ");
+            Telefono soloSeparadores = new Telefono("()/-");
+
+            Assert.AreEqual("", vacio.MovilUnico());
+            Assert.AreEqual("", vacio.FijoUnico());
+            Assert.AreEqual(0, vacio.TodosLosTelefonos.Count);
+            Assert.AreEqual("", soloEspacios.MovilUnico());
+            Assert.AreEqual("", soloSeparadores.MovilUnico());
+            Assert.AreEqual("", soloSeparadores.FijoUnico());
+        }
+
+        [TestMethod]
         public void Telefono_SiQuitarPrefijos_SeLoQuitamos()
         {
             Telefono telefono = new Telefono("+34916281914/+34616546878", true);
