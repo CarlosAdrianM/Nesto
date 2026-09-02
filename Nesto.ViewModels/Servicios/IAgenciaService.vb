@@ -40,7 +40,6 @@ Public Interface IAgenciaService
     Function CargarExtractoCliente(empresa As String, cliente As String, positivos As Boolean) As ObservableCollection(Of ExtractoCliente)
     Function CargarPagoExtractoClientePorEnvio(envio As EnviosAgencia, concepto As String, importeAnterior As Double) As ObservableCollection(Of ExtractoCliente)
     Function CargarAgenciaPorRuta(empresa As String, ruta As String) As AgenciasTransporte
-    Function CargarCliente(empresa As String, cliente As String, contacto As String) As Clientes
     Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia
     Function CargarDeudasCliente(cliente As String, fechaReclamar As Date) As List(Of ExtractoCliente)
     Function TramitarEnvio(envio As EnviosAgencia) As String

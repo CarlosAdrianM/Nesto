@@ -569,12 +569,6 @@ Public Class AgenciaService
             agencias.FirstOrDefault(Function(a) CampoIgual(a.Empresa, empresa) AndAlso CampoIgual(a.Nombre, Constantes.Agencias.AGENCIA_REEMBOLSOS)))
     End Function
 
-    Public Function CargarCliente(empresa As String, cliente As String, contacto As String) As Clientes Implements IAgenciaService.CargarCliente
-        Using contexto = New NestoEntities
-            Return contexto.Clientes.Single(Function(c) c.Empresa = empresa AndAlso c.Nº_Cliente = cliente AndAlso c.Contacto = contacto)
-        End Using
-    End Function
-
     Public Function CargarEnvioPorClienteYDireccion(cliente As String, contacto As String, direccion As String) As EnviosAgencia Implements IAgenciaService.CargarEnvioPorClienteYDireccion
         Using contexto = New NestoEntities
             Dim respuesta = (From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Cliente = cliente And e.Contacto = contacto And e.Direccion = direccion And e.Estado = Constantes.Agencias.ESTADO_INICIAL_ENVIO).FirstOrDefault

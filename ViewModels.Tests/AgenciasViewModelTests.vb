@@ -947,10 +947,11 @@ Public Class AgenciaViewModelTests
         agencia2.Ruta = "XXX"
         A.CallTo(Function() servicio.CargarAgenciaPorRuta("1", "YYY")).Returns(agencia1)
         A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1, agencia2})
-        A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(New Clientes With {.CodPostal = "28110"})
+        ' Nesto#340 (A3): el CP del contacto viene en el pedido de la API, ya no se relee la ficha
         Dim pedido = New PedidoAgenciaModel With {
             .Empresa = "1",
-            .Número = 123456
+            .Número = 123456,
+            .Clientes = New ClienteAgenciaModel With {.CodPostal = "28110"}
         }
         'A.CallTo(Function() servicio.CargarLineasPedidoSinPicking(123456)).Returns(New List(Of LinPedidoVta) From {New LinPedidoVta With {.Total = 1}})
         A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(123456, True)).Returns(pedido)
@@ -1115,7 +1116,6 @@ Public Class AgenciaViewModelTests
         }
         A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(A(Of Integer).Ignored, True)).Returns(pedido)
         A.CallTo(Function() servicio.LeerPedidoParaAgencia("1", 12345)).Returns(pedido)
-        A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(cliente)
         A.CallTo(Function() servicio.ImporteReembolso("1", 12345)).Returns(Task.FromResult(0D))
         A.CallTo(Function() servicioPedidos.DebeImprimirDocumento(A(Of String).Ignored)).Returns(Task.FromResult(False))
 
@@ -1218,7 +1218,6 @@ Public Class AgenciaViewModelTests
         Dim envioSinWrapper As EnviosAgencia = envio.ToEnvioAgencia
         envioSinWrapper.AgenciasTransporte = agencia
         A.CallTo(Function() servicio.CargarEnvio("1", 12345)).Returns(envioSinWrapper)
-        A.CallTo(Function() servicio.CargarCliente(A(Of String).Ignored, A(Of String).Ignored, A(Of String).Ignored)).Returns(cliente)
         Dim res = New DialogResult(ButtonResult.OK)
         A.CallTo(Sub() dialogService.
                      ShowDialog(A(Of String).Ignored, A(Of IDialogParameters).Ignored, A(Of Action(Of IDialogResult)).Ignored)).

@@ -3209,13 +3209,14 @@ Public Class AgenciasViewModel
             Return agenciaSeleccionada
         End If
 
-        Dim cliente As Clientes = _servicio.CargarCliente(pedidoSeleccionado.Empresa, pedidoSeleccionado.Nº_Cliente, pedidoSeleccionado.Contacto)
-
         ' La agencia/tarifa se calcula contra el CP del DESTINO REAL (codPostalEnvio, que el operario
         ' puede cambiar a mano), NO contra el del contacto del pedido. Si el destino aún no está cargado,
         ' se cae al del contacto. Bug corregido: un pedido a Portugal con el contacto en Algete elegía
         ' GLS-provincial (3,43 €) porque se comparaba con el CP del contacto, no con el de entrega.
-        Dim codPostalDestino As String = If(String.IsNullOrWhiteSpace(codPostalEnvio), cliente.CodPostal, codPostalEnvio)
+        ' Nesto#340 (A3, 02/09/26): el CP del contacto ya viene en el pedido de la API
+        ' (PedidoAgenciaModel.Clientes, el mismo que usa el resto de la pantalla); antes se releía la
+        ' ficha entera por Entity Framework solo para este campo.
+        Dim codPostalDestino As String = If(String.IsNullOrWhiteSpace(codPostalEnvio), pedidoSeleccionado.Clientes?.CodPostal, codPostalEnvio)
 
         ' Selección LOCAL inmediata (default instantáneo, no bloquea la UI).
         Dim parMasEconomico = TarifaMasEconomica(codPostalDestino, Peso, reembolso)
