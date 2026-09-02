@@ -241,6 +241,14 @@ namespace ControlesUsuario
             {
                 return;
             }
+            // Sin empresa no hay nada que consultar: la Empresa suele bindearse a un objeto que
+            // todavía no está cargado (clienteServidor.empresa) y el callback de FiltrarPorEquipoDe
+            // llegaba antes, disparando GET Vendedores?empresa=&vendedor=X (400 y ruido en ELMAH,
+            // 02/09/26). Cuando la Empresa llegue, OnEmpresaChanged vuelve a cargar.
+            if (string.IsNullOrWhiteSpace(Empresa))
+            {
+                return;
+            }
             using (HttpClient client = CrearClienteApi())
             {
                 HttpResponseMessage response;
