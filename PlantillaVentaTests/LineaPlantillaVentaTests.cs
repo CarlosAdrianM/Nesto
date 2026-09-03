@@ -11,6 +11,41 @@ namespace PlantillaVentaTests
     [TestClass]
     public class LineaPlantillaVentaTests
     {
+        #region Nesto#462: la plantilla no admite un descuento fuera de 0-100 %
+
+        [TestMethod]
+        public void DescuentoAdmitido_QuinientosPorCiento_SeQuedaConElAnterior()
+        {
+            // 02/09/26: DescuentoLinea = 5.0 en el 44337 (quiso poner 50) y el pedido reventó en SQL
+            Assert.AreEqual(0.10m, LineaPlantillaVenta.DescuentoAdmitido(tecleado: 5.0m, actual: 0.10m));
+        }
+
+        [TestMethod]
+        public void DescuentoAdmitido_Negativo_SeQuedaConElAnterior()
+        {
+            Assert.AreEqual(0m, LineaPlantillaVenta.DescuentoAdmitido(-0.5m, 0m));
+        }
+
+        [TestMethod]
+        public void DescuentoAdmitido_EntreCeroYCien_SeAdmite()
+        {
+            Assert.AreEqual(0.5m, LineaPlantillaVenta.DescuentoAdmitido(0.5m, 0.1m));
+            Assert.AreEqual(1m, LineaPlantillaVenta.DescuentoAdmitido(1m, 0.1m), "el 100 % (muestras) vale");
+            Assert.AreEqual(0m, LineaPlantillaVenta.DescuentoAdmitido(0m, 0.1m), "quitar el descuento vale");
+        }
+
+        [TestMethod]
+        public void Descuento_AlTeclearUnoFueraDeRango_LaLineaConservaElAnterior()
+        {
+            LineaPlantillaVenta linea = new LineaPlantillaVenta { descuento = 0.10m };
+
+            linea.descuento = 5.0m;
+
+            Assert.AreEqual(0.10m, linea.descuento);
+        }
+
+        #endregion
+
         #region DescuentoTrasRecalcular (02/09/26: rebajas caducadas en un borrador)
 
         [TestMethod]

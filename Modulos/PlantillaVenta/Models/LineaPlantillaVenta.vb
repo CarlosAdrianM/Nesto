@@ -212,10 +212,29 @@ Public Class LineaPlantillaVenta
             Return _descuento
         End Get
         Set(value As Decimal)
+            ' Nesto#462: un 500 % (le sobró un cero al teclear 50) llegaba al servidor y reventaba
+            ' con el CHECK de SQL. Fuera de 0-100 % se ignora y la celda vuelve al valor anterior.
+            Dim admitido As Decimal = DescuentoAdmitido(value, _descuento)
+            If admitido <> value Then
+                RaisePropertyChanged(NameOf(descuento)) ' que el grid repinte el valor que se queda
+                Return
+            End If
             SetProperty(_descuento, value)
             RaisePropertyChanged(NameOf(baseImponible))
         End Set
     End Property
+
+    ''' <summary>
+    ''' Nesto#462: el descuento que se queda en la línea al teclear uno. Entre 0 y 1 (0-100 %) se
+    ''' admite; fuera de ese rango se conserva el actual (CK_LinPedidoVta no admite otra cosa y
+    ''' un 500 % es siempre un error de tecleo, no una intención).
+    ''' </summary>
+    Public Shared Function DescuentoAdmitido(tecleado As Decimal, actual As Decimal) As Decimal
+        If tecleado < 0D OrElse tecleado > 1D Then
+            Return actual
+        End If
+        Return tecleado
+    End Function
     Public Property descuentoProducto As Decimal
 
     ''' <summary>
