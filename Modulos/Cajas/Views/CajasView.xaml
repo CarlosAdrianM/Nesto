@@ -26,6 +26,7 @@
     
     <TabControl Background="White">
         <TabItem Header="Cobros">
+            <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Por favor, espere...">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -122,8 +123,10 @@
                 </Button>
                 
             </Grid>            
+            </xctk:BusyIndicator>
         </TabItem>
         <TabItem Header="Gastos">
+            <xctk:BusyIndicator IsBusy="{Binding EstaOcupado}" BusyContent="Por favor, espere...">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition/>
@@ -156,6 +159,7 @@
                 </StackPanel>
                 
             </Grid>
+            </xctk:BusyIndicator>
         </TabItem>
         <TabItem Header="Traspasos">
             <xctk:BusyIndicator Name="IndicadorOcupadoTraspasos" IsBusy="{Binding EstaOcupado}" BusyContent="Por favor, espere...">

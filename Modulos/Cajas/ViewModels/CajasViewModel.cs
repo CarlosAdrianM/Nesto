@@ -175,10 +175,23 @@ namespace Nesto.Modulos.Cajas.ViewModels
             !MovimientosCajaPendientesRecibirSeleccionados.Any() ||
             MovimientosCajaPendientesRecibirSeleccionados.Sum(m => m.Importe) == ArqueoFondo.TotalArqueo;
         private bool _estaOcupado;
+        /// <summary>
+        /// Hay una contabilización en vuelo. Mientras está a true los tres botones de
+        /// contabilizar se deshabilitan (Nesto#464: un doble clic en Cobros creó dos asientos
+        /// porque la llamada tardó y el botón seguía vivo).
+        /// </summary>
         public bool EstaOcupado
         {
             get => _estaOcupado;
-            set => SetProperty(ref _estaOcupado, value);
+            set
+            {
+                if (SetProperty(ref _estaOcupado, value))
+                {
+                    (ContabilizarCobroCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+                    (ContabilizarGastoCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+                    (ContabilizarTraspasoCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+                }
+            }
         }
         public bool EstaVisibleImporteACuenta => ImporteACuenta != 0;
         public bool EsUsuarioDeAdministracion => _configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ADMINISTRACION);
@@ -445,9 +458,29 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarCobroCommand { get; private set; }
         private bool CanContabilizarCobro()
         {
-            return (ImporteDeudasSeleccionadas > 0 || TotalCobrado != 0) && ClienteSeleccionado is not null;
+            return !EstaOcupado && (ImporteDeudasSeleccionadas > 0 || TotalCobrado != 0) && ClienteSeleccionado is not null;
         }
+
+        // Nesto#464: una sola contabilización a la vez. El guard de dentro es necesario además del
+        // CanExecute porque DelegateCommand.Execute no comprueba CanExecute.
         private async void OnContabilizarCobro()
+        {
+            if (EstaOcupado)
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                await ContabilizarCobro();
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        private async Task ContabilizarCobro()
         {
 
             List<PreContabilidadDTO> lineas = [];
@@ -656,13 +689,30 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarGastoCommand { get; private set; }
         private bool CanContabilizarGasto()
         {
-            return ProveedorGasto is not null &&
+            return !EstaOcupado && ProveedorGasto is not null &&
             !string.IsNullOrEmpty(ProveedorGasto.Proveedor) &&
             TotalGasto != 0 &&
             !string.IsNullOrEmpty(GastoNumeroFactura);
         }
 
         private async void OnContabilizarGasto()
+        {
+            if (EstaOcupado)
+            {
+                return;
+            }
+            try
+            {
+                EstaOcupado = true;
+                await ContabilizarGasto();
+            }
+            finally
+            {
+                EstaOcupado = false;
+            }
+        }
+
+        private async Task ContabilizarGasto()
         {
             if (TotalGasto < 0 && !_dialogService.ShowConfirmationAnswer("Gasto negativo", "¿Está seguro que desea contabilizar un gasto negativo?"))
             {
@@ -718,7 +768,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         public ICommand ContabilizarTraspasoCommand { get; private set; }
         private bool CanContabilizarTraspaso()
         {
-            return Importe != 0 && CuentaOrigen is not null && CuentaDestino is not null && !string.IsNullOrEmpty(Concepto) && CuentaOrigen.Cuenta != CuentaDestino.Cuenta
+            return !EstaOcupado && Importe != 0 && CuentaOrigen is not null && CuentaDestino is not null && !string.IsNullOrEmpty(Concepto) && CuentaOrigen.Cuenta != CuentaDestino.Cuenta
                 && ((PuedeContabilizarDescuadrado && EstaCuadradoConCajasPendientesRecibir) || ImporteDescuadre == 0);
         }
         private async void OnContabilizarTraspaso()
