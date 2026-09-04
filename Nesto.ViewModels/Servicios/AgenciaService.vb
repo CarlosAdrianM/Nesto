@@ -594,28 +594,15 @@ Public Class AgenciaService
 
     ' ===== Nesto#340 (Agencias, slice A4.1): cerrar el envío y contabilizar su reembolso =====
     ' El servidor hace las dos cosas en una transacción (POST .../ConfirmarTramitacion) y estampa el
-    ' usuario del asiento desde el JWT. Mientras se rueda, un parámetro de usuario decide el camino:
-    ' sin fila (o con otro valor) se sigue usando el Entity Framework de siempre, que se queda intacto
-    ' debajo. Protocolo de pies de plomo acordado el 20/08/26 tras los 3 sustos de A2.
-    Friend Const CLAVE_TRAMITAR_POR_API As String = "TramitarEnvioPorApi"
-    Private Const VALOR_TRAMITAR_POR_API As String = "API"
-
-    Private Function TramitarPorApi() As Boolean
-        Try
-            Dim valor As String = Task.Run(Function() configuracion.leerParametro(
-                Constantes.Empresas.EMPRESA_DEFECTO, CLAVE_TRAMITAR_POR_API)).GetAwaiter().GetResult()
-            Return String.Equals(valor?.Trim(), VALOR_TRAMITAR_POR_API, StringComparison.OrdinalIgnoreCase)
-        Catch
-            ' Si no se puede leer el parámetro, el camino seguro es el de siempre.
-            Return False
-        End Try
-    End Function
+    ' usuario del asiento desde el JWT.
+    '
+    ' Se rodó detrás del parámetro de usuario TramitarEnvioPorApi (protocolo de pies de plomo del
+    ' 20/08/26). Estuvo en "API" para (defecto) desde el 25/08 y el piloto se cerró el 31/08 con los
+    ' tres envíos con reembolso verificados en la base de datos, así que el camino de Entity
+    ' Framework llevaba diez días sin ejecutarse: se retira junto con la bandera.
 
     Public Function TramitarEnvio(envio As EnviosAgencia) As String Implements IAgenciaService.TramitarEnvio
-        If TramitarPorApi() Then
-            Return TramitarEnvioPorApi(envio)
-        End If
-        Return TramitarEnvioConEntityFramework(envio)
+        Return TramitarEnvioPorApi(envio)
     End Function
 
     ''' <summary>
@@ -664,44 +651,6 @@ Public Class AgenciaService
         Catch
             ' Si falla el registro, se ignora.
         End Try
-    End Function
-
-    Private Function TramitarEnvioConEntityFramework(envio As EnviosAgencia) As String
-        Dim success As Boolean = False
-
-        Using transaction As New TransactionScope()
-            Using DbContext As New NestoEntities
-                Dim asiento As Integer = 0
-
-                Dim envioEncontrado = DbContext.EnviosAgencia.Where(Function(e) e.Numero = envio.Numero).Single
-
-                ' Issue #135: Convertir sentinel de reembolso antes de tramitar
-                If envioEncontrado.Reembolso < 0 Then
-                    envioEncontrado.Reembolso = 0
-                End If
-
-                envioEncontrado.Estado = Constantes.Agencias.ESTADO_TRAMITADO_ENVIO 'Enviado
-                envioEncontrado.Fecha = Today
-                envioEncontrado.FechaEntrega = Today.AddDays(1) 'Se entrega al día siguiente
-                success = DbContext.SaveChanges()
-
-                If success AndAlso envioEncontrado.Reembolso <> 0 Then
-                    asiento = ContabilizarReembolso(envioEncontrado)
-                    If asiento <= 0 Then
-                        success = False
-                    End If
-                End If
-
-                If success Then
-                    transaction.Complete()
-                    Dim unused = DbContext.SaveChanges()
-                    Return "Envío del pedido " + envio.Pedido.ToString + " tramitado correctamente."
-                Else
-                    transaction.Dispose()
-                    Return "Error al tramitar pedido " + envio.Pedido.ToString + "."
-                End If
-            End Using ' Cerramos el contexto
-        End Using ' Cerramos la transaccion
     End Function
 
 
