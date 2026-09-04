@@ -28,6 +28,18 @@ Public Class PedidoVentaService
         _clienteApiFactory = New ClienteApiFactory(configuracion.servidorAPI, servicioAutenticacion)
     End Sub
 
+    ''' <summary>
+    ''' NestoAPI#453: mismo servicio, pero con el cliente HTTP inyectado. Sin esto no se puede
+    ''' probar qué hace el servicio con las respuestas de error del servidor, que es justo donde
+    ''' estaba el fallo del PDF de facturas.
+    ''' </summary>
+    Public Sub New(configuracion As IConfiguracion, servicioAutenticacion As IServicioAutenticacion,
+                   clienteApiFactory As IClienteApiFactory)
+        Me.configuracion = configuracion
+        _servicioAutenticacion = servicioAutenticacion
+        _clienteApiFactory = clienteApiFactory
+    End Sub
+
     Private Async Function cargarListaPedidos(vendedor As String, verTodosLosVendedores As Boolean, mostrarPresupuestos As Boolean) As Task(Of ObservableCollection(Of ResumenPedido)) Implements IPedidoVentaService.cargarListaPedidos
 
         Using client As HttpClient = _clienteApiFactory.Crear()
@@ -591,12 +603,23 @@ Public Class PedidoVentaService
 
                 response = Await client.GetAsync(urlConsulta)
 
-                respuesta = If(response.IsSuccessStatusCode, Await response.Content.ReadAsByteArrayAsync(), Nothing)
+                If Not response.IsSuccessStatusCode Then
+                    ' NestoAPI#453: el servidor manda el motivo real en el cuerpo (texto plano en
+                    ' los BadRequest de FacturasController, JSON en el resto). Antes esto devolvía
+                    ' Nothing y DescargarFactura acababa haciendo New MemoryStream(Nothing), así
+                    ' que el usuario veía "Value cannot be null. (Parameter buffer)" en lugar de
+                    ' "No cuadran los vencimientos con el total de la factura". Un mensaje que no
+                    ' dice nada cuesta más que el propio fallo: nadie sabe por dónde empezar.
+                    Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
+                End If
 
-            Catch ex As Exception
-                Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
-            Finally
+                respuesta = Await response.Content.ReadAsByteArrayAsync()
 
+            Catch ex As HttpRequestException
+                Throw New Exception("No se ha podido conectar con el servidor para descargar la factura", ex)
+            Catch ex As System.Threading.Tasks.TaskCanceledException
+                Throw New Exception("El servidor ha tardado demasiado en generar la factura", ex)
             End Try
 
             Return respuesta
@@ -613,6 +636,11 @@ Public Class PedidoVentaService
 
 
         Dim factura As Byte() = Await CargarFactura(empresa, numeroFactura, papelConMembrete, mostrarImagenes)
+        If factura Is Nothing OrElse factura.Length = 0 Then
+            ' NestoAPI#453: red de seguridad. Sin esto, un PDF vacío acababa en
+            ' New MemoryStream(Nothing) y el usuario veía "Value cannot be null. (Parameter buffer)"
+            Throw New Exception("El servidor no ha devuelto el PDF de la factura " & numeroFactura)
+        End If
         Dim ms As New MemoryStream(factura)
         'write to file
         Dim nombreArchivo As String = path + "\Cliente_" + cliente + "_" + numeroFactura.ToString + ".pdf"
