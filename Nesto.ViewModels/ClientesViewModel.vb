@@ -1387,22 +1387,44 @@ Public Class ClientesViewModel
             Dim path As String = Marshal.PtrToStringUni(np)
             Marshal.FreeCoTaskMem(np)
 
+            ' NestoAPI#453: si una factura falla, las demás se descargan igual, pero el motivo de
+            ' las que no han salido se le dice al usuario. Antes se saltaban en silencio: ni PDF
+            ' ni explicación, y quien lo sufría no tenía forma de saber que faltaba algo.
+            Dim descargadas As Integer = 0
+            Dim fallidas As New List(Of String)
+
             For Each fra In FacturasSeleccionadas
-                Dim factura As Byte() = Await CargarFactura(fra.Empresa, fra.Documento, MostrarImagenesFacturas)
-                If factura IsNot Nothing Then
-                    Dim ms As New MemoryStream(factura)
-                    'write to file
-                    Dim file As New FileStream(path + "\Cliente_" + fra.Cliente?.Trim() + "_" + fra.Documento?.Trim() + ".pdf", FileMode.Create, FileAccess.Write)
-                    ms.WriteTo(file)
-                    file.Close()
-                    ms.Close()
-                End If
+                Try
+                    Dim factura As Byte() = Await CargarFactura(fra.Empresa, fra.Documento, MostrarImagenesFacturas)
+                    If factura Is Nothing OrElse factura.Length = 0 Then
+                        Throw New Exception("el servidor no ha devuelto el PDF")
+                    End If
+
+                    Using ms As New MemoryStream(factura)
+                        Dim nombreArchivo As String = path + "\Cliente_" + fra.Cliente?.Trim() + "_" + fra.Documento?.Trim() + ".pdf"
+                        Using file As New FileStream(nombreArchivo, FileMode.Create, FileAccess.Write)
+                            ms.WriteTo(file)
+                        End Using
+                    End Using
+                    descargadas += 1
+                Catch ex As Exception
+                    Dim motivo As String = If(ex.InnerException Is Nothing, ex.Message, ex.InnerException.Message)
+                    fallidas.Add(fra.Documento?.Trim() & ": " & motivo)
+                End Try
             Next
 
-            ' Abrimos la carpeta de descargas
-            Dim unused = Process.Start(New ProcessStartInfo(path) With {
-                .UseShellExecute = True
-            })
+            If fallidas.Any() Then
+                mensajeError = "No se han podido descargar " & fallidas.Count &
+                               If(fallidas.Count = 1, " factura:", " facturas:") & vbCrLf &
+                               String.Join(vbCrLf, fallidas)
+            End If
+
+            ' Abrimos la carpeta de descargas solo si hay algo que enseñar
+            If descargadas > 0 Then
+                Dim unused = Process.Start(New ProcessStartInfo(path) With {
+                    .UseShellExecute = True
+                })
+            End If
         Catch ex As Exception
             If IsNothing(ex.InnerException) Then
                 mensajeError = ex.Message
@@ -1722,16 +1744,23 @@ Public Class ClientesViewModel
 
                 response = Await client.GetAsync(urlConsulta)
 
-                If response.IsSuccessStatusCode Then
-                    respuesta = Await response.Content.ReadAsByteArrayAsync()
-                Else
-                    respuesta = Nothing
+                If Not response.IsSuccessStatusCode Then
+                    ' NestoAPI#453: el servidor manda el motivo real en el cuerpo (texto plano en
+                    ' los BadRequest de FacturasController, JSON en el resto). Antes esto devolvía
+                    ' Nothing y el que llamaba se saltaba la factura EN SILENCIO: el usuario se
+                    ' quedaba sin PDF y sin saber por qué.
+                    Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                    Throw New Exception(HttpErrorHelper.ParsearErrorHttp(cuerpo))
                 End If
 
-            Catch ex As Exception
-                Throw New Exception("No se ha podido cargar la lista de facturas desde el servidor")
-            Finally
+                respuesta = Await response.Content.ReadAsByteArrayAsync()
 
+            Catch ex As HttpRequestException
+                Throw New Exception("No se ha podido conectar con el servidor para descargar la factura " &
+                                    numeroFactura, ex)
+            Catch ex As System.Threading.Tasks.TaskCanceledException
+                Throw New Exception("El servidor ha tardado demasiado en generar la factura " &
+                                    numeroFactura, ex)
             End Try
 
             Return respuesta
