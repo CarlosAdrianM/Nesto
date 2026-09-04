@@ -1,8 +1,8 @@
-﻿using Prism.Mvvm;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Nesto.Modulos.Cajas.Models
 {
-    internal class BancoWrapper : BindableBase
+    internal class BancoWrapper : ObservableObject
     {
         public BancoWrapper(BancoDTO bancoDTO)
         {

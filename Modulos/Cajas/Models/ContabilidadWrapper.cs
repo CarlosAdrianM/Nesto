@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Nesto.Modulos.Cajas.Models
 {
-    public class ContabilidadWrapper : BindableBase
+    public class ContabilidadWrapper : ObservableObject
     {
         public ContabilidadWrapper(ContabilidadDTO model)
         {
@@ -24,7 +24,7 @@ namespace Nesto.Modulos.Cajas.Models
             set 
             { 
                 Model.Id = value;
-                RaisePropertyChanged(nameof(Id));
+                OnPropertyChanged(nameof(Id));
             } 
         }
         public string Empresa
@@ -33,7 +33,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Empresa = value;
-                RaisePropertyChanged(nameof(Empresa));
+                OnPropertyChanged(nameof(Empresa));
             }
         }
         public string Cuenta 
@@ -42,7 +42,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Cuenta = value;
-                RaisePropertyChanged(nameof(Cuenta));
+                OnPropertyChanged(nameof(Cuenta));
             }
         }
         public string Concepto 
@@ -51,7 +51,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Concepto = value;
-                RaisePropertyChanged(nameof(Concepto));
+                OnPropertyChanged(nameof(Concepto));
             }
         }
         public decimal Debe 
@@ -60,7 +60,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Debe = value;
-                RaisePropertyChanged(nameof(Debe));
+                OnPropertyChanged(nameof(Debe));
             }
         }
         public decimal Haber 
@@ -69,7 +69,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Haber = value;
-                RaisePropertyChanged(nameof(Haber));
+                OnPropertyChanged(nameof(Haber));
             }
         }
         public decimal Importe => Debe - Haber;
@@ -79,7 +79,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Fecha = value;
-                RaisePropertyChanged(nameof(Fecha));
+                OnPropertyChanged(nameof(Fecha));
             }
         }
         public string Documento 
@@ -88,7 +88,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Documento = value;
-                RaisePropertyChanged(nameof(Documento));
+                OnPropertyChanged(nameof(Documento));
             }
         }
         public string Delegacion
@@ -97,7 +97,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Delegacion = value;
-                RaisePropertyChanged(nameof(Delegacion));
+                OnPropertyChanged(nameof(Delegacion));
             }
         }
         public int Asiento 
@@ -106,7 +106,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Asiento = value;
-                RaisePropertyChanged(nameof(Asiento));
+                OnPropertyChanged(nameof(Asiento));
             }
         }
         public string Diario
@@ -115,7 +115,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Diario = value;
-                RaisePropertyChanged(nameof(Diario));
+                OnPropertyChanged(nameof(Diario));
             }
         }
         public EstadoPunteo EstadoPunteo
@@ -124,7 +124,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.EstadoPunteo = value;
-                RaisePropertyChanged(nameof(EstadoPunteo));
+                OnPropertyChanged(nameof(EstadoPunteo));
             }
         }
         public string Usuario
@@ -133,7 +133,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Usuario = value;
-                RaisePropertyChanged(nameof(Usuario));
+                OnPropertyChanged(nameof(Usuario));
             }
         }
         private bool _visible = true;

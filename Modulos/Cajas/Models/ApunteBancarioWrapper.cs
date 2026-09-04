@@ -1,10 +1,10 @@
-﻿using Prism.Mvvm;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 
 namespace Nesto.Modulos.Cajas.Models
 {
-    public class ApunteBancarioWrapper : BindableBase
+    public class ApunteBancarioWrapper : ObservableObject
     {
         public ApunteBancarioWrapper(ApunteBancarioDTO model)
         {
@@ -19,7 +19,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Id = value;
-                RaisePropertyChanged(nameof(Id));
+                OnPropertyChanged(nameof(Id));
             }
         }
 
@@ -30,7 +30,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.CodigoRegistroPrincipal = value;
-                RaisePropertyChanged(nameof(CodigoRegistroPrincipal));
+                OnPropertyChanged(nameof(CodigoRegistroPrincipal));
             }
         }
         public string ClaveOficinaOrigen 
@@ -39,7 +39,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.ClaveOficinaOrigen = value;
-                RaisePropertyChanged(nameof(ClaveOficinaOrigen));
+                OnPropertyChanged(nameof(ClaveOficinaOrigen));
             }
         }
         public DateTime FechaOperacion 
@@ -48,7 +48,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.FechaOperacion = value;
-                RaisePropertyChanged(nameof(FechaOperacion));
+                OnPropertyChanged(nameof(FechaOperacion));
             }
         }
         public DateTime FechaValor 
@@ -57,7 +57,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.FechaValor = value;
-                RaisePropertyChanged(nameof(FechaValor));
+                OnPropertyChanged(nameof(FechaValor));
             }
         }
         public string ConceptoComun 
@@ -66,7 +66,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.ConceptoComun = value;
-                RaisePropertyChanged(nameof(ConceptoComun));
+                OnPropertyChanged(nameof(ConceptoComun));
             }
         }
         public string TextoConceptoComun 
@@ -75,7 +75,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.TextoConceptoComun = value;
-                RaisePropertyChanged(nameof(TextoConceptoComun));
+                OnPropertyChanged(nameof(TextoConceptoComun));
             }
         }
         public string ConceptoPropio 
@@ -84,7 +84,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.ConceptoPropio = value;
-                RaisePropertyChanged(nameof(ConceptoPropio));
+                OnPropertyChanged(nameof(ConceptoPropio));
             }
         }
         public string ClaveDebeOHaberMovimiento 
@@ -93,7 +93,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.ClaveDebeOHaberMovimiento = value;
-                RaisePropertyChanged(nameof(ClaveDebeOHaberMovimiento));
+                OnPropertyChanged(nameof(ClaveDebeOHaberMovimiento));
             }
         }
         public decimal ImporteMovimiento 
@@ -102,7 +102,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.ImporteMovimiento = value;
-                RaisePropertyChanged(nameof(ImporteMovimiento));
+                OnPropertyChanged(nameof(ImporteMovimiento));
             }
         }
         public string NumeroDocumento 
@@ -111,7 +111,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.NumeroDocumento = value;
-                RaisePropertyChanged(nameof(NumeroDocumento));
+                OnPropertyChanged(nameof(NumeroDocumento));
             }
         }
         public string Referencia1
@@ -120,7 +120,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Referencia1 = value;
-                RaisePropertyChanged(nameof(Referencia1));
+                OnPropertyChanged(nameof(Referencia1));
             }
         }
         public string Referencia2
@@ -129,7 +129,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.Referencia2 = value;
-                RaisePropertyChanged(nameof(Referencia2));
+                OnPropertyChanged(nameof(Referencia2));
             }
         }
 
@@ -139,7 +139,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.EstadoPunteo = value;
-                RaisePropertyChanged(nameof(EstadoPunteo));
+                OnPropertyChanged(nameof(EstadoPunteo));
             }
         }
 
@@ -150,7 +150,7 @@ namespace Nesto.Modulos.Cajas.Models
             set
             {
                 Model.RegistrosConcepto = value;
-                RaisePropertyChanged(nameof(RegistrosConcepto));
+                OnPropertyChanged(nameof(RegistrosConcepto));
             }
         }
 
