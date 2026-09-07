@@ -144,4 +144,31 @@ Public Class AgenciaServiceAgenciasTests
         Assert.IsNull(servicio.CargarAgencia(1).Empresa)
     End Sub
 
+    ' Nesto#340 (Agencias, slice A3): CargarEnvio dejó Entity Framework y pide el envío pendiente a
+    ' GET api/EnviosAgencias/PendientePorPedido. Los nombres de los parámetros son un contrato con
+    ' el servidor: si dejan de casar, Web API no ata el valor y la llamada devuelve otra cosa sin
+    ' que salte nada por aquí.
+
+    <TestMethod()>
+    Public Sub RutaEnvioPendientePorPedido_LlevaLosNombresQueEsperaElEndpoint()
+        Dim ruta = AgenciaService.RutaEnvioPendientePorPedido("1", 12345)
+
+        Assert.AreEqual("EnviosAgencias/PendientePorPedido?empresa=1&pedido=12345", ruta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub RutaEnvioPendientePorPedido_ConLaEmpresaRellenaDeEspacios_NoLosMandaEnLaUrl()
+        ' Empresa es char(3), así que los llamantes traen "1  ". Sin recortar viajaría "1%20%20".
+        Dim ruta = AgenciaService.RutaEnvioPendientePorPedido("1  ", 12345)
+
+        Assert.AreEqual("EnviosAgencias/PendientePorPedido?empresa=1&pedido=12345", ruta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub RutaEnvioPendientePorPedido_SinEmpresa_NoRevienta()
+        Dim ruta = AgenciaService.RutaEnvioPendientePorPedido(Nothing, 12345)
+
+        Assert.AreEqual("EnviosAgencias/PendientePorPedido?empresa=&pedido=12345", ruta)
+    End Sub
+
 End Class

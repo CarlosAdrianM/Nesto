@@ -535,14 +535,32 @@ Public Class AgenciaService
                         CampoIgual(a.Nombre, nombreAgencia))
     End Function
 
+    ''' <summary>
+    ''' Nesto#340 (Agencias, slice A3): el envío pendiente del pedido lo sirve
+    ''' GET api/EnviosAgencias/PendientePorPedido. El filtro (Estado &lt; 0, empresa y pedido) se
+    ''' queda EN EL SERVIDOR, que es quien compara ignorando el relleno de los char; filtrarlo aquí
+    ''' en memoria reabriría el fallo mudo de Nesto#254.
+    '''
+    ''' De este envío salen el destino real de la etiqueta cuando la tienda online ya la había
+    ''' creado (Nesto#395) y, en InsertarRegistro, la fila que se va a modificar. Por eso se estampa
+    ''' también la empresa: envio.Empresas alimenta el remitente de la etiqueta de Correos Express y
+    ''' el asiento de ContabilizarReembolso, y Entity Framework la traía con un Reference(...).Load().
+    ''' Mismo criterio (y mismo código) que Insertar.
+    ''' </summary>
     Public Function CargarEnvio(empresa As String, pedido As Integer) As EnviosAgencia Implements IAgenciaService.CargarEnvio
-        Using contexto = New NestoEntities
-            Dim respuesta As EnviosAgencia = contexto.EnviosAgencia.Include("AgenciasTransporte").FirstOrDefault(Function(e) e.Estado < Constantes.Agencias.ESTADO_INICIAL_ENVIO AndAlso e.Empresa = empresa AndAlso e.Pedido = pedido)
-            If Not IsNothing(respuesta) Then
-                contexto.Entry(respuesta).Reference(Function(e) e.Empresas).Load()
-            End If
-            Return respuesta
-        End Using
+        Dim envio As EnviosAgencia = LeerListadoEnvios(RutaEnvioPendientePorPedido(empresa, pedido)).FirstOrDefault()
+        If envio Is Nothing Then
+            Return Nothing
+        End If
+        envio.Empresas = CargarListaEmpresas().FirstOrDefault(Function(e) e.Número?.Trim() = envio.Empresa?.Trim())
+        Return envio
+    End Function
+
+    ''' <summary>La ruta del envío pendiente, aparte para poder fijarla en un test: si los nombres de
+    ''' los parámetros dejaran de casar con los del endpoint, Web API no ataría el valor y la llamada
+    ''' devolvería otra cosa (o un 400) sin que nada aquí lo notara.</summary>
+    Friend Shared Function RutaEnvioPendientePorPedido(empresa As String, pedido As Integer) As String
+        Return $"EnviosAgencias/PendientePorPedido?empresa={Uri.EscapeDataString(If(empresa, "").Trim())}&pedido={pedido}"
     End Function
 
 
