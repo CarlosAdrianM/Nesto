@@ -1599,5 +1599,65 @@ Public Class AgenciaViewModelTests
         A.CallTo(Sub() servicio.Modificar(envio)).MustHaveHappenedOnceExactly()
     End Sub
 
-End Class
+    ' Nesto#467: la tabla AgenciasTransporte tiene agencias que ya no tienen clase en el factory
+    ' -Sending (retirada en Nesto#443), OnTime y Glovo (comentadas) y CTT (sin integrar)- y salian
+    ' igualmente en el desplegable. Al elegir una, el setter reventaba con KeyNotFoundException y
+    ' se llevaba la ventana (07/09/26, Enrique con Sending).
 
+    Private Shared Function Agencia(numero As Integer, nombre As String) As AgenciasTransporte
+        Dim resultado = A.Fake(Of AgenciasTransporte)
+        resultado.Empresa = "1  "
+        resultado.Numero = numero
+        resultado.Nombre = nombre
+        Return resultado
+    End Function
+
+    Private Function ViewModelConAgencias(ParamArray agencias As AgenciasTransporte()) As AgenciasViewModel
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
+        Dim empresa = A.Fake(Of Empresas)
+        empresa.Número = "1  "
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(New ObservableCollection(Of Empresas) From {empresa})
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).Ignored)).
+            Returns(New ObservableCollection(Of AgenciasTransporte)(agencias))
+        Return New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+    End Function
+
+    <TestMethod()>
+    Public Sub AgenciaViewModel_LasAgenciasSinClase_NoSeOfrecenEnElDesplegable()
+        Dim viewModel = ViewModelConAgencias(Agencia(1, "ASM"), Agencia(10, "Sending"), Agencia(13, "CTT"))
+
+        viewModel.PestannaNombre = Pestannas.PEDIDOS
+        viewModel.cmdCargarDatos.Execute()
+
+        Assert.AreEqual(1, viewModel.listaAgencias.Count,
+            "Sending y CTT no tienen clase que sepa calcular plaza, codigo de barras ni etiqueta")
+        Assert.AreEqual("ASM", viewModel.listaAgencias.Single().Nombre)
+    End Sub
+
+    <TestMethod()>
+    Public Sub AgenciaViewModel_SiNingunaAgenciaTieneClase_SeEnsenanTodasIgualmente()
+        ' Red de seguridad: dejar la ventana SIN agencias es peor que ensenar una que no se pueda
+        ' tramitar, porque sin ninguna seleccionada crear la etiqueta revienta con NullReference.
+        Dim viewModel = ViewModelConAgencias(Agencia(10, "Sending"), Agencia(13, "CTT"))
+
+        viewModel.PestannaNombre = Pestannas.PEDIDOS
+        viewModel.cmdCargarDatos.Execute()
+
+        Assert.AreEqual(2, viewModel.listaAgencias.Count)
+    End Sub
+
+    <TestMethod()>
+    Public Sub AgenciaViewModel_AlSeleccionarUnaAgenciaSinClase_NoRevienta()
+        ' Aunque el desplegable ya no las ofrezca, aqui siguen llegando las de los envios ANTIGUOS
+        ' al abrirlos en Tramitados.
+        Dim viewModel = ViewModelConAgencias(Agencia(1, "ASM"))
+        viewModel.PestannaNombre = Pestannas.PEDIDOS
+        viewModel.cmdCargarDatos.Execute()
+
+        viewModel.agenciaSeleccionada = Agencia(10, "Sending")
+
+        Assert.AreEqual(10, viewModel.agenciaSeleccionada.Numero, "La agencia se selecciona igual")
+        Assert.IsNull(viewModel.numClienteContabilizar, "Pero no hay con que tramitar ni contabilizar")
+    End Sub
+
+End Class

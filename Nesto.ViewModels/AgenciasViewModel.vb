@@ -223,6 +223,33 @@ Public Class AgenciasViewModel
         End Set
     End Property
 
+    ' Nesto#467: solo se ofrecen las agencias que el factory sabe construir. La tabla
+    ' AgenciasTransporte tiene filas que ya no tienen clase -Sending (retirada por desuso en
+    ' Nesto#443), OnTime y Glovo (comentadas) y CTT (todavia sin integrar)-, y seguian saliendo en
+    ' el desplegable: al elegir una, el setter de agenciaSeleccionada reventaba con
+    ' KeyNotFoundException y se llevaba la ventana por delante (07/09/26, Enrique con Sending).
+    ' Una agencia sin clase no puede calcular plaza, codigo de barras ni etiqueta, asi que
+    ' ofrecerla es ofrecer un callejon sin salida. Comprobado en la base de datos antes de
+    ' esconderlas: Sending no se usa desde el 25/02/2026 y las otras tres no aparecen en los
+    ' ultimos 20.000 envios. Sus envios historicos se siguen viendo: esto solo filtra el
+    ' desplegable de alta, no los listados.
+    Private Function AgenciasIntegradas(agencias As ObservableCollection(Of AgenciasTransporte)) As ObservableCollection(Of AgenciasTransporte)
+        If agencias Is Nothing Then
+            Return agencias
+        End If
+        Dim integradas = agencias.Where(Function(a) a IsNot Nothing AndAlso factory.ContainsKey(If(a.Nombre, "").Trim())).ToList()
+
+        ' Si el filtro se lo lleva todo por delante (una agencia renombrada en la tabla, el factory
+        ' vacio en un test), es mejor ensenarlas todas que dejar la ventana SIN agencias: sin
+        ' ninguna seleccionada, crear una etiqueta revienta con NullReference y habriamos cambiado
+        ' un fallo por otro peor.
+        If integradas.Count = 0 Then
+            Return agencias
+        End If
+
+        Return New ObservableCollection(Of AgenciasTransporte)(integradas)
+    End Function
+
     Private _listaAgencias As ObservableCollection(Of AgenciasTransporte)
     Public Property listaAgencias As ObservableCollection(Of AgenciasTransporte)
         Get
@@ -249,8 +276,20 @@ Public Class AgenciasViewModel
             Try
                 Dim unused = SetProperty(_agenciaSeleccionada, value)
                 If Not IsNothing(value) Then
-                    agenciaEspecifica = factory(value.Nombre).Invoke
-                    numClienteContabilizar = agenciaEspecifica.NumeroCliente
+                    ' Nesto#467: TryGetValue, no el indexador. Aunque el desplegable ya solo
+                    ' ofrezca agencias integradas, aqui llegan tambien las de envios ANTIGUOS al
+                    ' abrirlos en Tramitados, y un KeyNotFoundException aqui sube hasta el
+                    ' manejador global y tumba la ventana.
+                    Dim construirAgencia As Func(Of IAgencia) = Nothing
+                    If factory.TryGetValue(If(value.Nombre, "").Trim(), construirAgencia) Then
+                        agenciaEspecifica = construirAgencia.Invoke
+                        numClienteContabilizar = agenciaEspecifica.NumeroCliente
+                    Else
+                        ' Agencia sin clase (historicos de Sending, OnTime, Glovo...): se puede
+                        ' consultar el envio, pero no tramitar nada con ella.
+                        agenciaEspecifica = Nothing
+                        numClienteContabilizar = Nothing
+                    End If
                     ' Las listas de la agencia (tipos de retorno, países, servicios, horarios) se
                     ' pueblan SIEMPRE al seleccionarla, no solo en algunas pestañas. Antes en
                     ' TRAMITADOS no se llamaba a ActualizarListas: listaTiposRetorno quedaba a
@@ -354,7 +393,7 @@ Public Class AgenciasViewModel
         Set(value As Empresas)
             Dim unused = SetProperty(_empresaSeleccionada, value)
             Try
-                listaAgencias = _servicio.CargarListaAgencias(empresaSeleccionada.Número)
+                listaAgencias = AgenciasIntegradas(_servicio.CargarListaAgencias(empresaSeleccionada.Número))
                 If numeroPedido = "" Then
                     agenciaSeleccionada = listaAgencias.FirstOrDefault
                 End If
