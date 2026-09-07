@@ -1,6 +1,7 @@
 ﻿using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
 using Newtonsoft.Json;
+using Prism.Ioc;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -22,11 +23,36 @@ namespace ControlesUsuario
         private Timer _debounceTimer;
         private const int DEBOUNCE_DELAY = 300; // ms
 
+        // Nesto#369 / NestoAPI#459: el HttpClient debe adjuntar el JWT. Este selector se quedo
+        // fuera de la ola de Nesto#369 y era el unico de los ocho de ControlesUsuario que seguia
+        // llamando a la API con un HttpClient pelado: sus dos endpoints estaban abiertos, asi que
+        // funcionaba igual. Al exigirles credencial (NestoAPI#459) se habria quedado sin lista de
+        // plazos, y ademas en silencio, porque un 401 aqui solo escribia en el Debug.
+        private readonly IClienteApiFactory _clienteApiFactory;
+
         public SelectorPlazosPago()
         {
             InitializeComponent();
 
             GridPrincipal.DataContext = this;
+
+            try
+            {
+                _clienteApiFactory = ContainerLocator.Container.Resolve<IClienteApiFactory>();
+            }
+            catch
+            {
+                // Modo diseniador / sin contenedor: se usa el fallback en CrearClienteApi().
+            }
+        }
+
+        // Usa la factoria (HttpClient con JWT) si hay contenedor; si no (diseniador), cae al
+        // cliente sin token con la BaseAddress de Configuracion.
+        private HttpClient CrearClienteApi()
+        {
+            return _clienteApiFactory != null
+                ? _clienteApiFactory.Crear()
+                : new HttpClient { BaseAddress = new Uri(Configuracion.servidorAPI) };
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -360,8 +386,7 @@ namespace ControlesUsuario
             {
                 return;
             }
-            using HttpClient client = new();
-            client.BaseAddress = new Uri(Configuracion.servidorAPI);
+            using HttpClient client = CrearClienteApi();
             HttpResponseMessage response;
             string urlConsulta = null;
 
