@@ -21,7 +21,12 @@ namespace Nesto.Modulos.CanalesExternos
         private const string FORMA_PAGO_PAYPAL = "PayPal";
         private const string FORMA_PAGO_REDSYS = "Pago con tarjeta Redsys";
         private const string FORMA_PAGO_AMAZON_PAY = "Amazon Pay";
+        // Bizum sin prepago (07/09/26): desde Prestashop 4.2.7 los pedidos se confirman por
+        // controllers/front/ipn.php, que guarda la etiqueta corta bizumName ("Bizum"). El flujo
+        // viejo (okpayment.php) guardaba bizumDisplayName ("Bizum - Pago online"). Las dos
+        // etiquetas conviven: la larga en los 1.372 pedidos anteriores al 20/08/2026.
         private const string FORMA_PAGO_BIZUM = "Bizum - Pago online";
+        private const string FORMA_PAGO_BIZUM_IPN = "Bizum";
         private const string FORMA_PAGO_APLAZAME = "Aplazame";
         private const string FORMA_PAGO_MIRAVIA = "Miravia";
 
@@ -56,6 +61,44 @@ namespace Nesto.Modulos.CanalesExternos
             }
 
             return listaNesto;
+        }
+
+        // Cómo se cobra cada forma de pago de la tienda online, en una sola tabla: la forma y los
+        // plazos del pedido y la cuenta contable del prepago (null = no se prepaga; el
+        // contrareembolso se cobra al entregar). Antes esto vivía en dos sitios (un if/else para la
+        // forma de pago y un diccionario para la cuenta), así que una etiqueta nueva de Prestashop
+        // había que darla de alta dos veces: si solo se daba en uno, el pedido entraba sin prepago
+        // y sin que saltase nada.
+        internal sealed class CobroTiendaOnline
+        {
+            public string FormaPago { get; set; }
+            public string PlazosPago { get; set; }
+            public string CuentaPrepago { get; set; }
+        }
+
+        private static readonly Dictionary<string, CobroTiendaOnline> CobrosTiendaOnline = new()
+        {
+            { FORMA_PAGO_CONTRAREEMBOLSO,           new CobroTiendaOnline { FormaPago = "EFC", PlazosPago = "CONTADO", CuentaPrepago = null } },
+            { FORMA_PAGO_CONTRAREEMBOLSO_COMISION,  new CobroTiendaOnline { FormaPago = "EFC", PlazosPago = "CONTADO", CuentaPrepago = null } },
+            { FORMA_PAGO_CONTRAREEMBOLSO_INGLES,    new CobroTiendaOnline { FormaPago = "EFC", PlazosPago = "CONTADO", CuentaPrepago = null } },
+            { FORMA_PAGO_PAYPAL,                    new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200020" } },
+            { FORMA_PAGO_REDSYS,                    new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_BIZUM,                     new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_BIZUM_IPN,                 new CobroTiendaOnline { FormaPago = "TAR", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_AMAZON_PAY,                new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_APLAZAME,                  new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+            { FORMA_PAGO_MIRAVIA,                   new CobroTiendaOnline { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = "57200013" } },
+        };
+
+        // Forma de pago desconocida: transferencia previa y sin prepago, como se ha hecho siempre.
+        private static readonly CobroTiendaOnline COBRO_DESCONOCIDO =
+            new() { FormaPago = "TRN", PlazosPago = "PRE", CuentaPrepago = null };
+
+        internal static CobroTiendaOnline ResolverCobro(string formaPagoPrestashop)
+        {
+            return formaPagoPrestashop != null && CobrosTiendaOnline.TryGetValue(formaPagoPrestashop.Trim(), out CobroTiendaOnline cobro)
+                ? cobro
+                : COBRO_DESCONOCIDO;
         }
 
         private PedidoCanalExterno TransformarPedido(PedidoPrestashop pedidoEntrada, Interfaces.ClientePorTelefono cliente)
@@ -98,21 +141,9 @@ namespace Nesto.Modulos.CanalesExternos
 
             // Aquí iban los totales
 
-            if (formaPago is FORMA_PAGO_CONTRAREEMBOLSO or FORMA_PAGO_CONTRAREEMBOLSO_INGLES or FORMA_PAGO_CONTRAREEMBOLSO_COMISION)
-            {
-                pedidoSalida.formaPago = "EFC";
-                pedidoSalida.plazosPago = "CONTADO";
-            }
-            else if (formaPago is FORMA_PAGO_PAYPAL or FORMA_PAGO_REDSYS or FORMA_PAGO_BIZUM)
-            {
-                pedidoSalida.formaPago = "TAR";
-                pedidoSalida.plazosPago = "PRE";
-            }
-            else
-            {
-                pedidoSalida.formaPago = "TRN";
-                pedidoSalida.plazosPago = "PRE";
-            }
+            CobroTiendaOnline cobro = ResolverCobro(formaPago);
+            pedidoSalida.formaPago = cobro.FormaPago;
+            pedidoSalida.plazosPago = cobro.PlazosPago;
 
             if (formaPago == FORMA_PAGO_MIRAVIA)
             {
@@ -153,22 +184,12 @@ namespace Nesto.Modulos.CanalesExternos
             }
             pedidoExterno.Almacen = Constantes.Almacenes.ALMACEN_CENTRAL;
 
-            Dictionary<string, string> cuentasFormaPago = new()
-            {
-                { FORMA_PAGO_PAYPAL, "57200020" },
-                { FORMA_PAGO_REDSYS, "57200013" },
-                { FORMA_PAGO_BIZUM, "57200013" },
-                { FORMA_PAGO_AMAZON_PAY, "57200013" },
-                { FORMA_PAGO_APLAZAME, "57200013" },
-                { FORMA_PAGO_MIRAVIA, "57200013" }
-            };
-
-            if (cuentasFormaPago.ContainsKey(formaPago))
+            if (cobro.CuentaPrepago != null)
             {
                 PrepagoDTO prepago = new()
                 {
                     Importe = totalPagado != 0 ? totalPagado : pedidoSalida.Total,
-                    CuentaContable = cuentasFormaPago[formaPago],
+                    CuentaContable = cobro.CuentaPrepago,
                     ConceptoAdicional = string.Format("Tienda Online {0}", formaPago)
                 };
 

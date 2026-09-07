@@ -60,6 +60,90 @@ namespace CanalesExternosTests
             Assert.AreEqual("B123456789", dniDevuelto);
         }
 
+        // Bizum sin prepago (07/09/26): desde que Prestashop 4.2.7 confirma por controllers/front/ipn.php, la
+        // etiqueta del Bizum es "Bizum" (bizumName) en vez de "Bizum - Pago online"
+        // (bizumDisplayName, el flujo viejo de okpayment.php). Sin reconocerla, el pedido entraba
+        // como transferencia y SIN prepago, asi que el cobro no se contabilizaba.
+
+        [TestMethod]
+        public void ResolverCobro_BizumEtiquetaNueva_EsTarjetaPrepagadaEnLa57200013()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("Bizum");
+
+            Assert.AreEqual("TAR", cobro.FormaPago);
+            Assert.AreEqual("PRE", cobro.PlazosPago);
+            Assert.AreEqual("57200013", cobro.CuentaPrepago);
+        }
+
+        [TestMethod]
+        public void ResolverCobro_BizumEtiquetaAntigua_SigueSiendoTarjetaPrepagadaEnLa57200013()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("Bizum - Pago online");
+
+            Assert.AreEqual("TAR", cobro.FormaPago);
+            Assert.AreEqual("PRE", cobro.PlazosPago);
+            Assert.AreEqual("57200013", cobro.CuentaPrepago);
+        }
+
+        [TestMethod]
+        public void ResolverCobro_Redsys_EsTarjetaPrepagadaEnLa57200013()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("Pago con tarjeta Redsys");
+
+            Assert.AreEqual("TAR", cobro.FormaPago);
+            Assert.AreEqual("PRE", cobro.PlazosPago);
+            Assert.AreEqual("57200013", cobro.CuentaPrepago);
+        }
+
+        [TestMethod]
+        public void ResolverCobro_PayPal_TieneCuentaPropia()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("PayPal");
+
+            Assert.AreEqual("TAR", cobro.FormaPago);
+            Assert.AreEqual("PRE", cobro.PlazosPago);
+            Assert.AreEqual("57200020", cobro.CuentaPrepago);
+        }
+
+        [TestMethod]
+        public void ResolverCobro_Contrareembolso_SeCobraAlEntregarYNoLlevaPrepago()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("Pago contra reembolso");
+
+            Assert.AreEqual("EFC", cobro.FormaPago);
+            Assert.AreEqual("CONTADO", cobro.PlazosPago);
+            Assert.IsNull(cobro.CuentaPrepago);
+        }
+
+        [TestMethod]
+        public void ResolverCobro_AmazonPay_EsTransferenciaPeroConPrepago()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("Amazon Pay");
+
+            Assert.AreEqual("TRN", cobro.FormaPago);
+            Assert.AreEqual("PRE", cobro.PlazosPago);
+            Assert.AreEqual("57200013", cobro.CuentaPrepago);
+        }
+
+        [TestMethod]
+        public void ResolverCobro_FormaPagoDesconocida_EsTransferenciaSinPrepago()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro("Un modulo de pago que aun no conocemos");
+
+            Assert.AreEqual("TRN", cobro.FormaPago);
+            Assert.AreEqual("PRE", cobro.PlazosPago);
+            Assert.IsNull(cobro.CuentaPrepago);
+        }
+
+        [TestMethod]
+        public void ResolverCobro_SiNoVieneFormaPago_NoRevienta()
+        {
+            var cobro = CanalExternoPedidosPrestashopNuevaVision.ResolverCobro(null);
+
+            Assert.AreEqual("TRN", cobro.FormaPago);
+            Assert.IsNull(cobro.CuentaPrepago);
+        }
+
         [TestMethod]
         public void LeerDatosEnvio_CorreosExpress_DevuelveTransportista105YNumero()
         {
