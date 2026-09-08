@@ -130,7 +130,7 @@ Public Class AgenciaService
         envio.RowVersion = creado.RowVersion
         envio.FechaModificacion = creado.FechaModificacion
         envio.AgenciasTransporte = CargarAgencia(envio.Agencia)
-        envio.Empresas = CargarListaEmpresas().FirstOrDefault(Function(e) e.Número?.Trim() = envio.Empresa?.Trim())
+        envio.Empresas = CargarEmpresa(envio.Empresa)
         Return envio
     End Function
 
@@ -495,6 +495,22 @@ Public Class AgenciaService
     End Function
 
     ''' <summary>
+    ''' Ver IAgenciaService.CargarEmpresa. Cuando CargarListaEmpresas pase a la API (Nesto#340), este
+    ''' es el ÚNICO punto donde hay que mirar si la comparación aguanta, en vez de los cinco de antes.
+    ''' </summary>
+    Public Function CargarEmpresa(numeroEmpresa As String) As Empresas Implements IAgenciaService.CargarEmpresa
+        Dim empresa As Empresas = CargarListaEmpresas().FirstOrDefault(Function(e) CampoIgual(e.Número, numeroEmpresa))
+        If empresa Is Nothing Then
+            ' Falla aquí y con el número delante, no tres pantallas más adelante. Los sitios que
+            ' imprimen etiqueta usaban Single y reventaban con "Sequence contains no elements", que
+            ' no dice de qué empresa habla; los otros dos dejaban la navegación a Nothing y el error
+            ' salía luego como un NullReference en mitad de la etiqueta.
+            Throw New Exception($"No se encuentra la empresa '{numeroEmpresa}' para armar el envío.")
+        End If
+        Return empresa
+    End Function
+
+    ''' <summary>
     ''' Nesto#340 (slice A3): lo contesta GET api/Clientes/ExistePrincipalActivo.
     '''
     ''' Antes se traia la ficha entera del cliente para mirar unicamente si era Nothing. El
@@ -552,7 +568,7 @@ Public Class AgenciaService
         If envio Is Nothing Then
             Return Nothing
         End If
-        envio.Empresas = CargarListaEmpresas().FirstOrDefault(Function(e) e.Número?.Trim() = envio.Empresa?.Trim())
+        envio.Empresas = CargarEmpresa(envio.Empresa)
         Return envio
     End Function
 

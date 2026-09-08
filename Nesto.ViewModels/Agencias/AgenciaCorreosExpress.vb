@@ -145,7 +145,7 @@ Public Class AgenciaCorreosExpress
     End Sub
 
     Public Async Function LlamadaWebService(envio As EnviosAgencia, servicio As IAgenciaService) As Task(Of RespuestaAgencia) Implements IAgencia.LlamadaWebService
-        Dim empresa = servicio.CargarListaEmpresas().Single(Function(e) e.Número = envio.Empresa)
+        Dim empresa = servicio.CargarEmpresa(envio.Empresa)
         Dim envioCEX As New EnvioCEX With {
             .Solicitante = "I" + envio.AgenciasTransporte.Identificador,
             .NumEnvio = envio.CodigoBarras,

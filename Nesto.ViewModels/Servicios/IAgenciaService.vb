@@ -31,6 +31,19 @@ Public Interface IAgenciaService
     Function LeerPedidoParaAgenciaPorTextoCliente(empresa As String, texto As String) As PedidoAgenciaModel
     Function CalcularSumaContabilidad(empresa As String, cuentaReembolsos As String) As Double?
     Function CargarListaEmpresas() As ObservableCollection(Of Empresas)
+
+    ''' <summary>
+    ''' La empresa de un envío, buscada como la buscaría SQL Server: ignorando el relleno de los
+    ''' char y sin distinguir mayúsculas.
+    '''
+    ''' <para>Existe para que la búsqueda esté en UN sitio. Antes cada llamante hacía
+    ''' <c>CargarListaEmpresas().Single(Function(e) e.Número = envio.Empresa)</c> con un "=" pelado,
+    ''' y eso es una bomba de relojería para Nesto#340: en cuanto CargarListaEmpresas venga de la
+    ''' API, que devuelve los campos RECORTADOS, ese "=" deja de encontrar la empresa contra un
+    ''' char(3) con padding y salta "Sequence contains no elements". O sea, la etiqueta de ASM o de
+    ''' Correos Express deja de imprimirse. Es el mismo tropiezo de Nesto#254.</para>
+    ''' </summary>
+    Function CargarEmpresa(numeroEmpresa As String) As Empresas
     ''' <summary>Nesto#340 (slice A3): Agencias solo comprueba que el cliente EXISTE y esta de
     ''' alta, asi que se pregunta eso y no se trae la ficha entera.</summary>
     Function ExisteClientePrincipalActivo(empresa As String, cliente As String) As Boolean

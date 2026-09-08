@@ -3472,7 +3472,7 @@ Public Class AgenciasViewModel
             Return -1
         End If
 
-        Dim empresaEnvio As Empresas = _servicio.CargarListaEmpresas().Where(Function(e) e.Número = envio.Empresa).Single
+        Dim empresaEnvio As Empresas = _servicio.CargarEmpresa(envio.Empresa)
 
         Dim lineaDeshago, lineaRehago As New PreContabilidad
         Dim asiento As Integer
