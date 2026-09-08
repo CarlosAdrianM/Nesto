@@ -1,4 +1,4 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
@@ -50,6 +50,17 @@ namespace Nesto.Modulos.CanalesExternos.Services
 
         public async Task<ProductoCanalExterno> GetProductoAsync(string productoId)
         {
+            // Sin producto no hay nada que pedir, y pedirlo igualmente rompe la ventana: la URL se
+            // queda en "PrestashopProductos/", que en la API es la ruta del LISTADO, así que
+            // contesta un array y el DeserializeObject<ProductoCanalExterno> revienta con
+            // "Cannot deserialize the current JSON array into type ProductoCanalExterno". Como
+            // OnBuscarProducto es async void, eso sale como excepción no controlada del Dispatcher
+            // y se lleva la aplicación por delante (ELMAH 08/09/26, usuario Enrique, 1.10.25.5).
+            if (string.IsNullOrWhiteSpace(productoId))
+            {
+                return null;
+            }
+
             using (var client = new HttpClient())
             {
                 client.BaseAddress = new Uri(_configuracion.servidorAPI);
