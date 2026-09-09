@@ -1,9 +1,9 @@
-using ControlesUsuario;
+﻿using ControlesUsuario;
 using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -29,8 +29,8 @@ namespace Nesto.Modules.Producto.ViewModels
             _configuracion = configuracion ?? throw new ArgumentNullException(nameof(configuracion));
             Productos = new ObservableCollection<ProductoControlStockModel>();
 
-            BuscarProductosCommand = new DelegateCommand(async () => await OnBuscarProductosAsync(), CanBuscarProductos);
-            ActualizarCommand = new DelegateCommand(async () => await OnActualizarAsync(), CanActualizar);
+            BuscarProductosCommand = new RelayCommand(async () => await OnBuscarProductosAsync(), CanBuscarProductos);
+            ActualizarCommand = new RelayCommand(async () => await OnActualizarAsync(), CanActualizar);
         }
 
         #region IDialogAware
@@ -87,7 +87,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _almacenSeleccionado, value))
                 {
-                    BuscarProductosCommand.RaiseCanExecuteChanged();
+                    BuscarProductosCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -109,8 +109,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     RaisePropertyChanged(nameof(PuedeInteractuar));
                     RaisePropertyChanged(nameof(PuedeActualizar));
-                    BuscarProductosCommand.RaiseCanExecuteChanged();
-                    ActualizarCommand.RaiseCanExecuteChanged();
+                    BuscarProductosCommand.NotifyCanExecuteChanged();
+                    ActualizarCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -125,8 +125,8 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     RaisePropertyChanged(nameof(PuedeInteractuar));
                     RaisePropertyChanged(nameof(PuedeActualizar));
-                    BuscarProductosCommand.RaiseCanExecuteChanged();
-                    ActualizarCommand.RaiseCanExecuteChanged();
+                    BuscarProductosCommand.NotifyCanExecuteChanged();
+                    ActualizarCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -182,8 +182,8 @@ namespace Nesto.Modules.Producto.ViewModels
 
         #region Comandos
 
-        public DelegateCommand BuscarProductosCommand { get; }
-        public DelegateCommand ActualizarCommand { get; }
+        public RelayCommand BuscarProductosCommand { get; }
+        public RelayCommand ActualizarCommand { get; }
 
         private bool CanBuscarProductos()
         {
@@ -225,7 +225,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 RaisePropertyChanged(nameof(ProductosACrear));
                 RaisePropertyChanged(nameof(ProductosSinCambios));
                 RaisePropertyChanged(nameof(PuedeActualizar));
-                ActualizarCommand.RaiseCanExecuteChanged();
+                ActualizarCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {
@@ -334,7 +334,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 RaisePropertyChanged(nameof(ProductosConError));
                 RaisePropertyChanged(nameof(ProductosSinCambios));
                 RaisePropertyChanged(nameof(PuedeActualizar));
-                ActualizarCommand.RaiseCanExecuteChanged();
+                ActualizarCommand.NotifyCanExecuteChanged();
             }
             finally
             {
@@ -359,7 +359,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 dpd?.AddValueChanged(_selectorProveedor, (s, e) =>
                 {
                     RaisePropertyChanged(nameof(ProveedorSeleccionado));
-                    BuscarProductosCommand.RaiseCanExecuteChanged();
+                    BuscarProductosCommand.NotifyCanExecuteChanged();
                 });
             }
         }

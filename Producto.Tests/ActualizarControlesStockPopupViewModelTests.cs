@@ -314,7 +314,7 @@ namespace Producto.Tests
             _sut.ActualizarMuestras = false;
 
             // Act
-            _sut.BuscarProductosCommand.Execute();
+            _sut.BuscarProductosCommand.Execute(null);
             await Task.Delay(100); // Esperar a que termine la tarea async
 
             // Assert
@@ -343,7 +343,7 @@ namespace Producto.Tests
             _sut.ActualizarMuestras = true;
 
             // Act
-            _sut.BuscarProductosCommand.Execute();
+            _sut.BuscarProductosCommand.Execute(null);
             await Task.Delay(100);
 
             // Assert
@@ -371,7 +371,7 @@ namespace Producto.Tests
             _sut.ActualizarMuestras = false;
 
             // Act
-            _sut.BuscarProductosCommand.Execute();
+            _sut.BuscarProductosCommand.Execute(null);
             await Task.Delay(100);
 
             // Assert
@@ -396,7 +396,7 @@ namespace Producto.Tests
             _sut.ActualizarMuestras = false;
 
             // Act
-            _sut.BuscarProductosCommand.Execute();
+            _sut.BuscarProductosCommand.Execute(null);
             await Task.Delay(100);
 
             // Assert - Debe excluir "MMP   " gracias al Trim()

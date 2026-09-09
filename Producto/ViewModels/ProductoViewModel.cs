@@ -4,7 +4,7 @@ using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using Nesto.Modulos.Producto;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
 using Prism.Mvvm;
 using Prism.Regions;
@@ -63,25 +63,25 @@ namespace Nesto.Modules.Producto.ViewModels
             _dialogService = dialogService;
             _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
 
-            AbrirActualizarControlesStockCommand = new DelegateCommand(OnAbrirActualizarControlesStock);
-            AbrirModuloCommand = new DelegateCommand(OnAbrirModulo, CanAbrirModulo);
-            AbrirProductoCommand = new DelegateCommand<string>(OnAbrirProducto);
-            AbrirProductoWebCommand = new DelegateCommand(OnAbrirProductoWeb, CanAbrirProductoWeb);
-            BuscarProductoCommand = new DelegateCommand(OnBuscarProducto, CanBuscarProducto);
-            BuscarContextualCommand = new DelegateCommand<string>(OnBuscarContextual, CanBuscarContextual);
-            BuscarClientesCommand = new DelegateCommand(OnBuscarClientes, CanBuscarClientes);
-            CorrigeVideoProductoCommand = new DelegateCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
-            GuardarProductoCommand = new DelegateCommand(OnGuardarProducto, CanGuardarProducto);
-            GuardarGruposComisionablesCommand = new DelegateCommand(OnGuardarGruposComisionables, () => ProductoActual != null);
-            GuardarExclusivoProfesionalCommand = new DelegateCommand(OnGuardarExclusivoProfesional, () => ProductoActual != null);
-            AnnadirCategoriaSecundariaCommand = new DelegateCommand(OnAnnadirCategoriaSecundaria, () => SubgrupoWebSeleccionado != null);
-            QuitarCategoriaSecundariaCommand = new DelegateCommand(OnQuitarCategoriaSecundaria, () => CategoriaSecundariaSeleccionada != null);
-            SubirCategoriaSecundariaCommand = new DelegateCommand(OnSubirCategoriaSecundaria, CanSubirCategoriaSecundaria);
-            BajarCategoriaSecundariaCommand = new DelegateCommand(OnBajarCategoriaSecundaria, CanBajarCategoriaSecundaria);
-            GuardarCategoriasSecundariasCommand = new DelegateCommand(OnGuardarCategoriasSecundarias, () => ProductoActual != null);
-            ImprimirEtiquetasProductoCommand = new DelegateCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
-            MontarKitCommand = new DelegateCommand(OnMontarKit, CanMontarKit);
-            SeleccionarProductoCommand = new DelegateCommand(OnSeleccionarProducto, CanSeleccionarProducto);
+            AbrirActualizarControlesStockCommand = new RelayCommand(OnAbrirActualizarControlesStock);
+            AbrirModuloCommand = new RelayCommand(OnAbrirModulo, CanAbrirModulo);
+            AbrirProductoCommand = new RelayCommand<string>(OnAbrirProducto);
+            AbrirProductoWebCommand = new RelayCommand(OnAbrirProductoWeb, CanAbrirProductoWeb);
+            BuscarProductoCommand = new RelayCommand(OnBuscarProducto, CanBuscarProducto);
+            BuscarContextualCommand = new RelayCommand<string>(OnBuscarContextual, CanBuscarContextual);
+            BuscarClientesCommand = new RelayCommand(OnBuscarClientes, CanBuscarClientes);
+            CorrigeVideoProductoCommand = new RelayCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
+            GuardarProductoCommand = new RelayCommand(OnGuardarProducto, CanGuardarProducto);
+            GuardarGruposComisionablesCommand = new RelayCommand(OnGuardarGruposComisionables, () => ProductoActual != null);
+            GuardarExclusivoProfesionalCommand = new RelayCommand(OnGuardarExclusivoProfesional, () => ProductoActual != null);
+            AnnadirCategoriaSecundariaCommand = new RelayCommand(OnAnnadirCategoriaSecundaria, () => SubgrupoWebSeleccionado != null);
+            QuitarCategoriaSecundariaCommand = new RelayCommand(OnQuitarCategoriaSecundaria, () => CategoriaSecundariaSeleccionada != null);
+            SubirCategoriaSecundariaCommand = new RelayCommand(OnSubirCategoriaSecundaria, CanSubirCategoriaSecundaria);
+            BajarCategoriaSecundariaCommand = new RelayCommand(OnBajarCategoriaSecundaria, CanBajarCategoriaSecundaria);
+            GuardarCategoriasSecundariasCommand = new RelayCommand(OnGuardarCategoriasSecundarias, () => ProductoActual != null);
+            ImprimirEtiquetasProductoCommand = new RelayCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
+            MontarKitCommand = new RelayCommand(OnMontarKit, CanMontarKit);
+            SeleccionarProductoCommand = new RelayCommand(OnSeleccionarProducto, CanSeleccionarProducto);
 
             Titulo = "Producto";
 
@@ -132,7 +132,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 // NestoAPI#421: la casilla refleja lo que hay en la ficha. No guarda al cargar:
                 // se guarda con su botón, como los grupos comisionables.
                 ExclusivoProfesional = ProductoActual.ExclusivoProfesional;
-                GuardarExclusivoProfesionalCommand.RaiseCanExecuteChanged();
+                GuardarExclusivoProfesionalCommand.NotifyCanExecuteChanged();
                 await CargarCategoriasWebAsync(productoId);
                 await CargarGruposComisionablesAsync(productoId);
                 if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
@@ -160,7 +160,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _cantidadKitMontar, value);
-                MontarKitCommand.RaiseCanExecuteChanged();
+                MontarKitCommand.NotifyCanExecuteChanged();
             }
         }
         public ObservableCollection<ProductoClienteModel> ClientesResultadoBusqueda
@@ -197,7 +197,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _filtroFamilia, value);
-                BuscarProductoCommand.RaiseCanExecuteChanged();
+                BuscarProductoCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -207,8 +207,8 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _filtroNombre, value);
-                BuscarProductoCommand.RaiseCanExecuteChanged();
-                BuscarContextualCommand.RaiseCanExecuteChanged();
+                BuscarProductoCommand.NotifyCanExecuteChanged();
+                BuscarContextualCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -218,7 +218,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _filtroSubgrupo, value);
-                BuscarProductoCommand.RaiseCanExecuteChanged();
+                BuscarProductoCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -238,7 +238,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     if (PestannaSeleccionada == Pestannas.Clientes)
                     {
-                        BuscarClientesCommand.Execute();
+                        BuscarClientesCommand.Execute(null);
                     }
                 }
             }
@@ -266,9 +266,9 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     if (PestannaSeleccionada == Pestannas.Clientes)
                     {
-                        BuscarClientesCommand.Execute();
+                        BuscarClientesCommand.Execute(null);
                     }
-                    AbrirProductoWebCommand.RaiseCanExecuteChanged();
+                    AbrirProductoWebCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -346,7 +346,7 @@ namespace Nesto.Modules.Producto.ViewModels
                      );
 
                     RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
-                    CorrigeVideoProductoCommand.RaiseCanExecuteChanged();
+                    CorrigeVideoProductoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -398,7 +398,7 @@ namespace Nesto.Modules.Producto.ViewModels
         #endregion
 
         #region "Comandos"
-        public DelegateCommand AbrirActualizarControlesStockCommand { get; }
+        public RelayCommand AbrirActualizarControlesStockCommand { get; }
         private async void OnAbrirActualizarControlesStock()
         {
             await _dialogService.ShowDialogAsync("ActualizarControlesStockPopupView", new DialogParameters());
@@ -415,7 +415,7 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
 
-        public DelegateCommand<string> AbrirProductoCommand { get; private set; }
+        public RelayCommand<string> AbrirProductoCommand { get; private set; }
         private async void OnAbrirProducto(string productoId)
         {
             if (!string.IsNullOrEmpty(productoId))
@@ -428,7 +428,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public DelegateCommand AbrirProductoWebCommand { get; private set; }
+        public RelayCommand AbrirProductoWebCommand { get; private set; }
         private bool CanAbrirProductoWeb()
         {
             return ProductoActual != null && !string.IsNullOrEmpty(ProductoActual.UrlEnlace);
@@ -438,7 +438,7 @@ namespace Nesto.Modules.Producto.ViewModels
             _ = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(ProductoActual.UrlEnlace + "&utm_medium=ficha_producto") { UseShellExecute = true });
         }
 
-        public DelegateCommand BuscarClientesCommand { get; private set; }
+        public RelayCommand BuscarClientesCommand { get; private set; }
         private bool CanBuscarClientes()
         {
             return ProductoActual != null && !string.IsNullOrEmpty(ProductoActual.Producto);
@@ -449,7 +449,7 @@ namespace Nesto.Modules.Producto.ViewModels
             ClientesResultadoBusqueda = [.. resultadoBusqueda];
         }
 
-        public DelegateCommand BuscarProductoCommand { get; private set; }
+        public RelayCommand BuscarProductoCommand { get; private set; }
         private bool CanBuscarProducto()
         {
             return (FiltroNombre != null && FiltroNombre.Trim() != "") || (FiltroFamilia != null && FiltroFamilia.Trim() != "") || (FiltroSubgrupo != null && FiltroSubgrupo.Trim() != "");
@@ -472,7 +472,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     ProductosResultadoBusqueda.QuitarFiltroCommand.Execute("-stock:0");
                 }
                 RaisePropertyChanged(nameof(MostrarBarraBusqueda));
-                ImprimirEtiquetasProductoCommand.RaiseCanExecuteChanged();
+                ImprimirEtiquetasProductoCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {
@@ -492,7 +492,7 @@ namespace Nesto.Modules.Producto.ViewModels
         /// FiltroNombre, pero lo recibimos como parámetro para poder atajar con Alt+C aunque
         /// el foco esté en otro textbox.
         /// </summary>
-        public DelegateCommand<string> BuscarContextualCommand { get; private set; }
+        public RelayCommand<string> BuscarContextualCommand { get; private set; }
         private bool CanBuscarContextual(string filtro)
         {
             return !string.IsNullOrWhiteSpace(filtro);
@@ -533,7 +533,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     ProductosResultadoBusqueda.QuitarFiltroCommand.Execute("-stock:0");
                 }
                 RaisePropertyChanged(nameof(MostrarBarraBusqueda));
-                ImprimirEtiquetasProductoCommand.RaiseCanExecuteChanged();
+                ImprimirEtiquetasProductoCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {
@@ -546,7 +546,7 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
 
-        public DelegateCommand CorrigeVideoProductoCommand { get; }
+        public RelayCommand CorrigeVideoProductoCommand { get; }
 
         private async void OnCorrigeVideoProducto()
         {
@@ -574,7 +574,7 @@ namespace Nesto.Modules.Producto.ViewModels
         }
 
 
-        public DelegateCommand GuardarProductoCommand { get; private set; }
+        public RelayCommand GuardarProductoCommand { get; private set; }
         private bool CanGuardarProducto()
         {
             return ControlStock != null &&
@@ -600,7 +600,7 @@ namespace Nesto.Modules.Producto.ViewModels
             // Refrescar los valores iniciales para que el botón Guardar se desactive tras guardar.
             ControlStock.Model.StockMinimoInicial = ControlStock.Model.StockMinimoActual;
             ControlStock.Model.MultiplosInicial = ControlStock.MultiplosActual;
-            GuardarProductoCommand.RaiseCanExecuteChanged();
+            GuardarProductoCommand.NotifyCanExecuteChanged();
         }
 
         // NestoAPI#249: grupo alternativo por el que puede comisionar el producto (pestaña Comisiones).
@@ -640,10 +640,10 @@ namespace Nesto.Modules.Producto.ViewModels
                 });
             }
             NingunGrupoComisionable = !GruposComisionables.Any(g => g.Seleccionado);
-            GuardarGruposComisionablesCommand.RaiseCanExecuteChanged();
+            GuardarGruposComisionablesCommand.NotifyCanExecuteChanged();
         }
 
-        public DelegateCommand GuardarGruposComisionablesCommand { get; private set; }
+        public RelayCommand GuardarGruposComisionablesCommand { get; private set; }
         private async void OnGuardarGruposComisionables()
         {
             try
@@ -669,7 +669,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set => SetProperty(ref _exclusivoProfesional, value);
         }
 
-        public DelegateCommand GuardarExclusivoProfesionalCommand { get; private set; }
+        public RelayCommand GuardarExclusivoProfesionalCommand { get; private set; }
         private async void OnGuardarExclusivoProfesional()
         {
             try
@@ -730,7 +730,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _subgrupoWebSeleccionado, value))
                 {
-                    AnnadirCategoriaSecundariaCommand.RaiseCanExecuteChanged();
+                    AnnadirCategoriaSecundariaCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -785,7 +785,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 GrupoWebSeleccionado = null;
                 RellenarSubgruposDelGrupo();
                 RefrescarComandosDeCategorias();
-                GuardarCategoriasSecundariasCommand.RaiseCanExecuteChanged();
+                GuardarCategoriasSecundariasCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {
@@ -814,12 +814,12 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private void RefrescarComandosDeCategorias()
         {
-            QuitarCategoriaSecundariaCommand.RaiseCanExecuteChanged();
-            SubirCategoriaSecundariaCommand.RaiseCanExecuteChanged();
-            BajarCategoriaSecundariaCommand.RaiseCanExecuteChanged();
+            QuitarCategoriaSecundariaCommand.NotifyCanExecuteChanged();
+            SubirCategoriaSecundariaCommand.NotifyCanExecuteChanged();
+            BajarCategoriaSecundariaCommand.NotifyCanExecuteChanged();
         }
 
-        public DelegateCommand AnnadirCategoriaSecundariaCommand { get; private set; }
+        public RelayCommand AnnadirCategoriaSecundariaCommand { get; private set; }
         private void OnAnnadirCategoriaSecundaria()
         {
             SubgrupoProductoModel elegido = SubgrupoWebSeleccionado;
@@ -841,7 +841,7 @@ namespace Nesto.Modules.Producto.ViewModels
             RefrescarComandosDeCategorias();
         }
 
-        public DelegateCommand QuitarCategoriaSecundariaCommand { get; private set; }
+        public RelayCommand QuitarCategoriaSecundariaCommand { get; private set; }
         private void OnQuitarCategoriaSecundaria()
         {
             if (CategoriaSecundariaSeleccionada == null)
@@ -852,7 +852,7 @@ namespace Nesto.Modules.Producto.ViewModels
             CategoriaSecundariaSeleccionada = null;
         }
 
-        public DelegateCommand SubirCategoriaSecundariaCommand { get; private set; }
+        public RelayCommand SubirCategoriaSecundariaCommand { get; private set; }
         private bool CanSubirCategoriaSecundaria()
         {
             return CategoriaSecundariaSeleccionada != null
@@ -863,7 +863,7 @@ namespace Nesto.Modules.Producto.ViewModels
             MoverCategoriaSecundaria(-1);
         }
 
-        public DelegateCommand BajarCategoriaSecundariaCommand { get; private set; }
+        public RelayCommand BajarCategoriaSecundariaCommand { get; private set; }
         private bool CanBajarCategoriaSecundaria()
         {
             int indice = CategoriaSecundariaSeleccionada == null
@@ -890,7 +890,7 @@ namespace Nesto.Modules.Producto.ViewModels
             RefrescarComandosDeCategorias();
         }
 
-        public DelegateCommand GuardarCategoriasSecundariasCommand { get; private set; }
+        public RelayCommand GuardarCategoriasSecundariasCommand { get; private set; }
         private async void OnGuardarCategoriasSecundarias()
         {
             try
@@ -906,7 +906,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public DelegateCommand ImprimirEtiquetasProductoCommand { get; private set; }
+        public RelayCommand ImprimirEtiquetasProductoCommand { get; private set; }
         private bool CanImprimirEtiquetasProducto()
         {
             return ProductosResultadoBusqueda != null && ProductosResultadoBusqueda.Lista != null && ProductosResultadoBusqueda.Lista.Any();
@@ -936,7 +936,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         }
 
-        public DelegateCommand MontarKitCommand { get; private set; }
+        public RelayCommand MontarKitCommand { get; private set; }
         private bool CanMontarKit()
         {
             return CantidadKitMontar != 0;
@@ -1058,7 +1058,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         private void ControlStockChanged(object sender, EventArgs e)
         {
-            GuardarProductoCommand.RaiseCanExecuteChanged();
+            GuardarProductoCommand.NotifyCanExecuteChanged();
         }
     }
 

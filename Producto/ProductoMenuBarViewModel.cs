@@ -1,6 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Regions;
 using System.Windows.Input;
 
@@ -15,8 +15,8 @@ namespace Nesto.Modules.Producto
             RegionManager = regionManager;
             Configuracion = configuracion;
 
-            AbrirModuloFichaCommand = new DelegateCommand(OnAbrirModuloFicha, CanAbrirModuloFicha);
-            AbrirModuloReposicionCommand = new DelegateCommand(OnAbrirModuloReposicion, CanAbrirModuloReposicion);
+            AbrirModuloFichaCommand = new RelayCommand(OnAbrirModuloFicha, CanAbrirModuloFicha);
+            AbrirModuloReposicionCommand = new RelayCommand(OnAbrirModuloReposicion, CanAbrirModuloReposicion);
         }
 
         public ICommand AbrirModuloFichaCommand { get; private set; }

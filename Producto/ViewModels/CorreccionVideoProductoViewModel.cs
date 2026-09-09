@@ -1,5 +1,5 @@
 ﻿using Nesto.Modules.Producto.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -23,8 +23,8 @@ namespace Nesto.Modules.Producto.ViewModels
             _regionManager = regionManager;
             ProductosEditables = [];
 
-            GuardarCommand = new DelegateCommand(OnGuardar, CanGuardar);
-            AbrirProductosConBusquedaCommand = new DelegateCommand<string>(OnAbrirProductosConBusqueda, CanAbrirProductosConBusqueda);
+            GuardarCommand = new RelayCommand(OnGuardar, CanGuardar);
+            AbrirProductosConBusquedaCommand = new RelayCommand<string>(OnAbrirProductosConBusqueda, CanAbrirProductosConBusqueda);
         }
 
         // Implementación correcta del evento RequestClose
@@ -53,8 +53,8 @@ namespace Nesto.Modules.Producto.ViewModels
         public ObservableCollection<ProductoEditable> ProductosEditables { get; }
 
         // Comandos
-        public DelegateCommand GuardarCommand { get; }
-        public DelegateCommand<string> AbrirProductosConBusquedaCommand { get; }
+        public RelayCommand GuardarCommand { get; }
+        public RelayCommand<string> AbrirProductosConBusquedaCommand { get; }
 
         // Resumen de cambios
         public string ResumenCambios
@@ -104,7 +104,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     var editable = new ProductoEditable(producto);
                     editable.PropertyChanged += (s, e) =>
                     {
-                        GuardarCommand.RaiseCanExecuteChanged();
+                        GuardarCommand.NotifyCanExecuteChanged();
                         RaisePropertyChanged(nameof(ResumenCambios));
                     };
                     ProductosEditables.Add(editable);
@@ -113,7 +113,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 _ = CargarNombresProductoAsociadoAsync();
             }
 
-            GuardarCommand.RaiseCanExecuteChanged();
+            GuardarCommand.NotifyCanExecuteChanged();
         }
 
         internal async System.Threading.Tasks.Task CargarNombresProductoAsociadoAsync()
@@ -272,13 +272,13 @@ namespace Nesto.Modules.Producto.ViewModels
             _tiempoAparicion = productoOriginal.TiempoAparicion;
 
             // Comandos para abrir enlaces
-            AbrirEnlaceVideoCommand = new DelegateCommand(OnAbrirEnlaceVideo, CanAbrirEnlaceVideo);
-            AbrirEnlaceTiendaCommand = new DelegateCommand(OnAbrirEnlaceTienda, CanAbrirEnlaceTienda);
+            AbrirEnlaceVideoCommand = new RelayCommand(OnAbrirEnlaceVideo, CanAbrirEnlaceVideo);
+            AbrirEnlaceTiendaCommand = new RelayCommand(OnAbrirEnlaceTienda, CanAbrirEnlaceTienda);
         }
 
         // Comandos
-        public DelegateCommand AbrirEnlaceVideoCommand { get; }
-        public DelegateCommand AbrirEnlaceTiendaCommand { get; }
+        public RelayCommand AbrirEnlaceVideoCommand { get; }
+        public RelayCommand AbrirEnlaceTiendaCommand { get; }
 
         // Nombre del VideoProducto tal como lo nombra el vídeo (ej. "Alta Frecuencia").
         // Se inicializa desde ProductoOriginal.NombreProducto y NO se sobrescribe al resolver

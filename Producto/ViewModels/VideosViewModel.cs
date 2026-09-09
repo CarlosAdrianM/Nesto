@@ -1,8 +1,8 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -34,11 +34,11 @@ namespace Nesto.Modules.Producto.ViewModels
             _configuracion = configuracion;
             _regionManager = regionManager;
 
-            CargarMasVideosCommand = new DelegateCommand(OnCargarMasVideos, CanCargarMasVideos);
-            BuscarCommand = new DelegateCommand(OnBuscar, CanBuscar);
-            CorrigeVideoProductoCommand = new DelegateCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
-            AbrirVideoEnNavegadorCommand = new DelegateCommand(OnAbrirVideoEnNavegador, CanAbrirVideoEnNavegador);
-            AbrirProductoCommand = new DelegateCommand<string>(OnAbrirProducto);
+            CargarMasVideosCommand = new RelayCommand(OnCargarMasVideos, CanCargarMasVideos);
+            BuscarCommand = new RelayCommand(OnBuscar, CanBuscar);
+            CorrigeVideoProductoCommand = new RelayCommand(OnCorrigeVideoProducto, CanCorrigeVideoProducto);
+            AbrirVideoEnNavegadorCommand = new RelayCommand(OnAbrirVideoEnNavegador, CanAbrirVideoEnNavegador);
+            AbrirProductoCommand = new RelayCommand<string>(OnAbrirProducto);
 
             Videos = [];
             Titulo = "Videos";
@@ -78,7 +78,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     {
                         VideoCompletoSeleccionado = null;
                     }
-                    AbrirVideoEnNavegadorCommand.RaiseCanExecuteChanged();
+                    AbrirVideoEnNavegadorCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -96,7 +96,7 @@ namespace Nesto.Modules.Producto.ViewModels
                         _videoCompletoSeleccionado?.Productos?.ToList() ?? []
                     );
                     RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
-                    CorrigeVideoProductoCommand.RaiseCanExecuteChanged();
+                    CorrigeVideoProductoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -126,7 +126,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _textoBusqueda, value))
                 {
-                    BuscarCommand.RaiseCanExecuteChanged();
+                    BuscarCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -139,8 +139,8 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _estaCargando, value))
                 {
-                    CargarMasVideosCommand.RaiseCanExecuteChanged();
-                    BuscarCommand.RaiseCanExecuteChanged();
+                    CargarMasVideosCommand.NotifyCanExecuteChanged();
+                    BuscarCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -153,7 +153,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _hayMasVideos, value))
                 {
-                    CargarMasVideosCommand.RaiseCanExecuteChanged();
+                    CargarMasVideosCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -169,7 +169,7 @@ namespace Nesto.Modules.Producto.ViewModels
 
         #region Comandos
 
-        public DelegateCommand CargarMasVideosCommand { get; }
+        public RelayCommand CargarMasVideosCommand { get; }
 
         private bool CanCargarMasVideos()
         {
@@ -181,7 +181,7 @@ namespace Nesto.Modules.Producto.ViewModels
             await CargarVideosAsync(false);
         }
 
-        public DelegateCommand BuscarCommand { get; }
+        public RelayCommand BuscarCommand { get; }
 
         private bool CanBuscar()
         {
@@ -194,7 +194,7 @@ namespace Nesto.Modules.Producto.ViewModels
             await CargarVideosAsync(true);
         }
 
-        public DelegateCommand CorrigeVideoProductoCommand { get; }
+        public RelayCommand CorrigeVideoProductoCommand { get; }
 
         private bool CanCorrigeVideoProducto()
         {
@@ -221,7 +221,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public DelegateCommand AbrirVideoEnNavegadorCommand { get; }
+        public RelayCommand AbrirVideoEnNavegadorCommand { get; }
 
         private bool CanAbrirVideoEnNavegador()
         {
@@ -236,7 +236,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public DelegateCommand<string> AbrirProductoCommand { get; }
+        public RelayCommand<string> AbrirProductoCommand { get; }
 
         private void OnAbrirProducto(string productoId)
         {

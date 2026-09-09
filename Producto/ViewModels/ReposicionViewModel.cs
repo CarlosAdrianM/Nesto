@@ -1,6 +1,6 @@
 ﻿using ControlesUsuario.Dialogs;
 using Nesto.Modules.Producto.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -19,7 +19,7 @@ namespace Nesto.Modules.Producto.ViewModels
         {
             Servicio = servicio;
             DialogService = dialogService;
-            TraspasarDiarioCommand = new DelegateCommand(OnTraspasarDiario, CanTraspasarDiario);
+            TraspasarDiarioCommand = new RelayCommand(OnTraspasarDiario, CanTraspasarDiario);
             CargarDiarios();            
         }
 
@@ -40,7 +40,7 @@ namespace Nesto.Modules.Producto.ViewModels
             get => _diarioDestino;
             set {
                 SetProperty(ref _diarioDestino, value);
-                TraspasarDiarioCommand.RaiseCanExecuteChanged();
+                TraspasarDiarioCommand.NotifyCanExecuteChanged();
             }
         }
         private DiarioProductoModel _diarioOrigen;       
@@ -50,7 +50,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 SetProperty(ref _diarioOrigen, value);
-                TraspasarDiarioCommand.RaiseCanExecuteChanged();
+                TraspasarDiarioCommand.NotifyCanExecuteChanged();
                 if (value != null && value.Almacenes != null && string.IsNullOrEmpty(AlmacenOrigen))
                 {
                     AlmacenOrigen = value.Almacenes.FirstOrDefault();
@@ -58,7 +58,7 @@ namespace Nesto.Modules.Producto.ViewModels
             }
         }
 
-        public DelegateCommand TraspasarDiarioCommand { get; private set; }
+        public RelayCommand TraspasarDiarioCommand { get; private set; }
         public IProductoService Servicio { get; }
         public IDialogService DialogService { get; }
         public List<DiarioProductoModel> ListaDiarios { get; private set; }

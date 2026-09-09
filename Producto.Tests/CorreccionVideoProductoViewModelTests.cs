@@ -203,7 +203,7 @@ namespace Producto.Tests
                 .Invokes((int _, ActualizacionVideoProductoDto dto) => dtoEnviado = dto)
                 .Returns(Task.CompletedTask);
 
-            _sut.GuardarCommand.Execute();
+            _sut.GuardarCommand.Execute(null);
 
             // El comando guarda async; esperar un tick.
             await Task.Delay(50);

@@ -90,7 +90,7 @@ namespace Nesto.Modulos.Producto
                 BindingExpression be = txtFiltroSubgrupo.GetBindingExpression(TextBox.TextProperty);
                 be.UpdateSource();
                 ProductoViewModel vm = (ProductoViewModel)DataContext;
-                vm.BuscarProductoCommand.Execute();
+                vm.BuscarProductoCommand.Execute(null);
             }
         }
 

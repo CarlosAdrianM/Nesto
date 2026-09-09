@@ -175,7 +175,7 @@ namespace Producto.Tests
             sut.ReferenciaBuscar = "41269";
 
             sut.ExclusivoProfesional = true;
-            sut.GuardarExclusivoProfesionalCommand.Execute();
+            sut.GuardarExclusivoProfesionalCommand.Execute(null);
 
             A.CallTo(() => servicio.GuardarExclusivoProfesional("41269", true)).MustHaveHappenedOnceExactly();
             Assert.IsTrue(sut.ProductoActual.ExclusivoProfesional);
@@ -195,7 +195,7 @@ namespace Producto.Tests
             sut.ReferenciaBuscar = "41269";
 
             sut.ExclusivoProfesional = false;
-            sut.GuardarExclusivoProfesionalCommand.Execute();
+            sut.GuardarExclusivoProfesionalCommand.Execute(null);
 
             A.CallTo(() => servicio.GuardarExclusivoProfesional("41269", false)).MustHaveHappenedOnceExactly();
         }
@@ -320,7 +320,7 @@ namespace Producto.Tests
 
             sut.GrupoWebSeleccionado = "APA";
             sut.SubgrupoWebSeleccionado = sut.SubgruposDelGrupoWeb.Single();
-            sut.AnnadirCategoriaSecundariaCommand.Execute();
+            sut.AnnadirCategoriaSecundariaCommand.Execute(null);
 
             Assert.AreEqual(2, sut.CategoriasSecundarias.Count);
             Assert.AreEqual("APA/EXP — Aparatología Exclusiva Profesional", sut.CategoriasSecundarias[1].Descripcion);
@@ -339,7 +339,7 @@ namespace Producto.Tests
 
             sut.GrupoWebSeleccionado = "APA";
             sut.SubgrupoWebSeleccionado = sut.SubgruposDelGrupoWeb.Single();
-            sut.AnnadirCategoriaSecundariaCommand.Execute();
+            sut.AnnadirCategoriaSecundariaCommand.Execute(null);
 
             Assert.AreEqual(1, sut.CategoriasSecundarias.Count);
         }
@@ -356,12 +356,12 @@ namespace Producto.Tests
             sut.ReferenciaBuscar = "41269";
 
             sut.CategoriaSecundariaSeleccionada = sut.CategoriasSecundarias[1];
-            sut.SubirCategoriaSecundariaCommand.Execute();
+            sut.SubirCategoriaSecundariaCommand.Execute(null);
 
             Assert.AreEqual("APA", sut.CategoriasSecundarias[0].Grupo);
             Assert.AreSame(sut.CategoriasSecundarias[0], sut.CategoriaSecundariaSeleccionada, "No se pierde la selección al mover");
 
-            sut.BajarCategoriaSecundariaCommand.Execute();
+            sut.BajarCategoriaSecundariaCommand.Execute(null);
 
             Assert.AreEqual("COS", sut.CategoriasSecundarias[0].Grupo);
         }
@@ -381,8 +381,8 @@ namespace Producto.Tests
             sut.ReferenciaBuscar = "41269";
 
             sut.CategoriaSecundariaSeleccionada = sut.CategoriasSecundarias[1];
-            sut.SubirCategoriaSecundariaCommand.Execute();
-            sut.GuardarCategoriasSecundariasCommand.Execute();
+            sut.SubirCategoriaSecundariaCommand.Execute(null);
+            sut.GuardarCategoriasSecundariasCommand.Execute(null);
 
             Assert.IsNotNull(enviadas);
             CollectionAssert.AreEqual(new[] { "APA", "COS" }, enviadas!.Select(c => c.Grupo).ToArray());
@@ -403,8 +403,8 @@ namespace Producto.Tests
             sut.ReferenciaBuscar = "41269";
 
             sut.CategoriaSecundariaSeleccionada = sut.CategoriasSecundarias[0];
-            sut.QuitarCategoriaSecundariaCommand.Execute();
-            sut.GuardarCategoriasSecundariasCommand.Execute();
+            sut.QuitarCategoriaSecundariaCommand.Execute(null);
+            sut.GuardarCategoriasSecundariasCommand.Execute(null);
 
             Assert.IsNotNull(enviadas);
             Assert.AreEqual(0, enviadas!.Count);
