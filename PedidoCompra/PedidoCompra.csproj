@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="PedidoCompraTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Images\PedidoCompra.png" />
   </ItemGroup>
 

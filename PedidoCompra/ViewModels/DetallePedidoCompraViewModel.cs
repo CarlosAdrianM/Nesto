@@ -395,19 +395,37 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             }
         }
 
-        private async Task CargarOfertasYDescuentos(PedidoCompraWrapper pedido)
+        /// <summary>
+        /// Al abrir un pedido, carga en cada línea las ofertas y descuentos del producto para su proveedor.
+        /// ELMAH 09/09/26 (Santiago, Nesto 1.10.25.6): tiraba NullReferenceException (como tarea no
+        /// observada) cuando una línea no tenía producto, el producto no venía de la API o venía sin
+        /// ofertas. Ahora esas líneas se saltan y el resto se sigue cargando.
+        /// </summary>
+        internal async Task CargarOfertasYDescuentos(PedidoCompraWrapper pedido)
         {
+            if (pedido?.Lineas == null)
+            {
+                return;
+            }
             for (var i = 0; i < pedido.Lineas.Count; i++)
             {
                 var linea = pedido.Lineas[i];
+                if (linea?.Model == null || linea.TipoLinea != Constantes.LineasPedido.TiposLinea.PRODUCTO || string.IsNullOrWhiteSpace(linea.Producto))
+                {
+                    continue;
+                }
                 var producto = await Servicio.LeerProducto(pedido.Model.Empresa, linea.Producto, pedido.Model.Proveedor, pedido.Model.CodigoIvaProveedor);
-                linea.Model.Ofertas = producto.Ofertas;
-                linea.Model.Descuentos = producto.Descuentos;
+                if (producto == null)
+                {
+                    continue;
+                }
+                linea.Model.Ofertas = producto.Ofertas ?? new List<OfertaCompra>();
+                linea.Model.Descuentos = producto.Descuentos ?? new List<DescuentoCantidadCompra>();
                 linea.Cantidad = linea.Cantidad; // para que actualice descuentos y ofertas
-                if (linea.TipoLinea == Constantes.LineasPedido.TiposLinea.PRODUCTO && linea.Cantidad != 0 && linea.BaseImponible == 0)
+                if (linea.Cantidad != 0 && linea.BaseImponible == 0)
                 {
                     var lineaMismoProducto = pedido.Lineas.FirstOrDefault(l => l.Producto == linea.Producto);
-                    if (lineaMismoProducto != null && lineaMismoProducto != linea && lineaMismoProducto.Model.Ofertas.Any())
+                    if (lineaMismoProducto != null && lineaMismoProducto != linea && lineaMismoProducto.Model?.Ofertas != null && lineaMismoProducto.Model.Ofertas.Any())
                     {
                         //lineaMismoProducto.Model.AplicarDescuentos = false;
                         lineaMismoProducto.Cantidad += linea.Cantidad;
