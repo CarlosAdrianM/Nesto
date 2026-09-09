@@ -5,7 +5,7 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Events
 Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
 Imports Prism.Mvvm
 Imports Prism.Regions
@@ -32,11 +32,11 @@ Public Class ListaPedidosVentaViewModel
         Me.dialogService = dialogService
         Me.regionManager = regionManager
 
-        cmdCargarListaPedidos = New DelegateCommand(AddressOf OnCargarListaPedidos)
-        CrearPedidoCommand = New DelegateCommand(AddressOf OnCrearPedido)
-        CancelarCreacionCommand = New DelegateCommand(AddressOf OnCancelarCreacion)
-        RecalcularTotalesCommand = New DelegateCommand(AddressOf RecalcularTotalesSeleccionados)
-        ModificarConPlantillaCommand = New DelegateCommand(Of ResumenPedido)(AddressOf OnModificarConPlantilla)
+        cmdCargarListaPedidos = New RelayCommand(AddressOf OnCargarListaPedidos)
+        CrearPedidoCommand = New RelayCommand(AddressOf OnCrearPedido)
+        CancelarCreacionCommand = New RelayCommand(AddressOf OnCancelarCreacion)
+        RecalcularTotalesCommand = New RelayCommand(AddressOf RecalcularTotalesSeleccionados)
+        ModificarConPlantillaCommand = New RelayCommand(Of ResumenPedido)(AddressOf OnModificarConPlantilla)
 
         Dim unused3 = eventAggregator.GetEvent(Of SacarPickingEvent).Subscribe(AddressOf CargarResumenSeleccionado)
         Dim unused2 = eventAggregator.GetEvent(Of PedidoModificadoEvent).Subscribe(AddressOf ActualizarResumen)
@@ -134,7 +134,7 @@ Public Class ListaPedidosVentaViewModel
                 ListaPedidos.ListaOriginal = Nothing
                 mostrarSoloPendientes = False
                 mostrarSoloPicking = False
-                cmdCargarListaPedidos.Execute()
+                cmdCargarListaPedidos.Execute(Nothing)
             End If
         End Set
     End Property
@@ -316,13 +316,13 @@ Public Class ListaPedidosVentaViewModel
 
 #Region "Comandos"
 
-    Public Property RecalcularTotalesCommand As DelegateCommand
+    Public Property RecalcularTotalesCommand As RelayCommand
 
     ''' <summary>
     ''' Nesto#397: abre el pedido seleccionado en la PlantillaVenta en modo edición (al guardar
     ''' hará PUT sobre el pedido). Los pedidos facturados los rechaza el servidor con mensaje claro.
     ''' </summary>
-    Public Property ModificarConPlantillaCommand As DelegateCommand(Of ResumenPedido)
+    Public Property ModificarConPlantillaCommand As RelayCommand(Of ResumenPedido)
 
     Private Sub OnModificarConPlantilla(resumen As ResumenPedido)
         If resumen Is Nothing OrElse resumen.numero = 0 OrElse resumen.esNuevo Then
@@ -335,12 +335,12 @@ Public Class ListaPedidosVentaViewModel
         regionManager.RequestNavigate("MainRegion", "PlantillaVentaView", parameters)
     End Sub
 
-    Private _cancelarCreacionCommand As DelegateCommand
-    Public Property CancelarCreacionCommand As DelegateCommand
+    Private _cancelarCreacionCommand As RelayCommand
+    Public Property CancelarCreacionCommand As RelayCommand
         Get
             Return _cancelarCreacionCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cancelarCreacionCommand, value)
         End Set
     End Property
@@ -349,12 +349,12 @@ Public Class ListaPedidosVentaViewModel
         CancelarCreacionPedido()
     End Sub
 
-    Private _cmdCargarListaPedidos As DelegateCommand
-    Public Property cmdCargarListaPedidos As DelegateCommand
+    Private _cmdCargarListaPedidos As RelayCommand
+    Public Property cmdCargarListaPedidos As RelayCommand
         Get
             Return _cmdCargarListaPedidos
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdCargarListaPedidos, value)
         End Set
     End Property
@@ -381,12 +381,12 @@ Public Class ListaPedidosVentaViewModel
     End Sub
 
 
-    Private _crearPedidoCommand As DelegateCommand
-    Public Property CrearPedidoCommand As DelegateCommand
+    Private _crearPedidoCommand As RelayCommand
+    Public Property CrearPedidoCommand As RelayCommand
         Get
             Return _crearPedidoCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_crearPedidoCommand, value)
         End Set
     End Property

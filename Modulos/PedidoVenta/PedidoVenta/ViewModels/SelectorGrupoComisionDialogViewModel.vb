@@ -1,5 +1,5 @@
-Imports Nesto.Models
-Imports Prism.Commands
+﻿Imports Nesto.Models
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 
@@ -47,16 +47,16 @@ Public Class SelectorGrupoComisionDialogViewModel
         End Get
         Set(value As String)
             If SetProperty(_grupoSeleccionado, value) Then
-                AceptarCommand.RaiseCanExecuteChanged()
+                AceptarCommand.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
 
-    Private _aceptarCommand As DelegateCommand
-    Public ReadOnly Property AceptarCommand As DelegateCommand
+    Private _aceptarCommand As RelayCommand
+    Public ReadOnly Property AceptarCommand As RelayCommand
         Get
             If _aceptarCommand Is Nothing Then
-                _aceptarCommand = New DelegateCommand(
+                _aceptarCommand = New RelayCommand(
                     Sub()
                         Dim resultado As New DialogResult(ButtonResult.OK, New DialogParameters From {
                             {"grupo", GrupoSeleccionado}
@@ -69,11 +69,11 @@ Public Class SelectorGrupoComisionDialogViewModel
         End Get
     End Property
 
-    Private _cancelarCommand As DelegateCommand
-    Public ReadOnly Property CancelarCommand As DelegateCommand
+    Private _cancelarCommand As RelayCommand
+    Public ReadOnly Property CancelarCommand As RelayCommand
         Get
             If _cancelarCommand Is Nothing Then
-                _cancelarCommand = New DelegateCommand(
+                _cancelarCommand = New RelayCommand(
                     Sub() RaiseEvent RequestClose(New DialogResult(ButtonResult.Cancel)))
             End If
             Return _cancelarCommand

@@ -8,7 +8,7 @@ Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.LineaPedidoVentaDTO
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
@@ -38,10 +38,10 @@ Public Class PickingPopupViewModel
         Me.configuracion = configuracion
         _servicioInformes = servicioInformes
 
-        cmdInformeKits = New DelegateCommand(AddressOf OnInformeKits)
-        cmdInformePicking = New DelegateCommand(AddressOf OnInformePicking)
-        cmdInformePacking = New DelegateCommand(AddressOf OnInformePacking)
-        cmdSacarPicking = New DelegateCommand(Of PedidoVentaDTO)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
+        cmdInformeKits = New RelayCommand(AddressOf OnInformeKits)
+        cmdInformePicking = New RelayCommand(AddressOf OnInformePicking)
+        cmdInformePacking = New RelayCommand(AddressOf OnInformePacking)
+        cmdSacarPicking = New RelayCommand(Of PedidoVentaDTO)(AddressOf OnSacarPicking, AddressOf CanSacarPicking)
     End Sub
 
     Public ReadOnly Property Title As String Implements IDialogAware.Title
@@ -113,7 +113,7 @@ Public Class PickingPopupViewModel
             ' NestoAPI#405: el BusyIndicator solo TAPA la ventana; el comando seguía habilitado y
             ' se podía volver a pulsar. Hay que reevaluar el CanExecute para que el botón quede
             ' deshabilitado de verdad mientras el picking está en marcha.
-            _cmdSacarPicking?.RaiseCanExecuteChanged()
+            _cmdSacarPicking?.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -158,12 +158,12 @@ Public Class PickingPopupViewModel
     End Property
 
 
-    Private _cmdInformeKits As DelegateCommand
-    Public Property cmdInformeKits As DelegateCommand
+    Private _cmdInformeKits As RelayCommand
+    Public Property cmdInformeKits As RelayCommand
         Get
             Return _cmdInformeKits
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             SetProperty(_cmdInformeKits, value)
         End Set
     End Property
@@ -191,12 +191,12 @@ Public Class PickingPopupViewModel
 
 
 
-    Private _cmdInformePacking As DelegateCommand
-    Public Property cmdInformePacking As DelegateCommand
+    Private _cmdInformePacking As RelayCommand
+    Public Property cmdInformePacking As RelayCommand
         Get
             Return _cmdInformePacking
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             SetProperty(_cmdInformePacking, value)
         End Set
     End Property
@@ -236,12 +236,12 @@ Public Class PickingPopupViewModel
 
 
 
-    Private _cmdInformePicking As DelegateCommand
-    Public Property cmdInformePicking As DelegateCommand
+    Private _cmdInformePicking As RelayCommand
+    Public Property cmdInformePicking As RelayCommand
         Get
             Return _cmdInformePicking
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             SetProperty(_cmdInformePicking, value)
         End Set
     End Property
@@ -264,12 +264,12 @@ Public Class PickingPopupViewModel
 
 
 
-    Private _cmdSacarPicking As DelegateCommand(Of PedidoVentaDTO)
-    Public Property cmdSacarPicking As DelegateCommand(Of PedidoVentaDTO)
+    Private _cmdSacarPicking As RelayCommand(Of PedidoVentaDTO)
+    Public Property cmdSacarPicking As RelayCommand(Of PedidoVentaDTO)
         Get
             Return _cmdSacarPicking
         End Get
-        Private Set(value As DelegateCommand(Of PedidoVentaDTO))
+        Private Set(value As RelayCommand(Of PedidoVentaDTO))
             SetProperty(_cmdSacarPicking, value)
         End Set
     End Property

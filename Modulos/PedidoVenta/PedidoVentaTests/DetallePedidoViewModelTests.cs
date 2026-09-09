@@ -522,7 +522,7 @@ namespace PedidoVentaTests
             vm.pedido = new PedidoVentaWrapper(pedido);
 
             // Act & Assert
-            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(),
+            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(null),
                 "CanExecute debe ser TRUE cuando hay líneas pendientes sin picking");
         }
 
@@ -551,7 +551,7 @@ namespace PedidoVentaTests
             vm.pedido = new PedidoVentaWrapper(pedido);
 
             // Act & Assert
-            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(),
+            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(null),
                 "CanExecute debe ser TRUE cuando hay líneas en curso sin picking");
         }
 
@@ -580,7 +580,7 @@ namespace PedidoVentaTests
             vm.pedido = new PedidoVentaWrapper(pedido);
 
             // Act & Assert
-            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(),
+            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(null),
                 "CanExecute debe ser FALSE cuando el pedido ya es presupuesto");
         }
 
@@ -611,7 +611,7 @@ namespace PedidoVentaTests
             vm.pedido.Lineas[0].picking = 100;
 
             // Act & Assert
-            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(),
+            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(null),
                 "CanExecute debe ser FALSE cuando todas las líneas tienen picking asignado");
         }
 
@@ -640,7 +640,7 @@ namespace PedidoVentaTests
             vm.pedido = new PedidoVentaWrapper(pedido);
 
             // Act & Assert
-            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(),
+            Assert.IsFalse(vm.PasarAPresupuestoCommand.CanExecute(null),
                 "CanExecute debe ser FALSE cuando las líneas están albaraneadas");
         }
 
@@ -681,7 +681,7 @@ namespace PedidoVentaTests
             vm.pedido = new PedidoVentaWrapper(pedido);
 
             // Act & Assert
-            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(),
+            Assert.IsTrue(vm.PasarAPresupuestoCommand.CanExecute(null),
                 "CanExecute debe ser TRUE cuando al menos una línea es válida para pasar a presupuesto");
         }
 

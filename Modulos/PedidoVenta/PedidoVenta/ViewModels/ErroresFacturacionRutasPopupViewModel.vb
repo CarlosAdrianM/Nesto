@@ -1,5 +1,5 @@
-Imports System.Collections.ObjectModel
-Imports Prism.Commands
+﻿Imports System.Collections.ObjectModel
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports Unity
@@ -18,7 +18,7 @@ Public Class ErroresFacturacionRutasPopupViewModel
     Public Sub New(container As IUnityContainer)
         Me.container = container
         _errores = New ObservableCollection(Of PedidoConErrorDTO)()
-        _cmdAbrirPedido = New DelegateCommand(Of PedidoConErrorDTO)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
+        _cmdAbrirPedido = New RelayCommand(Of PedidoConErrorDTO)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
     End Sub
 
 #End Region
@@ -52,12 +52,12 @@ Public Class ErroresFacturacionRutasPopupViewModel
 
 #Region "Commands"
 
-    Private _cmdAbrirPedido As DelegateCommand(Of PedidoConErrorDTO)
-    Public Property cmdAbrirPedido As DelegateCommand(Of PedidoConErrorDTO)
+    Private _cmdAbrirPedido As RelayCommand(Of PedidoConErrorDTO)
+    Public Property cmdAbrirPedido As RelayCommand(Of PedidoConErrorDTO)
         Get
             Return _cmdAbrirPedido
         End Get
-        Private Set(value As DelegateCommand(Of PedidoConErrorDTO))
+        Private Set(value As RelayCommand(Of PedidoConErrorDTO))
             Dim unused = SetProperty(_cmdAbrirPedido, value)
         End Set
     End Property

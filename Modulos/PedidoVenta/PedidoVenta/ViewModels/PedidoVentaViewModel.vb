@@ -1,6 +1,6 @@
 ﻿Imports System.Net.Http
 Imports System.Text
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Regions
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
@@ -25,7 +25,7 @@ Public Class PedidoVentaViewModel
         Me.container = container
         Me.servicio = servicio
 
-        cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
+        cmdAbrirModulo = New RelayCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
 
         Titulo = "Lista de Pedidos"
     End Sub
@@ -54,12 +54,12 @@ Public Class PedidoVentaViewModel
     End Property
 
 #Region "Comandos"
-    Private _cmdAbrirModulo As DelegateCommand(Of Object)
-    Public Property cmdAbrirModulo As DelegateCommand(Of Object)
+    Private _cmdAbrirModulo As RelayCommand(Of Object)
+    Public Property cmdAbrirModulo As RelayCommand(Of Object)
         Get
             Return _cmdAbrirModulo
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             SetProperty(_cmdAbrirModulo, value)
         End Set
     End Property

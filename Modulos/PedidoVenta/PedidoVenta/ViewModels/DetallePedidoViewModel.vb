@@ -12,7 +12,7 @@ Imports Nesto.Models
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
 Imports Prism.Mvvm
 Imports Prism.Regions
@@ -79,33 +79,33 @@ Public Class DetallePedidoViewModel
         Me.dialogService = dialogService
         Me.container = container
         _servicioServirJunto = New ServirJuntoService(configuracion, servicioAutenticacion)
-        cmdValidarServirJunto = New DelegateCommand(AddressOf OnValidarServirJunto)
+        cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
 
-        cmdAbrirPicking = New DelegateCommand(AddressOf OnAbrirPicking)
-        AceptarPresupuestoCommand = New DelegateCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
-        PasarAPresupuestoCommand = New DelegateCommand(AddressOf OnPasarAPresupuesto, AddressOf CanPasarAPresupuesto)
-        DescargarPresupuestoCommand = New DelegateCommand(AddressOf OnDescargarPresupuesto, AddressOf CanDescargarPresupuesto)
-        cmdActualizarTotales = New DelegateCommand(AddressOf OnActualizarTotales)
-        cmdCambiarFechaEntrega = New DelegateCommand(AddressOf OnCambiarFechaEntrega)
-        cmdCambiarIva = New DelegateCommand(AddressOf OnCambiarIva)
-        cmdCargarPedido = New DelegateCommand(Of ResumenPedido)(AddressOf OnCargarPedido)
-        CargarProductoCommand = New DelegateCommand(Of LineaPedidoVentaDTO)(AddressOf OnCargarProducto)
-        cmdCeldaModificada = New DelegateCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
-        cmdModificarPedido = New DelegateCommand(AddressOf OnModificarPedido)
-        cmdPonerDescuentoPedido = New DelegateCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
-        AbrirEnlaceSeguimientoCommand = New DelegateCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
-        EnviarCobroTarjetaCommand = New DelegateCommand(AddressOf OnEnviarCobroTarjeta, AddressOf CanEnviarCobroTarjeta)
-        CopiarAlPortapapelesCommand = New DelegateCommand(AddressOf OnCopiarAlPortapapeles, AddressOf CanCopiarAlPortapapeles)
-        CrearAlbaranVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranVenta, AddressOf CanCrearAlbaranVenta)
-        CrearFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
-        CrearAlbaranYFacturaVentaCommand = New DelegateCommand(AddressOf OnCrearAlbaranYFacturaVenta, AddressOf CanCrearAlbaranYFacturaVenta)
-        ImprimirFacturaCommand = New DelegateCommand(AddressOf OnImprimirFactura, AddressOf CanImprimirFactura)
-        ImprimirFacturaDirectoCommand = New DelegateCommand(AddressOf OnImprimirFacturaDirecto, AddressOf CanImprimirFactura)
-        ImprimirAlbaranCommand = New DelegateCommand(AddressOf OnImprimirAlbaran, AddressOf CanImprimirAlbaran)
-        ImprimirAlbaranDirectoCommand = New DelegateCommand(AddressOf OnImprimirAlbaranDirecto, AddressOf CanImprimirAlbaran)
-        CopiarEnlaceCommand = New DelegateCommand(Of String)(AddressOf OnCopiarEnlace)
-        AbrirFacturarRutasCommand = New DelegateCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
-        CopiarFacturaCommand = New DelegateCommand(AddressOf OnCopiarFactura, AddressOf CanCopiarFactura)
+        cmdAbrirPicking = New RelayCommand(AddressOf OnAbrirPicking)
+        AceptarPresupuestoCommand = New RelayCommand(AddressOf OnAceptarPresupuesto, AddressOf CanAceptarPresupuesto)
+        PasarAPresupuestoCommand = New RelayCommand(AddressOf OnPasarAPresupuesto, AddressOf CanPasarAPresupuesto)
+        DescargarPresupuestoCommand = New RelayCommand(AddressOf OnDescargarPresupuesto, AddressOf CanDescargarPresupuesto)
+        cmdActualizarTotales = New RelayCommand(AddressOf OnActualizarTotales)
+        cmdCambiarFechaEntrega = New RelayCommand(AddressOf OnCambiarFechaEntrega)
+        cmdCambiarIva = New RelayCommand(AddressOf OnCambiarIva)
+        cmdCargarPedido = New RelayCommand(Of ResumenPedido)(AddressOf OnCargarPedido)
+        CargarProductoCommand = New RelayCommand(Of LineaPedidoVentaDTO)(AddressOf OnCargarProducto)
+        cmdCeldaModificada = New RelayCommand(Of DataGridCellEditEndingEventArgs)(AddressOf OnCeldaModificada)
+        cmdModificarPedido = New RelayCommand(AddressOf OnModificarPedido)
+        cmdPonerDescuentoPedido = New RelayCommand(AddressOf OnPonerDescuentoPedido, AddressOf CanPonerDescuentoPedido)
+        AbrirEnlaceSeguimientoCommand = New RelayCommand(Of String)(AddressOf OnAbrirEnlaceSeguimientoCommand)
+        EnviarCobroTarjetaCommand = New RelayCommand(AddressOf OnEnviarCobroTarjeta, AddressOf CanEnviarCobroTarjeta)
+        CopiarAlPortapapelesCommand = New RelayCommand(AddressOf OnCopiarAlPortapapeles, AddressOf CanCopiarAlPortapapeles)
+        CrearAlbaranVentaCommand = New RelayCommand(AddressOf OnCrearAlbaranVenta, AddressOf CanCrearAlbaranVenta)
+        CrearFacturaVentaCommand = New RelayCommand(AddressOf OnCrearFacturaVenta, AddressOf CanCrearFacturaVenta)
+        CrearAlbaranYFacturaVentaCommand = New RelayCommand(AddressOf OnCrearAlbaranYFacturaVenta, AddressOf CanCrearAlbaranYFacturaVenta)
+        ImprimirFacturaCommand = New RelayCommand(AddressOf OnImprimirFactura, AddressOf CanImprimirFactura)
+        ImprimirFacturaDirectoCommand = New RelayCommand(AddressOf OnImprimirFacturaDirecto, AddressOf CanImprimirFactura)
+        ImprimirAlbaranCommand = New RelayCommand(AddressOf OnImprimirAlbaran, AddressOf CanImprimirAlbaran)
+        ImprimirAlbaranDirectoCommand = New RelayCommand(AddressOf OnImprimirAlbaranDirecto, AddressOf CanImprimirAlbaran)
+        CopiarEnlaceCommand = New RelayCommand(Of String)(AddressOf OnCopiarEnlace)
+        AbrirFacturarRutasCommand = New RelayCommand(AddressOf OnAbrirFacturarRutas, AddressOf CanAbrirFacturarRutas)
+        CopiarFacturaCommand = New RelayCommand(AddressOf OnCopiarFactura, AddressOf CanCopiarFactura)
 
         EsGrupoQuePuedeFacturar = configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.ALMACEN) OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.TIENDAS)
 
@@ -135,9 +135,9 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As String)
             If SetProperty(_almacenUsuario, value) Then
-                CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
-                CrearFacturaVentaCommand.RaiseCanExecuteChanged()
-                CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+                CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
+                CrearFacturaVentaCommand.NotifyCanExecuteChanged()
+                CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -159,7 +159,7 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_cobroTarjetaCorreo, value)
-            EnviarCobroTarjetaCommand.RaiseCanExecuteChanged()
+            EnviarCobroTarjetaCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -170,7 +170,7 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As Decimal)
             Dim unused = SetProperty(_cobroTarjetaImporte, value)
-            EnviarCobroTarjetaCommand.RaiseCanExecuteChanged()
+            EnviarCobroTarjetaCommand.NotifyCanExecuteChanged()
             If IsNothing(pedido.Efectos) Then
                 pedido.Efectos = New ListaEfectos(value, pedido.formaPago, pedido.ccc)
             Else
@@ -186,7 +186,7 @@ Public Class DetallePedidoViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_cobroTarjetaMovil, value)
-            EnviarCobroTarjetaCommand.RaiseCanExecuteChanged()
+            EnviarCobroTarjetaCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -211,7 +211,7 @@ Public Class DetallePedidoViewModel
                     Return
                 End If
                 Dim unused = SetProperty(_descuentoPedido, value)
-                cmdPonerDescuentoPedido.Execute()
+                cmdPonerDescuentoPedido.Execute(Nothing)
             End If
         End Set
     End Property
@@ -396,7 +396,7 @@ Public Class DetallePedidoViewModel
         Set(value As Date)
             Dim unused = SetProperty(_fechaEntrega, value)
             If estaActualizarFechaActivo Then
-                cmdCambiarFechaEntrega.Execute()
+                cmdCambiarFechaEntrega.Execute(Nothing)
                 RaisePropertyChanged(NameOf(pedido))
             End If
         End Set
@@ -497,10 +497,10 @@ Public Class DetallePedidoViewModel
         Set(value As LineaPedidoVentaWrapper)
             Dim unused = SetProperty(_lineaActual, value)
             RaisePropertyChanged(NameOf(pedido))
-            ImprimirFacturaCommand.RaiseCanExecuteChanged()
-            ImprimirFacturaDirectoCommand.RaiseCanExecuteChanged()
-            ImprimirAlbaranCommand.RaiseCanExecuteChanged()
-            ImprimirAlbaranDirectoCommand.RaiseCanExecuteChanged()
+            ImprimirFacturaCommand.NotifyCanExecuteChanged()
+            ImprimirFacturaDirectoCommand.NotifyCanExecuteChanged()
+            ImprimirAlbaranCommand.NotifyCanExecuteChanged()
+            ImprimirAlbaranDirectoCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -582,13 +582,13 @@ Public Class DetallePedidoViewModel
             Dim unused2 = CargarInfoPortes()
             InicializarFormaVentaParaLineas()
             InicializarAlmacenParaLineas() ' Carlos 09/12/25: Issue #253/#52
-            AceptarPresupuestoCommand.RaiseCanExecuteChanged()
-            PasarAPresupuestoCommand.RaiseCanExecuteChanged()
-            DescargarPresupuestoCommand.RaiseCanExecuteChanged()
-            CopiarAlPortapapelesCommand.RaiseCanExecuteChanged() ' Nesto#385
-            CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
-            CrearFacturaVentaCommand.RaiseCanExecuteChanged()
-            CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+            AceptarPresupuestoCommand.NotifyCanExecuteChanged()
+            PasarAPresupuestoCommand.NotifyCanExecuteChanged()
+            DescargarPresupuestoCommand.NotifyCanExecuteChanged()
+            CopiarAlPortapapelesCommand.NotifyCanExecuteChanged() ' Nesto#385
+            CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
+            CrearFacturaVentaCommand.NotifyCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -988,12 +988,12 @@ Public Class DetallePedidoViewModel
 #End Region
 
 #Region "Comandos"
-    Private _cmdAbrirPicking As DelegateCommand
-    Public Property cmdAbrirPicking As DelegateCommand
+    Private _cmdAbrirPicking As RelayCommand
+    Public Property cmdAbrirPicking As RelayCommand
         Get
             Return _cmdAbrirPicking
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdAbrirPicking, value)
         End Set
     End Property
@@ -1007,12 +1007,12 @@ Public Class DetallePedidoViewModel
         }, Nothing)
     End Sub
 
-    Private _aceptarPresupuestoCommand As DelegateCommand
-    Public Property AceptarPresupuestoCommand As DelegateCommand
+    Private _aceptarPresupuestoCommand As RelayCommand
+    Public Property AceptarPresupuestoCommand As RelayCommand
         Get
             Return _aceptarPresupuestoCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             Dim unused = SetProperty(_aceptarPresupuestoCommand, value)
         End Set
     End Property
@@ -1021,15 +1021,15 @@ Public Class DetallePedidoViewModel
     End Function
     Private Sub OnAceptarPresupuesto()
         pedido.EsPresupuesto = False
-        cmdModificarPedido.Execute()
+        cmdModificarPedido.Execute(Nothing)
     End Sub
 
-    Private _pasarAPresupuestoCommand As DelegateCommand
-    Public Property PasarAPresupuestoCommand As DelegateCommand
+    Private _pasarAPresupuestoCommand As RelayCommand
+    Public Property PasarAPresupuestoCommand As RelayCommand
         Get
             Return _pasarAPresupuestoCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             Dim unused = SetProperty(_pasarAPresupuestoCommand, value)
         End Set
     End Property
@@ -1058,13 +1058,13 @@ Public Class DetallePedidoViewModel
         AplicarPasarAPresupuestoEstado()
 
         ' Guardar los cambios
-        cmdModificarPedido.Execute()
+        cmdModificarPedido.Execute(Nothing)
 
         ' Actualizar visibilidad de botones
         RaisePropertyChanged(NameOf(mostrarAceptarPresupuesto))
-        AceptarPresupuestoCommand.RaiseCanExecuteChanged()
-        PasarAPresupuestoCommand.RaiseCanExecuteChanged()
-        CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
+        AceptarPresupuestoCommand.NotifyCanExecuteChanged()
+        PasarAPresupuestoCommand.NotifyCanExecuteChanged()
+        CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
     End Sub
 
     ''' <summary>
@@ -1083,12 +1083,12 @@ Public Class DetallePedidoViewModel
         pedido.EsPresupuesto = True
     End Sub
 
-    Private _cmdActualizarTotales As DelegateCommand
-    Public Property cmdActualizarTotales As DelegateCommand
+    Private _cmdActualizarTotales As RelayCommand
+    Public Property cmdActualizarTotales As RelayCommand
         Get
             Return _cmdActualizarTotales
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdActualizarTotales, value)
         End Set
     End Property
@@ -1097,12 +1097,12 @@ Public Class DetallePedidoViewModel
         CobroTarjetaImporte = pedido.Total
     End Sub
 
-    Private _cmdCambiarFechaEntrega As DelegateCommand
-    Public Property cmdCambiarFechaEntrega As DelegateCommand
+    Private _cmdCambiarFechaEntrega As RelayCommand
+    Public Property cmdCambiarFechaEntrega As RelayCommand
         Get
             Return _cmdCambiarFechaEntrega
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdCambiarFechaEntrega, value)
         End Set
     End Property
@@ -1123,12 +1123,12 @@ Public Class DetallePedidoViewModel
         RaisePropertyChanged(NameOf(pedido))
     End Sub
 
-    Private _cmdCambiarIva As DelegateCommand
-    Public Property cmdCambiarIva As DelegateCommand
+    Private _cmdCambiarIva As RelayCommand
+    Public Property cmdCambiarIva As RelayCommand
         Get
             Return _cmdCambiarIva
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdCambiarIva, value)
         End Set
     End Property
@@ -1140,12 +1140,12 @@ Public Class DetallePedidoViewModel
         RaisePropertyChanged(NameOf(pedido))
     End Sub
 
-    Private _cmdCargarPedido As DelegateCommand(Of ResumenPedido)
-    Public Property cmdCargarPedido As DelegateCommand(Of ResumenPedido)
+    Private _cmdCargarPedido As RelayCommand(Of ResumenPedido)
+    Public Property cmdCargarPedido As RelayCommand(Of ResumenPedido)
         Get
             Return _cmdCargarPedido
         End Get
-        Private Set(value As DelegateCommand(Of ResumenPedido))
+        Private Set(value As RelayCommand(Of ResumenPedido))
             Dim unused = SetProperty(_cmdCargarPedido, value)
         End Set
     End Property
@@ -1186,12 +1186,12 @@ Public Class DetallePedidoViewModel
         End Try
     End Sub
 
-    Private _cargarProductoCommand As DelegateCommand(Of LineaPedidoVentaDTO)
-    Public Property CargarProductoCommand As DelegateCommand(Of LineaPedidoVentaDTO)
+    Private _cargarProductoCommand As RelayCommand(Of LineaPedidoVentaDTO)
+    Public Property CargarProductoCommand As RelayCommand(Of LineaPedidoVentaDTO)
         Get
             Return _cargarProductoCommand
         End Get
-        Private Set(value As DelegateCommand(Of LineaPedidoVentaDTO))
+        Private Set(value As RelayCommand(Of LineaPedidoVentaDTO))
             Dim unused = SetProperty(_cargarProductoCommand, value)
         End Set
     End Property
@@ -1277,12 +1277,12 @@ Public Class DetallePedidoViewModel
     '    End Try
     'End Sub
 
-    Private _cmdCeldaModificada As DelegateCommand(Of DataGridCellEditEndingEventArgs)
-    Public Property cmdCeldaModificada As DelegateCommand(Of DataGridCellEditEndingEventArgs)
+    Private _cmdCeldaModificada As RelayCommand(Of DataGridCellEditEndingEventArgs)
+    Public Property cmdCeldaModificada As RelayCommand(Of DataGridCellEditEndingEventArgs)
         Get
             Return _cmdCeldaModificada
         End Get
-        Private Set(value As DelegateCommand(Of DataGridCellEditEndingEventArgs))
+        Private Set(value As RelayCommand(Of DataGridCellEditEndingEventArgs))
             Dim unused = SetProperty(_cmdCeldaModificada, value)
         End Set
     End Property
@@ -1374,7 +1374,7 @@ Public Class DetallePedidoViewModel
             End If
         End If
         If eventArgs.Column.Header = "Aplicar Dto." Then
-            cmdActualizarTotales.Execute() ' ¿por qué no llamar directamente a raisepropertychanged?
+            cmdActualizarTotales.Execute(Nothing) ' ¿por qué no llamar directamente a raisepropertychanged?
         End If
     End Sub
 
@@ -1422,12 +1422,12 @@ Public Class DetallePedidoViewModel
         End If
     End Function
 
-    Private _copiarAlPortapapelesCommand As DelegateCommand
-    Public Property CopiarAlPortapapelesCommand As DelegateCommand
+    Private _copiarAlPortapapelesCommand As RelayCommand
+    Public Property CopiarAlPortapapelesCommand As RelayCommand
         Get
             Return _copiarAlPortapapelesCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_copiarAlPortapapelesCommand, value)
         End Set
     End Property
@@ -1445,12 +1445,12 @@ Public Class DetallePedidoViewModel
         dialogService.ShowNotification("Datos del pedido copiados al portapapeles")
     End Sub
 
-    Private _copiarEnlaceCommand As DelegateCommand(Of String)
-    Public Property CopiarEnlaceCommand As DelegateCommand(Of String)
+    Private _copiarEnlaceCommand As RelayCommand(Of String)
+    Public Property CopiarEnlaceCommand As RelayCommand(Of String)
         Get
             Return _copiarEnlaceCommand
         End Get
-        Private Set(value As DelegateCommand(Of String))
+        Private Set(value As RelayCommand(Of String))
             Dim unused = SetProperty(_copiarEnlaceCommand, value)
         End Set
     End Property
@@ -1466,12 +1466,12 @@ Public Class DetallePedidoViewModel
     End Sub
 
 
-    Private _crearAlbaranVentaCommand As DelegateCommand
-    Public Property CrearAlbaranVentaCommand As DelegateCommand
+    Private _crearAlbaranVentaCommand As RelayCommand
+    Public Property CrearAlbaranVentaCommand As RelayCommand
         Get
             Return _crearAlbaranVentaCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_crearAlbaranVentaCommand, value)
         End Set
     End Property
@@ -1520,18 +1520,18 @@ Public Class DetallePedidoViewModel
         Catch ex As Exception
             dialogService.ShowError($"No se ha podido crear el albarán: {ex.Message}")
         Finally
-            CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
-            CrearFacturaVentaCommand.RaiseCanExecuteChanged()
-            CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+            CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
+            CrearFacturaVentaCommand.NotifyCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
         End Try
     End Sub
 
-    Private _crearFacturaVentaCommand As DelegateCommand
-    Public Property CrearFacturaVentaCommand As DelegateCommand
+    Private _crearFacturaVentaCommand As RelayCommand
+    Public Property CrearFacturaVentaCommand As RelayCommand
         Get
             Return _crearFacturaVentaCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_crearFacturaVentaCommand, value)
         End Set
     End Property
@@ -1573,16 +1573,16 @@ Public Class DetallePedidoViewModel
         Catch ex As Exception
             dialogService.ShowError($"No se ha podido crear la factura:\n {ex.Message}")
         Finally
-            CrearFacturaVentaCommand.RaiseCanExecuteChanged()
-            CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+            CrearFacturaVentaCommand.NotifyCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
         End Try
     End Sub
-    Private _imprimirFacturaCommand As DelegateCommand
-    Public Property ImprimirFacturaCommand As DelegateCommand
+    Private _imprimirFacturaCommand As RelayCommand
+    Public Property ImprimirFacturaCommand As RelayCommand
         Get
             Return _imprimirFacturaCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_imprimirFacturaCommand, value)
         End Set
     End Property
@@ -1610,12 +1610,12 @@ Public Class DetallePedidoViewModel
         End Try
     End Function
 
-    Private _imprimirAlbaranCommand As DelegateCommand
-    Public Property ImprimirAlbaranCommand As DelegateCommand
+    Private _imprimirAlbaranCommand As RelayCommand
+    Public Property ImprimirAlbaranCommand As RelayCommand
         Get
             Return _imprimirAlbaranCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_imprimirAlbaranCommand, value)
         End Set
     End Property
@@ -1645,12 +1645,12 @@ Public Class DetallePedidoViewModel
     End Function
 
 #Region "Issue #269: Impresión directa a impresora con selección de bandeja"
-    Private _imprimirFacturaDirectoCommand As DelegateCommand
-    Public Property ImprimirFacturaDirectoCommand As DelegateCommand
+    Private _imprimirFacturaDirectoCommand As RelayCommand
+    Public Property ImprimirFacturaDirectoCommand As RelayCommand
         Get
             Return _imprimirFacturaDirectoCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_imprimirFacturaDirectoCommand, value)
         End Set
     End Property
@@ -1710,12 +1710,12 @@ Public Class DetallePedidoViewModel
         End Try
     End Function
 
-    Private _imprimirAlbaranDirectoCommand As DelegateCommand
-    Public Property ImprimirAlbaranDirectoCommand As DelegateCommand
+    Private _imprimirAlbaranDirectoCommand As RelayCommand
+    Public Property ImprimirAlbaranDirectoCommand As RelayCommand
         Get
             Return _imprimirAlbaranDirectoCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_imprimirAlbaranDirectoCommand, value)
         End Set
     End Property
@@ -1774,12 +1774,12 @@ Public Class DetallePedidoViewModel
     End Function
 #End Region
 
-    Private _crearAlbaranYFacturaVentaCommand As DelegateCommand
-    Public Property CrearAlbaranYFacturaVentaCommand As DelegateCommand
+    Private _crearAlbaranYFacturaVentaCommand As RelayCommand
+    Public Property CrearAlbaranYFacturaVentaCommand As RelayCommand
         Get
             Return _crearAlbaranYFacturaVentaCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_crearAlbaranYFacturaVentaCommand, value)
         End Set
     End Property
@@ -1988,12 +1988,12 @@ Public Class DetallePedidoViewModel
         End Try
     End Function
 
-    Private _abrirFacturarRutasCommand As DelegateCommand
-    Public Property AbrirFacturarRutasCommand As DelegateCommand
+    Private _abrirFacturarRutasCommand As RelayCommand
+    Public Property AbrirFacturarRutasCommand As RelayCommand
         Get
             Return _abrirFacturarRutasCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_abrirFacturarRutasCommand, value)
         End Set
     End Property
@@ -2010,12 +2010,12 @@ Public Class DetallePedidoViewModel
     End Function
 
 #Region "Copiar Factura (Issue #85)"
-    Private _copiarFacturaCommand As DelegateCommand
-    Public Property CopiarFacturaCommand As DelegateCommand
+    Private _copiarFacturaCommand As RelayCommand
+    Public Property CopiarFacturaCommand As RelayCommand
         Get
             Return _copiarFacturaCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_copiarFacturaCommand, value)
         End Set
     End Property
@@ -2054,12 +2054,12 @@ Public Class DetallePedidoViewModel
     End Function
 #End Region
 
-    Private _descargarPresupuestoCommand As DelegateCommand
-    Public Property DescargarPresupuestoCommand As DelegateCommand
+    Private _descargarPresupuestoCommand As RelayCommand
+    Public Property DescargarPresupuestoCommand As RelayCommand
         Get
             Return _descargarPresupuestoCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             Dim unused = SetProperty(_descargarPresupuestoCommand, value)
         End Set
     End Property
@@ -2087,12 +2087,12 @@ Public Class DetallePedidoViewModel
         End Try
     End Sub
 
-    Private _enviarCobroTarjetaCommand As DelegateCommand
-    Public Property EnviarCobroTarjetaCommand As DelegateCommand
+    Private _enviarCobroTarjetaCommand As RelayCommand
+    Public Property EnviarCobroTarjetaCommand As RelayCommand
         Get
             Return _enviarCobroTarjetaCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_enviarCobroTarjetaCommand, value)
         End Set
     End Property
@@ -2117,12 +2117,12 @@ Public Class DetallePedidoViewModel
         End Try
     End Sub
 
-    Private _cmdModificarPedido As DelegateCommand
-    Public Property cmdModificarPedido As DelegateCommand
+    Private _cmdModificarPedido As RelayCommand
+    Public Property cmdModificarPedido As RelayCommand
         Get
             Return _cmdModificarPedido
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdModificarPedido, value)
         End Set
     End Property
@@ -2324,9 +2324,9 @@ Public Class DetallePedidoViewModel
             dialogService.ShowError(ex.Message)
         Finally
             estaBloqueado = False
-            CrearAlbaranVentaCommand.RaiseCanExecuteChanged()
-            CrearFacturaVentaCommand.RaiseCanExecuteChanged()
-            CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+            CrearAlbaranVentaCommand.NotifyCanExecuteChanged()
+            CrearFacturaVentaCommand.NotifyCanExecuteChanged()
+            CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
         End Try
     End Function
 
@@ -2367,12 +2367,12 @@ Public Class DetallePedidoViewModel
         ListaEnlacesSeguimiento = Await servicio.CargarEnlacesSeguimiento(pedido.empresa, pedido.numero)
     End Function
 
-    Private _cmdPonerDescuentoPedido As DelegateCommand
-    Public Property cmdPonerDescuentoPedido As DelegateCommand
+    Private _cmdPonerDescuentoPedido As RelayCommand
+    Public Property cmdPonerDescuentoPedido As RelayCommand
         Get
             Return _cmdPonerDescuentoPedido
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdPonerDescuentoPedido, value)
         End Set
     End Property
@@ -2386,7 +2386,7 @@ Public Class DetallePedidoViewModel
         RaisePropertyChanged(NameOf(pedido))
     End Sub
 
-    Public Property AbrirEnlaceSeguimientoCommand As DelegateCommand(Of String)
+    Public Property AbrirEnlaceSeguimientoCommand As RelayCommand(Of String)
     Private Sub OnAbrirEnlaceSeguimientoCommand(enlace As String)
         Dim unused = Process.Start(New ProcessStartInfo(enlace) With {
             .UseShellExecute = True
@@ -2397,7 +2397,7 @@ Public Class DetallePedidoViewModel
     ' El checkbox del XAML dispara este comando en su evento Unchecked.
     ' Si el backend devuelve PuedeDesmarcar=false, se revierte la marca y se
     ' muestra el mensaje al usuario.
-    Public Property cmdValidarServirJunto As DelegateCommand
+    Public Property cmdValidarServirJunto As RelayCommand
 
     Private Async Sub OnValidarServirJunto()
         If pedido Is Nothing OrElse pedido.Lineas Is Nothing Then Return
@@ -2560,8 +2560,8 @@ Public Class DetallePedidoViewModel
 
     ' Carlos 26/11/24: Actualizar comandos de facturación cuando cambia el periodo
     Private Sub OnPeriodoFacturacionCambiado(nuevoPeriodo As String)
-        CrearFacturaVentaCommand.RaiseCanExecuteChanged()
-        CrearAlbaranYFacturaVentaCommand.RaiseCanExecuteChanged()
+        CrearFacturaVentaCommand.NotifyCanExecuteChanged()
+        CrearAlbaranYFacturaVentaCommand.NotifyCanExecuteChanged()
     End Sub
 
     ' Carlos 09/12/25: Issue #245 - Actualizar EsSerieCursos cuando cambia la serie

@@ -1,11 +1,11 @@
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.Net.Http
 Imports ControlesUsuario.Dialogs
 Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Modulos.PedidoVenta.Models.Facturas
 Imports Nesto.Modulos.PedidoVenta.Services
 Imports Newtonsoft.Json
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports Unity
@@ -35,9 +35,9 @@ Public Class FacturarRutasPopupViewModel
         Me.container = container
 
         ' Inicializar comandos
-        VerResumenCommand = New DelegateCommand(AddressOf VerResumen, AddressOf CanVerResumen)
-        FacturarCommand = New DelegateCommand(AddressOf FacturarRutas, AddressOf CanFacturar)
-        CancelarCommand = New DelegateCommand(AddressOf Cancelar)
+        VerResumenCommand = New RelayCommand(AddressOf VerResumen, AddressOf CanVerResumen)
+        FacturarCommand = New RelayCommand(AddressOf FacturarRutas, AddressOf CanFacturar)
+        CancelarCommand = New RelayCommand(AddressOf Cancelar)
 
         ' Inicializar colección vacía
         TiposRutaDisponibles = New ObservableCollection(Of TipoRutaInfoDTO)()
@@ -150,8 +150,8 @@ Public Class FacturarRutasPopupViewModel
         Set(value As TipoRutaInfoDTO)
             If SetProperty(_tipoRutaSeleccionado, value) Then
                 LimpiarResumen()
-                VerResumenCommand.RaiseCanExecuteChanged()
-                FacturarCommand.RaiseCanExecuteChanged()
+                VerResumenCommand.NotifyCanExecuteChanged()
+                FacturarCommand.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -163,8 +163,8 @@ Public Class FacturarRutasPopupViewModel
         End Get
         Set(value As Boolean)
             Dim unused = SetProperty(_estaProcesando, value)
-            VerResumenCommand.RaiseCanExecuteChanged()
-            FacturarCommand.RaiseCanExecuteChanged()
+            VerResumenCommand.NotifyCanExecuteChanged()
+            FacturarCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -195,7 +195,7 @@ Public Class FacturarRutasPopupViewModel
         End Get
         Set(value As PreviewFacturacionRutasResponseDTO)
             Dim unused = SetProperty(_previewData, value)
-            FacturarCommand.RaiseCanExecuteChanged()
+            FacturarCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -213,9 +213,9 @@ Public Class FacturarRutasPopupViewModel
 
 #Region "Comandos"
 
-    Public Property VerResumenCommand As DelegateCommand
-    Public Property FacturarCommand As DelegateCommand
-    Public Property CancelarCommand As DelegateCommand
+    Public Property VerResumenCommand As RelayCommand
+    Public Property FacturarCommand As RelayCommand
+    Public Property CancelarCommand As RelayCommand
 
     Private Function CanVerResumen() As Boolean
         Return Not EstaProcesando AndAlso TipoRutaSeleccionado IsNot Nothing

@@ -1,6 +1,6 @@
-Imports System.Collections.ObjectModel
+﻿Imports System.Collections.ObjectModel
 Imports System.Threading.Tasks
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports Nesto.Modulos.PedidoVenta.Models.Rectificativas
@@ -73,8 +73,8 @@ Public Class CopiarFacturaViewModel
         End Get
         Set(value As String)
             If SetProperty(_numeroFactura, value) Then
-                EjecutarCommand.RaiseCanExecuteChanged()
-                BuscarClienteCommand?.RaiseCanExecuteChanged()
+                EjecutarCommand.NotifyCanExecuteChanged()
+                BuscarClienteCommand?.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -200,8 +200,8 @@ Public Class CopiarFacturaViewModel
         End Get
         Set(value As Boolean)
             SetProperty(_estaProcesando, value)
-            EjecutarCommand.RaiseCanExecuteChanged()
-            CancelarCommand.RaiseCanExecuteChanged()
+            EjecutarCommand.NotifyCanExecuteChanged()
+            CancelarCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -275,7 +275,7 @@ Public Class CopiarFacturaViewModel
         Set(value As ObservableCollection(Of FacturaClienteDTO))
             If SetProperty(_facturasSeleccionadas, value) Then
                 RaisePropertyChanged(NameOf(TieneMultiplesFacturasSeleccionadas))
-                EjecutarCommand?.RaiseCanExecuteChanged()
+                EjecutarCommand?.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -325,54 +325,54 @@ Public Class CopiarFacturaViewModel
 
 #Region "Commands"
 
-    Private _ejecutarCommand As DelegateCommand
-    Public Property EjecutarCommand As DelegateCommand
+    Private _ejecutarCommand As RelayCommand
+    Public Property EjecutarCommand As RelayCommand
         Get
             If _ejecutarCommand Is Nothing Then
-                _ejecutarCommand = New DelegateCommand(AddressOf OnEjecutar, AddressOf CanEjecutar)
+                _ejecutarCommand = New RelayCommand(AddressOf OnEjecutar, AddressOf CanEjecutar)
             End If
             Return _ejecutarCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             _ejecutarCommand = value
         End Set
     End Property
 
-    Private _cancelarCommand As DelegateCommand
-    Public Property CancelarCommand As DelegateCommand
+    Private _cancelarCommand As RelayCommand
+    Public Property CancelarCommand As RelayCommand
         Get
             If _cancelarCommand Is Nothing Then
-                _cancelarCommand = New DelegateCommand(AddressOf OnCancelar, AddressOf CanCancelar)
+                _cancelarCommand = New RelayCommand(AddressOf OnCancelar, AddressOf CanCancelar)
             End If
             Return _cancelarCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             _cancelarCommand = value
         End Set
     End Property
 
-    Private _abrirPedidoCommand As DelegateCommand
-    Public Property AbrirPedidoCommand As DelegateCommand
+    Private _abrirPedidoCommand As RelayCommand
+    Public Property AbrirPedidoCommand As RelayCommand
         Get
             If _abrirPedidoCommand Is Nothing Then
-                _abrirPedidoCommand = New DelegateCommand(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
+                _abrirPedidoCommand = New RelayCommand(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
             End If
             Return _abrirPedidoCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             _abrirPedidoCommand = value
         End Set
     End Property
 
-    Private _buscarClienteCommand As DelegateCommand
-    Public Property BuscarClienteCommand As DelegateCommand
+    Private _buscarClienteCommand As RelayCommand
+    Public Property BuscarClienteCommand As RelayCommand
         Get
             If _buscarClienteCommand Is Nothing Then
-                _buscarClienteCommand = New DelegateCommand(AddressOf OnBuscarCliente, AddressOf CanBuscarCliente)
+                _buscarClienteCommand = New RelayCommand(AddressOf OnBuscarCliente, AddressOf CanBuscarCliente)
             End If
             Return _buscarClienteCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             _buscarClienteCommand = value
         End Set
     End Property
@@ -458,7 +458,7 @@ Public Class CopiarFacturaViewModel
 
             If Resultado.Exitoso Then
                 Mensaje = Resultado.Mensaje
-                AbrirPedidoCommand.RaiseCanExecuteChanged()
+                AbrirPedidoCommand.NotifyCanExecuteChanged()
             Else
                 Mensaje = $"Error: {Resultado.Mensaje}"
             End If
