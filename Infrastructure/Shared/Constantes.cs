@@ -164,6 +164,9 @@ namespace Nesto.Infrastructure.Shared
             {
                 public const string MUESTRAS = "MMP";
             }
+            // Nesto#453: sentinel de PrestashopProductos.PVP_IVA_Incluido (espejo de NestoAPI
+            // Constantes.Productos.PVP_IVA_MISMO_QUE_PROFESIONAL): el público es el mismo que el profesional.
+            public const decimal PVP_IVA_MISMO_QUE_PROFESIONAL = -1M;
         }
         public class Proveedores
         {

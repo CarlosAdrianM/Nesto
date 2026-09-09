@@ -8,6 +8,7 @@
       xmlns:prism="http://prismlibrary.com/" 
       xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
       xmlns:viewmodels="clr-namespace:Nesto.Modulos.CanalesExternos.ViewModels"
+      xmlns:models="clr-namespace:Nesto.Modulos.CanalesExternos.Models"
       xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
       xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
       d:DataContext="{d:DesignInstance Type=viewmodels:CanalesExternosProductosViewModel}"
@@ -15,6 +16,9 @@
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800">
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="boolAVisibilidad" />
+    </UserControl.Resources>
     <Grid>
         <TabControl SelectedIndex="{Binding PestannaSeleccionada}">
             <TabItem Name="tabProductos" Header="Productos">
@@ -44,7 +48,19 @@
                     <TextBox Grid.Column="1" Grid.Row="1" Margin="3" Text="{Binding ProductoSeleccionado.Nombre, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top"/>
                     <TextBox Grid.Column="1" Grid.Row="2" Margin="3" Text="{Binding ProductoSeleccionado.DescripcionBreve, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Stretch" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
                     <TextBox Grid.Column="1" Grid.Row="3" Margin="3" Text="{Binding ProductoSeleccionado.DescripcionCompleta, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Stretch" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
-                    <TextBox Grid.Column="1" Grid.Row="4" Margin="3" Text="{Binding ProductoSeleccionado.PvpIvaIncluido, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue={x:Static sys:String.Empty},StringFormat=c, Delay=350}" VerticalAlignment="Top" ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Self}}"/>
+                    <!-- Nesto#453: el precio público tiene tres modos (fijo / NULL / -1); se elige el modo y solo en "precio fijo" se teclea el importe -->
+                    <Grid Grid.Column="1" Grid.Row="4" Margin="3" VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0" MinWidth="230" SelectedValuePath="Tag" SelectedValue="{Binding ProductoSeleccionado.ModoPrecio, Mode=TwoWay}">
+                            <ComboBoxItem Content="Precio fijo" Tag="{x:Static models:ModoPrecioPublico.PrecioFijo}"/>
+                            <ComboBoxItem Content="Descuento por defecto (30 %)" Tag="{x:Static models:ModoPrecioPublico.DescuentoPorDefecto}"/>
+                            <ComboBoxItem Content="Mismo precio que el profesional" Tag="{x:Static models:ModoPrecioPublico.MismoQueProfesional}"/>
+                        </ComboBox>
+                        <TextBox Grid.Column="1" Margin="3,0,0,0" Visibility="{Binding ProductoSeleccionado.EsPrecioFijo, Converter={StaticResource boolAVisibilidad}}" Text="{Binding ProductoSeleccionado.PvpIvaIncluido, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, TargetNullValue={x:Static sys:String.Empty},StringFormat=c, Delay=350}" ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Self}}"/>
+                    </Grid>
                     <TextBox Name="txtBuscar" Grid.Column="1" Grid.Row="5" Margin="3" Text="{Binding ProductoBuscar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox.InputBindings>
                             <KeyBinding Command="{Binding Path=BuscarProductoCommand}" Key="Enter" />
@@ -87,7 +103,7 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Producto" Binding="{Binding ProductoId}" />
                             <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" />
-                            <DataGridTextColumn Header="Precio Público"  Binding="{Binding PvpIvaIncluido, StringFormat=c}">
+                            <DataGridTextColumn Header="Precio Público"  Binding="{Binding PrecioPublicoTexto, Mode=OneWay}">
                                 <DataGridTextColumn.CellStyle>
                                     <Style>
                                         <Setter Property="FrameworkElement.HorizontalAlignment" Value="Right" />
