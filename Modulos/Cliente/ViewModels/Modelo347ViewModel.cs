@@ -1,7 +1,7 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -38,7 +38,7 @@ namespace Nesto.Modulos.Cliente
             Debug.WriteLine("Modelo347ViewModel: Constructor iniciado");
 
             Titulo = "Modelo 347";
-            DescargarPdfCommand = new DelegateCommand(OnDescargarPdfSync, CanDescargarPdf);
+            DescargarPdfCommand = new RelayCommand(OnDescargarPdfSync, CanDescargarPdf);
 
             // Inicializar lista de ejercicios (últimos 3 años)
             var annoActual = DateTime.Today.Year;
@@ -66,7 +66,7 @@ namespace Nesto.Modulos.Cliente
                 Debug.WriteLine($"Modelo347ViewModel: ClienteSeleccionado cambiado a '{value}'");
                 if (SetProperty(ref _clienteSeleccionado, value))
                 {
-                    DescargarPdfCommand.RaiseCanExecuteChanged();
+                    DescargarPdfCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -102,7 +102,7 @@ namespace Nesto.Modulos.Cliente
 
         #region Comandos
 
-        public DelegateCommand DescargarPdfCommand { get; }
+        public RelayCommand DescargarPdfCommand { get; }
 
         private bool CanDescargarPdf()
         {

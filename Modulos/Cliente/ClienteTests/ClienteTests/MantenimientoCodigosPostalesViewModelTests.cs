@@ -125,7 +125,7 @@ namespace ClienteTests
             CodigoPostalModel original = Ermesinde;
             vm.Resultados.Add(original);
             vm.Seleccionado = original;
-            vm.AnnadirVendedorGrupoCommand.Execute(); // fila vacía sin rellenar
+            vm.AnnadirVendedorGrupoCommand.Execute(null); // fila vacía sin rellenar
             A.CallTo(() => servicio.Guardar(A<CodigoPostalModel>.Ignored)).Returns(Ermesinde);
 
             await vm.GuardarAsync();

@@ -1,8 +1,8 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -31,10 +31,10 @@ namespace Nesto.Modulos.Cliente
             Configuracion = configuracion;
             _dialogService = dialogService;
             Titulo = "Códigos Postales";
-            BuscarCommand = new DelegateCommand(async () => await BuscarAsync(), () => !string.IsNullOrWhiteSpace(Filtro));
-            GuardarCommand = new DelegateCommand(async () => await GuardarAsync(), () => Seleccionado != null);
-            AnnadirVendedorGrupoCommand = new DelegateCommand(OnAnnadirVendedorGrupo, () => Seleccionado != null);
-            BorrarVendedorGrupoCommand = new DelegateCommand<VendedorGrupoProductoCodigoPostalModel>(OnBorrarVendedorGrupo);
+            BuscarCommand = new RelayCommand(async () => await BuscarAsync(), () => !string.IsNullOrWhiteSpace(Filtro));
+            GuardarCommand = new RelayCommand(async () => await GuardarAsync(), () => Seleccionado != null);
+            AnnadirVendedorGrupoCommand = new RelayCommand(OnAnnadirVendedorGrupo, () => Seleccionado != null);
+            BorrarVendedorGrupoCommand = new RelayCommand<VendedorGrupoProductoCodigoPostalModel>(OnBorrarVendedorGrupo);
         }
 
         // Público para que el SelectorVendedor de la vista pueda leer la configuración.
@@ -56,7 +56,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _filtro, value))
                 {
-                    BuscarCommand.RaiseCanExecuteChanged();
+                    BuscarCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -77,8 +77,8 @@ namespace Nesto.Modulos.Cliente
                 if (SetProperty(ref _seleccionado, value))
                 {
                     CargarEdicion(value);
-                    GuardarCommand.RaiseCanExecuteChanged();
-                    AnnadirVendedorGrupoCommand.RaiseCanExecuteChanged();
+                    GuardarCommand.NotifyCanExecuteChanged();
+                    AnnadirVendedorGrupoCommand.NotifyCanExecuteChanged();
                     RaisePropertyChanged(nameof(HaySeleccion));
                 }
             }
@@ -116,7 +116,7 @@ namespace Nesto.Modulos.Cliente
             set => SetProperty(ref _estaOcupado, value);
         }
 
-        public DelegateCommand BuscarCommand { get; }
+        public RelayCommand BuscarCommand { get; }
 
         // Function As Task para poder esperarla en los tests (patrón Fase 1C).
         public async Task BuscarAsync()
@@ -148,7 +148,7 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        public DelegateCommand GuardarCommand { get; }
+        public RelayCommand GuardarCommand { get; }
 
         public async Task GuardarAsync()
         {
@@ -194,11 +194,11 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        public DelegateCommand AnnadirVendedorGrupoCommand { get; }
+        public RelayCommand AnnadirVendedorGrupoCommand { get; }
         private void OnAnnadirVendedorGrupo()
             => VendedoresGrupoProducto.Add(new VendedorGrupoProductoCodigoPostalModel());
 
-        public DelegateCommand<VendedorGrupoProductoCodigoPostalModel> BorrarVendedorGrupoCommand { get; }
+        public RelayCommand<VendedorGrupoProductoCodigoPostalModel> BorrarVendedorGrupoCommand { get; }
         private void OnBorrarVendedorGrupo(VendedorGrupoProductoCodigoPostalModel fila)
         {
             if (fila != null)

@@ -1,4 +1,4 @@
-﻿using Prism.Commands;
+﻿using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
 using Prism.Regions;
 using Microsoft.VisualBasic;
@@ -40,15 +40,15 @@ namespace Nesto.Modulos.Cliente
             EventAggregator = eventAggregator;
             DialogService = dialogService;
 
-            AbrirModuloCommand = new DelegateCommand(OnAbrirModulo);
-            AbrirModelo347Command = new DelegateCommand(OnAbrirModelo347);
-            AbrirExtractoClienteCommand = new DelegateCommand(OnAbrirExtractoCliente);
-            AbrirNifIncorrectosCommand = new DelegateCommand(OnAbrirNifIncorrectos);
-            AbrirCodigosPostalesCommand = new DelegateCommand(OnAbrirCodigosPostales, CanAbrirCodigosPostales);
-            AnnadirPersonaContactoCommand = new DelegateCommand(OnAnnadirPersonaContacto);
-            BorrarPersonaContactoCommand = new DelegateCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
-            CrearClienteCommand = new DelegateCommand(OnCrearCliente);
-            LimpiarDireccionCommand = new DelegateCommand(OnLimpiarDireccion);
+            AbrirModuloCommand = new RelayCommand(OnAbrirModulo);
+            AbrirModelo347Command = new RelayCommand(OnAbrirModelo347);
+            AbrirExtractoClienteCommand = new RelayCommand(OnAbrirExtractoCliente);
+            AbrirNifIncorrectosCommand = new RelayCommand(OnAbrirNifIncorrectos);
+            AbrirCodigosPostalesCommand = new RelayCommand(OnAbrirCodigosPostales, CanAbrirCodigosPostales);
+            AnnadirPersonaContactoCommand = new RelayCommand(OnAnnadirPersonaContacto);
+            BorrarPersonaContactoCommand = new RelayCommand<PersonaContactoDTO>(OnBorrarPersonaContacto);
+            CrearClienteCommand = new RelayCommand(OnCrearCliente);
+            LimpiarDireccionCommand = new RelayCommand(OnLimpiarDireccion);
 
             Titulo = "Crear Cliente";
             PersonasContacto = new ObservableCollection<PersonaContactoDTO>()

@@ -66,7 +66,7 @@ namespace ClienteTests
 
             Assert.AreEqual("02", vm.TipoIdentificacionSeleccionado?.Codigo);
             Assert.AreEqual("IT", vm.PaisIdentificacion);
-            Assert.IsTrue(vm.MarcarExtranjeroCommand.CanExecute(), "Con la preselección, marcar es un clic");
+            Assert.IsTrue(vm.MarcarExtranjeroCommand.CanExecute(null), "Con la preselección, marcar es un clic");
         }
 
         [TestMethod]
@@ -79,7 +79,7 @@ namespace ClienteTests
 
             Assert.IsNull(vm.TipoIdentificacionSeleccionado, "No debe arrastrar el tipo de la fila anterior");
             Assert.AreEqual(string.Empty, vm.PaisIdentificacion, "No debe arrastrar el país de la fila anterior");
-            Assert.IsFalse(vm.MarcarExtranjeroCommand.CanExecute());
+            Assert.IsFalse(vm.MarcarExtranjeroCommand.CanExecute(null));
         }
 
         [TestMethod]
@@ -167,10 +167,10 @@ namespace ClienteTests
         {
             var vm = CrearViewModel();
 
-            Assert.IsFalse(vm.MarcarNoCensadoCommand.CanExecute());
+            Assert.IsFalse(vm.MarcarNoCensadoCommand.CanExecute(null));
 
             vm.ClienteSeleccionado = Fila();
-            Assert.IsTrue(vm.MarcarNoCensadoCommand.CanExecute());
+            Assert.IsTrue(vm.MarcarNoCensadoCommand.CanExecute(null));
         }
 
         [TestMethod]
@@ -256,7 +256,7 @@ namespace ClienteTests
             vm.NifNuevo = "IT01579720287";
             vm.PaisIdentificacion = "IT";
 
-            Assert.IsFalse(vm.CorregirCommand.CanExecute(),
+            Assert.IsFalse(vm.CorregirCommand.CanExecute(null),
                 "Con país indicado el cliente es extranjero: 'Corregir NIF' no aplica");
             Assert.IsFalse(vm.EsClienteEspanol);
         }
@@ -268,7 +268,7 @@ namespace ClienteTests
             vm.ClienteSeleccionado = Fila();
             vm.NifNuevo = "90021192C";
 
-            Assert.IsTrue(vm.CorregirCommand.CanExecute(), "Sin país (español) y con NIF, 'Corregir NIF' se habilita");
+            Assert.IsTrue(vm.CorregirCommand.CanExecute(null), "Sin país (español) y con NIF, 'Corregir NIF' se habilita");
             Assert.IsTrue(vm.EsClienteEspanol);
         }
 

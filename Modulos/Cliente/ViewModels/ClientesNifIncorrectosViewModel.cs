@@ -1,8 +1,8 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -34,10 +34,10 @@ namespace Nesto.Modulos.Cliente
             _configuracion = configuracion;
             _dialogService = dialogService;
             Titulo = "Clientes con NIF incorrecto";
-            CargarCommand = new DelegateCommand(async () => await CargarAsync());
-            CorregirCommand = new DelegateCommand(async () => await CorregirAsync(), CanCorregir);
-            MarcarExtranjeroCommand = new DelegateCommand(async () => await MarcarExtranjeroAsync(), CanMarcarExtranjero);
-            MarcarNoCensadoCommand = new DelegateCommand(async () => await MarcarNoCensadoAsync(), () => ClienteSeleccionado != null);
+            CargarCommand = new RelayCommand(async () => await CargarAsync());
+            CorregirCommand = new RelayCommand(async () => await CorregirAsync(), CanCorregir);
+            MarcarExtranjeroCommand = new RelayCommand(async () => await MarcarExtranjeroAsync(), CanMarcarExtranjero);
+            MarcarNoCensadoCommand = new RelayCommand(async () => await MarcarNoCensadoAsync(), () => ClienteSeleccionado != null);
             _ = CargarAsync(); // carga inicial al abrir la ventana
         }
 
@@ -85,9 +85,9 @@ namespace Nesto.Modulos.Cliente
                         TipoIdentificacionSeleccionado = null;
                         PaisIdentificacion = string.Empty;
                     }
-                    CorregirCommand.RaiseCanExecuteChanged();
-                    MarcarExtranjeroCommand.RaiseCanExecuteChanged();
-                    MarcarNoCensadoCommand.RaiseCanExecuteChanged();
+                    CorregirCommand.NotifyCanExecuteChanged();
+                    MarcarExtranjeroCommand.NotifyCanExecuteChanged();
+                    MarcarNoCensadoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -100,7 +100,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _tipoIdentificacionSeleccionado, value))
                 {
-                    MarcarExtranjeroCommand.RaiseCanExecuteChanged();
+                    MarcarExtranjeroCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -113,10 +113,10 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _paisIdentificacion, value))
                 {
-                    MarcarExtranjeroCommand.RaiseCanExecuteChanged();
+                    MarcarExtranjeroCommand.NotifyCanExecuteChanged();
                     // Al indicar país, el cliente es EXTRANJERO: "Corregir NIF" (que valida contra
                     // la AEAT española) deja de tener sentido y se deshabilita.
-                    CorregirCommand.RaiseCanExecuteChanged();
+                    CorregirCommand.NotifyCanExecuteChanged();
                     RaisePropertyChanged(nameof(EsClienteEspanol));
                 }
             }
@@ -134,7 +134,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _nifNuevo, value))
                 {
-                    CorregirCommand.RaiseCanExecuteChanged();
+                    CorregirCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -146,7 +146,7 @@ namespace Nesto.Modulos.Cliente
             set => SetProperty(ref _estaOcupado, value);
         }
 
-        public DelegateCommand CargarCommand { get; }
+        public RelayCommand CargarCommand { get; }
 
         // Function As Task para poder esperarla en los tests (patrón Fase 1C).
         public async Task CargarAsync()
@@ -196,7 +196,7 @@ namespace Nesto.Modulos.Cliente
             return vendedor.Trim();
         }
 
-        public DelegateCommand CorregirCommand { get; }
+        public RelayCommand CorregirCommand { get; }
         // Solo el camino ESPAÑOL: hay cliente, NIF nuevo y NO se ha indicado país (si hay país,
         // es extranjero → se usa "Marcar como extranjero"). Así los dos botones son excluyentes.
         private bool CanCorregir() => ClienteSeleccionado != null
@@ -247,7 +247,7 @@ namespace Nesto.Modulos.Cliente
 
         // NestoAPI#339: pasaportes y demás — dejan de validarse contra el censo (no aplica)
         // y las facturas se declaran con IDOtro (tipo + país) en vez de NIF.
-        public DelegateCommand MarcarExtranjeroCommand { get; }
+        public RelayCommand MarcarExtranjeroCommand { get; }
         private bool CanMarcarExtranjero() => ClienteSeleccionado != null
             && TipoIdentificacionSeleccionado != null
             && !string.IsNullOrWhiteSpace(PaisIdentificacion);
@@ -306,7 +306,7 @@ namespace Nesto.Modulos.Cliente
         // conseguir (ni contactarle). La factura y su rectificativa tienen que declararse a
         // Verifactu igualmente; con la marca 07 van con IDOtro (que la AEAT no valida contra el
         // censo) y dejan de rechazarse a diario. Un clic: 07 + ES, sin pedir tipo ni país.
-        public DelegateCommand MarcarNoCensadoCommand { get; }
+        public RelayCommand MarcarNoCensadoCommand { get; }
 
         public async Task MarcarNoCensadoAsync()
         {

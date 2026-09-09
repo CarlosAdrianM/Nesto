@@ -111,16 +111,16 @@ namespace ClienteTests
             vm.ClienteSeleccionado = "15191";
             await vm.CargarAsync();
 
-            Assert.IsFalse(vm.LiquidarCommand.CanExecute());
+            Assert.IsFalse(vm.LiquidarCommand.CanExecute(null));
 
             vm.Movimientos[0].Seleccionado = true;
-            Assert.IsFalse(vm.LiquidarCommand.CanExecute(), "Con uno solo no se puede liquidar");
+            Assert.IsFalse(vm.LiquidarCommand.CanExecute(null), "Con uno solo no se puede liquidar");
 
             vm.Movimientos[1].Seleccionado = true;
-            Assert.IsTrue(vm.LiquidarCommand.CanExecute(), "Con dos sí (el CanExecute se refresca al marcar)");
+            Assert.IsTrue(vm.LiquidarCommand.CanExecute(null), "Con dos sí (el CanExecute se refresca al marcar)");
 
             vm.Movimientos[2].Seleccionado = true;
-            Assert.IsFalse(vm.LiquidarCommand.CanExecute(), "Con tres no");
+            Assert.IsFalse(vm.LiquidarCommand.CanExecute(null), "Con tres no");
         }
 
         [TestMethod]

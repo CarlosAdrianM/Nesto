@@ -1,4 +1,4 @@
-﻿using Prism.Commands;
+﻿using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -14,9 +14,9 @@ namespace Nesto.Modulos.Cliente.ViewModels
 
         }
 
-        private DelegateCommand<string> _closeDialogCommand;
-        public DelegateCommand<string> CloseDialogCommand =>
-            _closeDialogCommand ?? (_closeDialogCommand = new DelegateCommand<string>(CloseDialog));
+        private RelayCommand<string> _closeDialogCommand;
+        public RelayCommand<string> CloseDialogCommand =>
+            _closeDialogCommand ?? (_closeDialogCommand = new RelayCommand<string>(CloseDialog));
 
         public string Title => "Clientes con el mismo teléfono:";
 

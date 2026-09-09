@@ -1,7 +1,7 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
 using Prism.Mvvm;
 using Prism.Regions;
@@ -34,8 +34,8 @@ namespace Nesto.Modulos.Cliente
             _dialogService = dialogService;
             _eventAggregator = eventAggregator;
             Titulo = "Extracto de Cliente";
-            CargarCommand = new DelegateCommand(OnCargar, CanCargar);
-            LiquidarCommand = new DelegateCommand(OnLiquidar, CanLiquidar);
+            CargarCommand = new RelayCommand(OnCargar, CanCargar);
+            LiquidarCommand = new RelayCommand(OnLiquidar, CanLiquidar);
         }
 
         public string Titulo { get; }
@@ -65,7 +65,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref _clienteSeleccionado, value))
                 {
-                    CargarCommand.RaiseCanExecuteChanged();
+                    CargarCommand.NotifyCanExecuteChanged();
                     // Cambiar de cliente invalida lo que hubiera en pantalla
                     Movimientos = new ObservableCollection<ExtractoClienteModel>();
                 }
@@ -91,7 +91,7 @@ namespace Nesto.Modulos.Cliente
                     movimiento.PropertyChanged += MovimientoCambiado;
                 }
                 RaisePropertyChanged(nameof(TotalPendiente));
-                LiquidarCommand.RaiseCanExecuteChanged();
+                LiquidarCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -99,7 +99,7 @@ namespace Nesto.Modulos.Cliente
         {
             if (e.PropertyName == nameof(ExtractoClienteModel.Seleccionado))
             {
-                LiquidarCommand.RaiseCanExecuteChanged();
+                LiquidarCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -115,7 +115,7 @@ namespace Nesto.Modulos.Cliente
             set => SetProperty(ref _estaOcupado, value);
         }
 
-        public DelegateCommand CargarCommand { get; }
+        public RelayCommand CargarCommand { get; }
         private bool CanCargar() => !string.IsNullOrWhiteSpace(ClienteSeleccionado);
         private async void OnCargar() => await CargarAsync();
 
@@ -143,7 +143,7 @@ namespace Nesto.Modulos.Cliente
             }
         }
 
-        public DelegateCommand LiquidarCommand { get; }
+        public RelayCommand LiquidarCommand { get; }
 
         // Exactamente dos movimientos marcados; el resto de reglas (mismo cliente, signos
         // opuestos, remesas, estados bloqueados) las valida la API con mensaje claro.
