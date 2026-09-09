@@ -5,7 +5,7 @@ Imports Nesto.Infrastructure.Events
 Imports Nesto.Infrastructure.[Shared]
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Prism
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
@@ -36,18 +36,18 @@ Public Class ListaRapportsViewModel
         _dialogService = dialogService
         _eventAggregator = eventAggregator
 
-        cmdAbrirModulo = New DelegateCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
-        CambiarModoComparativaCommand = New DelegateCommand(Of String)(Sub(valor) ModoComparativa = valor)
-        CambiarAgruparPorCommand = New DelegateCommand(Of String)(Sub(valor) AgruparPor = valor)
-        cmdCargarListaRapports = New DelegateCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
-        cmdCargarListaRapportsFiltrada = New DelegateCommand(AddressOf OnCargarListaRapportsFiltrada, AddressOf CanCargarListaRapportsFiltrada)
-        cmdCrearRapport = New DelegateCommand(Of ClienteProbabilidadVenta)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
-        GenerarResumenCommand = New DelegateCommand(AddressOf OnGenerarResumen, AddressOf CanGenerarResumen)
-        VerDetalleVentasCommand = New DelegateCommand(Of VentaClienteResumenDTO)(AddressOf OnVerDetalleVentas, AddressOf CanVerDetalleVentas)
-        VolverAResumenVentasCommand = New DelegateCommand(AddressOf OnVolverAResumenVentas)
-        AbrirFichaProductoCommand = New DelegateCommand(Of VentaClienteResumenDTO)(AddressOf OnAbrirFichaProducto, AddressOf CanAbrirFichaProducto)
+        cmdAbrirModulo = New RelayCommand(Of Object)(AddressOf OnAbrirModulo, AddressOf CanAbrirModulo)
+        CambiarModoComparativaCommand = New RelayCommand(Of String)(Sub(valor) ModoComparativa = valor)
+        CambiarAgruparPorCommand = New RelayCommand(Of String)(Sub(valor) AgruparPor = valor)
+        cmdCargarListaRapports = New RelayCommand(Of Object)(AddressOf OnCargarListaRapports, AddressOf CanCargarListaRapports)
+        cmdCargarListaRapportsFiltrada = New RelayCommand(AddressOf OnCargarListaRapportsFiltrada, AddressOf CanCargarListaRapportsFiltrada)
+        cmdCrearRapport = New RelayCommand(Of ClienteProbabilidadVenta)(AddressOf OnCrearRapport, AddressOf CanCrearRapport)
+        GenerarResumenCommand = New RelayCommand(AddressOf OnGenerarResumen, AddressOf CanGenerarResumen)
+        VerDetalleVentasCommand = New RelayCommand(Of VentaClienteResumenDTO)(AddressOf OnVerDetalleVentas, AddressOf CanVerDetalleVentas)
+        VolverAResumenVentasCommand = New RelayCommand(AddressOf OnVolverAResumenVentas)
+        AbrirFichaProductoCommand = New RelayCommand(Of VentaClienteResumenDTO)(AddressOf OnAbrirFichaProducto, AddressOf CanAbrirFichaProducto)
 
-        CopiarSeguimientosCommand = New DelegateCommand(AddressOf OnCopiarSeguimientos, AddressOf CanCopiarSeguimientos)
+        CopiarSeguimientosCommand = New RelayCommand(AddressOf OnCopiarSeguimientos, AddressOf CanCopiarSeguimientos)
 
         listaTiposRapports = servicio.CargarListaTipos()
         listaEstadosRapport = servicio.CargarListaEstados()
@@ -82,8 +82,8 @@ Public Class ListaRapportsViewModel
             If SetProperty(_clienteSeleccionado, value) Then
                 MostrandoDetalleVentas = False
             End If
-            cmdCargarListaRapports.RaiseCanExecuteChanged()
-            CopiarSeguimientosCommand.RaiseCanExecuteChanged()
+            cmdCargarListaRapports.NotifyCanExecuteChanged()
+            CopiarSeguimientosCommand.NotifyCanExecuteChanged()
             If _clienteSeleccionado = String.Empty Then
                 ClienteCompleto = Nothing
                 cmdCargarListaRapports.Execute(Nothing) ' Por fecha
@@ -173,7 +173,7 @@ Public Class ListaRapportsViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_filtro, value)
-            cmdCargarListaRapportsFiltrada.Execute()
+            cmdCargarListaRapportsFiltrada.Execute(Nothing)
         End Set
     End Property
 
@@ -499,12 +499,12 @@ Public Class ListaRapportsViewModel
 #End Region
 
 #Region "Comandos"
-    Private _cmdAbrirModulo As DelegateCommand(Of Object)
-    Public Property cmdAbrirModulo As DelegateCommand(Of Object)
+    Private _cmdAbrirModulo As RelayCommand(Of Object)
+    Public Property cmdAbrirModulo As RelayCommand(Of Object)
         Get
             Return _cmdAbrirModulo
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             Dim unused = SetProperty(_cmdAbrirModulo, value)
         End Set
     End Property
@@ -516,20 +516,20 @@ Public Class ListaRapportsViewModel
     End Sub
 
 
-    Public Property CambiarModoComparativaCommand As DelegateCommand(Of String)
-    Public Property CambiarAgruparPorCommand As DelegateCommand(Of String)
+    Public Property CambiarModoComparativaCommand As RelayCommand(Of String)
+    Public Property CambiarAgruparPorCommand As RelayCommand(Of String)
     Private Async Sub OnCargarResumenVentas()
         MostrandoDetalleVentas = False
         LlamarApiResumenVentasAsync()
     End Sub
 
 
-    Private _cmdCargarListaRapports As DelegateCommand(Of Object)
-    Public Property cmdCargarListaRapports As DelegateCommand(Of Object)
+    Private _cmdCargarListaRapports As RelayCommand(Of Object)
+    Public Property cmdCargarListaRapports As RelayCommand(Of Object)
         Get
             Return _cmdCargarListaRapports
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             Dim unused = SetProperty(_cmdCargarListaRapports, value)
         End Set
     End Property
@@ -550,15 +550,15 @@ Public Class ListaRapportsViewModel
             listaRapports = Await servicio.cargarListaRapports(parametroVendedor, fechaSeleccionada)
             rapportSeleccionado = listaRapports.FirstOrDefault
         End If
-        GenerarResumenCommand.RaiseCanExecuteChanged()
+        GenerarResumenCommand.NotifyCanExecuteChanged()
     End Sub
 
-    Private _cmdCargarListaRapportsFiltrada As DelegateCommand
-    Public Property cmdCargarListaRapportsFiltrada As DelegateCommand
+    Private _cmdCargarListaRapportsFiltrada As RelayCommand
+    Public Property cmdCargarListaRapportsFiltrada As RelayCommand
         Get
             Return _cmdCargarListaRapportsFiltrada
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdCargarListaRapportsFiltrada, value)
         End Set
     End Property
@@ -585,12 +585,12 @@ Public Class ListaRapportsViewModel
 
     Public Event IsActiveChanged As EventHandler Implements IActiveAware.IsActiveChanged
 
-    Private _cmdCrearRapport As DelegateCommand(Of ClienteProbabilidadVenta)
-    Public Property cmdCrearRapport As DelegateCommand(Of ClienteProbabilidadVenta)
+    Private _cmdCrearRapport As RelayCommand(Of ClienteProbabilidadVenta)
+    Public Property cmdCrearRapport As RelayCommand(Of ClienteProbabilidadVenta)
         Get
             Return _cmdCrearRapport
         End Get
-        Private Set(value As DelegateCommand(Of ClienteProbabilidadVenta))
+        Private Set(value As RelayCommand(Of ClienteProbabilidadVenta))
             Dim unused = SetProperty(_cmdCrearRapport, value)
         End Set
     End Property
@@ -637,7 +637,7 @@ Public Class ListaRapportsViewModel
         listaRapports.Add(rapportNuevo)
     End Sub
 
-    Public Property GenerarResumenCommand As DelegateCommand
+    Public Property GenerarResumenCommand As RelayCommand
     Private Function CanGenerarResumen() As Boolean
         Return Not IsNothing(clienteSeleccionado) AndAlso listaRapports IsNot Nothing AndAlso listaRapports.Count > 10 AndAlso String.IsNullOrEmpty(ResumenListaRapports)
     End Function
@@ -651,12 +651,12 @@ Public Class ListaRapportsViewModel
             _dialogService.ShowError(ex.Message)
         Finally
             EstaGenerandoResumen = False
-            GenerarResumenCommand.RaiseCanExecuteChanged() ' Deshabilitar el botón tras generar el resumen
+            GenerarResumenCommand.NotifyCanExecuteChanged() ' Deshabilitar el botón tras generar el resumen
         End Try
     End Sub
 
 
-    Public Property VerDetalleVentasCommand As DelegateCommand(Of VentaClienteResumenDTO)
+    Public Property VerDetalleVentasCommand As RelayCommand(Of VentaClienteResumenDTO)
     Private Function CanVerDetalleVentas(venta As VentaClienteResumenDTO) As Boolean
         Return venta IsNot Nothing AndAlso venta.Nombre <> "TOTAL"
     End Function
@@ -678,12 +678,12 @@ Public Class ListaRapportsViewModel
         End Try
     End Sub
 
-    Public Property VolverAResumenVentasCommand As DelegateCommand
+    Public Property VolverAResumenVentasCommand As RelayCommand
     Private Sub OnVolverAResumenVentas()
         MostrandoDetalleVentas = False
     End Sub
 
-    Public Property AbrirFichaProductoCommand As DelegateCommand(Of VentaClienteResumenDTO)
+    Public Property AbrirFichaProductoCommand As RelayCommand(Of VentaClienteResumenDTO)
     Private Function CanAbrirFichaProducto(venta As VentaClienteResumenDTO) As Boolean
         Return venta IsNot Nothing AndAlso venta.Nombre <> "TOTAL" AndAlso venta.Nombre.Contains(" - ")
     End Function
@@ -697,11 +697,11 @@ Public Class ListaRapportsViewModel
     End Sub
 
     ' Comando para actualizar SelectedAction usando DelegateCommand
-    Private _tipoRapportCambiaCommand As DelegateCommand(Of String)
-    Public ReadOnly Property TipoRapportCambiaCommand As DelegateCommand(Of String)
+    Private _tipoRapportCambiaCommand As RelayCommand(Of String)
+    Public ReadOnly Property TipoRapportCambiaCommand As RelayCommand(Of String)
         Get
             If _tipoRapportCambiaCommand Is Nothing Then
-                _tipoRapportCambiaCommand = New DelegateCommand(Of String)(AddressOf OnTipoRapportCambia)
+                _tipoRapportCambiaCommand = New RelayCommand(Of String)(AddressOf OnTipoRapportCambia)
             End If
             Return _tipoRapportCambiaCommand
         End Get
@@ -720,7 +720,7 @@ Public Class ListaRapportsViewModel
         Return (Not IsNothing(TipoRapportSeleccionado)) AndAlso TipoRapportSeleccionado.id = itemId
     End Function
 
-    Public Property CopiarSeguimientosCommand As DelegateCommand
+    Public Property CopiarSeguimientosCommand As RelayCommand
     Private Function CanCopiarSeguimientos() As Boolean
         Return Not String.IsNullOrWhiteSpace(clienteSeleccionado)
     End Function

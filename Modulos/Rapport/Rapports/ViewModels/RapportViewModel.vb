@@ -1,4 +1,4 @@
-﻿Imports Prism.Commands
+﻿Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Regions
 Imports Nesto.Modulos.Rapports.RapportsModel.SeguimientoClienteDTO
 Imports Prism.Mvvm
@@ -55,8 +55,8 @@ Public Class RapportViewModel
             New idByteDescripcion(5, "5 o más")
         }
 
-        cmdCrearCita = New DelegateCommand(AddressOf OnCrearCita, AddressOf CanCrearCita)
-        cmdGuardarCambios = New DelegateCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
+        cmdCrearCita = New RelayCommand(AddressOf OnCrearCita, AddressOf CanCrearCita)
+        cmdGuardarCambios = New RelayCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
 
     End Sub
 
@@ -187,8 +187,8 @@ Public Class RapportViewModel
         End Get
         Set(value As SeguimientoClienteDTO)
             SetProperty(_rapport, value)
-            cmdCrearCita.RaiseCanExecuteChanged()
-            cmdGuardarCambios.RaiseCanExecuteChanged()
+            cmdCrearCita.NotifyCanExecuteChanged()
+            cmdGuardarCambios.NotifyCanExecuteChanged()
             PrerrellenarEmpleados()
             RaisePropertyChanged(NameOf(EstaVisibleEmpleados))
         End Set
@@ -239,12 +239,12 @@ Public Class RapportViewModel
 
 
 #Region "Comandos"
-    Private _cmdCrearCita As DelegateCommand
-    Public Property cmdCrearCita As DelegateCommand
+    Private _cmdCrearCita As RelayCommand
+    Public Property cmdCrearCita As RelayCommand
         Get
             Return _cmdCrearCita
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             SetProperty(_cmdCrearCita, value)
         End Set
     End Property
@@ -276,12 +276,12 @@ Public Class RapportViewModel
     End Sub
 
 
-    Private _cmdGuardarCambios As DelegateCommand(Of Object)
-    Public Property cmdGuardarCambios As DelegateCommand(Of Object)
+    Private _cmdGuardarCambios As RelayCommand(Of Object)
+    Public Property cmdGuardarCambios As RelayCommand(Of Object)
         Get
             Return _cmdGuardarCambios
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             SetProperty(_cmdGuardarCambios, value)
         End Set
     End Property
@@ -300,7 +300,7 @@ Public Class RapportViewModel
             rapport.TipoCentro = TiposCentro.NoSeSabe
         End If
         _guardandoRapport = True
-        cmdGuardarCambios.RaiseCanExecuteChanged()
+        cmdGuardarCambios.NotifyCanExecuteChanged()
         Dim texto As String
         Try
             texto = Await servicio.crearRapport(rapport)
@@ -319,7 +319,7 @@ Public Class RapportViewModel
             dialogService.ShowError(ex.Message)
         Finally
             _guardandoRapport = False
-            cmdGuardarCambios.RaiseCanExecuteChanged()
+            cmdGuardarCambios.NotifyCanExecuteChanged()
         End Try
     End Sub
 #End Region

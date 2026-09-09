@@ -1,6 +1,6 @@
-Imports Nesto.Infrastructure.Contracts
+﻿Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Shared
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 
@@ -37,7 +37,7 @@ Public Class CopiarSeguimientosViewModel
         End Get
         Set(value As String)
             If SetProperty(_clienteOrigen, value) Then
-                EjecutarCommand.RaiseCanExecuteChanged()
+                EjecutarCommand.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -59,7 +59,7 @@ Public Class CopiarSeguimientosViewModel
         End Get
         Set(value As String)
             If SetProperty(_contactoOrigen, value) Then
-                EjecutarCommand.RaiseCanExecuteChanged()
+                EjecutarCommand.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -71,7 +71,7 @@ Public Class CopiarSeguimientosViewModel
         End Get
         Set(value As String)
             If SetProperty(_clienteDestino, value) Then
-                EjecutarCommand.RaiseCanExecuteChanged()
+                EjecutarCommand.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -93,7 +93,7 @@ Public Class CopiarSeguimientosViewModel
         End Get
         Set(value As String)
             If SetProperty(_contactoDestino, value) Then
-                EjecutarCommand.RaiseCanExecuteChanged()
+                EjecutarCommand.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -105,8 +105,8 @@ Public Class CopiarSeguimientosViewModel
         End Get
         Set(value As Boolean)
             SetProperty(_estaProcesando, value)
-            EjecutarCommand.RaiseCanExecuteChanged()
-            CerrarCommand.RaiseCanExecuteChanged()
+            EjecutarCommand.NotifyCanExecuteChanged()
+            CerrarCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -152,28 +152,28 @@ Public Class CopiarSeguimientosViewModel
 
 #Region "Commands"
 
-    Private _ejecutarCommand As DelegateCommand
-    Public Property EjecutarCommand As DelegateCommand
+    Private _ejecutarCommand As RelayCommand
+    Public Property EjecutarCommand As RelayCommand
         Get
             If _ejecutarCommand Is Nothing Then
-                _ejecutarCommand = New DelegateCommand(AddressOf OnEjecutar, AddressOf CanEjecutar)
+                _ejecutarCommand = New RelayCommand(AddressOf OnEjecutar, AddressOf CanEjecutar)
             End If
             Return _ejecutarCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             _ejecutarCommand = value
         End Set
     End Property
 
-    Private _cerrarCommand As DelegateCommand
-    Public Property CerrarCommand As DelegateCommand
+    Private _cerrarCommand As RelayCommand
+    Public Property CerrarCommand As RelayCommand
         Get
             If _cerrarCommand Is Nothing Then
-                _cerrarCommand = New DelegateCommand(AddressOf OnCerrar, AddressOf CanCerrar)
+                _cerrarCommand = New RelayCommand(AddressOf OnCerrar, AddressOf CanCerrar)
             End If
             Return _cerrarCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             _cerrarCommand = value
         End Set
     End Property
