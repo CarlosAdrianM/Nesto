@@ -1,6 +1,6 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Regions;
 using System.Windows.Input;
 
@@ -16,7 +16,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             RegionManager = regionManager;
             Configuracion = configuracion;
 
-            AbrirModuloGanavisionesCommand = new DelegateCommand(OnAbrirGanavisionesModulo, CanAbrirModuloGanavisiones);
+            AbrirModuloGanavisionesCommand = new RelayCommand(OnAbrirGanavisionesModulo, CanAbrirModuloGanavisiones);
         }
 
         public ICommand AbrirModuloGanavisionesCommand { get; private set; }

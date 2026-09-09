@@ -2,7 +2,7 @@
 Imports System.Globalization
 Imports System.Net.Http
 Imports System.Text
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Regions
 Imports Nesto.Modulos.Inventario.InventarioModel
 Imports Newtonsoft.Json
@@ -28,12 +28,12 @@ Public Class InventarioViewModel
         Me.dialogService = dialogService
         _clienteApiFactory = clienteApiFactory
 
-        cmdAbrirInventario = New DelegateCommand(AddressOf OnAbrirInventario)
-        cmdActualizarLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnActualizarLineaInventario)
-        cmdActualizarMovimientos = New DelegateCommand(AddressOf OnActualizarMovimientos)
+        cmdAbrirInventario = New RelayCommand(AddressOf OnAbrirInventario)
+        cmdActualizarLineaInventario = New RelayCommand(Of InventarioDTO)(AddressOf OnActualizarLineaInventario)
+        cmdActualizarMovimientos = New RelayCommand(AddressOf OnActualizarMovimientos)
 
-        cmdCrearLineaInventario = New DelegateCommand(Of InventarioDTO)(AddressOf OnCrearLineaInventario)
-        cmdInsertarProducto = New DelegateCommand(Of String)(AddressOf OnInsertarProducto)
+        cmdCrearLineaInventario = New RelayCommand(Of InventarioDTO)(AddressOf OnCrearLineaInventario)
+        cmdInsertarProducto = New RelayCommand(Of String)(AddressOf OnInsertarProducto)
 
         Titulo = "Inventario Tienda"
 
@@ -150,12 +150,12 @@ Public Class InventarioViewModel
 
 #Region "Comandos"
 
-    Private _cmdAbrirInventario As DelegateCommand
-    Public Property cmdAbrirInventario As DelegateCommand
+    Private _cmdAbrirInventario As RelayCommand
+    Public Property cmdAbrirInventario As RelayCommand
         Get
             Return _cmdAbrirInventario
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             SetProperty(_cmdAbrirInventario, value)
         End Set
     End Property
@@ -163,12 +163,12 @@ Public Class InventarioViewModel
         regionManager.RequestNavigate("MainRegion", "InventarioView")
     End Sub
 
-    Private _cmdActualizarMovimientos As DelegateCommand
-    Public Property cmdActualizarMovimientos As DelegateCommand
+    Private _cmdActualizarMovimientos As RelayCommand
+    Public Property cmdActualizarMovimientos As RelayCommand
         Get
             Return _cmdActualizarMovimientos
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             SetProperty(_cmdActualizarMovimientos, value)
         End Set
     End Property
@@ -202,12 +202,12 @@ Public Class InventarioViewModel
 
     End Sub
 
-    Private _cmdActualizarLineaInventario As DelegateCommand(Of InventarioDTO)
-    Public Property cmdActualizarLineaInventario As DelegateCommand(Of InventarioDTO)
+    Private _cmdActualizarLineaInventario As RelayCommand(Of InventarioDTO)
+    Public Property cmdActualizarLineaInventario As RelayCommand(Of InventarioDTO)
         Get
             Return _cmdActualizarLineaInventario
         End Get
-        Private Set(value As DelegateCommand(Of InventarioDTO))
+        Private Set(value As RelayCommand(Of InventarioDTO))
             SetProperty(_cmdActualizarLineaInventario, value)
         End Set
     End Property
@@ -248,12 +248,12 @@ Public Class InventarioViewModel
         End Using
     End Function
 
-    Private _cmdInsertarProducto As DelegateCommand(Of String)
-    Public Property cmdInsertarProducto As DelegateCommand(Of String)
+    Private _cmdInsertarProducto As RelayCommand(Of String)
+    Public Property cmdInsertarProducto As RelayCommand(Of String)
         Get
             Return _cmdInsertarProducto
         End Get
-        Private Set(value As DelegateCommand(Of String))
+        Private Set(value As RelayCommand(Of String))
             SetProperty(_cmdInsertarProducto, value)
         End Set
     End Property
@@ -286,12 +286,12 @@ Public Class InventarioViewModel
         Return movimientoModificado
     End Function
 
-    Private _cmdCrearLineaInventario As DelegateCommand(Of InventarioDTO)
-    Public Property cmdCrearLineaInventario As DelegateCommand(Of InventarioDTO)
+    Private _cmdCrearLineaInventario As RelayCommand(Of InventarioDTO)
+    Public Property cmdCrearLineaInventario As RelayCommand(Of InventarioDTO)
         Get
             Return _cmdCrearLineaInventario
         End Get
-        Private Set(value As DelegateCommand(Of InventarioDTO))
+        Private Set(value As RelayCommand(Of InventarioDTO))
             SetProperty(_cmdCrearLineaInventario, value)
         End Set
     End Property

@@ -1,5 +1,5 @@
 ﻿Imports System.Collections.Specialized
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Regions
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
@@ -20,8 +20,8 @@ Public Class CarteraPagosViewModel
         Me.servicio = servicio
         Me.dialogService = dialogService
 
-        cmdAbrirCarteraPagos = New DelegateCommand(Of Object)(AddressOf OnAbrirCarteraPagos, AddressOf CanAbrirCarteraPagos)
-        cmdCrearFicheroRemesa = New DelegateCommand(Of Object)(AddressOf OnCrearFicheroRemesa, AddressOf CanCrearFicheroRemesa)
+        cmdAbrirCarteraPagos = New RelayCommand(Of Object)(AddressOf OnAbrirCarteraPagos, AddressOf CanAbrirCarteraPagos)
+        cmdCrearFicheroRemesa = New RelayCommand(Of Object)(AddressOf OnCrearFicheroRemesa, AddressOf CanCrearFicheroRemesa)
 
         Titulo = "Remesa de Pagos"
 
@@ -35,7 +35,7 @@ Public Class CarteraPagosViewModel
         End Get
         Set(ByVal value As String)
             SetProperty(_banco, value)
-            cmdCrearFicheroRemesa.RaiseCanExecuteChanged()
+            cmdCrearFicheroRemesa.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -49,7 +49,7 @@ Public Class CarteraPagosViewModel
             SetProperty(_numeroOrdenExtracto, value)
             numeroRemesa = 0
             RaisePropertyChanged(NameOf(numeroRemesa))
-            cmdCrearFicheroRemesa.RaiseCanExecuteChanged()
+            cmdCrearFicheroRemesa.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -60,7 +60,7 @@ Public Class CarteraPagosViewModel
         End Get
         Set(ByVal value As Integer)
             SetProperty(_numeroRemesa, value)
-            cmdCrearFicheroRemesa.RaiseCanExecuteChanged()
+            cmdCrearFicheroRemesa.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -68,12 +68,12 @@ Public Class CarteraPagosViewModel
 
 #Region "Comandos"
 
-    Private _cmdAbrirCarteraPagos As DelegateCommand(Of Object)
-    Public Property cmdAbrirCarteraPagos As DelegateCommand(Of Object)
+    Private _cmdAbrirCarteraPagos As RelayCommand(Of Object)
+    Public Property cmdAbrirCarteraPagos As RelayCommand(Of Object)
         Get
             Return _cmdAbrirCarteraPagos
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             SetProperty(_cmdAbrirCarteraPagos, value)
         End Set
     End Property
@@ -84,12 +84,12 @@ Public Class CarteraPagosViewModel
         regionManager.RequestNavigate("MainRegion", "CarteraPagosView")
     End Sub
 
-    Private _cmdCrearFicheroRemesa As DelegateCommand(Of Object)
-    Public Property cmdCrearFicheroRemesa As DelegateCommand(Of Object)
+    Private _cmdCrearFicheroRemesa As RelayCommand(Of Object)
+    Public Property cmdCrearFicheroRemesa As RelayCommand(Of Object)
         Get
             Return _cmdCrearFicheroRemesa
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             SetProperty(_cmdCrearFicheroRemesa, value)
         End Set
     End Property

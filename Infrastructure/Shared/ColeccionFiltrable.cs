@@ -1,5 +1,5 @@
 ﻿using Nesto.Infrastructure.Contracts;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using System;
 using System.Collections.Generic;
@@ -14,8 +14,8 @@ namespace Nesto.Infrastructure.Shared
         #region Constructores
         public ColeccionFiltrable() : base()
         {
-            FijarFiltroCommand = new DelegateCommand<string>(OnFijarFiltro);
-            QuitarFiltroCommand = new DelegateCommand<string>(OnQuitarFiltro);
+            FijarFiltroCommand = new RelayCommand<string>(OnFijarFiltro);
+            QuitarFiltroCommand = new RelayCommand<string>(OnQuitarFiltro);
         }
 
         public ColeccionFiltrable(IEnumerable<IFiltrableItem> enumerable) : this()
@@ -273,7 +273,7 @@ namespace Nesto.Infrastructure.Shared
         #endregion
 
         #region Comandos
-        public DelegateCommand<string> FijarFiltroCommand { get; private set; }
+        public RelayCommand<string> FijarFiltroCommand { get; private set; }
         private void OnFijarFiltro(string filtro)
         {
             if (FiltrosPuestos == null)
@@ -308,7 +308,7 @@ namespace Nesto.Infrastructure.Shared
             }
         }
 
-        public DelegateCommand<string> QuitarFiltroCommand { get; private set; }
+        public RelayCommand<string> QuitarFiltroCommand { get; private set; }
         private void OnQuitarFiltro(string filtro)
         {
             filtro = filtro.ToLower();

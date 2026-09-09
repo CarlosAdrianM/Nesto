@@ -1,10 +1,10 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Ganavisiones.Interfaces;
 using Nesto.Modulos.Ganavisiones.Models;
 using Nesto.Modulos.Ganavisiones.ViewModels;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -34,13 +34,13 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
 
             Ganavisiones = new ObservableCollection<GanavisionWrapper>();
 
-            CargarGanavisionesCommand = new DelegateCommand(async () => await OnCargarGanavisiones());
-            NuevoCommand = new DelegateCommand(OnNuevo);
+            CargarGanavisionesCommand = new RelayCommand(async () => await OnCargarGanavisiones());
+            NuevoCommand = new RelayCommand(OnNuevo);
             // Quitamos CanGuardar - validamos dentro de OnGuardar para evitar problemas de binding
-            GuardarCommand = new DelegateCommand<object>(async (g) => await OnGuardar(g as GanavisionWrapper));
-            EliminarCommand = new DelegateCommand<object>(async (g) => await OnEliminar(g as GanavisionWrapper), CanEliminar);
-            AbrirProductoCommand = new DelegateCommand<GanavisionWrapper>(OnAbrirProducto);
-            ToggleActivoCommand = new DelegateCommand<object>(async (g) => await OnToggleActivo(g as GanavisionWrapper));
+            GuardarCommand = new RelayCommand<object>(async (g) => await OnGuardar(g as GanavisionWrapper));
+            EliminarCommand = new RelayCommand<object>(async (g) => await OnEliminar(g as GanavisionWrapper), CanEliminar);
+            AbrirProductoCommand = new RelayCommand<GanavisionWrapper>(OnAbrirProducto);
+            ToggleActivoCommand = new RelayCommand<object>(async (g) => await OnToggleActivo(g as GanavisionWrapper));
 
             Titulo = "Ganavisiones";
             Empresa = Constantes.Empresas.EMPRESA_DEFECTO;
@@ -78,7 +78,7 @@ namespace Nesto.Modulos.Ganavisiones.ViewModels
             {
                 if (SetProperty(ref _ganavisionSeleccionada, value))
                 {
-                    ((DelegateCommand<object>)EliminarCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand<object>)EliminarCommand).NotifyCanExecuteChanged();
                 }
             }
         }
