@@ -397,7 +397,8 @@
                                     <Style TargetType="{x:Type DataGridCell}" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                         <Style.Triggers>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource Self}, Path=Foreground}" />
+                                                <!-- Nesto#189: la celda seleccionada conserva el color del stock (la plantilla por defecto lo pisa con HighlightText) -->
+                                                <Setter Property="Foreground" Value="{Binding colorStock}" />
                                                 <Setter Property="Background" Value="WhiteSmoke"/>
                                             </Trigger>
                                         </Style.Triggers>
@@ -613,7 +614,7 @@
                                 <StackPanel>
                                     <TextBlock Text="Base Imponible Bonificable" FontWeight="Bold" FontSize="11"/>
                                     <TextBlock Text="{Binding BaseImponibleBonificable, StringFormat=c}" FontSize="20" Foreground="DarkBlue" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="(grupos COS, ACC, PEL)" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding TextoGruposBonificables}" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
                                 </StackPanel>
                             </Border>
 
