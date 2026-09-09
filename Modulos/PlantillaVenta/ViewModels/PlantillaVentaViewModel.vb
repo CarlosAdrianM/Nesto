@@ -482,13 +482,27 @@ Public Class PlantillaVentaViewModel
 
 #Region "Ganavisiones - FASE 7"
     ''' <summary>
-    ''' Grupos de productos que generan Ganavisiones (COS = Cosmetica, ACC = Accesorios).
-    ''' Issue #94: Sistema Ganavisiones - FASE 7.
-    ''' NestoAPI#466 (Carlos, 09/09/26): la peluqueria (PEL) queda FUERA. La lista que manda es la
-    ''' del servidor (GET api/Ganavisiones/GruposBonificables); esta copia solo pinta los regalos
-    ''' antes de guardar y, si divergiera, el servidor rechazaria el regalo al guardar.
+    ''' Grupos de productos que generan Ganavisiones. La lista que manda es la del servidor
+    ''' (GET api/Ganavisiones/GruposBonificables, NestoAPI#466), que se carga al navegar a la
+    ''' plantilla con ActualizarGruposBonificables. Mientras no se haya podido cargar (sin red, API
+    ''' anterior al endpoint) vale esta reserva: COS y ACC (la peluqueria quedo fuera el 09/09/26).
     ''' </summary>
-    Private Shared ReadOnly GRUPOS_BONIFICABLES As String() = {"COS", "ACC"}
+    Public Shared ReadOnly GRUPOS_BONIFICABLES_POR_DEFECTO As String() = {"COS", "ACC"}
+    Private Shared _gruposBonificables As String() = GRUPOS_BONIFICABLES_POR_DEFECTO
+
+    ''' <summary>Con Nothing o vacia no se toca nada: nunca nos quedamos sin lista.</summary>
+    Public Shared Sub ActualizarGruposBonificables(grupos As IEnumerable(Of String))
+        If grupos Is Nothing Then
+            Return
+        End If
+        Dim limpios = grupos.Where(Function(g) Not String.IsNullOrWhiteSpace(g)) _
+                            .Select(Function(g) g.Trim().ToUpper()) _
+                            .Distinct() _
+                            .ToArray()
+        If limpios.Length > 0 Then
+            _gruposBonificables = limpios
+        End If
+    End Sub
 
     ''' <summary>
     ''' Valor en EUR de cada Ganavision (1 Ganavision = 10 EUR).
@@ -506,7 +520,7 @@ Public Class PlantillaVentaViewModel
                 Return 0
             End If
             Return listaProductosPedido _
-                .Where(Function(l) Not String.IsNullOrEmpty(l.grupo) AndAlso GRUPOS_BONIFICABLES.Contains(l.grupo.Trim().ToUpper())) _
+                .Where(Function(l) Not String.IsNullOrEmpty(l.grupo) AndAlso _gruposBonificables.Contains(l.grupo.Trim().ToUpper())) _
                 .Sum(Function(l) (l.cantidad * l.precio) - Math.Round(l.cantidad * l.precio * l.descuento, 2, MidpointRounding.AwayFromZero) + l.baseImponibleOferta)
         End Get
     End Property
@@ -3232,8 +3246,12 @@ Public Class PlantillaVentaViewModel
         If _productosBonificablesIds Is Nothing Then
             ' Usar ConfigureAwait(True) para que RaisePropertyChanged se ejecute en el hilo de la UI
             _productosBonificablesIds = Await servicio.CargarProductosBonificablesIds().ConfigureAwait(True)
+            ' NestoAPI#466: la lista de grupos que generan Ganavisiones la manda el servidor.
+            ActualizarGruposBonificables(Await servicio.CargarGruposBonificables().ConfigureAwait(True))
             ' Notificar que HayGanavisionesDisponibles puede haber cambiado ahora que tenemos los IDs
             RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
+            RaisePropertyChanged(NameOf(BaseImponibleBonificable))
+            RaisePropertyChanged(NameOf(GanavisionesDisponibles))
         End If
 
         ' Issue #286: Cargar lista de borradores guardados

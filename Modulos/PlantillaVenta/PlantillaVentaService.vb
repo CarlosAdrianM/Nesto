@@ -398,6 +398,22 @@ Public Class PlantillaVentaService
         End Using
     End Function
 
+    Public Async Function CargarGruposBonificables() As Task(Of List(Of String)) Implements IPlantillaVentaService.CargarGruposBonificables
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            Try
+                Dim response = Await client.GetAsync("Ganavisiones/GruposBonificables").ConfigureAwait(False)
+                If response.IsSuccessStatusCode Then
+                    Dim cadenaJson As String = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
+                    Return If(JsonConvert.DeserializeObject(Of List(Of String))(cadenaJson), New List(Of String)())
+                End If
+                ' Una API anterior a NestoAPI#466 devuelve 404: reserva.
+                Return New List(Of String)()
+            Catch ex As Exception
+                Return New List(Of String)()
+            End Try
+        End Using
+    End Function
+
     ''' <summary>
     ''' Obtiene los productos bonificables para un pedido segun los Ganavisiones disponibles.
     ''' Issue #94: Sistema Ganavisiones - FASE 7

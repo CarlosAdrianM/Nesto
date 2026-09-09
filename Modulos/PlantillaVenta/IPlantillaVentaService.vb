@@ -19,6 +19,12 @@ Public Interface IPlantillaVentaService
     Function CargarProductosBonificables(cliente As String, lineas As List(Of LineaPlantillaVenta)) As List(Of LineaPlantillaVenta)
     Function CargarProductosBonificablesIds() As Task(Of HashSet(Of String))
     ''' <summary>
+    ''' NestoAPI#466: los grupos de producto que generan Ganavisiones, segun el servidor
+    ''' (GET Ganavisiones/GruposBonificables). Lista vacia si no se puede consultar o la API es
+    ''' anterior al endpoint: entonces la plantilla sigue con su lista de reserva.
+    ''' </summary>
+    Function CargarGruposBonificables() As Task(Of List(Of String))
+    ''' <summary>
     ''' Obtiene los productos bonificables para un pedido segun los Ganavisiones disponibles.
     ''' Issue #94: Sistema Ganavisiones - FASE 7
     ''' </summary>

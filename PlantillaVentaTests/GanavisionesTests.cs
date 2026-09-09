@@ -100,6 +100,30 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
+        public void ActualizarGruposBonificables_LaListaDelServidorManda_YConNullOVaciaSeConservaLaReserva()
+        {
+            // NestoAPI#466: la lista se lee de GET Ganavisiones/GruposBonificables; sin ella, reserva.
+            var vm = CrearViewModel();
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta { grupo = "PEL", cantidad = 1, precio = 100M, descuento = 0M });
+            vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta { grupo = "ACC", cantidad = 1, precio = 10M, descuento = 0M });
+            try
+            {
+                PlantillaVentaViewModel.ActualizarGruposBonificables(new[] { " cos ", "PEL" });
+                Assert.AreEqual(100M, vm.BaseImponibleBonificable, "el servidor manda: PEL cuenta y ACC no");
+
+                PlantillaVentaViewModel.ActualizarGruposBonificables(null);
+                PlantillaVentaViewModel.ActualizarGruposBonificables(new string[0]);
+                PlantillaVentaViewModel.ActualizarGruposBonificables(new[] { "", "  " });
+                Assert.AreEqual(100M, vm.BaseImponibleBonificable, "null o vacia no borran la lista que habia");
+            }
+            finally
+            {
+                PlantillaVentaViewModel.ActualizarGruposBonificables(PlantillaVentaViewModel.GRUPOS_BONIFICABLES_POR_DEFECTO);
+            }
+            Assert.AreEqual(10M, vm.BaseImponibleBonificable, "de vuelta a la reserva: COS y ACC");
+        }
+
+        [TestMethod]
         public void BaseImponibleBonificable_IgnoraGrupoPEL()
         {
             // NestoAPI#466 (Carlos, 09/09/26): la peluqueria no genera Ganavisiones. Antes sumaba.
