@@ -15,7 +15,7 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports System.Windows
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
 Imports Prism.Mvvm
 Imports Prism.Regions
@@ -88,38 +88,38 @@ Public Class PlantillaVentaViewModel
 
         Titulo = "Plantilla Ventas"
 
-        cmdAbrirPlantillaVenta = New DelegateCommand(Of Object)(AddressOf OnAbrirPlantillaVenta, AddressOf CanAbrirPlantillaVenta)
-        cmdActualizarPrecioProducto = New DelegateCommand(Of Object)(AddressOf OnActualizarPrecioProducto, AddressOf CanActualizarPrecioProducto)
-        cmdActualizarProductosPedido = New DelegateCommand(Of LineaPlantillaVenta)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
-        BuscarContextualCommand = New DelegateCommand(Of String)(AddressOf OnBuscarContextual, AddressOf CanBuscarContextual)
-        cmdBuscarEnTodosLosProductos = New DelegateCommand(Of String)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
-        cmdCargarClientesVendedor = New DelegateCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
-        cmdCargarFormasVenta = New DelegateCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
-        CargarProductoCommand = New DelegateCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
-        cmdCargarProductosPlantilla = New DelegateCommand(AddressOf OnCargarProductosPlantilla)
-        cmdCargarStockProducto = New DelegateCommand(Of LineaPlantillaVenta)(AddressOf OnCargarStockProducto)
-        cmdCargarUltimasVentas = New DelegateCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
-        cmdComprobarPendientes = New DelegateCommand(AddressOf OnComprobarPendientes)
-        cmdCrearPedido = New DelegateCommand(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
-        cmdInsertarProducto = New DelegateCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
-        cmdCalcularSePuedeServirPorGlovo = New DelegateCommand(AddressOf OnCalcularSePuedeServirPorGlovo)
-        CambiarIvaCommand = New DelegateCommand(AddressOf OnCambiarIva)
-        CargarCorreoYMovilTarjeta = New DelegateCommand(AddressOf OnCargarCorreoYMovilTarjeta)
-        NoAmpliarPedidoCommand = New DelegateCommand(AddressOf OnNoAmpliarPedido, AddressOf CanNoAmpliarPedido)
-        SoloConStockCommand = New DelegateCommand(AddressOf OnSoloConStock, AddressOf CanSoloConStock)
-        CopiarClientePortapapelesCommand = New DelegateCommand(AddressOf OnCopiarClientePortapapeles)
-        MostrarGanavisionesCommand = New DelegateCommand(AddressOf OnMostrarGanavisiones, AddressOf CanMostrarGanavisiones)
-        cmdCargarProductosBonificables = New DelegateCommand(AddressOf OnCargarProductosBonificables, AddressOf CanCargarProductosBonificables)
-        cmdActualizarRegalo = New DelegateCommand(Of LineaRegalo)(AddressOf OnActualizarRegalo)
-        cmdValidarServirJunto = New DelegateCommand(AddressOf OnValidarServirJunto)
+        cmdAbrirPlantillaVenta = New RelayCommand(Of Object)(AddressOf OnAbrirPlantillaVenta, AddressOf CanAbrirPlantillaVenta)
+        cmdActualizarPrecioProducto = New RelayCommand(Of Object)(AddressOf OnActualizarPrecioProducto, AddressOf CanActualizarPrecioProducto)
+        cmdActualizarProductosPedido = New RelayCommand(Of LineaPlantillaVenta)(AddressOf OnActualizarProductosPedido, AddressOf CanActualizarProductosPedido)
+        BuscarContextualCommand = New RelayCommand(Of String)(AddressOf OnBuscarContextual, AddressOf CanBuscarContextual)
+        cmdBuscarEnTodosLosProductos = New RelayCommand(Of String)(AddressOf OnBuscarEnTodosLosProductos, AddressOf CanBuscarEnTodosLosProductos)
+        cmdCargarClientesVendedor = New RelayCommand(AddressOf OnCargarClientesVendedor, AddressOf CanCargarClientesVendedor)
+        cmdCargarFormasVenta = New RelayCommand(Of Object)(AddressOf OnCargarFormasVenta, AddressOf CanCargarFormasVenta)
+        CargarProductoCommand = New RelayCommand(Of Object)(AddressOf OnCargarProducto, AddressOf CanCargarProducto)
+        cmdCargarProductosPlantilla = New RelayCommand(AddressOf OnCargarProductosPlantilla)
+        cmdCargarStockProducto = New RelayCommand(Of LineaPlantillaVenta)(AddressOf OnCargarStockProducto)
+        cmdCargarUltimasVentas = New RelayCommand(Of Object)(AddressOf OnCargarUltimasVentas, AddressOf CanCargarUltimasVentas)
+        cmdComprobarPendientes = New RelayCommand(AddressOf OnComprobarPendientes)
+        cmdCrearPedido = New RelayCommand(AddressOf OnCrearPedido, AddressOf CanCrearPedido)
+        cmdInsertarProducto = New RelayCommand(Of Object)(AddressOf OnInsertarProducto, AddressOf CanInsertarProducto)
+        cmdCalcularSePuedeServirPorGlovo = New RelayCommand(AddressOf OnCalcularSePuedeServirPorGlovo)
+        CambiarIvaCommand = New RelayCommand(AddressOf OnCambiarIva)
+        CargarCorreoYMovilTarjeta = New RelayCommand(AddressOf OnCargarCorreoYMovilTarjeta)
+        NoAmpliarPedidoCommand = New RelayCommand(AddressOf OnNoAmpliarPedido, AddressOf CanNoAmpliarPedido)
+        SoloConStockCommand = New RelayCommand(AddressOf OnSoloConStock, AddressOf CanSoloConStock)
+        CopiarClientePortapapelesCommand = New RelayCommand(AddressOf OnCopiarClientePortapapeles)
+        MostrarGanavisionesCommand = New RelayCommand(AddressOf OnMostrarGanavisiones, AddressOf CanMostrarGanavisiones)
+        cmdCargarProductosBonificables = New RelayCommand(AddressOf OnCargarProductosBonificables, AddressOf CanCargarProductosBonificables)
+        cmdActualizarRegalo = New RelayCommand(Of LineaRegalo)(AddressOf OnActualizarRegalo)
+        cmdValidarServirJunto = New RelayCommand(AddressOf OnValidarServirJunto)
 
         ' Issue #286: Borradores de PlantillaVenta
-        GuardarBorradorCommand = New DelegateCommand(AddressOf OnGuardarBorrador, AddressOf CanGuardarBorrador)
-        CargarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnCargarBorrador)
-        CopiarBorradorJsonCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnCopiarBorradorJson)
-        EliminarBorradorCommand = New DelegateCommand(Of BorradorPlantillaVenta)(AddressOf OnEliminarBorrador)
-        ActualizarListaBorradoresCommand = New DelegateCommand(AddressOf OnActualizarListaBorradores)
-        CrearBorradorDesdeJsonCommand = New DelegateCommand(AddressOf OnCrearBorradorDesdeJson)
+        GuardarBorradorCommand = New RelayCommand(AddressOf OnGuardarBorrador, AddressOf CanGuardarBorrador)
+        CargarBorradorCommand = New RelayCommand(Of BorradorPlantillaVenta)(AddressOf OnCargarBorrador)
+        CopiarBorradorJsonCommand = New RelayCommand(Of BorradorPlantillaVenta)(AddressOf OnCopiarBorradorJson)
+        EliminarBorradorCommand = New RelayCommand(Of BorradorPlantillaVenta)(AddressOf OnEliminarBorrador)
+        ActualizarListaBorradoresCommand = New RelayCommand(AddressOf OnActualizarListaBorradores)
+        CrearBorradorDesdeJsonCommand = New RelayCommand(AddressOf OnCrearBorradorDesdeJson)
         ' Cargar lista de borradores inmediatamente
         OnActualizarListaBorradores()
         ' Issue #288: Comprobar si hay JSON válido en el portapapeles
@@ -143,7 +143,7 @@ Public Class PlantillaVentaViewModel
             .TieneDatosIniciales = True
         }
         AddHandler ListaFiltrableProductos.FiltroChanged, Sub(sender As Object, args As EventArgs)
-                                                              cmdBuscarEnTodosLosProductos.RaiseCanExecuteChanged()
+                                                              cmdBuscarEnTodosLosProductos.NotifyCanExecuteChanged()
                                                           End Sub
         AddHandler ListaFiltrableProductos.HayQueCargarDatos, Async Sub()
                                                                   Await Task.Delay(400)
@@ -151,7 +151,7 @@ Public Class PlantillaVentaViewModel
                                                               End Sub
         AddHandler ListaFiltrableProductos.ListaChanged, Sub()
                                                              ActualizarTotales()
-                                                             SoloConStockCommand.RaiseCanExecuteChanged()
+                                                             SoloConStockCommand.NotifyCanExecuteChanged()
                                                          End Sub
         AddHandler ListaFiltrableProductos.ElementoSeleccionadoChanged, Sub(sender As Object, args As EventArgs)
                                                                             cmdCargarUltimasVentas.Execute(ListaFiltrableProductos.ElementoSeleccionado)
@@ -631,16 +631,16 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
-    Private _cmdCargarProductosBonificables As DelegateCommand
+    Private _cmdCargarProductosBonificables As RelayCommand
     ''' <summary>
     ''' Comando para cargar los productos bonificables desde la API.
     ''' Issue #94: Sistema Ganavisiones - FASE 7
     ''' </summary>
-    Public Property cmdCargarProductosBonificables As DelegateCommand
+    Public Property cmdCargarProductosBonificables As RelayCommand
         Get
             Return _cmdCargarProductosBonificables
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             SetProperty(_cmdCargarProductosBonificables, value)
         End Set
     End Property
@@ -756,17 +756,17 @@ Public Class PlantillaVentaViewModel
         RaisePropertyChanged(NameOf(ListaRegalosSeleccionados))
     End Sub
 
-    Private _cmdActualizarRegalo As DelegateCommand(Of LineaRegalo)
+    Private _cmdActualizarRegalo As RelayCommand(Of LineaRegalo)
     ''' <summary>
     ''' Comando para actualizar un regalo cuando cambia la cantidad.
     ''' Carga la imagen del producto desde la API.
     ''' Issue #94: Sistema Ganavisiones - FASE 7
     ''' </summary>
-    Public Property cmdActualizarRegalo As DelegateCommand(Of LineaRegalo)
+    Public Property cmdActualizarRegalo As RelayCommand(Of LineaRegalo)
         Get
             Return _cmdActualizarRegalo
         End Get
-        Private Set(value As DelegateCommand(Of LineaRegalo))
+        Private Set(value As RelayCommand(Of LineaRegalo))
             SetProperty(_cmdActualizarRegalo, value)
         End Set
     End Property
@@ -801,16 +801,16 @@ Public Class PlantillaVentaViewModel
         ActualizarIndicadoresGanavisiones()
     End Sub
 
-    Private _cmdValidarServirJunto As DelegateCommand
+    Private _cmdValidarServirJunto As RelayCommand
     ''' <summary>
     ''' Comando para validar si se puede desmarcar ServirJunto con productos bonificados.
     ''' Issue #94: Sistema Ganavisiones - FASE 9
     ''' </summary>
-    Public Property cmdValidarServirJunto As DelegateCommand
+    Public Property cmdValidarServirJunto As RelayCommand
         Get
             Return _cmdValidarServirJunto
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             SetProperty(_cmdValidarServirJunto, value)
         End Set
     End Property
@@ -1052,7 +1052,7 @@ Public Class PlantillaVentaViewModel
             End If
 
             If _direccionEntregaSeleccionada?.codigoPostal <> codigoPostalAnterior Then
-                cmdCalcularSePuedeServirPorGlovo.Execute()
+                cmdCalcularSePuedeServirPorGlovo.Execute(Nothing)
                 CargarInfoPortesConDebounce()
             End If
 
@@ -1305,7 +1305,7 @@ Public Class PlantillaVentaViewModel
         Set(value As Boolean)
             Try
                 If value Then
-                    MostrarGanavisionesCommand.Execute()
+                    MostrarGanavisionesCommand.Execute(Nothing)
                 End If
                 Dim listaIntermedia As ObservableCollection(Of IFiltrableItem) = ListaFiltrableProductos.Lista
                 ListaFiltrableProductos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaProductosGanavisiones)
@@ -1413,7 +1413,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_formaPagoCliente, value)
-            cmdCrearPedido.RaiseCanExecuteChanged()
+            cmdCrearPedido.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1432,7 +1432,7 @@ Public Class PlantillaVentaViewModel
             Dim unused = SetProperty(_formaPagoSeleccionada, value)
             ' Sincronizar código con Estado
             Estado.FormaPago = If(value IsNot Nothing, value.formaPago, Nothing)
-            cmdCrearPedido.RaiseCanExecuteChanged()
+            cmdCrearPedido.NotifyCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
             RaisePropertyChanged(NameOf(MandarCobroTarjeta))
@@ -1536,7 +1536,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(ByVal value As ObservableCollection(Of ClienteJson))
             Dim unused = SetProperty(_listaClientes, value)
-            cmdCargarClientesVendedor.RaiseCanExecuteChanged()
+            cmdCargarClientesVendedor.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1661,7 +1661,7 @@ Public Class PlantillaVentaViewModel
                 Estado.MandarCobroTarjeta = value
                 RaisePropertyChanged()
                 If MandarCobroTarjeta Then
-                    CargarCorreoYMovilTarjeta.Execute()
+                    CargarCorreoYMovilTarjeta.Execute(Nothing)
                 End If
             End If
         End Set
@@ -1709,7 +1709,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As Integer)
             Dim unused = SetProperty(_pedidoPendienteSeleccionado, value)
-            NoAmpliarPedidoCommand.RaiseCanExecuteChanged()
+            NoAmpliarPedidoCommand.NotifyCanExecuteChanged()
         End Set
     End Property
     Private _plazoPagoCliente As String
@@ -1719,7 +1719,7 @@ Public Class PlantillaVentaViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_plazoPagoCliente, value)
-            cmdCrearPedido.RaiseCanExecuteChanged()
+            cmdCrearPedido.NotifyCanExecuteChanged()
         End Set
     End Property
     ''' <summary>
@@ -1739,12 +1739,12 @@ Public Class PlantillaVentaViewModel
             ' Sincronizar con Estado
             Estado.PlazosPago = If(value IsNot Nothing, value.plazoPago, Nothing)
             Estado.DescuentoPP = If(value IsNot Nothing, value.descuentoPP, 0D)
-            cmdCrearPedido.RaiseCanExecuteChanged()
+            cmdCrearPedido.NotifyCanExecuteChanged()
             RaisePropertyChanged(NameOf(SePuedeFinalizar))
             RaisePropertyChanged(NameOf(EsTarjetaPrepago))
             RaisePropertyChanged(NameOf(MandarCobroTarjeta))
             If Not IsNothing(_plazoPagoSeleccionado) Then
-                cmdCalcularSePuedeServirPorGlovo.Execute()
+                cmdCalcularSePuedeServirPorGlovo.Execute(Nothing)
             End If
         End Set
     End Property
@@ -1885,12 +1885,12 @@ Public Class PlantillaVentaViewModel
 
 #Region "Comandos"
 
-    Private _cmdAbrirPlantillaVenta As DelegateCommand(Of Object)
-    Public Property cmdAbrirPlantillaVenta As DelegateCommand(Of Object)
+    Private _cmdAbrirPlantillaVenta As RelayCommand(Of Object)
+    Public Property cmdAbrirPlantillaVenta As RelayCommand(Of Object)
         Get
             Return _cmdAbrirPlantillaVenta
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             Dim unused = SetProperty(_cmdAbrirPlantillaVenta, value)
         End Set
     End Property
@@ -1906,12 +1906,12 @@ Public Class PlantillaVentaViewModel
         'region.Activate(vista)
     End Sub
 
-    Private _cmdActualizarPrecioProducto As DelegateCommand(Of Object)
-    Public Property cmdActualizarPrecioProducto As DelegateCommand(Of Object)
+    Private _cmdActualizarPrecioProducto As RelayCommand(Of Object)
+    Public Property cmdActualizarPrecioProducto As RelayCommand(Of Object)
         Get
             Return _cmdActualizarPrecioProducto
         End Get
-        Set(value As DelegateCommand(Of Object))
+        Set(value As RelayCommand(Of Object))
             Dim unused = SetProperty(_cmdActualizarPrecioProducto, value)
         End Set
     End Property
@@ -1966,12 +1966,12 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Private _cmdActualizarProductosPedido As DelegateCommand(Of LineaPlantillaVenta)
-    Public Property cmdActualizarProductosPedido As DelegateCommand(Of LineaPlantillaVenta)
+    Private _cmdActualizarProductosPedido As RelayCommand(Of LineaPlantillaVenta)
+    Public Property cmdActualizarProductosPedido As RelayCommand(Of LineaPlantillaVenta)
         Get
             Return _cmdActualizarProductosPedido
         End Get
-        Private Set(value As DelegateCommand(Of LineaPlantillaVenta))
+        Private Set(value As RelayCommand(Of LineaPlantillaVenta))
             Dim unused = SetProperty(_cmdActualizarProductosPedido, value)
         End Set
     End Property
@@ -2010,12 +2010,12 @@ Public Class PlantillaVentaViewModel
         ActualizarEtiquetaPortes()
     End Sub
 
-    Private _soloConStockCommand As DelegateCommand
-    Public Property SoloConStockCommand As DelegateCommand
+    Private _soloConStockCommand As RelayCommand
+    Public Property SoloConStockCommand As RelayCommand
         Get
             Return _soloConStockCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_soloConStockCommand, value)
         End Set
     End Property
@@ -2026,12 +2026,12 @@ Public Class PlantillaVentaViewModel
         ListaFiltrableProductos.Lista = New ObservableCollection(Of IFiltrableItem)(ListaFiltrableProductos.Lista.Where(Function(l) CType(l, LineaPlantillaVenta).cantidadDisponible > 0))
     End Sub
 
-    Private _buscarContextualCommand As DelegateCommand(Of String)
-    Public Property BuscarContextualCommand As DelegateCommand(Of String)
+    Private _buscarContextualCommand As RelayCommand(Of String)
+    Public Property BuscarContextualCommand As RelayCommand(Of String)
         Get
             Return _buscarContextualCommand
         End Get
-        Private Set(value As DelegateCommand(Of String))
+        Private Set(value As RelayCommand(Of String))
             Dim unused = SetProperty(_buscarContextualCommand, value)
         End Set
     End Property
@@ -2090,12 +2090,12 @@ Public Class PlantillaVentaViewModel
         End Using
     End Sub
 
-    Private _cmdBuscarEnTodosLosProductos As DelegateCommand(Of String)
-    Public Property cmdBuscarEnTodosLosProductos As DelegateCommand(Of String)
+    Private _cmdBuscarEnTodosLosProductos As RelayCommand(Of String)
+    Public Property cmdBuscarEnTodosLosProductos As RelayCommand(Of String)
         Get
             Return _cmdBuscarEnTodosLosProductos
         End Get
-        Private Set(value As DelegateCommand(Of String))
+        Private Set(value As RelayCommand(Of String))
             Dim unused = SetProperty(_cmdBuscarEnTodosLosProductos, value)
         End Set
     End Property
@@ -2156,12 +2156,12 @@ Public Class PlantillaVentaViewModel
     End Sub
 
 
-    Private _cambiarIvaCommand As DelegateCommand
-    Public Property CambiarIvaCommand As DelegateCommand
+    Private _cambiarIvaCommand As RelayCommand
+    Public Property CambiarIvaCommand As RelayCommand
         Get
             Return _cambiarIvaCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cambiarIvaCommand, value)
         End Set
     End Property
@@ -2175,12 +2175,12 @@ Public Class PlantillaVentaViewModel
         CargarInfoPortesConDebounce()
     End Sub
 
-    Private _cmdCargarClientesVendedor As DelegateCommand
-    Public Property cmdCargarClientesVendedor As DelegateCommand
+    Private _cmdCargarClientesVendedor As RelayCommand
+    Public Property cmdCargarClientesVendedor As RelayCommand
         Get
             Return _cmdCargarClientesVendedor
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdCargarClientesVendedor, value)
         End Set
     End Property
@@ -2212,12 +2212,12 @@ Public Class PlantillaVentaViewModel
         fechaMinimaEntrega = Await ObtenerFechaMinimaEntregaAsync()
     End Sub
 
-    Private _cargarCorreoYMovilTarjeta As DelegateCommand
-    Public Property CargarCorreoYMovilTarjeta As DelegateCommand
+    Private _cargarCorreoYMovilTarjeta As RelayCommand
+    Public Property CargarCorreoYMovilTarjeta As RelayCommand
         Get
             Return _cargarCorreoYMovilTarjeta
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             Dim unused = SetProperty(_cargarCorreoYMovilTarjeta, value)
         End Set
     End Property
@@ -2239,12 +2239,12 @@ Public Class PlantillaVentaViewModel
         End If
     End Sub
 
-    Private _cmdCargarFormasVenta As DelegateCommand(Of Object)
-    Public Property cmdCargarFormasVenta As DelegateCommand(Of Object)
+    Private _cmdCargarFormasVenta As RelayCommand(Of Object)
+    Public Property cmdCargarFormasVenta As RelayCommand(Of Object)
         Get
             Return _cmdCargarFormasVenta
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             Dim unused = SetProperty(_cmdCargarFormasVenta, value)
         End Set
     End Property
@@ -2415,12 +2415,12 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Private _cargarProductoCommand As DelegateCommand(Of Object)
-    Public Property CargarProductoCommand As DelegateCommand(Of Object)
+    Private _cargarProductoCommand As RelayCommand(Of Object)
+    Public Property CargarProductoCommand As RelayCommand(Of Object)
         Get
             Return _cargarProductoCommand
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             Dim unused = SetProperty(_cargarProductoCommand, value)
         End Set
     End Property
@@ -2438,12 +2438,12 @@ Public Class PlantillaVentaViewModel
         regionManager.RequestNavigate("MainRegion", "ProductoView", parameters)
     End Sub
 
-    Private _cmdCargarProductosPlantilla As DelegateCommand
-    Public Property cmdCargarProductosPlantilla As DelegateCommand
+    Private _cmdCargarProductosPlantilla As RelayCommand
+    Public Property cmdCargarProductosPlantilla As RelayCommand
         Get
             Return _cmdCargarProductosPlantilla
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdCargarProductosPlantilla, value)
         End Set
     End Property
@@ -2481,12 +2481,12 @@ Public Class PlantillaVentaViewModel
         End Try
     End Function
 
-    Private _cmdCargarStockProducto As DelegateCommand(Of LineaPlantillaVenta)
-    Public Property cmdCargarStockProducto As DelegateCommand(Of LineaPlantillaVenta)
+    Private _cmdCargarStockProducto As RelayCommand(Of LineaPlantillaVenta)
+    Public Property cmdCargarStockProducto As RelayCommand(Of LineaPlantillaVenta)
         Get
             Return _cmdCargarStockProducto
         End Get
-        Private Set(value As DelegateCommand(Of LineaPlantillaVenta))
+        Private Set(value As RelayCommand(Of LineaPlantillaVenta))
             Dim unused = SetProperty(_cmdCargarStockProducto, value)
         End Set
     End Property
@@ -2530,12 +2530,12 @@ Public Class PlantillaVentaViewModel
         End Using
     End Sub
 
-    Private _cmdCargarUltimasVentas As DelegateCommand(Of Object)
-    Public Property cmdCargarUltimasVentas As DelegateCommand(Of Object)
+    Private _cmdCargarUltimasVentas As RelayCommand(Of Object)
+    Public Property cmdCargarUltimasVentas As RelayCommand(Of Object)
         Get
             Return _cmdCargarUltimasVentas
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             Dim unused = SetProperty(_cmdCargarUltimasVentas, value)
         End Set
     End Property
@@ -2573,12 +2573,12 @@ Public Class PlantillaVentaViewModel
 
     End Sub
 
-    Private _cmdComprobarPendientes As DelegateCommand
-    Public Property cmdComprobarPendientes As DelegateCommand
+    Private _cmdComprobarPendientes As RelayCommand
+    Public Property cmdComprobarPendientes As RelayCommand
         Get
             Return _cmdComprobarPendientes
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdComprobarPendientes, value)
         End Set
     End Property
@@ -2603,12 +2603,12 @@ Public Class PlantillaVentaViewModel
         End Try
     End Sub
 
-    Private _cmdCrearPedido As DelegateCommand
-    Public Property cmdCrearPedido As DelegateCommand
+    Private _cmdCrearPedido As RelayCommand
+    Public Property cmdCrearPedido As RelayCommand
         Get
             Return _cmdCrearPedido
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdCrearPedido, value)
         End Set
     End Property
@@ -2917,12 +2917,12 @@ Public Class PlantillaVentaViewModel
         }
     End Function
 
-    Private _noAmpliarPedidoCommand As DelegateCommand
-    Public Property NoAmpliarPedidoCommand As DelegateCommand
+    Private _noAmpliarPedidoCommand As RelayCommand
+    Public Property NoAmpliarPedidoCommand As RelayCommand
         Get
             Return _noAmpliarPedidoCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             Dim unused = SetProperty(_noAmpliarPedidoCommand, value)
         End Set
     End Property
@@ -2933,12 +2933,12 @@ Public Class PlantillaVentaViewModel
         PedidoPendienteSeleccionado = 0
     End Sub
 
-    Private _copiarClientePortapapelesCommand As DelegateCommand
-    Public Property CopiarClientePortapapelesCommand As DelegateCommand
+    Private _copiarClientePortapapelesCommand As RelayCommand
+    Public Property CopiarClientePortapapelesCommand As RelayCommand
         Get
             Return _copiarClientePortapapelesCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_copiarClientePortapapelesCommand, value)
         End Set
     End Property
@@ -2951,12 +2951,12 @@ Public Class PlantillaVentaViewModel
         dialogService.ShowNotification("Datos del cliente copiados al portapapeles")
     End Sub
 
-    Private _mostrarGanavisionesCommand As DelegateCommand
-    Public Property MostrarGanavisionesCommand As DelegateCommand
+    Private _mostrarGanavisionesCommand As RelayCommand
+    Public Property MostrarGanavisionesCommand As RelayCommand
         Get
             Return _mostrarGanavisionesCommand
         End Get
-        Set(value As DelegateCommand)
+        Set(value As RelayCommand)
             Dim unused = SetProperty(_mostrarGanavisionesCommand, value)
         End Set
     End Property
@@ -3060,12 +3060,12 @@ Public Class PlantillaVentaViewModel
     End Function
 
 
-    Private _cmdInsertarProducto As DelegateCommand(Of Object)
-    Public Property cmdInsertarProducto As DelegateCommand(Of Object)
+    Private _cmdInsertarProducto As RelayCommand(Of Object)
+    Public Property cmdInsertarProducto As RelayCommand(Of Object)
         Get
             Return _cmdInsertarProducto
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             Dim unused = SetProperty(_cmdInsertarProducto, value)
         End Set
     End Property
@@ -3082,13 +3082,13 @@ Public Class PlantillaVentaViewModel
         ActualizarTotales()
     End Sub
 
-    Private _cmdCalcularSePuedeServirPorGlovo As DelegateCommand
+    Private _cmdCalcularSePuedeServirPorGlovo As RelayCommand
 
-    Public Property cmdCalcularSePuedeServirPorGlovo As DelegateCommand
+    Public Property cmdCalcularSePuedeServirPorGlovo As RelayCommand
         Get
             Return _cmdCalcularSePuedeServirPorGlovo
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_cmdCalcularSePuedeServirPorGlovo, value)
         End Set
     End Property
@@ -3188,8 +3188,8 @@ Public Class PlantillaVentaViewModel
         Estado.ComentarioPickingCliente = value.comentarioPicking
         Estado.ComentarioPicking = value.comentarioPicking
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
-        cmdCargarProductosPlantilla.Execute()
-        cmdComprobarPendientes.Execute()
+        cmdCargarProductosPlantilla.Execute(Nothing)
+        cmdComprobarPendientes.Execute(Nothing)
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
         RaisePropertyChanged(NameOf(clienteSeleccionado))
@@ -3214,7 +3214,7 @@ Public Class PlantillaVentaViewModel
         Estado.ComentarioPicking = value.comentarioPicking
         Titulo = String.Format("Plantilla Ventas ({0})", value.cliente)
         Await CargarProductosPlantillaAsync() ' Awaitable en lugar de fire-and-forget
-        cmdComprobarPendientes.Execute()
+        cmdComprobarPendientes.Execute(Nothing)
         iva = clienteSeleccionado.iva
         PaginaActual = PaginasWizard.Where(Function(p) p.Name = PAGINA_SELECCION_PRODUCTOS).First
         RaisePropertyChanged(NameOf(clienteSeleccionado))
@@ -3349,12 +3349,12 @@ Public Class PlantillaVentaViewModel
         End Get
     End Property
 
-    Private _guardarBorradorCommand As DelegateCommand
-    Public Property GuardarBorradorCommand As DelegateCommand
+    Private _guardarBorradorCommand As RelayCommand
+    Public Property GuardarBorradorCommand As RelayCommand
         Get
             Return _guardarBorradorCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_guardarBorradorCommand, value)
         End Set
     End Property
@@ -3422,12 +3422,12 @@ Public Class PlantillaVentaViewModel
         End Try
     End Sub
 
-    Private _cargarBorradorCommand As DelegateCommand(Of BorradorPlantillaVenta)
-    Public Property CargarBorradorCommand As DelegateCommand(Of BorradorPlantillaVenta)
+    Private _cargarBorradorCommand As RelayCommand(Of BorradorPlantillaVenta)
+    Public Property CargarBorradorCommand As RelayCommand(Of BorradorPlantillaVenta)
         Get
             Return _cargarBorradorCommand
         End Get
-        Private Set(value As DelegateCommand(Of BorradorPlantillaVenta))
+        Private Set(value As RelayCommand(Of BorradorPlantillaVenta))
             Dim unused = SetProperty(_cargarBorradorCommand, value)
         End Set
     End Property
@@ -3781,12 +3781,12 @@ Public Class PlantillaVentaViewModel
         End Try
     End Sub
 
-    Private _copiarBorradorJsonCommand As DelegateCommand(Of BorradorPlantillaVenta)
-    Public Property CopiarBorradorJsonCommand As DelegateCommand(Of BorradorPlantillaVenta)
+    Private _copiarBorradorJsonCommand As RelayCommand(Of BorradorPlantillaVenta)
+    Public Property CopiarBorradorJsonCommand As RelayCommand(Of BorradorPlantillaVenta)
         Get
             Return _copiarBorradorJsonCommand
         End Get
-        Private Set(value As DelegateCommand(Of BorradorPlantillaVenta))
+        Private Set(value As RelayCommand(Of BorradorPlantillaVenta))
             Dim unused = SetProperty(_copiarBorradorJsonCommand, value)
         End Set
     End Property
@@ -3813,12 +3813,12 @@ Public Class PlantillaVentaViewModel
         End Try
     End Sub
 
-    Private _eliminarBorradorCommand As DelegateCommand(Of BorradorPlantillaVenta)
-    Public Property EliminarBorradorCommand As DelegateCommand(Of BorradorPlantillaVenta)
+    Private _eliminarBorradorCommand As RelayCommand(Of BorradorPlantillaVenta)
+    Public Property EliminarBorradorCommand As RelayCommand(Of BorradorPlantillaVenta)
         Get
             Return _eliminarBorradorCommand
         End Get
-        Private Set(value As DelegateCommand(Of BorradorPlantillaVenta))
+        Private Set(value As RelayCommand(Of BorradorPlantillaVenta))
             Dim unused = SetProperty(_eliminarBorradorCommand, value)
         End Set
     End Property
@@ -3840,12 +3840,12 @@ Public Class PlantillaVentaViewModel
         End Try
     End Sub
 
-    Private _actualizarListaBorradoresCommand As DelegateCommand
-    Public Property ActualizarListaBorradoresCommand As DelegateCommand
+    Private _actualizarListaBorradoresCommand As RelayCommand
+    Public Property ActualizarListaBorradoresCommand As RelayCommand
         Get
             Return _actualizarListaBorradoresCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_actualizarListaBorradoresCommand, value)
         End Set
     End Property
@@ -3877,12 +3877,12 @@ Public Class PlantillaVentaViewModel
 
     Private _textoJsonPortapapeles As String
 
-    Private _crearBorradorDesdeJsonCommand As DelegateCommand
-    Public Property CrearBorradorDesdeJsonCommand As DelegateCommand
+    Private _crearBorradorDesdeJsonCommand As RelayCommand
+    Public Property CrearBorradorDesdeJsonCommand As RelayCommand
         Get
             Return _crearBorradorDesdeJsonCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_crearBorradorDesdeJsonCommand, value)
         End Set
     End Property
