@@ -45,7 +45,7 @@ namespace CanalesExternosTests
             vm.Mes = 2;
 
             // Act — ejecutamos la tarea del comando directamente via reflexión
-            // (el DelegateCommand envuelve la lambda async).
+            // (el RelayCommand envuelve la lambda async).
             var metodo = typeof(CanalesExternosCuadreFacturasViewModel).GetMethod(
                 "OnCalcularCuadreAsync", BindingFlags.Instance | BindingFlags.NonPublic);
             await (Task)metodo.Invoke(vm, null);

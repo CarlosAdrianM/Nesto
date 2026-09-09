@@ -5,7 +5,7 @@ using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -36,9 +36,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             _servicio = canalesExternosPagosService;
             _contabilidadService = contabilidadService;
 
-            CargarPagosCommand = new DelegateCommand(OnCargarPagos);
-            CargarDetallePagoCommand = new DelegateCommand(OnCargarDetallePago);
-            ContabilizarPagoCommand = new DelegateCommand(OnContabilizarPago, CanContabilizarPago);
+            CargarPagosCommand = new RelayCommand(OnCargarPagos);
+            CargarDetallePagoCommand = new RelayCommand(OnCargarDetallePago);
+            ContabilizarPagoCommand = new RelayCommand(OnContabilizarPago, CanContabilizarPago);
         }
 
         private bool _estaOcupado;
@@ -73,7 +73,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 _ = SetProperty(ref _pagoSeleccionado, value);
                 CargarDetallePagoCommand.Execute(null);
-                ((DelegateCommand)ContabilizarPagoCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand)ContabilizarPagoCommand).NotifyCanExecuteChanged();
             }
         }
 

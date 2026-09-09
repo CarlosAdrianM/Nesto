@@ -1,9 +1,9 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres;
 using Nesto.Modulos.CanalesExternos.Models.Cuadres.Saldo555;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -32,7 +32,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 { "Amazon", new CanalExternoFacturasAmazon(configuracion, servicioAutenticacion) }
             };
 
-            CalcularCuadreCommand = new DelegateCommand(async () => await OnCalcularCuadreAsync(), PuedeCalcular);
+            CalcularCuadreCommand = new RelayCommand(async () => await OnCalcularCuadreAsync(), PuedeCalcular);
 
             Año = DateTime.Today.Year;
             Mes = DateTime.Today.Month == 1 ? 12 : DateTime.Today.Month - 1;
@@ -52,7 +52,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 if (SetProperty(ref _canalSeleccionadoNombre, value))
                 {
-                    ((DelegateCommand)CalcularCuadreCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)CalcularCuadreCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -73,7 +73,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             set
             {
                 SetProperty(ref _estaOcupado, value);
-                ((DelegateCommand)CalcularCuadreCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand)CalcularCuadreCommand).NotifyCanExecuteChanged();
             }
         }
 

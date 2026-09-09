@@ -4,7 +4,7 @@ using Nesto.Modules.Producto;
 using Nesto.Modulos.CanalesExternos.Interfaces;
 using Nesto.Modulos.CanalesExternos.Models;
 using Nesto.Modulos.CanalesExternos.Services;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
@@ -24,11 +24,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             _dialogService = dialogService;
             Titulo = "Canales externos productos";
 
-            ActualizarProductoCommand = new DelegateCommand<ProductoCanalExterno>(OnActualizarProducto, CanActualizarProducto);
-            AnnadirProductoCommand = new DelegateCommand(OnAnnadirProducto, CanAnnadirProducto);
-            BuscarProductoCommand = new DelegateCommand(OnBuscarProducto);
-            GuardarCambiosCommand = new DelegateCommand<ProductoCanalExterno>(OnGuardarCambios, CanGuardarCambios);
-            PonerVistoBuenoCommand = new DelegateCommand(OnPonerVistoBueno, CanPonerVistoBueno);
+            ActualizarProductoCommand = new RelayCommand<ProductoCanalExterno>(OnActualizarProducto, CanActualizarProducto);
+            AnnadirProductoCommand = new RelayCommand(OnAnnadirProducto, CanAnnadirProducto);
+            BuscarProductoCommand = new RelayCommand(OnBuscarProducto);
+            GuardarCambiosCommand = new RelayCommand<ProductoCanalExterno>(OnGuardarCambios, CanGuardarCambios);
+            PonerVistoBuenoCommand = new RelayCommand(OnPonerVistoBueno, CanPonerVistoBueno);
             _servicio = servicio;
             _servicioProducto = servicioProducto;
             var canalNuevaVision = new CanalExternoProductosNuevaVision(servicio);
@@ -40,7 +40,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             _canalesSeleccionados = new() { canalNuevaVision };
             _canalesSeleccionados.CollectionChanged += (sender, args) =>
             {
-                ActualizarProductoCommand.RaiseCanExecuteChanged();
+                ActualizarProductoCommand.NotifyCanExecuteChanged();
             };
         }
 
@@ -55,7 +55,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 if(SetProperty(ref _canalesSeleccionados, value))
                 {
-                    ActualizarProductoCommand.RaiseCanExecuteChanged();
+                    ActualizarProductoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -82,7 +82,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                         _productoSeleccionado.PropertyChanged += ProductoSeleccionado_PropertyChanged;
                     }
 
-                    GuardarCambiosCommand.RaiseCanExecuteChanged();
+                    GuardarCambiosCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -95,7 +95,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 if (SetProperty(ref _productoSinVistoBuenoSeleccionado, value))
                 {
-                    PonerVistoBuenoCommand.RaiseCanExecuteChanged();
+                    PonerVistoBuenoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -131,7 +131,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 if (SetProperty(ref _productoBuscar, value))
                 {
-                    AnnadirProductoCommand.RaiseCanExecuteChanged();
+                    AnnadirProductoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -141,7 +141,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         #region Comandos
 
-        public DelegateCommand<ProductoCanalExterno> ActualizarProductoCommand { get; private set; }
+        public RelayCommand<ProductoCanalExterno> ActualizarProductoCommand { get; private set; }
         public bool CanActualizarProducto(ProductoCanalExterno producto) => CanalesSeleccionados != null && CanalesSeleccionados.Any() && producto != null && !producto.IsDirty;
         private async void OnActualizarProducto(ProductoCanalExterno producto)
         {
@@ -163,7 +163,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
 
 
-        public DelegateCommand AnnadirProductoCommand { get; private set; }
+        public RelayCommand AnnadirProductoCommand { get; private set; }
         public bool CanAnnadirProducto() => !string.IsNullOrEmpty(ProductoBuscar);
         private async void OnAnnadirProducto() => await OnAnnadirProductoAsync();
 
@@ -191,13 +191,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
         }
 
-        public DelegateCommand BuscarProductoCommand { get; private set; }
+        public RelayCommand BuscarProductoCommand { get; private set; }
         private async void OnBuscarProducto()
         {
             ProductoSeleccionado = await _servicio.GetProductoAsync(ProductoBuscar);
         }
 
-        public DelegateCommand<ProductoCanalExterno> GuardarCambiosCommand { get; private set; }
+        public RelayCommand<ProductoCanalExterno> GuardarCambiosCommand { get; private set; }
         private bool CanGuardarCambios(ProductoCanalExterno producto) => producto?.IsDirty ?? false;
         private async void OnGuardarCambios(ProductoCanalExterno producto)
         {
@@ -212,7 +212,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
         }
 
-        public DelegateCommand PonerVistoBuenoCommand { get; private set; }
+        public RelayCommand PonerVistoBuenoCommand { get; private set; }
         public bool CanPonerVistoBueno()
         {
             if (ProductoSeleccionado == null)
@@ -238,8 +238,8 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private void ProductoSeleccionado_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            ActualizarProductoCommand.RaiseCanExecuteChanged();
-            GuardarCambiosCommand.RaiseCanExecuteChanged();
+            ActualizarProductoCommand.NotifyCanExecuteChanged();
+            GuardarCambiosCommand.NotifyCanExecuteChanged();
         }
     }
 }

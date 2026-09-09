@@ -1,8 +1,8 @@
-using CanalesExternos.Models;
+﻿using CanalesExternos.Models;
 using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Interfaces;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -52,11 +52,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             TablaSeleccionada = "Todas";
 
             // Inicializar comandos
-            CargarPoisonPillsCommand = new DelegateCommand(async () => await OnCargarPoisonPillsAsync());
-            ReprocesarCommand = new DelegateCommand(async () => await OnReprocesarAsync(), CanExecuteActionCommand);
-            MarcarComoResueltoCommand = new DelegateCommand(async () => await OnMarcarComoResueltoAsync(), CanExecuteActionCommand);
-            MarcarComoFalloPermanenteCommand = new DelegateCommand(async () => await OnMarcarComoFalloPermanenteAsync(), CanExecuteActionCommand);
-            VerDetalleCommand = new DelegateCommand(OnVerDetalle, CanExecuteActionCommand);
+            CargarPoisonPillsCommand = new RelayCommand(async () => await OnCargarPoisonPillsAsync());
+            ReprocesarCommand = new RelayCommand(async () => await OnReprocesarAsync(), CanExecuteActionCommand);
+            MarcarComoResueltoCommand = new RelayCommand(async () => await OnMarcarComoResueltoAsync(), CanExecuteActionCommand);
+            MarcarComoFalloPermanenteCommand = new RelayCommand(async () => await OnMarcarComoFalloPermanenteAsync(), CanExecuteActionCommand);
+            VerDetalleCommand = new RelayCommand(OnVerDetalle, CanExecuteActionCommand);
         }
 
         #region Propiedades
@@ -322,10 +322,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private void RaiseCanExecuteChanged()
         {
-            ((DelegateCommand)ReprocesarCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)MarcarComoResueltoCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)MarcarComoFalloPermanenteCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)VerDetalleCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand)ReprocesarCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand)MarcarComoResueltoCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand)MarcarComoFalloPermanenteCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand)VerDetalleCommand).NotifyCanExecuteChanged();
         }
 
         #endregion

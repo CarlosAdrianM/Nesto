@@ -1,7 +1,7 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.CanalesExternos.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -33,10 +33,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 { "Amazon", new CanalExternoFacturasAmazon(configuracion, servicioAutenticacion) }
             };
 
-            CargarFacturasCommand = new DelegateCommand(async () => await OnCargarFacturasAsync(), PuedeCargar);
-            ContabilizarTodasCommand = new DelegateCommand(async () => await OnContabilizarTodasAsync(), PuedeContabilizar);
-            EmparejarListadoCommand = new DelegateCommand(() => OnEmparejarListado(), PuedeEmparejarListado);
-            ContabilizarFacturaCommand = new DelegateCommand<FacturaCanalExterno>(
+            CargarFacturasCommand = new RelayCommand(async () => await OnCargarFacturasAsync(), PuedeCargar);
+            ContabilizarTodasCommand = new RelayCommand(async () => await OnContabilizarTodasAsync(), PuedeContabilizar);
+            EmparejarListadoCommand = new RelayCommand(() => OnEmparejarListado(), PuedeEmparejarListado);
+            ContabilizarFacturaCommand = new RelayCommand<FacturaCanalExterno>(
                 async f => await OnContabilizarFacturaAsync(f),
                 f => PuedeContabilizarFactura(f));
 
@@ -111,7 +111,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 if (SetProperty(ref _listadoPegado, value))
                 {
-                    ((DelegateCommand)EmparejarListadoCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)EmparejarListadoCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -139,10 +139,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
 
         private void RaiseCanExecuteChanged()
         {
-            ((DelegateCommand)CargarFacturasCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)ContabilizarTodasCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)EmparejarListadoCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand<FacturaCanalExterno>)ContabilizarFacturaCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand)CargarFacturasCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand)ContabilizarTodasCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand)EmparejarListadoCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand<FacturaCanalExterno>)ContabilizarFacturaCommand).NotifyCanExecuteChanged();
         }
 
         private async Task OnCargarFacturasAsync()

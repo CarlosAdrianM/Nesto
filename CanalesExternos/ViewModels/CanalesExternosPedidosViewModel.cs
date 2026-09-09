@@ -1,4 +1,4 @@
-﻿using Prism.Commands;
+﻿using CommunityToolkit.Mvvm.Input;
 using Prism.Regions;
 using System;
 using System.Collections.Generic;
@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ControlesUsuario.Models;
 using Unity;
+using RelayCommand = CommunityToolkit.Mvvm.Input.RelayCommand;
 
 namespace Nesto.Modulos.CanalesExternos.ViewModels
 {
@@ -106,10 +107,10 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             RaisePropertyChanged(nameof(PedidoSeleccionadoTotalLineas));
             RaisePropertyChanged(nameof(PedidoSeleccionadoCliente));
             RaisePropertyChanged(nameof(PedidoSeleccionadoContacto));            
-            CrearPedidoCommand.RaiseCanExecuteChanged();
-            CrearEtiquetaCommand.RaiseCanExecuteChanged();
-            ConfirmarEnvioCommand.RaiseCanExecuteChanged();
-            FacturarYSubirCommand.RaiseCanExecuteChanged();
+            CrearPedidoCommand.NotifyCanExecuteChanged();
+            CrearEtiquetaCommand.NotifyCanExecuteChanged();
+            ConfirmarEnvioCommand.NotifyCanExecuteChanged();
+            FacturarYSubirCommand.NotifyCanExecuteChanged();
         }
 
         #region "Propiedades Nesto"
@@ -206,7 +207,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Direccion = value;
-                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                    CrearPedidoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -218,7 +219,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Nombre = value;
-                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                    CrearPedidoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -230,7 +231,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).TelefonoFijo = value;
-                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                    CrearPedidoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -242,7 +243,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).TelefonoMovil = value;
-                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                    CrearPedidoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -254,7 +255,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Poblacion = value;
-                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                    CrearPedidoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -266,7 +267,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Observaciones = value;
-                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                    CrearPedidoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -278,7 +279,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno) != null)
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).UltimoSeguimiento = value;
-                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                    CrearPedidoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -292,7 +293,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 if ((ListaPedidos.ElementoSeleccionado as PedidoCanalExterno)?.Pedido != null)
                 {
                     (ListaPedidos.ElementoSeleccionado as PedidoCanalExterno).Pedido.Lineas = value;
-                    CrearPedidoCommand.RaiseCanExecuteChanged();
+                    CrearPedidoCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -344,7 +345,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 EstaOcupado = true;
                 ListaPedidos.Lista = new ObservableCollection<IFiltrableItem>(await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos));
                 ListaPedidos.ListaOriginal = ListaPedidos.Lista;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                CrearPedidoCommand.NotifyCanExecuteChanged();
                 await CargarEstadosFacturasAsync(); // Nesto#434: pinta la columna Factura
             } catch (Exception ex)
             {
@@ -354,12 +355,12 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             finally
             {
                 EstaOcupado = false;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                CrearPedidoCommand.NotifyCanExecuteChanged();
             }
 
         }
 
-        public DelegateCommand<object> ConfirmarEnvioCommand { get; private set; }
+        public RelayCommand<object> ConfirmarEnvioCommand { get; private set; }
         private bool CanConfirmarEnvio(object pedidoExternoObj)
         {
             PedidoCanalExterno pedidoExterno = ListaPedidos.ElementoSeleccionado as PedidoCanalExterno;
@@ -392,7 +393,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         }
 
 
-        public DelegateCommand<PedidoCanalExterno> CrearEtiquetaCommand { get; private set; }
+        public RelayCommand<PedidoCanalExterno> CrearEtiquetaCommand { get; private set; }
         private bool CanCrearEtiqueta(PedidoCanalExterno pedido)
         {
             return pedido != null && pedido.PedidoNestoId != 0;
@@ -449,7 +450,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             }
         }
 
-        public DelegateCommand<PedidoCanalExterno> CrearPedidoCommand { get; private set; }
+        public RelayCommand<PedidoCanalExterno> CrearPedidoCommand { get; private set; }
         private bool CanCrearPedido(PedidoCanalExterno pedidoExterno)
         {
             return pedidoExterno != null && 
@@ -473,9 +474,9 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 {
                     resultado += "\nCompletado el proceso";
                 }
-                CrearEtiquetaCommand.RaiseCanExecuteChanged();
-                FacturarYSubirCommand.RaiseCanExecuteChanged();
-                FacturarYSubirPendientesCommand.RaiseCanExecuteChanged();
+                CrearEtiquetaCommand.NotifyCanExecuteChanged();
+                FacturarYSubirCommand.NotifyCanExecuteChanged();
+                FacturarYSubirPendientesCommand.NotifyCanExecuteChanged();
                 DialogService.ShowNotification("Crear Pedido", resultado);
             } catch(Exception ex)
             {
@@ -491,7 +492,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         // Todo el trabajo lo hace NestoAPI (#366); aquí solo se llama y se pinta el resultado.
         private bool EsCanalAmazon => CanalSeleccionado is CanalExternoPedidosAmazon;
 
-        public DelegateCommand<PedidoCanalExterno> FacturarYSubirCommand { get; private set; }
+        public RelayCommand<PedidoCanalExterno> FacturarYSubirCommand { get; private set; }
         private bool CanFacturarYSubir(PedidoCanalExterno pedidoExterno)
         {
             return EsCanalAmazon && pedidoExterno != null && pedidoExterno.PedidoNestoId != 0;
@@ -518,11 +519,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             finally
             {
                 EstaOcupado = false;
-                FacturarYSubirPendientesCommand.RaiseCanExecuteChanged();
+                FacturarYSubirPendientesCommand.NotifyCanExecuteChanged();
             }
         }
 
-        public DelegateCommand FacturarYSubirPendientesCommand { get; private set; }
+        public RelayCommand FacturarYSubirPendientesCommand { get; private set; }
         private bool CanFacturarYSubirPendientes()
         {
             return EsCanalAmazon && PedidosConFacturaPendiente().Any();
@@ -558,7 +559,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             finally
             {
                 EstaOcupado = false;
-                FacturarYSubirPendientesCommand.RaiseCanExecuteChanged();
+                FacturarYSubirPendientesCommand.NotifyCanExecuteChanged();
             }
             DialogService.ShowNotification("Subir facturas a Amazon", resumen.ToString());
         }
@@ -621,11 +622,11 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
             {
                 System.Diagnostics.Trace.WriteLine("[AmazonDiag] No se pudo cargar el estado de facturas subidas: " + ex.Message);
             }
-            FacturarYSubirPendientesCommand.RaiseCanExecuteChanged();
+            FacturarYSubirPendientesCommand.NotifyCanExecuteChanged();
         }
 
         // Nesto#374: abrir el pedido de Nesto asignado (doble clic en la fila de la lista).
-        public DelegateCommand<PedidoCanalExterno> AbrirPedidoNestoCommand { get; private set; }
+        public RelayCommand<PedidoCanalExterno> AbrirPedidoNestoCommand { get; private set; }
         private bool CanAbrirPedidoNesto(PedidoCanalExterno pedidoExterno)
         {
             return pedidoExterno != null && pedidoExterno.PedidoNestoId != 0 && pedidoExterno.Pedido != null;
@@ -641,13 +642,13 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
         {
             CanalSeleccionadoHaCambiado += OnCanalSeleccionadoHaCambiadoAsync;
 
-            CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
-            CrearEtiquetaCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearEtiquetaAsync, CanCrearEtiqueta);
-            CrearPedidoCommand = new DelegateCommand<PedidoCanalExterno>(OnCrearPedidoAsync, CanCrearPedido);
-            ConfirmarEnvioCommand = new DelegateCommand<object>(OnConfirmarEnvioAsync, CanConfirmarEnvio);
-            AbrirPedidoNestoCommand = new DelegateCommand<PedidoCanalExterno>(OnAbrirPedidoNesto, CanAbrirPedidoNesto);
-            FacturarYSubirCommand = new DelegateCommand<PedidoCanalExterno>(OnFacturarYSubirAsync, CanFacturarYSubir);
-            FacturarYSubirPendientesCommand = new DelegateCommand(OnFacturarYSubirPendientesAsync, CanFacturarYSubirPendientes);
+            CargarPedidosCommand = new RelayCommand(OnCargarPedidos);
+            CrearEtiquetaCommand = new RelayCommand<PedidoCanalExterno>(OnCrearEtiquetaAsync, CanCrearEtiqueta);
+            CrearPedidoCommand = new RelayCommand<PedidoCanalExterno>(OnCrearPedidoAsync, CanCrearPedido);
+            ConfirmarEnvioCommand = new RelayCommand<object>(OnConfirmarEnvioAsync, CanConfirmarEnvio);
+            AbrirPedidoNestoCommand = new RelayCommand<PedidoCanalExterno>(OnAbrirPedidoNesto, CanAbrirPedidoNesto);
+            FacturarYSubirCommand = new RelayCommand<PedidoCanalExterno>(OnFacturarYSubirAsync, CanFacturarYSubir);
+            FacturarYSubirPendientesCommand = new RelayCommand(OnFacturarYSubirPendientesAsync, CanFacturarYSubirPendientes);
         }
         
         async void OnCanalSeleccionadoHaCambiadoAsync(object sender, EventArgs e)
@@ -657,7 +658,7 @@ namespace Nesto.Modulos.CanalesExternos.ViewModels
                 EstaOcupado = true;
                 ListaPedidos.Lista = new ObservableCollection<IFiltrableItem>(await CanalSeleccionado.GetAllPedidosAsync(FechaDesde, NumeroMaxPedidos));
                 ListaPedidos.ListaOriginal = ListaPedidos.Lista;
-                CrearPedidoCommand.RaiseCanExecuteChanged();
+                CrearPedidoCommand.NotifyCanExecuteChanged();
                 await CargarEstadosFacturasAsync(); // Nesto#434: pinta la columna Factura
             } catch (Exception ex)
             {

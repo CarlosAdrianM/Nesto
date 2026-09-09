@@ -1,4 +1,4 @@
-﻿using Prism.Commands;
+﻿using CommunityToolkit.Mvvm.Input;
 using Prism.Regions;
 using System.Windows.Input;
 using Nesto.Infrastructure.Shared;
@@ -15,12 +15,12 @@ namespace Nesto.Modulos.CanalesExternos
             RegionManager = regionManager;
             Configuracion = configuracion;
 
-            AbrirModuloPedidosCommand = new DelegateCommand(OnAbrirPedidosModulo, CanAbrirModuloPedidos);
-            AbrirModuloPagosCommand = new DelegateCommand(OnAbrirModuloPagos, CanAbrirModuloPagos);
-            AbrirModuloProductosCommand = new DelegateCommand(OnAbrirModuloProductos, CanAbrirModuloProductos);
-            AbrirModuloFacturasCommand = new DelegateCommand(OnAbrirModuloFacturas, CanAbrirModuloFacturas);
-            AbrirModuloCuadreFacturasCommand = new DelegateCommand(OnAbrirModuloCuadreFacturas, CanAbrirModuloCuadreFacturas);
-            AbrirModuloPoisonPillsCommand = new DelegateCommand(OnAbrirModuloPoisonPills, CanAbrirModuloPoisonPills);
+            AbrirModuloPedidosCommand = new RelayCommand(OnAbrirPedidosModulo, CanAbrirModuloPedidos);
+            AbrirModuloPagosCommand = new RelayCommand(OnAbrirModuloPagos, CanAbrirModuloPagos);
+            AbrirModuloProductosCommand = new RelayCommand(OnAbrirModuloProductos, CanAbrirModuloProductos);
+            AbrirModuloFacturasCommand = new RelayCommand(OnAbrirModuloFacturas, CanAbrirModuloFacturas);
+            AbrirModuloCuadreFacturasCommand = new RelayCommand(OnAbrirModuloCuadreFacturas, CanAbrirModuloCuadreFacturas);
+            AbrirModuloPoisonPillsCommand = new RelayCommand(OnAbrirModuloPoisonPills, CanAbrirModuloPoisonPills);
         }
 
         public ICommand AbrirModuloFacturasCommand { get; private set; }
