@@ -1,5 +1,5 @@
-using ControlesUsuario.Models;
-using Prism.Commands;
+﻿using ControlesUsuario.Models;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -34,20 +34,20 @@ namespace ControlesUsuario.Dialogs
             {
                 if (SetProperty(ref _seleccionado, value))
                 {
-                    AceptarCommand.RaiseCanExecuteChanged();
+                    AceptarCommand.NotifyCanExecuteChanged();
                 }
             }
         }
 
         public event Action<IDialogResult> RequestClose;
 
-        public DelegateCommand AceptarCommand { get; }
-        public DelegateCommand CancelarCommand { get; }
+        public RelayCommand AceptarCommand { get; }
+        public RelayCommand CancelarCommand { get; }
 
         public SelectorProductoDuplicadoDialogViewModel()
         {
-            AceptarCommand = new DelegateCommand(Aceptar, () => Seleccionado != null);
-            CancelarCommand = new DelegateCommand(Cancelar);
+            AceptarCommand = new RelayCommand(Aceptar, () => Seleccionado != null);
+            CancelarCommand = new RelayCommand(Cancelar);
         }
 
         private void Aceptar()

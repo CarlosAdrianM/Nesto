@@ -58,7 +58,7 @@ namespace ControlesUsuario.Tests.Dialogs
             var sut = new SelectorProductoDuplicadoDialogViewModel();
 
             // Sin OnDialogOpened no hay candidatos ni selección
-            Assert.IsFalse(sut.AceptarCommand.CanExecute());
+            Assert.IsFalse(sut.AceptarCommand.CanExecute(null));
         }
 
         [TestMethod]
@@ -67,7 +67,7 @@ namespace ControlesUsuario.Tests.Dialogs
             var sut = new SelectorProductoDuplicadoDialogViewModel();
             sut.OnDialogOpened(CrearParametros(Candidato("45114", "A")));
 
-            Assert.IsTrue(sut.AceptarCommand.CanExecute());
+            Assert.IsTrue(sut.AceptarCommand.CanExecute(null));
         }
 
         [TestMethod]
@@ -82,7 +82,7 @@ namespace ControlesUsuario.Tests.Dialogs
             IDialogResult resultadoCapturado = null;
             sut.RequestClose += r => resultadoCapturado = r;
 
-            sut.AceptarCommand.Execute();
+            sut.AceptarCommand.Execute(null);
 
             Assert.IsNotNull(resultadoCapturado);
             Assert.AreEqual(ButtonResult.OK, resultadoCapturado.Result);
@@ -98,7 +98,7 @@ namespace ControlesUsuario.Tests.Dialogs
             IDialogResult resultadoCapturado = null;
             sut.RequestClose += r => resultadoCapturado = r;
 
-            sut.CancelarCommand.Execute();
+            sut.CancelarCommand.Execute(null);
 
             Assert.IsNotNull(resultadoCapturado);
             Assert.AreEqual(ButtonResult.Cancel, resultadoCapturado.Result);

@@ -1,4 +1,4 @@
-﻿using Prism.Commands;
+﻿using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -7,9 +7,9 @@ namespace ControlesUsuario.Dialogs
 {
     public class ConfirmationDialogViewModel : BindableBase, IDialogAware
     {
-        private DelegateCommand<string> _closeDialogCommand;
-        public DelegateCommand<string> CloseDialogCommand =>
-            _closeDialogCommand ?? (_closeDialogCommand = new DelegateCommand<string>(CloseDialog));
+        private RelayCommand<string> _closeDialogCommand;
+        public RelayCommand<string> CloseDialogCommand =>
+            _closeDialogCommand ?? (_closeDialogCommand = new RelayCommand<string>(CloseDialog));
 
         private string _message;
         public string Message

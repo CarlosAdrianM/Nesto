@@ -1,4 +1,4 @@
-using Prism.Commands;
+﻿using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -31,13 +31,13 @@ namespace ControlesUsuario.Dialogs
 
         public event Action<IDialogResult> RequestClose;
 
-        public DelegateCommand AcceptCommand { get; }
-        public DelegateCommand CancelCommand { get; }
+        public RelayCommand AcceptCommand { get; }
+        public RelayCommand CancelCommand { get; }
 
         public InputTextDialogViewModel()
         {
-            AcceptCommand = new DelegateCommand(Accept);
-            CancelCommand = new DelegateCommand(Cancel);
+            AcceptCommand = new RelayCommand(Accept);
+            CancelCommand = new RelayCommand(Cancel);
         }
 
         private void Accept()

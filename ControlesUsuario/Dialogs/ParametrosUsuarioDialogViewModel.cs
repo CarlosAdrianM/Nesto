@@ -1,6 +1,6 @@
-using ControlesUsuario.Models;
+﻿using ControlesUsuario.Models;
 using ControlesUsuario.Services;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -50,13 +50,13 @@ namespace ControlesUsuario.Dialogs
 
         private bool _guardando;
 
-        private DelegateCommand _guardarCommand;
-        public DelegateCommand GuardarCommand => _guardarCommand ??
-            (_guardarCommand = new DelegateCommand(OnGuardar, () => !_guardando && Editables.Any(e => e.TieneCambios)));
+        private RelayCommand _guardarCommand;
+        public RelayCommand GuardarCommand => _guardarCommand ??
+            (_guardarCommand = new RelayCommand(OnGuardar, () => !_guardando && Editables.Any(e => e.TieneCambios)));
 
-        private DelegateCommand _closeDialogCommand;
-        public DelegateCommand CloseDialogCommand => _closeDialogCommand ??
-            (_closeDialogCommand = new DelegateCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.OK))));
+        private RelayCommand _closeDialogCommand;
+        public RelayCommand CloseDialogCommand => _closeDialogCommand ??
+            (_closeDialogCommand = new RelayCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.OK))));
 
         public event Action<IDialogResult> RequestClose;
 
@@ -74,7 +74,7 @@ namespace ControlesUsuario.Dialogs
             {
                 var editables = await _servicio.LeerEditables();
                 Editables = new ObservableCollection<ParametroEditableItem>(
-                    editables.Select(e => new ParametroEditableItem(e, () => GuardarCommand.RaiseCanExecuteChanged())));
+                    editables.Select(e => new ParametroEditableItem(e, () => GuardarCommand.NotifyCanExecuteChanged())));
             }
             catch (Exception ex)
             {
@@ -85,7 +85,7 @@ namespace ControlesUsuario.Dialogs
         private async void OnGuardar()
         {
             _guardando = true;
-            GuardarCommand.RaiseCanExecuteChanged();
+            GuardarCommand.NotifyCanExecuteChanged();
             try
             {
                 foreach (ParametroEditableItem item in Editables.Where(e => e.TieneCambios).ToList())
@@ -103,7 +103,7 @@ namespace ControlesUsuario.Dialogs
             finally
             {
                 _guardando = false;
-                GuardarCommand.RaiseCanExecuteChanged();
+                GuardarCommand.NotifyCanExecuteChanged();
             }
         }
     }

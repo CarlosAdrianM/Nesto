@@ -16,9 +16,9 @@ namespace ControlesUsuario.Dialogs
         private void ListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is SelectorProductoDuplicadoDialogViewModel vm &&
-                vm.AceptarCommand.CanExecute())
+                vm.AceptarCommand.CanExecute(null))
             {
-                vm.AceptarCommand.Execute();
+                vm.AceptarCommand.Execute(null);
             }
         }
     }

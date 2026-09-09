@@ -1,5 +1,5 @@
-using Nesto.Infrastructure.Contracts;
-using Prism.Commands;
+﻿using Nesto.Infrastructure.Contracts;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Services.Dialogs;
 using System;
@@ -17,9 +17,9 @@ namespace ControlesUsuario.Dialogs
     /// </summary>
     public class NovedadesDialogViewModel : BindableBase, IDialogAware
     {
-        private DelegateCommand _closeDialogCommand;
-        public DelegateCommand CloseDialogCommand =>
-            _closeDialogCommand ?? (_closeDialogCommand = new DelegateCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.OK))));
+        private RelayCommand _closeDialogCommand;
+        public RelayCommand CloseDialogCommand =>
+            _closeDialogCommand ?? (_closeDialogCommand = new RelayCommand(() => RequestClose?.Invoke(new DialogResult(ButtonResult.OK))));
 
         // Novedades agrupadas por versión, de la más NUEVA (índice 0) a la más antigua.
         private List<IGrouping<string, NovedadUsuario>> _porVersion = new List<IGrouping<string, NovedadUsuario>>();
@@ -48,15 +48,15 @@ namespace ControlesUsuario.Dialogs
         }
 
         // "Versión anterior" = una más antigua (índice mayor, porque están de nueva a antigua).
-        private DelegateCommand _versionAnteriorCommand;
-        public DelegateCommand VersionAnteriorCommand =>
-            _versionAnteriorCommand ?? (_versionAnteriorCommand = new DelegateCommand(
+        private RelayCommand _versionAnteriorCommand;
+        public RelayCommand VersionAnteriorCommand =>
+            _versionAnteriorCommand ?? (_versionAnteriorCommand = new RelayCommand(
                 () => MostrarVersion(_indice + 1), () => _indice < _porVersion.Count - 1));
 
         // "Versión siguiente" = una más nueva (índice menor).
-        private DelegateCommand _versionSiguienteCommand;
-        public DelegateCommand VersionSiguienteCommand =>
-            _versionSiguienteCommand ?? (_versionSiguienteCommand = new DelegateCommand(
+        private RelayCommand _versionSiguienteCommand;
+        public RelayCommand VersionSiguienteCommand =>
+            _versionSiguienteCommand ?? (_versionSiguienteCommand = new RelayCommand(
                 () => MostrarVersion(_indice - 1), () => _indice > 0));
 
         public event Action<IDialogResult> RequestClose;
@@ -102,8 +102,8 @@ namespace ControlesUsuario.Dialogs
                 Novedades = grupo.ToList();
                 VersionActual = string.IsNullOrWhiteSpace(grupo.Key) ? "Novedades" : $"Versión {grupo.Key}";
             }
-            VersionAnteriorCommand.RaiseCanExecuteChanged();
-            VersionSiguienteCommand.RaiseCanExecuteChanged();
+            VersionAnteriorCommand.NotifyCanExecuteChanged();
+            VersionSiguienteCommand.NotifyCanExecuteChanged();
         }
 
         private static Version ParsearVersion(string version)

@@ -1,8 +1,8 @@
-using ControlesUsuario.Models;
+﻿using ControlesUsuario.Models;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Newtonsoft.Json;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Ioc;
 using System;
 using System.Collections.Generic;
@@ -30,7 +30,7 @@ namespace ControlesUsuario
         {
             InitializeComponent();
             GridPrincipal.DataContext = this;
-            LimpiarBusquedaCommand = new DelegateCommand(OnLimpiarBusqueda);
+            LimpiarBusquedaCommand = new RelayCommand(OnLimpiarBusqueda);
 
             try
             {
@@ -408,7 +408,7 @@ namespace ControlesUsuario
 
         #region Commands
 
-        public DelegateCommand LimpiarBusquedaCommand { get; }
+        public RelayCommand LimpiarBusquedaCommand { get; }
 
         private void OnLimpiarBusqueda()
         {

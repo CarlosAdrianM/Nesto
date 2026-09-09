@@ -41,8 +41,8 @@ namespace ControlesUsuario.Tests
         {
             var vm = CrearVm(N("1.10.7.0", "a"), N("1.10.8.0", "b"));
 
-            Assert.IsFalse(vm.VersionSiguienteCommand.CanExecute()); // no hay una más nueva
-            Assert.IsTrue(vm.VersionAnteriorCommand.CanExecute());   // sí hay una anterior
+            Assert.IsFalse(vm.VersionSiguienteCommand.CanExecute(null)); // no hay una más nueva
+            Assert.IsTrue(vm.VersionAnteriorCommand.CanExecute(null));   // sí hay una anterior
         }
 
         [TestMethod]
@@ -50,11 +50,11 @@ namespace ControlesUsuario.Tests
         {
             var vm = CrearVm(N("1.10.7.0", "a"), N("1.10.8.0", "b"));
 
-            vm.VersionAnteriorCommand.Execute();
+            vm.VersionAnteriorCommand.Execute(null);
 
             Assert.AreEqual("Versión 1.10.7.0", vm.VersionActual);
-            Assert.IsTrue(vm.VersionSiguienteCommand.CanExecute());  // ahora sí hay una más nueva
-            Assert.IsFalse(vm.VersionAnteriorCommand.CanExecute());  // ya no hay más antigua
+            Assert.IsTrue(vm.VersionSiguienteCommand.CanExecute(null));  // ahora sí hay una más nueva
+            Assert.IsFalse(vm.VersionAnteriorCommand.CanExecute(null));  // ya no hay más antigua
         }
 
         [TestMethod]
@@ -63,8 +63,8 @@ namespace ControlesUsuario.Tests
             var vm = CrearVm();
 
             Assert.AreEqual(0, vm.Novedades.Count);
-            Assert.IsFalse(vm.VersionAnteriorCommand.CanExecute());
-            Assert.IsFalse(vm.VersionSiguienteCommand.CanExecute());
+            Assert.IsFalse(vm.VersionAnteriorCommand.CanExecute(null));
+            Assert.IsFalse(vm.VersionSiguienteCommand.CanExecute(null));
         }
     }
 }
