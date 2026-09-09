@@ -488,10 +488,45 @@ Public Class AgenciaService
         End Using
     End Function
 
+    ' ===== Nesto#340 (Agencias): las empresas se leen de la API, no de EF =====
+    ' Mismo GET Empresas que ya usan RemesasService y ClienteComercialService. Aquí se deserializa
+    ' sobre la entidad Empresas porque es el tipo de la navegación envio.Empresas y de los cinco
+    ' llamantes (etiquetas de ASM y Correos Express, combo de la ventana), que no cambian.
+    ' Son 2-3 filas que no cambian en toda la sesión, pero CargarEmpresa se llama por cada etiqueta
+    ' que se imprime: contra la API sería una llamada HTTP por etiqueta, así que se cachean igual
+    ' que las agencias.
+    ' OJO: el servidor devuelve la entidad tal cual, CON el relleno de los char (Número "1  "),
+    ' igual que hacía EF. CargarEmpresa compara con CampoIgual y los llamantes ya hacían Trim.
+    Private Shared ReadOnly _duracionCacheEmpresas As TimeSpan = TimeSpan.FromMinutes(5)
+    Private _empresasCacheadas As List(Of Empresas)
+    Private _empresasCacheadasHasta As Date
+
+    ''' <summary>Solo para tests (InternalsVisibleTo "ViewModels.Tests"): sustituye la lectura
+    ''' HTTP de GET Empresas sin levantar la API.</summary>
+    Friend Property LectorEmpresas As Func(Of List(Of Empresas)) = AddressOf LeerEmpresasDeLaApi
+
     Public Function CargarListaEmpresas() As ObservableCollection(Of Empresas) Implements IAgenciaService.CargarListaEmpresas
-        Using contexto = New NestoEntities
-            Return New ObservableCollection(Of Empresas)(From c In contexto.Empresas)
-        End Using
+        If _empresasCacheadas Is Nothing OrElse Date.Now >= _empresasCacheadasHasta Then
+            _empresasCacheadas = LectorEmpresas.Invoke()
+            _empresasCacheadasHasta = Date.Now.Add(_duracionCacheEmpresas)
+        End If
+        Return New ObservableCollection(Of Empresas)(_empresasCacheadas)
+    End Function
+
+    Private Function LeerEmpresasDeLaApi() As List(Of Empresas)
+        Return Task.Run(Async Function() As Task(Of List(Of Empresas))
+                            Using client As HttpClient = _clienteApiFactory.Crear()
+                                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                                End If
+                                Dim response As HttpResponseMessage = Await client.GetAsync("Empresas")
+                                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                                If Not response.IsSuccessStatusCode Then
+                                    Throw New Exception($"No se pudieron cargar las empresas ({CInt(response.StatusCode)}): {cuerpo}")
+                                End If
+                                Return JsonConvert.DeserializeObject(Of List(Of Empresas))(cuerpo)
+                            End Using
+                        End Function).GetAwaiter().GetResult()
     End Function
 
     ''' <summary>
