@@ -58,7 +58,7 @@ Public Class DetallePedidoViewModelCopiarPortapapelesTests
         Dim vm = CrearViewModel()
 
         ' Act & Assert - el botón no debe poder ejecutarse si no hay pedido
-        Assert.IsFalse(vm.CopiarAlPortapapelesCommand.CanExecute(),
+        Assert.IsFalse(vm.CopiarAlPortapapelesCommand.CanExecute(Nothing),
                        "Sin pedido cargado, el comando Copiar al portapapeles no debe poder ejecutarse")
     End Sub
 

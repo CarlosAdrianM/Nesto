@@ -213,7 +213,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
             .Throws(New Exception("Hay lineas que no tienen el visto bueno dado."))
 
         ' Act
-        vm.CrearAlbaranYFacturaVentaCommand.Execute()
+        vm.CrearAlbaranYFacturaVentaCommand.Execute(Nothing)
 
         ' Assert: recarga el pedido (para pintar las líneas en su estado real: albarán, bloqueadas)
         A.CallTo(Function() servicio.cargarPedido("1", 922687)).MustHaveHappened()
@@ -326,7 +326,7 @@ Public Class DetallePedidoViewModelConfirmacionTests
         vm.pedido = New PedidoVentaWrapper(New PedidoVentaDTO With {.empresa = "1", .numero = 922687})
         A.CallTo(Function() servicio.CrearAlbaranVenta("1", 922687)).Throws(New Exception("boom"))
 
-        vm.CrearAlbaranYFacturaVentaCommand.Execute()
+        vm.CrearAlbaranYFacturaVentaCommand.Execute(Nothing)
 
         A.CallTo(Function() servicio.CrearFacturaVenta(A(Of String).Ignored, A(Of Integer).Ignored)).MustNotHaveHappened()
         A.CallTo(Function() servicio.cargarPedido(A(Of String).Ignored, A(Of Integer).Ignored)).MustNotHaveHappened()
