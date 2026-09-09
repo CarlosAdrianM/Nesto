@@ -4,7 +4,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.OfertasCombinadas.Interfaces;
 using Nesto.Modulos.OfertasCombinadas.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -50,37 +50,37 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             ResumenCampanas = new ObservableCollection<ResumenCampanaModel>();
             OfertasProducto = new ObservableCollection<OfertaProductoWrapper>();
 
-            CargarCommand = new DelegateCommand(async () => await OnCargar());
-            NuevaOfertaCombinadaCommand = new DelegateCommand(OnNuevaOfertaCombinada);
-            GuardarOfertaCombinadaCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaCombinada(o as OfertaCombinadaWrapper));
-            EliminarOfertaCombinadaCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaCombinada(o as OfertaCombinadaWrapper));
+            CargarCommand = new RelayCommand(async () => await OnCargar());
+            NuevaOfertaCombinadaCommand = new RelayCommand(OnNuevaOfertaCombinada);
+            GuardarOfertaCombinadaCommand = new RelayCommand<object>(async (o) => await OnGuardarOfertaCombinada(o as OfertaCombinadaWrapper));
+            EliminarOfertaCombinadaCommand = new RelayCommand<object>(async (o) => await OnEliminarOfertaCombinada(o as OfertaCombinadaWrapper));
 
-            NuevaOfertaFamiliaCommand = new DelegateCommand(OnNuevaOfertaFamilia);
-            GuardarOfertaFamiliaCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaFamilia(o as OfertaPermitidaFamiliaWrapper));
-            EliminarOfertaFamiliaCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaFamilia(o as OfertaPermitidaFamiliaWrapper));
+            NuevaOfertaFamiliaCommand = new RelayCommand(OnNuevaOfertaFamilia);
+            GuardarOfertaFamiliaCommand = new RelayCommand<object>(async (o) => await OnGuardarOfertaFamilia(o as OfertaPermitidaFamiliaWrapper));
+            EliminarOfertaFamiliaCommand = new RelayCommand<object>(async (o) => await OnEliminarOfertaFamilia(o as OfertaPermitidaFamiliaWrapper));
 
-            NuevaOfertaEscalonadaCommand = new DelegateCommand(OnNuevaOfertaEscalonada);
-            GuardarOfertaEscalonadaCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaEscalonada(o as OfertaEscalonadaWrapper));
-            EliminarOfertaEscalonadaCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaEscalonada(o as OfertaEscalonadaWrapper));
-            AnadirReferenciasCommand = new DelegateCommand(async () => await OnAnadirReferencias(), () => OfertaEscalonadaSeleccionada != null);
-            NuevoProductoEscalonadoCommand = new DelegateCommand(OnNuevoProductoEscalonado, () => OfertaEscalonadaSeleccionada != null);
-            EliminarProductoEscalonadoCommand = new DelegateCommand<object>(OnEliminarProductoEscalonado);
-            NuevoTramoCommand = new DelegateCommand(OnNuevoTramo, () => OfertaEscalonadaSeleccionada != null);
-            EliminarTramoCommand = new DelegateCommand<object>(OnEliminarTramo);
+            NuevaOfertaEscalonadaCommand = new RelayCommand(OnNuevaOfertaEscalonada);
+            GuardarOfertaEscalonadaCommand = new RelayCommand<object>(async (o) => await OnGuardarOfertaEscalonada(o as OfertaEscalonadaWrapper));
+            EliminarOfertaEscalonadaCommand = new RelayCommand<object>(async (o) => await OnEliminarOfertaEscalonada(o as OfertaEscalonadaWrapper));
+            AnadirReferenciasCommand = new RelayCommand(async () => await OnAnadirReferencias(), () => OfertaEscalonadaSeleccionada != null);
+            NuevoProductoEscalonadoCommand = new RelayCommand(OnNuevoProductoEscalonado, () => OfertaEscalonadaSeleccionada != null);
+            EliminarProductoEscalonadoCommand = new RelayCommand<object>(OnEliminarProductoEscalonado);
+            NuevoTramoCommand = new RelayCommand(OnNuevoTramo, () => OfertaEscalonadaSeleccionada != null);
+            EliminarTramoCommand = new RelayCommand<object>(OnEliminarTramo);
 
-            NuevaCampanaCommand = new DelegateCommand(OnNuevaCampana);
-            GuardarCampanaCommand = new DelegateCommand<object>(async (o) => await OnGuardarCampana(o as CampanaWrapper));
-            EliminarCampanaCommand = new DelegateCommand<object>(async (o) => await OnEliminarCampana(o as CampanaWrapper));
-            CerrarCampanaCommand = new DelegateCommand(async () => await OnCerrarCampana(), () => CampanaSeleccionada != null);
-            BorrarCampanaCommand = new DelegateCommand(async () => await OnBorrarCampana(), () => CampanaSeleccionada != null);
-            QuitarFiltroCampanaCommand = new DelegateCommand(() => CampanaSeleccionada = null, () => CampanaSeleccionada != null);
-            NuevaOfertaProductoCommand = new DelegateCommand(OnNuevaOfertaProducto);
-            GuardarOfertaProductoCommand = new DelegateCommand<object>(async (o) => await OnGuardarOfertaProducto(o as OfertaProductoWrapper));
-            EliminarOfertaProductoCommand = new DelegateCommand<object>(async (o) => await OnEliminarOfertaProducto(o as OfertaProductoWrapper));
+            NuevaCampanaCommand = new RelayCommand(OnNuevaCampana);
+            GuardarCampanaCommand = new RelayCommand<object>(async (o) => await OnGuardarCampana(o as CampanaWrapper));
+            EliminarCampanaCommand = new RelayCommand<object>(async (o) => await OnEliminarCampana(o as CampanaWrapper));
+            CerrarCampanaCommand = new RelayCommand(async () => await OnCerrarCampana(), () => CampanaSeleccionada != null);
+            BorrarCampanaCommand = new RelayCommand(async () => await OnBorrarCampana(), () => CampanaSeleccionada != null);
+            QuitarFiltroCampanaCommand = new RelayCommand(() => CampanaSeleccionada = null, () => CampanaSeleccionada != null);
+            NuevaOfertaProductoCommand = new RelayCommand(OnNuevaOfertaProducto);
+            GuardarOfertaProductoCommand = new RelayCommand<object>(async (o) => await OnGuardarOfertaProducto(o as OfertaProductoWrapper));
+            EliminarOfertaProductoCommand = new RelayCommand<object>(async (o) => await OnEliminarOfertaProducto(o as OfertaProductoWrapper));
 
-            NuevoDetalleCommand = new DelegateCommand(OnNuevoDetalle, () => OfertaCombinadaSeleccionada != null);
-            NuevoDetalleAlternativoCommand = new DelegateCommand(OnNuevoDetalleAlternativo, () => DetalleSeleccionado != null);
-            EliminarDetalleCommand = new DelegateCommand<object>(OnEliminarDetalle);
+            NuevoDetalleCommand = new RelayCommand(OnNuevoDetalle, () => OfertaCombinadaSeleccionada != null);
+            NuevoDetalleAlternativoCommand = new RelayCommand(OnNuevoDetalleAlternativo, () => DetalleSeleccionado != null);
+            EliminarDetalleCommand = new RelayCommand<object>(OnEliminarDetalle);
 
             // Nesto#459: la ventana ya tiene de todo (combinadas, por familia, escalonadas,
             // campanas y ofertas de producto): el nombre historico se quedaba corto.
@@ -168,7 +168,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (SetProperty(ref _ofertaCombinadaSeleccionada, value))
                 {
-                    ((DelegateCommand)NuevoDetalleCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)NuevoDetalleCommand).NotifyCanExecuteChanged();
                     CargarDetalles();
                 }
             }
@@ -189,7 +189,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (SetProperty(ref _detalleSeleccionado, value))
                 {
-                    ((DelegateCommand)NuevoDetalleAlternativoCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)NuevoDetalleAlternativoCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -218,9 +218,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             {
                 if (SetProperty(ref _ofertaEscalonadaSeleccionada, value))
                 {
-                    ((DelegateCommand)AnadirReferenciasCommand).RaiseCanExecuteChanged();
-                    ((DelegateCommand)NuevoProductoEscalonadoCommand).RaiseCanExecuteChanged();
-                    ((DelegateCommand)NuevoTramoCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)AnadirReferenciasCommand).NotifyCanExecuteChanged();
+                    ((IRelayCommand)NuevoProductoEscalonadoCommand).NotifyCanExecuteChanged();
+                    ((IRelayCommand)NuevoTramoCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -269,9 +269,9 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                     // esto, el boton de "Borrar campana" queda al lado de una lista con TODAS las
                     // filas, y da la impresion de que se las va a llevar todas por delante.
                     AplicarFiltroDeCampana();
-                    ((DelegateCommand)CerrarCampanaCommand).RaiseCanExecuteChanged();
-                    ((DelegateCommand)BorrarCampanaCommand).RaiseCanExecuteChanged();
-                    ((DelegateCommand)QuitarFiltroCampanaCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)CerrarCampanaCommand).NotifyCanExecuteChanged();
+                    ((IRelayCommand)BorrarCampanaCommand).NotifyCanExecuteChanged();
+                    ((IRelayCommand)QuitarFiltroCampanaCommand).NotifyCanExecuteChanged();
                     RaisePropertyChanged(nameof(HayFiltroDeCampana));
                     RaisePropertyChanged(nameof(TextoDelFiltro));
                 }

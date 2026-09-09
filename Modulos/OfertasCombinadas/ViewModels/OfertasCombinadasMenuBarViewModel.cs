@@ -1,6 +1,6 @@
-using Nesto.Infrastructure.Contracts;
+﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Regions;
 using System.Windows.Input;
 
@@ -16,7 +16,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             RegionManager = regionManager;
             Configuracion = configuracion;
 
-            AbrirModuloOfertasCombinadasCommand = new DelegateCommand(OnAbrirOfertasCombinadasModulo, CanAbrirModuloOfertasCombinadas);
+            AbrirModuloOfertasCombinadasCommand = new RelayCommand(OnAbrirOfertasCombinadasModulo, CanAbrirModuloOfertasCombinadas);
         }
 
         public ICommand AbrirModuloOfertasCombinadasCommand { get; private set; }
