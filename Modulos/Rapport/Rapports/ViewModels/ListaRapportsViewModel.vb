@@ -22,6 +22,7 @@ Public Class ListaRapportsViewModel
     Private ReadOnly _dialogService As IDialogService
     Private ReadOnly _eventAggregator As IEventAggregator
     Private _subscriptionToken As SubscriptionToken
+    Private _subscriptionTokenNoGuardado As SubscriptionToken
     Private ReadOnly _empresaPorDefecto As String = Constantes.Empresas.EMPRESA_DEFECTO
     Public Property vendedor As String
 
@@ -755,6 +756,26 @@ Public Class ListaRapportsViewModel
         If _subscriptionToken Is Nothing Then
             _subscriptionToken = _eventAggregator.GetEvent(Of RapportGuardadoEvent).Subscribe(AddressOf ActualizarClientesProbabilidad)
         End If
+        If _subscriptionTokenNoGuardado Is Nothing Then
+            _subscriptionTokenNoGuardado = _eventAggregator.GetEvent(Of RapportNoGuardadoEvent).Subscribe(AddressOf QuitarRapportNoGuardado)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#206: OnCrearRapport mete el rapport nuevo en la lista ANTES de guardarlo (la pantalla
+    ''' de rapport se abre sobre la fila seleccionada). Si el guardado falla, la fila se quedaba
+    ''' como si hubiera ido bien. Un rapport nuevo (Id = 0) que no se ha podido guardar se quita;
+    ''' uno ya existente que falla al modificarse se queda, porque en la base de datos sigue.
+    ''' </summary>
+    Public Sub QuitarRapportNoGuardado(rapport As Object)
+        Dim dto As SeguimientoClienteDTO = TryCast(rapport, SeguimientoClienteDTO)
+        If dto Is Nothing OrElse dto.Id <> 0 OrElse listaRapports Is Nothing OrElse Not listaRapports.Contains(dto) Then
+            Return
+        End If
+        listaRapports.Remove(dto)
+        If Object.ReferenceEquals(rapportSeleccionado, dto) Then
+            rapportSeleccionado = Nothing
+        End If
     End Sub
 
     Private Sub OnUnloaded()
@@ -762,6 +783,10 @@ Public Class ListaRapportsViewModel
         If _subscriptionToken IsNot Nothing Then
             _eventAggregator.GetEvent(Of RapportGuardadoEvent).Unsubscribe(_subscriptionToken)
             _subscriptionToken = Nothing
+        End If
+        If _subscriptionTokenNoGuardado IsNot Nothing Then
+            _eventAggregator.GetEvent(Of RapportNoGuardadoEvent).Unsubscribe(_subscriptionTokenNoGuardado)
+            _subscriptionTokenNoGuardado = Nothing
         End If
     End Sub
 

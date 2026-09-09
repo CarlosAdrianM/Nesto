@@ -314,6 +314,8 @@ Public Class RapportViewModel
             _eventAggregator.GetEvent(Of RapportGuardadoEvent).Publish(0)
             dialogService.ShowNotification("Rapport", texto)
         Catch ex As Exception
+            ' Nesto#206: la lista ya lo tenía como fila; que sepa que no se ha guardado.
+            _eventAggregator.GetEvent(Of RapportNoGuardadoEvent).Publish(rapport)
             dialogService.ShowError(ex.Message)
         Finally
             _guardandoRapport = False
