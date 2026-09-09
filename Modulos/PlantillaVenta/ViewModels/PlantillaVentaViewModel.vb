@@ -482,10 +482,13 @@ Public Class PlantillaVentaViewModel
 
 #Region "Ganavisiones - FASE 7"
     ''' <summary>
-    ''' Grupos de productos que generan Ganavisiones (COS = Cosmetica, ACC = Accesorios, PEL = Peluqueria).
-    ''' Issue #94: Sistema Ganavisiones - FASE 7
+    ''' Grupos de productos que generan Ganavisiones (COS = Cosmetica, ACC = Accesorios).
+    ''' Issue #94: Sistema Ganavisiones - FASE 7.
+    ''' NestoAPI#466 (Carlos, 09/09/26): la peluqueria (PEL) queda FUERA. La lista que manda es la
+    ''' del servidor (GET api/Ganavisiones/GruposBonificables); esta copia solo pinta los regalos
+    ''' antes de guardar y, si divergiera, el servidor rechazaria el regalo al guardar.
     ''' </summary>
-    Private Shared ReadOnly GRUPOS_BONIFICABLES As String() = {"COS", "ACC", "PEL"}
+    Private Shared ReadOnly GRUPOS_BONIFICABLES As String() = {"COS", "ACC"}
 
     ''' <summary>
     ''' Valor en EUR de cada Ganavision (1 Ganavision = 10 EUR).
@@ -494,7 +497,7 @@ Public Class PlantillaVentaViewModel
     Private Const VALOR_GANAVISION_EN_EUROS As Decimal = 10D
 
     ''' <summary>
-    ''' Base imponible de las lineas del pedido cuyos productos pertenecen a grupos bonificables (COS, ACC, PEL).
+    ''' Base imponible de las lineas del pedido cuyos productos pertenecen a grupos bonificables (COS y ACC).
     ''' Issue #94: Sistema Ganavisiones - FASE 7
     ''' </summary>
     Public ReadOnly Property BaseImponibleBonificable As Decimal

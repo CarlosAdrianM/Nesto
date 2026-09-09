@@ -1,4 +1,4 @@
-using FakeItEasy;
+﻿using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Events;
@@ -100,23 +100,21 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
-        public void BaseImponibleBonificable_SoloSumaProductosPEL()
+        public void BaseImponibleBonificable_IgnoraGrupoPEL()
         {
-            // Arrange
+            // NestoAPI#466 (Carlos, 09/09/26): la peluqueria no genera Ganavisiones. Antes sumaba.
             var vm = CrearViewModel();
             vm.ListaFiltrableProductos.ListaOriginal.Add(new LineaPlantillaVenta
             {
                 grupo = "PEL",
                 cantidad = 1,
-                precio = 75M,
+                precio = 1000M,
                 descuento = 0M
             });
 
-            // Act
             decimal baseImponible = vm.BaseImponibleBonificable;
 
-            // Assert
-            Assert.AreEqual(75M, baseImponible);
+            Assert.AreEqual(0M, baseImponible, "1.000 EUR de peluqueria no dan derecho a ningun regalo");
         }
 
         [TestMethod]
@@ -190,7 +188,7 @@ namespace PlantillaVentaTests
             decimal baseImponible = vm.BaseImponibleBonificable;
 
             // Assert
-            Assert.AreEqual(100M, baseImponible); // 30 + 40 + 30
+            Assert.AreEqual(70M, baseImponible); // 30 + 40; los 30 de PEL ya no cuentan (NestoAPI#466)
         }
 
         [TestMethod]
