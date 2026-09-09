@@ -69,7 +69,16 @@ Public Class DetallePedidoViewModel
     }
 #End Region
 
-    Private ReadOnly _servicioServirJunto As IServirJuntoService
+    Private _servicioServirJunto As IServirJuntoService
+    ''' <summary>Nesto#452: inyectable desde los tests (en producción se crea en el constructor).</summary>
+    Friend Property ServicioServirJunto As IServirJuntoService
+        Get
+            Return _servicioServirJunto
+        End Get
+        Set(value As IServirJuntoService)
+            _servicioServirJunto = value
+        End Set
+    End Property
 
     Public Sub New(regionManager As IRegionManager, configuracion As IConfiguracion, servicio As IPedidoVentaService, eventAggregator As IEventAggregator, dialogService As IDialogService, container As IUnityContainer, servicioAutenticacion As IServicioAutenticacion)
         Me.regionManager = regionManager
@@ -2404,51 +2413,32 @@ Public Class DetallePedidoViewModel
         If pedido.servirJunto Then Return  ' Se está marcando, no desmarcando
 
         Try
-            Dim almacenPedido As String = If(pedido.Lineas.FirstOrDefault()?.Almacen, "ALG")
-            ' NestoAPI#175: marcamos como candidato a bonificado Ganavisiones toda línea
-            ' a 0 EUR sin oferta. El servidor confirma contra la tabla Ganavision y
-            ' descarta los falsos positivos (MMP, regalos por importe, etc.).
-            Dim lineasDelPedido = pedido.Lineas _
-                .Where(Function(l) l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.Cantidad > 0) _
-                .Select(Function(l) New ProductoBonificadoConCantidadRequest With {
-                    .ProductoId = l.producto,
-                    .Cantidad = CInt(l.Cantidad),
-                    .EsBonificadoGanavisiones = l.BaseImponible = 0 AndAlso (Not l.oferta.HasValue OrElse l.oferta.Value = 0)
-                }) _
-                .ToList()
+            Dim respuesta = Await ValidarDesmarcarServirJunto(pedido.Lineas).ConfigureAwait(True)
 
-            ' NestoAPI#211/Nesto#365: líneas de producto para que el backend calcule la base de
-            ' portes que quedaría al desmarcar servir junto (excluyendo las líneas sobre pedido).
-            Dim lineasParaPortes = pedido.Lineas _
-                .Where(Function(l) l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.producto)) _
-                .Select(Function(l) New LineaPortesServirJuntoDTO With {
-                    .ProductoId = l.producto,
-                    .Almacen = l.Almacen,
-                    .Estado = l.estado,
-                    .Cantidad = CInt(l.Cantidad),
-                    .BaseImponible = l.BaseImponible
-                }) _
-                .ToList()
-
-            ' NestoAPI#187: pasamos los datos del pedido para que el backend evalúe si
-            ' aplica comisión contra reembolso y nos devuelva el aviso correspondiente.
-            Dim respuesta = Await _servicioServirJunto.Validar(
-                almacenPedido,
-                New List(Of ProductoBonificadoConCantidadRequest)(),
-                lineasDelPedido,
-                pedido.formaPago,
-                pedido.plazosPago,
-                pedido.ccc,
-                pedido.periodoFacturacion,
-                pedido.notaEntrega,
-                lineasParaPortes,
-                pedido.numero).ConfigureAwait(True)
-
+            ' Nesto#452: si el servidor deniega porque hay líneas que se quedarían pendientes (muestras
+            ' MMP o bonificados sin stock), en vez de mandar a la usuaria a borrarlas a mano y volver a
+            ' desmarcar, se lo ofrecemos en el mismo paso. Nunca se borra nada sin su confirmación, y
+            ' antes de borrar se revalida SIN esas líneas: si el desmarcado sigue denegado por otro
+            ' motivo, el pedido no se toca.
+            Dim lineasABorrar As New List(Of LineaPedidoVentaWrapper)
             If Not respuesta.PuedeDesmarcar Then
-                pedido.servirJunto = True
-                RaisePropertyChanged(NameOf(pedido))
-                dialogService.ShowError(respuesta.Mensaje)
-                Return
+                lineasABorrar = LineasQueImpidenDesmarcar(pedido.Lineas, respuesta.ProductosProblematicos)
+                If Not SePuedeOfrecerBorrarlas(lineasABorrar, respuesta.ProductosProblematicos) Then
+                    RevertirDesmarcadoServirJunto()
+                    dialogService.ShowError(respuesta.Mensaje)
+                    Return
+                End If
+                If Not dialogService.ShowConfirmationAnswer("Servir junto", ConstruirOfertaBorrarYDesmarcar(lineasABorrar)) Then
+                    RevertirDesmarcadoServirJunto()
+                    Return
+                End If
+                Dim lineasQueQuedan = pedido.Lineas.Where(Function(l) Not lineasABorrar.Contains(l)).ToList()
+                respuesta = Await ValidarDesmarcarServirJunto(lineasQueQuedan).ConfigureAwait(True)
+                If Not respuesta.PuedeDesmarcar Then
+                    RevertirDesmarcadoServirJunto()
+                    dialogService.ShowError("No se ha borrado ninguna línea: aunque se borraran, seguiría sin poderse desmarcar 'Servir junto'. " & respuesta.Mensaje)
+                    Return
+                End If
             End If
 
             ' Avisos no-bloqueantes al desmarcar: comisión contra reembolso (NestoAPI#187) y
@@ -2466,14 +2456,109 @@ Public Class DetallePedidoViewModel
             If avisos.Any() Then
                 Dim mensaje = String.Join(Environment.NewLine & Environment.NewLine, avisos)
                 If Not dialogService.ShowConfirmationAnswer("Servir Junto", mensaje) Then
-                    pedido.servirJunto = True
-                    RaisePropertyChanged(NameOf(pedido))
+                    RevertirDesmarcadoServirJunto()
+                    Return
                 End If
             End If
+
+            ' Nesto#452: solo ahora, con el desmarcado aceptado por el servidor y por la usuaria,
+            ' se quitan del pedido las líneas que lo impedían.
+            For Each linea In lineasABorrar
+                Dim unused = pedido.Lineas.Remove(linea)
+            Next
         Catch ex As Exception
             ' Fail-safe: si la validación falla por red o error inesperado, dejamos pasar.
         End Try
     End Sub
+
+    Private Sub RevertirDesmarcadoServirJunto()
+        pedido.servirJunto = True
+        RaisePropertyChanged(NameOf(pedido))
+    End Sub
+
+    ''' <summary>
+    ''' Pide al servidor si se puede desmarcar "servir junto" con las líneas indicadas (todas las del
+    ''' pedido, o las que quedarían tras borrar las problemáticas en Nesto#452).
+    ''' </summary>
+    Private Function ValidarDesmarcarServirJunto(lineas As IEnumerable(Of LineaPedidoVentaWrapper)) As Task(Of ValidarServirJuntoResponse)
+        Dim almacenPedido As String = If(pedido.Lineas.FirstOrDefault()?.Almacen, "ALG")
+        ' NestoAPI#175: marcamos como candidato a bonificado Ganavisiones toda línea
+        ' a 0 EUR sin oferta. El servidor confirma contra la tabla Ganavision y
+        ' descarta los falsos positivos (MMP, regalos por importe, etc.).
+        Dim lineasDelPedido = lineas _
+            .Where(Function(l) l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.producto) AndAlso l.Cantidad > 0) _
+            .Select(Function(l) New ProductoBonificadoConCantidadRequest With {
+                .ProductoId = l.producto,
+                .Cantidad = CInt(l.Cantidad),
+                .EsBonificadoGanavisiones = l.BaseImponible = 0 AndAlso (Not l.oferta.HasValue OrElse l.oferta.Value = 0)
+            }) _
+            .ToList()
+
+        ' NestoAPI#211/Nesto#365: líneas de producto para que el backend calcule la base de
+        ' portes que quedaría al desmarcar servir junto (excluyendo las líneas sobre pedido).
+        Dim lineasParaPortes = lineas _
+            .Where(Function(l) l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.producto)) _
+            .Select(Function(l) New LineaPortesServirJuntoDTO With {
+                .ProductoId = l.producto,
+                .Almacen = l.Almacen,
+                .Estado = l.estado,
+                .Cantidad = CInt(l.Cantidad),
+                .BaseImponible = l.BaseImponible
+            }) _
+            .ToList()
+
+        ' NestoAPI#187: pasamos los datos del pedido para que el backend evalúe si
+        ' aplica comisión contra reembolso y nos devuelva el aviso correspondiente.
+        Return _servicioServirJunto.Validar(
+            almacenPedido,
+            New List(Of ProductoBonificadoConCantidadRequest)(),
+            lineasDelPedido,
+            pedido.formaPago,
+            pedido.plazosPago,
+            pedido.ccc,
+            pedido.periodoFacturacion,
+            pedido.notaEntrega,
+            lineasParaPortes,
+            pedido.numero)
+    End Function
+
+    ''' <summary>
+    ''' Nesto#452: líneas de producto del pedido cuyo producto está entre los problemáticos que
+    ''' devolvió el servidor (comparación sin relleno ni mayúsculas, como los char de BD).
+    ''' </summary>
+    Friend Shared Function LineasQueImpidenDesmarcar(lineas As IEnumerable(Of LineaPedidoVentaWrapper), problematicos As IEnumerable(Of ProductoSinStockDTO)) As List(Of LineaPedidoVentaWrapper)
+        If lineas Is Nothing OrElse problematicos Is Nothing Then Return New List(Of LineaPedidoVentaWrapper)
+        Dim ids = New HashSet(Of String)(problematicos.Where(Function(p) Not String.IsNullOrWhiteSpace(p?.ProductoId)).Select(Function(p) p.ProductoId.Trim()), StringComparer.OrdinalIgnoreCase)
+        Return lineas _
+            .Where(Function(l) l IsNot Nothing AndAlso l.tipoLinea = 1 AndAlso Not String.IsNullOrWhiteSpace(l.Producto) AndAlso ids.Contains(l.Producto.Trim())) _
+            .ToList()
+    End Function
+
+    ''' <summary>
+    ''' Nesto#452: solo se ofrece borrar si TODOS los productos problemáticos están en el pedido (si
+    ''' no, borrar no resolvería nada) y todas esas líneas están pendientes o en curso y sin picking
+    ''' (lo demás no se puede borrar desde aquí).
+    ''' </summary>
+    Friend Shared Function SePuedeOfrecerBorrarlas(lineasABorrar As IEnumerable(Of LineaPedidoVentaWrapper), problematicos As IEnumerable(Of ProductoSinStockDTO)) As Boolean
+        If lineasABorrar Is Nothing OrElse problematicos Is Nothing Then Return False
+        Dim lineas = lineasABorrar.ToList()
+        If Not lineas.Any() OrElse Not problematicos.Any() Then Return False
+        Dim productosEnLineas = New HashSet(Of String)(lineas.Select(Function(l) l.Producto.Trim()), StringComparer.OrdinalIgnoreCase)
+        If problematicos.Any(Function(p) String.IsNullOrWhiteSpace(p?.ProductoId) OrElse Not productosEnLineas.Contains(p.ProductoId.Trim())) Then Return False
+        Return lineas.All(Function(l) (l.estado = Constantes.LineasPedido.ESTADO_LINEA_PENDIENTE OrElse l.estado = Constantes.LineasPedido.ESTADO_LINEA_EN_CURSO) AndAlso l.picking = 0)
+    End Function
+
+    ''' <summary>Nesto#452: texto de la confirmación que ofrece borrar las líneas y desmarcar en un paso.</summary>
+    Friend Shared Function ConstruirOfertaBorrarYDesmarcar(lineasABorrar As IEnumerable(Of LineaPedidoVentaWrapper)) As String
+        Dim sb As New StringBuilder()
+        sb.AppendLine("No se puede desmarcar 'Servir junto' porque estas líneas se quedarían pendientes y no está permitido:")
+        For Each linea In lineasABorrar
+            sb.AppendLine($" · {linea.Producto?.Trim()} {linea.texto?.Trim()}".TrimEnd())
+        Next
+        sb.AppendLine()
+        sb.Append("¿Quieres borrarlas del pedido y desmarcar 'Servir junto'?")
+        Return sb.ToString()
+    End Function
 
     ''' <summary>
     ''' NestoAPI#211/Nesto#365: devuelve el aviso si al desmarcar "servir junto" el pedido pasa de
