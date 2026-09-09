@@ -2,7 +2,7 @@
 Imports System.Collections.Specialized
 Imports System.ComponentModel
 Imports System.Runtime.CompilerServices
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 
 Public Class ListaEfectos
     Inherits ObservableCollection(Of Efecto)
@@ -15,8 +15,8 @@ Public Class ListaEfectos
     End Sub
     Public Sub New(importeTotal As Decimal, formaPago As String, ccc As String)
         AddHandler Me.CollectionChanged, AddressOf ContentCollectionChanged
-        AnnadirEfectoCommand = New DelegateCommand(AddressOf OnAnnadirEfecto)
-        BorrarEfectoCommand = New DelegateCommand(Of Efecto)(AddressOf OnBorrarEfecto, AddressOf CanBorrarEfecto)
+        AnnadirEfectoCommand = New RelayCommand(AddressOf OnAnnadirEfecto)
+        BorrarEfectoCommand = New RelayCommand(Of Efecto)(AddressOf OnBorrarEfecto, AddressOf CanBorrarEfecto)
 
         Me.ImporteTotal = importeTotal
         FormaPagoCliente = formaPago
@@ -134,7 +134,7 @@ Public Class ListaEfectos
                 _importeTotal = value
                 RaisePropertyChanged()
                 If Not Me.Any Then
-                    AnnadirEfectoCommand.Execute()
+                    AnnadirEfectoCommand.Execute(Nothing)
                 End If
                 If Me.Any AndAlso Me.Sum(Function(c) c.Importe) <> ImporteTotal Then
                     Me.Last().Importe += ImporteTotal - Me.Sum(Function(c) c.Importe)
@@ -144,12 +144,12 @@ Public Class ListaEfectos
         End Set
     End Property
 
-    Private _annadirEfectoCommand As DelegateCommand
-    Public Property AnnadirEfectoCommand As DelegateCommand
+    Private _annadirEfectoCommand As RelayCommand
+    Public Property AnnadirEfectoCommand As RelayCommand
         Get
             Return _annadirEfectoCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             If Not value.Equals(_annadirEfectoCommand) Then
                 _annadirEfectoCommand = value
                 RaisePropertyChanged(NameOf(AnnadirEfectoCommand))
@@ -200,13 +200,13 @@ Public Class ListaEfectos
         Next
     End Sub
 
-    Private _borrarEfectoCommand As DelegateCommand(Of Efecto)
+    Private _borrarEfectoCommand As RelayCommand(Of Efecto)
 
-    Public Property BorrarEfectoCommand As DelegateCommand(Of Efecto)
+    Public Property BorrarEfectoCommand As RelayCommand(Of Efecto)
         Get
             Return _borrarEfectoCommand
         End Get
-        Private Set(value As DelegateCommand(Of Efecto))
+        Private Set(value As RelayCommand(Of Efecto))
             If Not value.Equals(_borrarEfectoCommand) Then
                 _borrarEfectoCommand = value
                 RaisePropertyChanged(NameOf(BorrarEfectoCommand))

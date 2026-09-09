@@ -151,6 +151,7 @@
       <Version>6.5.1</Version>
     </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Prism.Unity">
       <Version>8.1.97</Version>
     </PackageReference>
