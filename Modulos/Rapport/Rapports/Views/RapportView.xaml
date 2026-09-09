@@ -32,6 +32,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Stretch" Width="Auto">
             <controles:SelectorCliente Name="txtSelectorClienteRapport" Empresa="1" Contacto="{Binding DataContext.rapport.Contacto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" Cliente="{Binding DataContext.rapport.Cliente, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" ClienteCompleto="{Binding DataContext.ClienteCompleto, Mode=TwoWay, RelativeSource={RelativeSource AncestorType=UserControl}}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" MaxHeight="350" Etiqueta="Cliente:"></controles:SelectorCliente>
@@ -112,10 +113,15 @@
             <TextBlock Text="Tipo de Centro:"></TextBlock>
             <ComboBox Name="cmbTiposCentro" ItemsSource="{Binding listaTiposCentros}" SelectedValue="{Binding rapport.TipoCentro}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
         </StackPanel>
-        <StackPanel Grid.Row="13">
+        <!-- Nesto#469: solo si la API lo pide (PreguntarEmpleados); sale rellena si la ficha ya lo sabe -->
+        <StackPanel Grid.Row="13" HorizontalAlignment="Stretch" Visibility="{Binding EstaVisibleEmpleados, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Text="Empleados del centro:"></TextBlock>
+            <ComboBox Name="cmbEmpleados" ItemsSource="{Binding listaEmpleados}" SelectedValue="{Binding rapport.Empleados}" SelectedValuePath="id" DisplayMemberPath="descripcion"></ComboBox>
+        </StackPanel>
+        <StackPanel Grid.Row="14">
             <CheckBox IsChecked="{Binding QuitarDeMiListado}" Content="Quitar de mi listado"></CheckBox>
         </StackPanel>
-        <StackPanel Grid.Row="14" HorizontalAlignment="Stretch">
+        <StackPanel Grid.Row="15" HorizontalAlignment="Stretch">
             <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding cmdGuardarCambios}">Guardar Cambios</Button>
         </StackPanel>
     </Grid>

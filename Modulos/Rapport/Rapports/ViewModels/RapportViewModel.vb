@@ -45,6 +45,16 @@ Public Class RapportViewModel
 
         listaEstadosRapport = servicio.CargarListaEstados()
 
+        ' Nesto#469: las opciones de la combo de empleados (el valor es el que guarda la API).
+        listaEmpleados = New List(Of idByteDescripcion) From {
+            New idByteDescripcion(0, "Sin empleados"),
+            New idByteDescripcion(1, "1"),
+            New idByteDescripcion(2, "2"),
+            New idByteDescripcion(3, "3"),
+            New idByteDescripcion(4, "4"),
+            New idByteDescripcion(5, "5 o más")
+        }
+
         cmdCrearCita = New DelegateCommand(AddressOf OnCrearCita, AddressOf CanCrearCita)
         cmdGuardarCambios = New DelegateCommand(Of Object)(AddressOf OnGuardarCambios, AddressOf CanGuardarCambios)
 
@@ -65,8 +75,54 @@ Public Class RapportViewModel
                 VendedorPeluqueria = String.Empty
             End If
             RaisePropertyChanged(NameOf(EstaVisibleTipoCentro))
+            PrerrellenarEmpleados()
+            RaisePropertyChanged(NameOf(EstaVisibleEmpleados))
         End Set
     End Property
+
+    ''' <summary>
+    ''' Nesto#469: la combo de empleados solo se enseña cuando la API lo pide (hoy, clientes de la
+    ''' Comunidad de Madrid). La regla no está aquí: está en NestoAPI (PoliticaEmpleadosCliente).
+    ''' </summary>
+    Public ReadOnly Property EstaVisibleEmpleados As Boolean
+        Get
+            Try
+                Return _clienteCompleto IsNot Nothing AndAlso CBool(_clienteCompleto.preguntarEmpleados)
+            Catch ex As Exception
+                ' Un cliente que venga de un modelo sin la propiedad (código viejo): no se pregunta.
+                Return False
+            End Try
+        End Get
+    End Property
+
+    Private _listaEmpleados As List(Of idByteDescripcion)
+    Public Property listaEmpleados As List(Of idByteDescripcion)
+        Get
+            Return _listaEmpleados
+        End Get
+        Set(value As List(Of idByteDescripcion))
+            SetProperty(_listaEmpleados, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Si la ficha ya tiene el dato, la combo sale rellena y el vendedor solo la cambia si algo ha
+    ''' cambiado. Solo se rellena si el rapport no trae ya un valor (un rapport que se está editando
+    ''' conserva lo que puso el vendedor).
+    ''' </summary>
+    Private Sub PrerrellenarEmpleados()
+        If rapport Is Nothing OrElse rapport.Empleados.HasValue OrElse _clienteCompleto Is Nothing Then
+            Return
+        End If
+        Try
+            Dim deLaFicha As Object = _clienteCompleto.empleados
+            If deLaFicha IsNot Nothing Then
+                rapport.Empleados = CByte(deLaFicha)
+            End If
+        Catch ex As Exception
+            ' Modelo sin la propiedad: se deja vacía.
+        End Try
+    End Sub
 
     Public ReadOnly Property EstaVisibleTipoCentro As Boolean
         Get
@@ -133,6 +189,8 @@ Public Class RapportViewModel
             SetProperty(_rapport, value)
             cmdCrearCita.RaiseCanExecuteChanged()
             cmdGuardarCambios.RaiseCanExecuteChanged()
+            PrerrellenarEmpleados()
+            RaisePropertyChanged(NameOf(EstaVisibleEmpleados))
         End Set
     End Property
 
@@ -279,6 +337,15 @@ Public Class RapportViewModel
     Public Sub OnNavigatedFrom(navigationContext As NavigationContext) Implements INavigationAware.OnNavigatedFrom
 
     End Sub
+
+    Public Structure idByteDescripcion
+        Public Sub New(_id As Byte, _descripcion As String)
+            id = _id
+            descripcion = _descripcion
+        End Sub
+        Property id As Byte
+        Property descripcion As String
+    End Structure
 
     Public Structure idDescripcionTipoCentro
         Public Sub New(

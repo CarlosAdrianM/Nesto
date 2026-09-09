@@ -42,6 +42,11 @@ namespace ControlesUsuario.Models
         public int estado { get; set; }
         public string vendedor { get; set; }
         public string cifNif { get; set; }
+        // NestoAPI#464: lo que sabe la ficha y si la pantalla de rapport tiene que preguntarlo. La
+        // regla (hoy, código postal de Madrid) la calcula la API; aquí solo se lee el resultado.
+        public byte? empleados { get; set; }
+        public DateTime? empleadosFecha { get; set; }
+        public bool preguntarEmpleados { get; set; }
         public string poblacionConCodigoPostal {
             get
             {

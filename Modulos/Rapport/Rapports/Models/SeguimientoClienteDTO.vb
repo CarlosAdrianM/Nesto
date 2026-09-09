@@ -131,6 +131,11 @@ Public Class SeguimientoClienteDTO
     Public Property Nombre As String
     Public Property Direccion As String
     Public Property NumOrdenExtracto As Integer?
+    ''' <summary>
+    ''' NestoAPI#464 / Nesto#469: empleados del centro (0 = sin empleados, 1..4, 5 = "5 o mas").
+    ''' Nothing = el vendedor no lo ha tocado y la API no cambia la ficha.
+    ''' </summary>
+    Public Property Empleados As Byte?
 
     Public Enum TiposCentro
         <Description("No se sabe")>
