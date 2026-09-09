@@ -1,6 +1,6 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Regions;
 using System.Windows.Input;
 
@@ -15,9 +15,9 @@ namespace Nesto.Modulos.Cajas
             RegionManager = regionManager;
             Configuracion = configuracion;
 
-            AbrirModuloCajasCommand = new DelegateCommand(OnAbrirCajasModulo, CanAbrirModuloCajas);
-            AbrirModuloBancosCommand = new DelegateCommand(OnAbrirBancosModulo, CanAbrirModuloBancos);
-            AbrirModuloMayorCuentaCommand = new DelegateCommand(OnAbrirMayorCuentaModulo, CanAbrirModuloMayorCuenta);
+            AbrirModuloCajasCommand = new RelayCommand(OnAbrirCajasModulo, CanAbrirModuloCajas);
+            AbrirModuloBancosCommand = new RelayCommand(OnAbrirBancosModulo, CanAbrirModuloBancos);
+            AbrirModuloMayorCuentaCommand = new RelayCommand(OnAbrirMayorCuentaModulo, CanAbrirModuloMayorCuenta);
         }
 
         public ICommand AbrirModuloCajasCommand { get; private set; }

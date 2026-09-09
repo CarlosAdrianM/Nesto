@@ -6,7 +6,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections;
@@ -55,14 +55,14 @@ namespace Nesto.Modulos.Cajas.ViewModels
             DeudasSeleccionadas = [];
             MovimientoCajaPendientesRecibirSeleccionado = null; // para que no haya ninguno selecciondo al iniciar
 
-            CambiarEmpresaTraspasoCommand = new DelegateCommand(OnCambiarEmpresaTraspaso);
-            ContabilizarCobroCommand = new DelegateCommand(OnContabilizarCobro, CanContabilizarCobro);
-            ContabilizarGastoCommand = new DelegateCommand(OnContabilizarGasto, CanContabilizarGasto);
-            ContabilizarTraspasoCommand = new DelegateCommand(OnContabilizarTraspaso, CanContabilizarTraspaso);
-            ImprimirExtractoCommand = new DelegateCommand(OnImprimirExtracto, CanImprimirExtracto);
-            LoadedCommand = new DelegateCommand(OnLoaded);
-            SeleccionarDeudasCommand = new DelegateCommand<IList>(OnSeleccionarDeudas);
-            SeleccionarPendientesRecibirCommand = new DelegateCommand<IList>(OnSeleccionarPendientesRecibir);
+            CambiarEmpresaTraspasoCommand = new RelayCommand(OnCambiarEmpresaTraspaso);
+            ContabilizarCobroCommand = new RelayCommand(OnContabilizarCobro, CanContabilizarCobro);
+            ContabilizarGastoCommand = new RelayCommand(OnContabilizarGasto, CanContabilizarGasto);
+            ContabilizarTraspasoCommand = new RelayCommand(OnContabilizarTraspaso, CanContabilizarTraspaso);
+            ImprimirExtractoCommand = new RelayCommand(OnImprimirExtracto, CanImprimirExtracto);
+            LoadedCommand = new RelayCommand(OnLoaded);
+            SeleccionarDeudasCommand = new RelayCommand<IList>(OnSeleccionarDeudas);
+            SeleccionarPendientesRecibirCommand = new RelayCommand<IList>(OnSeleccionarPendientesRecibir);
 
             // suscribirse a los cambios de ArqueoFondo.TotalArqueo para que cuando cambie actualicemos el importe del traspaso
             ArqueoFondo.PropertyChanged += ArqueoFondo_Changed;
@@ -91,7 +91,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 _ = SetProperty(ref _clienteSeleccionado, value);
                 _ = CargarDeudasCliente();
-                (ContabilizarCobroCommand as DelegateCommand).RaiseCanExecuteChanged();
+                (ContabilizarCobroCommand as IRelayCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -103,7 +103,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _concepto, TruncarSinTrim(value, 50)))
                 {
-                    ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -128,7 +128,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _cuentaDestino, value);
-                ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -141,7 +141,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 if (SetProperty(ref _cuentaOrigen, value))
                 {
                     _ = CalcularSaldoCuentaOrigen();
-                    ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -187,9 +187,9 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _estaOcupado, value))
                 {
-                    (ContabilizarCobroCommand as DelegateCommand)?.RaiseCanExecuteChanged();
-                    (ContabilizarGastoCommand as DelegateCommand)?.RaiseCanExecuteChanged();
-                    (ContabilizarTraspasoCommand as DelegateCommand)?.RaiseCanExecuteChanged();
+                    (ContabilizarCobroCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+                    (ContabilizarGastoCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+                    (ContabilizarTraspasoCommand as IRelayCommand)?.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -312,7 +312,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _gastoNumeroFactura, value);
-                (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
+                (ContabilizarGastoCommand as IRelayCommand).NotifyCanExecuteChanged();
             }
         }
         private decimal _importe;
@@ -323,7 +323,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _importe, value))
                 {
-                    ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
                     RaisePropertyChanged(nameof(ImporteDescuadre));
                 }
             }
@@ -414,7 +414,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _proveedorGasto, value);
-                (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
+                (ContabilizarGastoCommand as IRelayCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -427,7 +427,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 _ = SetProperty(ref _totalCobrado, value);
                 RaisePropertyChanged(nameof(ImporteACuenta));
                 RaisePropertyChanged(nameof(EstaVisibleImporteACuenta));
-                (ContabilizarCobroCommand as DelegateCommand).RaiseCanExecuteChanged();
+                (ContabilizarCobroCommand as IRelayCommand).NotifyCanExecuteChanged();
             }
         }
         private decimal _totalGasto;
@@ -437,7 +437,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _totalGasto, value);
-                (ContabilizarGastoCommand as DelegateCommand).RaiseCanExecuteChanged();
+                (ContabilizarGastoCommand as IRelayCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -462,7 +462,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         }
 
         // Nesto#464: una sola contabilización a la vez. El guard de dentro es necesario además del
-        // CanExecute porque DelegateCommand.Execute no comprueba CanExecute.
+        // CanExecute porque RelayCommand.Execute no comprueba CanExecute.
         private async void OnContabilizarCobro()
         {
             if (EstaOcupado)
@@ -981,7 +981,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 .Select(s => s.ImportePendiente)
                 .DefaultIfEmpty(0)
                 .Sum();
-            ((DelegateCommand)ContabilizarCobroCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand)ContabilizarCobroCommand).NotifyCanExecuteChanged();
 
             if (actualizarTotalCobrado)
             {
@@ -995,7 +995,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             var selectedItems = cajas.OfType<ContabilidadDTO>();
             MovimientosCajaPendientesRecibirSeleccionados = selectedItems;
             RaisePropertyChanged(nameof(ImporteDescuadre));
-            ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
             var conceptoComun = selectedItems.FirstOrDefault()?.Concepto;
             if (conceptoComun is null)
             {
@@ -1016,7 +1016,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
         {
             Importe = ArqueoFondo.TotalArqueo - FondoCaja;
             RaisePropertyChanged(nameof(ImporteDescuadre));
-            ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
         }
         private async Task CargarDatosIniciales()
         {
@@ -1095,7 +1095,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             }
 
             RaisePropertyChanged(nameof(ImporteDescuadre));
-            ((DelegateCommand)ContabilizarTraspasoCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand)ContabilizarTraspasoCommand).NotifyCanExecuteChanged();
         }
 
         private bool HayCajasPendientesDeRecibirSeleccionadas()

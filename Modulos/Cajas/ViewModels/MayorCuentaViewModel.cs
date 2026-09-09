@@ -1,7 +1,7 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Mvvm;
 using Prism.Regions;
 using Prism.Services.Dialogs;
@@ -35,7 +35,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             _servicioAutenticacion = servicioAutenticacion ?? throw new ArgumentNullException(nameof(servicioAutenticacion));
 
             Titulo = "Mayor de Cuenta";
-            VerMayorCommand = new DelegateCommand(OnVerMayorSync, CanVerMayor);
+            VerMayorCommand = new RelayCommand(OnVerMayorSync, CanVerMayor);
 
             // Valores por defecto
             EsCliente = true;
@@ -60,7 +60,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                     RaisePropertyChanged(nameof(EsProveedor));
                     // Limpiar el numero de cuenta al cambiar el tipo
                     NumeroCuenta = null;
-                    VerMayorCommand.RaiseCanExecuteChanged();
+                    VerMayorCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -79,7 +79,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _numeroCuenta, value))
                 {
-                    VerMayorCommand.RaiseCanExecuteChanged();
+                    VerMayorCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -130,7 +130,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
 
         #region Comandos
 
-        public DelegateCommand VerMayorCommand { get; }
+        public RelayCommand VerMayorCommand { get; }
 
         private bool CanVerMayor()
         {

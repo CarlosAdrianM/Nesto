@@ -11,7 +11,7 @@ using Nesto.Modulos.Cajas.Models.ReglasContabilizacion;
 using Nesto.Modulos.PedidoCompra;
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoVenta;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -61,18 +61,18 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 FinalCuenta = new RegistroFinalCuenta()
             };
 
-            AbrirPedidoCommand = new DelegateCommand<PrepagoDTO>(OnAbrirPedido);
-            CargarArchivoCommand = new DelegateCommand(OnCargarArchivo);
-            CargarArchivoTarjetasCommand = new DelegateCommand(OnCargarArchivoTarjetas);
-            ContabilizarApunteCommand = new DelegateCommand(OnContabilizarApunte, CanContabilizarApunte);
-            CopiarConceptoPortapapelesCommand = new DelegateCommand(OnCopiarConceptoPortapapeles);
-            PuntearApuntesCommand = new DelegateCommand(OnPuntearApuntes, CanPuntearApuntes);
-            PuntearAutomaticamenteCommand = new DelegateCommand(OnPuntearAutomaticamente, CanPuntearAutomaticamente);
-            RegularizarDiferenciaCommand = new DelegateCommand(OnRegularizarDiferencia, CanRegularizarDiferencia);
-            SeleccionarApuntesBancoCommand = new DelegateCommand<IList>(OnSeleccionarApuntesBanco);
-            SeleccionarApuntesContabilidadCommand = new DelegateCommand<IList>(OnSeleccionarApuntesContabilidad);
-            DeshacerUltimaConciliacionCommand = new DelegateCommand(OnDeshacerUltimaConciliacion);
-            DeshacerConciliacionAnteriorCommand = new DelegateCommand(OnDeshacerConciliacionAnterior, CanDeshacerConciliacionAnterior);
+            AbrirPedidoCommand = new RelayCommand<PrepagoDTO>(OnAbrirPedido);
+            CargarArchivoCommand = new RelayCommand(OnCargarArchivo);
+            CargarArchivoTarjetasCommand = new RelayCommand(OnCargarArchivoTarjetas);
+            ContabilizarApunteCommand = new RelayCommand(OnContabilizarApunte, CanContabilizarApunte);
+            CopiarConceptoPortapapelesCommand = new RelayCommand(OnCopiarConceptoPortapapeles);
+            PuntearApuntesCommand = new RelayCommand(OnPuntearApuntes, CanPuntearApuntes);
+            PuntearAutomaticamenteCommand = new RelayCommand(OnPuntearAutomaticamente, CanPuntearAutomaticamente);
+            RegularizarDiferenciaCommand = new RelayCommand(OnRegularizarDiferencia, CanRegularizarDiferencia);
+            SeleccionarApuntesBancoCommand = new RelayCommand<IList>(OnSeleccionarApuntesBanco);
+            SeleccionarApuntesContabilidadCommand = new RelayCommand<IList>(OnSeleccionarApuntesContabilidad);
+            DeshacerUltimaConciliacionCommand = new RelayCommand(OnDeshacerUltimaConciliacion);
+            DeshacerConciliacionAnteriorCommand = new RelayCommand(OnDeshacerConciliacionAnterior, CanDeshacerConciliacionAnterior);
 
             // Caso real 21/08/26: las reglas corren dentro de un Task.Run (NestoAPI#384/#386,
             // para que sus llamadas HTTP sincronas no interbloqueen la ventana), pero varias le
@@ -148,7 +148,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                         MovimientosRelacionados = [];
                         PrepagosPendientes = [];
                     }
-                    ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -175,8 +175,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _apuntesBancoSeleccionados, value);
-                ((DelegateCommand)RegularizarDiferenciaCommand).RaiseCanExecuteChanged();
-                ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand)RegularizarDiferenciaCommand).NotifyCanExecuteChanged();
+                ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -190,7 +190,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
                 {
                     _ = CargarExtractoProveedorAsiento(value);
                     _ = CargarExtractoClienteAsiento(value);
-                    ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -219,8 +219,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _ = SetProperty(ref _apuntesContabilidadSeleccionados, value);
-                ((DelegateCommand)RegularizarDiferenciaCommand).RaiseCanExecuteChanged();
-                ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand)RegularizarDiferenciaCommand).NotifyCanExecuteChanged();
+                ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -349,7 +349,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 if (SetProperty(ref _isBusyPunteando, value))
                 {
-                    ((DelegateCommand)PuntearApuntesCommand).RaiseCanExecuteChanged();
+                    ((IRelayCommand)PuntearApuntesCommand).NotifyCanExecuteChanged();
                 }
             }
         }
@@ -466,7 +466,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 _ = SetProperty(ref _saldoPunteoApuntesBanco, value);
                 RaisePropertyChanged(nameof(DescuadrePunteo));
-                ((DelegateCommand)PuntearApuntesCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand)PuntearApuntesCommand).NotifyCanExecuteChanged();
             }
         }
         private decimal _saldoPunteoApuntesContabilidad;
@@ -477,7 +477,7 @@ namespace Nesto.Modulos.Cajas.ViewModels
             {
                 _ = SetProperty(ref _saldoPunteoApuntesContabilidad, value);
                 RaisePropertyChanged(nameof(DescuadrePunteo));
-                ((DelegateCommand)PuntearApuntesCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand)PuntearApuntesCommand).NotifyCanExecuteChanged();
             }
         }
         private Dictionary<string, string> _terminalesUsuarios;
@@ -666,8 +666,8 @@ namespace Nesto.Modulos.Cajas.ViewModels
             set
             {
                 _estaContabilizando = value;
-                ((DelegateCommand)ContabilizarApunteCommand).RaiseCanExecuteChanged();
-                ((DelegateCommand)RegularizarDiferenciaCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand)ContabilizarApunteCommand).NotifyCanExecuteChanged();
+                ((IRelayCommand)RegularizarDiferenciaCommand).NotifyCanExecuteChanged();
             }
         }
 

@@ -5,7 +5,7 @@ using Nesto.Modulos.Cajas.Interfaces;
 using Nesto.Modulos.Cajas.Models;
 using Nesto.Modulos.Cajas.ViewModels;
 using Nesto.Modulos.PedidoCompra;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
 using Prism.Services.Dialogs;
 using System.Collections.ObjectModel;
@@ -657,7 +657,7 @@ namespace CajasTests
             sut.ApuntesContabilidadSeleccionados = sut.ApuntesContabilidad.ToList();
 
             // Act
-            ((DelegateCommand)sut.PuntearApuntesCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand)sut.PuntearApuntesCommand).NotifyCanExecuteChanged();
 
             // Arrange
             Assert.IsFalse(sut.PuntearApuntesCommand.CanExecute(null));
@@ -693,7 +693,7 @@ namespace CajasTests
             sut.ApuntesContabilidadSeleccionados = sut.ApuntesContabilidad.ToList();
 
             // Act
-            ((DelegateCommand)sut.PuntearApuntesCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand)sut.PuntearApuntesCommand).NotifyCanExecuteChanged();
 
             // Arrange
             Assert.IsTrue(sut.PuntearApuntesCommand.CanExecute(null));
