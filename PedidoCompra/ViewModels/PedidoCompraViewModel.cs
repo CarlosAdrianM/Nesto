@@ -1,7 +1,7 @@
 ﻿using Nesto.Infrastructure.Contracts;
 using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoCompra.Views;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Ioc;
 using Prism.Mvvm;
 using Prism.Regions;
@@ -29,7 +29,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             Configuracion = configuracion;
             ContainerProvider = containerProvider;
 
-            AbrirModuloCommand = new DelegateCommand(OnAbrirModulo);
+            AbrirModuloCommand = new RelayCommand(OnAbrirModulo);
 
             Titulo = "Pedido Compra";
         }

@@ -6,7 +6,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
 using Prism.Mvvm;
 using Prism.Regions;
@@ -43,14 +43,14 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             EventAggregator = eventAggregator;
             _servicioInformes = new Nesto.Infrastructure.Services.InformesService(configuracion, servicioAutenticacion);
 
-            AmpliarHastaStockMaximoCommand = new DelegateCommand(OnAmpliarHastaStockMaximo);
-            CargarPedidoCommand = new DelegateCommand<PedidoCompraLookup>(OnCargarPedido);
-            CargarProductoCommand = new DelegateCommand<LineaPedidoCompraWrapper>(OnCargarProducto);
-            EnviarPedidoCommand = new DelegateCommand<PedidoCompraWrapper>(OnEnviarPedido, CanEnviarPedido);
-            GuardarPedidoCommand = new DelegateCommand(OnGuardarPedido, CanGuardarPedido);
-            ImprimirPedidoCommand = new DelegateCommand<PedidoCompraWrapper>(OnImprimirPedido); 
-            InsertarLineaCommand = new DelegateCommand(OnInsertarLinea);
-            PedidoAmpliarCommand = new DelegateCommand<string>(OnPedidoAmpliar, CanPedidoAmpliar);
+            AmpliarHastaStockMaximoCommand = new RelayCommand(OnAmpliarHastaStockMaximo);
+            CargarPedidoCommand = new RelayCommand<PedidoCompraLookup>(OnCargarPedido);
+            CargarProductoCommand = new RelayCommand<LineaPedidoCompraWrapper>(OnCargarProducto);
+            EnviarPedidoCommand = new RelayCommand<PedidoCompraWrapper>(OnEnviarPedido, CanEnviarPedido);
+            GuardarPedidoCommand = new RelayCommand(OnGuardarPedido, CanGuardarPedido);
+            ImprimirPedidoCommand = new RelayCommand<PedidoCompraWrapper>(OnImprimirPedido); 
+            InsertarLineaCommand = new RelayCommand(OnInsertarLinea);
+            PedidoAmpliarCommand = new RelayCommand<string>(OnPedidoAmpliar, CanPedidoAmpliar);
         }
 
         bool ampliadoHastaStockMaximo;
@@ -90,8 +90,8 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             get => _pedido;
             set { 
                 SetProperty(ref _pedido, value);
-                ((DelegateCommand<PedidoCompraWrapper>)EnviarPedidoCommand).RaiseCanExecuteChanged();
-                ((DelegateCommand)GuardarPedidoCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand<PedidoCompraWrapper>)EnviarPedidoCommand).NotifyCanExecuteChanged();
+                ((IRelayCommand)GuardarPedidoCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -104,7 +104,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 var pedidoAmpliado = await Servicio.AmpliarHastaStockMaximo(Pedido.Model);
                 Pedido = new PedidoCompraWrapper(pedidoAmpliado, Servicio);
                 ampliadoHastaStockMaximo = true;
-                PedidoAmpliarCommand.RaiseCanExecuteChanged();
+                PedidoAmpliarCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {
@@ -255,13 +255,13 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             }
 
             EstaOcupado = false;
-            ((DelegateCommand<PedidoCompraWrapper>)EnviarPedidoCommand).RaiseCanExecuteChanged();
-            ((DelegateCommand)GuardarPedidoCommand).RaiseCanExecuteChanged();
+            ((IRelayCommand<PedidoCompraWrapper>)EnviarPedidoCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand)GuardarPedidoCommand).NotifyCanExecuteChanged();
         }
 
 
-        //private DelegateCommand guardarPedidoCommand;
-        //public ICommand GuardarPedidoCommand => guardarPedidoCommand ??= new DelegateCommand(GuardarPedido, CanGuardarPedido);
+        //private RelayCommand guardarPedidoCommand;
+        //public ICommand GuardarPedidoCommand => guardarPedidoCommand ??= new RelayCommand(GuardarPedido, CanGuardarPedido);
         public ICommand GuardarPedidoCommand { get; private set; }
         private bool CanGuardarPedido()
         {
@@ -280,8 +280,8 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                 Pedido.Id = await Servicio.CrearPedido(Pedido.Model);
                 DialogService.ShowNotification($"Pedido {Pedido.Id} guardado correctamente");
                 EventAggregator.GetEvent<PedidoCompraModificadoEvent>().Publish(Pedido.Model);
-                ((DelegateCommand<PedidoCompraWrapper>)EnviarPedidoCommand).RaiseCanExecuteChanged();
-                ((DelegateCommand)GuardarPedidoCommand).RaiseCanExecuteChanged();
+                ((IRelayCommand<PedidoCompraWrapper>)EnviarPedidoCommand).NotifyCanExecuteChanged();
+                ((IRelayCommand)GuardarPedidoCommand).NotifyCanExecuteChanged();
             }
             catch (Exception ex)
             {
@@ -327,7 +327,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             Pedido.Lineas.Insert(posicion, nuevaLinea);
         }
 
-        public DelegateCommand<string> PedidoAmpliarCommand { get; private set; }
+        public RelayCommand<string> PedidoAmpliarCommand { get; private set; }
         private bool CanPedidoAmpliar(string arg)
         {
             return ampliadoHastaStockMaximo;

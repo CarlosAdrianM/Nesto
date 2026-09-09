@@ -3,7 +3,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
-using Prism.Commands;
+using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
 using Prism.Mvvm;
 using Prism.Regions;
@@ -28,7 +28,7 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
             Servicio = servicio;
             DialogService = dialogService;
             EventAggregator = eventAggregator;
-            CargarPedidosCommand = new DelegateCommand(OnCargarPedidos);
+            CargarPedidosCommand = new RelayCommand(OnCargarPedidos);
 
             ListaPedidos = new ColeccionFiltrable(new ObservableCollection<PedidoCompraLookup>());
             ListaPedidos.TieneDatosIniciales = true;
