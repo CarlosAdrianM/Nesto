@@ -124,6 +124,26 @@ namespace PlantillaVentaTests
         }
 
         [TestMethod]
+        public void TextoGruposBonificables_EnsenaLosGruposReales_NoUnaListaFija()
+        {
+            // La etiqueta bajo la base bonificable decia "(grupos COS, ACC, PEL)" a pelo y se quedo
+            // vieja al sacar la peluqueria (NestoAPI#466): ahora sale de la lista del servidor.
+            var vm = CrearViewModel();
+            try
+            {
+                PlantillaVentaViewModel.ActualizarGruposBonificables(new[] { "COS", "ACC" });
+                Assert.AreEqual("(grupos COS, ACC)", vm.TextoGruposBonificables);
+
+                PlantillaVentaViewModel.ActualizarGruposBonificables(new[] { "cos", "acc", "pel" });
+                Assert.AreEqual("(grupos COS, ACC, PEL)", vm.TextoGruposBonificables);
+            }
+            finally
+            {
+                PlantillaVentaViewModel.ActualizarGruposBonificables(PlantillaVentaViewModel.GRUPOS_BONIFICABLES_POR_DEFECTO);
+            }
+        }
+
+        [TestMethod]
         public void BaseImponibleBonificable_IgnoraGrupoPEL()
         {
             // NestoAPI#466 (Carlos, 09/09/26): la peluqueria no genera Ganavisiones. Antes sumaba.

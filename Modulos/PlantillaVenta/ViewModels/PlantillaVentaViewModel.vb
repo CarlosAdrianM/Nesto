@@ -490,6 +490,13 @@ Public Class PlantillaVentaViewModel
     Public Shared ReadOnly GRUPOS_BONIFICABLES_POR_DEFECTO As String() = {"COS", "ACC"}
     Private Shared _gruposBonificables As String() = GRUPOS_BONIFICABLES_POR_DEFECTO
 
+    ''' <summary>Etiqueta bajo la base bonificable: los grupos reales, no una lista fija (NestoAPI#466).</summary>
+    Public ReadOnly Property TextoGruposBonificables As String
+        Get
+            Return $"(grupos {String.Join(", ", _gruposBonificables)})"
+        End Get
+    End Property
+
     ''' <summary>Con Nothing o vacia no se toca nada: nunca nos quedamos sin lista.</summary>
     Public Shared Sub ActualizarGruposBonificables(grupos As IEnumerable(Of String))
         If grupos Is Nothing Then
@@ -3252,6 +3259,7 @@ Public Class PlantillaVentaViewModel
             RaisePropertyChanged(NameOf(HayGanavisionesDisponibles))
             RaisePropertyChanged(NameOf(BaseImponibleBonificable))
             RaisePropertyChanged(NameOf(GanavisionesDisponibles))
+            RaisePropertyChanged(NameOf(TextoGruposBonificables))
         End If
 
         ' Issue #286: Cargar lista de borradores guardados
