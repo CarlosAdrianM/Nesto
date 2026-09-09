@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace Nesto.Modulos.OfertasCombinadas.Models
 {
@@ -29,6 +29,13 @@ namespace Nesto.Modulos.OfertasCombinadas.Models
         /// nadie. El servidor la rechaza.
         /// </summary>
         public string Grupo { get; set; }
+        /// <summary>
+        /// NestoAPI#467: solo junto a familia y grupo. "Esta marca en esta categoría", donde la
+        /// categoría del producto es la principal de su ficha o cualquiera de sus secundarias. Es
+        /// lo que hace del Outlet una fila por marca (Maystar / COS / OUT al 15 %). Viaja como
+        /// CampanaDTO.SubGrupo; el servidor rechaza subgrupo sin grupo.
+        /// </summary>
+        public string SubGrupo { get; set; }
 
         /// <summary>En tanto por uno, como en la tabla: 0,20 = 20 %.</summary>
         public decimal Descuento { get; set; }

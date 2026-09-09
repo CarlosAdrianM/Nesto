@@ -2147,6 +2147,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
             Producto = model.Producto;
             Familia = model.Familia;
             Grupo = model.Grupo;
+            SubGrupo = model.SubGrupo;
             DescuentoPorcentaje = model.Descuento * 100M;
             DescuentoPublicoPorcentaje = model.DescuentoPublico.HasValue
                 ? model.DescuentoPublico.Value * 100M
@@ -2169,6 +2170,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
                 Producto = string.IsNullOrWhiteSpace(Producto) ? null : Producto.Trim(),
                 Familia = string.IsNullOrWhiteSpace(Familia) ? null : Familia.Trim(),
                 Grupo = string.IsNullOrWhiteSpace(Grupo) ? null : Grupo.Trim(),
+                SubGrupo = string.IsNullOrWhiteSpace(SubGrupo) ? null : SubGrupo.Trim(),
                 Descuento = DescuentoPorcentaje / 100M,
                 DescuentoPublico = DescuentoPublicoPorcentaje.HasValue
                     ? DescuentoPublicoPorcentaje.Value / 100M
@@ -2185,8 +2187,40 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
 
         /// <summary>A que se aplica, para los mensajes y para ordenar de un vistazo.</summary>
         public string Ambito => !string.IsNullOrWhiteSpace(Familia)
-            ? (string.IsNullOrWhiteSpace(Grupo) ? Familia : $"{Familia} / {Grupo}")
+            ? (string.IsNullOrWhiteSpace(Grupo) ? Familia
+                : string.IsNullOrWhiteSpace(SubGrupo) ? $"{Familia} / {Grupo}" : $"{Familia} / {Grupo}/{SubGrupo}")
             : Producto;
+
+        // Nesto#470 (NestoAPI#467): la categoria (grupo + subgrupo) se elige en el mismo combo de
+        // subgrupos que usan las lineas de filtro de las ofertas combinadas. La clave es
+        // "Grupo|Subgrupo"; la opcion en blanco ("|") deja solo el grupo que hubiera tecleado.
+        private string _subGrupo;
+        public string SubGrupo
+        {
+            get => _subGrupo;
+            set
+            {
+                if (SetProperty(ref _subGrupo, value) && _rastreandoCambios) HaCambiado = true;
+                RaisePropertyChanged(nameof(Ambito));
+                RaisePropertyChanged(nameof(GrupoSubgrupoClave));
+            }
+        }
+
+        public string GrupoSubgrupoClave
+        {
+            get => string.IsNullOrWhiteSpace(SubGrupo) ? "|" : $"{Grupo?.Trim()}|{SubGrupo?.Trim()}";
+            set
+            {
+                string[] partes = (value ?? "|").Split('|');
+                string grupo = partes.Length > 0 && !string.IsNullOrWhiteSpace(partes[0]) ? partes[0].Trim() : null;
+                string subGrupo = partes.Length > 1 && !string.IsNullOrWhiteSpace(partes[1]) ? partes[1].Trim() : null;
+                if (subGrupo != null)
+                {
+                    Grupo = grupo; // el combo lleva los dos: el subgrupo solo tiene sentido con SU grupo
+                }
+                SubGrupo = subGrupo;
+            }
+        }
 
         private string _producto;
         public string Producto
@@ -2206,7 +2240,7 @@ namespace Nesto.Modulos.OfertasCombinadas.ViewModels
         public string Grupo
         {
             get => _grupo;
-            set { if (SetProperty(ref _grupo, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Ambito)); }
+            set { if (SetProperty(ref _grupo, value) && _rastreandoCambios) HaCambiado = true; RaisePropertyChanged(nameof(Ambito)); RaisePropertyChanged(nameof(GrupoSubgrupoClave)); }
         }
 
         // El usuario teclea 20 para un 20 %.

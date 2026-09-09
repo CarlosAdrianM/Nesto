@@ -1115,6 +1115,22 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
 
+                                <!-- Nesto#470 (NestoAPI#467): categoría = grupo + subgrupo, principal o secundaria
+                                     del producto. Es la fila "esta marca en esta categoría" (el Outlet: Maystar en
+                                     COS/OUT al 15 %). El combo es el mismo de las líneas de filtro y rellena el grupo. -->
+                                <DataGridTemplateColumn Header="Subgrupo (categoría)" Width="230">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <ComboBox ItemsSource="{Binding Data.Subgrupos, Source={StaticResource ViewModelProxy}}"
+                                                      DisplayMemberPath="Etiqueta"
+                                                      SelectedValuePath="Clave"
+                                                      SelectedValue="{Binding GrupoSubgrupoClave, Mode=TwoWay}"
+                                                      VerticalAlignment="Center"
+                                                      ToolTip="Solo junto a una familia: la campaña se aplica a los productos de esa marca cuya categoría principal o alguna secundaria sea este grupo/subgrupo (p. ej. el Outlet)."/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
                                 <DataGridTextColumn Header="% Dto." Binding="{Binding DescuentoPorcentaje, UpdateSourceTrigger=LostFocus, StringFormat=N2}" Width="70">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">

@@ -1,4 +1,4 @@
-using ControlesUsuario.Dialogs;
+﻿using ControlesUsuario.Dialogs;
 using ControlesUsuario.Services;
 using FakeItEasy;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -591,6 +591,48 @@ namespace Nesto.Modulos.OfertasCombinadasTests
             wrapper.DescuentoPorcentaje = 30M;
 
             Assert.IsTrue(wrapper.HaCambiado);
+        }
+
+        #endregion
+
+        #region Nesto#470: subgrupo (categoría) en la campaña
+
+        [TestMethod]
+        public void CampanaWrapper_ElComboDeCategoria_ReparteGrupoYSubgrupo()
+        {
+            var wrapper = new CampanaWrapper(new CampanaModel { Familia = "Maystar", Descuento = 0.15M });
+
+            wrapper.GrupoSubgrupoClave = "COS|OUT";
+
+            Assert.AreEqual("COS", wrapper.Grupo);
+            Assert.AreEqual("OUT", wrapper.SubGrupo);
+            Assert.AreEqual("Maystar / COS/OUT", wrapper.Ambito);
+            Assert.IsTrue(wrapper.HaCambiado);
+        }
+
+        [TestMethod]
+        public void CampanaWrapper_OpcionEnBlancoDelCombo_QuitaElSubgrupoPeroConservaElGrupo()
+        {
+            var wrapper = new CampanaWrapper(new CampanaModel { Familia = "Maystar", Grupo = "COS", SubGrupo = "OUT", Descuento = 0.15M });
+
+            wrapper.GrupoSubgrupoClave = "|";
+
+            Assert.AreEqual("COS", wrapper.Grupo, "una campaña de familia+grupo sigue siendo válida");
+            Assert.IsNull(wrapper.SubGrupo);
+            Assert.AreEqual("Maystar / COS", wrapper.Ambito);
+        }
+
+        [TestMethod]
+        public void CampanaWrapper_ElSubgrupo_ViajaAlModeloYVuelve()
+        {
+            var wrapper = new CampanaWrapper(new CampanaModel { Familia = "Maystar", Grupo = "COS", SubGrupo = "OUT", Descuento = 0.15M });
+
+            Assert.AreEqual("COS|OUT", wrapper.GrupoSubgrupoClave, "es lo que selecciona el combo al cargar");
+            CampanaModel modelo = wrapper.AModelo();
+            Assert.AreEqual("OUT", modelo.SubGrupo);
+
+            wrapper.SubGrupo = "  ";
+            Assert.IsNull(wrapper.AModelo().SubGrupo, "vacío viaja como null: el servidor lo trata como campaña de familia+grupo");
         }
 
         #endregion
