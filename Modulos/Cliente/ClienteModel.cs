@@ -29,6 +29,8 @@ namespace Nesto.Modulos.Cliente
         public string Telefono { get; set; }
         public string VendedorEstetica { get; set; }
         public string VendedorPeluqueria { get; set; }
+        // Nesto#432: 5 posiciones lunes..viernes, '1' abre y '0' cierra. Null = no tocar en la API.
+        public string DiasEnServir { get; set; }
 
         public string Usuario { get; set; }
 

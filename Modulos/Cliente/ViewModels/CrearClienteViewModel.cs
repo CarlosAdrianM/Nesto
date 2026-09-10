@@ -279,6 +279,41 @@ namespace Nesto.Modulos.Cliente
             get { return clienteComentariosPicking; }
             set { SetProperty(ref clienteComentariosPicking, value); }
         }
+        // Nesto#432: días que el cliente cierra (NestoAPI#362/#471). Un checkbox por día laborable;
+        // la API recibe la cadena de 5 posiciones. Por defecto abre todos los días (11111).
+        private readonly bool[] sirveDia = { true, true, true, true, true };
+        public bool SirveLunes { get => sirveDia[0]; set => CambiarDia(0, value); }
+        public bool SirveMartes { get => sirveDia[1]; set => CambiarDia(1, value); }
+        public bool SirveMiercoles { get => sirveDia[2]; set => CambiarDia(2, value); }
+        public bool SirveJueves { get => sirveDia[3]; set => CambiarDia(3, value); }
+        public bool SirveViernes { get => sirveDia[4]; set => CambiarDia(4, value); }
+        private static readonly string[] nombresSirveDia = { nameof(SirveLunes), nameof(SirveMartes), nameof(SirveMiercoles), nameof(SirveJueves), nameof(SirveViernes) };
+        private void CambiarDia(int indice, bool valor)
+        {
+            if (sirveDia[indice] == valor)
+            {
+                return;
+            }
+            sirveDia[indice] = valor;
+            RaisePropertyChanged(nombresSirveDia[indice]);
+            RaisePropertyChanged(nameof(DiasEnServir));
+        }
+        /// <summary>La cadena tal como viaja a la API: "01111" = cierra los lunes.</summary>
+        public string DiasEnServir
+        {
+            get => string.Concat(sirveDia.Select(d => d ? '1' : '0'));
+            set
+            {
+                // Un dato ausente o roto (longitud distinta de 5, caracteres raros) se muestra como
+                // "abre todos los días", igual que lo interpreta el picking (NestoAPI#362).
+                string dias = value?.Trim();
+                bool valido = dias != null && dias.Length == 5 && dias.All(c => c == '0' || c == '1') && dias.Contains('1');
+                for (int i = 0; i < 5; i++)
+                {
+                    CambiarDia(i, !valido || dias[i] == '1');
+                }
+            }
+        }
         private string clienteComentariosRuta;
         public string ClienteComentariosRuta
         {
@@ -678,6 +713,7 @@ namespace Nesto.Modulos.Cliente
                 Comentarios = ClienteComentarios,
                 ComentariosPicking = ClienteComentariosPicking,
                 ComentariosRuta = ClienteComentariosRuta,
+                DiasEnServir = DiasEnServir,
                 Direccion = ClienteDireccion,
                 Empresa = ClienteEmpresa,
                 EsContacto = ClienteEsContacto,
@@ -798,6 +834,7 @@ namespace Nesto.Modulos.Cliente
                 ClienteComentarios = clienteCrear.Comentarios;
                 ClienteComentariosPicking = clienteCrear.ComentariosPicking;
                 ClienteComentariosRuta = clienteCrear.ComentariosRuta;
+                DiasEnServir = clienteCrear.DiasEnServir;
                 ClienteEsContacto = clienteCrear.EsContacto;
                 ClienteNif = clienteCrear.Nif;
                 ClientePais = string.IsNullOrWhiteSpace(clienteCrear.Pais) ? "ES" : clienteCrear.Pais;

@@ -486,5 +486,57 @@ namespace ClienteTests
 
             Assert.IsTrue(vm.SePuedeAvanzarADatosGenerales, "Con el nombre escrito a mano, el alta continua");
         }
+            // Nesto#432: días que el cliente cierra, como 5 checkboxes L..V sobre la cadena de la API
+
+        [TestMethod]
+        public void DiasEnServir_PorDefecto_AbreTodosLosDias()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            Assert.AreEqual("11111", vm.DiasEnServir);
+            Assert.IsTrue(vm.SirveLunes && vm.SirveMartes && vm.SirveMiercoles && vm.SirveJueves && vm.SirveViernes);
+        }
+
+        [TestMethod]
+        public void DiasEnServir_AlCargarLaCadena_MarcaLosCheckboxes()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+
+            vm.DiasEnServir = "01110"; // cierra lunes y viernes
+
+            Assert.IsFalse(vm.SirveLunes);
+            Assert.IsTrue(vm.SirveMartes);
+            Assert.IsTrue(vm.SirveMiercoles);
+            Assert.IsTrue(vm.SirveJueves);
+            Assert.IsFalse(vm.SirveViernes);
+        }
+
+        [TestMethod]
+        public void DiasEnServir_AlDesmarcarUnDia_CambiaLaCadenaYAvisa()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            var avisados = new List<string>();
+            vm.PropertyChanged += (s, e) => avisados.Add(e.PropertyName);
+
+            vm.SirveMartes = false;
+
+            Assert.AreEqual("10111", vm.DiasEnServir);
+            CollectionAssert.Contains(avisados, nameof(vm.SirveMartes));
+            CollectionAssert.Contains(avisados, nameof(vm.DiasEnServir));
+        }
+
+        [TestMethod]
+        public void DiasEnServir_DatoAusenteORoto_SeMuestraComoAbreTodosLosDias()
+        {
+            var vm = new CrearClienteViewModel(RegionManager, Configuracion, Servicio, EventAggregator, DialogService);
+            vm.SirveLunes = false;
+
+            vm.DiasEnServir = null; // cliente antiguo sin dato
+            Assert.AreEqual("11111", vm.DiasEnServir);
+
+            vm.SirveLunes = false;
+            vm.DiasEnServir = "00000"; // dato roto: el picking también lo trata como abierto
+            Assert.AreEqual("11111", vm.DiasEnServir);
+        }
     }
 }

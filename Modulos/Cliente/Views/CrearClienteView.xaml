@@ -355,6 +355,15 @@
                                     <TextBlock Text="{Binding ClienteNif}"></TextBlock>
                                 </StackPanel>
                             </Border>
+                            <GroupBox Grid.Row="7" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="2" Header="Días que sirve (el picking no saca pedidos cuya entrega caiga en un día cerrado)" Margin="3" VerticalAlignment="Top">
+                                <StackPanel Orientation="Horizontal" Margin="3">
+                                    <CheckBox Margin="3" IsChecked="{Binding SirveLunes}">Lunes</CheckBox>
+                                    <CheckBox Margin="3" IsChecked="{Binding SirveMartes}">Martes</CheckBox>
+                                    <CheckBox Margin="3" IsChecked="{Binding SirveMiercoles}">Miércoles</CheckBox>
+                                    <CheckBox Margin="3" IsChecked="{Binding SirveJueves}">Jueves</CheckBox>
+                                    <CheckBox Margin="3" IsChecked="{Binding SirveViernes}">Viernes</CheckBox>
+                                </StackPanel>
+                            </GroupBox>
                             <TextBlock Grid.Row="7" Grid.Column="3" Margin="3">Comentarios</TextBlock>
                             <TextBox Grid.Row="8" Grid.Column="3" Background="LightYellow" Text="{Binding ClienteComentarios, UpdateSourceTrigger=PropertyChanged}" TextWrapping="WrapWithOverflow" AcceptsReturn="True" SpellCheck.IsEnabled="True"></TextBox>
                             <TextBlock Grid.Row="7" Grid.Column="4" Margin="3">Comentarios Picking</TextBlock>
