@@ -191,7 +191,10 @@ Public Class DetallePedidoView
 
     Private Sub grdLineas_KeyUp(sender As Object, e As KeyEventArgs) Handles grdLineas.KeyUp
         If actualizarTotales Then
-            Dim unused = DataContext.cmdActualizarTotales.Execute()
+            ' Nesto#340 (4A.5): cmdActualizarTotales es un RelayCommand del Toolkit y Execute exige el
+            ' parametro; con enlace tardio (Option Strict Off) el () sin argumentos compilaba y
+            ' reventaba en ejecucion (MissingMemberException en produccion, 1.10.25.8).
+            Dim unused = DataContext.cmdActualizarTotales.Execute(Nothing)
             actualizarTotales = False
         End If
 
