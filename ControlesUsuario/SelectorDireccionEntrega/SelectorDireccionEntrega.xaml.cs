@@ -120,18 +120,60 @@ namespace ControlesUsuario
             };
         }
 
+        // Nesto#472: el handler de un evento de Prism es async void, así que nada de lo que lance
+        // llega a nadie salvo al manejador global, que tumba la ventana. Y lanzaba, justo al crear
+        // un cliente: un Single sobre una lista donde el contacto no estaba, o estaba con el relleno
+        // del char ("0  " no es igual a "0"). Lo que hace falta al crear un cliente es preseleccionar
+        // su dirección si se puede; si no se puede, no pasa nada y el usuario la elige.
         private async void OnClienteCreado(Clientes clienteCreado)
         {
-            if (Empresa == null)
+            try
+            {
+                await ProcesarClienteCreado(clienteCreado);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[SelectorDireccionEntrega] No se pudo preseleccionar la dirección del cliente creado: {ex.Message}");
+            }
+        }
+
+        internal async Task ProcesarClienteCreado(Clientes clienteCreado)
+        {
+            if (clienteCreado == null)
+            {
+                return;
+            }
+            if (Empresa == null && clienteCreado.Empresa != null)
             {
                 Empresa = clienteCreado.Empresa.Trim();
             }
-            if (Cliente == null)
+            if (Cliente == null && clienteCreado.Nº_Cliente != null)
             {
                 Cliente = clienteCreado.Nº_Cliente.Trim();
             }
             await cargarDatos();
-            DireccionCompleta = (DireccionesEntregaCliente)listaDireccionesEntrega.Lista.Single(l => (l as DireccionesEntregaCliente).contacto == clienteCreado.Contacto.Trim());
+            // Sobre ListaOriginal, no sobre Lista: la BarraFiltro del XAML filtra Lista en cuanto hay
+            // una selección, y la dirección del contacto nuevo puede haberse quedado fuera de la vista.
+            DireccionesEntregaCliente direccion = BuscarDireccionDelContacto(listaDireccionesEntrega.ListaOriginal, clienteCreado.Contacto);
+            if (direccion != null)
+            {
+                DireccionCompleta = direccion;
+            }
+        }
+
+        /// <summary>
+        /// La dirección de entrega de un contacto, comparando como SQL Server: sin el relleno de
+        /// los char y sin distinguir mayúsculas. null si no está; nunca lanza.
+        /// </summary>
+        internal static DireccionesEntregaCliente BuscarDireccionDelContacto(System.Collections.IEnumerable lista, string contacto)
+        {
+            if (lista == null || string.IsNullOrWhiteSpace(contacto))
+            {
+                return null;
+            }
+            string buscado = contacto.Trim();
+            return lista.OfType<DireccionesEntregaCliente>()
+                .FirstOrDefault(d => d.contacto != null && string.Equals(d.contacto.Trim(), buscado, StringComparison.OrdinalIgnoreCase));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -226,10 +268,12 @@ namespace ControlesUsuario
             {
                 selector.SetValue(SeleccionadaProperty, selector.DireccionCompleta.contacto);
             }
+            // Nesto#472: antes era un Single con "==" pelado; con el relleno del char (o con la
+            // lista filtrada por la BarraFiltro) no encontraba nada y lanzaba dentro del callback.
             if (selector.listaDireccionesEntrega.Lista is not null && selector.listaDireccionesEntrega.ElementoSeleccionado is null)
             {
-                selector.listaDireccionesEntrega.ElementoSeleccionado = selector.listaDireccionesEntrega.Lista
-                    .Single(c => (c as DireccionesEntregaCliente).contacto == selector.Seleccionada);
+                selector.listaDireccionesEntrega.ElementoSeleccionado =
+                    BuscarDireccionDelContacto(selector.listaDireccionesEntrega.Lista, selector.Seleccionada);
             }
         }
 
@@ -295,8 +339,8 @@ namespace ControlesUsuario
                 }
                 if (selector.listaDireccionesEntrega.Lista is not null && selector.listaDireccionesEntrega.ElementoSeleccionado is null)
                 {
-                    selector.listaDireccionesEntrega.ElementoSeleccionado = selector.listaDireccionesEntrega.Lista
-                        .SingleOrDefault(c => (c as DireccionesEntregaCliente).contacto == selector.Seleccionada);
+                    selector.listaDireccionesEntrega.ElementoSeleccionado =
+                        BuscarDireccionDelContacto(selector.listaDireccionesEntrega.Lista, selector.Seleccionada);
                 }
                 //if (selector.direccionEntregaSeleccionada != null && selector.Seleccionada != selector.direccionEntregaSeleccionada.contacto)
                 //if (selector.DireccionCompleta != null && selector.Seleccionada != selector.DireccionCompleta.contacto)
