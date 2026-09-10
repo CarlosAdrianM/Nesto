@@ -86,6 +86,38 @@ namespace Nesto.Modules.Producto
             }
         }
 
+        // NestoAPI#477: la familia de variantes a la que pertenece el producto (principal o hermana).
+        // Vacía si no está en ninguna.
+        public async Task<List<VarianteModel>> LeerVariantes(string producto)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            HttpResponseMessage response = await client.GetAsync($"ProductosVariantes/DeReferencia/{producto}");
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception("No se han podido cargar las variantes del producto " + producto);
+            }
+            string resultado = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<VarianteModel>>(resultado)
+                ?? new List<VarianteModel>();
+        }
+
+        // NestoAPI#477: el PUT reemplaza la familia COMPLETA y el orden es la posición. La API
+        // reencola a todas las referencias afectadas, también a las que salen de la familia.
+        public async Task GuardarVariantes(string principal, List<VarianteModel> variantes)
+        {
+            using HttpClient client = _clienteApiFactory.Crear();
+            var cuerpo = (variantes ?? new List<VarianteModel>())
+                .Select(v => new { v.Numero, v.Atributo, v.Valor })
+                .ToList();
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(cuerpo), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await client.PutAsync($"ProductosVariantes/{principal}", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                string detalle = await response.Content.ReadAsStringAsync();
+                throw new Exception("No se han podido guardar las variantes: " + detalle);
+            }
+        }
+
         // NestoAPI#249: grupos alternativos por los que puede comisionar el producto (además del de ficha).
         public async Task<List<string>> LeerGruposComisionables(string producto)
         {

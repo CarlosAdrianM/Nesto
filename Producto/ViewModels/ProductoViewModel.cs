@@ -79,6 +79,11 @@ namespace Nesto.Modules.Producto.ViewModels
             SubirCategoriaSecundariaCommand = new RelayCommand(OnSubirCategoriaSecundaria, CanSubirCategoriaSecundaria);
             BajarCategoriaSecundariaCommand = new RelayCommand(OnBajarCategoriaSecundaria, CanBajarCategoriaSecundaria);
             GuardarCategoriasSecundariasCommand = new RelayCommand(OnGuardarCategoriasSecundarias, () => ProductoActual != null);
+            AnnadirVarianteCommand = new RelayCommand(OnAnnadirVariante, CanAnnadirVariante);
+            QuitarVarianteCommand = new RelayCommand(OnQuitarVariante, () => VarianteSeleccionada != null);
+            SubirVarianteCommand = new RelayCommand(OnSubirVariante, CanSubirVariante);
+            BajarVarianteCommand = new RelayCommand(OnBajarVariante, CanBajarVariante);
+            GuardarVariantesCommand = new RelayCommand(OnGuardarVariantes, () => ProductoActual != null);
             ImprimirEtiquetasProductoCommand = new RelayCommand(OnImprimirEtiquetasProducto, CanImprimirEtiquetasProducto);
             MontarKitCommand = new RelayCommand(OnMontarKit, CanMontarKit);
             SeleccionarProductoCommand = new RelayCommand(OnSeleccionarProducto, CanSeleccionarProducto);
@@ -134,6 +139,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 ExclusivoProfesional = ProductoActual.ExclusivoProfesional;
                 GuardarExclusivoProfesionalCommand.NotifyCanExecuteChanged();
                 await CargarCategoriasWebAsync(productoId);
+                await CargarVariantesAsync(productoId);
                 await CargarGruposComisionablesAsync(productoId);
                 if (PestannaSeleccionada == Pestannas.Kits && !ProductosKit.Any())
                 {
@@ -905,6 +911,227 @@ namespace Nesto.Modules.Producto.ViewModels
                 _dialogService.ShowError(ex.Message);
             }
         }
+
+
+        #region Variantes para la tienda (NestoAPI#477)
+
+        // NestoAPI#477: familia de variantes (color, tapizado...) de la que forma parte el producto.
+        // En la tienda es UNA ficha —la de la principal— con una combinación por referencia; el dato
+        // vive en Nesto y viaja por el bus. Misma mecánica que las categorías web: la lista completa
+        // se guarda de una vez y el orden es la posición. Vale para cualquier casa, no solo Mirplay.
+        public ObservableCollection<VarianteModel> Variantes { get; } = new();
+
+        private string _principalVariantes;
+        /// <summary>La referencia cuya ficha es la de la tienda. Con familia, la suya; sin familia, esta ficha.</summary>
+        public string PrincipalVariantes
+        {
+            get => _principalVariantes;
+            set => SetProperty(ref _principalVariantes, value);
+        }
+
+        private string _textoPrincipalVariantes;
+        public string TextoPrincipalVariantes
+        {
+            get => _textoPrincipalVariantes;
+            set => SetProperty(ref _textoPrincipalVariantes, value);
+        }
+
+        private VarianteModel _varianteSeleccionada;
+        public VarianteModel VarianteSeleccionada
+        {
+            get => _varianteSeleccionada;
+            set
+            {
+                if (SetProperty(ref _varianteSeleccionada, value))
+                {
+                    RefrescarComandosDeVariantes();
+                }
+            }
+        }
+
+        private string _nuevaVarianteReferencia;
+        public string NuevaVarianteReferencia
+        {
+            get => _nuevaVarianteReferencia;
+            set
+            {
+                if (SetProperty(ref _nuevaVarianteReferencia, value))
+                {
+                    AnnadirVarianteCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _nuevaVarianteAtributo = "Color";
+        public string NuevaVarianteAtributo
+        {
+            get => _nuevaVarianteAtributo;
+            set
+            {
+                if (SetProperty(ref _nuevaVarianteAtributo, value))
+                {
+                    AnnadirVarianteCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private string _nuevaVarianteValor;
+        public string NuevaVarianteValor
+        {
+            get => _nuevaVarianteValor;
+            set
+            {
+                if (SetProperty(ref _nuevaVarianteValor, value))
+                {
+                    AnnadirVarianteCommand.NotifyCanExecuteChanged();
+                }
+            }
+        }
+
+        private async Task CargarVariantesAsync(string productoId)
+        {
+            // En su propio try, como las categorías: que esto falle no puede impedir abrir la ficha.
+            try
+            {
+                Variantes.Clear();
+                foreach (VarianteModel variante in await _servicio.LeerVariantes(productoId))
+                {
+                    Variantes.Add(variante);
+                }
+                // Con familia manda su principal; sin familia, si se crea una, la principal es esta ficha.
+                PrincipalVariantes = Variantes.FirstOrDefault()?.Principal?.Trim() ?? productoId?.Trim();
+                bool esEstaFicha = string.Equals(PrincipalVariantes, productoId?.Trim(), StringComparison.OrdinalIgnoreCase);
+                TextoPrincipalVariantes = !Variantes.Any()
+                    ? $"{PrincipalVariantes} (esta ficha; todavía sin familia)"
+                    : esEstaFicha
+                        ? $"{PrincipalVariantes} (esta ficha)"
+                        : $"{PrincipalVariantes} — esta ficha es una variante suya";
+                VarianteSeleccionada = null;
+                NuevaVarianteReferencia = null;
+                NuevaVarianteValor = null;
+                RefrescarComandosDeVariantes();
+                GuardarVariantesCommand.NotifyCanExecuteChanged();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError("No se han podido cargar las variantes: " + ex.Message);
+            }
+        }
+
+        private void RefrescarComandosDeVariantes()
+        {
+            QuitarVarianteCommand.NotifyCanExecuteChanged();
+            SubirVarianteCommand.NotifyCanExecuteChanged();
+            BajarVarianteCommand.NotifyCanExecuteChanged();
+        }
+
+        public RelayCommand AnnadirVarianteCommand { get; private set; }
+        private bool CanAnnadirVariante()
+        {
+            return !string.IsNullOrWhiteSpace(NuevaVarianteReferencia)
+                && !string.IsNullOrWhiteSpace(NuevaVarianteAtributo)
+                && !string.IsNullOrWhiteSpace(NuevaVarianteValor);
+        }
+        private async void OnAnnadirVariante()
+        {
+            try
+            {
+                string referencia = NuevaVarianteReferencia?.Trim();
+                if (Variantes.Any(v => v.EsLaMisma(referencia)))
+                {
+                    _dialogService.ShowNotification($"La referencia {referencia} ya está en la familia");
+                    return;
+                }
+                // Se lee la ficha para tener el nombre en la lista y para no añadir referencias que no existen.
+                ProductoModel producto = await _servicio.LeerProducto(referencia);
+                if (producto == null)
+                {
+                    _dialogService.ShowError($"La referencia {referencia} no existe");
+                    return;
+                }
+                Variantes.Add(new VarianteModel
+                {
+                    Numero = referencia,
+                    Principal = PrincipalVariantes,
+                    Atributo = NuevaVarianteAtributo?.Trim(),
+                    Valor = NuevaVarianteValor?.Trim(),
+                    Nombre = producto.Nombre?.Trim(),
+                    Orden = Variantes.Count + 1
+                });
+                NuevaVarianteReferencia = null;
+                NuevaVarianteValor = null;
+                RefrescarComandosDeVariantes();
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        public RelayCommand QuitarVarianteCommand { get; private set; }
+        private void OnQuitarVariante()
+        {
+            if (VarianteSeleccionada == null)
+            {
+                return;
+            }
+            _ = Variantes.Remove(VarianteSeleccionada);
+            VarianteSeleccionada = null;
+        }
+
+        public RelayCommand SubirVarianteCommand { get; private set; }
+        private bool CanSubirVariante()
+        {
+            return VarianteSeleccionada != null && Variantes.IndexOf(VarianteSeleccionada) > 0;
+        }
+        private void OnSubirVariante()
+        {
+            MoverVariante(-1);
+        }
+
+        public RelayCommand BajarVarianteCommand { get; private set; }
+        private bool CanBajarVariante()
+        {
+            int indice = VarianteSeleccionada == null ? -1 : Variantes.IndexOf(VarianteSeleccionada);
+            return indice >= 0 && indice < Variantes.Count - 1;
+        }
+        private void OnBajarVariante()
+        {
+            MoverVariante(1);
+        }
+
+        private void MoverVariante(int desplazamiento)
+        {
+            VarianteModel seleccionada = VarianteSeleccionada;
+            int indice = Variantes.IndexOf(seleccionada);
+            int destino = indice + desplazamiento;
+            if (indice < 0 || destino < 0 || destino >= Variantes.Count)
+            {
+                return;
+            }
+            Variantes.Move(indice, destino);
+            VarianteSeleccionada = seleccionada;
+            RefrescarComandosDeVariantes();
+        }
+
+        public RelayCommand GuardarVariantesCommand { get; private set; }
+        private async void OnGuardarVariantes()
+        {
+            try
+            {
+                await _servicio.GuardarVariantes(PrincipalVariantes, Variantes.ToList());
+                _dialogService.ShowNotification(Variantes.Any()
+                    ? "Variantes guardadas. La familia se republica en la web en unos minutos"
+                    : "La familia de variantes se ha deshecho: sus referencias vuelven a ser productos sueltos en la web");
+                await CargarVariantesAsync(ProductoActual.Producto);
+            }
+            catch (Exception ex)
+            {
+                _dialogService.ShowError(ex.Message);
+            }
+        }
+
+        #endregion
 
         public RelayCommand ImprimirEtiquetasProductoCommand { get; private set; }
         private bool CanImprimirEtiquetasProducto()

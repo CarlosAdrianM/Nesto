@@ -20,6 +20,9 @@ namespace Nesto.Modules.Producto
         Task<List<VideoLookupModel>> BuscarVideosRelacionados(string producto);
         Task<VideoModel> CargarVideoCompleto(int videoId);
         Task<List<KitContienePerteneceModel>> LeerKitsContienePertenece(string producto);
+        // NestoAPI#477: familia de variantes (color...) a la que pertenece el producto, y su reemplazo completo.
+        Task<List<VarianteModel>> LeerVariantes(string producto);
+        Task GuardarVariantes(string principal, List<VarianteModel> variantes);
         Task ActualizarVideoProducto(int id, ActualizacionVideoProductoDto dto);
         Task EliminarVideoProducto(int id, string observaciones = null);
         // TO-DO: implementar
