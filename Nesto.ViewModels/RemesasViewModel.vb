@@ -6,7 +6,7 @@ Imports Microsoft.Win32
 Imports System.Windows.Controls
 Imports Nesto.Contratos
 Imports Prism.Mvvm
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Events
 Imports Prism.Regions
 Imports Microsoft.Graph
@@ -77,15 +77,15 @@ Public Class RemesasViewModel
         tipoRemesaActual = listaTiposRemesa.LastOrDefault ' Por defecto es CORE -> FirstOrDefault para B2B
         fechaCobro = Today
 
-        CrearTareasPlannerCommand = New DelegateCommand(AddressOf OnCrearTareasPlanner, AddressOf CanCrearTareasPlanner)
+        CrearTareasPlannerCommand = New RelayCommand(AddressOf OnCrearTareasPlanner, AddressOf CanCrearTareasPlanner)
         ' NestoAPI#332: pestaña Crear Remesa
         ' NestoAPI#345: pedir ya la fecha "hasta" propuesta, que el DatePicker no muestre hoy
         Dim unusedFecha = InicializarFechaSeleccionAsync()
-        CargarCandidatosCommand = New DelegateCommand(AddressOf OnCargarCandidatos)
-        CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
-        MarcarTodosCommand = New DelegateCommand(AddressOf OnMarcarTodos)
-        DesmarcarTodosCommand = New DelegateCommand(AddressOf OnDesmarcarTodos)
-        ImprimirRemesaCommand = New DelegateCommand(AddressOf OnImprimirRemesa, AddressOf CanImprimirRemesa)
+        CargarCandidatosCommand = New RelayCommand(AddressOf OnCargarCandidatos)
+        CrearRemesaCommand = New RelayCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
+        MarcarTodosCommand = New RelayCommand(AddressOf OnMarcarTodos)
+        DesmarcarTodosCommand = New RelayCommand(AddressOf OnDesmarcarTodos)
+        ImprimirRemesaCommand = New RelayCommand(AddressOf OnImprimirRemesa, AddressOf CanImprimirRemesa)
     End Sub
 
     ' Constructor para tests: inyecta el servicio API y NO toca EF (Nesto#340 Fase 1C.14).
@@ -95,11 +95,11 @@ Public Class RemesasViewModel
         Me.dialogService = dialogService
         _remesasService = remesasService
         listaEmpresas = New ObservableCollection(Of EmpresaModel)
-        CargarCandidatosCommand = New DelegateCommand(AddressOf OnCargarCandidatos)
-        CrearRemesaCommand = New DelegateCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
-        MarcarTodosCommand = New DelegateCommand(AddressOf OnMarcarTodos)
-        DesmarcarTodosCommand = New DelegateCommand(AddressOf OnDesmarcarTodos)
-        ImprimirRemesaCommand = New DelegateCommand(AddressOf OnImprimirRemesa, AddressOf CanImprimirRemesa)
+        CargarCandidatosCommand = New RelayCommand(AddressOf OnCargarCandidatos)
+        CrearRemesaCommand = New RelayCommand(AddressOf OnCrearRemesa, AddressOf CanCrearRemesa)
+        MarcarTodosCommand = New RelayCommand(AddressOf OnMarcarTodos)
+        DesmarcarTodosCommand = New RelayCommand(AddressOf OnDesmarcarTodos)
+        ImprimirRemesaCommand = New RelayCommand(AddressOf OnImprimirRemesa, AddressOf CanImprimirRemesa)
     End Sub
 
     ' Nesto#340 Fase 1C.14 slice 1: sustituye la lectura EF de DbContext.Empresas.
@@ -180,7 +180,7 @@ Public Class RemesasViewModel
             RaisePropertyChanged(NameOf(ImporteSeleccionado))
             RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
             RaisePropertyChanged(NameOf(ResumenSeleccionado))
-            CrearRemesaCommand.RaiseCanExecuteChanged()
+            CrearRemesaCommand.NotifyCanExecuteChanged()
         End If
     End Sub
 
@@ -214,7 +214,7 @@ Public Class RemesasViewModel
             RaisePropertyChanged(NameOf(ImporteSeleccionado))
             RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
             RaisePropertyChanged(NameOf(ResumenSeleccionado))
-            CrearRemesaCommand?.RaiseCanExecuteChanged()
+            CrearRemesaCommand?.NotifyCanExecuteChanged()
         End If
     End Sub
 
@@ -460,7 +460,7 @@ Public Class RemesasViewModel
                 ' el error queda en mensajeError).
                 CargarMovimientosAsync(remesaActual.Numero)
             End If
-            ImprimirRemesaCommand?.RaiseCanExecuteChanged()
+            ImprimirRemesaCommand?.NotifyCanExecuteChanged()
             RaisePropertyChanged("remesaActual")
         End Set
     End Property
@@ -564,7 +564,7 @@ Public Class RemesasViewModel
             RaisePropertyChanged(NameOf(ImporteSeleccionado))
             RaisePropertyChanged(NameOf(NumeroEfectosSeleccionados))
             RaisePropertyChanged(NameOf(ResumenSeleccionado))
-            CrearRemesaCommand?.RaiseCanExecuteChanged()
+            CrearRemesaCommand?.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -669,12 +669,12 @@ Public Class RemesasViewModel
         End Set
     End Property
 
-    Public Property CargarCandidatosCommand As DelegateCommand
-    Public Property CrearRemesaCommand As DelegateCommand
-    Public Property MarcarTodosCommand As DelegateCommand
-    Public Property DesmarcarTodosCommand As DelegateCommand
+    Public Property CargarCandidatosCommand As RelayCommand
+    Public Property CrearRemesaCommand As RelayCommand
+    Public Property MarcarTodosCommand As RelayCommand
+    Public Property DesmarcarTodosCommand As RelayCommand
     ' NestoAPI#353: imprimir el informe de cualquier remesa desde la pestaña del listado.
-    Public Property ImprimirRemesaCommand As DelegateCommand
+    Public Property ImprimirRemesaCommand As RelayCommand
     Private Function CanImprimirRemesa() As Boolean
         Return remesaActual IsNot Nothing
     End Function
@@ -792,7 +792,7 @@ Public Class RemesasViewModel
     Public ReadOnly Property cmdCrearFicheroRemesa() As ICommand
         Get
             If _cmdCrearFicheroRemesa Is Nothing Then
-                _cmdCrearFicheroRemesa = New RelayCommand(AddressOf CrearFicheroRemesa, AddressOf CanCrearFicheroRemesa)
+                _cmdCrearFicheroRemesa = New RelayCommandLegado(AddressOf CrearFicheroRemesa, AddressOf CanCrearFicheroRemesa)
             End If
             Return _cmdCrearFicheroRemesa
         End Get
@@ -836,7 +836,7 @@ Public Class RemesasViewModel
     Public ReadOnly Property cmdLeerFicheroImpagado() As ICommand
         Get
             If _cmdLeerFicheroImpagado Is Nothing Then
-                _cmdLeerFicheroImpagado = New RelayCommand(AddressOf LeerFicheroImpagado, AddressOf CanLeerFicheroImpagado)
+                _cmdLeerFicheroImpagado = New RelayCommandLegado(AddressOf LeerFicheroImpagado, AddressOf CanLeerFicheroImpagado)
             End If
             Return _cmdLeerFicheroImpagado
         End Get
@@ -881,7 +881,7 @@ Public Class RemesasViewModel
     Public ReadOnly Property cmdVerTodasLasRemesas() As ICommand
         Get
             If _cmdVerTodasLasRemesas Is Nothing Then
-                _cmdVerTodasLasRemesas = New RelayCommand(AddressOf VerTodasLasRemesas, AddressOf CanVerTodasLasRemesas)
+                _cmdVerTodasLasRemesas = New RelayCommandLegado(AddressOf VerTodasLasRemesas, AddressOf CanVerTodasLasRemesas)
             End If
             Return _cmdVerTodasLasRemesas
         End Get
@@ -898,7 +898,7 @@ Public Class RemesasViewModel
     ' Nesto#340 Fase 1C.14 slice 8: eliminado el comando muerto cmdCrearTareasOutlook (llevaba
     ' años comentado; su sustituto es CrearTareasPlannerCommand) y su botón inerte del XAML.
 
-    Public Property CrearTareasPlannerCommand As DelegateCommand
+    Public Property CrearTareasPlannerCommand As RelayCommand
     Private Function CanCrearTareasPlanner() As Boolean
         Return True
     End Function

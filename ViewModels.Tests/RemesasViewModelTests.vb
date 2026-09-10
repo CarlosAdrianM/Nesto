@@ -557,10 +557,10 @@ Public Class RemesasViewModelTests
     Public Sub ImprimirRemesaCommand_SoloActivoConRemesaSeleccionada()
         Dim vm = CrearViewModel()
 
-        Assert.IsFalse(vm.ImprimirRemesaCommand.CanExecute(), "Sin remesa seleccionada no se puede imprimir")
+        Assert.IsFalse(vm.ImprimirRemesaCommand.CanExecute(Nothing), "Sin remesa seleccionada no se puede imprimir")
 
         vm.remesaActual = New RemesaModel With {.Numero = 10901, .Importe = 86.29D, .Banco = "5"}
-        Assert.IsTrue(vm.ImprimirRemesaCommand.CanExecute())
+        Assert.IsTrue(vm.ImprimirRemesaCommand.CanExecute(Nothing))
     End Sub
 
     <TestMethod()>
@@ -663,10 +663,10 @@ Public Class RemesasViewModelTests
                 Candidato(1), Candidato(2), Candidato(3, preseleccionado:=False)}))
         Dim vm = CrearViewModel()
         Await vm.CargarCandidatosAsync()
-        vm.DesmarcarTodosCommand.Execute()
+        vm.DesmarcarTodosCommand.Execute(Nothing)
         Assert.AreEqual(0, vm.NumeroEfectosSeleccionados, "Precondición: partimos de todo desmarcado")
 
-        vm.MarcarTodosCommand.Execute()
+        vm.MarcarTodosCommand.Execute(Nothing)
 
         Assert.AreEqual(2, vm.NumeroEfectosSeleccionados)
         Assert.IsFalse(vm.ListaCandidatos.Single(Function(c) c.Id = 3).Seleccionado,
@@ -682,7 +682,7 @@ Public Class RemesasViewModelTests
         Await vm.CargarCandidatosAsync()
         vm.ListaCandidatos.Single(Function(c) c.Id = 2).Seleccionado = True
 
-        vm.DesmarcarTodosCommand.Execute()
+        vm.DesmarcarTodosCommand.Execute(Nothing)
 
         Assert.AreEqual(0, vm.NumeroEfectosSeleccionados)
     End Function
@@ -691,8 +691,8 @@ Public Class RemesasViewModelTests
     Public Sub MarcarYDesmarcarTodos_SinCandidatosCargados_NoLanzan()
         Dim vm = CrearViewModel()
 
-        vm.MarcarTodosCommand.Execute()
-        vm.DesmarcarTodosCommand.Execute()
+        vm.MarcarTodosCommand.Execute(Nothing)
+        vm.DesmarcarTodosCommand.Execute(Nothing)
     End Sub
 
     <TestMethod()>

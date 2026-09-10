@@ -16,7 +16,11 @@ Imports System.ComponentModel
 Imports System.Data
 Imports Nesto.Infrastructure.Shared
 
-Public Class RelayCommand
+' Nesto#340 (4A.5): la RelayCommand propia de siempre, renombrada para que no tape a la
+' RelayCommand de CommunityToolkit.Mvvm (en VB el tipo del namespace gana al Imports).
+' Sigue en Agencias, Alquileres, Clientes, Deuda, PlanesVentajas y Remesas hasta que esos
+' usos migren; no se toca su comportamiento.
+Public Class RelayCommandLegado
     Implements ICommand
 
     Private ReadOnly _execute As Action(Of Object)
@@ -130,7 +134,7 @@ Public Class MainViewModel
         CargarVendedor()
         Me.container = container
         Me.regionManager = regionManager
-        'cmdCerrarVentana = New DelegateCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
+        'cmdCerrarVentana = New RelayCommand(Of Object)(AddressOf OnCerrarVentana, AddressOf CanCerrarVentana)
         Titulo = "Sin Título"
     End Sub
 

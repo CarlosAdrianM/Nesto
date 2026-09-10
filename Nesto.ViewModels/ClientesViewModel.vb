@@ -20,7 +20,7 @@ Imports Nesto.Modulos.PedidoVenta
 Imports Nesto.Modulos.PedidoVenta.PedidoVentaModel
 Imports Nesto.Modulos.Rapports
 Imports Newtonsoft.Json
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 Imports Unity
@@ -114,10 +114,10 @@ Public Class ClientesViewModel
                                                                 clienteActivoDTO = ListaClientesFiltrable.Lista.FirstOrDefault
                                                             End If
                                                         End Sub
-        ReclamarDeudaCommand = New DelegateCommand(AddressOf OnReclamarDeuda)
-        AbrirEnlaceReclamacionCommand = New DelegateCommand(AddressOf OnAbrirEnlaceReclamacion, AddressOf CanAbrirEnlaceReclamacion)
-        ConfirmarReclamarDeudaCommand = New DelegateCommand(AddressOf OnConfirmarReclamarDeuda, AddressOf CanConfirmarReclamarDeuda)
-        GuardarEfectoDeudaCommand = New DelegateCommand(AddressOf OnGuardarEfectoDeuda, AddressOf CanGuardarEfectoDeuda)
+        ReclamarDeudaCommand = New RelayCommand(AddressOf OnReclamarDeuda)
+        AbrirEnlaceReclamacionCommand = New RelayCommand(AddressOf OnAbrirEnlaceReclamacion, AddressOf CanAbrirEnlaceReclamacion)
+        ConfirmarReclamarDeudaCommand = New RelayCommand(AddressOf OnConfirmarReclamarDeuda, AddressOf CanConfirmarReclamarDeuda)
+        GuardarEfectoDeudaCommand = New RelayCommand(AddressOf OnGuardarEfectoDeuda, AddressOf CanGuardarEfectoDeuda)
     End Sub
 
     ' Nesto#340 (1C.8, slice 4): constructor para tests. Inyecta fakes, no toca EF (DbContext
@@ -130,10 +130,10 @@ Public Class ClientesViewModel
         Me.servicio = servicio
         Me.servicioRapports = servicioRapports
         Me.servicioAutenticacion = servicioAutenticacion
-        ReclamarDeudaCommand = New DelegateCommand(AddressOf OnReclamarDeuda)
-        AbrirEnlaceReclamacionCommand = New DelegateCommand(AddressOf OnAbrirEnlaceReclamacion, AddressOf CanAbrirEnlaceReclamacion)
-        ConfirmarReclamarDeudaCommand = New DelegateCommand(AddressOf OnConfirmarReclamarDeuda, AddressOf CanConfirmarReclamarDeuda)
-        GuardarEfectoDeudaCommand = New DelegateCommand(AddressOf OnGuardarEfectoDeuda, AddressOf CanGuardarEfectoDeuda)
+        ReclamarDeudaCommand = New RelayCommand(AddressOf OnReclamarDeuda)
+        AbrirEnlaceReclamacionCommand = New RelayCommand(AddressOf OnAbrirEnlaceReclamacion, AddressOf CanAbrirEnlaceReclamacion)
+        ConfirmarReclamarDeudaCommand = New RelayCommand(AddressOf OnConfirmarReclamarDeuda, AddressOf CanConfirmarReclamarDeuda)
+        GuardarEfectoDeudaCommand = New RelayCommand(AddressOf OnGuardarEfectoDeuda, AddressOf CanGuardarEfectoDeuda)
     End Sub
 
 #Region "Propiedades"
@@ -309,7 +309,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As ExtractoClienteDTO)
             Dim unused = SetProperty(_deudaSeleccionada, value)
-            GuardarEfectoDeudaCommand.RaiseCanExecuteChanged()
+            GuardarEfectoDeudaCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -959,7 +959,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As Decimal)
             Dim unused = SetProperty(_importeReclamarDeuda, value)
-            ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+            ConfirmarReclamarDeudaCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -975,7 +975,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             If SetProperty(_asuntoReclamarDeuda, value) Then
-                ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+                ConfirmarReclamarDeudaCommand.NotifyCanExecuteChanged()
             End If
         End Set
     End Property
@@ -998,7 +998,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_correoReclamarDeuda, value)
-            ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+            ConfirmarReclamarDeudaCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1009,7 +1009,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_motivoCambioEstado, value)
-            GuardarEfectoDeudaCommand.RaiseCanExecuteChanged()
+            GuardarEfectoDeudaCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1020,7 +1020,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_movilReclamarDeuda, value)
-            ConfirmarReclamarDeudaCommand.RaiseCanExecuteChanged()
+            ConfirmarReclamarDeudaCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1058,7 +1058,7 @@ Public Class ClientesViewModel
         End Get
         Set(value As String)
             Dim unused = SetProperty(_enlaceReclamarDeuda, value)
-            AbrirEnlaceReclamacionCommand.RaiseCanExecuteChanged()
+            AbrirEnlaceReclamacionCommand.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -1092,7 +1092,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdGuardar() As ICommand
         Get
             If _cmdGuardar Is Nothing Then
-                _cmdGuardar = New RelayCommand(AddressOf Guardar, AddressOf CanGuardar)
+                _cmdGuardar = New RelayCommandLegado(AddressOf Guardar, AddressOf CanGuardar)
             End If
             Return _cmdGuardar
         End Get
@@ -1166,7 +1166,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdVerMandato() As ICommand
         Get
             If _cmdVerMandato Is Nothing Then
-                _cmdVerMandato = New RelayCommand(AddressOf VerMandato, AddressOf CanVerMandato)
+                _cmdVerMandato = New RelayCommandLegado(AddressOf VerMandato, AddressOf CanVerMandato)
             End If
             Return _cmdVerMandato
         End Get
@@ -1203,7 +1203,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdNuevoMandato() As ICommand
         Get
             If _cmdNuevoMandato Is Nothing Then
-                _cmdNuevoMandato = New RelayCommand(AddressOf NuevoMandato, AddressOf CanNuevoMandato)
+                _cmdNuevoMandato = New RelayCommandLegado(AddressOf NuevoMandato, AddressOf CanNuevoMandato)
             End If
             Return _cmdNuevoMandato
         End Get
@@ -1249,7 +1249,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdAsignarMandato() As ICommand
         Get
             If _cmdAsignarMandato Is Nothing Then
-                _cmdAsignarMandato = New RelayCommand(AddressOf AsignarMandato, AddressOf CanAsignarMandato)
+                _cmdAsignarMandato = New RelayCommandLegado(AddressOf AsignarMandato, AddressOf CanAsignarMandato)
             End If
             Return _cmdAsignarMandato
         End Get
@@ -1290,7 +1290,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property cmdGuardarVendedores() As ICommand
         Get
             If _cmdGuardarVendedores Is Nothing Then
-                _cmdGuardarVendedores = New RelayCommand(AddressOf GuardarVendedores, AddressOf CanGuardarVendedores)
+                _cmdGuardarVendedores = New RelayCommandLegado(AddressOf GuardarVendedores, AddressOf CanGuardarVendedores)
             End If
             Return _cmdGuardarVendedores
         End Get
@@ -1371,7 +1371,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property DescargarFacturasCommand() As ICommand
         Get
             If _descargarFacturasCommand Is Nothing Then
-                _descargarFacturasCommand = New RelayCommand(AddressOf DescargarFacturas, AddressOf CanDescargarFacturas)
+                _descargarFacturasCommand = New RelayCommandLegado(AddressOf DescargarFacturas, AddressOf CanDescargarFacturas)
             End If
             Return _descargarFacturasCommand
         End Get
@@ -1442,7 +1442,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property CargarPedidoCommand() As ICommand
         Get
             If _cargarPedidoCommand Is Nothing Then
-                _cargarPedidoCommand = New RelayCommand(AddressOf CargarPedido, AddressOf CanCargarPedido)
+                _cargarPedidoCommand = New RelayCommandLegado(AddressOf CargarPedido, AddressOf CanCargarPedido)
             End If
             Return _cargarPedidoCommand
         End Get
@@ -1471,7 +1471,7 @@ Public Class ClientesViewModel
     Public ReadOnly Property ImprimirMandatoCommand() As ICommand
         Get
             If _imprimirMandatoCommand Is Nothing Then
-                _imprimirMandatoCommand = New RelayCommand(AddressOf OnImprimirMandato, AddressOf CanImprimirMandato)
+                _imprimirMandatoCommand = New RelayCommandLegado(AddressOf OnImprimirMandato, AddressOf CanImprimirMandato)
             End If
             Return _imprimirMandatoCommand
         End Get
@@ -1519,12 +1519,12 @@ Public Class ClientesViewModel
 
 
 
-    Private _reclamarDeudaCommand As DelegateCommand
-    Public Property ReclamarDeudaCommand As DelegateCommand
+    Private _reclamarDeudaCommand As RelayCommand
+    Public Property ReclamarDeudaCommand As RelayCommand
         Get
             Return _reclamarDeudaCommand
         End Get
-        Private Set(value As DelegateCommand)
+        Private Set(value As RelayCommand)
             Dim unused = SetProperty(_reclamarDeudaCommand, value)
         End Set
     End Property
@@ -1652,7 +1652,7 @@ Public Class ClientesViewModel
         End If
     End Sub
 
-    Public Property AbrirEnlaceReclamacionCommand As DelegateCommand
+    Public Property AbrirEnlaceReclamacionCommand As RelayCommand
     Private Function CanAbrirEnlaceReclamacion() As Boolean
         Return Not String.IsNullOrEmpty(EnlaceReclamarDeuda)
     End Function
@@ -1663,7 +1663,7 @@ Public Class ClientesViewModel
         Dim unused = System.Diagnostics.Process.Start(psi)
     End Sub
 
-    Public Property ConfirmarReclamarDeudaCommand As DelegateCommand
+    Public Property ConfirmarReclamarDeudaCommand As RelayCommand
     Private Function CanConfirmarReclamarDeuda() As Boolean
         ' NestoAPI#295: sin efectos seleccionados hace falta un concepto real (el genérico se
         ' contabilizaría en el extracto y no se sabría qué pagó el cliente). El servidor lo
@@ -1679,12 +1679,12 @@ Public Class ClientesViewModel
         }
         dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
                                                               If r.Result = ButtonResult.OK Then
-                                                                  ReclamarDeudaCommand.Execute()
+                                                                  ReclamarDeudaCommand.Execute(Nothing)
                                                               End If
                                                           End Sub)
     End Sub
 
-    Public Property GuardarEfectoDeudaCommand As DelegateCommand
+    Public Property GuardarEfectoDeudaCommand As RelayCommand
     Private Function CanGuardarEfectoDeuda() As Boolean
         Return Not IsNothing(DeudaSeleccionada) AndAlso EsUsuarioAdministracion AndAlso Not String.IsNullOrWhiteSpace(MotivoCambioEstado)
     End Function

@@ -5,7 +5,7 @@ Imports System.Windows
 Imports System.Windows.Input
 Imports System.Windows.Controls
 Imports Prism.Mvvm
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Nesto.Models.Nesto.Models
 Imports Prism.Services.Dialogs
 Imports ControlesUsuario.Dialogs
@@ -50,8 +50,8 @@ Public Class AlquileresViewModel
         bultos = 2
 
         ' Comandos Prism
-        cmdIntercambiarNumeroSerie = New DelegateCommand(Of Object)(AddressOf OnIntercambiarNumeroSerie, AddressOf CanIntercambiarNumeroSerie)
-        cmdInicializarAlquiler = New DelegateCommand(Of Object)(AddressOf OnInicializarAlquiler, AddressOf CanInicializarAlquiler)
+        cmdIntercambiarNumeroSerie = New RelayCommand(Of Object)(AddressOf OnIntercambiarNumeroSerie, AddressOf CanIntercambiarNumeroSerie)
+        cmdInicializarAlquiler = New RelayCommand(Of Object)(AddressOf OnInicializarAlquiler, AddressOf CanInicializarAlquiler)
 
         Titulo = "Alquileres"
 
@@ -182,8 +182,8 @@ Public Class AlquileresViewModel
         End Get
         Set(value As AlquilerModel)
             SetProperty(_LineaSeleccionada, value)
-            cmdIntercambiarNumeroSerie.RaiseCanExecuteChanged()
-            cmdInicializarAlquiler.RaiseCanExecuteChanged()
+            cmdIntercambiarNumeroSerie.NotifyCanExecuteChanged()
+            cmdInicializarAlquiler.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -307,7 +307,7 @@ Public Class AlquileresViewModel
         End Get
         Set(ByVal value As String)
             SetProperty(_numeroSerieIntercambiar, value)
-            cmdIntercambiarNumeroSerie.RaiseCanExecuteChanged()
+            cmdIntercambiarNumeroSerie.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -319,7 +319,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdGuardar() As ICommand
         Get
             If _cmdGuardar Is Nothing Then
-                _cmdGuardar = New RelayCommand(AddressOf Guardar, AddressOf CanGuardar)
+                _cmdGuardar = New RelayCommandLegado(AddressOf Guardar, AddressOf CanGuardar)
             End If
             Return _cmdGuardar
         End Get
@@ -356,7 +356,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdAñadir() As ICommand
         Get
             If _cmdAñadir Is Nothing Then
-                _cmdAñadir = New RelayCommand(AddressOf Añadir, AddressOf CanAñadir)
+                _cmdAñadir = New RelayCommandLegado(AddressOf Añadir, AddressOf CanAñadir)
             End If
             Return _cmdAñadir
         End Get
@@ -384,7 +384,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdBorrar() As ICommand
         Get
             If _cmdBorrar Is Nothing Then
-                _cmdBorrar = New RelayCommand(AddressOf Borrar, AddressOf canBorrar)
+                _cmdBorrar = New RelayCommandLegado(AddressOf Borrar, AddressOf canBorrar)
             End If
             Return _cmdBorrar
         End Get
@@ -404,7 +404,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdUpdNumeroSerie() As ICommand
         Get
             If _cmdUpdNumeroSerie Is Nothing Then
-                _cmdUpdNumeroSerie = New RelayCommand(AddressOf UpdNumeroSerie, AddressOf canUpdNumeroSerie)
+                _cmdUpdNumeroSerie = New RelayCommandLegado(AddressOf UpdNumeroSerie, AddressOf canUpdNumeroSerie)
             End If
             Return _cmdUpdNumeroSerie
         End Get
@@ -420,7 +420,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdImprimirEtiquetaMaquina() As ICommand
         Get
             If _cmdImprimirEtiquetaMaquina Is Nothing Then
-                _cmdImprimirEtiquetaMaquina = New RelayCommand(AddressOf ImprimirEtiquetaMaquina, AddressOf canImprimirEtiquetaMaquina)
+                _cmdImprimirEtiquetaMaquina = New RelayCommandLegado(AddressOf ImprimirEtiquetaMaquina, AddressOf canImprimirEtiquetaMaquina)
             End If
             Return _cmdImprimirEtiquetaMaquina
         End Get
@@ -466,7 +466,7 @@ Public Class AlquileresViewModel
     Public ReadOnly Property cmdImprimirEtiquetaPedido() As ICommand
         Get
             If _cmdImprimirEtiquetaPedido Is Nothing Then
-                _cmdImprimirEtiquetaPedido = New RelayCommand(AddressOf ImprimirEtiquetaPedido, AddressOf canImprimirEtiquetaPedido)
+                _cmdImprimirEtiquetaPedido = New RelayCommandLegado(AddressOf ImprimirEtiquetaPedido, AddressOf canImprimirEtiquetaPedido)
             End If
             Return _cmdImprimirEtiquetaPedido
         End Get
@@ -510,12 +510,12 @@ Public Class AlquileresViewModel
         End Try
     End Sub
 
-    Private _cmdIntercambiarNumeroSerie As DelegateCommand(Of Object)
-    Public Property cmdIntercambiarNumeroSerie As DelegateCommand(Of Object)
+    Private _cmdIntercambiarNumeroSerie As RelayCommand(Of Object)
+    Public Property cmdIntercambiarNumeroSerie As RelayCommand(Of Object)
         Get
             Return _cmdIntercambiarNumeroSerie
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdIntercambiarNumeroSerie = value
         End Set
     End Property
@@ -551,12 +551,12 @@ Public Class AlquileresViewModel
 
     End Sub
 
-    Private _cmdInicializarAlquiler As DelegateCommand(Of Object)
-    Public Property cmdInicializarAlquiler As DelegateCommand(Of Object)
+    Private _cmdInicializarAlquiler As RelayCommand(Of Object)
+    Public Property cmdInicializarAlquiler As RelayCommand(Of Object)
         Get
             Return _cmdInicializarAlquiler
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             _cmdInicializarAlquiler = value
         End Set
     End Property

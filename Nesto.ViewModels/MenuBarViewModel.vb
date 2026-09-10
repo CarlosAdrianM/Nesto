@@ -7,7 +7,7 @@ Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
 Imports Nesto.Models
 Imports Nesto.Models.Nesto.Models
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Mvvm
 Imports Prism.Regions
 Imports Unity
@@ -35,27 +35,27 @@ Public Class MenuBarViewModel
         _servicioComisiones = New ComisionesService(configuracion, servicioAutenticacion)
         _servicioInformes = servicioInformes
 
-        VentasEmpresasCommand = New DelegateCommand(AddressOf OnVentasEmpresas)
-        RapportCommand = New DelegateCommand(AddressOf OnRapport)
-        ClientesFichaCommand = New DelegateCommand(AddressOf OnClientesFicha)
-        ControlPedidosCommand = New DelegateCommand(AddressOf OnControlPedidos)
-        BalancePymesCommand = New DelegateCommand(Sub() GenerarInformeBalance("BPY", "BalancePymes"))
-        PerdidasGananciasCommand = New DelegateCommand(Sub() GenerarInformeBalance("PGP", "PerdidasGananciasPymes"))
-        InventarioCommand = New DelegateCommand(AddressOf OnInventario)
-        PickingCommand = New DelegateCommand(AddressOf OnPicking)
-        PackingCommand = New DelegateCommand(AddressOf OnPacking)
-        ClientesAlquileresCommand = New DelegateCommand(AddressOf OnClientesAlquileres)
-        ClientesRemesasCommand = New DelegateCommand(AddressOf OnClientesRemesas)
-        ClientesAgenciasCommand = New DelegateCommand(AddressOf OnClientesAgencias)
-        AgenciasMantenimientoCommand = New DelegateCommand(AddressOf OnAgenciasMantenimiento)
-        FamiliasMantenimientoCommand = New DelegateCommand(AddressOf OnFamiliasMantenimiento)
-        RatioDeudaCommand = New DelegateCommand(AddressOf OnRatioDeuda)
-        VideosCommand = New DelegateCommand(AddressOf OnVideos)
-        NovedadesCommand = New DelegateCommand(AddressOf OnNovedades)
-        VendedoresComisionesCommand = New DelegateCommand(AddressOf OnVendedoresComisiones)
-        VendedoresClientesCommand = New DelegateCommand(AddressOf OnVendedoresClientes)
-        VendedoresPlanVentajasCommand = New DelegateCommand(AddressOf OnVendedoresPlanVentajas)
-        ParametrosCommand = New DelegateCommand(AddressOf OnParametros)
+        VentasEmpresasCommand = New RelayCommand(AddressOf OnVentasEmpresas)
+        RapportCommand = New RelayCommand(AddressOf OnRapport)
+        ClientesFichaCommand = New RelayCommand(AddressOf OnClientesFicha)
+        ControlPedidosCommand = New RelayCommand(AddressOf OnControlPedidos)
+        BalancePymesCommand = New RelayCommand(Sub() GenerarInformeBalance("BPY", "BalancePymes"))
+        PerdidasGananciasCommand = New RelayCommand(Sub() GenerarInformeBalance("PGP", "PerdidasGananciasPymes"))
+        InventarioCommand = New RelayCommand(AddressOf OnInventario)
+        PickingCommand = New RelayCommand(AddressOf OnPicking)
+        PackingCommand = New RelayCommand(AddressOf OnPacking)
+        ClientesAlquileresCommand = New RelayCommand(AddressOf OnClientesAlquileres)
+        ClientesRemesasCommand = New RelayCommand(AddressOf OnClientesRemesas)
+        ClientesAgenciasCommand = New RelayCommand(AddressOf OnClientesAgencias)
+        AgenciasMantenimientoCommand = New RelayCommand(AddressOf OnAgenciasMantenimiento)
+        FamiliasMantenimientoCommand = New RelayCommand(AddressOf OnFamiliasMantenimiento)
+        RatioDeudaCommand = New RelayCommand(AddressOf OnRatioDeuda)
+        VideosCommand = New RelayCommand(AddressOf OnVideos)
+        NovedadesCommand = New RelayCommand(AddressOf OnNovedades)
+        VendedoresComisionesCommand = New RelayCommand(AddressOf OnVendedoresComisiones)
+        VendedoresClientesCommand = New RelayCommand(AddressOf OnVendedoresClientes)
+        VendedoresPlanVentajasCommand = New RelayCommand(AddressOf OnVendedoresPlanVentajas)
+        ParametrosCommand = New RelayCommand(AddressOf OnParametros)
 
         InicializarVisibilidad()
         ComprobarSiEsJefeDeVentas()

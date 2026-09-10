@@ -2,7 +2,7 @@
 Imports System.ComponentModel
 Imports System.Windows
 Imports System.Globalization
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Nesto.Modulos.PedidoVenta
 Imports System.Net.Http
 Imports Newtonsoft.Json
@@ -60,7 +60,7 @@ Public Class ComisionesViewModel
 
         Titulo = "Comisiones"
 
-        cmdAbrirPedido = New DelegateCommand(Of Object)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
+        cmdAbrirPedido = New RelayCommand(Of Object)(AddressOf OnAbrirPedido, AddressOf CanAbrirPedido)
     End Sub
 
     Async Function CargarDatos() As Task
@@ -374,12 +374,12 @@ Public Class ComisionesViewModel
     End Property
 
 #Region "Comandos"
-    Private _cmdAbrirPedido As DelegateCommand(Of Object)
-    Public Property cmdAbrirPedido As DelegateCommand(Of Object)
+    Private _cmdAbrirPedido As RelayCommand(Of Object)
+    Public Property cmdAbrirPedido As RelayCommand(Of Object)
         Get
             Return _cmdAbrirPedido
         End Get
-        Private Set(value As DelegateCommand(Of Object))
+        Private Set(value As RelayCommand(Of Object))
             SetProperty(_cmdAbrirPedido, value)
         End Set
     End Property

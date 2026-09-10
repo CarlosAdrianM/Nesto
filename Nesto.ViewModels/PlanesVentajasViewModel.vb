@@ -413,7 +413,7 @@ Public Class PlanesVentajasViewModel
     Private _cmdVerPlan As ICommand
     Public ReadOnly Property cmdVerPlan As ICommand
         Get
-            If _cmdVerPlan Is Nothing Then _cmdVerPlan = New RelayCommand(AddressOf VerPlan, AddressOf CanVerPlan)
+            If _cmdVerPlan Is Nothing Then _cmdVerPlan = New RelayCommandLegado(AddressOf VerPlan, AddressOf CanVerPlan)
             Return _cmdVerPlan
         End Get
     End Property
@@ -438,7 +438,7 @@ Public Class PlanesVentajasViewModel
     Private _cmdAsignarPlan As ICommand
     Public ReadOnly Property cmdAsignarPlan As ICommand
         Get
-            If _cmdAsignarPlan Is Nothing Then _cmdAsignarPlan = New RelayCommand(AddressOf AsignarPlan, AddressOf CanAsignarPlan)
+            If _cmdAsignarPlan Is Nothing Then _cmdAsignarPlan = New RelayCommandLegado(AddressOf AsignarPlan, AddressOf CanAsignarPlan)
             Return _cmdAsignarPlan
         End Get
     End Property
@@ -469,7 +469,7 @@ Public Class PlanesVentajasViewModel
     Private _cmdAñadir As ICommand
     Public ReadOnly Property cmdAñadir As ICommand
         Get
-            If _cmdAñadir Is Nothing Then _cmdAñadir = New RelayCommand(AddressOf Añadir, AddressOf CanAñadir)
+            If _cmdAñadir Is Nothing Then _cmdAñadir = New RelayCommandLegado(AddressOf Añadir, AddressOf CanAñadir)
             Return _cmdAñadir
         End Get
     End Property
@@ -493,7 +493,7 @@ Public Class PlanesVentajasViewModel
     Private _cmdGuardar As ICommand
     Public ReadOnly Property cmdGuardar As ICommand
         Get
-            If _cmdGuardar Is Nothing Then _cmdGuardar = New RelayCommand(AddressOf Guardar, AddressOf CanGuardar)
+            If _cmdGuardar Is Nothing Then _cmdGuardar = New RelayCommandLegado(AddressOf Guardar, AddressOf CanGuardar)
             Return _cmdGuardar
         End Get
     End Property

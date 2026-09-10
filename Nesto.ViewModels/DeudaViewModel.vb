@@ -96,7 +96,7 @@ Public Class DeudaViewModel
     Public ReadOnly Property cmdCargarDetalleVentaReal() As ICommand
         Get
             If _cmdCargarDetalleVentaReal Is Nothing Then
-                _cmdCargarDetalleVentaReal = New RelayCommand(AddressOf CargarDetalleVentaReal, AddressOf CanCargarDetalleVentaReal)
+                _cmdCargarDetalleVentaReal = New RelayCommandLegado(AddressOf CargarDetalleVentaReal, AddressOf CanCargarDetalleVentaReal)
             End If
             Return _cmdCargarDetalleVentaReal
         End Get
@@ -112,7 +112,7 @@ Public Class DeudaViewModel
     Public ReadOnly Property cmdCargarDetalleVentaPeriodo() As ICommand
         Get
             If _cmdCargarDetalleVentaPeriodo Is Nothing Then
-                _cmdCargarDetalleVentaPeriodo = New RelayCommand(AddressOf CargarDetalleVentaPeriodo, AddressOf CanCargarDetalleVentaPeriodo)
+                _cmdCargarDetalleVentaPeriodo = New RelayCommandLegado(AddressOf CargarDetalleVentaPeriodo, AddressOf CanCargarDetalleVentaPeriodo)
             End If
             Return _cmdCargarDetalleVentaPeriodo
         End Get
@@ -128,7 +128,7 @@ Public Class DeudaViewModel
     Public ReadOnly Property cmdCargarDetalleDeuda() As ICommand
         Get
             If _cmdCargarDetalleDeuda Is Nothing Then
-                _cmdCargarDetalleDeuda = New RelayCommand(AddressOf CargarDetalleDeuda, AddressOf CanCargarDetalleDeuda)
+                _cmdCargarDetalleDeuda = New RelayCommandLegado(AddressOf CargarDetalleDeuda, AddressOf CanCargarDetalleDeuda)
             End If
             Return _cmdCargarDetalleDeuda
         End Get
@@ -158,7 +158,7 @@ Public Class DeudaViewModel
     Public ReadOnly Property cmdBorrarDetalleDeuda() As ICommand
         Get
             If _cmdBorrarDetalleDeuda Is Nothing Then
-                _cmdBorrarDetalleDeuda = New RelayCommand(AddressOf BorrarDetalleDeuda, AddressOf CanBorrarDetalleDeuda)
+                _cmdBorrarDetalleDeuda = New RelayCommandLegado(AddressOf BorrarDetalleDeuda, AddressOf CanBorrarDetalleDeuda)
             End If
             Return _cmdBorrarDetalleDeuda
         End Get
@@ -175,7 +175,7 @@ Public Class DeudaViewModel
     Public ReadOnly Property cmdCargarDetalleVencido() As ICommand
         Get
             If _cmdCargarDetalleVencido Is Nothing Then
-                _cmdCargarDetalleVencido = New RelayCommand(AddressOf CargarDetalleVencido, AddressOf CanCargarDetalleVencido)
+                _cmdCargarDetalleVencido = New RelayCommandLegado(AddressOf CargarDetalleVencido, AddressOf CanCargarDetalleVencido)
             End If
             Return _cmdCargarDetalleVencido
         End Get

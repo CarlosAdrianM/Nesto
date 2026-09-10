@@ -4,7 +4,7 @@ Imports Nesto.Infrastructure.Contracts
 Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Services
 Imports Nesto.Infrastructure.Shared
-Imports Prism.Commands
+Imports CommunityToolkit.Mvvm.Input
 Imports Prism.Mvvm
 Imports Prism.Services.Dialogs
 
@@ -30,7 +30,7 @@ Public Class FamiliasMantenimientoViewModel
         _dialogService = dialogService
         Titulo = "Mant. familias"
         _empresaSeleccionada = Constantes.Empresas.EMPRESA_DEFECTO
-        GuardarCommand = New DelegateCommand(AddressOf OnGuardar, AddressOf CanGuardar)
+        GuardarCommand = New RelayCommand(AddressOf OnGuardar, AddressOf CanGuardar)
         Dim unused = CargarAsync()
     End Sub
 
@@ -59,7 +59,7 @@ Public Class FamiliasMantenimientoViewModel
         Set(value As ObservableCollection(Of FamiliaMantenimiento))
             Dim unused = SetProperty(_familias, value)
             AplicarFiltro()
-            GuardarCommand?.RaiseCanExecuteChanged()
+            GuardarCommand?.NotifyCanExecuteChanged()
         End Set
     End Property
 
@@ -122,7 +122,7 @@ Public Class FamiliasMantenimientoViewModel
         End Set
     End Property
 
-    Public Property GuardarCommand As DelegateCommand
+    Public Property GuardarCommand As RelayCommand
 
     Public Async Function CargarAsync() As Task
         Try
