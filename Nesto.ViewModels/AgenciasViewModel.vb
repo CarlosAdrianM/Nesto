@@ -3268,7 +3268,26 @@ Public Class AgenciasViewModel
         ' el servidor responde. Sin esto, Innovatrans NUNCA se elegiría (tarifa placeholder en el cliente).
         AjustarAgenciaConServidor(pedidoSeleccionado.Empresa, pedidoSeleccionado.Número, codPostalDestino, Peso, reembolso, PaisIsoActual())
 
-        Return listaAgencias.Single(Function(a) a.Empresa = pedidoSeleccionado.Empresa AndAlso a.Numero = tarifaEconomica.AgenciaId)
+        ' Nesto#475: las tarifas locales llevan el numero de agencia de la empresa 1 (ASM=1, CEX=8,
+        ' Canteras=11, Innovatrans=12). Al teclear un pedido de otra empresa (el espejo, empresa 3:
+        ' Aida tecleo el 924696 el 10/09/26) la ventana cambia a esa empresa y su lista de agencias
+        ' tiene otros numeros (ASM=5), asi que el Single por empresa+numero tiraba la seleccion.
+        ' Se busca por numero; si no esta, por NOMBRE (la misma agencia en la otra empresa); y si
+        ' aun asi no hay ninguna (agencia oculta por no tener clase) se deja la que hubiera.
+        Dim agenciaPedido = listaAgencias.FirstOrDefault(Function(a) a.Numero = tarifaEconomica.AgenciaId)
+        If agenciaPedido Is Nothing Then
+            Dim nombreAgencia = _servicio.CargarAgencia(tarifaEconomica.AgenciaId)?.Nombre?.Trim()
+            If Not String.IsNullOrEmpty(nombreAgencia) Then
+                agenciaPedido = listaAgencias.FirstOrDefault(Function(a) String.Equals(If(a.Nombre, String.Empty).Trim(), nombreAgencia, StringComparison.OrdinalIgnoreCase))
+            End If
+        End If
+        If agenciaPedido Is Nothing Then
+            ' Ni por numero ni por nombre: la primera de la empresa del pedido (la lista ya es la de
+            ' esa empresa cuando llegamos aqui tras el await), y si tampoco, la que hubiera.
+            Dim empresaPedido = If(pedidoSeleccionado.Empresa, String.Empty).Trim()
+            agenciaPedido = listaAgencias.FirstOrDefault(Function(a) String.Equals(If(a.Empresa, String.Empty).Trim(), empresaPedido, StringComparison.OrdinalIgnoreCase))
+        End If
+        Return If(agenciaPedido, If(agenciaSeleccionada, listaAgencias.FirstOrDefault()))
 
     End Function
 

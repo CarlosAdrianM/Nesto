@@ -848,6 +848,67 @@ Public Class AgenciaViewModelTests
         Assert.AreEqual(viewModel.envioActual.Pais, viewModel.paisActual.Id)
     End Sub
 
+    ' 10/09/26 (Aida, ELMAH): teclear el numero de un pedido ESPEJO (empresa 3) tiraba la seleccion con
+    ' "Sequence contains no matching element": las tarifas locales llevan numeros de agencia de la
+    ' empresa 1 (ASM=1, CEX=8...) y la lista de agencias es la de la empresa seleccionada, asi que
+    ' ninguna casaba por empresa. Los envios salen SIEMPRE por las agencias de la empresa 1 (no hay
+    ' envios de la 3 desde 2020).
+    <TestMethod>
+    Public Sub AgenciaViewModel_PedidoDeLaEmpresaEspejo_CogeLaMismaAgenciaEnEsaEmpresaSinReventar()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1")
+        Dim empresa1 = A.Fake(Of Empresas)
+        empresa1.Número = "1  "
+        Dim empresa3 = A.Fake(Of Empresas)
+        empresa3.Número = "3  "
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(New ObservableCollection(Of Empresas) From {empresa1, empresa3})
+        Dim pedidoNormal = New PedidoAgenciaModel With {.Empresa = "1  ", .Número = 12345, .Nº_Cliente = "1", .Contacto = "0"}
+        pedidoNormal.Clientes = ClienteAgencia(New Clientes() With {
+            .Empresa = "1  ", .Nº_Cliente = "1", .Contacto = "0", .Nombre = "Cliente normal",
+            .Dirección = "Calle", .Población = "Algete", .Provincia = "Madrid", .CodPostal = "28110", .Teléfono = "911234567"})
+        Dim pedidoEspejo = New PedidoAgenciaModel With {.Empresa = "3  ", .Número = 924696, .Nº_Cliente = "14532", .Contacto = "0"}
+        pedidoEspejo.Clientes = ClienteAgencia(New Clientes() With {
+            .Empresa = "3  ", .Nº_Cliente = "14532", .Contacto = "0", .Nombre = "Cliente espejo",
+            .Dirección = "Calle", .Población = "Algete", .Provincia = "Madrid", .CodPostal = "28110", .Teléfono = "911234567"})
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(12345, False)).Returns(pedidoNormal)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(924696, False)).Returns(Nothing)
+        A.CallTo(Function() servicio.LeerPedidoParaAgenciaPorNumero(924696, True)).Returns(pedidoEspejo)
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, 12345)).Returns(pedidoNormal)
+        A.CallTo(Function() servicio.LeerPedidoParaAgencia(A(Of String).Ignored, 924696)).Returns(pedidoEspejo)
+        Dim asm1 = A.Fake(Of AgenciasTransporte)
+        asm1.Empresa = "1  "
+        asm1.Numero = 1
+        asm1.Nombre = "ASM"
+        Dim cex1 = A.Fake(Of AgenciasTransporte)
+        cex1.Empresa = "1  "
+        cex1.Numero = 8
+        cex1.Nombre = "Correos Express"
+        Dim asm3 = A.Fake(Of AgenciasTransporte)
+        asm3.Empresa = "3  "
+        asm3.Numero = 5
+        asm3.Nombre = "ASM"
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).That.Matches(Function(e) e.Trim() = "1"))).Returns(New ObservableCollection(Of AgenciasTransporte) From {asm1, cex1})
+        A.CallTo(Function() servicio.CargarListaAgencias(A(Of String).That.Matches(Function(e) e.Trim() = "3"))).Returns(New ObservableCollection(Of AgenciasTransporte) From {asm3})
+        A.CallTo(Function() servicio.CargarAgencia(1)).Returns(asm1)
+        A.CallTo(Function() servicio.CargarAgencia(8)).Returns(cex1)
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        viewModel.PestannaNombre = Pestannas.PEDIDOS
+        viewModel.cmdCargarDatos.Execute()
+        viewModel.numeroPedido = "12345"
+        ' Como en produccion: el reembolso llega por la API DESPUES de que el setter de numeroPedido
+        ' haya cambiado la ventana a la empresa 3, y la agencia se elige en esa continuacion.
+        Dim reembolso As New TaskCompletionSource(Of Decimal)
+        A.CallTo(Function() servicio.ImporteReembolso(A(Of String).That.Matches(Function(e) e.Trim() = "3"), 924696)).Returns(reembolso.Task)
+
+        viewModel.numeroPedido = "924696"
+        reembolso.SetResult(0D)
+
+        Assert.IsNotNull(viewModel.pedidoSeleccionado)
+        Assert.AreEqual("3  ", viewModel.pedidoSeleccionado.Empresa)
+        Assert.AreEqual("3  ", viewModel.empresaSeleccionada.Número, "la ventana cambia a la empresa del pedido, como siempre")
+        Assert.IsNotNull(viewModel.agenciaSeleccionada, "no revienta: la agencia se elige por nombre en la empresa del pedido")
+        Assert.AreEqual(5, viewModel.agenciaSeleccionada.Numero, "la misma agencia (ASM) pero la de la empresa 3")
+    End Sub
+
     '<TestMethod>
     'Public Sub AgenciaViewModel_ConfigurarAgencia_CogeLaAgenciaQueCoincidaLaRuta()
     '    A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1  ")
