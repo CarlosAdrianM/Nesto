@@ -430,10 +430,19 @@ Public Class AgenciaService
             CargarTodasLasAgencias().Where(Function(c) CampoIgual(c.Empresa, empresa)))
     End Function
 
+    ''' <summary>
+    ''' Nesto#340 (Agencias, slice A3): los envíos del pedido (todos los estados, por número) los
+    ''' sirve GET api/EnviosAgencias/PorPedido. El filtro se queda EN EL SERVIDOR, que compara
+    ''' ignorando el relleno de los char (Nesto#254). La consulta de EF solo cargaba la navegación
+    ''' AgenciasTransporte, que AEnvioAgencia estampa completa desde la caché de agencias.
+    ''' </summary>
     Public Function CargarListaEnviosPedido(empresa As String, pedido As Integer) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosPedido
-        Using contexto = New NestoEntities
-            Return New ObservableCollection(Of EnviosAgencia)(From e In contexto.EnviosAgencia.Include("AgenciasTransporte") Where e.Empresa = empresa AndAlso e.Pedido = pedido Order By e.Numero)
-        End Using
+        Return New ObservableCollection(Of EnviosAgencia)(LeerListadoEnvios(RutaEnviosPorPedido(empresa, pedido)))
+    End Function
+
+    ''' <summary>Aparte para fijarla en un test, como RutaEnvioPendientePorPedido.</summary>
+    Friend Shared Function RutaEnviosPorPedido(empresa As String, pedido As Integer) As String
+        Return $"EnviosAgencias/PorPedido?empresa={Uri.EscapeDataString(If(empresa, "").Trim())}&pedido={pedido}"
     End Function
 
     Public Function CargarAgencia(agencia As Integer) As AgenciasTransporte Implements IAgenciaService.CargarAgencia

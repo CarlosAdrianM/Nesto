@@ -171,4 +171,21 @@ Public Class AgenciaServiceAgenciasTests
         Assert.AreEqual("EnviosAgencias/PendientePorPedido?empresa=&pedido=12345", ruta)
     End Sub
 
+    ' Nesto#340 (Agencias, slice A3): CargarListaEnviosPedido dejó Entity Framework y pide los envíos
+    ' del pedido (todos los estados) a GET api/EnviosAgencias/PorPedido. Mismo contrato de nombres.
+
+    <TestMethod()>
+    Public Sub RutaEnviosPorPedido_LlevaLosNombresQueEsperaElEndpoint()
+        Dim ruta = AgenciaService.RutaEnviosPorPedido("1", 12345)
+
+        Assert.AreEqual("EnviosAgencias/PorPedido?empresa=1&pedido=12345", ruta)
+    End Sub
+
+    <TestMethod()>
+    Public Sub RutaEnviosPorPedido_ConLaEmpresaRellenaDeEspacios_NoLosMandaEnLaUrl()
+        Dim ruta = AgenciaService.RutaEnviosPorPedido("1  ", 12345)
+
+        Assert.AreEqual("EnviosAgencias/PorPedido?empresa=1&pedido=12345", ruta)
+    End Sub
+
 End Class
