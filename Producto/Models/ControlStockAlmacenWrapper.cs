@@ -1,10 +1,10 @@
 ﻿using Nesto.Infrastructure.Shared;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Linq;
 
 namespace Nesto.Modules.Producto.Models
 {
-    public class ControlStockAlmacenWrapper : BindableBase
+    public class ControlStockAlmacenWrapper : ObservableObject
     {
         public ControlStockAlmacenWrapper(ControlStockAlmacenModel model)
         {
@@ -51,7 +51,7 @@ namespace Nesto.Modules.Producto.Models
                 {
                     stockCentral.StockMaximoActual = nuevoStockCentral;
                 }
-                RaisePropertyChanged(nameof(StockMaximoActual));
+                OnPropertyChanged(nameof(StockMaximoActual));
             } 
         }
         public int StockMaximoCalculado => Model != null ? Model.StockMaximoCalculado : 0;

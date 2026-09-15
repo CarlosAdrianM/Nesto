@@ -1,6 +1,6 @@
 ﻿using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class CorreccionVideoProductoViewModel : BindableBase, IDialogAware
+    public class CorreccionVideoProductoViewModel : ObservableObject, IDialogAware
     {
         private readonly IProductoService _productoService;
         private readonly IRegionManager _regionManager;
@@ -42,7 +42,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _video, value);
-                RaisePropertyChanged(nameof(TituloVideo));
+                OnPropertyChanged(nameof(TituloVideo));
                 CargarProductosEditables();
             }
         }
@@ -105,7 +105,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     editable.PropertyChanged += (s, e) =>
                     {
                         GuardarCommand.NotifyCanExecuteChanged();
-                        RaisePropertyChanged(nameof(ResumenCambios));
+                        OnPropertyChanged(nameof(ResumenCambios));
                     };
                     ProductosEditables.Add(editable);
                 }
@@ -257,7 +257,7 @@ namespace Nesto.Modules.Producto.ViewModels
     }
 
     // Clase helper para manejar productos editables
-    public class ProductoEditable : BindableBase
+    public class ProductoEditable : ObservableObject
     {
         public ProductoVideoModel ProductoOriginal { get; }
 
@@ -292,7 +292,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _nombreProducto, value);
-                RaisePropertyChanged(nameof(TieneCambios));
+                OnPropertyChanged(nameof(TieneCambios));
             }
         }
 
@@ -317,7 +317,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _referencia, value);
-                RaisePropertyChanged(nameof(TieneCambios));
+                OnPropertyChanged(nameof(TieneCambios));
             }
         }
 
@@ -328,7 +328,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _enlaceTienda, value);
-                RaisePropertyChanged(nameof(TieneCambios));
+                OnPropertyChanged(nameof(TieneCambios));
             }
         }
 
@@ -339,7 +339,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _tiempoAparicion, value);
-                RaisePropertyChanged(nameof(TieneCambios));
+                OnPropertyChanged(nameof(TieneCambios));
             }
         }
 
@@ -350,7 +350,7 @@ namespace Nesto.Modules.Producto.ViewModels
             set
             {
                 _ = SetProperty(ref _marcarParaEliminar, value);
-                RaisePropertyChanged(nameof(TieneCambios));
+                OnPropertyChanged(nameof(TieneCambios));
             }
         }
 

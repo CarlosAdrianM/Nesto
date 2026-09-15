@@ -1,8 +1,8 @@
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Nesto.Modules.Producto.Models
 {
-    public class ProductoControlStockModel : BindableBase
+    public class ProductoControlStockModel : ObservableObject
     {
         public string ProductoId { get; set; }
         public string Nombre { get; set; }

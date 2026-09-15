@@ -1,7 +1,7 @@
 ﻿using ControlesUsuario.Dialogs;
 using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class ReposicionViewModel : BindableBase, INavigationAware
+    public class ReposicionViewModel : ObservableObject, INavigationAware
     {
         
 
@@ -95,8 +95,8 @@ namespace Nesto.Modules.Producto.ViewModels
         private async Task CargarDiarios()
         {
             ListaDiarios = await Servicio.LeerDiariosProducto();
-            RaisePropertyChanged(nameof(ListaDiariosConMovimientos));
-            RaisePropertyChanged(nameof(ListaDiariosSinMovimientos));
+            OnPropertyChanged(nameof(ListaDiariosConMovimientos));
+            OnPropertyChanged(nameof(ListaDiariosSinMovimientos));
         }
 
 

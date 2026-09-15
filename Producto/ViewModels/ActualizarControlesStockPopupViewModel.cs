@@ -4,7 +4,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.ObjectModel;
@@ -15,7 +15,7 @@ using static ControlesUsuario.Models.SelectorProveedorModel;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class ActualizarControlesStockPopupViewModel : BindableBase, IDialogAware
+    public class ActualizarControlesStockPopupViewModel : ObservableObject, IDialogAware
     {
         private readonly IProductoService _productoService;
         private readonly IConfiguracion _configuracion;
@@ -107,8 +107,8 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _estaCargando, value))
                 {
-                    RaisePropertyChanged(nameof(PuedeInteractuar));
-                    RaisePropertyChanged(nameof(PuedeActualizar));
+                    OnPropertyChanged(nameof(PuedeInteractuar));
+                    OnPropertyChanged(nameof(PuedeActualizar));
                     BuscarProductosCommand.NotifyCanExecuteChanged();
                     ActualizarCommand.NotifyCanExecuteChanged();
                 }
@@ -123,8 +123,8 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _estaActualizando, value))
                 {
-                    RaisePropertyChanged(nameof(PuedeInteractuar));
-                    RaisePropertyChanged(nameof(PuedeActualizar));
+                    OnPropertyChanged(nameof(PuedeInteractuar));
+                    OnPropertyChanged(nameof(PuedeActualizar));
                     BuscarProductosCommand.NotifyCanExecuteChanged();
                     ActualizarCommand.NotifyCanExecuteChanged();
                 }
@@ -160,7 +160,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _mensajeResultado, value))
                 {
-                    RaisePropertyChanged(nameof(HayResultado));
+                    OnPropertyChanged(nameof(HayResultado));
                 }
             }
         }
@@ -219,12 +219,12 @@ namespace Nesto.Modules.Producto.ViewModels
                     Productos.Add(producto);
                 }
 
-                RaisePropertyChanged(nameof(HayProductos));
-                RaisePropertyChanged(nameof(TotalProductos));
-                RaisePropertyChanged(nameof(ProductosAActualizar));
-                RaisePropertyChanged(nameof(ProductosACrear));
-                RaisePropertyChanged(nameof(ProductosSinCambios));
-                RaisePropertyChanged(nameof(PuedeActualizar));
+                OnPropertyChanged(nameof(HayProductos));
+                OnPropertyChanged(nameof(TotalProductos));
+                OnPropertyChanged(nameof(ProductosAActualizar));
+                OnPropertyChanged(nameof(ProductosACrear));
+                OnPropertyChanged(nameof(ProductosSinCambios));
+                OnPropertyChanged(nameof(PuedeActualizar));
                 ActualizarCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
@@ -328,12 +328,12 @@ namespace Nesto.Modules.Producto.ViewModels
                 }
 
                 // Refrescar la lista para actualizar los estados
-                RaisePropertyChanged(nameof(ProductosAActualizar));
-                RaisePropertyChanged(nameof(ProductosACrear));
-                RaisePropertyChanged(nameof(ProductosActualizados));
-                RaisePropertyChanged(nameof(ProductosConError));
-                RaisePropertyChanged(nameof(ProductosSinCambios));
-                RaisePropertyChanged(nameof(PuedeActualizar));
+                OnPropertyChanged(nameof(ProductosAActualizar));
+                OnPropertyChanged(nameof(ProductosACrear));
+                OnPropertyChanged(nameof(ProductosActualizados));
+                OnPropertyChanged(nameof(ProductosConError));
+                OnPropertyChanged(nameof(ProductosSinCambios));
+                OnPropertyChanged(nameof(PuedeActualizar));
                 ActualizarCommand.NotifyCanExecuteChanged();
             }
             finally
@@ -358,7 +358,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     SelectorProveedor.ProveedorCompletoProperty, typeof(SelectorProveedor));
                 dpd?.AddValueChanged(_selectorProveedor, (s, e) =>
                 {
-                    RaisePropertyChanged(nameof(ProveedorSeleccionado));
+                    OnPropertyChanged(nameof(ProveedorSeleccionado));
                     BuscarProductosCommand.NotifyCanExecuteChanged();
                 });
             }

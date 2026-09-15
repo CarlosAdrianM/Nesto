@@ -1,5 +1,5 @@
 ﻿using Nesto.Infrastructure.Shared;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Nesto.Modules.Producto.Models
 {
-    public class ControlStockProductoWrapper : BindableBase
+    public class ControlStockProductoWrapper : ObservableObject
     {
         public ControlStockProductoWrapper(ControlStockProductoModel model)
         {
@@ -54,7 +54,7 @@ namespace Nesto.Modules.Producto.Models
                         Model.ControlesStocksAlmacen.Remove(item.Model);
                     }
                 }
-                RaisePropertyChanged(string.Empty);
+                OnPropertyChanged(string.Empty);
             }
         }
 
@@ -64,7 +64,7 @@ namespace Nesto.Modules.Producto.Models
             {
                 OnStockChanged();
             }
-            //RaisePropertyChanged(string.Empty);
+            //OnPropertyChanged(string.Empty);
         }
 
         public ControlStockProductoModel Model { get; }
@@ -91,7 +91,7 @@ namespace Nesto.Modules.Producto.Models
                     return;
                 }
                 Model.StockMinimoActual = value;
-                RaisePropertyChanged(nameof(StockMinimoActual));
+                OnPropertyChanged(nameof(StockMinimoActual));
                 OnStockChanged();
             }
         }
@@ -113,7 +113,7 @@ namespace Nesto.Modules.Producto.Models
                     return;
                 }
                 central.Model.Multiplos = value;
-                RaisePropertyChanged(nameof(MultiplosActual));
+                OnPropertyChanged(nameof(MultiplosActual));
                 OnStockChanged();
             }
         }

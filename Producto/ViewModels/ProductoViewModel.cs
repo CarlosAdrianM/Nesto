@@ -6,7 +6,7 @@ using Nesto.Modules.Producto.Models;
 using Nesto.Modulos.Producto;
 using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -23,7 +23,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class ProductoViewModel : BindableBase, INavigationAware
+    public class ProductoViewModel : ObservableObject, INavigationAware
     {
         public event EventHandler DatosCargados;
         public event Action<VideoModel> VideoCompletoSeleccionadoCambiado;
@@ -258,7 +258,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _otrosProductosEnEsteVideo, value))
                 {
-                    RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
+                    OnPropertyChanged(nameof(HayVideosProductosSinReferencia));
                 }
             }
         }
@@ -300,7 +300,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _productosKit, value))
                 {
-                    RaisePropertyChanged(nameof(MostrarPestannaKits));
+                    OnPropertyChanged(nameof(MostrarPestannaKits));
                 }
             }
         }
@@ -340,7 +340,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 if (SetProperty(ref _videoCompletoSeleccionado, value))
                 {
                     VideoCompletoSeleccionadoCambiado?.Invoke(value);
-                    RaisePropertyChanged(nameof(UrlVideoProductoSeleccionado));
+                    OnPropertyChanged(nameof(UrlVideoProductoSeleccionado));
 
                     // Filtrar productos del video que mencionan al producto actual (por referencia o por nombre)
                     OtrosProductosEnEsteVideo = new ObservableCollection<ProductoVideoModel>(
@@ -351,7 +351,7 @@ namespace Nesto.Modules.Producto.ViewModels
                          ) ?? []
                      );
 
-                    RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
+                    OnPropertyChanged(nameof(HayVideosProductosSinReferencia));
                     CorrigeVideoProductoCommand.NotifyCanExecuteChanged();
                 }
             }
@@ -396,7 +396,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _videosRelacionados, value))
                 {
-                    RaisePropertyChanged(nameof(TieneVideosRelacionados));
+                    OnPropertyChanged(nameof(TieneVideosRelacionados));
                 }
             }
         }
@@ -477,7 +477,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     ProductosResultadoBusqueda.QuitarFiltroCommand.Execute("-stock:0");
                 }
-                RaisePropertyChanged(nameof(MostrarBarraBusqueda));
+                OnPropertyChanged(nameof(MostrarBarraBusqueda));
                 ImprimirEtiquetasProductoCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)
@@ -538,7 +538,7 @@ namespace Nesto.Modules.Producto.ViewModels
                 {
                     ProductosResultadoBusqueda.QuitarFiltroCommand.Execute("-stock:0");
                 }
-                RaisePropertyChanged(nameof(MostrarBarraBusqueda));
+                OnPropertyChanged(nameof(MostrarBarraBusqueda));
                 ImprimirEtiquetasProductoCommand.NotifyCanExecuteChanged();
             }
             catch (Exception ex)

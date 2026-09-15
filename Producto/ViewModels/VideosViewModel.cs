@@ -3,7 +3,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modules.Producto.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -16,7 +16,7 @@ using System.Windows;
 
 namespace Nesto.Modules.Producto.ViewModels
 {
-    public class VideosViewModel : BindableBase, INavigationAware
+    public class VideosViewModel : ObservableObject, INavigationAware
     {
         public event Action<VideoModel> VideoCompletoSeleccionadoCambiado;
 
@@ -95,7 +95,7 @@ namespace Nesto.Modules.Producto.ViewModels
                     OtrosProductosEnEsteVideo = new ObservableCollection<ProductoVideoModel>(
                         _videoCompletoSeleccionado?.Productos?.ToList() ?? []
                     );
-                    RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
+                    OnPropertyChanged(nameof(HayVideosProductosSinReferencia));
                     CorrigeVideoProductoCommand.NotifyCanExecuteChanged();
                 }
             }
@@ -109,7 +109,7 @@ namespace Nesto.Modules.Producto.ViewModels
             {
                 if (SetProperty(ref _otrosProductosEnEsteVideo, value))
                 {
-                    RaisePropertyChanged(nameof(HayVideosProductosSinReferencia));
+                    OnPropertyChanged(nameof(HayVideosProductosSinReferencia));
                 }
             }
         }
