@@ -5,7 +5,7 @@ using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
 using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -17,7 +17,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.PedidoCompra.ViewModels
 {
-    public class ListaPedidosCompraViewModel : BindableBase
+    public class ListaPedidosCompraViewModel : ObservableObject
     {
         public IPedidoCompraService Servicio { get; }
         public IDialogService DialogService { get; }

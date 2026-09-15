@@ -1,11 +1,11 @@
 ﻿using Nesto.Infrastructure.Contracts;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Linq;
 
 namespace Nesto.Modulos.PedidoCompra.Models
 {
-    public class PedidoCompraLookup : BindableBase, IFiltrableItem
+    public class PedidoCompraLookup : ObservableObject, IFiltrableItem
     {
         public PedidoCompraLookup() { }
         public PedidoCompraLookup(PedidoCompraDTO pedidoOrigen)
@@ -26,7 +26,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             get => _pedido;
             set { 
                 SetProperty(ref _pedido, value);
-                RaisePropertyChanged(nameof(EsPedidoSinCrear));
+                OnPropertyChanged(nameof(EsPedidoSinCrear));
             }
         }
         public string Proveedor { get; set; }

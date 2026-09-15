@@ -3,7 +3,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace Nesto.Modulos.Cliente
     /// provincia, ruta, vendedor y los vendedores por grupo de producto. Acceso: Dirección y
     /// Tienda online (el menú ya lo filtra; el VM lo vuelve a comprobar por si acaso).
     /// </summary>
-    public class MantenimientoCodigosPostalesViewModel : BindableBase
+    public class MantenimientoCodigosPostalesViewModel : ObservableObject
     {
         private readonly ICodigosPostalesService _servicio;
         private readonly IDialogService _dialogService;
@@ -79,7 +79,7 @@ namespace Nesto.Modulos.Cliente
                     CargarEdicion(value);
                     GuardarCommand.NotifyCanExecuteChanged();
                     AnnadirVendedorGrupoCommand.NotifyCanExecuteChanged();
-                    RaisePropertyChanged(nameof(HaySeleccion));
+                    OnPropertyChanged(nameof(HaySeleccion));
                 }
             }
         }

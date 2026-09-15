@@ -3,7 +3,7 @@ using Nesto.Infrastructure.Events;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -21,7 +21,7 @@ namespace Nesto.Modulos.Cliente
     /// (NestoAPI#333; la lógica y las validaciones viven en la API, aquí solo se pinta y se
     /// pide). Driver: el paso de revisión de #332 exige poder liquidar antes de remesar.
     /// </summary>
-    public class ExtractoClienteViewModel : BindableBase, INavigationAware
+    public class ExtractoClienteViewModel : ObservableObject, INavigationAware
     {
         private readonly IExtractoClienteService _servicio;
         private readonly IDialogService _dialogService;
@@ -90,7 +90,7 @@ namespace Nesto.Modulos.Cliente
                 {
                     movimiento.PropertyChanged += MovimientoCambiado;
                 }
-                RaisePropertyChanged(nameof(TotalPendiente));
+                OnPropertyChanged(nameof(TotalPendiente));
                 LiquidarCommand.NotifyCanExecuteChanged();
             }
         }

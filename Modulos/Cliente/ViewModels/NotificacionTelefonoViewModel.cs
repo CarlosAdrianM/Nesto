@@ -1,5 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace Nesto.Modulos.Cliente.ViewModels
 {
-    public class NotificacionTelefonoViewModel : BindableBase, IDialogAware
+    public class NotificacionTelefonoViewModel : ObservableObject, IDialogAware
     {
         public NotificacionTelefonoViewModel()
         {

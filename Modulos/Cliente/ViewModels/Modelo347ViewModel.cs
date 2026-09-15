@@ -2,7 +2,7 @@
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -20,7 +20,7 @@ namespace Nesto.Modulos.Cliente
     /// ViewModel para la vista de descarga del certificado Modelo 347.
     /// Issue #270: Nueva vista Clientes -> Modelo 347 para descargar certificado.
     /// </summary>
-    public class Modelo347ViewModel : BindableBase, INavigationAware
+    public class Modelo347ViewModel : ObservableObject, INavigationAware
     {
         private readonly IConfiguracion _configuracion;
         private readonly IDialogService _dialogService;

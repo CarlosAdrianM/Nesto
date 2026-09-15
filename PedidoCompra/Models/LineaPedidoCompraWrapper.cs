@@ -1,4 +1,4 @@
-﻿using Prism.Mvvm;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using Prism.Ioc;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.PedidoCompra.Models
 {
-    public class LineaPedidoCompraWrapper : BindableBase
+    public class LineaPedidoCompraWrapper : ObservableObject
     {
         IPedidoCompraService Servicio;
         
@@ -65,7 +65,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.Id = value;
-                RaisePropertyChanged(nameof(Id));
+                OnPropertyChanged(nameof(Id));
             }
         }
 
@@ -75,7 +75,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.Estado = value;
-                RaisePropertyChanged(nameof(Estado));
+                OnPropertyChanged(nameof(Estado));
             }
         }
         public int EstadoProducto
@@ -84,7 +84,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.EstadoProducto = value;
-                RaisePropertyChanged(nameof(EstadoProducto));
+                OnPropertyChanged(nameof(EstadoProducto));
             }
         }
         public string TipoLinea
@@ -94,7 +94,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             {
                 var tipoLineaAnterior = Model.TipoLinea;
                 Model.TipoLinea = value;
-                RaisePropertyChanged(nameof(TipoLinea));
+                OnPropertyChanged(nameof(TipoLinea));
                 if (Pedido != null)
                 {
                     Pedido.UltimoTipoLinea = value;
@@ -116,7 +116,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.Producto = value;
-                RaisePropertyChanged(nameof(Producto));
+                OnPropertyChanged(nameof(Producto));
                 CargarProducto(value);
             }
         }
@@ -134,7 +134,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
                 var posicion = (Pedido.Model.Lineas as List<LineaPedidoCompraDTO>).IndexOf(Model);
                 Model = lineaProducto;
                 (Pedido.Model.Lineas as List<LineaPedidoCompraDTO>)[posicion] = Model;
-                RaisePropertyChanged(string.Empty);
+                OnPropertyChanged(string.Empty);
             }
         }
 
@@ -144,7 +144,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.Texto = value;
-                RaisePropertyChanged(nameof(Texto));
+                OnPropertyChanged(nameof(Texto));
             }
         }
         public DateTime FechaRecepcion
@@ -153,7 +153,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.FechaRecepcion = value;
-                RaisePropertyChanged(nameof(FechaRecepcion));
+                OnPropertyChanged(nameof(FechaRecepcion));
                 if (Pedido != null)
                 {
                     Pedido.UltimaFechaRecepcion= value;
@@ -166,17 +166,17 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.Cantidad = value;
-                RaisePropertyChanged(nameof(Cantidad));
-                RaisePropertyChanged(nameof(CantidadCobrada));
-                RaisePropertyChanged(nameof(CantidadRegalo));
-                RaisePropertyChanged(nameof(PrecioUnitario));
-                RaisePropertyChanged(nameof(DescuentoProducto));
-                RaisePropertyChanged(nameof(SumaDescuentos));
-                RaisePropertyChanged(nameof(Bruto));
-                RaisePropertyChanged(nameof(ImporteDescuento));
-                RaisePropertyChanged(nameof(BaseImponible));
-                RaisePropertyChanged(nameof(ImporteIva));
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(Cantidad));
+                OnPropertyChanged(nameof(CantidadCobrada));
+                OnPropertyChanged(nameof(CantidadRegalo));
+                OnPropertyChanged(nameof(PrecioUnitario));
+                OnPropertyChanged(nameof(DescuentoProducto));
+                OnPropertyChanged(nameof(SumaDescuentos));
+                OnPropertyChanged(nameof(Bruto));
+                OnPropertyChanged(nameof(ImporteDescuento));
+                OnPropertyChanged(nameof(BaseImponible));
+                OnPropertyChanged(nameof(ImporteIva));
+                OnPropertyChanged(nameof(Total));
             }
         }
         private int _cantidadOriginal;
@@ -192,10 +192,10 @@ namespace Nesto.Modulos.PedidoCompra.Models
                 var parametroIva = Pedido.Model.ParametrosIva.Single(p => p.CodigoIvaProducto.ToLower() == value.ToLower());
                 Model.CodigoIvaProducto = parametroIva.CodigoIvaProducto;
                 Model.PorcentajeIva = parametroIva.PorcentajeIvaProducto;
-                RaisePropertyChanged(nameof(CodigoIvaProducto));
-                RaisePropertyChanged(nameof(PorcentajeIva));
-                RaisePropertyChanged(nameof(ImporteIva));
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(CodigoIvaProducto));
+                OnPropertyChanged(nameof(PorcentajeIva));
+                OnPropertyChanged(nameof(ImporteIva));
+                OnPropertyChanged(nameof(Total));
             }
         }
 
@@ -205,12 +205,12 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.PrecioUnitario = value;
-                RaisePropertyChanged(nameof(PrecioUnitario));
-                RaisePropertyChanged(nameof(Bruto));
-                RaisePropertyChanged(nameof(ImporteDescuento));
-                RaisePropertyChanged(nameof(BaseImponible));
-                RaisePropertyChanged(nameof(ImporteIva));
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(PrecioUnitario));
+                OnPropertyChanged(nameof(Bruto));
+                OnPropertyChanged(nameof(ImporteDescuento));
+                OnPropertyChanged(nameof(BaseImponible));
+                OnPropertyChanged(nameof(ImporteIva));
+                OnPropertyChanged(nameof(Total));
             }
         }
         public decimal DescuentoLinea
@@ -219,12 +219,12 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.DescuentoLinea = value;
-                RaisePropertyChanged(nameof(DescuentoLinea));
-                RaisePropertyChanged(nameof(SumaDescuentos));
-                RaisePropertyChanged(nameof(ImporteDescuento));
-                RaisePropertyChanged(nameof(BaseImponible));
-                RaisePropertyChanged(nameof(ImporteIva));
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(DescuentoLinea));
+                OnPropertyChanged(nameof(SumaDescuentos));
+                OnPropertyChanged(nameof(ImporteDescuento));
+                OnPropertyChanged(nameof(BaseImponible));
+                OnPropertyChanged(nameof(ImporteIva));
+                OnPropertyChanged(nameof(Total));
             }
         }
         public decimal DescuentoProveedor
@@ -233,12 +233,12 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.DescuentoProveedor = value;
-                RaisePropertyChanged(nameof(DescuentoProveedor));
-                RaisePropertyChanged(nameof(SumaDescuentos));
-                RaisePropertyChanged(nameof(ImporteDescuento));
-                RaisePropertyChanged(nameof(BaseImponible));
-                RaisePropertyChanged(nameof(ImporteIva));
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(DescuentoProveedor));
+                OnPropertyChanged(nameof(SumaDescuentos));
+                OnPropertyChanged(nameof(ImporteDescuento));
+                OnPropertyChanged(nameof(BaseImponible));
+                OnPropertyChanged(nameof(ImporteIva));
+                OnPropertyChanged(nameof(Total));
             }
         }
         public decimal DescuentoProducto
@@ -247,12 +247,12 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.DescuentoProducto = value;
-                RaisePropertyChanged(nameof(DescuentoProducto));
-                RaisePropertyChanged(nameof(SumaDescuentos));
-                RaisePropertyChanged(nameof(ImporteDescuento));
-                RaisePropertyChanged(nameof(BaseImponible));
-                RaisePropertyChanged(nameof(ImporteIva));
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(DescuentoProducto));
+                OnPropertyChanged(nameof(SumaDescuentos));
+                OnPropertyChanged(nameof(ImporteDescuento));
+                OnPropertyChanged(nameof(BaseImponible));
+                OnPropertyChanged(nameof(ImporteIva));
+                OnPropertyChanged(nameof(Total));
             }
         }
         /*
@@ -262,7 +262,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.Descuentos = value;
-                RaisePropertyChanged(nameof(Descuentos));
+                OnPropertyChanged(nameof(Descuentos));
             }
         }
 
@@ -272,7 +272,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.Ofertas = value;
-                RaisePropertyChanged(nameof(Ofertas));
+                OnPropertyChanged(nameof(Ofertas));
             }
         }
         */
@@ -283,12 +283,12 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.AplicarDescuento = value;
-                RaisePropertyChanged(nameof(AplicarDescuento));
-                RaisePropertyChanged(nameof(SumaDescuentos));
-                RaisePropertyChanged(nameof(ImporteDescuento));
-                RaisePropertyChanged(nameof(BaseImponible));
-                RaisePropertyChanged(nameof(ImporteIva));
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(AplicarDescuento));
+                OnPropertyChanged(nameof(SumaDescuentos));
+                OnPropertyChanged(nameof(ImporteDescuento));
+                OnPropertyChanged(nameof(BaseImponible));
+                OnPropertyChanged(nameof(ImporteIva));
+                OnPropertyChanged(nameof(Total));
             }
         }
         public decimal PorcentajeIva
@@ -297,9 +297,9 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.PorcentajeIva = value;
-                RaisePropertyChanged(nameof(PorcentajeIva));
-                RaisePropertyChanged(nameof(ImporteIva));
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(PorcentajeIva));
+                OnPropertyChanged(nameof(ImporteIva));
+                OnPropertyChanged(nameof(Total));
             }
         }
 
@@ -334,13 +334,13 @@ namespace Nesto.Modulos.PedidoCompra.Models
 
         private void NotificarCambioDeOferta()
         {
-            RaisePropertyChanged(nameof(CantidadCobrada));
-            RaisePropertyChanged(nameof(CantidadRegalo));
-            RaisePropertyChanged(nameof(Bruto));
-            RaisePropertyChanged(nameof(ImporteDescuento));
-            RaisePropertyChanged(nameof(BaseImponible));
-            RaisePropertyChanged(nameof(ImporteIva));
-            RaisePropertyChanged(nameof(Total));
+            OnPropertyChanged(nameof(CantidadCobrada));
+            OnPropertyChanged(nameof(CantidadRegalo));
+            OnPropertyChanged(nameof(Bruto));
+            OnPropertyChanged(nameof(ImporteDescuento));
+            OnPropertyChanged(nameof(BaseImponible));
+            OnPropertyChanged(nameof(ImporteIva));
+            OnPropertyChanged(nameof(Total));
         }
     }
 }

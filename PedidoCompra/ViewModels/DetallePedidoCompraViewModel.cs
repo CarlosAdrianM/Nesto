@@ -8,7 +8,7 @@ using Nesto.Modulos.PedidoCompra.Events;
 using Nesto.Modulos.PedidoCompra.Models;
 using CommunityToolkit.Mvvm.Input;
 using Prism.Events;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using Prism.Services.Dialogs;
 using System;
@@ -23,7 +23,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.PedidoCompra.ViewModels
 {
-    public class DetallePedidoCompraViewModel : BindableBase, INavigationAware
+    public class DetallePedidoCompraViewModel : ObservableObject, INavigationAware
     {
         public IPedidoCompraService Servicio { get; }
         public IDialogService DialogService { get; }
@@ -363,8 +363,8 @@ namespace Nesto.Modulos.PedidoCompra.ViewModels
                             linea.Cantidad = (int)(linea.Cantidad % linea.Model.Multiplos == 0 ? linea.Cantidad : Math.Ceiling((double)linea.Cantidad / linea.Model.Multiplos) * linea.Model.Multiplos);
                         }
                     }
-                    RaisePropertyChanged(string.Empty);
-                    RaisePropertyChanged(nameof(Pedido));
+                    OnPropertyChanged(string.Empty);
+                    OnPropertyChanged(nameof(Pedido));
                 });
             }
             catch (Exception ex)

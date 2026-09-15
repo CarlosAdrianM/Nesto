@@ -11,14 +11,14 @@ using System.Windows.Input;
 using Xceed.Wpf.Toolkit;
 using Prism.Services.Dialogs;
 using ControlesUsuario.Dialogs;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Nesto.Infrastructure.Events;
 using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 
 namespace Nesto.Modulos.Cliente
 {
-    public class CrearClienteViewModel: BindableBase, INavigationAware
+    public class CrearClienteViewModel: ObservableObject, INavigationAware
     {
         private const string DATOS_FISCALES = "DatosFiscales";
         public const string DATOS_GENERALES = "DatosGenerales";
@@ -78,8 +78,8 @@ namespace Nesto.Modulos.Cliente
             get => clienteDireccion; 
             set { 
                 SetProperty(ref clienteDireccion, value);
-                RaisePropertyChanged(nameof(TieneDireccion));
-                RaisePropertyChanged(nameof(NoTieneDireccion));
+                OnPropertyChanged(nameof(TieneDireccion));
+                OnPropertyChanged(nameof(NoTieneDireccion));
             }
         }
         private string clienteDireccionAdicional;
@@ -113,7 +113,7 @@ namespace Nesto.Modulos.Cliente
             {
                 if (SetProperty(ref direccionVerificadaPorGoogle, value))
                 {
-                    RaisePropertyChanged(nameof(CodigoPostalIsEnabled));
+                    OnPropertyChanged(nameof(CodigoPostalIsEnabled));
                     if (!value)
                     {
                         // Sin verificación no hay datos de Google que preferir
@@ -295,8 +295,8 @@ namespace Nesto.Modulos.Cliente
                 return;
             }
             sirveDia[indice] = valor;
-            RaisePropertyChanged(nombresSirveDia[indice]);
-            RaisePropertyChanged(nameof(DiasEnServir));
+            OnPropertyChanged(nombresSirveDia[indice]);
+            OnPropertyChanged(nameof(DiasEnServir));
         }
         /// <summary>La cadena tal como viaja a la API: "01111" = cierra los lunes.</summary>
         public string DiasEnServir
@@ -331,7 +331,7 @@ namespace Nesto.Modulos.Cliente
             get => clienteEsContacto;
             set { 
                 SetProperty(ref clienteEsContacto, value);
-                RaisePropertyChanged(nameof(EsCreandoContacto));
+                OnPropertyChanged(nameof(EsCreandoContacto));
             }
         }
         public short? ClienteEstado { get; set; }
@@ -359,8 +359,8 @@ namespace Nesto.Modulos.Cliente
                 // en modo degradado el campo del nombre seguiría abierto el resto de la sesión
                 // aunque ya se hubiera importado el certificado renovado.
                 NombreLoDebeEscribirElUsuario = false;
-                //RaisePropertyChanged(nameof(NombreIsEnabled));
-                RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
+                //OnPropertyChanged(nameof(NombreIsEnabled));
+                OnPropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
             }
         }
         // NestoAPI#355: país ISO-2 del cliente. Default España; si es extranjero, el NIF puede
@@ -375,9 +375,9 @@ namespace Nesto.Modulos.Cliente
                 // Nesto#436: por defecto la dirección está en el país fiscal; si difieren (fiscal
                 // Alemania, vive en Francia) el usuario cambia el selector de país de la dirección.
                 ClientePaisDireccion = value;
-                RaisePropertyChanged(nameof(EsPaisExtranjero));
-                RaisePropertyChanged(nameof(NombreIsEnabled));
-                RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
+                OnPropertyChanged(nameof(EsPaisExtranjero));
+                OnPropertyChanged(nameof(NombreIsEnabled));
+                OnPropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
             }
         }
 
@@ -411,7 +411,7 @@ namespace Nesto.Modulos.Cliente
             set
             {
                 SetProperty(ref clienteNombre, value);
-                RaisePropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
+                OnPropertyChanged(nameof(SePuedeAvanzarADatosGenerales));
             }
         }
         private string clienteNumero;
@@ -446,7 +446,7 @@ namespace Nesto.Modulos.Cliente
             get { return clienteTieneEstetica; }
             set {
                 SetProperty(ref clienteTieneEstetica, value);
-                RaisePropertyChanged(nameof(SePuedeAvanzarADatosPago));
+                OnPropertyChanged(nameof(SePuedeAvanzarADatosPago));
             }
         }
         private bool clienteTienePeluqueria;
@@ -454,7 +454,7 @@ namespace Nesto.Modulos.Cliente
             get { return clienteTienePeluqueria; }
             set {
                 SetProperty(ref clienteTienePeluqueria, value);
-                RaisePropertyChanged(nameof(SePuedeAvanzarADatosPago));
+                OnPropertyChanged(nameof(SePuedeAvanzarADatosPago));
             }
         }
         private string clienteVendedorEstetica;
@@ -469,7 +469,7 @@ namespace Nesto.Modulos.Cliente
             get { return clienteVendedorPeluqueria; }
             set {
                 SetProperty(ref clienteVendedorPeluqueria, value);
-                RaisePropertyChanged(nameof(VendedorPeluqueriaMostrar));
+                OnPropertyChanged(nameof(VendedorPeluqueriaMostrar));
             }
         }
         public bool EsCreandoContacto
@@ -482,7 +482,7 @@ namespace Nesto.Modulos.Cliente
             get => esUnaModificacion;
             set { 
                 SetProperty(ref esUnaModificacion, value);
-                RaisePropertyChanged(nameof(EsCreandoContacto));
+                OnPropertyChanged(nameof(EsCreandoContacto));
             }
         }
         private bool formaPagoEfectivo;
@@ -508,8 +508,8 @@ namespace Nesto.Modulos.Cliente
             get { return nifValidado; }
             set {
                 SetProperty(ref nifValidado, value);
-                RaisePropertyChanged(nameof(NifSinValidar));
-                RaisePropertyChanged(nameof(NombreIsEnabled));
+                OnPropertyChanged(nameof(NifSinValidar));
+                OnPropertyChanged(nameof(NombreIsEnabled));
             }
         }
         public bool NifSinValidar
@@ -528,7 +528,7 @@ namespace Nesto.Modulos.Cliente
                 // se pone a false en cada pulsación y no debe generar notificaciones de más.
                 if (SetProperty(ref nombreLoDebeEscribirElUsuario, value))
                 {
-                    RaisePropertyChanged(nameof(NombreIsEnabled));
+                    OnPropertyChanged(nameof(NombreIsEnabled));
                 }
             }
         }

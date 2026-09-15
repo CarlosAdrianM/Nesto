@@ -3,7 +3,7 @@ using Nesto.Infrastructure.Contracts;
 using Nesto.Infrastructure.Shared;
 using Nesto.Modulos.Cliente.Models;
 using CommunityToolkit.Mvvm.Input;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Services.Dialogs;
 using System;
 using System.Collections.Generic;
@@ -21,7 +21,7 @@ namespace Nesto.Modulos.Cliente
     /// el resto, los de su vendedor (parámetro Vendedor del usuario). El filtro fino por
     /// equipos de venta (jefes) queda para una iteración posterior.
     /// </summary>
-    public class ClientesNifIncorrectosViewModel : BindableBase
+    public class ClientesNifIncorrectosViewModel : ObservableObject
     {
         private readonly INifIncorrectosService _servicio;
         private readonly IConfiguracion _configuracion;
@@ -117,7 +117,7 @@ namespace Nesto.Modulos.Cliente
                     // Al indicar país, el cliente es EXTRANJERO: "Corregir NIF" (que valida contra
                     // la AEAT española) deja de tener sentido y se deshabilita.
                     CorregirCommand.NotifyCanExecuteChanged();
-                    RaisePropertyChanged(nameof(EsClienteEspanol));
+                    OnPropertyChanged(nameof(EsClienteEspanol));
                 }
             }
         }

@@ -1,5 +1,5 @@
 ﻿using Nesto.Infrastructure.Shared;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -8,7 +8,7 @@ using System.ComponentModel;
 
 namespace Nesto.Modulos.PedidoCompra.Models
 {
-    public class PedidoCompraWrapper : BindableBase
+    public class PedidoCompraWrapper : ObservableObject
     {
         public PedidoCompraWrapper(PedidoCompraDTO pedido, IPedidoCompraService servicio)
         {
@@ -65,7 +65,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
                         Model.Lineas.Remove(item.Model);
                     }
                 }
-                RaisePropertyChanged(string.Empty);
+                OnPropertyChanged(string.Empty);
             }
         }
 
@@ -73,11 +73,11 @@ namespace Nesto.Modulos.PedidoCompra.Models
         {
             if (e.PropertyName == nameof(BaseImponible))
             {
-                RaisePropertyChanged(nameof(BaseImponible));
+                OnPropertyChanged(nameof(BaseImponible));
             }
             if (e.PropertyName == nameof(Total))
             {
-                RaisePropertyChanged(nameof(Total));
+                OnPropertyChanged(nameof(Total));
             }
         }
 
@@ -89,7 +89,7 @@ namespace Nesto.Modulos.PedidoCompra.Models
             set
             {
                 Model.Id = value;
-                RaisePropertyChanged(nameof(Id));
+                OnPropertyChanged(nameof(Id));
             }
         }
 

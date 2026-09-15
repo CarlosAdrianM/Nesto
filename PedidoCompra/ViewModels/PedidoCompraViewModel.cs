@@ -3,7 +3,7 @@ using Nesto.Modulos.PedidoCompra.Models;
 using Nesto.Modulos.PedidoCompra.Views;
 using CommunityToolkit.Mvvm.Input;
 using Prism.Ioc;
-using Prism.Mvvm;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Prism.Regions;
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ using System.Windows.Input;
 
 namespace Nesto.Modulos.PedidoCompra.ViewModels
 {
-    public class PedidoCompraViewModel : BindableBase, INavigationAware
+    public class PedidoCompraViewModel : ObservableObject, INavigationAware
     {
         private IRegionManager RegionManager { get; }
         public IConfiguracion Configuracion { get; set; }
