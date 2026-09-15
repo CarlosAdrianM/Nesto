@@ -36,6 +36,28 @@ namespace Nesto.Infrastructure.Models
             }
         }
 
+        private bool? _ventaPausadaEnTienda;
+        /// <summary>
+        /// NestoAPI#478: la venta de esta familia está PAUSADA en la tienda (tarifa del proveedor
+        /// errónea, etc.). Marcarla desactiva sus productos en la tienda; desmarcarla reactiva solo
+        /// los que se pausaron por aquí. Es <c>bool?</c> porque el servidor trata null como "no
+        /// tocar": así un Nesto viejo que no conoce el campo no despausa nada por accidente.
+        /// </summary>
+        public bool? VentaPausadaEnTienda
+        {
+            get => _ventaPausadaEnTienda;
+            set
+            {
+                if (_ventaPausadaEnTienda == value)
+                {
+                    return;
+                }
+                _ventaPausadaEnTienda = value;
+                OnPropertyChanged(nameof(VentaPausadaEnTienda));
+                Modificada = true;
+            }
+        }
+
         /// <summary>
         /// Marcada por el usuario en esta sesión. Solo se envían al servidor las que cambian, para
         /// no republicar el catálogo entero cada vez que alguien abre la pantalla y pulsa Guardar.

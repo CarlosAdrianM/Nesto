@@ -162,4 +162,37 @@ Public Class FamiliasMantenimientoViewModelTests
         Assert.AreEqual(1, vm.FamiliasFiltradas.Count)
         Assert.AreEqual("Staleks", vm.FamiliasFiltradas.Single().Numero)
     End Function
+
+    ''' <summary>
+    ''' NestoAPI#478: pausar la venta de una casa en la tienda es otra casilla de la misma
+    ''' pantalla. Tiene que viajar al servidor igual que la de público = profesional, y SOLO la
+    ''' familia que cambia (el servidor republica todos sus productos).
+    ''' </summary>
+    <TestMethod()>
+    Public Async Function Familias_PausarLaVentaEnTienda_SeGuardaSoloEsaFamilia() As Task
+        Dim mirplay = Familia("Mirplay", "Mirplay", False)
+        mirplay.VentaPausadaEnTienda = False
+        Dim lisap = Familia("Lisap", "Lisap", False)
+        lisap.VentaPausadaEnTienda = False
+        Dim vm = CrearViewModel(mirplay, lisap)
+        Await vm.CargarAsync()
+
+        vm.Familias.Single(Function(f) f.Numero = "Mirplay").VentaPausadaEnTienda = True
+        Await vm.GuardarAsync()
+
+        A.CallTo(Function() _servicio.GuardarFamilia(A(Of FamiliaMantenimiento).That.Matches(
+            Function(f) f.Numero = "Mirplay" AndAlso f.VentaPausadaEnTienda = True))).MustHaveHappenedOnceExactly()
+        A.CallTo(Function() _servicio.GuardarFamilia(A(Of FamiliaMantenimiento).That.Matches(
+            Function(f) f.Numero = "Lisap"))).MustNotHaveHappened()
+    End Function
+
+    ''' <summary>El servidor trata null como "no tocar": lo que llega del GET se conserva tal cual
+    ''' y no se convierte en false por el camino.</summary>
+    <TestMethod()>
+    Public Sub FamiliaMantenimiento_VentaPausadaSinValor_SigueSinValor()
+        Dim mirplay = Familia("Mirplay", "Mirplay", False)
+
+        Assert.IsFalse(mirplay.VentaPausadaEnTienda.HasValue)
+        Assert.IsFalse(mirplay.Modificada)
+    End Sub
 End Class

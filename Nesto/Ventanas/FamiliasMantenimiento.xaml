@@ -19,7 +19,7 @@
                 <TextBlock Text="Mantenimiento de familias"
                            FontSize="16" FontWeight="Bold" Margin="0,0,0,4"/>
                 <TextBlock TextWrapping="Wrap" Foreground="#555" Margin="0,0,0,10"
-                           Text="Marca las familias que se venden al público al MISMO precio que al profesional (sin el descuento del 30 %). Al guardar, los productos de esas familias se republican en la tienda con el precio nuevo."/>
+                           Text="Marca las familias que se venden al público al MISMO precio que al profesional (sin el descuento del 30 %). Al guardar, los productos de esas familias se republican en la tienda con el precio nuevo. «Venta pausada en tienda» retira de la tienda todos los productos de la casa (por ejemplo, por una tarifa errónea) y al desmarcarla vuelven SOLO los que se pausaron por aquí."/>
                 <controles:SelectorEmpresa Configuracion="{Binding configuracion}"
                                            Seleccionada="{Binding empresaSeleccionada, Mode=TwoWay}"
                                            Etiqueta="Empresa:" HorizontalAlignment="Left"/>
@@ -41,6 +41,10 @@
                     <DataGridCheckBoxColumn Header="Público = profesional"
                                             Binding="{Binding PublicoIgualQueProfesional, UpdateSourceTrigger=PropertyChanged}"
                                             Width="150"/>
+                    <!-- NestoAPI#478: interruptor de la casa entera en la tienda -->
+                    <DataGridCheckBoxColumn Header="Venta pausada en tienda"
+                                            Binding="{Binding VentaPausadaEnTienda, UpdateSourceTrigger=PropertyChanged}"
+                                            Width="170"/>
                 </DataGrid.Columns>
             </DataGrid>
 
