@@ -188,4 +188,20 @@ Public Class AgenciaServiceAgenciasTests
         Assert.AreEqual("EnviosAgencias/PorPedido?empresa=1&pedido=12345", ruta)
     End Sub
 
+    ' Nesto#468: la pestaña Retrasados lee GET api/EnviosAgencias/Retrasados (NestoAPI#173). Los
+    ' nombres de los parámetros son un contrato: diasUmbral, agencia, vendedor.
+
+    <TestMethod()>
+    Public Sub RutaEnviosRetrasados_SinFiltros_SoloLlevaElUmbral()
+        Assert.AreEqual("EnviosAgencias/Retrasados?diasUmbral=4", AgenciaService.RutaEnviosRetrasados(4, Nothing, Nothing))
+        Assert.AreEqual("EnviosAgencias/Retrasados?diasUmbral=4", AgenciaService.RutaEnviosRetrasados(4, Nothing, "  "))
+    End Sub
+
+    <TestMethod()>
+    Public Sub RutaEnviosRetrasados_ConAgenciaYVendedor_LlevaLosNombresQueEsperaElEndpoint()
+        Dim ruta = AgenciaService.RutaEnviosRetrasados(5, 11, "NV ")
+
+        Assert.AreEqual("EnviosAgencias/Retrasados?diasUmbral=5&agencia=11&vendedor=NV", ruta)
+    End Sub
+
 End Class

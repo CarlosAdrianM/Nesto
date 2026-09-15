@@ -637,6 +637,83 @@
                     </DataGrid>
                 </DockPanel>
             </TabItem>
+            <!-- Nesto#468: envíos que salieron hace días y la agencia no ha dado por entregados (NestoAPI#173).
+                 Selección → envioActual, así valen "Abrir seguimiento", "Actualizar estado" y el menú de copiar. -->
+            <TabItem Name="tabRetrasados" Header="Retrasados">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="3">
+                        <TextBlock Text="Más de" VerticalAlignment="Center" Margin="3,0"/>
+                        <TextBox Text="{Binding diasUmbralRetrasados, UpdateSourceTrigger=PropertyChanged}" Width="40" VerticalAlignment="Center" TextAlignment="Right"/>
+                        <TextBlock Text="días sin entregar" VerticalAlignment="Center" Margin="3,0,12,0"/>
+                        <TextBlock Text="Vendedor:" VerticalAlignment="Center" Margin="3,0"/>
+                        <TextBox Text="{Binding vendedorFiltroRetrasados, UpdateSourceTrigger=PropertyChanged}" Width="60" VerticalAlignment="Center"/>
+                        <CheckBox Content="Solo la agencia seleccionada" IsChecked="{Binding soloAgenciaSeleccionadaRetrasados}" VerticalAlignment="Center" Margin="12,0"/>
+                        <Button Content="Actualizar lista" MinWidth="110" Margin="3" Command="{Binding cmdCargarRetrasados}"/>
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="3">
+                        <Button Content="Abrir seguimiento" MinWidth="120" Margin="3" Command="{Binding AbrirEnlaceSeguimientoCommand}"
+                                ToolTip="Abre el enlace de seguimiento del envío seleccionado (o haz doble clic en la fila)"/>
+                        <Button Content="Actualizar estado" MinWidth="120" Margin="3" Command="{Binding cmdActualizarSeguimiento}"
+                                ToolTip="Consulta a la agencia y actualiza el estado del envío seleccionado; si ya está entregado, desaparece de la lista"/>
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding listaRetrasados}" SelectedItem="{Binding envioRetrasadoActual}" AutoGenerateColumns="False" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ColumnWidth="*" CanUserAddRows="False" IsReadOnly="True">
+                        <i:Interaction.Triggers>
+                            <i:EventTrigger EventName="MouseDoubleClick">
+                                <i:InvokeCommandAction Command="{Binding AbrirEnlaceSeguimientoCommand}" />
+                            </i:EventTrigger>
+                        </i:Interaction.Triggers>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <EventSetter Event="PreviewMouseRightButtonDown" Handler="FilaGrid_PreviewMouseRightButtonDown"/>
+                                <!-- Tramos de gravedad: hasta 5 días normal, 6-10 ámbar, más de 10 rojo (casi seguro perdido) -->
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Tramo}" Value="1">
+                                        <Setter Property="Background" Value="#FFF4D6"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Tramo}" Value="2">
+                                        <Setter Property="Background" Value="#FFD9D9"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Copiar nº de pedido" Command="{Binding CopiarNumeroPedidoCommand}"/>
+                                <MenuItem Header="Copiar nº de envío" Command="{Binding CopiarNumeroEnvioCommand}"/>
+                            </ContextMenu>
+                        </DataGrid.ContextMenu>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Días" Binding="{Binding DiasTranscurridos}" Width="Auto">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="TextAlignment" Value="Right"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Último evento" Binding="{Binding DetalleEstado}" Width="Auto">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="ToolTip" Value="{Binding DetalleEstado}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Agencia" Binding="{Binding NombreAgencia}" Width="Auto"/>
+                            <DataGridTextColumn Header="Salida" Binding="{Binding Fecha, StringFormat=d}" Width="Auto"/>
+                            <DataGridTextColumn Header="Pedido" Binding="{Binding Pedido}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nº Cliente" Binding="{Binding Cliente}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nombre" Binding="{Binding Nombre}" Width="*"/>
+                            <DataGridTextColumn Header="Población" Binding="{Binding Poblacion}" Width="Auto"/>
+                            <DataGridTextColumn Header="Teléfono" Binding="{Binding Telefono}" Width="Auto"/>
+                            <DataGridTextColumn Header="Móvil" Binding="{Binding Movil}" Width="Auto"/>
+                            <DataGridTextColumn Header="Correo" Binding="{Binding Email}" Width="Auto"/>
+                            <DataGridTextColumn Header="Vendedor" Binding="{Binding Vendedor}" Width="Auto"/>
+                            <DataGridTextColumn Header="Nº Envío" Binding="{Binding CodigoBarras}" Width="Auto"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
             <TabItem Name="tabReembolsos" Header="Reembolsos">
                 <Grid>
                     <Grid.RowDefinitions>

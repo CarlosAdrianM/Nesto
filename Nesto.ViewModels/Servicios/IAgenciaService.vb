@@ -18,6 +18,10 @@ Public Interface IAgenciaService
     Function CargarListaEnvios(agencia As Integer) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnviosTramitadosPorFecha(empresa As String, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaIncidentados(empresa As String) As ObservableCollection(Of EnviosAgencia)
+    ''' <summary>Nesto#468: envíos tramitados que la agencia no ha dado por entregados tras
+    ''' diasUmbral días (GET api/EnviosAgencias/Retrasados, NestoAPI#173). Agencia y vendedor
+    ''' son filtros opcionales.</summary>
+    Function CargarListaRetrasados(diasUmbral As Integer, agencia As Integer?, vendedor As String) As List(Of EnvioRetrasadoModel)
     Function CargarListaEnviosTramitadosPorCliente(empresa As String, clienteFiltro As String) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaEnviosTramitadosPorNombre(empresa As String, nombreFiltro As String) As ObservableCollection(Of EnviosAgencia)
     Function CargarListaAgencias(empresa As String) As ObservableCollection(Of AgenciasTransporte)

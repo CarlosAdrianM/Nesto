@@ -1134,6 +1134,70 @@ Public Class AgenciaViewModelTests
         A.CallTo(Function() servicio.CargarListaIncidentados("1")).MustHaveHappened()
     End Sub
 
+    ' Nesto#468: la pestaña Retrasados. El servidor decide qué es retrasado; el ViewModel manda
+    ' el umbral (4 por defecto) y los filtros, y al seleccionar una fila materializa envioActual
+    ' para que las acciones de siempre (seguimiento, actualizar estado, copiar) funcionen.
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_AlSeleccionarTabRetrasados_CargaConElUmbralPorDefectoYSinFiltros()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1")
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        Dim retrasado = New EnvioRetrasadoModel With {.Numero = 247926, .Agencia = 11, .DiasTranscurridos = 19, .DetalleEstado = "REPARTO"}
+        A.CallTo(Function() servicio.CargarListaRetrasados(AgenciasViewModel.DIAS_UMBRAL_RETRASADOS_POR_DEFECTO, Nothing, Nothing)).
+            Returns(New List(Of EnvioRetrasadoModel) From {retrasado})
+
+        viewModel.PestannaNombre = Pestannas.RETRASADOS
+
+        Assert.AreEqual(1, viewModel.listaRetrasados.Count)
+        Assert.AreEqual(247926, viewModel.listaRetrasados.Single().Numero)
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_Retrasados_ConSoloAgenciaSeleccionadaYVendedor_LosMandaComoFiltro()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1")
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        Dim empresa1 = A.Fake(Of Empresas)
+        empresa1.Número = "1"
+        A.CallTo(Function() servicio.CargarListaEmpresas()).Returns(New ObservableCollection(Of Empresas) From {empresa1})
+        Dim agencia1 = A.Fake(Of AgenciasTransporte)
+        agencia1.Empresa = "1"
+        agencia1.Numero = 11
+        agencia1.Nombre = "Innovatrans"
+        A.CallTo(Function() servicio.CargarListaAgencias("1")).Returns(New ObservableCollection(Of AgenciasTransporte) From {agencia1})
+        viewModel.cmdCargarDatos.Execute()
+        viewModel.agenciaSeleccionada = agencia1
+        viewModel.soloAgenciaSeleccionadaRetrasados = True
+        viewModel.vendedorFiltroRetrasados = "NV"
+        viewModel.diasUmbralRetrasados = 7
+
+        viewModel.cmdCargarRetrasados.Execute()
+
+        A.CallTo(Function() servicio.CargarListaRetrasados(7, 11, "NV")).MustHaveHappened()
+    End Sub
+
+    <TestMethod>
+    Public Sub AgenciaViewModel_Retrasados_AlSeleccionarUnaFila_EnvioActualLlevaLoQueUsanLasAcciones()
+        A.CallTo(Function() configuracion.leerParametro("1", "EmpresaPorDefecto")).Returns("1")
+        viewModel = New AgenciasViewModel(regionManager, servicio, configuracion, dialogService, servicioPedidos, servicioAutenticacion)
+        Dim retrasado = New EnvioRetrasadoModel With {.Numero = 247926, .Empresa = "1  ", .Pedido = 925001, .Cliente = "15191",
+            .Agencia = 11, .NombreAgencia = "Innovatrans", .CodigoBarras = "0123456789", .DetalleEstado = "REPARTO", .DiasTranscurridos = 19}
+        Dim agencia11 = A.Fake(Of AgenciasTransporte)
+        agencia11.Empresa = "1"
+        agencia11.Numero = 11
+        agencia11.Nombre = "Innovatrans"
+        A.CallTo(Function() servicio.CargarAgencia(11)).Returns(agencia11)
+
+        viewModel.envioRetrasadoActual = retrasado
+
+        Assert.IsNotNull(viewModel.envioActual)
+        Assert.AreEqual(247926, viewModel.envioActual.Numero)
+        Assert.AreEqual(925001, viewModel.envioActual.Pedido)
+        Assert.AreEqual("0123456789", viewModel.envioActual.CodigoBarras)
+        Assert.AreEqual(11, viewModel.envioActual.Agencia)
+        Assert.AreEqual("Innovatrans", viewModel.envioActual.AgenciasTransporte.Nombre)
+        Assert.AreEqual(CShort(1), viewModel.envioActual.Estado, "Un retrasado es, por definición, un tramitado")
+    End Sub
+
     ' Nesto#395: con un envío PENDIENTE de tienda online, el destino real (CP del pendiente) debe
     ' prevalecer sobre el CP de la ficha del cliente del pedido (el almacén) al seleccionar el pedido,
     ' para que el ImporteGasto/zona se calculen contra el destino real.

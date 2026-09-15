@@ -99,6 +99,7 @@ Public Class AgenciasViewModel
         GuardarEnvioPendienteCommand = New DelegateCommand(AddressOf OnGuardarEnvioPendiente, AddressOf CanGuardarEnvioPendiente)
         AbrirEnlaceSeguimientoCommand = New DelegateCommand(AddressOf OnAbrirEnlaceSeguimientoCommand, AddressOf CanAbrirEnlaceSeguimientoCommand)
         cmdActualizarSeguimiento = New DelegateCommand(AddressOf OnActualizarSeguimiento, AddressOf CanActualizarSeguimiento)
+        cmdCargarRetrasados = New DelegateCommand(AddressOf CargarRetrasados)
         cmdPegarCodigoBarras = New DelegateCommand(AddressOf OnPegarCodigoBarras, AddressOf CanPegarCodigoBarras)
         CopiarNumeroPedidoCommand = New DelegateCommand(AddressOf OnCopiarNumeroPedido, AddressOf CanCopiarNumeroPedido)
         ' Nesto#422: copiar nº de envío, campo bajo el cursor y envío completo (HTML)
@@ -1132,6 +1133,10 @@ Public Class AgenciasViewModel
             If PestannaNombre = Pestannas.INCIDENTADOS AndAlso Not IsNothing(empresaSeleccionada) Then
                 listaIncidentados = _servicio.CargarListaIncidentados(empresaSeleccionada.Número)
             End If
+            ' Nesto#468: Retrasados = tramitados sin estado terminal, de todas las empresas.
+            If PestannaNombre = Pestannas.RETRASADOS Then
+                CargarRetrasados()
+            End If
         End Set
     End Property
 
@@ -1193,6 +1198,116 @@ Public Class AgenciasViewModel
             Dim unused = SetProperty(_listaIncidentados, value)
         End Set
     End Property
+
+#Region "Nesto#468: pestaña Retrasados"
+    ' Envíos que salieron hace días y que la agencia no ha dado por entregados (NestoAPI#173).
+    ' Los estados de tránsito no caducan solos: el 247926 estuvo 19 días en REPARTO sin que
+    ' saltara nada. El servidor decide qué es "retrasado"; aquí van los filtros y la rejilla.
+    Private _listaRetrasados As ObservableCollection(Of EnvioRetrasadoModel)
+    Public Property listaRetrasados As ObservableCollection(Of EnvioRetrasadoModel)
+        Get
+            Return _listaRetrasados
+        End Get
+        Set(value As ObservableCollection(Of EnvioRetrasadoModel))
+            Dim unused = SetProperty(_listaRetrasados, value)
+        End Set
+    End Property
+
+    ''' <summary>Umbral por defecto 4: con 3 entran los que salieron el viernes (3 días naturales,
+    ''' 1 hábil), que no son un retraso. Calibrado con producción el 07/09/26.</summary>
+    Public Const DIAS_UMBRAL_RETRASADOS_POR_DEFECTO As Integer = 4
+
+    Private _diasUmbralRetrasados As Integer = DIAS_UMBRAL_RETRASADOS_POR_DEFECTO
+    Public Property diasUmbralRetrasados As Integer
+        Get
+            Return _diasUmbralRetrasados
+        End Get
+        Set(value As Integer)
+            Dim unused = SetProperty(_diasUmbralRetrasados, value)
+        End Set
+    End Property
+
+    Private _vendedorFiltroRetrasados As String
+    Public Property vendedorFiltroRetrasados As String
+        Get
+            Return _vendedorFiltroRetrasados
+        End Get
+        Set(value As String)
+            Dim unused = SetProperty(_vendedorFiltroRetrasados, value)
+        End Set
+    End Property
+
+    ''' <summary>Marcado: solo la agencia seleccionada arriba. Desmarcado (por defecto): todas.</summary>
+    Private _soloAgenciaSeleccionadaRetrasados As Boolean
+    Public Property soloAgenciaSeleccionadaRetrasados As Boolean
+        Get
+            Return _soloAgenciaSeleccionadaRetrasados
+        End Get
+        Set(value As Boolean)
+            Dim unused = SetProperty(_soloAgenciaSeleccionadaRetrasados, value)
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Al seleccionar una fila se materializa un EnviosAgencia en envioActual para que las
+    ''' acciones que ya existen en la ventana (abrir seguimiento, actualizar estado, copiar nº de
+    ''' pedido / envío) funcionen sin duplicarlas. Solo lleva lo que esas acciones consumen.
+    ''' </summary>
+    Private _envioRetrasadoActual As EnvioRetrasadoModel
+    Public Property envioRetrasadoActual As EnvioRetrasadoModel
+        Get
+            Return _envioRetrasadoActual
+        End Get
+        Set(value As EnvioRetrasadoModel)
+            Dim unused = SetProperty(_envioRetrasadoActual, value)
+            If value Is Nothing Then
+                Return
+            End If
+            envioActual = ComoEnvioAgencia(value, _servicio.CargarAgencia(value.Agencia))
+        End Set
+    End Property
+
+    Public Shared Function ComoEnvioAgencia(retrasado As EnvioRetrasadoModel, agencia As AgenciasTransporte) As EnviosAgencia
+        Return New EnviosAgencia With {
+            .Numero = retrasado.Numero,
+            .Empresa = retrasado.Empresa,
+            .Pedido = retrasado.Pedido,
+            .Cliente = retrasado.Cliente,
+            .Contacto = retrasado.Contacto,
+            .Nombre = retrasado.Nombre,
+            .Agencia = retrasado.Agencia,
+            .CodigoBarras = retrasado.CodigoBarras,
+            .Fecha = If(retrasado.Fecha, Date.Today),
+            .Estado = CShort(Constantes.Agencias.ESTADO_TRAMITADO_ENVIO),
+            .DetalleEstado = retrasado.DetalleEstado,
+            .Poblacion = retrasado.Poblacion,
+            .CodPostal = retrasado.CodPostal,
+            .Telefono = retrasado.Telefono,
+            .Movil = retrasado.Movil,
+            .Email = retrasado.Email,
+            .Observaciones = retrasado.Observaciones,
+            .Vendedor = retrasado.Vendedor,
+            .AgenciasTransporte = If(agencia, New AgenciasTransporte With {
+                .Empresa = retrasado.Empresa, .Numero = retrasado.Agencia, .Nombre = retrasado.NombreAgencia})
+        }
+    End Function
+
+    Public Property cmdCargarRetrasados As DelegateCommand
+
+    Private Sub CargarRetrasados()
+        Dim agencia As Integer? = Nothing
+        If soloAgenciaSeleccionadaRetrasados AndAlso Not IsNothing(agenciaSeleccionada) Then
+            agencia = agenciaSeleccionada.Numero
+        End If
+        Try
+            listaRetrasados = New ObservableCollection(Of EnvioRetrasadoModel)(
+                _servicio.CargarListaRetrasados(diasUmbralRetrasados, agencia, vendedorFiltroRetrasados))
+        Catch ex As Exception
+            listaRetrasados = New ObservableCollection(Of EnvioRetrasadoModel)
+            _dialogService.ShowError("No se pudieron cargar los envíos retrasados: " & ex.Message)
+        End Try
+    End Sub
+#End Region
 
     Private _XMLdeEstado As XDocument
     Public Property XMLdeEstado As XDocument
@@ -2845,6 +2960,8 @@ Public Class AgenciasViewModel
                 listaIncidentados = _servicio.CargarListaIncidentados(empresaSeleccionada.Número)
             ElseIf PestannaNombre = Pestannas.TRAMITADOS AndAlso Not IsNothing(empresaSeleccionada) AndAlso Not IsNothing(agenciaSeleccionada) Then
                 listaEnviosTramitados = _servicio.CargarListaEnviosTramitados(empresaSeleccionada.Número, agenciaSeleccionada.Numero, fechaFiltro)
+            ElseIf PestannaNombre = Pestannas.RETRASADOS Then
+                CargarRetrasados() ' Nesto#468: si ya está entregado, sale de la lista
             End If
             _dialogService.ShowNotification("Seguimiento", $"Estado del envío {numero}: {NombreEstado(resultado.Estado)}" & If(String.IsNullOrWhiteSpace(resultado.Detalle), "", $" — {resultado.Detalle}"))
         Catch ex As Exception
@@ -3922,6 +4039,7 @@ Public Class Pestannas
     Public Const EN_CURSO As String = "tabCurso"
     Public Const TRAMITADOS As String = "tabTramitados"
     Public Const INCIDENTADOS As String = "tabIncidentados"
+    Public Const RETRASADOS As String = "tabRetrasados"
     Public Const REEMBOLSOS As String = "tabReembolsos"
     Public Const RETORNOS As String = "tabRetornos"
     Public Const ETIQUETAS As String = "tabEtiquetas"

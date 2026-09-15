@@ -152,6 +152,40 @@ Public Class AgenciaService
             $"EnviosAgencias/Incidentados?empresa={Uri.EscapeDataString(empresa?.Trim())}"))
     End Function
 
+    ''' <summary>
+    ''' Nesto#468: la pestaña Retrasados. El servidor decide qué es "retrasado" (tramitado, sin
+    ''' estado terminal, más de diasUmbral días y menos del techo histórico): aquí solo se pinta.
+    ''' </summary>
+    Public Function CargarListaRetrasados(diasUmbral As Integer, agencia As Integer?, vendedor As String) As List(Of EnvioRetrasadoModel) Implements IAgenciaService.CargarListaRetrasados
+        Dim ruta As String = RutaEnviosRetrasados(diasUmbral, agencia, vendedor)
+        Return Task.Run(Async Function() As Task(Of List(Of EnvioRetrasadoModel))
+                            Using client As HttpClient = _clienteApiFactory.Crear()
+                                If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                                    Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+                                End If
+                                Dim response As HttpResponseMessage = Await client.GetAsync(ruta)
+                                Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+                                If Not response.IsSuccessStatusCode Then
+                                    Throw New Exception($"No se pudieron cargar los envíos retrasados ({CInt(response.StatusCode)}): {cuerpo}")
+                                End If
+                                Return JsonConvert.DeserializeObject(Of List(Of EnvioRetrasadoModel))(cuerpo)
+                            End Using
+                        End Function).GetAwaiter().GetResult()
+    End Function
+
+    ''' <summary>Aparte para fijar el contrato de nombres en un test. Los filtros vacíos no viajan:
+    ''' el servidor los trata como "sin filtro".</summary>
+    Friend Shared Function RutaEnviosRetrasados(diasUmbral As Integer, agencia As Integer?, vendedor As String) As String
+        Dim ruta As String = $"EnviosAgencias/Retrasados?diasUmbral={diasUmbral}"
+        If agencia.HasValue Then
+            ruta &= $"&agencia={agencia.Value}"
+        End If
+        If Not String.IsNullOrWhiteSpace(vendedor) Then
+            ruta &= $"&vendedor={Uri.EscapeDataString(vendedor.Trim())}"
+        End If
+        Return ruta
+    End Function
+
     ' >= TRAMITADO server-side para incluir también Entregado (2) e Incidentado (3) en la pestaña
     ' de tramitados (#387): se distinguen por la columna Estado coloreada.
     Public Function CargarListaEnviosTramitados(empresa As String, agencia As Integer, fechaFiltro As Date) As ObservableCollection(Of EnviosAgencia) Implements IAgenciaService.CargarListaEnviosTramitados
