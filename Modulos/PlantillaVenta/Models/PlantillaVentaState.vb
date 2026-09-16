@@ -87,6 +87,12 @@ Public Class PlantillaVentaState
     ''' Si servir junto (afecta stock disponible)
     ''' </summary>
     Public Property ServirJunto As Boolean
+
+    ''' <summary>
+    ''' Nesto#476: modo de servicio elegido en el selector (1, 2 o 4). Nothing = no se ha tocado y
+    ''' rige el que deriva de ServirJunto. Se manda en el DTO y se guarda en el borrador.
+    ''' </summary>
+    Public Property ModoServicio As Byte?
 #End Region
 
 #Region "Líneas de productos"
@@ -445,6 +451,7 @@ Public Class PlantillaVentaState
         NoComisiona = False
         MantenerJunto = False
         ServirJunto = False
+        ModoServicio = Nothing
         LineasProducto = New List(Of LineaPlantillaVenta)
         LineasRegalo = New List(Of LineaRegalo)
         FormaVenta = 1
@@ -506,6 +513,7 @@ Public Class PlantillaVentaState
             .noComisiona = NoComisiona,
             .mantenerJunto = MantenerJunto,
             .servirJunto = ServirJunto,
+            .modoServicio = ModoServicio,
             .comentarioPicking = ComentarioPicking,
             .avisarConImporteAlCogerPicking = AvisarConImporteAlCogerPicking,
             .suPedido = SuPedido,

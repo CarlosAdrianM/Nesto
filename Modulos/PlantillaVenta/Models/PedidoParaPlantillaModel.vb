@@ -16,6 +16,7 @@ Public Class PedidoParaPlantillaModel
     Public Property Comentarios As String
     Public Property Ruta As String
     Public Property ServirJunto As Boolean
+    Public Property ModoServicio As Byte?
     Public Property MantenerJunto As Boolean
     Public Property FechaEntrega As Date?
     Public Property Almacen As String

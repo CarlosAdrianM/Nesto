@@ -63,6 +63,9 @@ Public Class PedidoVentaDTO
     Public Property vistoBuenoPlazosPago() As Boolean
     Public Property mantenerJunto() As Boolean
     Public Property servirJunto() As Boolean
+    ''' <summary>Nesto#476 / NestoAPI#482: modo de servicio (ver ModosServicio). Nothing en pedidos
+    ''' anteriores al modo: entonces manda servirJunto (True = 1, False = 2).</summary>
+    Public Property modoServicio() As Byte?
     Public Property suPedido() As String
     Public Property EsPresupuesto() As Boolean = False
     Public Property notaEntrega As Boolean
@@ -158,6 +161,7 @@ Public Class PedidoVentaDTO
                noComisiona = other.noComisiona AndAlso
                mantenerJunto = other.mantenerJunto AndAlso
                servirJunto = other.servirJunto AndAlso
+               Nullable.Equals(modoServicio, other.modoServicio) AndAlso
                avisarConImporteAlCogerPicking = other.avisarConImporteAlCogerPicking AndAlso
                notaEntrega = other.notaEntrega
     End Function
@@ -200,6 +204,9 @@ Public Class PedidoVentaDTO
         End If
         If servirJunto <> other.servirJunto Then
             difs.Add($"servirJunto: '{other.servirJunto}' -> '{servirJunto}'")
+        End If
+        If Not Nullable.Equals(modoServicio, other.modoServicio) Then
+            difs.Add($"modoServicio: '{other.modoServicio}' -> '{modoServicio}'")
         End If
         If avisarConImporteAlCogerPicking <> other.avisarConImporteAlCogerPicking Then
             difs.Add($"avisarConImporteAlCogerPicking: '{other.avisarConImporteAlCogerPicking}' -> '{avisarConImporteAlCogerPicking}'")
@@ -278,6 +285,7 @@ Public Class PedidoVentaDTO
             .noComisiona = Me.noComisiona,
             .mantenerJunto = Me.mantenerJunto,
             .servirJunto = Me.servirJunto,
+            .modoServicio = Me.modoServicio,
             .notaEntrega = Me.notaEntrega
         }
     End Function

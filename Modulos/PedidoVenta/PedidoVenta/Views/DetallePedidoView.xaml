@@ -10,6 +10,7 @@
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:behaviors="clr-namespace:ControlesUsuario.Behaviors;assembly=ControlesUsuario"
              xmlns:controles="clr-namespace:ControlesUsuario;assembly=ControlesUsuario"
+             xmlns:models="clr-namespace:Nesto.Models;assembly=Models"
              xmlns:converters="clr-namespace:ControlesUsuario.Converters;assembly=ControlesUsuario"
              xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" d:DataContext="{d:DesignInstance Type=local:DetallePedidoViewModel}"
              mc:Ignorable="d"
@@ -296,14 +297,23 @@
                             <CheckBox IsChecked="{Binding UsarFechasIndividuales}" ToolTip="Cuando está activo, cada línea tiene su propia fecha de entrega (editable en la pestaña Líneas)">Fechas individuales por línea</CheckBox>
                             <TextBlock Text="Fecha de Entrega:" Visibility="{Binding MostrarFechaEntregaGlobal, Converter={StaticResource BooleanToVisibilityConverter}}"></TextBlock>
                             <DatePicker SelectedDate="{Binding fechaEntrega}" Visibility="{Binding MostrarFechaEntregaGlobal, Converter={StaticResource BooleanToVisibilityConverter}}"></DatePicker>
-                            <CheckBox IsChecked="{Binding pedido.servirJunto}">
-                                <CheckBox.Content>Servir Junto</CheckBox.Content>
-                                <i:Interaction.Triggers>
-                                    <i:EventTrigger EventName="Unchecked">
-                                        <i:InvokeCommandAction Command="{Binding cmdValidarServirJunto}"/>
-                                    </i:EventTrigger>
-                                </i:Interaction.Triggers>
-                            </CheckBox>
+                            <!-- Nesto#476: modo de servicio en vez de la casilla «Servir junto». La validación al
+                                 salir de «Todo junto» la dispara el ViewModel al cambiar pedido.ModoServicio. -->
+                            <StackPanel Orientation="Horizontal" Margin="0,2">
+                                <TextBlock Text="Servir:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <ComboBox ItemsSource="{x:Static models:ModosServicio.Lista}"
+                                          DisplayMemberPath="Nombre"
+                                          SelectedValuePath="Codigo"
+                                          SelectedValue="{Binding pedido.ModoServicio, Mode=TwoWay}"
+                                          MinWidth="230"
+                                          ToolTip="Cómo se sirve el pedido cuando no hay stock de todo">
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem">
+                                            <Setter Property="ToolTip" Value="{Binding Descripcion}"/>
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                </ComboBox>
+                            </StackPanel>
                             <CheckBox IsChecked="{Binding pedido.mantenerJunto}">Mantener Junto</CheckBox>
                             <CheckBox IsChecked="{Binding RecogerProducto}" ToolTip="Crear etiqueta de recogida de producto al guardar el pedido">Recoger Producto</CheckBox>
                             <CheckBox IsChecked="{Binding pedido.avisarConImporteAlCogerPicking}" ToolTip="Al coger picking se enviará un correo automático al vendedor y al usuario con el importe que va a salir">Avisar con importe al coger picking</CheckBox>

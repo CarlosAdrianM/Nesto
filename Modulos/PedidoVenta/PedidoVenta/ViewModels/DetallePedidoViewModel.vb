@@ -560,6 +560,7 @@ Public Class DetallePedidoViewModel
             End If
             Dim unused = SetProperty(_pedido, value)
             If Not IsNothing(_pedido) Then
+                _modoServicioPrevio = _pedido.ModoServicio ' Nesto#476
                 AddHandler _pedido.IvaCambiado, AddressOf OnIvaCambiado
                 AddHandler _pedido.PeriodoFacturacionCambiado, AddressOf OnPeriodoFacturacionCambiado
                 AddHandler _pedido.PropertyChanged, AddressOf OnPedidoPropertyChanged ' Carlos 09/12/25: Issue #245
@@ -2407,6 +2408,10 @@ Public Class DetallePedidoViewModel
     ' Si el backend devuelve PuedeDesmarcar=false, se revierte la marca y se
     ' muestra el mensaje al usuario.
     Public Property cmdValidarServirJunto As RelayCommand
+    ' Nesto#476: modo que tenía el pedido antes del último cambio del selector. La validación de
+    ' «desmarcar servir junto» solo aplica al SALIR del modo 1: ni al cargar el pedido, ni al
+    ' revertir, ni al pasar de un modo parcial a otro (ya se validó al dejar el 1).
+    Private _modoServicioPrevio As Byte = ModosServicio.SEGUN_VAYA_ENTRANDO
 
     Private Async Sub OnValidarServirJunto()
         If pedido Is Nothing OrElse pedido.Lineas Is Nothing Then Return
@@ -2472,7 +2477,7 @@ Public Class DetallePedidoViewModel
     End Sub
 
     Private Sub RevertirDesmarcadoServirJunto()
-        pedido.servirJunto = True
+        pedido.ModoServicio = ModosServicio.TODO_JUNTO ' Nesto#476: vuelve el selector y, con él, servirJunto
         RaisePropertyChanged(NameOf(pedido))
     End Sub
 
@@ -2668,6 +2673,17 @@ Public Class DetallePedidoViewModel
         If e.PropertyName = NameOf(pedido.BaseImponible) OrElse
            e.PropertyName = String.Empty Then
             ActualizarEtiquetaPortes()
+        End If
+
+        ' Nesto#476: el selector de modo de servicio sustituye a la casilla «Servir junto». La
+        ' validación del servidor (NestoAPI#161/#220) se dispara solo al salir del modo 1; el
+        ' selector no lleva EventTrigger porque SelectionChanged también salta al cargar el pedido.
+        If e.PropertyName = NameOf(pedido.ModoServicio) Then
+            Dim anterior As Byte = _modoServicioPrevio
+            _modoServicioPrevio = pedido.ModoServicio
+            If ModosServicio.EsTodoJunto(anterior) AndAlso Not pedido.servirJunto Then
+                OnValidarServirJunto()
+            End If
         End If
     End Sub
 

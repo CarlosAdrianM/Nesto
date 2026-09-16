@@ -264,12 +264,43 @@ Public Class PedidoVentaWrapper
             Model.mantenerJunto = value
         End Set
     End Property
+    ''' <summary>
+    ''' Nesto#476: servirJunto y ModoServicio se mantienen coherentes entre sí. Marcar servirJunto
+    ''' es el modo 1; desmarcarlo con el modo 1 puesto cae al 2 (y si ya había un modo parcial, se
+    ''' respeta). Así el código que todavía habla en bool (validaciones, reversiones) sigue valiendo.
+    ''' </summary>
     Public Property servirJunto() As Boolean
         Get
             Return Model.servirJunto
         End Get
         Set(value As Boolean)
             Model.servirJunto = value
+            If value Then
+                Model.modoServicio = ModosServicio.TODO_JUNTO
+            ElseIf Model.modoServicio.HasValue AndAlso ModosServicio.EsTodoJunto(Model.modoServicio.Value) Then
+                Model.modoServicio = ModosServicio.SEGUN_VAYA_ENTRANDO
+            End If
+            RaisePropertyChanged(NameOf(servirJunto))
+            RaisePropertyChanged(NameOf(ModoServicio))
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Nesto#476: el modo de servicio que se enseña en el selector. Un pedido anterior al modo
+    ''' (modoServicio Nothing) se muestra con el que deriva de servirJunto.
+    ''' </summary>
+    Public Property ModoServicio() As Byte
+        Get
+            Return ModosServicio.Efectivo(Model.modoServicio, Model.servirJunto)
+        End Get
+        Set(value As Byte)
+            If ModoServicio = value AndAlso Model.modoServicio.HasValue Then
+                Return
+            End If
+            Model.modoServicio = value
+            Model.servirJunto = ModosServicio.EsTodoJunto(value)
+            RaisePropertyChanged(NameOf(ModoServicio))
+            RaisePropertyChanged(NameOf(servirJunto))
         End Set
     End Property
     Public Property NoCobrarComisionReembolso() As Boolean

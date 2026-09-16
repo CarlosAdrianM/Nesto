@@ -225,6 +225,7 @@ Public Class BorradorPlantillaVentaService
             .ComentarioRuta = pedido.Comentarios,
             .AlmacenCodigo = pedido.Almacen,
             .ServirJunto = pedido.ServirJunto,
+            .ModoServicio = pedido.ModoServicio,
             .MantenerJunto = pedido.MantenerJunto,
             .LineasProducto = New List(Of LineaPlantillaVenta),
             .LineasRegalo = New List(Of LineaRegalo)

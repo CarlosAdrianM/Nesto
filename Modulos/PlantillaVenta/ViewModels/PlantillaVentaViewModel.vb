@@ -822,6 +822,55 @@ Public Class PlantillaVentaViewModel
         End Set
     End Property
 
+    ''' <summary>
+    ''' Nesto#476: el modo de servicio del selector, que sustituye a la casilla «Servir junto».
+    ''' Sigue apoyándose en direccionEntregaSeleccionada.servirJunto (que es lo que leen portes,
+    ''' bonificables y la validación): servirJunto marcado SIEMPRE es el modo 1; desmarcado, es el
+    ''' modo parcial guardado en el Estado (2 o 4) o el 2 si no hay ninguno. Cambiar de modo escribe
+    ''' las dos cosas, y al salir del modo 1 dispara la validación del servidor como hacía la casilla.
+    ''' </summary>
+    Public Property ModoServicio As Byte
+        Get
+            Dim servirJunto As Boolean = If(direccionEntregaSeleccionada?.servirJunto, Estado.ServirJunto)
+            If servirJunto Then
+                Return ModosServicio.TODO_JUNTO
+            End If
+            If Estado.ModoServicio.HasValue AndAlso Not ModosServicio.EsTodoJunto(Estado.ModoServicio.Value) Then
+                Return Estado.ModoServicio.Value
+            End If
+            Return ModosServicio.SEGUN_VAYA_ENTRANDO
+        End Get
+        Set(value As Byte)
+            Dim anterior As Byte = ModoServicio
+            If anterior = value AndAlso Estado.ModoServicio.HasValue Then
+                Return
+            End If
+            Estado.ModoServicio = value
+            Estado.ServirJunto = ModosServicio.EsTodoJunto(value)
+            If direccionEntregaSeleccionada IsNot Nothing Then
+                direccionEntregaSeleccionada.servirJunto = ModosServicio.EsTodoJunto(value)
+            End If
+            RaisePropertyChanged(NameOf(ModoServicio))
+            RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+            RaisePropertyChanged(NameOf(baseImponibleParaPortes))
+            If ModosServicio.EsTodoJunto(anterior) AndAlso Not ModosServicio.EsTodoJunto(value) Then
+                OnValidarServirJunto()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>Vuelve a «Todo junto» (servirJunto marcado) cuando el servidor o la usuaria no aceptan salir de él.</summary>
+    Private Sub RevertirAServirJunto()
+        Estado.ModoServicio = ModosServicio.TODO_JUNTO
+        Estado.ServirJunto = True
+        If direccionEntregaSeleccionada IsNot Nothing Then
+            direccionEntregaSeleccionada.servirJunto = True
+        End If
+        RaisePropertyChanged(NameOf(ModoServicio))
+        RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+        RaisePropertyChanged(NameOf(baseImponibleParaPortes))
+    End Sub
+
     Private Async Sub OnValidarServirJunto()
         ' Issue #286: Si direccionEntregaSeleccionada es Nothing (durante restauración de borrador), salir
         If direccionEntregaSeleccionada Is Nothing Then
@@ -876,8 +925,7 @@ Public Class PlantillaVentaViewModel
 
             If Not respuesta.PuedeDesmarcar Then
                 ' Revertir el cambio - volver a marcar ServirJunto
-                direccionEntregaSeleccionada.servirJunto = True
-                RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+                RevertirAServirJunto()
 
                 ' Mostrar mensaje al usuario
                 dialogService.ShowError(respuesta.Mensaje)
@@ -888,8 +936,7 @@ Public Class PlantillaVentaViewModel
             ' cancela, revertimos el desmarcado; si acepta, lo dejamos tal cual.
             If Not String.IsNullOrEmpty(respuesta.Aviso) Then
                 If Not dialogService.ShowConfirmationAnswer("Servir Junto", respuesta.Aviso) Then
-                    direccionEntregaSeleccionada.servirJunto = True
-                    RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
+                    RevertirAServirJunto()
                 End If
             End If
         Catch ex As Exception
@@ -1039,6 +1086,10 @@ Public Class PlantillaVentaViewModel
             If value IsNot Nothing AndAlso _borradorEnRestauracion IsNot Nothing Then
                 value.mantenerJunto = _borradorEnRestauracion.MantenerJunto
                 value.servirJunto = _borradorEnRestauracion.ServirJunto
+                Estado.ModoServicio = _borradorEnRestauracion.ModoServicio ' Nesto#476
+            ElseIf value IsNot Nothing Then
+                ' Nesto#476: al cambiar de dirección el modo vuelve a derivar del servirJunto de la ficha
+                Estado.ModoServicio = Nothing
             End If
             Dim unused = SetProperty(_direccionEntregaSeleccionada, value)
 
@@ -1053,6 +1104,7 @@ Public Class PlantillaVentaViewModel
                 Estado.MantenerJunto = value.mantenerJunto
                 Estado.ServirJunto = value.servirJunto
             End If
+            RaisePropertyChanged(NameOf(ModoServicio)) ' Nesto#476
 
             If PlazoPagoCliente <> _direccionEntregaSeleccionada?.plazosPago Then
                 PlazoPagoCliente = _direccionEntregaSeleccionada?.plazosPago
@@ -2281,6 +2333,7 @@ Public Class PlantillaVentaViewModel
         Dim plazosPagoBorrador As String = Nothing
         Dim mantenerJuntoBorrador As Boolean = False
         Dim servirJuntoBorrador As Boolean = False
+        Dim modoServicioBorrador As Byte? = Nothing ' Nesto#476
 
         If hayBorradorPendiente Then
             formaVentaBorrador = _borradorEnRestauracion.FormaVenta
@@ -2291,6 +2344,7 @@ Public Class PlantillaVentaViewModel
             plazosPagoBorrador = _borradorEnRestauracion.PlazosPago
             mantenerJuntoBorrador = _borradorEnRestauracion.MantenerJunto
             servirJuntoBorrador = _borradorEnRestauracion.ServirJunto
+            modoServicioBorrador = _borradorEnRestauracion.ModoServicio
         End If
 
         Dim esApoyoComercial As Boolean
@@ -2400,6 +2454,7 @@ Public Class PlantillaVentaViewModel
                 If servirJuntoBorrador Then
                     direccionEntregaSeleccionada.servirJunto = True
                 End If
+                RestaurarModoServicio(modoServicioBorrador) ' Nesto#476
                 RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
             End If
 
@@ -3055,6 +3110,22 @@ Public Class PlantillaVentaViewModel
             Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
             Estado.ServirJunto = direccionEntregaSeleccionada.servirJunto
         End If
+        ' Nesto#476: el modo efectivo (coherente con servirJunto) es lo que viaja en el DTO y al borrador
+        Estado.ModoServicio = ModoServicio
+    End Sub
+
+    ''' <summary>
+    ''' Nesto#476: al restaurar un borrador, el modo guardado manda sobre el servirJunto de la ficha
+    ''' (un borrador anterior al modo trae Nothing y entonces se queda lo que ya restauró servirJunto).
+    ''' </summary>
+    Private Sub RestaurarModoServicio(modo As Byte?)
+        If Not modo.HasValue OrElse direccionEntregaSeleccionada Is Nothing Then
+            Return
+        End If
+        Estado.ModoServicio = modo
+        Estado.ServirJunto = ModosServicio.EsTodoJunto(modo.Value)
+        direccionEntregaSeleccionada.servirJunto = Estado.ServirJunto
+        RaisePropertyChanged(NameOf(ModoServicio))
     End Sub
 
     Private Function CalcularSerie() As String
@@ -3403,6 +3474,7 @@ Public Class PlantillaVentaViewModel
             .AlmacenCodigo = Estado.AlmacenCodigo,
             .MantenerJunto = Estado.MantenerJunto,
             .ServirJunto = Estado.ServirJunto,
+            .ModoServicio = Estado.ModoServicio,
             .LineasProducto = Estado.LineasProducto,
             .LineasRegalo = Estado.LineasRegalo,
             .Total = Estado.BaseImponible,
@@ -3672,6 +3744,7 @@ Public Class PlantillaVentaViewModel
                 End If
                 Estado.MantenerJunto = direccionEntregaSeleccionada.mantenerJunto
                 Estado.ServirJunto = direccionEntregaSeleccionada.servirJunto
+                RestaurarModoServicio(borrador.ModoServicio) ' Nesto#476
                 RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
             End If
 
@@ -3756,6 +3829,7 @@ Public Class PlantillaVentaViewModel
                     direccionEntregaSeleccionada.servirJunto = _borradorEnRestauracion.ServirJunto
                     Estado.MantenerJunto = _borradorEnRestauracion.MantenerJunto
                     Estado.ServirJunto = _borradorEnRestauracion.ServirJunto
+                    RestaurarModoServicio(_borradorEnRestauracion.ModoServicio) ' Nesto#476
                     RaisePropertyChanged(NameOf(direccionEntregaSeleccionada))
                 End If
             End If

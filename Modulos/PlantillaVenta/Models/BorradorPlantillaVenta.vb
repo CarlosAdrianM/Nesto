@@ -124,6 +124,11 @@ Public Class BorradorPlantillaVenta
     ''' </summary>
     Public Property ServirJunto As Boolean
 
+    ''' <summary>
+    ''' Nesto#476: modo de servicio (1, 2 o 4). Nothing en borradores anteriores al modo: manda ServirJunto.
+    ''' </summary>
+    Public Property ModoServicio As Byte?
+
     ' ========== Comentarios ==========
     ''' <summary>
     ''' Comentario de picking introducido por el usuario
