@@ -27,6 +27,64 @@ namespace RapportsTests
                 A.Fake<IDialogService>(), A.Fake<IEventAggregator>());
         }
 
+        // Nesto#469 (Carlos, 16/09/26): si se le pregunta y la deja vacía, tiene que confirmar que no lo
+        // sabe; si no confirma, no se guarda. Con valor o sin combo, no se pregunta.
+
+        private static (RapportViewModel vm, IDialogService dialogo) CrearViewModelConDialogo(bool respuestaUsuario)
+        {
+            var configuracion = A.Fake<IConfiguracion>();
+            A.CallTo(() => configuracion.leerParametro(A<string>._, A<string>._)).Returns(Task.FromResult("NV"));
+            var dialogo = A.Fake<IDialogService>();
+            A.CallTo(() => dialogo.ShowDialog(A<string>._, A<IDialogParameters>._, A<System.Action<IDialogResult>>._))
+                .Invokes((string nombre, IDialogParameters parametros, System.Action<IDialogResult> callback) =>
+                {
+                    var resultado = A.Fake<IDialogResult>();
+                    A.CallTo(() => resultado.Result).Returns(respuestaUsuario ? ButtonResult.OK : ButtonResult.Cancel);
+                    callback?.Invoke(resultado);
+                });
+            var vm = new RapportViewModel(configuracion, A.Fake<IRapportService>(), A.Fake<IRegionManager>(),
+                dialogo, A.Fake<IEventAggregator>());
+            return (vm, dialogo);
+        }
+
+        [TestMethod]
+        public void EmpleadosSinRellenar_ElVendedorNoConfirma_NoSeGuarda()
+        {
+            var (vm, dialogo) = CrearViewModelConDialogo(respuestaUsuario: false);
+            vm.rapport = new SeguimientoClienteDTO();
+            vm.ClienteCompleto = new ClienteDTO { cliente = "15191", preguntarEmpleados = true, empleados = null };
+
+            Assert.IsFalse(vm.ConfirmarEmpleadosSinRellenar());
+            A.CallTo(() => dialogo.ShowDialog("ConfirmationDialog", A<IDialogParameters>._, A<System.Action<IDialogResult>>._)).MustHaveHappenedOnceExactly();
+        }
+
+        [TestMethod]
+        public void EmpleadosSinRellenar_ElVendedorConfirmaQueNoLoSabe_SeGuarda()
+        {
+            var (vm, _) = CrearViewModelConDialogo(respuestaUsuario: true);
+            vm.rapport = new SeguimientoClienteDTO();
+            vm.ClienteCompleto = new ClienteDTO { cliente = "15191", preguntarEmpleados = true, empleados = null };
+
+            Assert.IsTrue(vm.ConfirmarEmpleadosSinRellenar());
+            Assert.IsNull(vm.rapport.Empleados, "Viaja null: la API no toca la ficha");
+        }
+
+        [TestMethod]
+        public void EmpleadosRellenados_OSinCombo_NoSePregunta()
+        {
+            var (conValor, dialogo1) = CrearViewModelConDialogo(respuestaUsuario: false);
+            conValor.rapport = new SeguimientoClienteDTO { Empleados = 0 }; // «Sin empleados» también cuenta
+            conValor.ClienteCompleto = new ClienteDTO { cliente = "15191", preguntarEmpleados = true };
+            Assert.IsTrue(conValor.ConfirmarEmpleadosSinRellenar());
+            A.CallTo(() => dialogo1.ShowDialog(A<string>._, A<IDialogParameters>._, A<System.Action<IDialogResult>>._)).MustNotHaveHappened();
+
+            var (sinCombo, dialogo2) = CrearViewModelConDialogo(respuestaUsuario: false);
+            sinCombo.rapport = new SeguimientoClienteDTO();
+            sinCombo.ClienteCompleto = new ClienteDTO { cliente = "1", codigoPostal = "08001", preguntarEmpleados = false };
+            Assert.IsTrue(sinCombo.ConfirmarEmpleadosSinRellenar());
+            A.CallTo(() => dialogo2.ShowDialog(A<string>._, A<IDialogParameters>._, A<System.Action<IDialogResult>>._)).MustNotHaveHappened();
+        }
+
         [TestMethod]
         public void EmpleadosCombo_SoloSeEnsenaSiLaApiLoPide()
         {

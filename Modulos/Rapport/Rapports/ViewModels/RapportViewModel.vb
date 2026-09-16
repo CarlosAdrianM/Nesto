@@ -292,8 +292,34 @@ Public Class RapportViewModel
     Private Function CanGuardarCambios(arg As Object) As Boolean
         Return Not _guardandoRapport AndAlso Not IsNothing(rapport) AndAlso (rapport.Usuario.ToLower = configuracion.usuario.ToLower OrElse configuracion.UsuarioEnGrupo(Constantes.GruposSeguridad.DIRECCION))
     End Function
+    ''' <summary>
+    ''' Nesto#469 (NestoAPI#464, Carlos 16/09/26): desde el deploy nadie rellenaba los empleados (368
+    ''' rapports de Madrid, ninguno con el dato): la combo está, pero el vendedor no se fija. Si se le
+    ''' pregunta (EstaVisibleEmpleados) y la deja vacía, se le dice y tiene que confirmar que no lo
+    ''' rellena porque no lo sabe; si no confirma, no se guarda y vuelve al formulario. Con valor
+    ''' (incluido «Sin empleados» = 0) o sin combo, no se pregunta. Devuelve True si se puede guardar.
+    ''' </summary>
+    Public Function ConfirmarEmpleadosSinRellenar() As Boolean
+        If rapport Is Nothing OrElse Not EstaVisibleEmpleados OrElse rapport.Empleados.HasValue Then
+            Return True
+        End If
+        Dim continuar As Boolean = False
+        Dim p As New DialogParameters From {
+            {"message", "No has indicado los empleados del centro." & vbCrLf & "¿Confirmas que no lo rellenas porque no lo sabes?"}
+        }
+        dialogService.ShowDialog("ConfirmationDialog", p, Sub(r)
+                                                              If r.Result = ButtonResult.OK Then
+                                                                  continuar = True
+                                                              End If
+                                                          End Sub)
+        Return continuar
+    End Function
+
     Private Async Sub OnGuardarCambios(arg As Object)
         If _guardandoRapport Then
+            Return
+        End If
+        If Not ConfirmarEmpleadosSinRellenar() Then
             Return
         End If
         If Not EstaVisibleTipoCentro Then
