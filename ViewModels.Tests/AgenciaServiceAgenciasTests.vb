@@ -4,6 +4,7 @@ Imports FakeItEasy
 Imports Microsoft.VisualStudio.TestTools.UnitTesting
 Imports Nesto.Infrastructure.Models
 Imports Nesto.Infrastructure.Services
+Imports Nesto.Models
 Imports Nesto.ViewModels
 
 ''' <summary>
@@ -212,6 +213,34 @@ Public Class AgenciaServiceAgenciasTests
         Dim ruta = AgenciaService.RutaEnvioEnCursoPorClienteYDireccion(Nothing, Nothing, Nothing)
 
         Assert.AreEqual("EnviosAgencias/EnCursoPorClienteYDireccion?cliente=&contacto=&direccion=", ruta)
+    End Sub
+
+    ' Nesto#340 (Agencias A3): EnviarCorreoConFacturaDelPedido ya no consulta LinPedidoVta por EF: lee el
+    ' pedido de GET api/PedidosVenta y toma la primera línea con Factura (pedidos parciales).
+
+    <TestMethod()>
+    Public Sub NumeroFacturaDelPedido_PrimeraLineaConFactura_IgnorandoLasNoFacturadas()
+        Dim pedido As New PedidoVentaDTO With {.empresa = "1", .numero = 1}
+        pedido.Lineas.Add(New LineaPedidoVentaDTO With {.Factura = Nothing})
+        pedido.Lineas.Add(New LineaPedidoVentaDTO With {.Factura = "  "})
+        pedido.Lineas.Add(New LineaPedidoVentaDTO With {.Factura = "NV2600123  "})
+        pedido.Lineas.Add(New LineaPedidoVentaDTO With {.Factura = "NV2600999"})
+
+        Assert.AreEqual("NV2600123", AgenciaService.NumeroFacturaDelPedido(pedido))
+    End Sub
+
+    <TestMethod()>
+    Public Sub NumeroFacturaDelPedido_SinLineasFacturadas_Nothing()
+        Dim pedido As New PedidoVentaDTO With {.empresa = "1", .numero = 1}
+        pedido.Lineas.Add(New LineaPedidoVentaDTO With {.Factura = Nothing})
+
+        Assert.IsNull(AgenciaService.NumeroFacturaDelPedido(pedido))
+        Assert.IsNull(AgenciaService.NumeroFacturaDelPedido(Nothing))
+    End Sub
+
+    <TestMethod()>
+    Public Sub RutaPedidoVenta_LlevaLosNombresQueEsperaElEndpoint()
+        Assert.AreEqual("PedidosVenta?empresa=1&numero=925123", AgenciaService.RutaPedidoVenta("1  ", 925123))
     End Sub
 
     ' Nesto#468: la pestaña Retrasados lee GET api/EnviosAgencias/Retrasados (NestoAPI#173). Los

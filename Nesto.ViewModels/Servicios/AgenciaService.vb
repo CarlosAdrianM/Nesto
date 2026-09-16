@@ -255,6 +255,38 @@ Public Class AgenciaService
         Return LeerPedido($"PedidosVenta/ParaAgencia?empresa={Uri.EscapeDataString(If(empresa, String.Empty))}&textoCliente={Uri.EscapeDataString(texto)}")
     End Function
 
+    ''' <summary>
+    ''' Nesto#340 (Agencias A3): nº de factura de la primera línea facturada del pedido, o Nothing.
+    ''' Lee el pedido entero de GET api/PedidosVenta (el mismo DTO que DetallePedido) y mira
+    ''' LineaPedidoVentaDTO.Factura; en pedidos parciales puede haber líneas sin facturar todavía.
+    ''' </summary>
+    Friend Shared Function NumeroFacturaDelPedido(pedido As PedidoVentaDTO) As String
+        Return pedido?.Lineas?.
+            Select(Function(l) l.Factura?.Trim()).
+            FirstOrDefault(Function(f) Not String.IsNullOrWhiteSpace(f))
+    End Function
+
+    Friend Shared Function RutaPedidoVenta(empresa As String, numeroPedido As Integer) As String
+        Return $"PedidosVenta?empresa={Uri.EscapeDataString(If(empresa, "").Trim())}&numero={numeroPedido}"
+    End Function
+
+    Private Async Function LeerNumeroFacturaDelPedido(empresa As String, numeroPedido As Integer) As Task(Of String)
+        Using client As HttpClient = _clienteApiFactory.Crear()
+            If Not Await _servicioAutenticacion.ConfigurarAutorizacion(client) Then
+                Throw New UnauthorizedAccessException("No se pudo configurar la autorización contra NestoAPI.")
+            End If
+            Dim response As HttpResponseMessage = Await client.GetAsync(RutaPedidoVenta(empresa, numeroPedido))
+            If response.StatusCode = Net.HttpStatusCode.NotFound Then
+                Return Nothing
+            End If
+            Dim cuerpo As String = Await response.Content.ReadAsStringAsync()
+            If Not response.IsSuccessStatusCode Then
+                Throw New Exception($"No se pudo cargar el pedido {numeroPedido} ({CInt(response.StatusCode)}): {cuerpo}")
+            End If
+            Return NumeroFacturaDelPedido(JsonConvert.DeserializeObject(Of PedidoVentaDTO)(cuerpo))
+        End Using
+    End Function
+
     Private Function LeerPedido(ruta As String) As PedidoAgenciaModel
         Return Task.Run(Async Function() As Task(Of PedidoAgenciaModel)
                             Using client As HttpClient = _clienteApiFactory.Crear()
@@ -1033,12 +1065,9 @@ Public Class AgenciaService
         ' Nesto#359: Canteras necesita la factura adjunta para el DUA. Buscamos la primera
         ' línea del pedido con Nº_Factura informado (en pedidos parciales puede haber líneas
         ' sin facturar todavía); si no hay ninguna, abortamos sin enviar.
-        Dim numeroFactura As String = Nothing
-        Using contexto = New NestoEntities
-            numeroFactura = (From l In contexto.LinPedidoVta
-                             Where l.Empresa = empresa AndAlso l.Número = numeroPedido AndAlso l.Nº_Factura <> Nothing AndAlso l.Nº_Factura <> ""
-                             Select l.Nº_Factura).FirstOrDefault()
-        End Using
+        ' Nesto#340 (Agencias A3, 16/09/26): la factura sale del pedido de la API (GET api/PedidosVenta),
+        ' primera línea con Factura informada, en vez de una consulta EF sobre LinPedidoVta.
+        Dim numeroFactura As String = Await LeerNumeroFacturaDelPedido(empresa, numeroPedido)
 
         If String.IsNullOrWhiteSpace(numeroFactura) Then
             Return (False, $"El pedido {numeroPedido} no tiene factura asociada todavía. Factura primero el pedido y vuelve a tramitar el envío.")
