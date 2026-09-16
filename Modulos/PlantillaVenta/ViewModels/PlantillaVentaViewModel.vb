@@ -936,7 +936,8 @@ Public Class PlantillaVentaViewModel
                 Estado?.PlazosPago,
                 Estado?.Ccc,
                 Estado?.PeriodoFacturacion,
-                False).ConfigureAwait(True)
+                False,
+                modoServicio:=ModoServicio).ConfigureAwait(True) ' NestoAPI#482: el mensaje nombra el modo elegido
 
             If Not respuesta.PuedeDesmarcar Then
                 ' Revertir el cambio - volver a marcar ServirJunto

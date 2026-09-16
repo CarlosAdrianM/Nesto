@@ -66,7 +66,8 @@ Public Class DetallePedidoBorrarLineasServirJuntoTests
             A(Of String).Ignored,
             A(Of Nullable(Of Boolean)).Ignored,
             A(Of List(Of LineaPortesServirJuntoDTO)).Ignored,
-            A(Of Nullable(Of Integer)).Ignored))
+            A(Of Nullable(Of Integer)).Ignored,
+            A(Of Nullable(Of Byte)).Ignored))
         llamada.Invokes(Sub(c As IFakeObjectCall) lineasEnviadas.Add(c.GetArgument(Of List(Of ProductoBonificadoConCantidadRequest))(2))) _
                .ReturnsNextFromSequence(respuestas.Select(Function(r) Task.FromResult(r)).ToArray())
     End Sub

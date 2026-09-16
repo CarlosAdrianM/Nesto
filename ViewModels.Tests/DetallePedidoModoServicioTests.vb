@@ -82,7 +82,8 @@ Public Class DetallePedidoModoServicioTests
             A(Of String).Ignored,
             A(Of Nullable(Of Boolean)).Ignored,
             A(Of List(Of LineaPortesServirJuntoDTO)).Ignored,
-            A(Of Nullable(Of Integer)).Ignored))
+            A(Of Nullable(Of Integer)).Ignored,
+            A(Of Nullable(Of Byte)).Ignored))
     End Function
 
     <TestMethod()>

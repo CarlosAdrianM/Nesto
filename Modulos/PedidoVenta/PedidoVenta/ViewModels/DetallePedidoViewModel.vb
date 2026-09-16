@@ -2524,7 +2524,8 @@ Public Class DetallePedidoViewModel
             pedido.periodoFacturacion,
             pedido.notaEntrega,
             lineasParaPortes,
-            pedido.numero)
+            pedido.numero,
+            pedido.ModoServicio) ' NestoAPI#482: el mensaje nombra el modo elegido
     End Function
 
     ''' <summary>

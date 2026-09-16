@@ -26,6 +26,7 @@ namespace Nesto.Infrastructure.Services.ServirJunto
             string periodoFacturacion = null,
             bool? notaEntrega = null,
             List<LineaPortesServirJuntoDTO> lineasParaPortes = null,
-            int? pedido = null);
+            int? pedido = null,
+            byte? modoServicio = null);
     }
 }

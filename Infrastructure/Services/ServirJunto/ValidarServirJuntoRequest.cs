@@ -5,6 +5,8 @@ namespace Nesto.Infrastructure.Services.ServirJunto
     public class ValidarServirJuntoRequest
     {
         public string Almacen { get; set; }
+        // NestoAPI#482: modo al que se quiere pasar el pedido, para que el servidor lo nombre en el mensaje.
+        public byte? ModoServicio { get; set; }
 
         // NestoAPI#262: número del pedido que se valida, para que el backend excluya sus propias líneas
         // del cálculo de stock disponible (si no, una línea del pedido cuenta su reserva contra sí misma

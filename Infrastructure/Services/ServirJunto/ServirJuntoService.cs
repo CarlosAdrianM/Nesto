@@ -35,7 +35,8 @@ namespace Nesto.Infrastructure.Services.ServirJunto
             string periodoFacturacion = null,
             bool? notaEntrega = null,
             List<LineaPortesServirJuntoDTO> lineasParaPortes = null,
-            int? pedido = null)
+            int? pedido = null,
+            byte? modoServicio = null)
         {
             using (var client = new HttpClient())
             {
@@ -50,6 +51,7 @@ namespace Nesto.Infrastructure.Services.ServirJunto
                     var request = new ValidarServirJuntoRequest
                     {
                         Almacen = almacen,
+                        ModoServicio = modoServicio,
                         Pedido = pedido,
                         ProductosBonificadosConCantidad = productosBonificados,
                         LineasPedido = lineasPedido,
