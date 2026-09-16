@@ -2837,6 +2837,10 @@ Public Class PlantillaVentaViewModel
                 End Try
             End If
 
+            ' Nesto#474: si el pedido nace de un borrador cargado, preguntar si se borra (nunca en silencio:
+            ' un borrador puede ser una base que se reutiliza cada semana).
+            OfrecerBorrarBorradorDeOrigen(numPedido, _borradorEnRestauracion)
+
             ' Issue #286: Limpiar borrador en restauración ya que el pedido se creó exitosamente
             _borradorEnRestauracion = Nothing
             _borradorRestauradoEnFormasVenta = False
@@ -3904,6 +3908,46 @@ Public Class PlantillaVentaViewModel
             Dim unused = SetProperty(_eliminarBorradorCommand, value)
         End Set
     End Property
+
+    ''' <summary>
+    ''' Nesto#474: al crear bien un pedido que partía de un borrador CARGADO DEL DISCO, se ofrece
+    ''' borrarlo para que no se acumulen. Solo si el borrador existe en disco: los borradores en
+    ''' memoria de «modificar con plantilla» o de un JSON pegado (Nesto#397) no tienen fichero, y los
+    ''' que se guardan solos al fallar la creación (#286) no pasan por aquí porque el pedido no se creó.
+    ''' Devuelve True si se ha borrado.
+    ''' </summary>
+    Friend Function OfrecerBorrarBorradorDeOrigen(numPedido As String, borrador As BorradorPlantillaVenta) As Boolean
+        If borrador Is Nothing OrElse String.IsNullOrEmpty(borrador.Id) Then
+            Return False
+        End If
+
+        Try
+            Dim enDisco = servicioBorradores.ObtenerBorradores()?.FirstOrDefault(Function(b) b.Id = borrador.Id)
+            If enDisco Is Nothing Then
+                Return False
+            End If
+
+            Dim mensaje = $"El pedido {numPedido} se ha creado a partir del borrador «{enDisco.Descripcion}».{vbCrLf}¿Quieres borrar el borrador?"
+            If Not dialogService.ShowConfirmationAnswer("Borrador", mensaje) Then
+                Return False
+            End If
+
+            If Not servicioBorradores.EliminarBorrador(borrador.Id) Then
+                Return False
+            End If
+            Dim enLista = ListaBorradores?.FirstOrDefault(Function(b) b.Id = borrador.Id)
+            If enLista IsNot Nothing Then
+                ListaBorradores.Remove(enLista)
+            End If
+            RaisePropertyChanged(NameOf(HayBorradores))
+            RaisePropertyChanged(NameOf(NumeroBorradores))
+            Return True
+        Catch ex As Exception
+            ' El pedido ya está creado: un fallo al borrar el borrador no debe estorbar.
+            dialogService.ShowError($"El pedido se creó, pero no se pudo borrar el borrador: {ex.Message}")
+            Return False
+        End Try
+    End Function
 
     Private Sub OnEliminarBorrador(borrador As BorradorPlantillaVenta)
         If borrador Is Nothing Then
